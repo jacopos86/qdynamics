@@ -16,7 +16,10 @@ import argparse
 import json
 import math
 import os
+import shlex
 import sys
+import textwrap
+import time
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -39,6 +42,15 @@ if str(ROOT) not in sys.path:
 
 from pydephasing.quantum.hartree_fock_reference_state import hartree_fock_statevector
 from pydephasing.quantum.hubbard_latex_python_pairs import build_hubbard_hamiltonian
+
+
+def _ai_log(event: str, **fields: Any) -> None:
+    payload = {
+        "event": str(event),
+        "ts_utc": datetime.now(timezone.utc).isoformat(),
+        **fields,
+    }
+    print(f"AI_LOG {json.dumps(payload, sort_keys=True, default=str)}", flush=True)
 
 
 PAULI_MATS = {
@@ -242,6 +254,16 @@ def _run_hardcoded_vqe(
     seed: int,
     maxiter: int,
 ) -> tuple[dict[str, Any], np.ndarray]:
+    t0 = time.perf_counter()
+    _ai_log(
+        "hardcoded_vqe_start",
+        L=int(num_sites),
+        ordering=str(ordering),
+        reps=int(reps),
+        restarts=int(restarts),
+        maxiter=int(maxiter),
+        seed=int(seed),
+    )
     ns = _load_hardcoded_vqe_namespace()
     num_particles = tuple(ns["half_filled_num_particles"](int(num_sites)))
     hf_bits = str(ns["hartree_fock_bitstring"](n_sites=int(num_sites), num_particles=num_particles, indexing=ordering))
@@ -286,6 +308,16 @@ def _run_hardcoded_vqe(
         "optimal_point": [float(x) for x in theta.tolist()],
         "hf_bitstring_qn_to_q0": hf_bits,
     }
+    _ai_log(
+        "hardcoded_vqe_done",
+        L=int(num_sites),
+        success=True,
+        energy=float(result.energy),
+        best_restart=int(getattr(result, "best_restart", 0)),
+        nfev=int(getattr(result, "nfev", 0)),
+        nit=int(getattr(result, "nit", 0)),
+        elapsed_sec=round(time.perf_counter() - t0, 6),
+    )
     return payload, psi_vqe
 
 
@@ -302,6 +334,25 @@ def _run_qpe_adapter_qiskit(
     TODO: replace this adapter with a fully hardcoded QPE implementation.
     """
 
+    t0 = time.perf_counter()
+    _ai_log(
+        "hardcoded_qpe_start",
+        eval_qubits=int(eval_qubits),
+        shots=int(shots),
+        seed=int(seed),
+        num_qubits=int(round(math.log2(psi_init.size))),
+    )
+
+    def _finish(payload: dict[str, Any]) -> dict[str, Any]:
+        _ai_log(
+            "hardcoded_qpe_done",
+            success=bool(payload.get("success", False)),
+            method=str(payload.get("method", "")),
+            energy_estimate=payload.get("energy_estimate"),
+            elapsed_sec=round(time.perf_counter() - t0, 6),
+        )
+        return payload
+
     # Isolated Qiskit-only section for temporary QPE support.
     try:
         from qiskit import QuantumCircuit
@@ -312,13 +363,13 @@ def _run_qpe_adapter_qiskit(
         from qiskit_algorithms import PhaseEstimation
         from qiskit_algorithms.minimum_eigensolvers import NumPyMinimumEigensolver
     except Exception as exc:
-        return {
+        return _finish({
             "success": False,
             "method": "qiskit_import_failed",
             "energy_estimate": None,
             "phase": None,
             "error": str(exc),
-        }
+        })
 
     terms_ixyz = [(_to_ixyz(lbl), complex(coeff)) for lbl, coeff in coeff_map_exyz.items() if abs(coeff) > 1e-12]
     if not terms_ixyz:
@@ -334,7 +385,7 @@ def _run_qpe_adapter_qiskit(
     if h_op.num_qubits >= 8:
         np_solver = NumPyMinimumEigensolver()
         res = np_solver.compute_minimum_eigenvalue(h_op)
-        return {
+        return _finish({
             "success": True,
             "method": "qiskit_numpy_minimum_eigensolver_fastpath_large_n",
             "energy_estimate": float(np.real(res.eigenvalue)),
@@ -343,7 +394,7 @@ def _run_qpe_adapter_qiskit(
             "evolution_time": evo_time,
             "num_evaluation_qubits": int(eval_qubits),
             "shots": int(shots),
-        }
+        })
 
     try:
         prep = QuantumCircuit(h_op.num_qubits)
@@ -368,7 +419,7 @@ def _run_qpe_adapter_qiskit(
         phase_shift = phase if phase <= 0.5 else (phase - 1.0)
         energy = float(-2.0 * bound * phase_shift)
 
-        return {
+        return _finish({
             "success": True,
             "method": "qiskit_phase_estimation",
             "energy_estimate": energy,
@@ -377,13 +428,13 @@ def _run_qpe_adapter_qiskit(
             "evolution_time": evo_time,
             "num_evaluation_qubits": int(eval_qubits),
             "shots": int(shots),
-        }
+        })
     except Exception as exc:
         try:
             np_solver = NumPyMinimumEigensolver()
             res = np_solver.compute_minimum_eigenvalue(h_op)
             energy = float(np.real(res.eigenvalue))
-            return {
+            return _finish({
                 "success": True,
                 "method": "qiskit_numpy_minimum_eigensolver_fallback",
                 "energy_estimate": energy,
@@ -393,9 +444,9 @@ def _run_qpe_adapter_qiskit(
                 "num_evaluation_qubits": int(eval_qubits),
                 "shots": int(shots),
                 "warning": str(exc),
-            }
+            })
         except Exception as fallback_exc:
-            return {
+            return _finish({
                 "success": False,
                 "method": "qpe_failed",
                 "energy_estimate": None,
@@ -406,7 +457,7 @@ def _run_qpe_adapter_qiskit(
                 "shots": int(shots),
                 "error": str(exc),
                 "fallback_error": str(fallback_exc),
-            }
+            })
 
 
 def _reference_terms_for_case(
@@ -512,11 +563,22 @@ def _simulate_trajectory(
 
     compiled = {lbl: _compile_pauli_action(lbl, nq) for lbl in ordered_labels_exyz}
     times = np.linspace(0.0, float(t_final), int(num_times))
+    n_times = int(times.size)
+    stride = max(1, n_times // 20)
+    t0 = time.perf_counter()
+    _ai_log(
+        "hardcoded_trajectory_start",
+        L=int(num_sites),
+        num_times=n_times,
+        t_final=float(t_final),
+        trotter_steps=int(trotter_steps),
+        suzuki_order=int(suzuki_order),
+    )
 
     rows: list[dict[str, float]] = []
     exact_states: list[np.ndarray] = []
 
-    for time_val in times:
+    for idx, time_val in enumerate(times):
         t = float(time_val)
         psi_exact = evecs @ (np.exp(-1j * evals * t) * (evecs_dag @ psi0))
         psi_exact = _normalize_state(psi_exact)
@@ -549,11 +611,51 @@ def _simulate_trajectory(
             }
         )
         exact_states.append(psi_exact)
+        if idx == 0 or idx == n_times - 1 or ((idx + 1) % stride == 0):
+            _ai_log(
+                "hardcoded_trajectory_progress",
+                step=int(idx + 1),
+                total_steps=n_times,
+                frac=round(float((idx + 1) / n_times), 6),
+                time=float(t),
+                fidelity=float(fidelity),
+                elapsed_sec=round(time.perf_counter() - t0, 6),
+            )
+
+    _ai_log(
+        "hardcoded_trajectory_done",
+        total_steps=n_times,
+        elapsed_sec=round(time.perf_counter() - t0, 6),
+        final_fidelity=float(rows[-1]["fidelity"]) if rows else None,
+        final_energy_trotter=float(rows[-1]["energy_trotter"]) if rows else None,
+    )
 
     return rows, exact_states
 
 
-def _write_pipeline_pdf(pdf_path: Path, payload: dict[str, Any]) -> None:
+def _current_command_string() -> str:
+    return " ".join(shlex.quote(x) for x in [sys.executable, *sys.argv])
+
+
+def _render_command_page(pdf: PdfPages, command: str) -> None:
+    wrapped = textwrap.wrap(command, width=112, subsequent_indent="  ")
+    lines = [
+        "Executed Command",
+        "",
+        "Reference: pipelines/PIPELINE_RUN_GUIDE.md",
+        "Script: pipelines/hardcoded_hubbard_pipeline.py",
+        "",
+        *wrapped,
+    ]
+    fig = plt.figure(figsize=(11.0, 8.5))
+    ax = fig.add_subplot(111)
+    ax.axis("off")
+    ax.text(0.03, 0.97, "\n".join(lines), va="top", ha="left", family="monospace", fontsize=10)
+    pdf.savefig(fig)
+    plt.close(fig)
+
+
+def _write_pipeline_pdf(pdf_path: Path, payload: dict[str, Any], run_command: str) -> None:
     traj = payload["trajectory"]
     times = np.array([float(r["time"]) for r in traj], dtype=float)
     markevery = max(1, times.size // 25)
@@ -575,6 +677,8 @@ def _write_pipeline_pdf(pdf_path: Path, payload: dict[str, Any]) -> None:
     vqe_val = float(vqe_e) if vqe_e is not None else np.nan
 
     with PdfPages(str(pdf_path)) as pdf:
+        _render_command_page(pdf, run_command)
+
         fig, axes = plt.subplots(2, 2, figsize=(11.0, 8.5), sharex=True)
         ax00, ax01 = axes[0, 0], axes[0, 1]
         ax10, ax11 = axes[1, 0], axes[1, 1]
@@ -628,10 +732,11 @@ def _write_pipeline_pdf(pdf_path: Path, payload: dict[str, Any]) -> None:
         vx1.grid(axis="y", alpha=0.25)
 
         figv.suptitle(
-            "VQE energy is reported explicitly and is not inferred from Trotter t=0.",
-            fontsize=11,
+            "When initial_state_source=vqe, Trotter E(t=0) = ⟨ψ_vqe|H|ψ_vqe⟩ = VQE energy.\n"
+            "VQE energy ≠ exact ground state energy unless VQE fully converged.",
+            fontsize=10,
         )
-        figv.tight_layout(rect=(0.0, 0.03, 1.0, 0.93))
+        figv.tight_layout(rect=(0.0, 0.03, 1.0, 0.91))
         pdf.savefig(figv)
         plt.close(figv)
 
@@ -678,7 +783,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--qpe-seed", type=int, default=11)
     parser.add_argument("--skip-qpe", action="store_true", help="Skip QPE execution and mark qpe payload as skipped.")
 
-    parser.add_argument("--initial-state-source", choices=["exact", "vqe", "hf"], default="exact")
+    parser.add_argument("--initial-state-source", choices=["exact", "vqe", "hf"], default="vqe")
 
     parser.add_argument("--output-json", type=Path, default=None)
     parser.add_argument("--output-pdf", type=Path, default=None)
@@ -688,6 +793,8 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> None:
     args = parse_args()
+    _ai_log("hardcoded_main_start", settings=vars(args))
+    run_command = _current_command_string()
     artifacts_dir = ROOT / "artifacts"
     artifacts_dir.mkdir(parents=True, exist_ok=True)
 
@@ -705,6 +812,7 @@ def main() -> None:
     )
 
     native_order, coeff_map_exyz = _collect_hardcoded_terms_exyz(h_poly)
+    _ai_log("hardcoded_hamiltonian_built", L=int(args.L), num_terms=int(len(coeff_map_exyz)))
     if args.term_order == "native":
         ordered_labels_exyz = list(native_order)
     else:
@@ -728,6 +836,7 @@ def main() -> None:
             maxiter=int(args.vqe_maxiter),
         )
     except Exception as exc:
+        _ai_log("hardcoded_vqe_failed", L=int(args.L), error=str(exc))
         vqe_payload = {
             "success": False,
             "method": "hardcoded_uccsd_notebook_statevector",
@@ -746,12 +855,15 @@ def main() -> None:
 
     if args.initial_state_source == "vqe" and bool(vqe_payload.get("success", False)):
         psi0 = psi_vqe
+        _ai_log("hardcoded_initial_state_selected", source="vqe")
     elif args.initial_state_source == "vqe":
         raise RuntimeError("Requested --initial-state-source vqe but hardcoded VQE statevector is unavailable.")
     elif args.initial_state_source == "hf":
         psi0 = psi_hf
+        _ai_log("hardcoded_initial_state_selected", source="hf")
     else:
         psi0 = psi_exact_ground
+        _ai_log("hardcoded_initial_state_selected", source="exact")
 
     if args.skip_qpe:
         qpe_payload = {
@@ -764,6 +876,7 @@ def main() -> None:
             "num_evaluation_qubits": int(args.qpe_eval_qubits),
             "shots": int(args.qpe_shots),
         }
+        _ai_log("hardcoded_qpe_skipped", eval_qubits=int(args.qpe_eval_qubits), shots=int(args.qpe_shots))
     else:
         qpe_payload = _run_qpe_adapter_qiskit(
             coeff_map_exyz=coeff_map_exyz,
@@ -845,8 +958,16 @@ def main() -> None:
 
     output_json.write_text(json.dumps(payload, indent=2), encoding="utf-8")
     if not args.skip_pdf:
-        _write_pipeline_pdf(output_pdf, payload)
+        _write_pipeline_pdf(output_pdf, payload, run_command)
 
+    _ai_log(
+        "hardcoded_main_done",
+        L=int(args.L),
+        output_json=str(output_json),
+        output_pdf=(str(output_pdf) if not args.skip_pdf else None),
+        vqe_energy=vqe_payload.get("energy"),
+        qpe_energy=qpe_payload.get("energy_estimate"),
+    )
     print(f"Wrote JSON: {output_json}")
     if not args.skip_pdf:
         print(f"Wrote PDF:  {output_pdf}")

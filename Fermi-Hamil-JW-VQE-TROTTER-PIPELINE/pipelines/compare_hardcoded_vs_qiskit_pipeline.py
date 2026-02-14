@@ -16,10 +16,12 @@ import json
 import math
 import os
 import pprint
+import shlex
 import shutil
 import subprocess
 import sys
 import textwrap
+import time
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -65,6 +67,15 @@ class RunArtifacts:
     qiskit_pdf: Path
     compare_metrics_json: Path
     compare_pdf: Path
+
+
+def _ai_log(event: str, **fields: Any) -> None:
+    payload = {
+        "event": str(event),
+        "ts_utc": datetime.now(timezone.utc).isoformat(),
+        **fields,
+    }
+    print(f"AI_LOG {json.dumps(payload, sort_keys=True, default=str)}", flush=True)
 
 
 def _first_crossing(times: np.ndarray, vals: np.ndarray, thr: float) -> float | None:
@@ -161,6 +172,22 @@ def _render_text_page(
 
     pdf.savefig(fig)
     plt.close(fig)
+
+
+def _current_command_string() -> str:
+    return " ".join(shlex.quote(x) for x in [sys.executable, *sys.argv])
+
+
+def _render_command_page(pdf: "PdfPages", command: str) -> None:
+    lines = [
+        "Executed Command",
+        "",
+        "Reference: pipelines/PIPELINE_RUN_GUIDE.md",
+        "Script: pipelines/compare_hardcoded_vs_qiskit_pipeline.py",
+        "",
+        command,
+    ]
+    _render_text_page(pdf, lines, fontsize=10, line_spacing=0.03, max_line_width=110)
 
 
 def _compare_payloads(hardcoded: dict[str, Any], qiskit: dict[str, Any]) -> dict[str, Any]:
@@ -308,6 +335,29 @@ def _add_info_box(
     )
 
 
+def _render_info_page(pdf: "PdfPages", info_text: str, title: str = "") -> None:
+    """Render the run-settings / metrics info box on its own dedicated page.
+
+    This avoids overlapping plot content that occurs when the info box is
+    placed on the same figure as subplots.
+    """
+    fig = plt.figure(figsize=(11.0, 8.5))
+    ax = fig.add_subplot(111)
+    ax.axis("off")
+    if title:
+        ax.set_title(title, fontsize=14, pad=20)
+    ax.text(
+        0.05, 0.92, info_text,
+        transform=ax.transAxes,
+        va="top", ha="left",
+        fontsize=9,
+        family="monospace",
+        bbox=_INFO_BBOX,
+    )
+    pdf.savefig(fig)
+    plt.close(fig)
+
+
 def _autozoom(ax: Any, *arrays: np.ndarray, pad_frac: float = 0.05) -> None:
     """Set y-limits tightly around the data with *pad_frac* padding."""
     combined = np.concatenate([a for a in arrays if a.size > 0])
@@ -324,6 +374,7 @@ def _write_comparison_pdf(
     hardcoded: dict[str, Any],
     qiskit: dict[str, Any],
     metrics: dict[str, Any],
+    run_command: str,
 ) -> None:
     h_rows = hardcoded["trajectory"]
     q_rows = qiskit["trajectory"]
@@ -343,7 +394,11 @@ def _write_comparison_pdf(
     qk_vqe_val = float(qk_vqe) if qk_vqe is not None else np.nan
 
     with PdfPages(str(pdf_path)) as pdf:
+        _render_command_page(pdf, run_command)
         _info_text = _build_info_box_text(hardcoded.get("settings", {}), metrics)
+
+        # --- Dedicated info page (no overlap with plots) ---
+        _render_info_page(pdf, _info_text, title=f"L={L} Run Settings & Metrics Summary")
 
         # --- Page A: Fidelity + Energy (1x2) ---
         figA, (axF, axE) = plt.subplots(1, 2, figsize=(11.0, 8.5), sharex=True)
@@ -368,7 +423,6 @@ def _write_comparison_pdf(
 
         figA.suptitle(f"Pipeline Comparison L={L}: Hardcoded vs Qiskit (Fidelity & Energy)", fontsize=13)
         figA.tight_layout(rect=(0.0, 0.02, 1.0, 0.95))
-        _add_info_box(figA, _info_text)
         pdf.savefig(figA)
         plt.close(figA)
 
@@ -401,7 +455,6 @@ def _write_comparison_pdf(
 
         figB.suptitle(f"Pipeline Comparison L={L}: Occupations & Doublon (auto-zoomed)", fontsize=13)
         figB.tight_layout(rect=(0.0, 0.02, 1.0, 0.95))
-        _add_info_box(figB, _info_text)
         pdf.savefig(figB)
         plt.close(figB)
 
@@ -427,11 +480,11 @@ def _write_comparison_pdf(
         vx1.grid(axis="y", alpha=0.25)
 
         figv.suptitle(
-            "VQE is a separate quantity from the Trotter t=0 value; "
-            "do not infer VQE energy from trajectory plots.",
-            fontsize=11,
+            "When initial_state_source=vqe, Trotter E(t=0) = ⟨ψ_vqe|H|ψ_vqe⟩ = VQE energy.\n"
+            "VQE energy ≠ exact ground state energy unless VQE fully converged.",
+            fontsize=10,
         )
-        figv.tight_layout(rect=(0.0, 0.03, 1.0, 0.93))
+        figv.tight_layout(rect=(0.0, 0.03, 1.0, 0.91))
         pdf.savefig(figv)
         plt.close(figv)
 
@@ -468,7 +521,6 @@ def _write_comparison_pdf(
             ha="center", fontsize=8, style="italic",
         )
         fig2.tight_layout(rect=(0.0, 0.02, 1.0, 0.91))
-        _add_info_box(fig2, _info_text)
         pdf.savefig(fig2)
         plt.close(fig2)
 
@@ -501,6 +553,7 @@ def _write_bundle_pdf(
     overall_summary: dict[str, Any],
     isolation_check: dict[str, Any],
     include_per_l_pages: bool,
+    run_command: str,
 ) -> None:
     lvals = [L for L, _h, _q, _m in per_l_data]
     exact_global = np.array([float(h["ground_state"]["exact_energy"]) for _L, h, _q, _m in per_l_data], dtype=float)
@@ -534,6 +587,7 @@ def _write_bundle_pdf(
     has_qpe_data = bool(np.isfinite(hc_qpe).any() or np.isfinite(qk_qpe).any())
 
     with PdfPages(str(bundle_path)) as pdf:
+        _render_command_page(pdf, run_command)
         lines = [
             "Hardcoded vs Qiskit Pipeline Comparison Summary",
             "",
@@ -718,6 +772,9 @@ def _write_comparison_pages_into_pdf(
 
     _info_text = _build_info_box_text(hardcoded.get("settings", {}), metrics)
 
+    # --- Dedicated info page (no overlap with plots) ---
+    _render_info_page(pdf, _info_text, title=f"Bundle L={L}: Run Settings & Metrics Summary")
+
     # --- Page A: Fidelity + Energy (1x2) ---
     figA, (axF, axE) = plt.subplots(1, 2, figsize=(11.0, 8.5), sharex=True)
 
@@ -741,7 +798,6 @@ def _write_comparison_pages_into_pdf(
 
     figA.suptitle(f"Bundle Page: L={L} Fidelity & Energy", fontsize=14)
     figA.tight_layout(rect=(0.0, 0.02, 1.0, 0.95))
-    _add_info_box(figA, _info_text)
     pdf.savefig(figA)
     plt.close(figA)
 
@@ -774,7 +830,6 @@ def _write_comparison_pages_into_pdf(
 
     figB.suptitle(f"Bundle Page: L={L} Occupations & Doublon (auto-zoomed)", fontsize=13)
     figB.tight_layout(rect=(0.0, 0.02, 1.0, 0.95))
-    _add_info_box(figB, _info_text)
     pdf.savefig(figB)
     plt.close(figB)
 
@@ -800,11 +855,11 @@ def _write_comparison_pages_into_pdf(
     vx1.grid(axis="y", alpha=0.25)
 
     figv.suptitle(
-        "VQE is a separate quantity from the Trotter t=0 value; "
-        "do not infer VQE energy from trajectory plots.",
-        fontsize=11,
+        "When initial_state_source=vqe, Trotter E(t=0) = ⟨ψ_vqe|H|ψ_vqe⟩ = VQE energy.\n"
+        "VQE energy ≠ exact ground state energy unless VQE fully converged.",
+        fontsize=10,
     )
-    figv.tight_layout(rect=(0.0, 0.03, 1.0, 0.93))
+    figv.tight_layout(rect=(0.0, 0.03, 1.0, 0.91))
     pdf.savefig(figv)
     plt.close(figv)
 
@@ -841,7 +896,6 @@ def _write_comparison_pages_into_pdf(
         ha="center", fontsize=8, style="italic",
     )
     fig2.tight_layout(rect=(0.0, 0.02, 1.0, 0.91))
-    _add_info_box(fig2, _info_text)
     pdf.savefig(fig2)
     plt.close(fig2)
 
@@ -917,7 +971,17 @@ def _check_hardcoded_qiskit_import_isolation(path: Path) -> dict[str, Any]:
 
 
 def _run_command(cmd: list[str]) -> tuple[int, str, str]:
+    t0 = time.perf_counter()
+    _ai_log("compare_subprocess_start", cmd=cmd)
     proc = subprocess.run(cmd, cwd=str(ROOT), text=True, capture_output=True)
+    _ai_log(
+        "compare_subprocess_done",
+        cmd=cmd,
+        returncode=int(proc.returncode),
+        elapsed_sec=round(time.perf_counter() - t0, 6),
+        stdout_lines=int(len(proc.stdout.splitlines())),
+        stderr_lines=int(len(proc.stderr.splitlines())),
+    )
     return proc.returncode, proc.stdout, proc.stderr
 
 
@@ -938,19 +1002,19 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--boundary", choices=["periodic", "open"], default="periodic")
     parser.add_argument("--ordering", choices=["blocked", "interleaved"], default="blocked")
     parser.add_argument("--t-final", type=float, default=20.0)
-    parser.add_argument("--num-times", type=int, default=121)
+    parser.add_argument("--num-times", type=int, default=201)
     parser.add_argument("--suzuki-order", type=int, default=2)
-    parser.add_argument("--trotter-steps", type=int, default=32)
+    parser.add_argument("--trotter-steps", type=int, default=64)
 
-    parser.add_argument("--hardcoded-vqe-reps", type=int, default=1)
-    parser.add_argument("--hardcoded-vqe-restarts", type=int, default=1)
+    parser.add_argument("--hardcoded-vqe-reps", type=int, default=2)
+    parser.add_argument("--hardcoded-vqe-restarts", type=int, default=3)
     parser.add_argument("--hardcoded-vqe-seed", type=int, default=7)
-    parser.add_argument("--hardcoded-vqe-maxiter", type=int, default=40)
+    parser.add_argument("--hardcoded-vqe-maxiter", type=int, default=600)
 
     parser.add_argument("--qiskit-vqe-reps", type=int, default=2)
     parser.add_argument("--qiskit-vqe-restarts", type=int, default=3)
     parser.add_argument("--qiskit-vqe-seed", type=int, default=7)
-    parser.add_argument("--qiskit-vqe-maxiter", type=int, default=12)
+    parser.add_argument("--qiskit-vqe-maxiter", type=int, default=600)
 
     parser.add_argument("--qpe-eval-qubits", type=int, default=5)
     parser.add_argument("--qpe-shots", type=int, default=256)
@@ -965,16 +1029,20 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> None:
     args = parse_args()
+    _ai_log("compare_main_start", settings=vars(args))
+    run_command = _current_command_string()
     artifacts_dir = args.artifacts_dir
     artifacts_dir.mkdir(parents=True, exist_ok=True)
 
     l_values = [int(x.strip()) for x in str(args.l_values).split(",") if x.strip()]
+    _ai_log("compare_l_values", l_values=l_values)
 
     command_log_path = artifacts_dir / "pipeline_commands_run.txt"
     command_log: list[str] = []
 
     run_artifacts: list[RunArtifacts] = []
     for L in l_values:
+        _ai_log("compare_l_start", L=int(L))
         hardcoded_json = artifacts_dir / f"hardcoded_pipeline_L{L}.json"
         hardcoded_pdf = artifacts_dir / f"hardcoded_pipeline_L{L}.pdf"
         qiskit_json = artifacts_dir / f"qiskit_pipeline_L{L}.json"
@@ -1015,6 +1083,7 @@ def main() -> None:
             code, out, err = _run_command(hc_cmd)
             if code != 0:
                 raise RuntimeError(f"Hardcoded pipeline failed for L={L}.\nSTDOUT:\n{out}\nSTDERR:\n{err}")
+            _ai_log("compare_l_hardcoded_done", L=int(L), json_path=str(hardcoded_json))
 
             qk_cmd = [
                 sys.executable,
@@ -1048,6 +1117,7 @@ def main() -> None:
             code, out, err = _run_command(qk_cmd)
             if code != 0:
                 raise RuntimeError(f"Qiskit pipeline failed for L={L}.\nSTDOUT:\n{out}\nSTDERR:\n{err}")
+            _ai_log("compare_l_qiskit_done", L=int(L), json_path=str(qiskit_json))
 
         run_artifacts.append(
             RunArtifacts(
@@ -1060,10 +1130,12 @@ def main() -> None:
                 compare_pdf=compare_pdf,
             )
         )
+        _ai_log("compare_l_collection_done", L=int(L))
 
     if command_log:
         with command_log_path.open("a", encoding="utf-8") as fh:
             fh.write("\n".join(command_log) + "\n")
+        _ai_log("compare_command_log_written", path=str(command_log_path), commands=int(len(command_log)))
 
     per_l_data: list[tuple[int, dict[str, Any], dict[str, Any], dict[str, Any]]] = []
     results_rows: list[dict[str, Any]] = []
@@ -1077,6 +1149,14 @@ def main() -> None:
         hardcoded = json.loads(row.hardcoded_json.read_text(encoding="utf-8"))
         qiskit = json.loads(row.qiskit_json.read_text(encoding="utf-8"))
         metrics = _compare_payloads(hardcoded, qiskit)
+        _ai_log(
+            "compare_l_metrics",
+            L=int(row.L),
+            passed=bool(metrics["acceptance"]["pass"]),
+            gs_abs_delta=float(metrics["ground_state_energy"]["abs_delta"]),
+            fidelity_max_abs_delta=float(metrics["trajectory_deltas"]["fidelity"]["max_abs_delta"]),
+            energy_trotter_max_abs_delta=float(metrics["trajectory_deltas"]["energy_trotter"]["max_abs_delta"]),
+        )
 
         metrics_payload = {
             "generated_utc": datetime.now(timezone.utc).isoformat(),
@@ -1096,6 +1176,7 @@ def main() -> None:
                 hardcoded=hardcoded,
                 qiskit=qiskit,
                 metrics=metrics,
+                run_command=run_command,
             )
 
         per_l_data.append((row.L, hardcoded, qiskit, metrics))
@@ -1149,6 +1230,13 @@ def main() -> None:
         overall_summary=summary,
         isolation_check=isolation_check,
         include_per_l_pages=True,
+        run_command=run_command,
+    )
+    _ai_log(
+        "compare_main_done",
+        summary_json=str(summary_json),
+        bundle_pdf=str(bundle_pdf),
+        all_pass=bool(summary["all_pass"]),
     )
 
     print(f"Wrote summary JSON: {summary_json}")
