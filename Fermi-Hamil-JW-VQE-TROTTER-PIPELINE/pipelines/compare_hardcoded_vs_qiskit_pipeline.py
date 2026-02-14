@@ -57,6 +57,10 @@ TARGET_METRICS = [
     "doublon_trotter",
 ]
 
+EXACT_LABEL_QISKIT = "Exact_Qiskit"
+EXACT_LABEL_HARDCODE = "Exact_Hardcode"
+EXACT_METHOD = "python_matrix_eigendecomposition"
+
 
 @dataclass
 class RunArtifacts:
@@ -413,8 +417,8 @@ def _write_comparison_pdf(
 
         axE.plot(times, q("energy_trotter"), label="Qiskit trotter", color="#2ca02c", marker="s", markersize=3, markevery=markevery)
         axE.plot(times, h("energy_trotter"), label="Hardcoded trotter", color="#d62728", linestyle="--", marker="v", markersize=3, markevery=markevery)
-        axE.plot(times, q("energy_exact"), label="Qiskit exact", color="#111111", linewidth=1.4)
-        axE.plot(times, h("energy_exact"), label="Hardcoded exact", color="#7f7f7f", linestyle=":", linewidth=1.2)
+        axE.plot(times, q("energy_exact"), label=EXACT_LABEL_QISKIT, color="#111111", linewidth=1.4)
+        axE.plot(times, h("energy_exact"), label=EXACT_LABEL_HARDCODE, color="#7f7f7f", linestyle=":", linewidth=1.2)
         axE.set_title("Energy")
         axE.set_xlabel("Time")
         axE.grid(alpha=0.25)
@@ -431,27 +435,33 @@ def _write_comparison_pdf(
 
         axUp.plot(times, q("n_up_site0_trotter"), label="Qiskit trotter", color="#17becf")
         axUp.plot(times, h("n_up_site0_trotter"), label="Hardcoded trotter", color="#0f7f8b", linestyle="--")
+        axUp.plot(times, q("n_up_site0_exact"), label=f"{EXACT_LABEL_QISKIT} n_up0", color="#111111", linewidth=1.2)
+        axUp.plot(times, h("n_up_site0_exact"), label=f"{EXACT_LABEL_HARDCODE} n_up0", color="#7f7f7f", linewidth=1.0, linestyle=":")
         axUp.set_title("Site-0 n_up")
         axUp.set_xlabel("Time")
         axUp.grid(alpha=0.25)
         axUp.legend(fontsize=7)
-        _autozoom(axUp, h("n_up_site0_trotter"), q("n_up_site0_trotter"))
+        _autozoom(axUp, h("n_up_site0_trotter"), q("n_up_site0_trotter"), h("n_up_site0_exact"), q("n_up_site0_exact"))
 
         axDn.plot(times, q("n_dn_site0_trotter"), label="Qiskit trotter", color="#9467bd")
         axDn.plot(times, h("n_dn_site0_trotter"), label="Hardcoded trotter", color="#6f4d8f", linestyle="--")
+        axDn.plot(times, q("n_dn_site0_exact"), label=f"{EXACT_LABEL_QISKIT} n_dn0", color="#111111", linewidth=1.2)
+        axDn.plot(times, h("n_dn_site0_exact"), label=f"{EXACT_LABEL_HARDCODE} n_dn0", color="#7f7f7f", linewidth=1.0, linestyle=":")
         axDn.set_title("Site-0 n_dn")
         axDn.set_xlabel("Time")
         axDn.grid(alpha=0.25)
         axDn.legend(fontsize=7)
-        _autozoom(axDn, h("n_dn_site0_trotter"), q("n_dn_site0_trotter"))
+        _autozoom(axDn, h("n_dn_site0_trotter"), q("n_dn_site0_trotter"), h("n_dn_site0_exact"), q("n_dn_site0_exact"))
 
         axD.plot(times, q("doublon_trotter"), label="Qiskit trotter", color="#e377c2")
         axD.plot(times, h("doublon_trotter"), label="Hardcoded trotter", color="#c251a1", linestyle="--")
+        axD.plot(times, q("doublon_exact"), label=f"{EXACT_LABEL_QISKIT} doublon", color="#111111", linewidth=1.2)
+        axD.plot(times, h("doublon_exact"), label=f"{EXACT_LABEL_HARDCODE} doublon", color="#7f7f7f", linewidth=1.0, linestyle=":")
         axD.set_title("Doublon")
         axD.set_xlabel("Time")
         axD.grid(alpha=0.25)
         axD.legend(fontsize=7)
-        _autozoom(axD, h("doublon_trotter"), q("doublon_trotter"))
+        _autozoom(axD, h("doublon_trotter"), q("doublon_trotter"), h("doublon_exact"), q("doublon_exact"))
 
         figB.suptitle(f"Pipeline Comparison L={L}: Occupations & Doublon (auto-zoomed)", fontsize=13)
         figB.tight_layout(rect=(0.0, 0.02, 1.0, 0.95))
@@ -596,6 +606,8 @@ def _write_bundle_pdf(
             f"l_values: {overall_summary['l_values']}",
             "trajectory_comparison_basis: trotter trajectories start from",
             "  each pipeline's selected initial_state_source (default: vqe)",
+            f"exact_trajectory_labels: {EXACT_LABEL_HARDCODE}, {EXACT_LABEL_QISKIT}",
+            f"exact_trajectory_method: {EXACT_METHOD}",
             "",
             "thresholds:",
             *_fmt_obj(THRESHOLDS).splitlines(),
@@ -788,8 +800,8 @@ def _write_comparison_pages_into_pdf(
 
     axE.plot(times, q("energy_trotter"), label="Qiskit trotter", color="#2ca02c")
     axE.plot(times, h("energy_trotter"), label="Hardcoded trotter", color="#d62728", linestyle="--")
-    axE.plot(times, q("energy_exact"), label="Qiskit exact", color="#111111", linewidth=1.2)
-    axE.plot(times, h("energy_exact"), label="Hardcoded exact", color="#7f7f7f", linestyle=":", linewidth=1.2)
+    axE.plot(times, q("energy_exact"), label=EXACT_LABEL_QISKIT, color="#111111", linewidth=1.2)
+    axE.plot(times, h("energy_exact"), label=EXACT_LABEL_HARDCODE, color="#7f7f7f", linestyle=":", linewidth=1.2)
     axE.set_title(f"L={L} Energy")
     axE.set_xlabel("Time")
     axE.grid(alpha=0.25)
@@ -806,27 +818,33 @@ def _write_comparison_pages_into_pdf(
 
     axUp.plot(times, q("n_up_site0_trotter"), label="Qiskit trotter", color="#17becf")
     axUp.plot(times, h("n_up_site0_trotter"), label="Hardcoded trotter", color="#0f7f8b", linestyle="--")
+    axUp.plot(times, q("n_up_site0_exact"), label=f"{EXACT_LABEL_QISKIT} n_up0", color="#111111", linewidth=1.2)
+    axUp.plot(times, h("n_up_site0_exact"), label=f"{EXACT_LABEL_HARDCODE} n_up0", color="#7f7f7f", linewidth=1.0, linestyle=":")
     axUp.set_title(f"L={L} Site-0 n_up")
     axUp.set_xlabel("Time")
     axUp.grid(alpha=0.25)
     axUp.legend(fontsize=7)
-    _autozoom(axUp, h("n_up_site0_trotter"), q("n_up_site0_trotter"))
+    _autozoom(axUp, h("n_up_site0_trotter"), q("n_up_site0_trotter"), h("n_up_site0_exact"), q("n_up_site0_exact"))
 
     axDn.plot(times, q("n_dn_site0_trotter"), label="Qiskit trotter", color="#9467bd")
     axDn.plot(times, h("n_dn_site0_trotter"), label="Hardcoded trotter", color="#6f4d8f", linestyle="--")
+    axDn.plot(times, q("n_dn_site0_exact"), label=f"{EXACT_LABEL_QISKIT} n_dn0", color="#111111", linewidth=1.2)
+    axDn.plot(times, h("n_dn_site0_exact"), label=f"{EXACT_LABEL_HARDCODE} n_dn0", color="#7f7f7f", linewidth=1.0, linestyle=":")
     axDn.set_title(f"L={L} Site-0 n_dn")
     axDn.set_xlabel("Time")
     axDn.grid(alpha=0.25)
     axDn.legend(fontsize=7)
-    _autozoom(axDn, h("n_dn_site0_trotter"), q("n_dn_site0_trotter"))
+    _autozoom(axDn, h("n_dn_site0_trotter"), q("n_dn_site0_trotter"), h("n_dn_site0_exact"), q("n_dn_site0_exact"))
 
     axD.plot(times, q("doublon_trotter"), label="Qiskit trotter", color="#e377c2")
     axD.plot(times, h("doublon_trotter"), label="Hardcoded trotter", color="#c251a1", linestyle="--")
+    axD.plot(times, q("doublon_exact"), label=f"{EXACT_LABEL_QISKIT} doublon", color="#111111", linewidth=1.2)
+    axD.plot(times, h("doublon_exact"), label=f"{EXACT_LABEL_HARDCODE} doublon", color="#7f7f7f", linewidth=1.0, linestyle=":")
     axD.set_title(f"L={L} Doublon")
     axD.set_xlabel("Time")
     axD.grid(alpha=0.25)
     axD.legend(fontsize=7)
-    _autozoom(axD, h("doublon_trotter"), q("doublon_trotter"))
+    _autozoom(axD, h("doublon_trotter"), q("doublon_trotter"), h("doublon_exact"), q("doublon_exact"))
 
     figB.suptitle(f"Bundle Page: L={L} Occupations & Doublon (auto-zoomed)", fontsize=13)
     figB.tight_layout(rect=(0.0, 0.02, 1.0, 0.95))
@@ -904,6 +922,8 @@ def _write_comparison_pages_into_pdf(
         f"Bundle metrics page L={L}",
         "",
         "Trotterization comparison uses each path's configured initial state.",
+        f"Trajectory labels: {EXACT_LABEL_HARDCODE} and {EXACT_LABEL_QISKIT}.",
+        f"Exact trajectory method: {EXACT_METHOD}.",
         "For VQE-init runs, both exact(t) and trotter(t) start from the VQE ansatz state.",
         "",
         "Delta metric definitions:",

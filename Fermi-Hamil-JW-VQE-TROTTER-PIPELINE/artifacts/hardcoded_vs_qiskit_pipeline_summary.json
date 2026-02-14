@@ -1,8 +1,8 @@
 {
-  "generated_utc": "2026-02-14T03:22:40.541287+00:00",
+  "generated_utc": "2026-02-14T04:28:00.532361+00:00",
   "description": "Hardcoded-first vs Qiskit Hubbard pipeline comparison.",
   "l_values": [
-    3
+    2
   ],
   "thresholds": {
     "ground_state_energy_abs_delta": 1e-08,
@@ -28,36 +28,36 @@
   "hardcoded_qiskit_import_isolation": {
     "pass": true,
     "qpe_adapter_range": {
-      "start_line": 324,
-      "end_line": 460
+      "start_line": 327,
+      "end_line": 463
     },
     "qiskit_imports": [
       {
-        "line": 358,
+        "line": 361,
         "module": "qiskit"
       },
       {
-        "line": 359,
+        "line": 362,
         "module": "qiskit.circuit.library"
       },
       {
-        "line": 360,
+        "line": 363,
         "module": "qiskit.primitives"
       },
       {
-        "line": 361,
+        "line": 364,
         "module": "qiskit.quantum_info"
       },
       {
-        "line": 362,
+        "line": 365,
         "module": "qiskit.synthesis"
       },
       {
-        "line": 363,
+        "line": 366,
         "module": "qiskit_algorithms"
       },
       {
-        "line": 364,
+        "line": 367,
         "module": "qiskit_algorithms.minimum_eigensolvers"
       }
     ],
@@ -65,12 +65,12 @@
   },
   "results": [
     {
-      "L": 3,
+      "L": 2,
       "pass": true,
-      "metrics_json": "/Users/jakestrobel/Downloads/qdynamics-main/Fermi-Hamil-JW-VQE-TROTTER-PIPELINE/artifacts/hardcoded_vs_qiskit_pipeline_L3_metrics.json",
-      "comparison_pdf": "/Users/jakestrobel/Downloads/qdynamics-main/Fermi-Hamil-JW-VQE-TROTTER-PIPELINE/artifacts/hardcoded_vs_qiskit_pipeline_L3_comparison.pdf",
+      "metrics_json": "/Users/jakestrobel/Downloads/qdynamics-main/Fermi-Hamil-JW-VQE-TROTTER-PIPELINE/artifacts/hardcoded_vs_qiskit_pipeline_L2_metrics.json",
+      "comparison_pdf": "/Users/jakestrobel/Downloads/qdynamics-main/Fermi-Hamil-JW-VQE-TROTTER-PIPELINE/artifacts/hardcoded_vs_qiskit_pipeline_L2_comparison.pdf",
       "hardcoded_settings": {
-        "L": 3,
+        "L": 2,
         "t": 1.0,
         "u": 4.0,
         "dv": 0.0,
@@ -85,7 +85,7 @@
         "skip_qpe": true
       },
       "qiskit_settings": {
-        "L": 3,
+        "L": 2,
         "t": 1.0,
         "u": 4.0,
         "dv": 0.0,
@@ -101,11 +101,11 @@
       },
       "ground_state_energy_abs_delta": 0.0,
       "trajectory_max_abs_deltas": {
-        "fidelity": 8.590937577102054e-05,
-        "energy_trotter": 2.5727693202526325e-06,
-        "n_up_site0_trotter": 0.0029669176457719493,
-        "n_dn_site0_trotter": 0.002254321495447492,
-        "doublon_trotter": 1.928841137227577e-05
+        "fidelity": 2.2590508352848815e-08,
+        "energy_trotter": 1.400460892919675e-06,
+        "n_up_site0_trotter": 2.7846824668553705e-05,
+        "n_dn_site0_trotter": 2.7934482115687942e-05,
+        "doublon_trotter": 4.837666837398391e-07
       }
     }
   ],

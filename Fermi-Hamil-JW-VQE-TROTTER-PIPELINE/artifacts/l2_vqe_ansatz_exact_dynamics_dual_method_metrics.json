@@ -1,0 +1,76 @@
+{
+  "generated_utc": "2026-02-14T04:18:48.177383+00:00",
+  "description": "L=2 exact dynamics of VQE ansatz using Python exact exp(H) and Qiskit exact exp(H), compared to trotterized trajectories.",
+  "inputs": {
+    "hardcoded_json": "/Users/jakestrobel/Downloads/qdynamics-main/Fermi-Hamil-JW-VQE-TROTTER-PIPELINE/artifacts/hardcoded_pipeline_L2.json",
+    "qiskit_json": "/Users/jakestrobel/Downloads/qdynamics-main/Fermi-Hamil-JW-VQE-TROTTER-PIPELINE/artifacts/qiskit_pipeline_L2.json"
+  },
+  "datasets": {
+    "hardcoded": {
+      "max_abs_delta_python_vs_qiskit_exact": {
+        "energy": 5.551115123125783e-16,
+        "n_up_site0": 1.7763568394002505e-15,
+        "n_dn_site0": 1.7763568394002505e-15,
+        "doublon": 6.661338147750939e-16,
+        "one_minus_fidelity": 4.440892098500626e-16
+      },
+      "max_abs_delta_trotter_vs_python_exact": {
+        "energy": 0.00026666497873284456,
+        "n_up_site0": 0.004755150277641562,
+        "n_dn_site0": 0.007381986927586626,
+        "doublon": 0.0030384273741669854
+      },
+      "max_abs_delta_trotter_vs_qiskit_exact": {
+        "energy": 0.0002666649787329556,
+        "n_up_site0": 0.004755150277642561,
+        "n_dn_site0": 0.007381986927587514,
+        "doublon": 0.0030384273741666523
+      },
+      "max_abs_delta_payload_exact_vs_python_exact": {
+        "energy": 0.0,
+        "n_up_site0": 0.0,
+        "n_dn_site0": 0.0,
+        "doublon": 0.0
+      },
+      "max_abs_delta_payload_exact_vs_qiskit_exact": {
+        "energy": 5.551115123125783e-16,
+        "n_up_site0": 1.7763568394002505e-15,
+        "n_dn_site0": 1.7763568394002505e-15,
+        "doublon": 6.661338147750939e-16
+      }
+    },
+    "qiskit": {
+      "max_abs_delta_python_vs_qiskit_exact": {
+        "energy": 5.551115123125783e-16,
+        "n_up_site0": 1.887379141862766e-15,
+        "n_dn_site0": 1.7208456881689926e-15,
+        "doublon": 4.996003610813204e-16,
+        "one_minus_fidelity": 4.440892098500626e-16
+      },
+      "max_abs_delta_trotter_vs_python_exact": {
+        "energy": 0.00026526262985360205,
+        "n_up_site0": 0.004754667571736704,
+        "n_dn_site0": 0.007381709344253473,
+        "doublon": 0.003038450604663706
+      },
+      "max_abs_delta_trotter_vs_qiskit_exact": {
+        "energy": 0.0002652626298538241,
+        "n_up_site0": 0.004754667571737481,
+        "n_dn_site0": 0.007381709344254583,
+        "doublon": 0.003038450604663373
+      },
+      "max_abs_delta_payload_exact_vs_python_exact": {
+        "energy": 6.661338147750939e-16,
+        "n_up_site0": 7.216449660063518e-16,
+        "n_dn_site0": 6.106226635438361e-16,
+        "doublon": 5.551115123125783e-16
+      },
+      "max_abs_delta_payload_exact_vs_qiskit_exact": {
+        "energy": 6.661338147750939e-16,
+        "n_up_site0": 1.9984014443252818e-15,
+        "n_dn_site0": 1.887379141862766e-15,
+        "doublon": 6.106226635438361e-16
+      }
+    }
+  }
+}

@@ -53,6 +53,9 @@ if str(ROOT) not in sys.path:
 
 from pydephasing.quantum.hartree_fock_reference_state import hartree_fock_statevector
 
+EXACT_LABEL = "Exact_Qiskit"
+EXACT_METHOD = "python_matrix_eigendecomposition"
+
 
 def _ai_log(event: str, **fields: Any) -> None:
     payload = {
@@ -829,25 +832,25 @@ def _write_pipeline_pdf(pdf_path: Path, payload: dict[str, Any], run_command: st
         ax10, ax11 = axes[1, 0], axes[1, 1]
 
         ax00.plot(times, fid, color="#0b3d91", marker="o", markersize=3, markevery=markevery)
-        ax00.set_title("Fidelity(t) = |<exact|trotter>|^2")
+        ax00.set_title(f"Fidelity(t) = |<{EXACT_LABEL}|Trotter>|^2")
         ax00.grid(alpha=0.25)
 
-        ax01.plot(times, e_exact, label="Exact", color="#111111", linewidth=2.0, marker="s", markersize=3, markevery=markevery)
+        ax01.plot(times, e_exact, label=EXACT_LABEL, color="#111111", linewidth=2.0, marker="s", markersize=3, markevery=markevery)
         ax01.plot(times, e_trot, label="Trotter", color="#d62728", linestyle="--", linewidth=1.4, marker="^", markersize=3, markevery=markevery)
         ax01.set_title("Energy")
         ax01.grid(alpha=0.25)
         ax01.legend(fontsize=8)
 
-        ax10.plot(times, nu_exact, label="n_up0 exact", color="#17becf", linewidth=1.8, marker="o", markersize=3, markevery=markevery)
+        ax10.plot(times, nu_exact, label=f"n_up0 {EXACT_LABEL}", color="#17becf", linewidth=1.8, marker="o", markersize=3, markevery=markevery)
         ax10.plot(times, nu_trot, label="n_up0 trotter", color="#0f7f8b", linestyle="--", linewidth=1.2, marker="s", markersize=3, markevery=markevery)
-        ax10.plot(times, nd_exact, label="n_dn0 exact", color="#9467bd", linewidth=1.8, marker="^", markersize=3, markevery=markevery)
+        ax10.plot(times, nd_exact, label=f"n_dn0 {EXACT_LABEL}", color="#9467bd", linewidth=1.8, marker="^", markersize=3, markevery=markevery)
         ax10.plot(times, nd_trot, label="n_dn0 trotter", color="#6f4d8f", linestyle="--", linewidth=1.2, marker="v", markersize=3, markevery=markevery)
         ax10.set_title("Site-0 Occupations")
         ax10.set_xlabel("Time")
         ax10.grid(alpha=0.25)
         ax10.legend(fontsize=8)
 
-        ax11.plot(times, d_exact, label="doublon exact", color="#8c564b", linewidth=1.8, marker="o", markersize=3, markevery=markevery)
+        ax11.plot(times, d_exact, label=f"doublon {EXACT_LABEL}", color="#8c564b", linewidth=1.8, marker="o", markersize=3, markevery=markevery)
         ax11.plot(times, d_trot, label="doublon trotter", color="#c251a1", linestyle="--", linewidth=1.2, marker="s", markersize=3, markevery=markevery)
         ax11.set_title("Total Doublon")
         ax11.set_xlabel("Time")
@@ -863,17 +866,17 @@ def _write_pipeline_pdf(pdf_path: Path, payload: dict[str, Any], run_command: st
         vx0, vx1 = axesv[0], axesv[1]
         vx0.bar([0, 1], [gs_exact, vqe_val], color=["#111111", "#ff7f0e"], edgecolor="black", linewidth=0.4)
         vx0.set_xticks([0, 1])
-        vx0.set_xticklabels(["Exact", "VQE"])
+        vx0.set_xticklabels([EXACT_LABEL, "VQE"])
         vx0.set_ylabel("Energy")
-        vx0.set_title("VQE Energy vs Exact")
+        vx0.set_title(f"VQE Energy vs {EXACT_LABEL}")
         vx0.grid(axis="y", alpha=0.25)
 
         err_vqe = abs(vqe_val - gs_exact) if np.isfinite(vqe_val) else np.nan
         vx1.bar([0], [err_vqe], color="#ff7f0e", edgecolor="black", linewidth=0.4)
         vx1.set_xticks([0])
-        vx1.set_xticklabels(["|VQE-Exact|"])
+        vx1.set_xticklabels([f"|VQE-{EXACT_LABEL}|"])
         vx1.set_ylabel("Absolute Error")
-        vx1.set_title("VQE Absolute Error")
+        vx1.set_title(f"VQE Absolute Error vs {EXACT_LABEL}")
         vx1.grid(axis="y", alpha=0.25)
 
         figv.suptitle(
@@ -892,6 +895,8 @@ def _write_pipeline_pdf(pdf_path: Path, payload: dict[str, Any], run_command: st
             "Qiskit Hubbard baseline pipeline summary",
             "",
             f"settings: {json.dumps(payload['settings'])}",
+            f"exact_trajectory_label: {EXACT_LABEL}",
+            f"exact_trajectory_method: {EXACT_METHOD}",
             f"ground_state_exact_energy: {payload['ground_state']['exact_energy']:.12f}",
             f"vqe_energy: {payload['vqe'].get('energy')}",
             f"qpe_energy_estimate: {payload['qpe'].get('energy_estimate')}",
