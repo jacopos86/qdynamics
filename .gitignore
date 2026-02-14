@@ -1,0 +1,26 @@
+# === Project configuration === #
+config.yml
+
+# === Scripts === #
+scr.sh
+run*.sh
+
+# === Build & distribution === #
+build
+dist
+qdynamics.egg-info
+
+# === logs and temporary files === #
+*.log
+*.png
+*.yml
+*.dat
+*.yml
+
+# === python cache & compiled files === #
+__pycache__
+utils/__pycache__/
+*.pyc
+
+# === TESTS data === #
+TESTS

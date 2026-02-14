@@ -1,0 +1,75 @@
+{
+  "generated_utc": "2026-02-14T01:42:00.175329+00:00",
+  "L": 3,
+  "hardcoded_json": "artifacts/hardcoded_pipeline_L3.json",
+  "qiskit_json": "artifacts/qiskit_pipeline_L3.json",
+  "metrics": {
+    "time_grid": {
+      "num_times": 401,
+      "t0": 0.0,
+      "t_final": 20.0,
+      "dt": 0.05
+    },
+    "trajectory_deltas": {
+      "fidelity": {
+        "max_abs_delta": 0.0013464071626839713,
+        "mean_abs_delta": 0.00019665025721909328,
+        "final_abs_delta": 0.0013464071626839713,
+        "first_time_abs_delta_gt_1e-4": 12.950000000000001,
+        "first_time_abs_delta_gt_1e-3": 19.05
+      },
+      "energy_trotter": {
+        "max_abs_delta": 4.7458908048580994e-05,
+        "mean_abs_delta": 3.99668035453194e-06,
+        "final_abs_delta": 4.7458908048580994e-05,
+        "first_time_abs_delta_gt_1e-4": null,
+        "first_time_abs_delta_gt_1e-3": null
+      },
+      "n_up_site0_trotter": {
+        "max_abs_delta": 0.0031496651890847716,
+        "mean_abs_delta": 0.002975898354829075,
+        "final_abs_delta": 0.0031496651890847716,
+        "first_time_abs_delta_gt_1e-4": 0.0,
+        "first_time_abs_delta_gt_1e-3": 0.0
+      },
+      "n_dn_site0_trotter": {
+        "max_abs_delta": 0.0024109550934178353,
+        "mean_abs_delta": 0.00226718670337712,
+        "final_abs_delta": 0.002368035185029038,
+        "first_time_abs_delta_gt_1e-4": 0.0,
+        "first_time_abs_delta_gt_1e-3": 0.0
+      },
+      "doublon_trotter": {
+        "max_abs_delta": 6.39293585977807e-05,
+        "mean_abs_delta": 1.1616930205037722e-05,
+        "final_abs_delta": 3.5848731140875056e-05,
+        "first_time_abs_delta_gt_1e-4": null,
+        "first_time_abs_delta_gt_1e-3": null
+      }
+    },
+    "ground_state_energy": {
+      "hardcoded_exact_energy": -3.1231056256176615,
+      "qiskit_exact_energy": -3.1231056256176615,
+      "abs_delta": 0.0
+    },
+    "acceptance": {
+      "thresholds": {
+        "ground_state_energy_abs_delta": 1e-08,
+        "fidelity_max_abs_delta": 0.0001,
+        "energy_trotter_max_abs_delta": 0.001,
+        "n_up_site0_trotter_max_abs_delta": 0.005,
+        "n_dn_site0_trotter_max_abs_delta": 0.005,
+        "doublon_trotter_max_abs_delta": 0.001
+      },
+      "checks": {
+        "ground_state_energy_abs_delta": true,
+        "fidelity_max_abs_delta": false,
+        "energy_trotter_max_abs_delta": true,
+        "n_up_site0_trotter_max_abs_delta": true,
+        "n_dn_site0_trotter_max_abs_delta": true,
+        "doublon_trotter_max_abs_delta": true
+      },
+      "pass": false
+    }
+  }
+}
