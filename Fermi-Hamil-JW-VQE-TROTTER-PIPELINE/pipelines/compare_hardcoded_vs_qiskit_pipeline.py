@@ -93,6 +93,22 @@ def _arr(rows: list[dict[str, Any]], key: str) -> np.ndarray:
     return np.array([float(r[key]) for r in rows], dtype=float)
 
 
+def _require_exact_filtered_energy(qiskit_payload: dict[str, Any], *, L: int | None = None) -> float:
+    """Return sector-filtered exact energy, refusing any global-energy fallback."""
+    vqe_block = qiskit_payload.get("vqe")
+    if not isinstance(vqe_block, dict) or vqe_block.get("exact_filtered_energy") is None:
+        suffix = f" for L={L}" if L is not None else ""
+        raise KeyError(
+            f"Missing qiskit.vqe.exact_filtered_energy{suffix}; "
+            "refusing sector-to-total fallback in PDF comparisons."
+        )
+    val = float(vqe_block["exact_filtered_energy"])
+    if not np.isfinite(val):
+        suffix = f" for L={L}" if L is not None else ""
+        raise ValueError(f"Non-finite qiskit.vqe.exact_filtered_energy{suffix}: {val!r}")
+    return val
+
+
 def _fp(x: float) -> str:
     # Round-trip-safe float text; avoids presentation rounding like %.12e.
     return repr(float(x))
@@ -391,7 +407,7 @@ def _write_comparison_pdf(
     def q(key: str) -> np.ndarray:
         return _arr(q_rows, key)
 
-    exact_filtered = float(qiskit.get("vqe", {}).get("exact_filtered_energy", hardcoded["ground_state"]["exact_energy"]))
+    exact_filtered = _require_exact_filtered_energy(qiskit, L=L)
     hc_vqe = hardcoded.get("vqe", {}).get("energy")
     qk_vqe = qiskit.get("vqe", {}).get("energy")
     hc_vqe_val = float(hc_vqe) if hc_vqe is not None else np.nan
@@ -568,10 +584,7 @@ def _write_bundle_pdf(
     lvals = [L for L, _h, _q, _m in per_l_data]
     exact_global = np.array([float(h["ground_state"]["exact_energy"]) for _L, h, _q, _m in per_l_data], dtype=float)
     exact_filtered = np.array(
-        [
-            float(q.get("vqe", {}).get("exact_filtered_energy", h["ground_state"]["exact_energy"]))
-            for _L, h, q, _m in per_l_data
-        ],
+        [_require_exact_filtered_energy(q, L=int(_L)) for _L, _h, q, _m in per_l_data],
         dtype=float,
     )
     hc_vqe = np.array([float(h["vqe"].get("energy", np.nan)) if h["vqe"].get("energy") is not None else np.nan for _L, h, _q, _m in per_l_data], dtype=float)
@@ -776,7 +789,7 @@ def _write_comparison_pages_into_pdf(
     def q(key: str) -> np.ndarray:
         return _arr(q_rows, key)
 
-    exact_filtered = float(qiskit.get("vqe", {}).get("exact_filtered_energy", hardcoded["ground_state"]["exact_energy"]))
+    exact_filtered = _require_exact_filtered_energy(qiskit, L=L)
     hc_vqe = hardcoded.get("vqe", {}).get("energy")
     qk_vqe = qiskit.get("vqe", {}).get("energy")
     hc_vqe_val = float(hc_vqe) if hc_vqe is not None else np.nan

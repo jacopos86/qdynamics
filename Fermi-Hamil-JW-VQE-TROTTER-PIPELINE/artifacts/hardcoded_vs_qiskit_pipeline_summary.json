@@ -1,8 +1,8 @@
 {
-  "generated_utc": "2026-02-14T04:28:00.532361+00:00",
+  "generated_utc": "2026-02-14T23:22:13.933442+00:00",
   "description": "Hardcoded-first vs Qiskit Hubbard pipeline comparison.",
   "l_values": [
-    2
+    4
   ],
   "thresholds": {
     "ground_state_energy_abs_delta": 1e-08,
@@ -65,12 +65,12 @@
   },
   "results": [
     {
-      "L": 2,
+      "L": 4,
       "pass": true,
-      "metrics_json": "/Users/jakestrobel/Downloads/qdynamics-main/Fermi-Hamil-JW-VQE-TROTTER-PIPELINE/artifacts/hardcoded_vs_qiskit_pipeline_L2_metrics.json",
-      "comparison_pdf": "/Users/jakestrobel/Downloads/qdynamics-main/Fermi-Hamil-JW-VQE-TROTTER-PIPELINE/artifacts/hardcoded_vs_qiskit_pipeline_L2_comparison.pdf",
+      "metrics_json": "/Users/jakestrobel/Downloads/qdynamics-main/Fermi-Hamil-JW-VQE-TROTTER-PIPELINE/artifacts/hardcoded_vs_qiskit_pipeline_L4_metrics.json",
+      "comparison_pdf": "/Users/jakestrobel/Downloads/qdynamics-main/Fermi-Hamil-JW-VQE-TROTTER-PIPELINE/artifacts/hardcoded_vs_qiskit_pipeline_L4_comparison.pdf",
       "hardcoded_settings": {
-        "L": 2,
+        "L": 4,
         "t": 1.0,
         "u": 4.0,
         "dv": 0.0,
@@ -85,7 +85,7 @@
         "skip_qpe": true
       },
       "qiskit_settings": {
-        "L": 2,
+        "L": 4,
         "t": 1.0,
         "u": 4.0,
         "dv": 0.0,
@@ -101,11 +101,11 @@
       },
       "ground_state_energy_abs_delta": 0.0,
       "trajectory_max_abs_deltas": {
-        "fidelity": 2.2590508352848815e-08,
-        "energy_trotter": 1.400460892919675e-06,
-        "n_up_site0_trotter": 2.7846824668553705e-05,
-        "n_dn_site0_trotter": 2.7934482115687942e-05,
-        "doublon_trotter": 4.837666837398391e-07
+        "fidelity": 2.209725978863375e-07,
+        "energy_trotter": 4.138357329708242e-06,
+        "n_up_site0_trotter": 0.00032705403848842796,
+        "n_dn_site0_trotter": 0.0003239662616169592,
+        "doublon_trotter": 1.9785792567172944e-05
       }
     }
   ],

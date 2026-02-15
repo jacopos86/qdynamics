@@ -1,8 +1,8 @@
 {
-  "generated_utc": "2026-02-14T04:48:06.307502+00:00",
-  "L": 3,
-  "hardcoded_json": "/Users/jakestrobel/Downloads/qdynamics-main/Fermi-Hamil-JW-VQE-TROTTER-PIPELINE/artifacts/hardcoded_pipeline_L3.json",
-  "qiskit_json": "/Users/jakestrobel/Downloads/qdynamics-main/Fermi-Hamil-JW-VQE-TROTTER-PIPELINE/artifacts/qiskit_pipeline_L3.json",
+  "generated_utc": "2026-02-14T23:22:13.102117+00:00",
+  "L": 4,
+  "hardcoded_json": "/Users/jakestrobel/Downloads/qdynamics-main/Fermi-Hamil-JW-VQE-TROTTER-PIPELINE/artifacts/hardcoded_pipeline_L4.json",
+  "qiskit_json": "/Users/jakestrobel/Downloads/qdynamics-main/Fermi-Hamil-JW-VQE-TROTTER-PIPELINE/artifacts/qiskit_pipeline_L4.json",
   "metrics": {
     "time_grid": {
       "num_times": 401,
@@ -12,44 +12,44 @@
     },
     "trajectory_deltas": {
       "fidelity": {
-        "max_abs_delta": 8.590937577102054e-05,
-        "mean_abs_delta": 1.2397428124140835e-05,
-        "final_abs_delta": 8.590937577102054e-05,
+        "max_abs_delta": 2.209725978863375e-07,
+        "mean_abs_delta": 3.021212585926256e-08,
+        "final_abs_delta": 4.7817899972990574e-08,
         "first_time_abs_delta_gt_1e-4": null,
         "first_time_abs_delta_gt_1e-3": null
       },
       "energy_trotter": {
-        "max_abs_delta": 2.5727693202526325e-06,
-        "mean_abs_delta": 3.272323027216911e-07,
-        "final_abs_delta": 2.5727693202526325e-06,
+        "max_abs_delta": 4.138357329708242e-06,
+        "mean_abs_delta": 1.390849683424733e-06,
+        "final_abs_delta": 2.8916515510957197e-06,
         "first_time_abs_delta_gt_1e-4": null,
         "first_time_abs_delta_gt_1e-3": null
       },
       "n_up_site0_trotter": {
-        "max_abs_delta": 0.0029669176457719493,
-        "mean_abs_delta": 0.002937995165993819,
-        "final_abs_delta": 0.00294272903376791,
+        "max_abs_delta": 0.00032705403848842796,
+        "mean_abs_delta": 0.0001690360931200569,
+        "final_abs_delta": 0.0003125322846022627,
         "first_time_abs_delta_gt_1e-4": 0.0,
-        "first_time_abs_delta_gt_1e-3": 0.0
+        "first_time_abs_delta_gt_1e-3": null
       },
       "n_dn_site0_trotter": {
-        "max_abs_delta": 0.002254321495447492,
-        "mean_abs_delta": 0.002230267735052105,
-        "final_abs_delta": 0.0022344932649621674,
+        "max_abs_delta": 0.0003239662616169592,
+        "mean_abs_delta": 0.00016913479016976142,
+        "final_abs_delta": 0.00030634941027374296,
         "first_time_abs_delta_gt_1e-4": 0.0,
-        "first_time_abs_delta_gt_1e-3": 0.0
+        "first_time_abs_delta_gt_1e-3": null
       },
       "doublon_trotter": {
-        "max_abs_delta": 1.928841137227577e-05,
-        "mean_abs_delta": 7.901033142319897e-06,
-        "final_abs_delta": 4.8501852527027545e-06,
+        "max_abs_delta": 1.9785792567172944e-05,
+        "mean_abs_delta": 9.157969656497664e-06,
+        "final_abs_delta": 1.2908478513040667e-05,
         "first_time_abs_delta_gt_1e-4": null,
         "first_time_abs_delta_gt_1e-3": null
       }
     },
     "ground_state_energy": {
-      "hardcoded_exact_energy": -3.1231056256176615,
-      "qiskit_exact_energy": -3.1231056256176615,
+      "hardcoded_exact_energy": -3.418550718873847,
+      "qiskit_exact_energy": -3.418550718873847,
       "abs_delta": 0.0
     },
     "acceptance": {
