@@ -1,0 +1,3882 @@
+{
+  "generated_utc": "2026-02-26T02:47:48.818629+00:00",
+  "workspace_root": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test",
+  "subrepo_root": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test/Fermi-Hamil-JW-VQE-TROTTER-PIPELINE",
+  "counts": {
+    "quantum_modules": 9,
+    "pipeline_python": 6,
+    "pipeline_shell": 3,
+    "top_level_tests": 8,
+    "analyzed_python_files": 23
+  },
+  "files": {
+    "quantum_py": [
+      "src/quantum/__init__.py",
+      "src/quantum/drives_time_potential.py",
+      "src/quantum/hartree_fock_reference_state.py",
+      "src/quantum/hubbard_latex_python_pairs.py",
+      "src/quantum/pauli_letters_module.py",
+      "src/quantum/pauli_polynomial_class.py",
+      "src/quantum/pauli_words.py",
+      "src/quantum/qubitization_module.py",
+      "src/quantum/vqe_latex_python_pairs.py"
+    ],
+    "pipeline_py": [
+      "Fermi-Hamil-JW-VQE-TROTTER-PIPELINE/pipelines/bench_expm_vs_expm_multiply.py",
+      "Fermi-Hamil-JW-VQE-TROTTER-PIPELINE/pipelines/compare_hardcoded_vs_qiskit_pipeline.py",
+      "Fermi-Hamil-JW-VQE-TROTTER-PIPELINE/pipelines/hardcoded_hubbard_pipeline.py",
+      "Fermi-Hamil-JW-VQE-TROTTER-PIPELINE/pipelines/l2_vqe_exact_dynamics_dual_method.py",
+      "Fermi-Hamil-JW-VQE-TROTTER-PIPELINE/pipelines/manual_compare_jsons.py",
+      "Fermi-Hamil-JW-VQE-TROTTER-PIPELINE/pipelines/qiskit_hubbard_baseline_pipeline.py"
+    ],
+    "pipeline_sh": [
+      "Fermi-Hamil-JW-VQE-TROTTER-PIPELINE/pipelines/regression_L2_L3.sh",
+      "Fermi-Hamil-JW-VQE-TROTTER-PIPELINE/pipelines/run_L_drive_accurate.sh",
+      "Fermi-Hamil-JW-VQE-TROTTER-PIPELINE/pipelines/run_scaling_preset_L2_L6.sh"
+    ],
+    "top_tests": [
+      "test_compare_drive_passthrough.py",
+      "test_energy_total_observables.py",
+      "test_exact_steps_multiplier.py",
+      "test_fidelity_subspace_projector.py",
+      "test_integration.py",
+      "test_pauli_polynomial_ops.py",
+      "test_tex2text.py",
+      "test_time_potential_drive.py"
+    ]
+  },
+  "style_palette": {
+    "text_primary": "#111111",
+    "text_secondary": "#222222",
+    "edge_dark": "#202020",
+    "edge_mid": "#333333",
+    "background_light": "#F8F8F8",
+    "panel_light": "#F2F2F2",
+    "blue_fill": "#E8F1FA",
+    "green_fill": "#EAF6EA",
+    "orange_fill": "#FFF1E0",
+    "purple_fill": "#F1EAF6"
+  },
+  "canonical_artifacts": [
+    "artifacts/json/H_L2_static_t1.0_U4.0_S64_heavy.json",
+    "artifacts/json/H_L3_static_t1.0_U4.0_S128_heavy.json",
+    "artifacts/json/H_L4_vt_t1.0_U4.0_S256_dyn.json"
+  ],
+  "artifact_metrics_json": "docs/repo_guide_assets/repo_guide_artifact_metrics.json",
+  "modules": [
+    {
+      "module": "Fermi-Hamil-JW-VQE-TROTTER-PIPELINE.pipelines.bench_expm_vs_expm_multiply",
+      "path": "Fermi-Hamil-JW-VQE-TROTTER-PIPELINE/pipelines/bench_expm_vs_expm_multiply.py",
+      "classes": [],
+      "functions": [
+        {
+          "name": "_pauli_matrix_exyz",
+          "line": 82
+        },
+        {
+          "name": "_build_hamiltonian_matrix",
+          "line": 90
+        },
+        {
+          "name": "_build_drive_diagonal",
+          "line": 101
+        },
+        {
+          "name": "_build_hubbard_static",
+          "line": 122
+        },
+        {
+          "name": "_bench_dense",
+          "line": 144
+        },
+        {
+          "name": "_bench_sparse_diag",
+          "line": 170
+        },
+        {
+          "name": "run_benchmark",
+          "line": 206
+        }
+      ],
+      "imports": {
+        "internal": [
+          "src.quantum.drives_time_potential",
+          "src.quantum.hubbard_latex_python_pairs"
+        ],
+        "external": [
+          "__future__",
+          "argparse",
+          "numpy",
+          "pathlib",
+          "scipy",
+          "sys",
+          "time",
+          "typing"
+        ]
+      },
+      "cli_flags": [
+        {
+          "flag": "--L",
+          "line": 323,
+          "type": "int",
+          "default": [
+            3,
+            4,
+            5
+          ],
+          "metavar": "L",
+          "help": "Chain lengths to benchmark (default: 3 4 5)."
+        },
+        {
+          "flag": "--steps",
+          "line": 331,
+          "type": "int",
+          "default": 20,
+          "metavar": "N",
+          "help": "Number of piecewise propagation steps (default: 20)."
+        },
+        {
+          "flag": "--t-final",
+          "line": 338,
+          "type": "float",
+          "default": 1.0,
+          "metavar": "T",
+          "help": "Total propagation time (default: 1.0)."
+        },
+        {
+          "flag": "--repeats",
+          "line": 345,
+          "type": "int",
+          "default": 3,
+          "metavar": "R",
+          "help": "Number of timing repetitions; best time is reported (default: 3)."
+        }
+      ],
+      "constants": [
+        {
+          "name": "ROOT",
+          "line": 61,
+          "value": "Path(__file__).resolve().parents[1]"
+        },
+        {
+          "name": "REPO_ROOT",
+          "line": 62,
+          "value": "ROOT.parent"
+        },
+        {
+          "name": "_PAULI_MATS",
+          "line": 74,
+          "value": "{'e': np.array([[1.0, 0.0], [0.0, 1.0]], dtype=complex), 'x': np.array([[0.0, 1.0], [1.0, 0.0]], dtype=complex), 'y': np.array([[0.0, -1j], [1j, 0.0]], dtype=complex), 'z': np.array([[1.0, 0.0], [0.0, -1.0]], dtype=complex)}"
+        }
+      ]
+    },
+    {
+      "module": "Fermi-Hamil-JW-VQE-TROTTER-PIPELINE.pipelines.compare_hardcoded_vs_qiskit_pipeline",
+      "path": "Fermi-Hamil-JW-VQE-TROTTER-PIPELINE/pipelines/compare_hardcoded_vs_qiskit_pipeline.py",
+      "classes": [
+        {
+          "name": "RunArtifacts",
+          "line": 74
+        }
+      ],
+      "functions": [
+        {
+          "name": "_artifact_tag",
+          "line": 84
+        },
+        {
+          "name": "_ai_log",
+          "line": 100
+        },
+        {
+          "name": "_first_crossing",
+          "line": 109
+        },
+        {
+          "name": "_arr",
+          "line": 116
+        },
+        {
+          "name": "_require_exact_filtered_energy",
+          "line": 120
+        },
+        {
+          "name": "_fp",
+          "line": 136
+        },
+        {
+          "name": "_delta_metric_definition_text",
+          "line": 141
+        },
+        {
+          "name": "_chemical_accuracy_lines",
+          "line": 157
+        },
+        {
+          "name": "_fmt_obj",
+          "line": 179
+        },
+        {
+          "name": "_render_text_page",
+          "line": 191
+        },
+        {
+          "name": "_current_command_string",
+          "line": 247
+        },
+        {
+          "name": "_render_command_page",
+          "line": 251
+        },
+        {
+          "name": "_compare_payloads",
+          "line": 263
+        },
+        {
+          "name": "_sci",
+          "line": 345
+        },
+        {
+          "name": "_build_info_box_text",
+          "line": 357
+        },
+        {
+          "name": "_add_info_box",
+          "line": 409
+        },
+        {
+          "name": "_render_info_page",
+          "line": 428
+        },
+        {
+          "name": "_autozoom",
+          "line": 451
+        },
+        {
+          "name": "_set_fidelity_ylim",
+          "line": 460
+        },
+        {
+          "name": "_write_comparison_pdf",
+          "line": 490
+        },
+        {
+          "name": "_write_bundle_pdf",
+          "line": 699
+        },
+        {
+          "name": "_write_comparison_pages_into_pdf",
+          "line": 900
+        },
+        {
+          "name": "_check_hardcoded_qiskit_import_isolation",
+          "line": 1088
+        },
+        {
+          "name": "_run_command",
+          "line": 1134
+        },
+        {
+          "name": "_build_drive_args",
+          "line": 1169
+        },
+        {
+          "name": "_build_drive_args_with_amplitude",
+          "line": 1203
+        },
+        {
+          "name": "_safe_test_check",
+          "line": 1227
+        },
+        {
+          "name": "_arr_optional",
+          "line": 1277
+        },
+        {
+          "name": "_matrix_optional",
+          "line": 1288
+        },
+        {
+          "name": "_observables_series",
+          "line": 1306
+        },
+        {
+          "name": "_aligned_pair",
+          "line": 1334
+        },
+        {
+          "name": "_max_abs_and_rms",
+          "line": 1341
+        },
+        {
+          "name": "_response_delta",
+          "line": 1349
+        },
+        {
+          "name": "_response_stats",
+          "line": 1356
+        },
+        {
+          "name": "_fmt_metric",
+          "line": 1363
+        },
+        {
+          "name": "_render_compact_table",
+          "line": 1369
+        },
+        {
+          "name": "_safe_delta_series",
+          "line": 1391
+        },
+        {
+          "name": "_safe_test_plot_gate",
+          "line": 1404
+        },
+        {
+          "name": "_drive_config_from_args",
+          "line": 1424
+        },
+        {
+          "name": "_fft_response",
+          "line": 1433
+        },
+        {
+          "name": "_run_amplitude_comparison_for_l",
+          "line": 1451
+        },
+        {
+          "name": "_write_amplitude_comparison_pdf",
+          "line": 1556
+        },
+        {
+          "name": "parse_args",
+          "line": 2122
+        },
+        {
+          "name": "main",
+          "line": 2307
+        }
+      ],
+      "imports": {
+        "internal": [
+          "src.quantum.drives_time_potential"
+        ],
+        "external": [
+          "__future__",
+          "argparse",
+          "ast",
+          "dataclasses",
+          "datetime",
+          "json",
+          "math",
+          "matplotlib",
+          "numpy",
+          "os",
+          "pathlib",
+          "pprint",
+          "shlex",
+          "shutil",
+          "subprocess",
+          "sys",
+          "textwrap",
+          "time",
+          "typing"
+        ]
+      },
+      "cli_flags": [
+        {
+          "flag": "--l-values",
+          "line": 2124,
+          "type": "str",
+          "default": "2,3,4,5"
+        },
+        {
+          "flag": "--run-pipelines",
+          "line": 2125,
+          "action": "store_true",
+          "default": true
+        },
+        {
+          "flag": "--no-run-pipelines",
+          "line": 2126,
+          "dest": "run_pipelines",
+          "action": "store_false"
+        },
+        {
+          "flag": "--with-per-l-pdfs",
+          "line": 2127,
+          "action": "store_true",
+          "help": "Include per-L comparison pages inside the bundle and emit standalone per-L comparison PDFs."
+        },
+        {
+          "flag": "--t",
+          "line": 2133,
+          "type": "float",
+          "default": 1.0
+        },
+        {
+          "flag": "--u",
+          "line": 2134,
+          "type": "float",
+          "default": 4.0
+        },
+        {
+          "flag": "--dv",
+          "line": 2135,
+          "type": "float",
+          "default": 0.0
+        },
+        {
+          "flag": "--boundary",
+          "line": 2136,
+          "choices": [
+            "periodic",
+            "open"
+          ],
+          "default": "periodic"
+        },
+        {
+          "flag": "--ordering",
+          "line": 2137,
+          "choices": [
+            "blocked",
+            "interleaved"
+          ],
+          "default": "blocked"
+        },
+        {
+          "flag": "--t-final",
+          "line": 2138,
+          "type": "float",
+          "default": 20.0
+        },
+        {
+          "flag": "--num-times",
+          "line": 2139,
+          "type": "int",
+          "default": 201
+        },
+        {
+          "flag": "--suzuki-order",
+          "line": 2140,
+          "type": "int",
+          "default": 2
+        },
+        {
+          "flag": "--trotter-steps",
+          "line": 2141,
+          "type": "int",
+          "default": 64
+        },
+        {
+          "flag": "--fidelity-subspace-energy-tol",
+          "line": 2142,
+          "type": "float",
+          "default": 1e-08,
+          "help": "Energy tolerance for filtered-sector ground-manifold selection used by trajectory subspace fidelity (E <= E0 + tol). Forwarded to both pipelines."
+        },
+        {
+          "flag": "--hardcoded-vqe-reps",
+          "line": 2152,
+          "type": "int",
+          "default": 2
+        },
+        {
+          "flag": "--hardcoded-vqe-restarts",
+          "line": 2153,
+          "type": "int",
+          "default": 3
+        },
+        {
+          "flag": "--hardcoded-vqe-seed",
+          "line": 2154,
+          "type": "int",
+          "default": 7
+        },
+        {
+          "flag": "--hardcoded-vqe-maxiter",
+          "line": 2155,
+          "type": "int",
+          "default": 600
+        },
+        {
+          "flag": "--hardcoded-vqe-method",
+          "line": 2156,
+          "type": "str",
+          "default": "COBYLA",
+          "choices": [
+            "SLSQP",
+            "COBYLA",
+            "L-BFGS-B",
+            "Powell",
+            "Nelder-Mead"
+          ]
+        },
+        {
+          "flag": "--qiskit-vqe-reps",
+          "line": 2163,
+          "type": "int",
+          "default": 2
+        },
+        {
+          "flag": "--qiskit-vqe-restarts",
+          "line": 2164,
+          "type": "int",
+          "default": 3
+        },
+        {
+          "flag": "--qiskit-vqe-seed",
+          "line": 2165,
+          "type": "int",
+          "default": 7
+        },
+        {
+          "flag": "--qiskit-vqe-maxiter",
+          "line": 2166,
+          "type": "int",
+          "default": 600
+        },
+        {
+          "flag": "--qiskit-vqe-optimizer",
+          "line": 2167,
+          "type": "str",
+          "default": "COBYLA",
+          "choices": [
+            "SLSQP",
+            "COBYLA",
+            "L_BFGS_B"
+          ]
+        },
+        {
+          "flag": "--qpe-eval-qubits",
+          "line": 2174,
+          "type": "int",
+          "default": 5
+        },
+        {
+          "flag": "--qpe-shots",
+          "line": 2175,
+          "type": "int",
+          "default": 256
+        },
+        {
+          "flag": "--qpe-seed",
+          "line": 2176,
+          "type": "int",
+          "default": 11
+        },
+        {
+          "flag": "--skip-qpe",
+          "line": 2177,
+          "action": "store_true",
+          "help": "Pass --skip-qpe to both pipeline runners."
+        },
+        {
+          "flag": "--enable-drive",
+          "line": 2185,
+          "action": "store_true",
+          "default": false,
+          "help": "Enable the time-dependent onsite density drive in both pipelines."
+        },
+        {
+          "flag": "--drive-A",
+          "line": 2191,
+          "type": "float",
+          "default": 1.0,
+          "help": "Drive amplitude A (Gaussian-sinusoid waveform)."
+        },
+        {
+          "flag": "--drive-omega",
+          "line": 2193,
+          "type": "float",
+          "default": 1.0,
+          "help": "Drive angular frequency \u03c9."
+        },
+        {
+          "flag": "--drive-tbar",
+          "line": 2195,
+          "type": "float",
+          "default": 5.0,
+          "help": "Drive Gaussian half-width t\u0304."
+        },
+        {
+          "flag": "--drive-phi",
+          "line": 2197,
+          "type": "float",
+          "default": 0.0,
+          "help": "Drive phase offset \u03c6."
+        },
+        {
+          "flag": "--drive-pattern",
+          "line": 2199,
+          "type": "str",
+          "default": "staggered",
+          "choices": [
+            "staggered",
+            "dimer_bias",
+            "custom"
+          ],
+          "help": "Spatial weight pattern for the drive."
+        },
+        {
+          "flag": "--drive-custom-s",
+          "line": 2206,
+          "type": "str",
+          "default": null,
+          "metavar": "JSON_ARRAY",
+          "help": "JSON-encoded list of custom spatial weights, e.g. '[1.0,-0.5]'. Required when --drive-pattern=custom."
+        },
+        {
+          "flag": "--drive-include-identity",
+          "line": 2214,
+          "action": "store_true",
+          "default": false,
+          "help": "Include the identity (global-phase) term in the drive Hamiltonian."
+        },
+        {
+          "flag": "--drive-time-sampling",
+          "line": 2220,
+          "type": "str",
+          "default": "midpoint",
+          "choices": [
+            "midpoint",
+            "left",
+            "right"
+          ],
+          "help": "Time-sampling rule for drive coefficients within each Trotter slice."
+        },
+        {
+          "flag": "--drive-t0",
+          "line": 2227,
+          "type": "float",
+          "default": 0.0,
+          "help": "Drive start time t\u2080 (offset added to each Trotter slice time)."
+        },
+        {
+          "flag": "--exact-steps-multiplier",
+          "line": 2229,
+          "type": "int",
+          "default": 1,
+          "help": "Reference-propagator refinement factor forwarded to both pipelines. When drive is enabled, the reference runs at N_ref = exact_steps_multiplier * trotter_steps steps. Default 1 (reference and Trotter use the same step count)."
+        },
+        {
+          "flag": "--initial-state-source",
+          "line": 2241,
+          "choices": [
+            "exact",
+            "vqe",
+            "hf"
+          ],
+          "default": "vqe"
+        },
+        {
+          "flag": "--drive-amplitudes",
+          "line": 2246,
+          "type": "str",
+          "default": "0.0,0.2",
+          "metavar": "A0,A1",
+          "help": "Comma-separated pair of drive amplitudes used by --with-drive-amplitude-comparison-pdf.  A0 is the trivial (zero) amplitude for the safe-test; A1 is the active amplitude.  Default: '0.0,0.2'."
+        },
+        {
+          "flag": "--with-drive-amplitude-comparison-pdf",
+          "line": 2258,
+          "action": "store_true",
+          "default": false,
+          "help": "Generate an amplitude-comparison PDF for each L value.  Runs both pipelines three times per L: drive disabled, --drive-A A0, and --drive-A A1.  Includes a safe-test page (no-drive vs A0=0 must be identical) and a VQE delta page (\u0394E = HC_VQE \u2212 QK_VQE at each amplitude).  Requires --enable-drive (or any drive flags) to be meaningful."
+        },
+        {
+          "flag": "--report-verbose",
+          "line": 2271,
+          "action": "store_true",
+          "default": false,
+          "help": "Emit verbose report pages. For amplitude PDFs this forces the full safe-test detail page even when far from threshold."
+        },
+        {
+          "flag": "--safe-test-near-threshold-factor",
+          "line": 2280,
+          "type": "float",
+          "default": 100.0,
+          "help": "Near-threshold gate for rendering full safe-test plots. The detail page appears when max_safe_delta >= threshold/factor, or on failure, or with --report-verbose."
+        },
+        {
+          "flag": "--artifacts-dir",
+          "line": 2291,
+          "type": "Path",
+          "default": "ROOT / 'artifacts'"
+        },
+        {
+          "flag": "--t-hartree",
+          "line": 2292,
+          "type": "float",
+          "default": null,
+          "metavar": "HARTREE",
+          "help": "Physical value of the hopping parameter t in Hartree.  Used to express chemical accuracy (1.6e-3 Ha) in the model's natural energy units on every PDF text page.  Example: for cuprate t\u22480.3 eV, pass --t-hartree 0.01102."
+        }
+      ],
+      "constants": [
+        {
+          "name": "ROOT",
+          "line": 41,
+          "value": "Path(__file__).resolve().parents[1]"
+        },
+        {
+          "name": "REPO_ROOT",
+          "line": 42,
+          "value": "ROOT.parent"
+        },
+        {
+          "name": "THRESHOLDS",
+          "line": 50,
+          "value": {
+            "ground_state_energy_abs_delta": 1e-08,
+            "fidelity_max_abs_delta": 0.0001,
+            "energy_static_trotter_max_abs_delta": 0.001,
+            "energy_total_trotter_max_abs_delta": 0.001,
+            "n_up_site0_trotter_max_abs_delta": 0.005,
+            "n_dn_site0_trotter_max_abs_delta": 0.005,
+            "doublon_trotter_max_abs_delta": 0.001
+          }
+        },
+        {
+          "name": "TARGET_METRICS",
+          "line": 60,
+          "value": [
+            "fidelity",
+            "energy_static_trotter",
+            "n_up_site0_trotter",
+            "n_dn_site0_trotter",
+            "doublon_trotter"
+          ]
+        },
+        {
+          "name": "EXACT_LABEL_QISKIT",
+          "line": 68,
+          "value": "Exact_Qiskit"
+        },
+        {
+          "name": "EXACT_LABEL_HARDCODE",
+          "line": 69,
+          "value": "Exact_Hardcode"
+        },
+        {
+          "name": "EXACT_METHOD",
+          "line": 70,
+          "value": "python_matrix_eigendecomposition"
+        },
+        {
+          "name": "_CHEM_ACCURACY_HARTREE",
+          "line": 154,
+          "value": 0.0016
+        },
+        {
+          "name": "_INFO_BOX_SETTINGS_KEYS",
+          "line": 350,
+          "value": [
+            "L",
+            "t",
+            "u",
+            "dv",
+            "boundary",
+            "ordering",
+            "initial_state_source",
+            "t_final",
+            "num_times",
+            "suzuki_order",
+            "trotter_steps"
+          ]
+        },
+        {
+          "name": "_INFO_BBOX",
+          "line": 401,
+          "value": "dict(boxstyle='round,pad=0.4', facecolor='white', edgecolor='#888888', alpha=0.8)"
+        },
+        {
+          "name": "_DRIVE_FLAG_DEFAULTS",
+          "line": 1154,
+          "value": {
+            "enable_drive": false,
+            "drive_A": 1.0,
+            "drive_omega": 1.0,
+            "drive_tbar": 5.0,
+            "drive_phi": 0.0,
+            "drive_pattern": "staggered",
+            "drive_custom_s": null,
+            "drive_include_identity": false,
+            "drive_time_sampling": "midpoint",
+            "drive_t0": 0.0,
+            "exact_steps_multiplier": 1
+          }
+        },
+        {
+          "name": "_SAFE_TEST_THRESHOLD",
+          "line": 1200,
+          "value": 1e-10
+        }
+      ]
+    },
+    {
+      "module": "Fermi-Hamil-JW-VQE-TROTTER-PIPELINE.pipelines.hardcoded_hubbard_pipeline",
+      "path": "Fermi-Hamil-JW-VQE-TROTTER-PIPELINE/pipelines/hardcoded_hubbard_pipeline.py",
+      "classes": [
+        {
+          "name": "CompiledPauliAction",
+          "line": 76
+        }
+      ],
+      "functions": [
+        {
+          "name": "_ai_log",
+          "line": 55
+        },
+        {
+          "name": "_to_ixyz",
+          "line": 82
+        },
+        {
+          "name": "_normalize_state",
+          "line": 86
+        },
+        {
+          "name": "_half_filled_particles",
+          "line": 93
+        },
+        {
+          "name": "_sector_basis_indices",
+          "line": 97
+        },
+        {
+          "name": "_ground_manifold_basis_sector_filtered",
+          "line": 131
+        },
+        {
+          "name": "_orthonormalize_basis_columns",
+          "line": 166
+        },
+        {
+          "name": "_projector_fidelity_from_basis",
+          "line": 182
+        },
+        {
+          "name": "_exact_ground_state_sector_filtered",
+          "line": 197
+        },
+        {
+          "name": "_exact_energy_sector_filtered",
+          "line": 215
+        },
+        {
+          "name": "_pauli_matrix_exyz",
+          "line": 231
+        },
+        {
+          "name": "_collect_hardcoded_terms_exyz",
+          "line": 239
+        },
+        {
+          "name": "_build_hamiltonian_matrix",
+          "line": 262
+        },
+        {
+          "name": "_compile_pauli_action",
+          "line": 273
+        },
+        {
+          "name": "_apply_compiled_pauli",
+          "line": 301
+        },
+        {
+          "name": "_apply_exp_term",
+          "line": 307
+        },
+        {
+          "name": "_evolve_trotter_suzuki2_absolute",
+          "line": 321
+        },
+        {
+          "name": "_expectation_hamiltonian",
+          "line": 394
+        },
+        {
+          "name": "_build_drive_matrix_at_time",
+          "line": 398
+        },
+        {
+          "name": "_spin_orbital_bit_index",
+          "line": 430
+        },
+        {
+          "name": "_site_resolved_number_observables",
+          "line": 439
+        },
+        {
+          "name": "_staggered_order",
+          "line": 464
+        },
+        {
+          "name": "_state_to_amplitudes_qn_to_q0",
+          "line": 471
+        },
+        {
+          "name": "_load_hardcoded_vqe_namespace",
+          "line": 482
+        },
+        {
+          "name": "_run_hardcoded_vqe",
+          "line": 500
+        },
+        {
+          "name": "_run_qpe_adapter_qiskit",
+          "line": 580
+        },
+        {
+          "name": "_reference_terms_for_case",
+          "line": 719
+        },
+        {
+          "name": "_reference_sanity",
+          "line": 754
+        },
+        {
+          "name": "_is_all_z_type",
+          "line": 813
+        },
+        {
+          "name": "_build_drive_diagonal",
+          "line": 828
+        },
+        {
+          "name": "_evolve_piecewise_exact",
+          "line": 875
+        },
+        {
+          "name": "_simulate_trajectory",
+          "line": 1036
+        },
+        {
+          "name": "_current_command_string",
+          "line": 1292
+        },
+        {
+          "name": "_render_command_page",
+          "line": 1296
+        },
+        {
+          "name": "_write_pipeline_pdf",
+          "line": 1314
+        },
+        {
+          "name": "parse_args",
+          "line": 1831
+        },
+        {
+          "name": "main",
+          "line": 1920
+        }
+      ],
+      "imports": {
+        "internal": [
+          "src.quantum",
+          "src.quantum.drives_time_potential",
+          "src.quantum.hartree_fock_reference_state",
+          "src.quantum.hubbard_latex_python_pairs"
+        ],
+        "external": [
+          "__future__",
+          "argparse",
+          "dataclasses",
+          "datetime",
+          "json",
+          "math",
+          "matplotlib",
+          "numpy",
+          "os",
+          "pathlib",
+          "qiskit",
+          "qiskit_algorithms",
+          "scipy",
+          "shlex",
+          "sys",
+          "textwrap",
+          "time",
+          "typing"
+        ]
+      },
+      "cli_flags": [
+        {
+          "flag": "--L",
+          "line": 1833,
+          "type": "int",
+          "required": true,
+          "help": "Number of lattice sites."
+        },
+        {
+          "flag": "--t",
+          "line": 1834,
+          "type": "float",
+          "default": 1.0,
+          "help": "Hopping coefficient."
+        },
+        {
+          "flag": "--u",
+          "line": 1835,
+          "type": "float",
+          "default": 4.0,
+          "help": "Onsite interaction U."
+        },
+        {
+          "flag": "--dv",
+          "line": 1836,
+          "type": "float",
+          "default": 0.0,
+          "help": "Uniform local potential term v (Hv = -v n)."
+        },
+        {
+          "flag": "--boundary",
+          "line": 1837,
+          "choices": [
+            "periodic",
+            "open"
+          ],
+          "default": "periodic"
+        },
+        {
+          "flag": "--ordering",
+          "line": 1838,
+          "choices": [
+            "blocked",
+            "interleaved"
+          ],
+          "default": "blocked"
+        },
+        {
+          "flag": "--t-final",
+          "line": 1839,
+          "type": "float",
+          "default": 20.0
+        },
+        {
+          "flag": "--num-times",
+          "line": 1840,
+          "type": "int",
+          "default": 201
+        },
+        {
+          "flag": "--suzuki-order",
+          "line": 1841,
+          "type": "int",
+          "default": 2
+        },
+        {
+          "flag": "--trotter-steps",
+          "line": 1842,
+          "type": "int",
+          "default": 64
+        },
+        {
+          "flag": "--fidelity-subspace-energy-tol",
+          "line": 1843,
+          "type": "float",
+          "default": 1e-08,
+          "help": "Energy tolerance for the filtered-sector ground manifold used in subspace fidelity: include states with E <= E0 + tol."
+        },
+        {
+          "flag": "--term-order",
+          "line": 1852,
+          "choices": [
+            "native",
+            "sorted"
+          ],
+          "default": "sorted"
+        },
+        {
+          "flag": "--enable-drive",
+          "line": 1855,
+          "action": "store_true",
+          "help": "Enable time-dependent onsite density drive."
+        },
+        {
+          "flag": "--drive-A",
+          "line": 1856,
+          "type": "float",
+          "default": 0.0,
+          "help": "Drive amplitude A in v(t)=A*sin(wt+phi)*exp(-t^2/(2 tbar^2))."
+        },
+        {
+          "flag": "--drive-omega",
+          "line": 1857,
+          "type": "float",
+          "default": 1.0,
+          "help": "Drive carrier angular frequency w."
+        },
+        {
+          "flag": "--drive-tbar",
+          "line": 1858,
+          "type": "float",
+          "default": 1.0,
+          "help": "Drive Gaussian envelope width tbar (must be > 0)."
+        },
+        {
+          "flag": "--drive-phi",
+          "line": 1859,
+          "type": "float",
+          "default": 0.0,
+          "help": "Drive phase phi."
+        },
+        {
+          "flag": "--drive-pattern",
+          "line": 1860,
+          "choices": [
+            "dimer_bias",
+            "staggered",
+            "custom"
+          ],
+          "default": "staggered",
+          "help": "Spatial pattern mode for v_i(t)=s_i*v(t)."
+        },
+        {
+          "flag": "--drive-custom-s",
+          "line": 1866,
+          "type": "str",
+          "default": null,
+          "help": "Custom spatial weights s_i (comma-separated or JSON list), length L, used when --drive-pattern custom."
+        },
+        {
+          "flag": "--drive-include-identity",
+          "line": 1872,
+          "action": "store_true",
+          "help": "Include identity term from n=(I-Z)/2 (global phase)."
+        },
+        {
+          "flag": "--drive-time-sampling",
+          "line": 1873,
+          "choices": [
+            "midpoint",
+            "left",
+            "right"
+          ],
+          "default": "midpoint",
+          "help": "Time sampling rule per Trotter slice (midpoint recommended; left/right for diagnostics)."
+        },
+        {
+          "flag": "--drive-t0",
+          "line": 1879,
+          "type": "float",
+          "default": 0.0,
+          "help": "Drive start time t0 for evolution (default 0.0)."
+        },
+        {
+          "flag": "--exact-steps-multiplier",
+          "line": 1880,
+          "type": "int",
+          "default": 1,
+          "help": "Reference-propagator refinement factor (default 1). When drive is enabled the reference runs at N_ref = exact_steps_multiplier * trotter_steps steps while the Trotter circuit runs at trotter_steps. With midpoint sampling (Magnus-2, O(\u0394t\u00b2)) a larger multiplier strictly improves reference quality. Has no effect when drive is disabled (the static reference uses exact eigendecomposition)."
+        },
+        {
+          "flag": "--vqe-reps",
+          "line": 1895,
+          "type": "int",
+          "default": 2,
+          "help": "Number of UCCSD repetitions (ansatz depth)."
+        },
+        {
+          "flag": "--vqe-restarts",
+          "line": 1896,
+          "type": "int",
+          "default": 1
+        },
+        {
+          "flag": "--vqe-seed",
+          "line": 1897,
+          "type": "int",
+          "default": 7
+        },
+        {
+          "flag": "--vqe-maxiter",
+          "line": 1898,
+          "type": "int",
+          "default": 120
+        },
+        {
+          "flag": "--vqe-method",
+          "line": 1899,
+          "type": "str",
+          "default": "COBYLA",
+          "choices": [
+            "SLSQP",
+            "COBYLA",
+            "L-BFGS-B",
+            "Powell",
+            "Nelder-Mead"
+          ],
+          "help": "SciPy optimizer used by hardcoded VQE."
+        },
+        {
+          "flag": "--qpe-eval-qubits",
+          "line": 1907,
+          "type": "int",
+          "default": 6
+        },
+        {
+          "flag": "--qpe-shots",
+          "line": 1908,
+          "type": "int",
+          "default": 1024
+        },
+        {
+          "flag": "--qpe-seed",
+          "line": 1909,
+          "type": "int",
+          "default": 11
+        },
+        {
+          "flag": "--skip-qpe",
+          "line": 1910,
+          "action": "store_true",
+          "help": "Skip QPE execution and mark qpe payload as skipped."
+        },
+        {
+          "flag": "--initial-state-source",
+          "line": 1912,
+          "choices": [
+            "exact",
+            "vqe",
+            "hf"
+          ],
+          "default": "vqe"
+        },
+        {
+          "flag": "--output-json",
+          "line": 1914,
+          "type": "Path",
+          "default": null
+        },
+        {
+          "flag": "--output-pdf",
+          "line": 1915,
+          "type": "Path",
+          "default": null
+        },
+        {
+          "flag": "--skip-pdf",
+          "line": 1916,
+          "action": "store_true"
+        }
+      ],
+      "constants": [
+        {
+          "name": "ROOT",
+          "line": 39,
+          "value": "Path(__file__).resolve().parents[1]"
+        },
+        {
+          "name": "REPO_ROOT",
+          "line": 40,
+          "value": "ROOT.parent"
+        },
+        {
+          "name": "PAULI_MATS",
+          "line": 64,
+          "value": "{'e': np.array([[1.0, 0.0], [0.0, 1.0]], dtype=complex), 'x': np.array([[0.0, 1.0], [1.0, 0.0]], dtype=complex), 'y': np.array([[0.0, -1j], [1j, 0.0]], dtype=complex), 'z': np.array([[1.0, 0.0], [0.0, -1.0]], dtype=complex)}"
+        },
+        {
+          "name": "EXACT_LABEL",
+          "line": 71,
+          "value": "Exact_Hardcode"
+        },
+        {
+          "name": "EXACT_METHOD",
+          "line": 72,
+          "value": "python_matrix_eigendecomposition"
+        },
+        {
+          "name": "_EXPM_SPARSE_MIN_DIM",
+          "line": 810,
+          "value": 64
+        }
+      ]
+    },
+    {
+      "module": "Fermi-Hamil-JW-VQE-TROTTER-PIPELINE.pipelines.l2_vqe_exact_dynamics_dual_method",
+      "path": "Fermi-Hamil-JW-VQE-TROTTER-PIPELINE/pipelines/l2_vqe_exact_dynamics_dual_method.py",
+      "classes": [],
+      "functions": [
+        {
+          "name": "_ai_log",
+          "line": 48
+        },
+        {
+          "name": "_current_command_string",
+          "line": 57
+        },
+        {
+          "name": "_normalize_state",
+          "line": 61
+        },
+        {
+          "name": "_pauli_matrix_exyz",
+          "line": 68
+        },
+        {
+          "name": "_build_hamiltonian_matrix",
+          "line": 75
+        },
+        {
+          "name": "_state_from_amplitudes_qn_to_q0",
+          "line": 89
+        },
+        {
+          "name": "_expectation_hamiltonian",
+          "line": 98
+        },
+        {
+          "name": "_occupation_site0",
+          "line": 102
+        },
+        {
+          "name": "_doublon_total",
+          "line": 112
+        },
+        {
+          "name": "_evolve_python_exact",
+          "line": 125
+        },
+        {
+          "name": "_evolve_qiskit_exact",
+          "line": 150
+        },
+        {
+          "name": "_states_to_observables",
+          "line": 180
+        },
+        {
+          "name": "_arr",
+          "line": 199
+        },
+        {
+          "name": "_max_abs_delta",
+          "line": 203
+        },
+        {
+          "name": "_compute_dataset",
+          "line": 207
+        },
+        {
+          "name": "_render_command_page",
+          "line": 285
+        },
+        {
+          "name": "_render_dataset_observable_page",
+          "line": 303
+        },
+        {
+          "name": "_render_dataset_delta_page",
+          "line": 357
+        },
+        {
+          "name": "_render_summary_page",
+          "line": 405
+        },
+        {
+          "name": "parse_args",
+          "line": 419
+        },
+        {
+          "name": "main",
+          "line": 444
+        }
+      ],
+      "imports": {
+        "internal": [],
+        "external": [
+          "__future__",
+          "argparse",
+          "datetime",
+          "json",
+          "math",
+          "matplotlib",
+          "numpy",
+          "os",
+          "pathlib",
+          "qiskit",
+          "shlex",
+          "sys",
+          "textwrap",
+          "time",
+          "typing"
+        ]
+      },
+      "cli_flags": [
+        {
+          "flag": "--hardcoded-json",
+          "line": 421,
+          "type": "Path",
+          "default": "ROOT / 'artifacts' / 'hardcoded_pipeline_L2.json'"
+        },
+        {
+          "flag": "--qiskit-json",
+          "line": 426,
+          "type": "Path",
+          "default": "ROOT / 'artifacts' / 'qiskit_pipeline_L2.json'"
+        },
+        {
+          "flag": "--output-pdf",
+          "line": 431,
+          "type": "Path",
+          "default": "ROOT / 'artifacts' / 'l2_vqe_ansatz_exact_dynamics_dual_method.pdf'"
+        },
+        {
+          "flag": "--output-json",
+          "line": 436,
+          "type": "Path",
+          "default": "ROOT / 'artifacts' / 'l2_vqe_ansatz_exact_dynamics_dual_method_metrics.json'"
+        }
+      ],
+      "constants": [
+        {
+          "name": "ROOT",
+          "line": 38,
+          "value": "Path(__file__).resolve().parents[1]"
+        },
+        {
+          "name": "PAULI_MATS",
+          "line": 40,
+          "value": "{'e': np.array([[1.0, 0.0], [0.0, 1.0]], dtype=complex), 'x': np.array([[0.0, 1.0], [1.0, 0.0]], dtype=complex), 'y': np.array([[0.0, -1j], [1j, 0.0]], dtype=complex), 'z': np.array([[1.0, 0.0], [0.0, -1.0]], dtype=complex)}"
+        }
+      ]
+    },
+    {
+      "module": "Fermi-Hamil-JW-VQE-TROTTER-PIPELINE.pipelines.manual_compare_jsons",
+      "path": "Fermi-Hamil-JW-VQE-TROTTER-PIPELINE/pipelines/manual_compare_jsons.py",
+      "classes": [],
+      "functions": [
+        {
+          "name": "_fp",
+          "line": 57
+        },
+        {
+          "name": "_first_crossing",
+          "line": 61
+        },
+        {
+          "name": "_arr",
+          "line": 68
+        },
+        {
+          "name": "_load_json",
+          "line": 72
+        },
+        {
+          "name": "_load_thresholds",
+          "line": 76
+        },
+        {
+          "name": "_settings_mismatches",
+          "line": 93
+        },
+        {
+          "name": "_compute_metrics",
+          "line": 109
+        },
+        {
+          "name": "_vqe_diag",
+          "line": 174
+        },
+        {
+          "name": "_flatten_numeric",
+          "line": 204
+        },
+        {
+          "name": "_metrics_match",
+          "line": 216
+        },
+        {
+          "name": "_get_path",
+          "line": 249
+        },
+        {
+          "name": "_print_report",
+          "line": 258
+        },
+        {
+          "name": "parse_args",
+          "line": 322
+        },
+        {
+          "name": "main",
+          "line": 331
+        }
+      ],
+      "imports": {
+        "internal": [],
+        "external": [
+          "__future__",
+          "argparse",
+          "json",
+          "numpy",
+          "pathlib",
+          "sys",
+          "typing"
+        ]
+      },
+      "cli_flags": [
+        {
+          "flag": "--hardcoded",
+          "line": 324,
+          "type": "Path",
+          "required": true,
+          "help": "Hardcoded pipeline JSON path."
+        },
+        {
+          "flag": "--qiskit",
+          "line": 325,
+          "type": "Path",
+          "required": true,
+          "help": "Qiskit pipeline JSON path."
+        },
+        {
+          "flag": "--thresholds",
+          "line": 326,
+          "type": "Path",
+          "default": null,
+          "help": "Optional thresholds JSON path."
+        },
+        {
+          "flag": "--metrics",
+          "line": 327,
+          "type": "Path",
+          "default": null,
+          "help": "Optional metrics JSON for verification."
+        }
+      ],
+      "constants": [
+        {
+          "name": "DEFAULT_THRESHOLDS",
+          "line": 25,
+          "value": {
+            "ground_state_energy_abs_delta": 1e-08,
+            "fidelity_max_abs_delta": 0.0001,
+            "energy_static_trotter_max_abs_delta": 0.001,
+            "n_up_site0_trotter_max_abs_delta": 0.005,
+            "n_dn_site0_trotter_max_abs_delta": 0.005,
+            "doublon_trotter_max_abs_delta": 0.001
+          }
+        },
+        {
+          "name": "TARGET_METRICS",
+          "line": 34,
+          "value": [
+            "fidelity",
+            "energy_static_trotter",
+            "n_up_site0_trotter",
+            "n_dn_site0_trotter",
+            "doublon_trotter"
+          ]
+        },
+        {
+          "name": "SETTINGS_KEYS",
+          "line": 42,
+          "value": [
+            "L",
+            "t",
+            "u",
+            "dv",
+            "boundary",
+            "ordering",
+            "t_final",
+            "num_times",
+            "suzuki_order",
+            "trotter_steps",
+            "initial_state_source"
+          ]
+        }
+      ]
+    },
+    {
+      "module": "Fermi-Hamil-JW-VQE-TROTTER-PIPELINE.pipelines.qiskit_hubbard_baseline_pipeline",
+      "path": "Fermi-Hamil-JW-VQE-TROTTER-PIPELINE/pipelines/qiskit_hubbard_baseline_pipeline.py",
+      "classes": [
+        {
+          "name": "CompiledPauliAction",
+          "line": 77
+        }
+      ],
+      "functions": [
+        {
+          "name": "_ai_log",
+          "line": 67
+        },
+        {
+          "name": "_to_exyz",
+          "line": 83
+        },
+        {
+          "name": "_to_ixyz",
+          "line": 87
+        },
+        {
+          "name": "_normalize_state",
+          "line": 91
+        },
+        {
+          "name": "_half_filled_particles",
+          "line": 98
+        },
+        {
+          "name": "_sector_basis_indices",
+          "line": 102
+        },
+        {
+          "name": "_ground_manifold_basis_sector_filtered",
+          "line": 134
+        },
+        {
+          "name": "_orthonormalize_basis_columns",
+          "line": 165
+        },
+        {
+          "name": "_projector_fidelity_from_basis",
+          "line": 180
+        },
+        {
+          "name": "_interleaved_to_blocked_permutation",
+          "line": 194
+        },
+        {
+          "name": "_spin_orbital_index_sets",
+          "line": 198
+        },
+        {
+          "name": "_number_operator_qop",
+          "line": 207
+        },
+        {
+          "name": "_filtered_exact_energy",
+          "line": 219
+        },
+        {
+          "name": "_uniform_potential_qubit_op",
+          "line": 243
+        },
+        {
+          "name": "_build_qiskit_qubit_hamiltonian",
+          "line": 259
+        },
+        {
+          "name": "_qiskit_terms_exyz",
+          "line": 289
+        },
+        {
+          "name": "_ordered_qop_from_exyz",
+          "line": 307
+        },
+        {
+          "name": "_compile_pauli_action",
+          "line": 325
+        },
+        {
+          "name": "_apply_compiled_pauli",
+          "line": 353
+        },
+        {
+          "name": "_apply_exp_term",
+          "line": 359
+        },
+        {
+          "name": "_evolve_trotter_suzuki2_absolute",
+          "line": 373
+        },
+        {
+          "name": "_expectation_hamiltonian",
+          "line": 439
+        },
+        {
+          "name": "_build_drive_matrix_at_time",
+          "line": 443
+        },
+        {
+          "name": "_spin_orbital_bit_index",
+          "line": 475
+        },
+        {
+          "name": "_site_resolved_number_observables",
+          "line": 484
+        },
+        {
+          "name": "_staggered_order",
+          "line": 509
+        },
+        {
+          "name": "_state_to_amplitudes_qn_to_q0",
+          "line": 516
+        },
+        {
+          "name": "_build_qiskit_optimizer",
+          "line": 527
+        },
+        {
+          "name": "_run_qiskit_vqe",
+          "line": 539
+        },
+        {
+          "name": "_run_qiskit_qpe",
+          "line": 710
+        },
+        {
+          "name": "_reference_terms_for_case",
+          "line": 811
+        },
+        {
+          "name": "_reference_sanity",
+          "line": 846
+        },
+        {
+          "name": "_is_all_z_type",
+          "line": 913
+        },
+        {
+          "name": "_build_drive_diagonal",
+          "line": 928
+        },
+        {
+          "name": "_pauli_matrix_exyz",
+          "line": 973
+        },
+        {
+          "name": "_build_hamiltonian_matrix_from_exyz",
+          "line": 981
+        },
+        {
+          "name": "_evolve_piecewise_exact",
+          "line": 992
+        },
+        {
+          "name": "_simulate_trajectory",
+          "line": 1137
+        },
+        {
+          "name": "_current_command_string",
+          "line": 1392
+        },
+        {
+          "name": "_render_command_page",
+          "line": 1396
+        },
+        {
+          "name": "_write_pipeline_pdf",
+          "line": 1414
+        },
+        {
+          "name": "parse_args",
+          "line": 1547
+        },
+        {
+          "name": "main",
+          "line": 1636
+        }
+      ],
+      "imports": {
+        "internal": [
+          "src.quantum.drives_time_potential",
+          "src.quantum.hartree_fock_reference_state"
+        ],
+        "external": [
+          "__future__",
+          "argparse",
+          "dataclasses",
+          "datetime",
+          "json",
+          "math",
+          "matplotlib",
+          "numpy",
+          "os",
+          "pathlib",
+          "qiskit",
+          "qiskit_algorithms",
+          "qiskit_nature",
+          "scipy",
+          "shlex",
+          "sys",
+          "textwrap",
+          "time",
+          "typing"
+        ]
+      },
+      "cli_flags": [
+        {
+          "flag": "--L",
+          "line": 1549,
+          "type": "int",
+          "required": true,
+          "help": "Number of lattice sites."
+        },
+        {
+          "flag": "--t",
+          "line": 1550,
+          "type": "float",
+          "default": 1.0,
+          "help": "Hopping coefficient."
+        },
+        {
+          "flag": "--u",
+          "line": 1551,
+          "type": "float",
+          "default": 4.0,
+          "help": "Onsite interaction U."
+        },
+        {
+          "flag": "--dv",
+          "line": 1552,
+          "type": "float",
+          "default": 0.0,
+          "help": "Uniform local potential term v (Hv = -v n)."
+        },
+        {
+          "flag": "--boundary",
+          "line": 1553,
+          "choices": [
+            "periodic",
+            "open"
+          ],
+          "default": "periodic"
+        },
+        {
+          "flag": "--ordering",
+          "line": 1554,
+          "choices": [
+            "blocked",
+            "interleaved"
+          ],
+          "default": "blocked"
+        },
+        {
+          "flag": "--t-final",
+          "line": 1555,
+          "type": "float",
+          "default": 20.0
+        },
+        {
+          "flag": "--num-times",
+          "line": 1556,
+          "type": "int",
+          "default": 201
+        },
+        {
+          "flag": "--suzuki-order",
+          "line": 1557,
+          "type": "int",
+          "default": 2
+        },
+        {
+          "flag": "--trotter-steps",
+          "line": 1558,
+          "type": "int",
+          "default": 64
+        },
+        {
+          "flag": "--fidelity-subspace-energy-tol",
+          "line": 1559,
+          "type": "float",
+          "default": 1e-08,
+          "help": "Energy tolerance for the filtered-sector ground manifold used in subspace fidelity: include states with E <= E0 + tol."
+        },
+        {
+          "flag": "--term-order",
+          "line": 1568,
+          "choices": [
+            "qiskit",
+            "sorted"
+          ],
+          "default": "sorted"
+        },
+        {
+          "flag": "--enable-drive",
+          "line": 1571,
+          "action": "store_true",
+          "help": "Enable time-dependent onsite density drive."
+        },
+        {
+          "flag": "--drive-A",
+          "line": 1572,
+          "type": "float",
+          "default": 0.0,
+          "help": "Drive amplitude A in v(t)=A*sin(wt+phi)*exp(-t^2/(2 tbar^2))."
+        },
+        {
+          "flag": "--drive-omega",
+          "line": 1573,
+          "type": "float",
+          "default": 1.0,
+          "help": "Drive carrier angular frequency w."
+        },
+        {
+          "flag": "--drive-tbar",
+          "line": 1574,
+          "type": "float",
+          "default": 1.0,
+          "help": "Drive Gaussian envelope width tbar (must be > 0)."
+        },
+        {
+          "flag": "--drive-phi",
+          "line": 1575,
+          "type": "float",
+          "default": 0.0,
+          "help": "Drive phase phi."
+        },
+        {
+          "flag": "--drive-pattern",
+          "line": 1576,
+          "choices": [
+            "dimer_bias",
+            "staggered",
+            "custom"
+          ],
+          "default": "staggered",
+          "help": "Spatial pattern mode for v_i(t)=s_i*v(t)."
+        },
+        {
+          "flag": "--drive-custom-s",
+          "line": 1582,
+          "type": "str",
+          "default": null,
+          "help": "Custom spatial weights s_i (comma-separated or JSON list), length L, used when --drive-pattern custom."
+        },
+        {
+          "flag": "--drive-include-identity",
+          "line": 1588,
+          "action": "store_true",
+          "help": "Include identity term from n=(I-Z)/2 (global phase)."
+        },
+        {
+          "flag": "--drive-time-sampling",
+          "line": 1589,
+          "choices": [
+            "midpoint",
+            "left",
+            "right"
+          ],
+          "default": "midpoint",
+          "help": "Time sampling rule per Trotter slice (midpoint recommended; left/right for diagnostics)."
+        },
+        {
+          "flag": "--drive-t0",
+          "line": 1595,
+          "type": "float",
+          "default": 0.0,
+          "help": "Drive start time t0 for evolution (default 0.0)."
+        },
+        {
+          "flag": "--exact-steps-multiplier",
+          "line": 1596,
+          "type": "int",
+          "default": 1,
+          "help": "Reference-propagator refinement factor (default 1). When drive is enabled the reference runs at N_ref = exact_steps_multiplier * trotter_steps steps while the Trotter circuit runs at trotter_steps. With midpoint sampling (Magnus-2, O(\u0394t\u00b2)) a larger multiplier strictly improves reference quality. Has no effect when drive is disabled (the static reference uses exact eigendecomposition)."
+        },
+        {
+          "flag": "--vqe-reps",
+          "line": 1612,
+          "type": "int",
+          "default": 2
+        },
+        {
+          "flag": "--vqe-restarts",
+          "line": 1613,
+          "type": "int",
+          "default": 3
+        },
+        {
+          "flag": "--vqe-seed",
+          "line": 1614,
+          "type": "int",
+          "default": 7
+        },
+        {
+          "flag": "--vqe-maxiter",
+          "line": 1615,
+          "type": "int",
+          "default": 120
+        },
+        {
+          "flag": "--vqe-optimizer",
+          "line": 1616,
+          "type": "str",
+          "default": "COBYLA",
+          "choices": [
+            "SLSQP",
+            "COBYLA",
+            "L_BFGS_B"
+          ],
+          "help": "Qiskit optimizer used by VQE."
+        },
+        {
+          "flag": "--qpe-eval-qubits",
+          "line": 1623,
+          "type": "int",
+          "default": 6
+        },
+        {
+          "flag": "--qpe-shots",
+          "line": 1624,
+          "type": "int",
+          "default": 1024
+        },
+        {
+          "flag": "--qpe-seed",
+          "line": 1625,
+          "type": "int",
+          "default": 11
+        },
+        {
+          "flag": "--skip-qpe",
+          "line": 1626,
+          "action": "store_true",
+          "help": "Skip QPE execution and mark qpe payload as skipped."
+        },
+        {
+          "flag": "--initial-state-source",
+          "line": 1628,
+          "choices": [
+            "exact",
+            "vqe",
+            "hf"
+          ],
+          "default": "vqe"
+        },
+        {
+          "flag": "--output-json",
+          "line": 1630,
+          "type": "Path",
+          "default": null
+        },
+        {
+          "flag": "--output-pdf",
+          "line": 1631,
+          "type": "Path",
+          "default": null
+        },
+        {
+          "flag": "--skip-pdf",
+          "line": 1632,
+          "action": "store_true"
+        }
+      ],
+      "constants": [
+        {
+          "name": "ROOT",
+          "line": 50,
+          "value": "Path(__file__).resolve().parents[1]"
+        },
+        {
+          "name": "REPO_ROOT",
+          "line": 51,
+          "value": "ROOT.parent"
+        },
+        {
+          "name": "EXACT_LABEL",
+          "line": 63,
+          "value": "Exact_Qiskit"
+        },
+        {
+          "name": "EXACT_METHOD",
+          "line": 64,
+          "value": "python_matrix_eigendecomposition"
+        },
+        {
+          "name": "_PAULI_MATS",
+          "line": 893,
+          "value": "{'e': np.array([[1.0, 0.0], [0.0, 1.0]], dtype=complex), 'x': np.array([[0.0, 1.0], [1.0, 0.0]], dtype=complex), 'y': np.array([[0.0, -1j], [1j, 0.0]], dtype=complex), 'z': np.array([[1.0, 0.0], [0.0, -1.0]], dtype=complex)}"
+        },
+        {
+          "name": "_EXPM_SPARSE_MIN_DIM",
+          "line": 910,
+          "value": 64
+        }
+      ]
+    },
+    {
+      "module": "src.quantum.__init__",
+      "path": "src/quantum/__init__.py",
+      "classes": [],
+      "functions": [],
+      "imports": {
+        "internal": [],
+        "external": []
+      },
+      "cli_flags": [],
+      "constants": []
+    },
+    {
+      "module": "src.quantum.drives_time_potential",
+      "path": "src/quantum/drives_time_potential.py",
+      "classes": [
+        {
+          "name": "GaussianSinusoidSitePotential",
+          "line": 226
+        },
+        {
+          "name": "DensityDriveTemplate",
+          "line": 268
+        },
+        {
+          "name": "TimeDependentOnsiteDensityDrive",
+          "line": 334
+        }
+      ],
+      "functions": [
+        {
+          "name": "reference_method_name",
+          "line": 82
+        },
+        {
+          "name": "gaussian_sinusoid_waveform",
+          "line": 119
+        },
+        {
+          "name": "evaluate_drive_waveform",
+          "line": 137
+        },
+        {
+          "name": "default_spatial_weights",
+          "line": 177
+        },
+        {
+          "name": "_z_label_exyz",
+          "line": 255
+        },
+        {
+          "name": "build_gaussian_sinusoid_density_drive",
+          "line": 385
+        }
+      ],
+      "imports": {
+        "internal": [
+          "src.quantum.hubbard_latex_python_pairs"
+        ],
+        "external": [
+          "__future__",
+          "dataclasses",
+          "math",
+          "numpy",
+          "typing"
+        ]
+      },
+      "cli_flags": [],
+      "constants": [
+        {
+          "name": "REFERENCE_METHOD_NAMES",
+          "line": 75,
+          "value": {
+            "midpoint": "exponential_midpoint_magnus2_order2",
+            "left": "exponential_left_endpoint_order1",
+            "right": "exponential_right_endpoint_order1"
+          }
+        }
+      ]
+    },
+    {
+      "module": "src.quantum.hartree_fock_reference_state",
+      "path": "src/quantum/hartree_fock_reference_state.py",
+      "classes": [],
+      "functions": [
+        {
+          "name": "_validate_indexing",
+          "line": 30
+        },
+        {
+          "name": "mode_index",
+          "line": 39
+        },
+        {
+          "name": "hartree_fock_occupied_qubits",
+          "line": 57
+        },
+        {
+          "name": "bitstring_qn1_to_q0",
+          "line": 85
+        },
+        {
+          "name": "hartree_fock_bitstring",
+          "line": 101
+        },
+        {
+          "name": "hartree_fock_statevector",
+          "line": 115
+        },
+        {
+          "name": "hartree_fock_circuit",
+          "line": 138
+        }
+      ],
+      "imports": {
+        "internal": [],
+        "external": [
+          "__future__",
+          "dataclasses",
+          "numpy",
+          "qiskit",
+          "typing"
+        ]
+      },
+      "cli_flags": [],
+      "constants": []
+    },
+    {
+      "module": "src.quantum.hubbard_latex_python_pairs",
+      "path": "src/quantum/hubbard_latex_python_pairs.py",
+      "classes": [
+        {
+          "name": "_FallbackLog",
+          "line": 40
+        }
+      ],
+      "functions": [
+        {
+          "name": "mode_index",
+          "line": 81
+        },
+        {
+          "name": "_prod",
+          "line": 112
+        },
+        {
+          "name": "n_sites_from_dims",
+          "line": 119
+        },
+        {
+          "name": "coord_to_site_index",
+          "line": 133
+        },
+        {
+          "name": "bravais_nearest_neighbor_edges",
+          "line": 149
+        },
+        {
+          "name": "jw_number_operator",
+          "line": 197
+        },
+        {
+          "name": "build_hubbard_kinetic",
+          "line": 224
+        },
+        {
+          "name": "build_hubbard_onsite",
+          "line": 263
+        },
+        {
+          "name": "_parse_site_potential",
+          "line": 291
+        },
+        {
+          "name": "build_hubbard_potential",
+          "line": 312
+        },
+        {
+          "name": "build_hubbard_hamiltonian",
+          "line": 343
+        },
+        {
+          "name": "show_latex_and_code",
+          "line": 378
+        },
+        {
+          "name": "show_hubbard_latex_python_pairs",
+          "line": 391
+        }
+      ],
+      "imports": {
+        "internal": [
+          "src.quantum.pauli_polynomial_class",
+          "src.quantum.qubitization_module"
+        ],
+        "external": [
+          "IPython",
+          "__future__",
+          "inspect",
+          "itertools",
+          "typing"
+        ]
+      },
+      "cli_flags": [],
+      "constants": [
+        {
+          "name": "SPIN_UP",
+          "line": 51,
+          "value": 0
+        },
+        {
+          "name": "SPIN_DN",
+          "line": 52,
+          "value": 1
+        },
+        {
+          "name": "LATEX_TERMS",
+          "line": 54,
+          "value": {
+            "t_term": {
+              "title": "T Term",
+              "latex": "H_t = -t\\sum_{i,j}\\sum_{\\sigma\\in\\{\\uparrow,\\downarrow\\}}\\left(\\hat{c}_{i\\sigma}^{\\dagger}\\hat{c}_{j\\sigma}+\\hat{c}_{j\\sigma}^{\\dagger}\\hat{c}_{i\\sigma}\\right)"
+            },
+            "u_term": {
+              "title": "U Term",
+              "latex": "H_U = U\\sum_i \\hat{n}_{i\\uparrow}\\hat{n}_{i\\downarrow}"
+            },
+            "number_term": {
+              "title": "Number Term",
+              "latex": "H_v = -\\sum_i\\sum_{\\sigma\\in\\{\\uparrow,\\downarrow\\}} v_i\\,\\hat{n}_{i\\sigma},\\qquad\\hat{n}_{i\\sigma} := \\hat{c}_{i\\sigma}^{\\dagger}\\hat{c}_{i\\sigma}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "module": "src.quantum.pauli_letters_module",
+      "path": "src/quantum/pauli_letters_module.py",
+      "classes": [
+        {
+          "name": "PauliLetter",
+          "line": 24
+        }
+      ],
+      "functions": [],
+      "imports": {
+        "internal": [],
+        "external": []
+      },
+      "cli_flags": [],
+      "constants": []
+    },
+    {
+      "module": "src.quantum.pauli_polynomial_class",
+      "path": "src/quantum/pauli_polynomial_class.py",
+      "classes": [
+        {
+          "name": "PauliPolynomial",
+          "line": 8
+        },
+        {
+          "name": "fermion_plus_operator",
+          "line": 156
+        },
+        {
+          "name": "fermion_minus_operator",
+          "line": 184
+        }
+      ],
+      "functions": [],
+      "imports": {
+        "internal": [
+          "src.quantum.qubitization_module"
+        ],
+        "external": [
+          "numpy"
+        ]
+      },
+      "cli_flags": [],
+      "constants": []
+    },
+    {
+      "module": "src.quantum.pauli_words",
+      "path": "src/quantum/pauli_words.py",
+      "classes": [],
+      "functions": [],
+      "imports": {
+        "internal": [
+          "src.quantum.qubitization_module"
+        ],
+        "external": []
+      },
+      "cli_flags": [],
+      "constants": []
+    },
+    {
+      "module": "src.quantum.qubitization_module",
+      "path": "src/quantum/qubitization_module.py",
+      "classes": [
+        {
+          "name": "PauliTerm",
+          "line": 10
+        }
+      ],
+      "functions": [],
+      "imports": {
+        "internal": [
+          "src.quantum.pauli_letters_module"
+        ],
+        "external": []
+      },
+      "cli_flags": [],
+      "constants": []
+    },
+    {
+      "module": "src.quantum.vqe_latex_python_pairs",
+      "path": "src/quantum/vqe_latex_python_pairs.py",
+      "classes": [
+        {
+          "name": "_FallbackLog",
+          "line": 32
+        },
+        {
+          "name": "AnsatzTerm",
+          "line": 381
+        },
+        {
+          "name": "HubbardTermwiseAnsatz",
+          "line": 388
+        },
+        {
+          "name": "HardcodedUCCSDAnsatz",
+          "line": 490
+        },
+        {
+          "name": "VQEResult",
+          "line": 671
+        }
+      ],
+      "functions": [
+        {
+          "name": "_normalize_pauli_string",
+          "line": 143
+        },
+        {
+          "name": "basis_state",
+          "line": 158
+        },
+        {
+          "name": "apply_pauli_string",
+          "line": 174
+        },
+        {
+          "name": "expval_pauli_string",
+          "line": 211
+        },
+        {
+          "name": "expval_pauli_polynomial",
+          "line": 216
+        },
+        {
+          "name": "apply_pauli_rotation",
+          "line": 240
+        },
+        {
+          "name": "apply_exp_pauli_polynomial",
+          "line": 250
+        },
+        {
+          "name": "half_filled_num_particles",
+          "line": 288
+        },
+        {
+          "name": "jw_number_operator",
+          "line": 301
+        },
+        {
+          "name": "hubbard_hop_term",
+          "line": 322
+        },
+        {
+          "name": "hubbard_onsite_term",
+          "line": 337
+        },
+        {
+          "name": "hubbard_potential_term",
+          "line": 350
+        },
+        {
+          "name": "_parse_site_potential",
+          "line": 360
+        },
+        {
+          "name": "_try_import_scipy_minimize",
+          "line": 681
+        },
+        {
+          "name": "vqe_minimize",
+          "line": 689
+        },
+        {
+          "name": "pauli_matrix",
+          "line": 804
+        },
+        {
+          "name": "hamiltonian_matrix",
+          "line": 812
+        },
+        {
+          "name": "_spin_orbital_index_sets",
+          "line": 827
+        },
+        {
+          "name": "_sector_basis_indices",
+          "line": 837
+        },
+        {
+          "name": "exact_ground_energy_sector",
+          "line": 853
+        },
+        {
+          "name": "show_latex_and_code",
+          "line": 872
+        },
+        {
+          "name": "show_vqe_latex_python_pairs",
+          "line": 884
+        }
+      ],
+      "imports": {
+        "internal": [
+          "hartree_fock_reference_state",
+          "src.quantum.hartree_fock_reference_state",
+          "src.quantum.hubbard_latex_python_pairs",
+          "src.quantum.pauli_polynomial_class",
+          "src.quantum.pauli_words"
+        ],
+        "external": [
+          "IPython",
+          "__future__",
+          "dataclasses",
+          "inspect",
+          "math",
+          "numpy",
+          "pathlib",
+          "scipy",
+          "sys",
+          "typing"
+        ]
+      },
+      "cli_flags": [],
+      "constants": [
+        {
+          "name": "LATEX_TERMS",
+          "line": 95,
+          "value": {
+            "hamiltonian_sum": {
+              "title": "Hamiltonian (Pauli Expansion)",
+              "latex": "\\hat H := \\sum_{j=1}^{m} h_j\\,\\hat P_j,\\qquad\\hat P_j := \\bigotimes_{i=0}^{N-1} \\sigma_i^{(j)}"
+            },
+            "energy_expectation": {
+              "title": "VQE Energy",
+              "latex": "E(\\vec\\theta_k):=\\langle \\psi(\\vec\\theta_k)|\\hat H|\\psi(\\vec\\theta_k)\\rangle=\\sum_{j=1}^{m} h_j\\,\\langle \\psi(\\vec\\theta_k)|\\hat P_j|\\psi(\\vec\\theta_k)\\rangle"
+            },
+            "ansatz_state": {
+              "title": "Parameterized State (Ansatz)",
+              "latex": "|\\psi(\\vec\\theta)\\rangle:=\\hat U(\\vec\\theta)\\,|\\psi_{\\mathrm{ref}}\\rangle:=\\hat U_{p}(\\theta_{p})\\cdots \\hat U_{2}(\\theta_{2})\\hat U_{1}(\\theta_{1})|0\\rangle^{\\otimes N}"
+            },
+            "pauli_rotation": {
+              "title": "Pauli Rotation Primitive",
+              "latex": "R_{P}(\\varphi):=\\exp\\!\\left(-i\\frac{\\varphi}{2}P\\right),\\qquad P^2=I"
+            },
+            "trotter_step": {
+              "title": "First-Order (Lie) Product Formula",
+              "latex": "\\exp\\!\\left(-i\\,\\theta\\sum_{j=1}^{m}h_j P_j\\right)\\approx\\prod_{j=1}^{m}\\exp\\!\\left(-i\\,\\theta\\,h_j P_j\\right)"
+            }
+          }
+        },
+        {
+          "name": "_PAULI_MATS",
+          "line": 796,
+          "value": "{'e': np.array([[1.0, 0.0], [0.0, 1.0]], dtype=complex), 'x': np.array([[0.0, 1.0], [1.0, 0.0]], dtype=complex), 'y': np.array([[0.0, -1j], [1j, 0.0]], dtype=complex), 'z': np.array([[1.0, 0.0], [0.0, -1.0]], dtype=complex)}"
+        }
+      ]
+    },
+    {
+      "module": "test_compare_drive_passthrough",
+      "path": "test_compare_drive_passthrough.py",
+      "classes": [
+        {
+          "name": "TestBuildDriveArgsDisabled",
+          "line": 74
+        },
+        {
+          "name": "TestBuildDriveArgsEnabled",
+          "line": 93
+        },
+        {
+          "name": "TestBuildDriveArgsCustomWeights",
+          "line": 163
+        },
+        {
+          "name": "TestParseDriveDefaults",
+          "line": 217
+        },
+        {
+          "name": "TestCommandStructure",
+          "line": 288
+        }
+      ],
+      "functions": [
+        {
+          "name": "_make_args",
+          "line": 65
+        }
+      ],
+      "imports": {
+        "internal": [
+          "pipelines.compare_hardcoded_vs_qiskit_pipeline"
+        ],
+        "external": [
+          "__future__",
+          "pathlib",
+          "shlex",
+          "sys",
+          "types",
+          "unittest"
+        ]
+      },
+      "cli_flags": [],
+      "constants": [
+        {
+          "name": "REPO_ROOT",
+          "line": 45,
+          "value": "Path(__file__).resolve().parent"
+        },
+        {
+          "name": "PIPELINE_ROOT",
+          "line": 46,
+          "value": "REPO_ROOT / 'Fermi-Hamil-JW-VQE-TROTTER-PIPELINE'"
+        },
+        {
+          "name": "_DRIVE_FLAG_DEFAULTS",
+          "line": 58,
+          "value": "cmp._DRIVE_FLAG_DEFAULTS"
+        }
+      ]
+    },
+    {
+      "module": "test_energy_total_observables",
+      "path": "test_energy_total_observables.py",
+      "classes": [
+        {
+          "name": "TestDriveDisabledParity",
+          "line": 136
+        },
+        {
+          "name": "TestDriveEnabledNonzeroAmplitude",
+          "line": 159
+        },
+        {
+          "name": "TestDriveAmplitudeZeroSafeTest",
+          "line": 194
+        },
+        {
+          "name": "TestSerializationKeys",
+          "line": 221
+        },
+        {
+          "name": "TestBuildDriveMatrixAtTime",
+          "line": 244
+        },
+        {
+          "name": "TestTotalEnergyFormula",
+          "line": 298
+        }
+      ],
+      "functions": [
+        {
+          "name": "_build_L2_blocked_hamiltonian",
+          "line": 47
+        },
+        {
+          "name": "_build_drive",
+          "line": 59
+        },
+        {
+          "name": "_run_short_trajectory",
+          "line": 75
+        }
+      ],
+      "imports": {
+        "internal": [
+          "pipelines.hardcoded_hubbard_pipeline",
+          "src.quantum.drives_time_potential",
+          "src.quantum.hartree_fock_reference_state",
+          "src.quantum.hubbard_latex_python_pairs"
+        ],
+        "external": [
+          "__future__",
+          "math",
+          "numpy",
+          "pathlib",
+          "sys",
+          "unittest"
+        ]
+      },
+      "cli_flags": [],
+      "constants": [
+        {
+          "name": "REPO_ROOT",
+          "line": 26,
+          "value": "Path(__file__).resolve().parent"
+        },
+        {
+          "name": "PIPELINE_ROOT",
+          "line": 27,
+          "value": "REPO_ROOT / 'Fermi-Hamil-JW-VQE-TROTTER-PIPELINE'"
+        }
+      ]
+    },
+    {
+      "module": "test_exact_steps_multiplier",
+      "path": "test_exact_steps_multiplier.py",
+      "classes": [
+        {
+          "name": "TestReferenceMethodName",
+          "line": 67
+        },
+        {
+          "name": "TestPiecewiseExactConvergenceMidpoint",
+          "line": 154
+        },
+        {
+          "name": "TestPiecewiseExactConvergenceLeft",
+          "line": 198
+        },
+        {
+          "name": "TestJSONMetadataKeys",
+          "line": 234
+        },
+        {
+          "name": "TestCompareRunnerDefaults",
+          "line": 280
+        }
+      ],
+      "functions": [
+        {
+          "name": "_import_evolve_piecewise_exact",
+          "line": 57
+        },
+        {
+          "name": "_exact_psi_sin_z",
+          "line": 118
+        },
+        {
+          "name": "_run_piecewise_exact",
+          "line": 127
+        }
+      ],
+      "imports": {
+        "internal": [
+          "pipelines.compare_hardcoded_vs_qiskit_pipeline",
+          "pipelines.hardcoded_hubbard_pipeline",
+          "src.quantum.drives_time_potential"
+        ],
+        "external": [
+          "__future__",
+          "math",
+          "numpy",
+          "pathlib",
+          "sys",
+          "types",
+          "unittest"
+        ]
+      },
+      "cli_flags": [],
+      "constants": [
+        {
+          "name": "REPO_ROOT",
+          "line": 38,
+          "value": "Path(__file__).resolve().parent"
+        },
+        {
+          "name": "PIPELINE_ROOT",
+          "line": 39,
+          "value": "REPO_ROOT / 'Fermi-Hamil-JW-VQE-TROTTER-PIPELINE'"
+        }
+      ]
+    },
+    {
+      "module": "test_fidelity_subspace_projector",
+      "path": "test_fidelity_subspace_projector.py",
+      "classes": [
+        {
+          "name": "TestProjectorFidelityMath",
+          "line": 24
+        },
+        {
+          "name": "TestGroundManifoldTolerance",
+          "line": 58
+        }
+      ],
+      "functions": [],
+      "imports": {
+        "internal": [
+          "pipelines.hardcoded_hubbard_pipeline"
+        ],
+        "external": [
+          "__future__",
+          "numpy",
+          "pathlib",
+          "sys",
+          "unittest"
+        ]
+      },
+      "cli_flags": [],
+      "constants": [
+        {
+          "name": "REPO_ROOT",
+          "line": 13,
+          "value": "Path(__file__).resolve().parent"
+        },
+        {
+          "name": "PIPELINE_ROOT",
+          "line": 14,
+          "value": "REPO_ROOT / 'Fermi-Hamil-JW-VQE-TROTTER-PIPELINE'"
+        }
+      ]
+    },
+    {
+      "module": "test_integration",
+      "path": "test_integration.py",
+      "classes": [],
+      "functions": [
+        {
+          "name": "_add_repo_paths",
+          "line": 13
+        },
+        {
+          "name": "_run_import_check",
+          "line": 31
+        },
+        {
+          "name": "_import_pauli_letters",
+          "line": 44
+        },
+        {
+          "name": "_import_pauli_term",
+          "line": 53
+        },
+        {
+          "name": "_import_pauli_polynomial",
+          "line": 59
+        },
+        {
+          "name": "_import_hubbard_helpers",
+          "line": 73
+        },
+        {
+          "name": "_import_hf_helpers",
+          "line": 87
+        },
+        {
+          "name": "main",
+          "line": 99
+        }
+      ],
+      "imports": {
+        "internal": [
+          "src.quantum.hartree_fock_reference_state",
+          "src.quantum.hubbard_latex_python_pairs",
+          "src.quantum.pauli_letters_module",
+          "src.quantum.pauli_polynomial_class",
+          "src.quantum.pauli_words"
+        ],
+        "external": [
+          "__future__",
+          "numpy",
+          "pathlib",
+          "sys",
+          "typing"
+        ]
+      },
+      "cli_flags": [],
+      "constants": []
+    },
+    {
+      "module": "test_pauli_polynomial_ops",
+      "path": "test_pauli_polynomial_ops.py",
+      "classes": [
+        {
+          "name": "TestPauliPolynomialOps",
+          "line": 16
+        }
+      ],
+      "functions": [
+        {
+          "name": "_coeff_map",
+          "line": 12
+        }
+      ],
+      "imports": {
+        "internal": [
+          "src.quantum.pauli_polynomial_class",
+          "src.quantum.qubitization_module"
+        ],
+        "external": [
+          "__future__",
+          "unittest"
+        ]
+      },
+      "cli_flags": [],
+      "constants": []
+    },
+    {
+      "module": "test_tex2text",
+      "path": "test_tex2text.py",
+      "classes": [
+        {
+          "name": "TestTex2TextUnicode",
+          "line": 31
+        },
+        {
+          "name": "TestTex2TextModes",
+          "line": 61
+        },
+        {
+          "name": "TestExtractAbstract",
+          "line": 69
+        }
+      ],
+      "functions": [
+        {
+          "name": "_options",
+          "line": 12
+        }
+      ],
+      "imports": {
+        "internal": [],
+        "external": [
+          "__future__",
+          "tex2text",
+          "types",
+          "unittest"
+        ]
+      },
+      "cli_flags": [],
+      "constants": []
+    },
+    {
+      "module": "test_time_potential_drive",
+      "path": "test_time_potential_drive.py",
+      "classes": [
+        {
+          "name": "TestZLabelPlacement",
+          "line": 39
+        },
+        {
+          "name": "TestDriveOnlyPhase",
+          "line": 77
+        },
+        {
+          "name": "TestQuadratureOrder",
+          "line": 161
+        },
+        {
+          "name": "TestPiecewiseExact",
+          "line": 209
+        },
+        {
+          "name": "TestWaveform",
+          "line": 250
+        }
+      ],
+      "functions": [],
+      "imports": {
+        "internal": [
+          "pipelines.hardcoded_hubbard_pipeline",
+          "src.quantum.drives_time_potential",
+          "src.quantum.hubbard_latex_python_pairs"
+        ],
+        "external": [
+          "__future__",
+          "math",
+          "numpy",
+          "pathlib",
+          "sys",
+          "unittest"
+        ]
+      },
+      "cli_flags": [],
+      "constants": [
+        {
+          "name": "REPO_ROOT",
+          "line": 22,
+          "value": "Path(__file__).resolve().parent"
+        },
+        {
+          "name": "PIPELINE_ROOT",
+          "line": 23,
+          "value": "REPO_ROOT / 'Fermi-Hamil-JW-VQE-TROTTER-PIPELINE'"
+        }
+      ]
+    }
+  ],
+  "internal_import_edges": [
+    {
+      "src": "Fermi-Hamil-JW-VQE-TROTTER-PIPELINE.pipelines.bench_expm_vs_expm_multiply",
+      "dst": "src.quantum.drives_time_potential"
+    },
+    {
+      "src": "Fermi-Hamil-JW-VQE-TROTTER-PIPELINE.pipelines.bench_expm_vs_expm_multiply",
+      "dst": "src.quantum.hubbard_latex_python_pairs"
+    },
+    {
+      "src": "Fermi-Hamil-JW-VQE-TROTTER-PIPELINE.pipelines.compare_hardcoded_vs_qiskit_pipeline",
+      "dst": "src.quantum.drives_time_potential"
+    },
+    {
+      "src": "Fermi-Hamil-JW-VQE-TROTTER-PIPELINE.pipelines.hardcoded_hubbard_pipeline",
+      "dst": "src.quantum"
+    },
+    {
+      "src": "Fermi-Hamil-JW-VQE-TROTTER-PIPELINE.pipelines.hardcoded_hubbard_pipeline",
+      "dst": "src.quantum.drives_time_potential"
+    },
+    {
+      "src": "Fermi-Hamil-JW-VQE-TROTTER-PIPELINE.pipelines.hardcoded_hubbard_pipeline",
+      "dst": "src.quantum.hartree_fock_reference_state"
+    },
+    {
+      "src": "Fermi-Hamil-JW-VQE-TROTTER-PIPELINE.pipelines.hardcoded_hubbard_pipeline",
+      "dst": "src.quantum.hubbard_latex_python_pairs"
+    },
+    {
+      "src": "Fermi-Hamil-JW-VQE-TROTTER-PIPELINE.pipelines.qiskit_hubbard_baseline_pipeline",
+      "dst": "src.quantum.drives_time_potential"
+    },
+    {
+      "src": "Fermi-Hamil-JW-VQE-TROTTER-PIPELINE.pipelines.qiskit_hubbard_baseline_pipeline",
+      "dst": "src.quantum.hartree_fock_reference_state"
+    },
+    {
+      "src": "src.quantum.drives_time_potential",
+      "dst": "src.quantum.hubbard_latex_python_pairs"
+    },
+    {
+      "src": "src.quantum.hubbard_latex_python_pairs",
+      "dst": "src.quantum.pauli_polynomial_class"
+    },
+    {
+      "src": "src.quantum.hubbard_latex_python_pairs",
+      "dst": "src.quantum.qubitization_module"
+    },
+    {
+      "src": "src.quantum.pauli_polynomial_class",
+      "dst": "src.quantum.qubitization_module"
+    },
+    {
+      "src": "src.quantum.pauli_words",
+      "dst": "src.quantum.qubitization_module"
+    },
+    {
+      "src": "src.quantum.qubitization_module",
+      "dst": "src.quantum.pauli_letters_module"
+    },
+    {
+      "src": "src.quantum.vqe_latex_python_pairs",
+      "dst": "hartree_fock_reference_state"
+    },
+    {
+      "src": "src.quantum.vqe_latex_python_pairs",
+      "dst": "src.quantum.hartree_fock_reference_state"
+    },
+    {
+      "src": "src.quantum.vqe_latex_python_pairs",
+      "dst": "src.quantum.hubbard_latex_python_pairs"
+    },
+    {
+      "src": "src.quantum.vqe_latex_python_pairs",
+      "dst": "src.quantum.pauli_polynomial_class"
+    },
+    {
+      "src": "src.quantum.vqe_latex_python_pairs",
+      "dst": "src.quantum.pauli_words"
+    },
+    {
+      "src": "test_compare_drive_passthrough",
+      "dst": "pipelines.compare_hardcoded_vs_qiskit_pipeline"
+    },
+    {
+      "src": "test_energy_total_observables",
+      "dst": "pipelines.hardcoded_hubbard_pipeline"
+    },
+    {
+      "src": "test_energy_total_observables",
+      "dst": "src.quantum.drives_time_potential"
+    },
+    {
+      "src": "test_energy_total_observables",
+      "dst": "src.quantum.hartree_fock_reference_state"
+    },
+    {
+      "src": "test_energy_total_observables",
+      "dst": "src.quantum.hubbard_latex_python_pairs"
+    },
+    {
+      "src": "test_exact_steps_multiplier",
+      "dst": "pipelines.compare_hardcoded_vs_qiskit_pipeline"
+    },
+    {
+      "src": "test_exact_steps_multiplier",
+      "dst": "pipelines.hardcoded_hubbard_pipeline"
+    },
+    {
+      "src": "test_exact_steps_multiplier",
+      "dst": "src.quantum.drives_time_potential"
+    },
+    {
+      "src": "test_fidelity_subspace_projector",
+      "dst": "pipelines.hardcoded_hubbard_pipeline"
+    },
+    {
+      "src": "test_integration",
+      "dst": "src.quantum.hartree_fock_reference_state"
+    },
+    {
+      "src": "test_integration",
+      "dst": "src.quantum.hubbard_latex_python_pairs"
+    },
+    {
+      "src": "test_integration",
+      "dst": "src.quantum.pauli_letters_module"
+    },
+    {
+      "src": "test_integration",
+      "dst": "src.quantum.pauli_polynomial_class"
+    },
+    {
+      "src": "test_integration",
+      "dst": "src.quantum.pauli_words"
+    },
+    {
+      "src": "test_pauli_polynomial_ops",
+      "dst": "src.quantum.pauli_polynomial_class"
+    },
+    {
+      "src": "test_pauli_polynomial_ops",
+      "dst": "src.quantum.qubitization_module"
+    },
+    {
+      "src": "test_time_potential_drive",
+      "dst": "pipelines.hardcoded_hubbard_pipeline"
+    },
+    {
+      "src": "test_time_potential_drive",
+      "dst": "src.quantum.drives_time_potential"
+    },
+    {
+      "src": "test_time_potential_drive",
+      "dst": "src.quantum.hubbard_latex_python_pairs"
+    }
+  ],
+  "external_dependencies": [
+    "IPython",
+    "__future__",
+    "argparse",
+    "ast",
+    "dataclasses",
+    "datetime",
+    "inspect",
+    "itertools",
+    "json",
+    "math",
+    "matplotlib",
+    "numpy",
+    "os",
+    "pathlib",
+    "pprint",
+    "qiskit",
+    "qiskit_algorithms",
+    "qiskit_nature",
+    "scipy",
+    "shlex",
+    "shutil",
+    "subprocess",
+    "sys",
+    "tex2text",
+    "textwrap",
+    "time",
+    "types",
+    "typing",
+    "unittest"
+  ],
+  "invariants": {
+    "pauli_symbol_convention_exyz": {
+      "found": true,
+      "expected": "Use e/x/y/z internally; convert to I/X/Y/Z at boundaries.",
+      "evidence": [
+        {
+          "file": "AGENTS.md",
+          "line": 16,
+          "snippet": "- Use `e/x/y/z` internally (`e` = identity)"
+        }
+      ]
+    },
+    "pauli_string_qubit_ordering": {
+      "found": true,
+      "expected": "Pauli words are q_(n-1)...q_0 left-to-right; qubit 0 is rightmost.",
+      "evidence": [
+        {
+          "file": "AGENTS.md",
+          "line": 21,
+          "snippet": "- **left-to-right = q_(n-1) ... q_0**"
+        },
+        {
+          "file": "AGENTS.md",
+          "line": 22,
+          "snippet": "- **qubit 0 is rightmost character**"
+        }
+      ]
+    },
+    "jw_mapping_source_of_truth": {
+      "found": true,
+      "expected": "JW mapping should use fermion_plus_operator/fermion_minus_operator from pauli_polynomial_class.py.",
+      "evidence": [
+        {
+          "file": "AGENTS.md",
+          "line": 27,
+          "snippet": "- `fermion_plus_operator(repr_mode=\"JW\", nq, j)`"
+        },
+        {
+          "file": "AGENTS.md",
+          "line": 28,
+          "snippet": "- `fermion_minus_operator(repr_mode=\"JW\", nq, j)`"
+        }
+      ]
+    },
+    "drive_safe_test_threshold": {
+      "found": true,
+      "expected": "A=0 drive safe-test threshold is 1e-10.",
+      "evidence": [
+        {
+          "file": "Fermi-Hamil-JW-VQE-TROTTER-PIPELINE/pipelines/compare_hardcoded_vs_qiskit_pipeline.py",
+          "line": 1200,
+          "snippet": "_SAFE_TEST_THRESHOLD: float = 1e-10"
+        }
+      ]
+    },
+    "drive_flag_passthrough": {
+      "found": true,
+      "expected": "Compare pipeline forwards drive flags verbatim to both sub-pipelines.",
+      "evidence": [
+        {
+          "file": "Fermi-Hamil-JW-VQE-TROTTER-PIPELINE/pipelines/compare_hardcoded_vs_qiskit_pipeline.py",
+          "line": 1169,
+          "snippet": "def _build_drive_args(args: argparse.Namespace) -> list[str]:"
+        },
+        {
+          "file": "Fermi-Hamil-JW-VQE-TROTTER-PIPELINE/pipelines/compare_hardcoded_vs_qiskit_pipeline.py",
+          "line": 1203,
+          "snippet": "def _build_drive_args_with_amplitude(args: argparse.Namespace, amplitude: float) -> list[str]:"
+        },
+        {
+          "file": "Fermi-Hamil-JW-VQE-TROTTER-PIPELINE/pipelines/compare_hardcoded_vs_qiskit_pipeline.py",
+          "line": 2180,
+          "snippet": "# Drive passthrough (forwarded verbatim to both sub-pipelines)."
+        }
+      ]
+    },
+    "static_vs_driven_reference_split": {
+      "found": true,
+      "expected": "No-drive path uses static eigendecomposition/PauliEvolutionGate branch, while drive-enabled path uses shared scipy/numpy piecewise kernels.",
+      "evidence": [
+        {
+          "file": "Fermi-Hamil-JW-VQE-TROTTER-PIPELINE/pipelines/qiskit_hubbard_baseline_pipeline.py",
+          "line": 1213,
+          "snippet": "if not has_drive:"
+        },
+        {
+          "file": "Fermi-Hamil-JW-VQE-TROTTER-PIPELINE/pipelines/qiskit_hubbard_baseline_pipeline.py",
+          "line": 1232,
+          "snippet": "if not has_drive:"
+        },
+        {
+          "file": "Fermi-Hamil-JW-VQE-TROTTER-PIPELINE/pipelines/qiskit_hubbard_baseline_pipeline.py",
+          "line": 1261,
+          "snippet": "# Drive is active: PauliEvolutionGate is NOT used here (see comment"
+        },
+        {
+          "file": "Fermi-Hamil-JW-VQE-TROTTER-PIPELINE/pipelines/DESIGN_NOTE_QISKIT_BASELINE_TIMEDEP.md",
+          "line": 4,
+          "snippet": "**Status:** Accepted \u2014 Option A (keep bypass), with Option B sketched as an optional future integration"
+        }
+      ]
+    },
+    "reference_method_metadata": {
+      "found": true,
+      "expected": "Drive metadata includes reference_method and reference_steps_multiplier.",
+      "evidence": [
+        {
+          "file": "Fermi-Hamil-JW-VQE-TROTTER-PIPELINE/pipelines/hardcoded_hubbard_pipeline.py",
+          "line": 51,
+          "snippet": "reference_method_name,"
+        },
+        {
+          "file": "Fermi-Hamil-JW-VQE-TROTTER-PIPELINE/pipelines/hardcoded_hubbard_pipeline.py",
+          "line": 906,
+          "snippet": "The JSON metadata records ``reference_method`` and"
+        },
+        {
+          "file": "Fermi-Hamil-JW-VQE-TROTTER-PIPELINE/pipelines/hardcoded_hubbard_pipeline.py",
+          "line": 2180,
+          "snippet": "\"reference_method\": reference_method_name(str(args.drive_time_sampling)),"
+        }
+      ]
+    }
+  },
+  "implementation_evidence": {
+    "target_functions": [
+      "_simulate_trajectory",
+      "_evolve_trotter_suzuki2_absolute",
+      "_evolve_piecewise_exact",
+      "_site_resolved_number_observables",
+      "_spin_orbital_bit_index",
+      "_run_hardcoded_vqe",
+      "vqe_minimize",
+      "hartree_fock_bitstring",
+      "hartree_fock_statevector",
+      "evaluate_drive_waveform",
+      "build_density_drive_from_args"
+    ],
+    "found_functions": [
+      "_evolve_trotter_suzuki2_absolute",
+      "_spin_orbital_bit_index",
+      "_site_resolved_number_observables",
+      "_run_hardcoded_vqe",
+      "_evolve_piecewise_exact",
+      "_simulate_trajectory",
+      "evaluate_drive_waveform",
+      "hartree_fock_bitstring",
+      "hartree_fock_statevector",
+      "vqe_minimize"
+    ],
+    "missing_functions": [
+      "build_density_drive_from_args"
+    ],
+    "function_records": [
+      {
+        "function": "_evolve_trotter_suzuki2_absolute",
+        "file": "Fermi-Hamil-JW-VQE-TROTTER-PIPELINE/pipelines/hardcoded_hubbard_pipeline.py",
+        "line_start": 321,
+        "line_end": 391,
+        "signature": "def _evolve_trotter_suzuki2_absolute(     psi0: np.ndarray,     ordered_labels_exyz: list[str],     coeff_map_exyz: dict[str, complex],     compiled_actions: dict[str, CompiledPauliAction],     time_value: float,     trotter_steps: int,     *,     drive_coeff_provider_exyz: Any | None = None,     t0: float = 0.0,     time_sampling: str = \"midpoint\",     coeff_tol: float = 1e-12, ) -> np.ndarray:     \"\"\"Suzuki-Trotter order-2 evolution, with optional time-dependent drive.      When *drive_coeff_provider_exyz* is ``None`` the original bit-for-bit     time-independent path is taken (no behavioural change).      When provided, drive coefficients are sampled once per Trotter slice and     additively merged with the static coefficients.     \"\"\"     # --- time-independent fast path (bit-for-bit identical to original) ---     if drive_coeff_provider_exyz is None:         psi = np.array(psi0, copy=True)         if abs(time_value) <= 1e-15:             return psi         dt = float(time_value) / float(trotter_steps)         half = 0.5 * dt         for _ in range(trotter_steps):",
+        "defaults": {
+          "num_args": 6,
+          "num_defaults": 0,
+          "defaults": []
+        },
+        "calls": [
+          "ValueError",
+          "_apply_exp_term",
+          "_normalize_state",
+          "abs",
+          "array",
+          "complex",
+          "dict",
+          "drive_coeff_provider_exyz",
+          "float",
+          "get",
+          "int",
+          "lower",
+          "range",
+          "reversed",
+          "str",
+          "strip"
+        ],
+        "called_by": [
+          "_simulate_trajectory"
+        ]
+      },
+      {
+        "function": "_spin_orbital_bit_index",
+        "file": "Fermi-Hamil-JW-VQE-TROTTER-PIPELINE/pipelines/hardcoded_hubbard_pipeline.py",
+        "line_start": 430,
+        "line_end": 436,
+        "signature": "def _spin_orbital_bit_index(...)",
+        "defaults": {
+          "num_args": 4,
+          "num_defaults": 0,
+          "defaults": []
+        },
+        "calls": [
+          "ValueError",
+          "int",
+          "lower",
+          "str",
+          "strip"
+        ],
+        "called_by": [
+          "_site_resolved_number_observables"
+        ]
+      },
+      {
+        "function": "_site_resolved_number_observables",
+        "file": "Fermi-Hamil-JW-VQE-TROTTER-PIPELINE/pipelines/hardcoded_hubbard_pipeline.py",
+        "line_start": 439,
+        "line_end": 461,
+        "signature": "def _site_resolved_number_observables(     psi: np.ndarray,     num_sites: int,     ordering: str, ) -> tuple[np.ndarray, np.ndarray, float]:     probs = np.abs(psi) ** 2     n_up = np.zeros(int(num_sites), dtype=float)     n_dn = np.zeros(int(num_sites), dtype=float)     doublon_total = 0.0     up_bits = [_spin_orbital_bit_index(site, 0, num_sites, ordering) for site in range(int(num_sites))]     dn_bits = [_spin_orbital_bit_index(site, 1, num_sites, ordering) for site in range(int(num_sites))]      for idx, prob in enumerate(probs):",
+        "defaults": {
+          "num_args": 3,
+          "num_defaults": 0,
+          "defaults": []
+        },
+        "calls": [
+          "_spin_orbital_bit_index",
+          "abs",
+          "enumerate",
+          "float",
+          "int",
+          "range",
+          "zeros"
+        ],
+        "called_by": [
+          "_simulate_trajectory"
+        ]
+      },
+      {
+        "function": "_run_hardcoded_vqe",
+        "file": "Fermi-Hamil-JW-VQE-TROTTER-PIPELINE/pipelines/hardcoded_hubbard_pipeline.py",
+        "line_start": 500,
+        "line_end": 577,
+        "signature": "def _run_hardcoded_vqe(...)",
+        "defaults": {
+          "num_args": 0,
+          "num_defaults": 0,
+          "defaults": []
+        },
+        "calls": [
+          "_ai_log",
+          "_load_hardcoded_vqe_namespace",
+          "_normalize_state",
+          "asarray",
+          "float",
+          "getattr",
+          "int",
+          "perf_counter",
+          "prepare_state",
+          "reshape",
+          "round",
+          "str",
+          "tolist",
+          "tuple"
+        ],
+        "called_by": []
+      },
+      {
+        "function": "_evolve_piecewise_exact",
+        "file": "Fermi-Hamil-JW-VQE-TROTTER-PIPELINE/pipelines/hardcoded_hubbard_pipeline.py",
+        "line_start": 875,
+        "line_end": 1033,
+        "signature": "def _evolve_piecewise_exact(     *,     psi0: np.ndarray,     hmat_static: np.ndarray,     drive_coeff_provider_exyz: Any,     time_value: float,     trotter_steps: int,     t0: float = 0.0,     time_sampling: str = \"midpoint\", ) -> np.ndarray:     \"\"\"Piecewise-constant matrix-exponential reference propagator.      Approximation order     -------------------     This function is **not** a true time-ordered exponential.  It is a     piecewise-constant approximation: each sub-interval [t_k, t_{k+1}] of     width \u0394t = time_value / trotter_steps is replaced by the exact     exponential of H evaluated at a single representative time t_k.      The order depends on how t_k is chosen (``time_sampling``):",
+        "defaults": {
+          "num_args": 0,
+          "num_defaults": 0,
+          "defaults": []
+        },
+        "calls": [
+          "_build_drive_diagonal",
+          "_build_hamiltonian_matrix",
+          "_csc_matrix",
+          "_diags",
+          "_expm_dense",
+          "_expm_multiply",
+          "_is_all_z_type",
+          "_normalize_state",
+          "_pauli_matrix_exyz",
+          "abs",
+          "all",
+          "array",
+          "bit_length",
+          "bool",
+          "complex",
+          "dict",
+          "drive_coeff_provider_exyz",
+          "float",
+          "int",
+          "items",
+          "lower",
+          "range",
+          "str",
+          "strip",
+          "zeros_like"
+        ],
+        "called_by": [
+          "_simulate_trajectory"
+        ]
+      },
+      {
+        "function": "_simulate_trajectory",
+        "file": "Fermi-Hamil-JW-VQE-TROTTER-PIPELINE/pipelines/hardcoded_hubbard_pipeline.py",
+        "line_start": 1036,
+        "line_end": 1289,
+        "signature": "def _simulate_trajectory(     *,     num_sites: int,     ordering: str,     psi0_ansatz_trot: np.ndarray,     psi0_exact_ref: np.ndarray,     fidelity_subspace_basis_v0: np.ndarray,     fidelity_subspace_energy_tol: float,     hmat: np.ndarray,     ordered_labels_exyz: list[str],     coeff_map_exyz: dict[str, complex],     trotter_steps: int,     t_final: float,     num_times: int,     suzuki_order: int,     drive_coeff_provider_exyz: Any | None = None,     drive_t0: float = 0.0,     drive_time_sampling: str = \"midpoint\",     exact_steps_multiplier: int = 1, ) -> tuple[list[dict[str, float]], list[np.ndarray]]:     if int(suzuki_order) != 2:         raise ValueError(\"This script currently supports suzuki_order=2 only.\")      nq = 2 * int(num_sites)     evals, evecs = np.linalg.eigh(hmat)     evecs_dag = np.conjugate(evecs).T      compiled = {lbl: _compile_pauli_action(lbl, nq) for lbl in ordered_labels_exyz}     times = np.linspace(0.0, float(t_final), int(num_times))     n_times = int(times.size)     stride = max(1, n_times // 20)     t0 = time.perf_counter()     basis_v0 = np.asarray(fidelity_subspace_basis_v0, dtype=complex)     if basis_v0.ndim != 2 or basis_v0.shape[0] != psi0_ansatz_trot.size:         raise ValueError(\"fidelity_subspace_basis_v0 must have shape (dim, k) with matching dim.\")     if basis_v0.shape[1] <= 0:         raise ValueError(\"fidelity_subspace_basis_v0 must contain at least one basis vector.\")      has_drive = drive_coeff_provider_exyz is not None      # When drive is enabled the reference propagator may use a finer step count     # to improve its quality independently of the Trotter discretization.     reference_steps = int(trotter_steps) * max(1, int(exact_steps_multiplier))     static_basis_eig = evecs_dag @ basis_v0      _ai_log(         \"hardcoded_trajectory_start\",         L=int(num_sites),         num_times=n_times,         t_final=float(t_final),         trotter_steps=int(trotter_steps),         reference_steps=reference_steps,         exact_steps_multiplier=int(exact_steps_multiplier),         suzuki_order=int(suzuki_order),         drive_enabled=has_drive,         ground_subspace_dimension=int(basis_v0.shape[1]),         fidelity_subspace_energy_tol=float(fidelity_subspace_energy_tol),         fidelity_selection_rule=\"E <= E0 + tol\",     )      rows: list[dict[str, float]] = []     exact_states: list[np.ndarray] = []      for idx, time_val in enumerate(times):",
+        "defaults": {
+          "num_args": 0,
+          "num_defaults": 0,
+          "defaults": []
+        },
+        "calls": [
+          "ValueError",
+          "_ai_log",
+          "_build_drive_matrix_at_time",
+          "_compile_pauli_action",
+          "_evolve_piecewise_exact",
+          "_evolve_trotter_suzuki2_absolute",
+          "_expectation_hamiltonian",
+          "_normalize_state",
+          "_orthonormalize_basis_columns",
+          "_projector_fidelity_from_basis",
+          "_site_resolved_number_observables",
+          "_staggered_order",
+          "abs",
+          "append",
+          "asarray",
+          "conjugate",
+          "eigh",
+          "enumerate",
+          "exp",
+          "float",
+          "int",
+          "linspace",
+          "max",
+          "norm",
+          "perf_counter",
+          "range",
+          "reshape",
+          "round",
+          "str",
+          "tolist",
+          "zeros"
+        ],
+        "called_by": []
+      },
+      {
+        "function": "evaluate_drive_waveform",
+        "file": "src/quantum/drives_time_potential.py",
+        "line_start": 137,
+        "line_end": 170,
+        "signature": "def evaluate_drive_waveform(...)",
+        "defaults": {
+          "num_args": 3,
+          "num_defaults": 0,
+          "defaults": []
+        },
+        "calls": [
+          "array",
+          "asarray",
+          "float",
+          "gaussian_sinusoid_waveform",
+          "get",
+          "reshape"
+        ],
+        "called_by": []
+      },
+      {
+        "function": "hartree_fock_bitstring",
+        "file": "src/quantum/hartree_fock_reference_state.py",
+        "line_start": 101,
+        "line_end": 112,
+        "signature": "def hartree_fock_bitstring(...)",
+        "defaults": {
+          "num_args": 2,
+          "num_defaults": 0,
+          "defaults": []
+        },
+        "calls": [
+          "bitstring_qn1_to_q0",
+          "hartree_fock_occupied_qubits",
+          "int"
+        ],
+        "called_by": []
+      },
+      {
+        "function": "hartree_fock_statevector",
+        "file": "src/quantum/hartree_fock_reference_state.py",
+        "line_start": 115,
+        "line_end": 135,
+        "signature": "def hartree_fock_statevector(...)",
+        "defaults": {
+          "num_args": 2,
+          "num_defaults": 0,
+          "defaults": []
+        },
+        "calls": [
+          "hartree_fock_occupied_qubits",
+          "int",
+          "zeros"
+        ],
+        "called_by": []
+      },
+      {
+        "function": "vqe_minimize",
+        "file": "src/quantum/vqe_latex_python_pairs.py",
+        "line_start": 689,
+        "line_end": 794,
+        "signature": "def vqe_minimize(     H: PauliPolynomial,     ansatz: Any,     psi_ref: np.ndarray,     *,     restarts: int = 3,     seed: int = 7,     initial_point_stddev: float = 0.3,     method: str = \"SLSQP\",     maxiter: int = 1800,     bounds: Optional[Tuple[float, float]] = (-math.pi, math.pi), ) -> VQEResult:     \"\"\"     Hardcoded VQE: minimize <psi(theta)|H|psi(theta)> with a statevector backend.     Uses SciPy if available; otherwise falls back to a tiny coordinate search.     \"\"\"     minimize = _try_import_scipy_minimize()     rng = np.random.default_rng(int(seed))     npar = int(ansatz.num_parameters)     if npar <= 0:         log.error(\"ansatz has no parameters\")      def energy_fn(x: np.ndarray) -> float:         theta = np.asarray(x, dtype=float)         psi = ansatz.prepare_state(theta, psi_ref)         return expval_pauli_polynomial(psi, H)      best_energy = float(\"inf\")     best_theta = None     best_restart = -1     best_nfev = 0     best_nit = 0     best_success = False     best_message = \"no run\"      for r in range(int(restarts)):",
+        "defaults": {
+          "num_args": 3,
+          "num_defaults": 0,
+          "defaults": []
+        },
+        "calls": [
+          "VQEResult",
+          "_try_import_scipy_minimize",
+          "array",
+          "asarray",
+          "bool",
+          "copy",
+          "default_rng",
+          "energy_fn",
+          "error",
+          "expval_pauli_polynomial",
+          "float",
+          "getattr",
+          "int",
+          "minimize",
+          "normal",
+          "prepare_state",
+          "range",
+          "str"
+        ],
+        "called_by": []
+      }
+    ],
+    "call_graph_edges": [
+      {
+        "src": "_simulate_trajectory",
+        "dst": "_evolve_piecewise_exact"
+      },
+      {
+        "src": "_simulate_trajectory",
+        "dst": "_evolve_trotter_suzuki2_absolute"
+      },
+      {
+        "src": "_simulate_trajectory",
+        "dst": "_site_resolved_number_observables"
+      },
+      {
+        "src": "_site_resolved_number_observables",
+        "dst": "_spin_orbital_bit_index"
+      }
+    ]
+  },
+  "diagram_manifest": [
+    {
+      "file": "docs/repo_guide_assets/01_repo_structure_map.png",
+      "title": "Repository Structure Map",
+      "description": "Workspace and artifact topology"
+    },
+    {
+      "file": "docs/repo_guide_assets/02_internal_import_dag.png",
+      "title": "Internal Import DAG",
+      "description": "src/quantum and pipeline imports"
+    },
+    {
+      "file": "docs/repo_guide_assets/03_operator_layer_object_model.png",
+      "title": "Operator Layer Object Model",
+      "description": "Pauli abstraction chain"
+    },
+    {
+      "file": "docs/repo_guide_assets/04_qubit_ordering_convention.png",
+      "title": "Qubit Ordering Convention",
+      "description": "String to qubit index mapping"
+    },
+    {
+      "file": "docs/repo_guide_assets/05_jw_mapping_flow.png",
+      "title": "JW Mapping Flow",
+      "description": "Ladder helper flow into Hamiltonian"
+    },
+    {
+      "file": "docs/repo_guide_assets/06_hardcoded_pipeline_flow.png",
+      "title": "Hardcoded Pipeline Flow",
+      "description": "Execution sequence"
+    },
+    {
+      "file": "docs/repo_guide_assets/07_qiskit_pipeline_static_vs_drive.png",
+      "title": "Qiskit Baseline Flow",
+      "description": "Static vs drive branch"
+    },
+    {
+      "file": "docs/repo_guide_assets/08_shared_drive_backend.png",
+      "title": "Shared Drive Backend",
+      "description": "Common drive kernels"
+    },
+    {
+      "file": "docs/repo_guide_assets/09_compare_pipeline_fanout_fanin.png",
+      "title": "Compare Fan-Out/Fan-In",
+      "description": "Orchestration path"
+    },
+    {
+      "file": "docs/repo_guide_assets/10_amplitude_comparison_six_runs.png",
+      "title": "Amplitude 6-Run Workflow",
+      "description": "disabled/A0/A1 x HC/QK"
+    },
+    {
+      "file": "docs/repo_guide_assets/11_safe_test_invariant_logic.png",
+      "title": "Safe-Test Logic",
+      "description": "A=0 no-drive equivalence gate"
+    },
+    {
+      "file": "docs/repo_guide_assets/12_artifact_json_contract_map.png",
+      "title": "Artifact Contract Map",
+      "description": "JSON/PDF dependency graph"
+    },
+    {
+      "file": "docs/repo_guide_assets/13_test_contract_coverage.png",
+      "title": "Test Contract Coverage",
+      "description": "Tests as executable spec"
+    },
+    {
+      "file": "docs/repo_guide_assets/14_extension_playbook_decision_tree.png",
+      "title": "Extension Playbook",
+      "description": "Safe change decision tree"
+    },
+    {
+      "file": "docs/repo_guide_assets/15_hf_blocked_L2_table.png",
+      "title": "HF Occupancy Table L2 blocked",
+      "description": "Half-filling map"
+    },
+    {
+      "file": "docs/repo_guide_assets/16_hf_blocked_L3_table.png",
+      "title": "HF Occupancy Table L3 blocked",
+      "description": "Half-filling map"
+    },
+    {
+      "file": "docs/repo_guide_assets/17_hf_blocked_L4_table.png",
+      "title": "HF Occupancy Table L4 blocked",
+      "description": "Half-filling map"
+    },
+    {
+      "file": "docs/repo_guide_assets/18_hf_interleaved_L2_table.png",
+      "title": "HF Occupancy Table L2 interleaved",
+      "description": "Half-filling map"
+    },
+    {
+      "file": "docs/repo_guide_assets/19_hf_interleaved_L3_table.png",
+      "title": "HF Occupancy Table L3 interleaved",
+      "description": "Half-filling map"
+    },
+    {
+      "file": "docs/repo_guide_assets/20_hf_interleaved_L4_table.png",
+      "title": "HF Occupancy Table L4 interleaved",
+      "description": "Half-filling map"
+    },
+    {
+      "file": "docs/repo_guide_assets/21_bit_index_place_value_examples.png",
+      "title": "Bit Index Examples",
+      "description": "Basis index extraction"
+    },
+    {
+      "file": "docs/repo_guide_assets/22_theta_vector_layout.png",
+      "title": "Theta Vector Layout",
+      "description": "Parameter indexing in ansatz"
+    },
+    {
+      "file": "docs/repo_guide_assets/23_optimizer_restart_flow.png",
+      "title": "Optimizer Restart Flow",
+      "description": "Inner VQE optimization logic"
+    },
+    {
+      "file": "docs/repo_guide_assets/24_term_traversal_vs_ordering.png",
+      "title": "Term Traversal vs Ordering",
+      "description": "collection/order/compiled actions"
+    },
+    {
+      "file": "docs/repo_guide_assets/25_suzuki2_step_anatomy.png",
+      "title": "Suzuki-2 Anatomy",
+      "description": "Forward/reverse pass implementation"
+    },
+    {
+      "file": "docs/repo_guide_assets/26_drive_waveform_decomposition.png",
+      "title": "Drive Waveform",
+      "description": "Carrier-envelope decomposition"
+    },
+    {
+      "file": "docs/repo_guide_assets/27_drive_spatial_patterns.png",
+      "title": "Drive Spatial Patterns",
+      "description": "staggered/dimer/custom weights"
+    },
+    {
+      "file": "docs/repo_guide_assets/28_reference_propagator_split.png",
+      "title": "Reference Propagator Split",
+      "description": "static eig vs drive piecewise exact"
+    },
+    {
+      "file": "docs/repo_guide_assets/29_trajectory_row_schema_map.png",
+      "title": "Trajectory Schema Map",
+      "description": "row keys to plot channels"
+    },
+    {
+      "file": "docs/repo_guide_assets/30_formula_legend_energy.png",
+      "title": "Formula Legend Energy",
+      "description": "energy observable definitions"
+    },
+    {
+      "file": "docs/repo_guide_assets/31_formula_legend_fidelity.png",
+      "title": "Formula Legend Fidelity",
+      "description": "projector fidelity definition"
+    },
+    {
+      "file": "docs/repo_guide_assets/32_formula_legend_occupancy_doublon.png",
+      "title": "Formula Legend Occupancy",
+      "description": "n_up/n_dn/doublon/staggered"
+    },
+    {
+      "file": "docs/repo_guide_assets/33_artifact_L2_energy_audit.png",
+      "title": "Artifact L2 Energy Audit",
+      "description": "L2 heavy static energy channels"
+    },
+    {
+      "file": "docs/repo_guide_assets/34_artifact_L2_site0_audit.png",
+      "title": "Artifact L2 Site0 Audit",
+      "description": "L2 heavy static site-0/fidelity channels"
+    },
+    {
+      "file": "docs/repo_guide_assets/35_artifact_L3_energy_audit.png",
+      "title": "Artifact L3 Energy Audit",
+      "description": "L3 heavy static energy channels"
+    },
+    {
+      "file": "docs/repo_guide_assets/36_artifact_L3_site0_audit.png",
+      "title": "Artifact L3 Site0 Audit",
+      "description": "L3 heavy static site-0/fidelity channels"
+    },
+    {
+      "file": "docs/repo_guide_assets/37_artifact_L4_total_energy_drive_audit.png",
+      "title": "Artifact L4 Drive Energy Audit",
+      "description": "L4 drive-enabled static/total energy channels"
+    },
+    {
+      "file": "docs/repo_guide_assets/38_artifact_L4_drive_waveform_audit.png",
+      "title": "Artifact L4 Site0/Fidelity Audit",
+      "description": "L4 drive-enabled site-0/fidelity channels"
+    },
+    {
+      "file": "docs/repo_guide_assets/39_artifact_L4_reference_method_audit.png",
+      "title": "Artifact L4 Error Audit",
+      "description": "L4 drive energy absolute errors"
+    },
+    {
+      "file": "docs/repo_guide_assets/40_case_comparison_summary.png",
+      "title": "Case Comparison Summary",
+      "description": "L2/L3/L4 derived metric comparison"
+    },
+    {
+      "file": "docs/repo_guide_assets/41_function_line_span_map.png",
+      "title": "Function Evidence Map",
+      "description": "Target function line spans"
+    },
+    {
+      "file": "docs/repo_guide_assets/42_function_call_graph_focus.png",
+      "title": "Function Call Graph",
+      "description": "Call edges among target functions"
+    },
+    {
+      "file": "docs/repo_guide_assets/43_invariant_evidence_snippets.png",
+      "title": "Invariant Evidence",
+      "description": "Line-level invariant snippets"
+    },
+    {
+      "file": "docs/repo_guide_assets/44_canonical_artifact_metrics_table.png",
+      "title": "Canonical Metrics Table",
+      "description": "Validation/error summary table"
+    },
+    {
+      "file": "docs/repo_guide_assets/45_quality_gate_summary.png",
+      "title": "Quality Gate Summary",
+      "description": "Guide build gate inventory"
+    },
+    {
+      "file": "docs/repo_guide_assets/46_plot_meaning_map.png",
+      "title": "Plot Meaning Map",
+      "description": "Trajectory arrays to output pages"
+    }
+  ]
+}

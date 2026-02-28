@@ -23,7 +23,7 @@ except Exception as _dep_exc:  # pragma: no cover - allow source-inspection usag
 
     def _missing_dep(*_args, **_kwargs):
         raise ImportError(
-            "pydephasing quantum dependencies are unavailable in this environment"
+            "src.quantum dependencies are unavailable in this environment"
         ) from _dep_exc
 
     fermion_minus_operator = _missing_dep  # type: ignore[assignment]
@@ -37,15 +37,13 @@ except Exception as _dep_exc:  # pragma: no cover - allow source-inspection usag
 
     log = _FallbackLog()
 
-try:
-    from src.utilities.log import log
-except Exception:  # pragma: no cover - local fallback when utilities package is absent
-    class _FallbackLog:
-        @staticmethod
-        def error(msg: str):
-            raise RuntimeError(msg)
+class _FallbackLog:
+    @staticmethod
+    def error(msg: str):
+        raise RuntimeError(msg)
 
-    log = _FallbackLog()
+
+log = _FallbackLog()
 
 Spin = int  # 0 -> up, 1 -> down
 Dims = Union[int, Tuple[int, ...]]  # L or (Lx, Ly, ...)

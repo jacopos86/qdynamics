@@ -1,26 +1,8 @@
-# === Project configuration === #
-config.yml
-
-# === Scripts === #
-scr.sh
-run*.sh
-
-# === Build & distribution === #
-build
-dist
-qdynamics.egg-info
-
-# === logs and temporary files === #
-*.log
-*.png
-*.yml
-*.dat
-*.yml
-
-# === python cache & compiled files === #
-__pycache__
-utils/__pycache__/
+.DS_Store
+**/.DS_Store
+**/__pycache__/
+**/.pytest_cache/
 *.pyc
-
-# === TESTS data === #
-TESTS
+*.log
+*.swp
+Fermi-Hamil-JW-VQE-TROTTER-PIPELINE/artifacts/

@@ -1,6 +1,4 @@
-from src.utilities.log import log
 from src.quantum.pauli_letters_module import PauliLetter
-from src.set_param_object import p
 
 #
 #   This module defines the basic Pauli term entity
@@ -22,7 +20,7 @@ class PauliTerm:
         elif pl_seq is not None and pc is not None:
             self.__set_pauli_term_from_letters(pl_seq, pc)
         else:
-            log.error("WRONG INITIALIZATION")
+            raise ValueError("WRONG INITIALIZATION")
     def __set_pauli_term(self, ps, pc):
         pl_seq = []
         for iq in range(self.__nq):
@@ -61,6 +59,7 @@ class PauliTerm:
         strng = "\t " + str(self.p_coeff) + " "
         for iq in range(self.__nq):
             strng += self.pw[iq].symbol
-        log.info("\t " + p.sep)
-        log.info(strng)
-        log.info("\t " + p.sep)
+        sep = "*" * 94
+        print("\t " + sep)
+        print(strng)
+        print("\t " + sep)

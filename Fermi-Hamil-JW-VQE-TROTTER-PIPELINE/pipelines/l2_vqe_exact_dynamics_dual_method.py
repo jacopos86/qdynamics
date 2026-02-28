@@ -220,13 +220,13 @@ def _compute_dataset(payload: dict[str, Any], dataset_label: str) -> dict[str, A
     qk_obs = _states_to_observables(qk_states, hmat, num_sites)
 
     trotter = {
-        "energy": _arr(traj, "energy_trotter"),
+        "energy": _arr(traj, "energy_static_trotter") if "energy_static_trotter" in traj[0] else _arr(traj, "energy_trotter"),
         "n_up_site0": _arr(traj, "n_up_site0_trotter"),
         "n_dn_site0": _arr(traj, "n_dn_site0_trotter"),
         "doublon": _arr(traj, "doublon_trotter"),
     }
     payload_exact = {
-        "energy": _arr(traj, "energy_exact"),
+        "energy": _arr(traj, "energy_static_exact") if "energy_static_exact" in traj[0] else _arr(traj, "energy_exact"),
         "n_up_site0": _arr(traj, "n_up_site0_exact"),
         "n_dn_site0": _arr(traj, "n_dn_site0_exact"),
         "doublon": _arr(traj, "doublon_exact"),

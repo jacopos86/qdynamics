@@ -1,5 +1,3 @@
-from src.utilities.log import log
-
 #
 #   Define Pauli letter class
 #
@@ -26,7 +24,7 @@ symbol_product_map = {
 class PauliLetter:
     def __init__(self, symbol, phase=None):
         if not isinstance(symbol, str) or len(symbol) != 1:
-            log.error("Symbol must be a single character string.")
+            raise ValueError("Symbol must be a single character string.")
         self.symbol = symbol
         if phase is None:
             self.phase = 1.
@@ -34,6 +32,6 @@ class PauliLetter:
             self.phase = phase
     def __mul__(self, pl):
         if not isinstance(pl, PauliLetter):
-            log.error("product must be with pauli letter")
+            raise TypeError("product must be with pauli letter")
         phase, sym = symbol_product_map[(self.symbol, pl.symbol)]
         return PauliLetter(symbol=sym, phase=phase)

@@ -25,7 +25,7 @@ import numpy as np
 DEFAULT_THRESHOLDS = {
     "ground_state_energy_abs_delta": 1e-8,
     "fidelity_max_abs_delta": 1e-4,
-    "energy_trotter_max_abs_delta": 1e-3,
+    "energy_static_trotter_max_abs_delta": 1e-3,
     "n_up_site0_trotter_max_abs_delta": 5e-3,
     "n_dn_site0_trotter_max_abs_delta": 5e-3,
     "doublon_trotter_max_abs_delta": 1e-3,
@@ -33,7 +33,7 @@ DEFAULT_THRESHOLDS = {
 
 TARGET_METRICS = [
     "fidelity",
-    "energy_trotter",
+    "energy_static_trotter",
     "n_up_site0_trotter",
     "n_dn_site0_trotter",
     "doublon_trotter",
@@ -158,7 +158,7 @@ def _compute_metrics(hc: dict[str, Any], qk: dict[str, Any], thresholds: dict[st
     checks = {
         "ground_state_energy_abs_delta": out["ground_state_energy"]["abs_delta"] <= thresholds["ground_state_energy_abs_delta"],
         "fidelity_max_abs_delta": out["trajectory_deltas"]["fidelity"]["max_abs_delta"] <= thresholds["fidelity_max_abs_delta"],
-        "energy_trotter_max_abs_delta": out["trajectory_deltas"]["energy_trotter"]["max_abs_delta"] <= thresholds["energy_trotter_max_abs_delta"],
+        "energy_static_trotter_max_abs_delta": out["trajectory_deltas"]["energy_static_trotter"]["max_abs_delta"] <= thresholds["energy_static_trotter_max_abs_delta"],
         "n_up_site0_trotter_max_abs_delta": out["trajectory_deltas"]["n_up_site0_trotter"]["max_abs_delta"] <= thresholds["n_up_site0_trotter_max_abs_delta"],
         "n_dn_site0_trotter_max_abs_delta": out["trajectory_deltas"]["n_dn_site0_trotter"]["max_abs_delta"] <= thresholds["n_dn_site0_trotter_max_abs_delta"],
         "doublon_trotter_max_abs_delta": out["trajectory_deltas"]["doublon_trotter"]["max_abs_delta"] <= thresholds["doublon_trotter_max_abs_delta"],
@@ -277,8 +277,9 @@ def _print_report(
     print("TRAJECTORY DELTAS")
     for key in TARGET_METRICS:
         row = metrics["trajectory_deltas"][key]
+        label = "subspace_fidelity" if key == "fidelity" else key
         print(
-            f"  {key}: max={_fp(row['max_abs_delta'])} mean={_fp(row['mean_abs_delta'])} final={_fp(row['final_abs_delta'])}"
+            f"  {label}: max={_fp(row['max_abs_delta'])} mean={_fp(row['mean_abs_delta'])} final={_fp(row['final_abs_delta'])}"
         )
     print("")
 

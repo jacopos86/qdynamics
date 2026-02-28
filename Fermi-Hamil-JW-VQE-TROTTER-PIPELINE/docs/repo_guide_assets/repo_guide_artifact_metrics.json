@@ -1,0 +1,214 @@
+{
+  "canonical_cases": [
+    "artifacts/json/H_L2_static_t1.0_U4.0_S64_heavy.json",
+    "artifacts/json/H_L3_static_t1.0_U4.0_S128_heavy.json",
+    "artifacts/json/H_L4_vt_t1.0_U4.0_S256_dyn.json"
+  ],
+  "all_valid": true,
+  "cases": [
+    {
+      "case": "H_L2_static_t1.0_U4.0_S64_heavy.json",
+      "valid": true,
+      "missing_top": [],
+      "missing_trajectory_keys": [],
+      "settings": {
+        "L": 2,
+        "ordering": "blocked",
+        "trotter_steps": 64,
+        "num_times": 201,
+        "term_order": "sorted",
+        "has_drive": false,
+        "reference_method": "eigendecomposition",
+        "reference_steps_multiplier": NaN
+      },
+      "vqe": {
+        "energy": -0.8284270926619854,
+        "exact_energy_filtered": -0.8284271247461901,
+        "abs_error": 3.20842046264147e-08,
+        "optimizer_method": "COBYLA",
+        "num_parameters": 6,
+        "best_restart": 0
+      },
+      "time_grid": {
+        "t_start": 0.0,
+        "t_end": 20.0,
+        "num_points": 201,
+        "dt_mean": 0.1
+      },
+      "fidelity": {
+        "min": 0.9779091855758525,
+        "max": 0.9999999932870716,
+        "final": 0.9869249072500748
+      },
+      "energy_errors": {
+        "static_trot_vs_exact_ans_max": 0.07798533165196853,
+        "static_trot_vs_exact_ans_mean": 0.011774386808268492,
+        "static_trot_vs_exact_gs_max": 0.07798536373617382,
+        "total_trot_vs_exact_max": 0.07798536373617382,
+        "total_minus_static_trot_max": 0.0
+      },
+      "observables": {
+        "n_up_site0_range": [
+          0.417663463623954,
+          0.5224388416112647
+        ],
+        "n_dn_site0_range": [
+          0.49995445185240284,
+          0.621744586022257
+        ],
+        "doublon_range": [
+          0.10425525549272596,
+          0.15629097942174938
+        ],
+        "staggered_range": [
+          -0.002296174798312123,
+          0.09087637467577947
+        ]
+      },
+      "consistency_checks": {
+        "occupancy_bounds_ok": true,
+        "doublon_bounds_ok": true,
+        "static_equals_total_when_no_drive_max_delta": 0.0,
+        "drive_changes_total_energy_max_delta": NaN
+      },
+      "path": "artifacts/json/H_L2_static_t1.0_U4.0_S64_heavy.json",
+      "exists": true
+    },
+    {
+      "case": "H_L3_static_t1.0_U4.0_S128_heavy.json",
+      "valid": true,
+      "missing_top": [],
+      "missing_trajectory_keys": [],
+      "settings": {
+        "L": 3,
+        "ordering": "blocked",
+        "trotter_steps": 128,
+        "num_times": 401,
+        "term_order": "sorted",
+        "has_drive": false,
+        "reference_method": "eigendecomposition",
+        "reference_steps_multiplier": NaN
+      },
+      "vqe": {
+        "energy": -1.27491709043483,
+        "exact_energy_filtered": -1.2749172176353751,
+        "abs_error": 1.2720054520798385e-07,
+        "optimizer_method": "COBYLA",
+        "num_parameters": 16,
+        "best_restart": 1
+      },
+      "time_grid": {
+        "t_start": 0.0,
+        "t_end": 20.0,
+        "num_points": 401,
+        "dt_mean": 0.05
+      },
+      "fidelity": {
+        "min": 0.9982896438232979,
+        "max": 0.9999999181453176,
+        "final": 0.9985135925614043
+      },
+      "energy_errors": {
+        "static_trot_vs_exact_ans_max": 0.008288216471344256,
+        "static_trot_vs_exact_ans_mean": 0.0010001632174639987,
+        "static_trot_vs_exact_gs_max": 0.008288343671897458,
+        "total_trot_vs_exact_max": 0.008288343671897458,
+        "total_minus_static_trot_max": 0.0
+      },
+      "observables": {
+        "n_up_site0_range": [
+          0.4177332445253881,
+          0.4481595905093477
+        ],
+        "n_dn_site0_range": [
+          0.5110734670574095,
+          0.5375258510736702
+        ],
+        "doublon_range": [
+          0.2116817281911146,
+          0.23092138351451597
+        ],
+        "staggered_range": [
+          0.34120898238293157,
+          0.3549555189963254
+        ]
+      },
+      "consistency_checks": {
+        "occupancy_bounds_ok": true,
+        "doublon_bounds_ok": true,
+        "static_equals_total_when_no_drive_max_delta": 0.0,
+        "drive_changes_total_energy_max_delta": NaN
+      },
+      "path": "artifacts/json/H_L3_static_t1.0_U4.0_S128_heavy.json",
+      "exists": true
+    },
+    {
+      "case": "H_L4_vt_t1.0_U4.0_S256_dyn.json",
+      "valid": true,
+      "missing_top": [],
+      "missing_trajectory_keys": [],
+      "settings": {
+        "L": 4,
+        "ordering": "blocked",
+        "trotter_steps": 256,
+        "num_times": 201,
+        "term_order": "sorted",
+        "has_drive": true,
+        "reference_method": "exponential_midpoint_magnus2_order2",
+        "reference_steps_multiplier": 3.0
+      },
+      "vqe": {
+        "energy": -2.1026450003175046,
+        "exact_energy_filtered": -2.1027484834620753,
+        "abs_error": 0.00010348314457075958,
+        "optimizer_method": "COBYLA",
+        "num_parameters": 104,
+        "best_restart": 2
+      },
+      "time_grid": {
+        "t_start": 0.0,
+        "t_end": 20.0,
+        "num_points": 201,
+        "dt_mean": 0.1
+      },
+      "fidelity": {
+        "min": 0.9993357304628818,
+        "max": 0.9999299801451639,
+        "final": 0.9993357304628818
+      },
+      "energy_errors": {
+        "static_trot_vs_exact_ans_max": 0.0029578796116696005,
+        "static_trot_vs_exact_ans_mean": 0.00033440610088654503,
+        "static_trot_vs_exact_gs_max": 0.0030874352490681822,
+        "total_trot_vs_exact_max": 0.0030874352507064273,
+        "total_minus_static_trot_max": 0.12363082821378724
+      },
+      "observables": {
+        "n_up_site0_range": [
+          0.46140075717988716,
+          0.5205130906765781
+        ],
+        "n_dn_site0_range": [
+          0.4745147093502445,
+          0.5272084463754608
+        ],
+        "doublon_range": [
+          0.26269669977617577,
+          0.32194415824331934
+        ],
+        "staggered_range": [
+          -0.06408015976805803,
+          0.048015803954232744
+        ]
+      },
+      "consistency_checks": {
+        "occupancy_bounds_ok": true,
+        "doublon_bounds_ok": true,
+        "static_equals_total_when_no_drive_max_delta": NaN,
+        "drive_changes_total_energy_max_delta": 0.12363082821378724
+      },
+      "path": "artifacts/json/H_L4_vt_t1.0_U4.0_S256_dyn.json",
+      "exists": true
+    }
+  ]
+}
