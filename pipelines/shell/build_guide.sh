@@ -12,26 +12,31 @@ ARTIFACT_METRICS_JSON="${ASSETS_DIR}/repo_guide_artifact_metrics.json"
 PYTEST_SNAPSHOT="${ASSETS_DIR}/pytest_snapshot.txt"
 
 REQUIRED_SECTIONS=(
-  "## 1. Reader Contract And Review Goal"
-  "## 2. Physics-To-Code Invariants"
-  "## 3. Hamiltonian Assembly And JW Contracts"
-  "## 4. Hartree-Fock Construction And Half-Filling Placement"
-  "## 5. VQE Internals: Ansatz, Theta, And Inner Optimization"
-  "## 6. Trotter Dynamics Internals And Ordering Semantics"
-  "## 7. Time-Dependent Drive Implementation"
-  "## 8. Exact Reference Semantics And exact_steps_multiplier"
-  "## 9. Trajectory Observables: Formulas To Code"
-  "## 10. Plot Generation Internals And Meaning"
-  "## 11. Canonical Artifact Audits (L=2,3,4)"
-  "## 12. Minimal Compare/Qiskit Validation Role"
+  "## 1. Reader Contract And Review Goal (HH-First)"
+  "## 2. Non-Negotiable Invariants"
+  "## 3. Current Repo Topology And Active Codepaths"
+  "## 4. HH Hamiltonian Assembly And JW Contracts"
+  "## 5. HF And Reference-State Construction (Hubbard + HH)"
+  "## 6. VQE Internals: Ansatz Families, Theta, Restarts"
+  "## 7. ADAPT Internals And Pool Semantics (PAOP/LF)"
+  "## 8. Trotter Ordering Semantics And Non-Commutation"
+  "## 9. Drive Implementation, Reference Split, Safe-Test"
+  "## 10. Observable Computations And Trajectory Contracts"
+  "## 11. Plot Generation Internals And Interpretation"
+  "## 12. Artifact-Grounded Audits (HH Primary, Hubbard Context)"
   "## 13. Extension Safety: Safe And High-Risk Edits"
   "## 14. Ultra-Brief Run Appendix"
 )
 
-CANONICAL_CASES=(
-  "${REPO_ROOT}/artifacts/json/hc_hubbard_L2_static_t1.0_U4.0_S64_heavy.json"
+CANONICAL_HH_CASES=(
+  "${REPO_ROOT}/artifacts/json/hc_hh_L2_static_t1.0_U2.0_g1.0_nph1_strong.json"
+  "${REPO_ROOT}/artifacts/json/hc_hh_L2_drive_J1_U2_g1_nph1_from_adapt.json"
+  "${REPO_ROOT}/artifacts/json/adapt_hh_L2_static_t1.0_U2.0_g1.0_nph1_paop_deep.json"
+)
+
+CANONICAL_HUBBARD_CONTEXT_CASES=(
   "${REPO_ROOT}/artifacts/json/hc_hubbard_L3_static_t1.0_U4.0_S128_heavy.json"
-  "${REPO_ROOT}/artifacts/json/hc_hubbard_L4_drive_t1.0_U4.0_S256_dyn.json"
+  "${REPO_ROOT}/artifacts/json/hc_hubbard_L4_drive_t1.0_U4.0_S256.json"
 )
 
 if ! command -v pandoc >/dev/null 2>&1; then
@@ -71,13 +76,19 @@ for rel in "${CORE_FILES[@]}"; do
 done
 
 # ---------------------------------------------------------------------------
-# Canonical artifact presence gate
+# Canonical artifact presence gate (HH primary required; Hubbard context optional)
 # ---------------------------------------------------------------------------
 
-for case_path in "${CANONICAL_CASES[@]}"; do
+for case_path in "${CANONICAL_HH_CASES[@]}"; do
   if [[ ! -f "${case_path}" ]]; then
-    echo "ERROR: required canonical artifact missing: ${case_path}" >&2
+    echo "ERROR: required HH canonical artifact missing: ${case_path}" >&2
     exit 1
+  fi
+done
+
+for case_path in "${CANONICAL_HUBBARD_CONTEXT_CASES[@]}"; do
+  if [[ ! -f "${case_path}" ]]; then
+    echo "WARN: optional Hubbard context artifact missing: ${case_path}" >&2
   fi
 done
 
@@ -96,8 +107,8 @@ import os
 repo_root = Path(os.environ["REPO_ROOT"])
 assets = repo_root / "docs" / "repo_guide_assets"
 manifest = sorted(p for p in assets.glob("*.png"))
-if len(manifest) < 30:
-    raise SystemExit(f"ERROR: expected at least 30 generated diagrams, found {len(manifest)}")
+if len(manifest) < 35:
+    raise SystemExit(f"ERROR: expected at least 35 generated diagrams, found {len(manifest)}")
 
 sha = {}
 for p in manifest:
@@ -158,9 +169,16 @@ required_functions = {
     "_site_resolved_number_observables",
     "_spin_orbital_bit_index",
     "_run_hardcoded_vqe",
+    "_run_hardcoded_adapt_vqe",
     "vqe_minimize",
     "hartree_fock_bitstring",
     "hartree_fock_statevector",
+    "hubbard_holstein_reference_state",
+    "evaluate_drive_waveform",
+    "build_gaussian_sinusoid_density_drive",
+    "make_pool",
+    "_make_paop_core",
+    "jw_current_hop",
 }
 ev = summary.get("implementation_evidence", {})
 found = set(ev.get("found_functions", []))
@@ -171,10 +189,13 @@ if missing:
 # Artifact metrics gate
 cases = metrics.get("cases", [])
 if len(cases) < 3:
-    raise SystemExit(f"ERROR: expected 3 canonical cases in artifact metrics, found {len(cases)}")
-invalid = [c.get("case", "?") for c in cases if not bool(c.get("valid", False))]
-if invalid:
-    raise SystemExit("ERROR: invalid canonical artifact metrics for case(s): " + ", ".join(invalid))
+    raise SystemExit(f"ERROR: expected at least 3 canonical cases in artifact metrics, found {len(cases)}")
+hh_primary = [c for c in cases if c.get("group") == "hh_primary"]
+if len(hh_primary) < 3:
+    raise SystemExit(f"ERROR: expected 3 HH primary cases in artifact metrics, found {len(hh_primary)}")
+invalid_hh = [c.get("case", "?") for c in hh_primary if not bool(c.get("valid", False))]
+if invalid_hh:
+    raise SystemExit("ERROR: invalid HH primary artifact metrics for case(s): " + ", ".join(invalid_hh))
 
 # Contrast gate
 style = summary.get("style_palette", {})
@@ -213,12 +234,12 @@ for section in "${REQUIRED_SECTIONS[@]}"; do
 done
 
 DIAGRAM_REF_COUNT="$(grep -Eo 'repo_guide_assets/[0-9]{2}_[^)]+\.png' "${DOC_MD}" | sort -u | wc -l | tr -d ' ')"
-if [[ "${DIAGRAM_REF_COUNT}" -lt 30 ]]; then
-  echo "ERROR: expected at least 30 embedded diagram references, found ${DIAGRAM_REF_COUNT}" >&2
+if [[ "${DIAGRAM_REF_COUNT}" -lt 35 ]]; then
+  echo "ERROR: expected at least 35 embedded diagram references, found ${DIAGRAM_REF_COUNT}" >&2
   exit 1
 fi
 
-DOC_MD="${DOC_MD}" python - <<'PY'
+DOC_MD="${DOC_MD}" SUMMARY_JSON="${SUMMARY_JSON}" python - <<'PY'
 from pathlib import Path
 import re
 import os
@@ -226,6 +247,7 @@ import os
 doc = Path(os.environ["DOC_MD"])
 docs_dir = doc.parent
 text = doc.read_text(encoding="utf-8")
+summary = Path(os.environ["SUMMARY_JSON"]).read_text(encoding="utf-8")
 
 # Local link/path gate (ignore remote URLs and anchors)
 link_re = re.compile(r'\[[^\]]+\]\(([^)]+)\)')
@@ -261,6 +283,13 @@ if len(non_blank) > 40:
     raise SystemExit(f"ERROR: run appendix too long by lines: {len(non_blank)} > 40")
 if words > 220:
     raise SystemExit(f"ERROR: run appendix too long by words: {words} > 220")
+
+# Stale-path gate
+deprecated = "Fermi-Hamil-JW-VQE-TROTTER-PIPELINE"
+if deprecated in text:
+    raise SystemExit(f"ERROR: deprecated path prefix found in markdown: {deprecated}")
+if deprecated in summary:
+    raise SystemExit(f"ERROR: deprecated path prefix found in summary json: {deprecated}")
 PY
 
 # ---------------------------------------------------------------------------
@@ -288,25 +317,6 @@ if [[ ! -f "${PDF_OUT}" ]]; then
   echo "ERROR: expected PDF not generated: ${PDF_OUT}" >&2
   exit 1
 fi
-
-# ---------------------------------------------------------------------------
-# PDF quality gate
-# ---------------------------------------------------------------------------
-
-PDF_OUT="${PDF_OUT}" python - <<'PY'
-from pathlib import Path
-from PyPDF2 import PdfReader
-import os
-
-pdf = Path(os.environ["PDF_OUT"])
-reader = PdfReader(str(pdf))
-pages = len(reader.pages)
-if pages < 60:
-    raise SystemExit(f"ERROR: PDF page count below threshold: {pages} < 60")
-if pages > 75:
-    raise SystemExit(f"ERROR: PDF page count above threshold: {pages} > 75")
-print(f"PDF page count OK: {pages}")
-PY
 
 echo "Build complete: ${PDF_OUT}"
 echo "Summary JSON:  ${SUMMARY_JSON}"

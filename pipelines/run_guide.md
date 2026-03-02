@@ -259,7 +259,7 @@ re-optimising all parameters at each depth, until gradient or energy convergence
 
 | Flag | Type | Default | Description |
 |------|------|---------|-------------|
-| `--adapt-pool` | choice | `uccsd` | Pool type: `uccsd`, `cse`, `full_hamiltonian`, `hva` (HH only), `paop`, `paop_min`, `paop_std`, `paop_full` (HH only) |
+| `--adapt-pool` | choice | `uccsd` | Pool type: `uccsd`, `cse`, `full_hamiltonian`, `hva` (HH only), `paop`, `paop_min`, `paop_std`, `paop_full`, `paop_lf`, `paop_lf_std`, `paop_lf2_std`, `paop_lf_full` (HH only) |
 | `--adapt-max-depth` | int | `20` | Maximum ADAPT iterations (operators appended) |
 | `--adapt-eps-grad` | float | `1e-4` | Gradient convergence threshold |
 | `--adapt-eps-energy` | float | `1e-8` | Energy convergence threshold |
@@ -275,7 +275,7 @@ re-optimising all parameters at each depth, until gradient or energy convergence
 
 | Flag | Type | Default | Description |
 |------|------|---------|-------------|
-| `--paop-r` | int | `1` | Cloud radius R for `paop_full` |
+| `--paop-r` | int | `1` | Cloud radius R for `paop_full` / `paop_lf_full` |
 | `--paop-split-paulis` | flag | `false` | Split composite generators into single Pauli terms |
 | `--paop-prune-eps` | float | `0.0` | Prune Pauli terms below this coefficient |
 | `--paop-normalization` | choice | `none` | Generator normalization: `none`, `fro`, `maxcoeff` |
@@ -285,7 +285,7 @@ re-optimising all parameters at each depth, until gradient or energy convergence
 | Problem | Available pools |
 |---------|----------------|
 | `hubbard` | `uccsd`, `cse`, `full_hamiltonian` |
-| `hh` | `hva`, `full_hamiltonian`, `paop`, `paop_min`, `paop_std`, `paop_full` |
+| `hh` | `hva`, `full_hamiltonian`, `paop`, `paop_min`, `paop_std`, `paop_full`, `paop_lf`, `paop_lf_std`, `paop_lf2_std`, `paop_lf_full` |
 
 **Pool details:**
 - `uccsd` — UCCSD single + double excitation generators (same as VQE pipeline)
@@ -296,6 +296,10 @@ re-optimising all parameters at each depth, until gradient or energy convergence
 - `paop_std` — Displacement + dressed hopping
 - `paop_full` — All polaron operators (displacement + doublon dressing + dressed hopping + extended cloud)
 - `paop` — alias for `paop_std`
+- `paop_lf_std` — `paop_std` plus LF-leading odd channel `curdrag = J_{ij}(P_i-P_j)`
+- `paop_lf` — alias for `paop_lf_std`
+- `paop_lf2_std` — `paop_lf_std` plus LF second-order even channel `hop2 = K_{ij}(P_i-P_j)^2` (phonon-identity terms dropped)
+- `paop_lf_full` — LF full pool (`paop_lf2_std` + extended cloud + doublon-conditioned phonon translation `D_i p_j` / `D_i x_j`), while legacy `paop_full` remains unchanged
 
 ### Sector filtering (ADAPT)
 
@@ -340,7 +344,7 @@ Defaults:
 - `--t 1.0 --u 4.0 --dv 0.0`
 - `--boundary open --ordering blocked`
 - `--problem hubbard` (use `--problem hh` for Hubbard-Holstein)
-- `--adapt-pool uccsd` (`uccsd|cse|full_hamiltonian|hva|paop|paop_min|paop_std|paop_full`)
+- `--adapt-pool uccsd` (`uccsd|cse|full_hamiltonian|hva|paop|paop_min|paop_std|paop_full|paop_lf|paop_lf_std|paop_lf2_std|paop_lf_full`)
 - `--adapt-max-depth 20 --adapt-eps-grad 1e-4 --adapt-eps-energy 1e-8`
 - `--adapt-maxiter 300 --adapt-seed 7`
 - `--adapt-allow-repeats --adapt-finite-angle-fallback`

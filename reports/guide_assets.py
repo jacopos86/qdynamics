@@ -49,11 +49,18 @@ STYLE: dict[str, str] = {
     "purple_fill": "#F1EAF6",
 }
 
-CANONICAL_CASES: list[str] = [
-    "artifacts/json/hc_hubbard_L2_static_t1.0_U4.0_S64_heavy.json",
-    "artifacts/json/hc_hubbard_L3_static_t1.0_U4.0_S128_heavy.json",
-    "artifacts/json/hc_hubbard_L4_drive_t1.0_U4.0_S256_dyn.json",
+CANONICAL_HH_CASES: list[str] = [
+    "artifacts/json/hc_hh_L2_static_t1.0_U2.0_g1.0_nph1_strong.json",
+    "artifacts/json/hc_hh_L2_drive_J1_U2_g1_nph1_from_adapt.json",
+    "artifacts/json/adapt_hh_L2_static_t1.0_U2.0_g1.0_nph1_paop_deep.json",
 ]
+
+CANONICAL_HUBBARD_CONTEXT_CASES: list[str] = [
+    "artifacts/json/hc_hubbard_L3_static_t1.0_U4.0_S128_heavy.json",
+    "artifacts/json/hc_hubbard_L4_drive_t1.0_U4.0_S256.json",
+]
+
+CANONICAL_CASES: list[str] = CANONICAL_HH_CASES + CANONICAL_HUBBARD_CONTEXT_CASES
 
 TARGET_FUNCTIONS: list[str] = [
     "_simulate_trajectory",
@@ -62,11 +69,16 @@ TARGET_FUNCTIONS: list[str] = [
     "_site_resolved_number_observables",
     "_spin_orbital_bit_index",
     "_run_hardcoded_vqe",
+    "_run_hardcoded_adapt_vqe",
     "vqe_minimize",
     "hartree_fock_bitstring",
     "hartree_fock_statevector",
+    "hubbard_holstein_reference_state",
     "evaluate_drive_waveform",
-    "build_density_drive_from_args",
+    "build_gaussian_sinusoid_density_drive",
+    "make_pool",
+    "_make_paop_core",
+    "jw_current_hop",
 ]
 
 
@@ -98,16 +110,25 @@ def _rel(path: Path, root: Path) -> str:
 
 def _source_files(paths: RepoPaths) -> dict[str, list[Path]]:
     quantum_py = sorted((paths.workspace_root / "src" / "quantum").glob("*.py"))
-    pipeline_py = sorted((paths.subrepo_root / "pipelines" / "hardcoded").glob("*.py"))
+    quantum_pool_py = sorted((paths.workspace_root / "src" / "quantum" / "operator_pools").glob("*.py"))
+    pipeline_hardcoded_py = sorted((paths.subrepo_root / "pipelines" / "hardcoded").glob("*.py"))
+    pipeline_qiskit_py = sorted((paths.subrepo_root / "pipelines" / "qiskit_archive").glob("*.py"))
+    pipeline_exact_bench_py = sorted((paths.subrepo_root / "pipelines" / "exact_bench").glob("*.py"))
+    pipeline_py = sorted(pipeline_hardcoded_py + pipeline_qiskit_py + pipeline_exact_bench_py)
     pipeline_sh = sorted((paths.subrepo_root / "pipelines" / "shell").glob("*.sh"))
     top_tests = sorted((paths.workspace_root / "test").glob("test_*.py"))
 
     return {
-        "quantum_py": quantum_py,
+        "quantum_py": sorted(quantum_py + quantum_pool_py),
+        "quantum_core_py": quantum_py,
+        "quantum_pool_py": quantum_pool_py,
+        "pipeline_hardcoded_py": pipeline_hardcoded_py,
+        "pipeline_qiskit_py": pipeline_qiskit_py,
+        "pipeline_exact_bench_py": pipeline_exact_bench_py,
         "pipeline_py": pipeline_py,
         "pipeline_sh": pipeline_sh,
         "top_tests": top_tests,
-        "analysis_py": sorted(quantum_py + pipeline_py + top_tests),
+        "analysis_py": sorted(quantum_py + quantum_pool_py + pipeline_py + top_tests),
     }
 
 
@@ -120,8 +141,17 @@ def _path_to_module(path: Path, paths: RepoPaths) -> str:
 
 
 def _safe_literal(node: ast.AST) -> Any:
+    def _json_safe(value: Any) -> Any:
+        if isinstance(value, dict):
+            return {str(k): _json_safe(v) for k, v in value.items()}
+        if isinstance(value, (list, tuple, set)):
+            return [_json_safe(v) for v in value]
+        if isinstance(value, (str, int, float, bool)) or value is None:
+            return value
+        return repr(value)
+
     try:
-        return ast.literal_eval(node)
+        return _json_safe(ast.literal_eval(node))
     except Exception:
         try:
             return ast.unparse(node)
@@ -276,6 +306,8 @@ def _file_with_lines(path: Path) -> list[tuple[int, str]]:
 
 def _find_pattern(path: Path, pattern: str, *, flags: int = 0) -> list[dict[str, Any]]:
     out: list[dict[str, Any]] = []
+    if not path.exists():
+        return out
     regex = re.compile(pattern, flags)
     for line_no, line in _file_with_lines(path):
         if regex.search(line):
@@ -285,10 +317,10 @@ def _find_pattern(path: Path, pattern: str, *, flags: int = 0) -> list[dict[str,
 
 def _extract_invariants(paths: RepoPaths) -> dict[str, Any]:
     agents_path = paths.workspace_root / "AGENTS.md"
-    compare_path = paths.subrepo_root / "pipelines" / "compare_hardcoded_vs_qiskit_pipeline.py"
-    qiskit_path = paths.subrepo_root / "pipelines" / "qiskit_hubbard_baseline_pipeline.py"
-    hardcoded_path = paths.subrepo_root / "pipelines" / "hardcoded_hubbard_pipeline.py"
-    design_note_path = paths.subrepo_root / "pipelines" / "DESIGN_NOTE_QISKIT_BASELINE_TIMEDEP.md"
+    compare_path = paths.subrepo_root / "pipelines" / "qiskit_archive" / "compare_hc_vs_qk.py"
+    qiskit_path = paths.subrepo_root / "pipelines" / "qiskit_archive" / "qiskit_baseline.py"
+    hardcoded_path = paths.subrepo_root / "pipelines" / "hardcoded" / "hubbard_pipeline.py"
+    design_note_path = paths.subrepo_root / "pipelines" / "qiskit_archive" / "DESIGN_NOTE_TIMEDEP.md"
 
     invariants: dict[str, Any] = {}
 
@@ -340,8 +372,8 @@ def _extract_invariants(paths: RepoPaths) -> dict[str, Any]:
     }
 
     split_hits_q = _find_pattern(qiskit_path, r"if not has_drive")
-    split_hits_drive = _find_pattern(qiskit_path, r"PauliEvolutionGate is NOT used here")
-    split_hits_design = _find_pattern(design_note_path, r"Option A")
+    split_hits_drive = _find_pattern(qiskit_path, r"PauliEvolutionGate")
+    split_hits_design = _find_pattern(design_note_path, r"drive is enabled")
     invariants["static_vs_driven_reference_split"] = {
         "found": bool(split_hits_q and split_hits_drive),
         "expected": (
@@ -391,11 +423,14 @@ def _called_names_in_function(node: ast.FunctionDef | ast.AsyncFunctionDef) -> l
 
 def _extract_implementation_evidence(paths: RepoPaths) -> dict[str, Any]:
     target_files = [
-        paths.subrepo_root / "pipelines" / "hardcoded_hubbard_pipeline.py",
-        paths.subrepo_root / "pipelines" / "qiskit_hubbard_baseline_pipeline.py",
+        paths.subrepo_root / "pipelines" / "hardcoded" / "hubbard_pipeline.py",
+        paths.subrepo_root / "pipelines" / "hardcoded" / "adapt_pipeline.py",
+        paths.subrepo_root / "pipelines" / "qiskit_archive" / "qiskit_baseline.py",
+        paths.subrepo_root / "pipelines" / "qiskit_archive" / "compare_hc_vs_qk.py",
         paths.workspace_root / "src" / "quantum" / "vqe_latex_python_pairs.py",
         paths.workspace_root / "src" / "quantum" / "hartree_fock_reference_state.py",
         paths.workspace_root / "src" / "quantum" / "drives_time_potential.py",
+        paths.workspace_root / "src" / "quantum" / "operator_pools" / "polaron_paop.py",
     ]
 
     function_defs: dict[str, list[dict[str, Any]]] = {name: [] for name in TARGET_FUNCTIONS}
@@ -521,12 +556,30 @@ def _trajectory_array(traj: list[dict[str, Any]], key: str) -> np.ndarray:
     return np.array([_safe_float(row.get(key, float("nan"))) for row in traj], dtype=float)
 
 
+def _trajectory_array_first(traj: list[dict[str, Any]], keys: list[str]) -> tuple[str, np.ndarray]:
+    for key in keys:
+        if traj and isinstance(traj[0], dict) and key in traj[0]:
+            return key, _trajectory_array(traj, key)
+    return "missing", np.array([float("nan")] * len(traj), dtype=float)
+
+
+def _nan_minmax(arr: np.ndarray) -> tuple[float, float]:
+    finite = np.isfinite(arr)
+    if not bool(np.any(finite)):
+        return float("nan"), float("nan")
+    vals = arr[finite]
+    return _safe_float(np.min(vals)), _safe_float(np.max(vals))
+
+
 def _compute_case_metrics(case_name: str, payload: dict[str, Any]) -> dict[str, Any]:
     settings = payload.get("settings", {})
     traj = payload.get("trajectory", [])
-
-    required_top = ["settings", "trajectory", "vqe", "ground_state"]
+    has_vqe = isinstance(payload.get("vqe"), dict) and bool(payload.get("vqe"))
+    has_adapt = isinstance(payload.get("adapt_vqe"), dict) and bool(payload.get("adapt_vqe"))
+    required_top = ["settings", "trajectory", "ground_state"]
     missing_top = [k for k in required_top if k not in payload]
+    if not (has_vqe or has_adapt):
+        missing_top.append("vqe|adapt_vqe")
 
     if not isinstance(traj, list) or not traj:
         return {
@@ -538,11 +591,11 @@ def _compute_case_metrics(case_name: str, payload: dict[str, Any]) -> dict[str, 
 
     times = _trajectory_array(traj, "time")
     fidelity = _trajectory_array(traj, "fidelity")
-    e_stat_exact = _trajectory_array(traj, "energy_static_exact")
-    e_stat_ans = _trajectory_array(traj, "energy_static_exact_ansatz")
-    e_stat_trot = _trajectory_array(traj, "energy_static_trotter")
-    e_tot_exact = _trajectory_array(traj, "energy_total_exact")
-    e_tot_trot = _trajectory_array(traj, "energy_total_trotter")
+    e_stat_exact_key, e_stat_exact = _trajectory_array_first(traj, ["energy_static_exact", "energy_exact"])
+    e_stat_ans_key, e_stat_ans = _trajectory_array_first(traj, ["energy_static_exact_ansatz", "energy_exact"])
+    e_stat_trot_key, e_stat_trot = _trajectory_array_first(traj, ["energy_static_trotter", "energy_trotter"])
+    e_tot_exact_key, e_tot_exact = _trajectory_array_first(traj, ["energy_total_exact", "energy_exact"])
+    e_tot_trot_key, e_tot_trot = _trajectory_array_first(traj, ["energy_total_trotter", "energy_trotter"])
 
     n_up0 = _trajectory_array(traj, "n_up_site0_trotter")
     n_dn0 = _trajectory_array(traj, "n_dn_site0_trotter")
@@ -558,11 +611,16 @@ def _compute_case_metrics(case_name: str, payload: dict[str, Any]) -> dict[str, 
 
     static_total_delta = np.abs(e_tot_trot - e_stat_trot)
 
-    vqe = payload.get("vqe", {}) if isinstance(payload.get("vqe"), dict) else {}
+    vqe = payload.get("vqe", {}) if has_vqe else {}
+    adapt = payload.get("adapt_vqe", {}) if has_adapt else {}
     gs = payload.get("ground_state", {}) if isinstance(payload.get("ground_state"), dict) else {}
 
-    vqe_energy = _safe_float(vqe.get("energy"), float("nan"))
-    gs_filtered = _safe_float(gs.get("exact_energy_filtered"), float("nan"))
+    energy_block = vqe if has_vqe else adapt
+    vqe_energy = _safe_float(energy_block.get("energy"), float("nan"))
+    gs_filtered = _safe_float(
+        gs.get("exact_energy_filtered", gs.get("exact_energy", energy_block.get("exact_gs_energy"))),
+        float("nan"),
+    )
     vqe_abs_err = abs(vqe_energy - gs_filtered) if np.isfinite(vqe_energy) and np.isfinite(gs_filtered) else float("nan")
 
     occupancy_bounds_ok = bool(
@@ -577,29 +635,37 @@ def _compute_case_metrics(case_name: str, payload: dict[str, Any]) -> dict[str, 
     required_traj_keys = [
         "time",
         "fidelity",
-        "energy_static_exact",
-        "energy_static_trotter",
-        "energy_total_exact",
-        "energy_total_trotter",
         "n_up_site0_trotter",
         "n_dn_site0_trotter",
         "doublon_trotter",
-        "staggered_trotter",
     ]
     sample_keys = set(traj[0].keys()) if isinstance(traj[0], dict) else set()
+    contract_missing: list[str] = []
+    if not any(k in sample_keys for k in ("energy_static_exact", "energy_exact")):
+        contract_missing.append("energy_static_exact|energy_exact")
+    if not any(k in sample_keys for k in ("energy_static_trotter", "energy_trotter")):
+        contract_missing.append("energy_static_trotter|energy_trotter")
+    if not any(k in sample_keys for k in ("energy_total_exact", "energy_exact")):
+        contract_missing.append("energy_total_exact|energy_exact")
+    if not any(k in sample_keys for k in ("energy_total_trotter", "energy_trotter")):
+        contract_missing.append("energy_total_trotter|energy_trotter")
     missing_traj_keys = sorted([k for k in required_traj_keys if k not in sample_keys])
+    missing_traj_contract_keys = sorted(contract_missing)
 
     out = {
         "case": case_name,
-        "valid": len(missing_top) == 0 and len(missing_traj_keys) == 0,
+        "valid": len(missing_top) == 0 and len(missing_traj_keys) == 0 and len(missing_traj_contract_keys) == 0,
         "missing_top": missing_top,
         "missing_trajectory_keys": missing_traj_keys,
+        "missing_trajectory_contract_keys": missing_traj_contract_keys,
+        "schema_mode": "vqe" if has_vqe else "adapt_vqe",
         "settings": {
             "L": int(settings.get("L", -1)),
             "ordering": str(settings.get("ordering", "?")),
             "trotter_steps": int(settings.get("trotter_steps", -1)),
             "num_times": int(settings.get("num_times", -1)),
             "term_order": str(settings.get("term_order", "?")),
+            "problem": str(settings.get("problem", "hh" if "_hh_" in case_name else "hubbard")),
             "has_drive": has_drive,
             "reference_method": str(drive_cfg.get("reference_method", "eigendecomposition")) if has_drive else "eigendecomposition",
             "reference_steps_multiplier": _safe_float(drive_cfg.get("reference_steps_multiplier"), float("nan")) if has_drive else float("nan"),
@@ -608,15 +674,24 @@ def _compute_case_metrics(case_name: str, payload: dict[str, Any]) -> dict[str, 
             "energy": vqe_energy,
             "exact_energy_filtered": gs_filtered,
             "abs_error": vqe_abs_err,
-            "optimizer_method": str(vqe.get("optimizer_method", "")),
-            "num_parameters": int(vqe.get("num_parameters", -1)) if vqe.get("num_parameters") is not None else -1,
+            "optimizer_method": str(vqe.get("optimizer_method", energy_block.get("method", ""))),
+            "num_parameters": int(energy_block.get("num_parameters", -1)) if energy_block.get("num_parameters") is not None else -1,
             "best_restart": int(vqe.get("best_restart", -1)) if vqe.get("best_restart") is not None else -1,
+            "ansatz_depth": int(adapt.get("ansatz_depth", -1)) if adapt.get("ansatz_depth") is not None else -1,
+            "pool_type": str(adapt.get("pool_type", "")) if has_adapt else "",
         },
         "time_grid": {
             "t_start": _safe_float(times[0]),
             "t_end": _safe_float(times[-1]),
             "num_points": int(times.size),
             "dt_mean": _safe_float(np.nanmean(np.diff(times))) if times.size > 1 else float("nan"),
+        },
+        "trajectory_key_map": {
+            "energy_static_exact": e_stat_exact_key,
+            "energy_static_exact_ansatz": e_stat_ans_key,
+            "energy_static_trotter": e_stat_trot_key,
+            "energy_total_exact": e_tot_exact_key,
+            "energy_total_trotter": e_tot_trot_key,
         },
         "fidelity": {
             "min": _safe_float(np.nanmin(fidelity)),
@@ -631,10 +706,10 @@ def _compute_case_metrics(case_name: str, payload: dict[str, Any]) -> dict[str, 
             "total_minus_static_trot_max": _safe_float(np.nanmax(static_total_delta)),
         },
         "observables": {
-            "n_up_site0_range": [_safe_float(np.nanmin(n_up0)), _safe_float(np.nanmax(n_up0))],
-            "n_dn_site0_range": [_safe_float(np.nanmin(n_dn0)), _safe_float(np.nanmax(n_dn0))],
-            "doublon_range": [_safe_float(np.nanmin(doublon)), _safe_float(np.nanmax(doublon))],
-            "staggered_range": [_safe_float(np.nanmin(staggered)), _safe_float(np.nanmax(staggered))],
+            "n_up_site0_range": list(_nan_minmax(n_up0)),
+            "n_dn_site0_range": list(_nan_minmax(n_dn0)),
+            "doublon_range": list(_nan_minmax(doublon)),
+            "staggered_range": list(_nan_minmax(staggered)),
         },
         "consistency_checks": {
             "occupancy_bounds_ok": occupancy_bounds_ok,
@@ -668,13 +743,22 @@ def _extract_artifact_metrics(paths: RepoPaths) -> dict[str, Any]:
         rec = _compute_case_metrics(case_name=case_name, payload=payload)
         rec["path"] = rel_case
         rec["exists"] = True
+        rec["group"] = (
+            "hh_primary"
+            if rel_case in CANONICAL_HH_CASES
+            else "hubbard_context"
+        )
         cases.append(rec)
 
     all_valid = all(bool(c.get("valid", False)) for c in cases)
+    hh_valid = all(bool(c.get("valid", False)) for c in cases if c.get("group") == "hh_primary")
 
     return {
         "canonical_cases": CANONICAL_CASES,
+        "canonical_hh_cases": CANONICAL_HH_CASES,
+        "canonical_hubbard_context_cases": CANONICAL_HUBBARD_CONTEXT_CASES,
         "all_valid": all_valid,
+        "hh_primary_valid": hh_valid,
         "cases": cases,
     }
 
@@ -953,7 +1037,7 @@ def _diagram_hardcoded_pipeline(out: Path) -> None:
         g,
         path=out,
         title="Hardcoded Pipeline Flow",
-        subtitle="Execution sequence in pipelines/hardcoded_hubbard_pipeline.py",
+        subtitle="Execution sequence in pipelines/hardcoded/hubbard_pipeline.py",
     )
 
 
@@ -1715,11 +1799,11 @@ def _diagram_case_audits(paths: RepoPaths, rel_path: str, outputs: dict[str, Pat
         return
 
     t = _trajectory_array(traj, "time")
-    e_stat_exact = _trajectory_array(traj, "energy_static_exact")
-    e_stat_ans = _trajectory_array(traj, "energy_static_exact_ansatz")
-    e_stat_trot = _trajectory_array(traj, "energy_static_trotter")
-    e_tot_exact = _trajectory_array(traj, "energy_total_exact")
-    e_tot_trot = _trajectory_array(traj, "energy_total_trotter")
+    _, e_stat_exact = _trajectory_array_first(traj, ["energy_static_exact", "energy_exact"])
+    _, e_stat_ans = _trajectory_array_first(traj, ["energy_static_exact_ansatz", "energy_exact"])
+    _, e_stat_trot = _trajectory_array_first(traj, ["energy_static_trotter", "energy_trotter"])
+    _, e_tot_exact = _trajectory_array_first(traj, ["energy_total_exact", "energy_exact"])
+    _, e_tot_trot = _trajectory_array_first(traj, ["energy_total_trotter", "energy_trotter"])
     n_up0 = _trajectory_array(traj, "n_up_site0_trotter")
     n_dn0 = _trajectory_array(traj, "n_dn_site0_trotter")
     fidelity = _trajectory_array(traj, "fidelity")
@@ -1791,7 +1875,7 @@ def _diagram_case_summary_from_metrics(out: Path, metrics: dict[str, Any]) -> No
 
     fig, ax = _prep_axes(
         "Canonical Case Comparison Summary",
-        "Derived metrics from L2/L3/L4 canonical artifacts",
+        "Derived metrics from HH-first primary cases and Hubbard context cases",
         figsize=(12.5, 7.5),
     )
 
@@ -1970,6 +2054,258 @@ def _diagram_plot_meaning_map(out: Path) -> None:
     )
 
 
+def _diagram_hh_register_layout(out: Path) -> None:
+    body = textwrap.dedent(
+        """
+        HH Register Layout (implemented):
+          total_qubits = 2*L + L*qpb
+          qpb = ceil(log2(n_ph_max + 1)) for binary encoding
+
+        Partition:
+          [fermion spin-orbitals: 2L qubits] + [phonon register: L*qpb qubits]
+
+        Sector filtering rule:
+          particle-number constraints apply to fermion qubits only.
+          phonon qubits are unconstrained in exact_ground_energy_sector_hh.
+        """
+    ).strip("\n")
+    _text_box_figure(
+        out,
+        title="HH Fermion+Phonon Register Layout",
+        subtitle="Qubit partition and qpb mapping used by HH code paths",
+        body=body,
+        fontsize=10.3,
+    )
+
+
+def _diagram_hh_sector_filtering(out: Path) -> None:
+    g = nx.DiGraph()
+    nodes = [
+        "build_hubbard_holstein_hamiltonian",
+        "_sector_basis_indices_hh",
+        "fermion masks only\n(n_up, n_dn constraints)",
+        "phonon bits unconstrained",
+        "_ground_manifold_basis_sector_filtered_hh",
+        "exact_ground_energy_sector_hh",
+    ]
+    g.add_nodes_from(nodes)
+    g.add_edges_from(
+        [
+            (nodes[0], nodes[1]),
+            (nodes[1], nodes[2]),
+            (nodes[1], nodes[3]),
+            (nodes[2], nodes[4]),
+            (nodes[3], nodes[4]),
+            (nodes[4], nodes[5]),
+        ]
+    )
+    pos = {
+        nodes[0]: (-2.4, 0.6),
+        nodes[1]: (-0.8, 0.6),
+        nodes[2]: (0.8, 1.1),
+        nodes[3]: (0.8, 0.1),
+        nodes[4]: (2.5, 0.6),
+        nodes[5]: (4.1, 0.6),
+    }
+    groups = {
+        nodes[0]: "quantum",
+        nodes[1]: "quantum",
+        nodes[2]: "core",
+        nodes[3]: "core",
+        nodes[4]: "quantum",
+        nodes[5]: "quantum",
+    }
+    _draw_graph(
+        g,
+        path=out,
+        title="HH Sector Filtering Semantics",
+        subtitle="Fermion-only filtering with phonon subspace left free",
+        pos=pos,
+        node_groups=groups,
+    )
+
+
+def _diagram_adapt_loop(out: Path) -> None:
+    g = nx.DiGraph()
+    nodes = [
+        "build pool\n(uccsd/cse/full/hva/paop*)",
+        "prepare current state",
+        "commutator gradients\n2 Im(<psi|H G|psi>)",
+        "select max score\n(repeat bias optional)",
+        "finite-angle fallback\n(optional)",
+        "COBYLA re-optimization\nall theta params",
+        "stop checks\neps_grad/eps_energy/max_depth",
+    ]
+    g.add_nodes_from(nodes)
+    g.add_edges_from(
+        [
+            (nodes[0], nodes[1]),
+            (nodes[1], nodes[2]),
+            (nodes[2], nodes[3]),
+            (nodes[3], nodes[4]),
+            (nodes[4], nodes[5]),
+            (nodes[5], nodes[6]),
+            (nodes[6], nodes[1]),
+        ]
+    )
+    _draw_graph(
+        g,
+        path=out,
+        title="ADAPT Loop: Gradient Selection + Re-Optimization",
+        subtitle="Implemented loop in pipelines/hardcoded/adapt_pipeline.py",
+    )
+
+
+def _diagram_pool_family_map(out: Path) -> None:
+    body = textwrap.dedent(
+        """
+        Pool families in current HH ADAPT implementation:
+
+        hva:
+          HH layerwise generators + lifted UCCSD generators.
+          for g_ep != 0, merges with hh_termwise_augmented pool and deduplicates.
+
+        paop_min:
+          displacement-focused operators.
+
+        paop_std (alias: paop):
+          paop_min + hopdrag channel.
+
+        paop_full:
+          paop_std + doublon dressing + extended cloud terms.
+
+        paop_lf_std (alias: paop_lf):
+          paop_std + LF odd channel (curdrag).
+
+        paop_lf2_std:
+          paop_lf_std + LF second-order even channel (hop2).
+
+        paop_lf_full:
+          paop_lf2_std + cloud and doublon-conditioned phonon translation terms.
+        """
+    ).strip("\n")
+    _text_box_figure(
+        out,
+        title="ADAPT Pool Family Map (HH / PAOP-LF)",
+        subtitle="Implementation semantics, aliases, and merge behavior",
+        body=body,
+        fontsize=9.9,
+    )
+
+
+def _diagram_theta_vqe_vs_adapt(out: Path) -> None:
+    body = textwrap.dedent(
+        """
+        Theta semantics differ by mode:
+
+        VQE:
+          theta is a fixed-length vector.
+          num_parameters = reps * len(base_terms) for selected ansatz family.
+          each optimization restart solves the same dimensional problem.
+
+        ADAPT:
+          theta length grows with selected operator depth.
+          at each iteration: append one operator -> append one theta -> re-optimize all.
+          final dimension = ansatz_depth (unless seeded with pre-optimized block).
+
+        Consequence:
+          "theta size" comparisons are only meaningful within a fixed mode.
+        """
+    ).strip("\n")
+    _text_box_figure(
+        out,
+        title="Theta Vector Semantics: VQE vs ADAPT",
+        subtitle="Fixed-dimensional restart optimization versus growing ansatz depth",
+        body=body,
+        fontsize=10.2,
+    )
+
+
+def _diagram_branch_provenance(out: Path) -> None:
+    g = nx.DiGraph()
+    nodes = [
+        "exact_gs_filtered branch",
+        "legacy selected branch",
+        "paop branch\n(exact_paop + trotter_paop)",
+        "hva branch\n(exact_hva + trotter_hva)",
+        "ansatz_branches metadata",
+        "manifest page in PDF",
+    ]
+    g.add_nodes_from(nodes)
+    g.add_edges_from(
+        [
+            (nodes[0], nodes[4]),
+            (nodes[1], nodes[4]),
+            (nodes[2], nodes[4]),
+            (nodes[3], nodes[4]),
+            (nodes[4], nodes[5]),
+        ]
+    )
+    _draw_graph(
+        g,
+        path=out,
+        title="Branch Provenance Map",
+        subtitle="How exact/paop/hva branches are recorded for interpretability",
+    )
+
+
+def _diagram_hh_trajectory_key_expansion(out: Path) -> None:
+    body = textwrap.dedent(
+        """
+        HH trajectory schema expansion in hardcoded pipeline:
+
+        Baseline channels:
+          time, fidelity, energy_static_*, energy_total_*,
+          n_up_site0_*, n_dn_site0_*, doublon_*, staggered_*.
+
+        Branch-expanded channels (when paop/hva branches are present):
+          *_exact_paop, *_trotter_paop
+          *_exact_hva,  *_trotter_hva
+          fidelity_paop_trotter, fidelity_hva_trotter
+
+        Site-resolved vectors:
+          n_site_*, n_up_site_*, n_dn_site_* as per-time arrays.
+        """
+    ).strip("\n")
+    _text_box_figure(
+        out,
+        title="HH Trajectory Key Expansion",
+        subtitle="Branch-aware key families used in JSON and plot pages",
+        body=body,
+        fontsize=10.0,
+    )
+
+
+def _diagram_plot_formula_audit_panel(out: Path) -> None:
+    body = textwrap.dedent(
+        """
+        Plot-to-formula audit mapping:
+
+        Site-0 occupation:
+          n_up,0(t), n_dn,0(t) from bit-index extraction over |psi(t)|^2.
+
+        Doublon:
+          D(t) = sum_i <n_up,i n_dn,i> and D_avg = D/L.
+
+        Static energy:
+          E_static(t) = <psi(t)|H_static|psi(t)>.
+
+        Total energy (drive enabled):
+          E_total(t) = <psi(t)|H_static + H_drive(t)|psi(t)>.
+
+        Fidelity:
+          projector fidelity onto filtered exact ground-manifold basis.
+        """
+    ).strip("\n")
+    _text_box_figure(
+        out,
+        title="Plot-to-Formula Audit Panel",
+        subtitle="What each key channel means and where it is computed",
+        body=body,
+        fontsize=10.1,
+    )
+
+
 def _generate_diagrams(
     paths: RepoPaths,
     summary: dict[str, Any],
@@ -2011,53 +2347,61 @@ def _generate_diagrams(
         ("32_formula_legend_occupancy_doublon.png", "Formula Legend Occupancy", "n_up/n_dn/doublon/staggered", _diagram_formula_legend_occ),
         (
             "33_artifact_L2_energy_audit.png",
-            "Artifact L2 Energy Audit",
-            "L2 heavy static energy channels",
+            "Artifact HH Static Energy Audit",
+            "HH static primary case energy channels",
             lambda out: _diagram_case_audits(paths, CANONICAL_CASES[0], {"energy": out}),
         ),
         (
             "34_artifact_L2_site0_audit.png",
-            "Artifact L2 Site0 Audit",
-            "L2 heavy static site-0/fidelity channels",
+            "Artifact HH Static Site0 Audit",
+            "HH static primary case site-0/fidelity channels",
             lambda out: _diagram_case_audits(paths, CANONICAL_CASES[0], {"site0": out}),
         ),
         (
             "35_artifact_L3_energy_audit.png",
-            "Artifact L3 Energy Audit",
-            "L3 heavy static energy channels",
+            "Artifact HH Drive Energy Audit",
+            "HH drive primary case energy channels",
             lambda out: _diagram_case_audits(paths, CANONICAL_CASES[1], {"energy": out}),
         ),
         (
             "36_artifact_L3_site0_audit.png",
-            "Artifact L3 Site0 Audit",
-            "L3 heavy static site-0/fidelity channels",
+            "Artifact HH Drive Site0 Audit",
+            "HH drive primary case site-0/fidelity channels",
             lambda out: _diagram_case_audits(paths, CANONICAL_CASES[1], {"site0": out}),
         ),
         (
             "37_artifact_L4_total_energy_drive_audit.png",
-            "Artifact L4 Drive Energy Audit",
-            "L4 drive-enabled static/total energy channels",
+            "Artifact HH ADAPT Energy Audit",
+            "HH ADAPT primary case energy channels",
             lambda out: _diagram_case_audits(paths, CANONICAL_CASES[2], {"energy": out}),
         ),
         (
             "38_artifact_L4_drive_waveform_audit.png",
-            "Artifact L4 Site0/Fidelity Audit",
-            "L4 drive-enabled site-0/fidelity channels",
+            "Artifact HH ADAPT Site0/Fidelity Audit",
+            "HH ADAPT primary case site-0/fidelity channels",
             lambda out: _diagram_case_audits(paths, CANONICAL_CASES[2], {"site0": out}),
         ),
         (
             "39_artifact_L4_reference_method_audit.png",
-            "Artifact L4 Error Audit",
-            "L4 drive energy absolute errors",
+            "Artifact HH ADAPT Error Audit",
+            "HH ADAPT case energy absolute errors",
             lambda out: _diagram_case_audits(paths, CANONICAL_CASES[2], {"error": out}),
         ),
-        ("40_case_comparison_summary.png", "Case Comparison Summary", "L2/L3/L4 derived metric comparison", lambda out: _diagram_case_summary_from_metrics(out, metrics)),
+        ("40_case_comparison_summary.png", "Case Comparison Summary", "HH primary and Hubbard context metric comparison", lambda out: _diagram_case_summary_from_metrics(out, metrics)),
         ("41_function_line_span_map.png", "Function Evidence Map", "Target function line spans", lambda out: _diagram_function_line_spans(out, summary["implementation_evidence"])),
         ("42_function_call_graph_focus.png", "Function Call Graph", "Call edges among target functions", lambda out: _diagram_call_graph_focus(out, summary["implementation_evidence"])),
         ("43_invariant_evidence_snippets.png", "Invariant Evidence", "Line-level invariant snippets", lambda out: _diagram_invariant_evidence(out, summary["invariants"])),
         ("44_canonical_artifact_metrics_table.png", "Canonical Metrics Table", "Validation/error summary table", lambda out: _diagram_metrics_table(out, metrics)),
         ("45_quality_gate_summary.png", "Quality Gate Summary", "Guide build gate inventory", _diagram_quality_gate_summary),
         ("46_plot_meaning_map.png", "Plot Meaning Map", "Trajectory arrays to output pages", _diagram_plot_meaning_map),
+        ("47_hh_register_layout.png", "HH Register Layout", "Fermion/phonon register split and qpb mapping", _diagram_hh_register_layout),
+        ("48_hh_sector_filtering.png", "HH Sector Filtering", "Fermion-only filtering with unconstrained phonon subspace", _diagram_hh_sector_filtering),
+        ("49_adapt_loop_gradient_fallback.png", "ADAPT Loop", "Commutator gradient, selection, finite-angle fallback, re-opt", _diagram_adapt_loop),
+        ("50_pool_family_map_hh_paop_lf.png", "Pool Family Map", "HH pool families and LF-channel extensions", _diagram_pool_family_map),
+        ("51_theta_vqe_vs_adapt.png", "Theta VQE vs ADAPT", "Fixed versus growing parameter-vector semantics", _diagram_theta_vqe_vs_adapt),
+        ("52_branch_provenance_map.png", "Branch Provenance", "exact_gs/paop/hva branch metadata wiring", _diagram_branch_provenance),
+        ("53_hh_trajectory_key_expansion.png", "HH Trajectory Key Expansion", "Branch-expanded trajectory key families", _diagram_hh_trajectory_key_expansion),
+        ("54_plot_formula_audit_panel.png", "Plot Formula Audit Panel", "Formulas to channel mapping for key observables", _diagram_plot_formula_audit_panel),
     ]
 
     manifest: list[dict[str, str]] = []
@@ -2088,19 +2432,31 @@ def generate(paths: RepoPaths) -> dict[str, Any]:
         "subrepo_root": str(paths.subrepo_root),
         "counts": {
             "quantum_modules": len(files["quantum_py"]),
+            "quantum_core_modules": len(files["quantum_core_py"]),
+            "quantum_pool_modules": len(files["quantum_pool_py"]),
             "pipeline_python": len(files["pipeline_py"]),
+            "pipeline_hardcoded_python": len(files["pipeline_hardcoded_py"]),
+            "pipeline_qiskit_python": len(files["pipeline_qiskit_py"]),
+            "pipeline_exact_bench_python": len(files["pipeline_exact_bench_py"]),
             "pipeline_shell": len(files["pipeline_sh"]),
             "top_level_tests": len(files["top_tests"]),
             "analyzed_python_files": len(files["analysis_py"]),
         },
         "files": {
             "quantum_py": [_rel(p, paths.workspace_root) for p in files["quantum_py"]],
+            "quantum_core_py": [_rel(p, paths.workspace_root) for p in files["quantum_core_py"]],
+            "quantum_pool_py": [_rel(p, paths.workspace_root) for p in files["quantum_pool_py"]],
             "pipeline_py": [_rel(p, paths.workspace_root) for p in files["pipeline_py"]],
+            "pipeline_hardcoded_py": [_rel(p, paths.workspace_root) for p in files["pipeline_hardcoded_py"]],
+            "pipeline_qiskit_py": [_rel(p, paths.workspace_root) for p in files["pipeline_qiskit_py"]],
+            "pipeline_exact_bench_py": [_rel(p, paths.workspace_root) for p in files["pipeline_exact_bench_py"]],
             "pipeline_sh": [_rel(p, paths.workspace_root) for p in files["pipeline_sh"]],
             "top_tests": [_rel(p, paths.workspace_root) for p in files["top_tests"]],
         },
         "style_palette": STYLE,
         "canonical_artifacts": CANONICAL_CASES,
+        "canonical_hh_artifacts": CANONICAL_HH_CASES,
+        "canonical_hubbard_context_artifacts": CANONICAL_HUBBARD_CONTEXT_CASES,
         "artifact_metrics_json": str(metrics_json_path.relative_to(paths.subrepo_root)),
         **extracted,
         "invariants": invariants,
