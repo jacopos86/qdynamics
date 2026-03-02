@@ -12,6 +12,10 @@ The priority is **correctness and consistency of operator conventions**, not “
 
 ## 1) Non-negotiable conventions
 
+### Runbook authority for operational workflows
+- For HH staging, run presets, and the new `ecut_1`/`ecut_2` interpretation, agents must consult [`pipelines/run_guide.md`](/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test/pipelines/run_guide.md) before editing pipeline invocation defaults, scaling tables, or manual run plans.
+- Treat this as the canonical source for execution contracts that are not operator-level invariants (e.g., thresholds, gating policy, and recommended run ladders).
+
 ### Pauli symbols
 - Use `e/x/y/z` internally (`e` = identity)
 - If you need I/X/Y/Z output for reports, convert at the boundaries only.
@@ -306,5 +310,4 @@ Qiskit baseline scripts may be used to sanity check, but they are not the core t
 - Make the plan extremely consise. Sacrifice grammar for the sake of concision.
 - Near the end of each plan, give me a list of unresolved questions to answer/problems, if any, and the files you will edit.
 - At the end of each plan, state all files intended to alter, and functions and classes to be altered. If none, write 'Files to edit: None'.
-
 

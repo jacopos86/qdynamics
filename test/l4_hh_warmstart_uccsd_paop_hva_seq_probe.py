@@ -57,6 +57,7 @@ from src.quantum.vqe_latex_python_pairs import (
     jw_number_operator,
     vqe_minimize,
 )
+from pipelines.exact_bench.benchmark_metrics_proxy import write_proxy_sidecars
 
 try:
     from scipy.optimize import minimize as scipy_minimize
@@ -669,10 +670,20 @@ def _build_summary_rows(payload: dict[str, Any]) -> list[dict[str, Any]]:
     for run_id, run in payload.get("runs", {}).items():
         if not isinstance(run, dict):
             continue
+        run_id_s = str(run_id)
+        pool_name = ""
+        if run_id_s.startswith("A_"):
+            pool_name = "uccsd+paop"
+        elif run_id_s.startswith("B_"):
+            pool_name = "uccsd+paop+hva"
+        budget = run.get("budget", {}) if isinstance(run.get("budget", {}), dict) else {}
         rows.append(
             {
-                "run_id": str(run_id),
-                "pool_arm": "A" if str(run_id).startswith("A_") else ("B" if str(run_id).startswith("B_") else ""),
+                "run_id": run_id_s,
+                "method_id": run_id_s,
+                "method_kind": "adapt",
+                "pool_name": pool_name,
+                "pool_arm": "A" if run_id_s.startswith("A_") else ("B" if run_id_s.startswith("B_") else ""),
                 "stage": str(run.get("budget", {}).get("name", "")),
                 "ok": bool(run.get("ok", False)),
                 "E_exact_sector": e_exact,
@@ -686,6 +697,8 @@ def _build_summary_rows(payload: dict[str, Any]) -> list[dict[str, Any]]:
                 "nfev_total": run.get("nfev_total", ""),
                 "nit_total": run.get("nit_total", ""),
                 "runtime_s": run.get("runtime_s", ""),
+                "wallclock_cap_s": budget.get("wallclock_cap_s", ""),
+                "maxiter": budget.get("maxiter", ""),
                 "adapt_stop_reason": run.get("adapt_stop_reason", ""),
                 "final_max_grad": (run.get("grad_max_trace", [])[-1] if run.get("grad_max_trace") else ""),
                 "medium_gate_pass": run.get("medium_gate_pass", ""),
@@ -1210,10 +1223,33 @@ def main(argv: list[str] | None = None) -> None:
     rows = _build_summary_rows(payload)
     _write_summary_csv(cfg.output_csv, rows)
     _write_summary_md(cfg.output_md, payload, rows)
+    source_comp = {
+        "A_uccsd_plus_paop": (
+            payload.get("pool_A_meta", {}).get("dedup_source_presence_counts", {})
+            if isinstance(payload.get("pool_A_meta", {}), dict)
+            else {}
+        ),
+        "B_uccsd_plus_paop_plus_hva": (
+            payload.get("pool_B_meta", {}).get("dedup_source_presence_counts", {})
+            if isinstance(payload.get("pool_B_meta", {}), dict)
+            else {}
+        ),
+    }
+    sidecars = write_proxy_sidecars(
+        rows,
+        cfg.output_json.parent,
+        csv_name=f"{cfg.output_json.stem}_metrics_proxy.csv",
+        jsonl_name=f"{cfg.output_json.stem}_metrics_proxy.jsonl",
+        summary_name=f"{cfg.output_json.stem}_metrics_proxy.json",
+        summary_extras={"source_composition_proxy": source_comp},
+        defaults={"problem": "hh", "L": int(cfg.L)},
+    )
 
     logger.log(f"WROTE JSON {cfg.output_json}")
     logger.log(f"WROTE CSV  {cfg.output_csv}")
     logger.log(f"WROTE MD   {cfg.output_md}")
+    logger.log(f"WROTE METRICS JSON {sidecars['summary_json']}")
+    logger.log(f"WROTE METRICS CSV  {sidecars['csv']}")
 
 
 if __name__ == "__main__":

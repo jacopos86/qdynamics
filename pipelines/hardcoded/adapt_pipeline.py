@@ -116,6 +116,17 @@ class CompiledPauliAction:
     phase: np.ndarray
 
 
+@dataclass(frozen=True)
+class CompiledPolynomialTerm:
+    coeff: complex
+    action: CompiledPauliAction | None
+
+
+@dataclass(frozen=True)
+class CompiledPolynomialAction:
+    terms: tuple[CompiledPolynomialTerm, ...]
+
+
 def _to_ixyz(label_exyz: str) -> str:
     return str(label_exyz).replace("e", "I").upper()
 
@@ -196,6 +207,54 @@ def _apply_compiled_pauli(psi: np.ndarray, action: CompiledPauliAction) -> np.nd
     out = np.empty_like(psi)
     out[action.perm] = action.phase * psi
     return out
+
+
+def _compile_polynomial_action(poly: Any, tol: float = 1e-15) -> CompiledPolynomialAction:
+    """Compile a PauliPolynomial into reusable Pauli actions for repeated apply."""
+    terms = poly.return_polynomial()
+    if not terms:
+        return CompiledPolynomialAction(terms=tuple())
+
+    nq = int(terms[0].nqubit())
+    id_str = "e" * nq
+    coeff_map: dict[str, complex] = {}
+    order: list[str] = []
+    for term in terms:
+        label = str(term.pw2strng())
+        coeff = complex(term.p_coeff)
+        if abs(coeff) <= tol:
+            continue
+        if label not in coeff_map:
+            coeff_map[label] = 0.0 + 0.0j
+            order.append(label)
+        coeff_map[label] += coeff
+
+    pauli_cache: dict[str, CompiledPauliAction] = {}
+    compiled_terms: list[CompiledPolynomialTerm] = []
+    for label in order:
+        coeff = complex(coeff_map[label])
+        if abs(coeff) <= tol:
+            continue
+        if label == id_str:
+            compiled_terms.append(CompiledPolynomialTerm(coeff=coeff, action=None))
+            continue
+        action = pauli_cache.get(label)
+        if action is None:
+            action = _compile_pauli_action(label, nq)
+            pauli_cache[label] = action
+        compiled_terms.append(CompiledPolynomialTerm(coeff=coeff, action=action))
+    return CompiledPolynomialAction(terms=tuple(compiled_terms))
+
+
+def _apply_compiled_polynomial(state: np.ndarray, compiled_poly: CompiledPolynomialAction) -> np.ndarray:
+    """Apply a compiled PauliPolynomial action to a statevector."""
+    result = np.zeros_like(state)
+    for compiled_term in compiled_poly.terms:
+        if compiled_term.action is None:
+            result += compiled_term.coeff * state
+        else:
+            result += compiled_term.coeff * _apply_compiled_pauli(state, compiled_term.action)
+    return result
 
 
 def _apply_exp_term(
@@ -488,6 +547,63 @@ def _build_hva_pool(
     return pool
 
 
+def _build_hh_uccsd_fermion_lifted_pool(
+    num_sites: int,
+    n_ph_max: int,
+    boson_encoding: str,
+    ordering: str,
+    boundary: str,
+    num_particles: tuple[int, int] | None = None,
+) -> list[AnsatzTerm]:
+    """HH-only UCCSD pool lifted into full HH register with boson identity prefix."""
+    n_sites = int(num_sites)
+    num_particles_eff = tuple(num_particles) if num_particles is not None else tuple(half_filled_num_particles(n_sites))
+    ferm_nq = 2 * n_sites
+    boson_bits = n_sites * int(boson_qubits_per_site(int(n_ph_max), str(boson_encoding)))
+    nq_total = ferm_nq + boson_bits
+
+    uccsd_kwargs = {
+        "dims": n_sites,
+        "num_particles": num_particles_eff,
+        "include_singles": True,
+        "include_doubles": True,
+        "repr_mode": "JW",
+        "indexing": str(ordering),
+    }
+    if str(boundary).strip().lower() == "periodic":
+        try:
+            uccsd_kwargs["pbc"] = True
+            uccsd = HardcodedUCCSDAnsatz(**uccsd_kwargs)
+        except TypeError as exc:
+            if "pbc" not in str(exc):
+                raise
+            uccsd_kwargs.pop("pbc", None)
+            uccsd = HardcodedUCCSDAnsatz(**uccsd_kwargs)
+    else:
+        uccsd = HardcodedUCCSDAnsatz(**uccsd_kwargs)
+
+    lifted_pool: list[AnsatzTerm] = []
+    for op in uccsd.base_terms:
+        lifted = PauliPolynomial("JW")
+        for term in op.polynomial.return_polynomial():
+            coeff = complex(term.p_coeff)
+            if abs(coeff) <= 1e-15:
+                continue
+            if abs(coeff.imag) > 1e-12:
+                raise ValueError(f"Non-negligible imaginary UCCSD coefficient in {op.label}: {coeff}")
+            ferm_ps = str(term.pw2strng())
+            if len(ferm_ps) != ferm_nq:
+                raise ValueError(
+                    f"Unexpected fermion Pauli length {len(ferm_ps)} != {ferm_nq} for UCCSD operator {op.label}"
+                )
+            full_ps = ("e" * boson_bits) + ferm_ps
+            lifted.add_term(PauliTerm(nq_total, ps=full_ps, pc=float(coeff.real)))
+        if len(lifted.return_polynomial()) == 0:
+            continue
+        lifted_pool.append(AnsatzTerm(label=f"uccsd_ferm_lifted::{op.label}", polynomial=lifted))
+    return lifted_pool
+
+
 def _build_paop_pool(
     num_sites: int,
     n_ph_max: int,
@@ -520,12 +636,27 @@ def _build_paop_pool(
     return [AnsatzTerm(label=label, polynomial=poly) for label, poly in pool_specs]
 
 
-def _apply_pauli_polynomial(state: np.ndarray, poly: Any) -> np.ndarray:
+def _deduplicate_pool_terms(pool: list[AnsatzTerm]) -> list[AnsatzTerm]:
+    """Deduplicate pool operators by canonical polynomial signature."""
+    seen: set[tuple[tuple[str, float], ...]] = set()
+    dedup_pool: list[AnsatzTerm] = []
+    for term in pool:
+        sig = _polynomial_signature(term.polynomial)
+        if sig in seen:
+            continue
+        seen.add(sig)
+        dedup_pool.append(term)
+    return dedup_pool
+
+
+def _apply_pauli_polynomial_uncached(state: np.ndarray, poly: Any) -> np.ndarray:
     r"""Compute G|psi> where G is a PauliPolynomial (sum of weighted Pauli strings).
 
     G = \sum_j c_j P_j   =>   G|psi> = \sum_j c_j P_j|psi>
     """
     terms = poly.return_polynomial()
+    if not terms:
+        return np.zeros_like(state)
     nq = int(terms[0].nqubit())
     id_str = "e" * nq
     result = np.zeros_like(state)
@@ -541,10 +672,24 @@ def _apply_pauli_polynomial(state: np.ndarray, poly: Any) -> np.ndarray:
     return result
 
 
+def _apply_pauli_polynomial(
+    state: np.ndarray,
+    poly: Any,
+    *,
+    compiled: CompiledPolynomialAction | None = None,
+) -> np.ndarray:
+    if compiled is not None:
+        return _apply_compiled_polynomial(state, compiled)
+    return _apply_pauli_polynomial_uncached(state, poly)
+
+
 def _commutator_gradient(
     h_poly: Any,
     pool_op: AnsatzTerm,
     psi_current: np.ndarray,
+    *,
+    h_compiled: CompiledPolynomialAction | None = None,
+    pool_compiled: CompiledPolynomialAction | None = None,
 ) -> float:
     r"""Compute dE/dtheta at theta=0 for appending pool_op to the current state.
 
@@ -558,8 +703,8 @@ def _commutator_gradient(
     This is exact and works for multi-term PauliPolynomial generators
     (unlike the parameter-shift rule which requires single-Pauli generators).
     """
-    G_psi = _apply_pauli_polynomial(psi_current, pool_op.polynomial)
-    H_psi = _apply_pauli_polynomial(psi_current, h_poly)
+    G_psi = _apply_pauli_polynomial(psi_current, pool_op.polynomial, compiled=pool_compiled)
+    H_psi = _apply_pauli_polynomial(psi_current, h_poly, compiled=h_compiled)
     hg_expect = np.vdot(H_psi, G_psi)  # <H psi | G psi> = <psi|H G|psi>
     return float(2.0 * hg_expect.imag)
 
@@ -649,6 +794,7 @@ def _run_hardcoded_adapt_vqe(
     paop_prune_eps: float = 0.0,
     paop_normalization: str = "none",
     disable_hh_seed: bool = False,
+    psi_ref_override: np.ndarray | None = None,
 ) -> tuple[dict[str, Any], np.ndarray]:
     """Run standard ADAPT-VQE and return (payload, psi_ground)."""
     if float(finite_angle) <= 0.0:
@@ -691,6 +837,18 @@ def _run_hardcoded_adapt_vqe(
         ))
         nq = 2 * int(num_sites)
         psi_ref = np.asarray(basis_state(nq, hf_bits), dtype=complex)
+    if psi_ref_override is not None:
+        psi_ref_override_arr = np.asarray(psi_ref_override, dtype=complex).reshape(-1)
+        if int(psi_ref_override_arr.size) != int(psi_ref.size):
+            raise ValueError(
+                f"psi_ref_override length mismatch: got {psi_ref_override_arr.size}, expected {psi_ref.size}"
+            )
+        psi_ref = _normalize_state(psi_ref_override_arr)
+        _ai_log(
+            "hardcoded_adapt_ref_override_applied",
+            nq=int(round(math.log2(psi_ref.size))),
+            dim=int(psi_ref.size),
+        )
 
     # Build operator pool
     pool_key = str(adapt_pool).strip().lower()
@@ -727,6 +885,30 @@ def _run_hardcoded_adapt_vqe(
             else:
                 pool = hva_pool
             method_name = "hardcoded_adapt_vqe_hva_hh"
+        elif pool_key == "uccsd_paop_lf_full":
+            uccsd_lifted_pool = _build_hh_uccsd_fermion_lifted_pool(
+                int(num_sites),
+                int(n_ph_max),
+                str(boson_encoding),
+                str(ordering),
+                str(boundary),
+                num_particles=num_particles,
+            )
+            paop_pool = _build_paop_pool(
+                int(num_sites),
+                int(n_ph_max),
+                str(boson_encoding),
+                str(ordering),
+                str(boundary),
+                "paop_lf_full",
+                int(paop_r),
+                bool(paop_split_paulis),
+                float(paop_prune_eps),
+                str(paop_normalization),
+                num_particles,
+            )
+            pool = _deduplicate_pool_terms(list(uccsd_lifted_pool) + list(paop_pool))
+            method_name = "hardcoded_adapt_vqe_uccsd_paop_lf_full"
         elif pool_key in {"paop", "paop_min", "paop_std", "paop_full", "paop_lf", "paop_lf_std", "paop_lf2_std", "paop_lf_full"}:
             paop_pool = _build_paop_pool(
                 int(num_sites),
@@ -777,7 +959,8 @@ def _run_hardcoded_adapt_vqe(
         else:
             raise ValueError(
                 "For problem='hh', supported ADAPT pools are: "
-                "hva, paop, paop_min, paop_std, paop_full, paop_lf, paop_lf_std, paop_lf2_std, paop_lf_full, full_hamiltonian"
+                "hva, uccsd_paop_lf_full, paop, paop_min, paop_std, paop_full, "
+                "paop_lf, paop_lf_std, paop_lf2_std, paop_lf_full, full_hamiltonian"
             )
     else:
         if pool_key == "uccsd":
@@ -801,6 +984,8 @@ def _run_hardcoded_adapt_vqe(
                 "For problem='hubbard', pool='hva' is not valid. "
                 "Use uccsd, cse, or full_hamiltonian."
             )
+        elif pool_key == "uccsd_paop_lf_full":
+            raise ValueError("Pool 'uccsd_paop_lf_full' is only valid for problem='hh'.")
         else:
             raise ValueError(f"Unsupported adapt pool '{adapt_pool}'.")
     if len(pool) == 0:
@@ -809,6 +994,19 @@ def _run_hardcoded_adapt_vqe(
         "hardcoded_adapt_pool_built",
         pool_type=pool_key,
         pool_size=int(len(pool)),
+    )
+
+    compile_cache_t0 = time.perf_counter()
+    h_compiled = _compile_polynomial_action(h_poly)
+    pool_compiled = [_compile_polynomial_action(op.polynomial) for op in pool]
+    compile_cache_elapsed_s = float(time.perf_counter() - compile_cache_t0)
+    pool_compiled_terms_total = int(sum(len(compiled_poly.terms) for compiled_poly in pool_compiled))
+    _ai_log(
+        "hardcoded_adapt_compiled_cache_ready",
+        pool_size=int(len(pool)),
+        h_terms=int(len(h_compiled.terms)),
+        pool_terms_total=pool_compiled_terms_total,
+        compile_elapsed_s=compile_cache_elapsed_s,
     )
 
     # ADAPT-VQE main loop
@@ -890,9 +1088,17 @@ def _run_hardcoded_adapt_vqe(
         psi_current = _prepare_adapt_state(psi_ref, selected_ops, theta)
 
         # 2) Compute commutator gradients for all pool operators
+        gradient_eval_t0 = time.perf_counter()
         gradients = np.zeros(len(pool), dtype=float)
         for i in available_indices:
-            gradients[i] = _commutator_gradient(h_poly, pool[i], psi_current)
+            gradients[i] = _commutator_gradient(
+                h_poly,
+                pool[i],
+                psi_current,
+                h_compiled=h_compiled,
+                pool_compiled=pool_compiled[i],
+            )
+        gradient_eval_elapsed_s = float(time.perf_counter() - gradient_eval_t0)
 
         # Find the operator with the largest gradient magnitude
         grad_magnitudes = np.abs(gradients)
@@ -1030,6 +1236,7 @@ def _run_hardcoded_adapt_vqe(
             "delta_energy": float(energy_current - energy_prev),
             "nfev_opt": int(getattr(result, "nfev", 0)),
             "opt_success": bool(getattr(result, "success", False)),
+            "gradient_eval_elapsed_s": float(gradient_eval_elapsed_s),
             "iter_elapsed_s": float(time.perf_counter() - iter_t0),
         })
 
@@ -1038,6 +1245,7 @@ def _run_hardcoded_adapt_vqe(
             depth=int(depth + 1),
             energy=float(energy_current),
             delta_e=float(energy_current - energy_prev),
+            gradient_eval_elapsed_s=float(gradient_eval_elapsed_s),
         )
 
         # 6) Check energy convergence
@@ -1096,6 +1304,12 @@ def _run_hardcoded_adapt_vqe(
         "finite_angle_fallback": bool(finite_angle_fallback),
         "finite_angle": float(finite_angle),
         "finite_angle_min_improvement": float(finite_angle_min_improvement),
+        "compiled_pauli_cache": {
+            "enabled": True,
+            "compile_elapsed_s": compile_cache_elapsed_s,
+            "h_terms": int(len(h_compiled.terms)),
+            "pool_terms_total": int(pool_compiled_terms_total),
+        },
         "history": history,
         "elapsed_s": float(elapsed),
         "hf_bitstring_qn_to_q0": str(hf_bits),
@@ -1332,6 +1546,7 @@ def parse_args() -> argparse.Namespace:
             "cse",
             "full_hamiltonian",
             "hva",
+            "uccsd_paop_lf_full",
             "paop",
             "paop_min",
             "paop_std",

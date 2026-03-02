@@ -45,6 +45,7 @@ from src.quantum.vqe_latex_python_pairs import (
     expval_pauli_polynomial,
     hubbard_holstein_reference_state,
 )
+from pipelines.exact_bench.benchmark_metrics_proxy import write_proxy_sidecars
 
 
 METHOD_SPECS: dict[str, dict[str, str]] = {
@@ -1288,6 +1289,13 @@ def main(argv: list[str] | None = None) -> None:
         json.dumps(summary_json, indent=2), encoding="utf-8"
     )
     _write_run_summary_markdown(summary_dir / "fidelity_gate_summary.md", rows)
+    sidecars = write_proxy_sidecars(rows, summary_dir)
+    _ai_log(
+        "metrics_proxy_written",
+        csv=str(sidecars["csv"]),
+        jsonl=str(sidecars["jsonl"]),
+        summary_json=str(sidecars["summary_json"]),
+    )
     _ai_log("exp_fidelity_gate_done", out_dir=str(out_dir), total_rows=len(rows))
 
 

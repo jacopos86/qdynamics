@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import math
 import sys
+import time
 from pathlib import Path
 
 import numpy as np
@@ -52,12 +53,121 @@ _build_full_hamiltonian_pool = _adapt_mod._build_full_hamiltonian_pool
 _build_hva_pool = _adapt_mod._build_hva_pool
 _build_paop_pool = _adapt_mod._build_paop_pool
 _build_hh_termwise_augmented_pool = _adapt_mod._build_hh_termwise_augmented_pool
+_build_hh_uccsd_fermion_lifted_pool = _adapt_mod._build_hh_uccsd_fermion_lifted_pool
+_deduplicate_pool_terms = _adapt_mod._deduplicate_pool_terms
 _exact_gs_energy_for_problem = _adapt_mod._exact_gs_energy_for_problem
+_compile_polynomial_action = _adapt_mod._compile_polynomial_action
+_apply_compiled_polynomial = _adapt_mod._apply_compiled_polynomial
+_apply_pauli_polynomial_uncached = _adapt_mod._apply_pauli_polynomial_uncached
+_commutator_gradient = _adapt_mod._commutator_gradient
+
+
+class TestCompiledPauliCache:
+    """Parity and performance checks for cached compiled Pauli actions."""
+
+    @staticmethod
+    def _random_state(nq: int, seed: int = 13) -> np.ndarray:
+        rng = np.random.default_rng(int(seed))
+        psi = rng.normal(size=1 << int(nq)) + 1j * rng.normal(size=1 << int(nq))
+        psi = np.asarray(psi, dtype=complex)
+        return psi / np.linalg.norm(psi)
+
+    def test_compiled_apply_matches_uncached(self):
+        h_poly = build_hubbard_hamiltonian(
+            dims=2, t=1.0, U=4.0, v=0.3,
+            repr_mode="JW", indexing="blocked", pbc=True,
+        )
+        psi = self._random_state(4, seed=101)
+        compiled = _compile_polynomial_action(h_poly)
+        uncached = _apply_pauli_polynomial_uncached(psi, h_poly)
+        cached = _apply_compiled_polynomial(psi, compiled)
+        assert np.max(np.abs(cached - uncached)) < 1e-12
+
+    def test_commutator_gradient_matches_uncached(self):
+        h_poly = build_hubbard_hamiltonian(
+            dims=3, t=1.0, U=4.0, v=0.1,
+            repr_mode="JW", indexing="blocked", pbc=True,
+        )
+        num_particles = half_filled_num_particles(3)
+        pool = _build_uccsd_pool(3, num_particles, "blocked")
+        assert len(pool) > 0
+        op = pool[0]
+        psi = self._random_state(6, seed=202)
+
+        grad_uncached = _commutator_gradient(h_poly, op, psi)
+        grad_cached = _commutator_gradient(
+            h_poly,
+            op,
+            psi,
+            h_compiled=_compile_polynomial_action(h_poly),
+            pool_compiled=_compile_polynomial_action(op.polynomial),
+        )
+        assert abs(grad_cached - grad_uncached) < 1e-12
+
+    def test_gradient_cached_speedup(self):
+        h_poly = build_hubbard_hamiltonian(
+            dims=3, t=1.0, U=4.0, v=0.1,
+            repr_mode="JW", indexing="blocked", pbc=True,
+        )
+        num_particles = half_filled_num_particles(3)
+        pool = _build_cse_pool(3, "blocked", 1.0, 4.0, 0.1, "periodic")
+        assert len(pool) > 0
+        op = pool[0]
+        psi = self._random_state(6, seed=303)
+
+        h_compiled = _compile_polynomial_action(h_poly)
+        op_compiled = _compile_polynomial_action(op.polynomial)
+
+        # Warm up to avoid one-time dispatch effects dominating timings.
+        _commutator_gradient(h_poly, op, psi)
+        _commutator_gradient(h_poly, op, psi, h_compiled=h_compiled, pool_compiled=op_compiled)
+
+        def _bench_uncached(num_iter: int) -> float:
+            t0 = time.perf_counter()
+            for _ in range(int(num_iter)):
+                _commutator_gradient(h_poly, op, psi)
+            return float(time.perf_counter() - t0)
+
+        def _bench_cached(num_iter: int) -> float:
+            t0 = time.perf_counter()
+            for _ in range(int(num_iter)):
+                _commutator_gradient(
+                    h_poly,
+                    op,
+                    psi,
+                    h_compiled=h_compiled,
+                    pool_compiled=op_compiled,
+                )
+            return float(time.perf_counter() - t0)
+
+        num_iter = 8
+        uncached_elapsed = _bench_uncached(num_iter)
+        while uncached_elapsed < 0.15 and num_iter < 4096:
+            num_iter *= 2
+            uncached_elapsed = _bench_uncached(num_iter)
+        cached_elapsed = _bench_cached(num_iter)
+        speedup = uncached_elapsed / cached_elapsed if cached_elapsed > 0.0 else float("inf")
+        assert speedup > 1.5, (
+            f"Expected cached gradient speedup > 1.5x, got {speedup:.2f}x "
+            f"(uncached={uncached_elapsed:.4f}s, cached={cached_elapsed:.4f}s, iters={num_iter})"
+        )
 
 
 # ============================================================================
 # Pool builder tests
 # ============================================================================
+
+class TestAdaptCLIParsing:
+    """CLI parsing includes newly supported ADAPT pool options."""
+
+    def test_parse_accepts_uccsd_paop_lf_full_pool(self, monkeypatch: pytest.MonkeyPatch):
+        monkeypatch.setattr(
+            sys,
+            "argv",
+            ["adapt_pipeline.py", "--adapt-pool", "uccsd_paop_lf_full"],
+        )
+        args = _adapt_mod.parse_args()
+        assert str(args.adapt_pool) == "uccsd_paop_lf_full"
 
 class TestPoolBuilders:
     """Verify pool builders return non-empty pools of AnsatzTerm."""
@@ -276,6 +386,69 @@ class TestPAOPPoolBuilder:
         """Verify the operator_pools module can be imported directly."""
         from src.quantum.operator_pools import make_pool
         assert callable(make_pool)
+
+
+class TestHHUCCSDPAOPCompositePoolBuilder:
+    """Verify HH composite UCCSD+PAOP(lf_full) pool semantics."""
+
+    def test_uccsd_lift_has_boson_identity_prefix(self):
+        n_sites = 2
+        n_ph_max = 1
+        boson_encoding = "binary"
+        boson_bits = n_sites * int(boson_qubits_per_site(n_ph_max, boson_encoding))
+        pool = _build_hh_uccsd_fermion_lifted_pool(
+            num_sites=n_sites,
+            n_ph_max=n_ph_max,
+            boson_encoding=boson_encoding,
+            ordering="blocked",
+            boundary="periodic",
+            num_particles=half_filled_num_particles(n_sites),
+        )
+        assert len(pool) > 0
+        boson_identity = "e" * boson_bits
+        nq_total = 2 * n_sites + boson_bits
+        for op in pool:
+            has_nontrivial_fermion_support = False
+            for term in op.polynomial.return_polynomial():
+                coeff = complex(term.p_coeff)
+                if abs(coeff) <= 1e-15:
+                    continue
+                ps = str(term.pw2strng())
+                assert len(ps) == nq_total
+                assert ps[:boson_bits] == boson_identity
+                if any(ch != "e" for ch in ps[boson_bits:]):
+                    has_nontrivial_fermion_support = True
+            assert has_nontrivial_fermion_support
+
+    def test_composite_pool_is_non_empty_and_deduplicated(self):
+        n_sites = 2
+        num_particles = half_filled_num_particles(n_sites)
+        uccsd_pool = _build_hh_uccsd_fermion_lifted_pool(
+            num_sites=n_sites,
+            n_ph_max=1,
+            boson_encoding="binary",
+            ordering="blocked",
+            boundary="periodic",
+            num_particles=num_particles,
+        )
+        paop_pool = _build_paop_pool(
+            num_sites=n_sites,
+            n_ph_max=1,
+            boson_encoding="binary",
+            ordering="blocked",
+            boundary="periodic",
+            pool_key="paop_lf_full",
+            paop_r=1,
+            paop_split_paulis=False,
+            paop_prune_eps=0.0,
+            paop_normalization="none",
+            num_particles=num_particles,
+        )
+        dedup_pool = _deduplicate_pool_terms(list(uccsd_pool) + list(paop_pool))
+        assert len(uccsd_pool) > 0
+        assert len(paop_pool) > 0
+        assert len(dedup_pool) > 0
+        assert len(dedup_pool) <= len(uccsd_pool) + len(paop_pool)
 
 
 # ============================================================================
@@ -567,6 +740,8 @@ class TestAdaptVQEHolsteinPAOP:
             paop_normalization="none",
         )
         assert payload["success"] is True
+        assert str(payload["pool_type"]) == "paop_std"
+        assert str(payload["method"]) == "hardcoded_adapt_vqe_paop_std"
         assert payload["energy"] is not None
         # Energy should be finite and not NaN
         assert np.isfinite(payload["energy"])
@@ -601,6 +776,40 @@ class TestAdaptVQEHolsteinPAOP:
         )
         assert payload["success"] is True
         assert np.isfinite(payload["energy"])
+
+    def test_adapt_uccsd_paop_lf_full_runs(self):
+        """Composite HH pool should run and report composite pool_type."""
+        payload, _ = _run_hardcoded_adapt_vqe(
+            h_poly=self.h_poly,
+            num_sites=self.L,
+            ordering="blocked",
+            problem="hh",
+            adapt_pool="uccsd_paop_lf_full",
+            t=self.t,
+            u=self.u,
+            dv=0.0,
+            boundary="periodic",
+            omega0=self.omega0,
+            g_ep=self.g_ep,
+            n_ph_max=self.n_ph_max,
+            boson_encoding="binary",
+            max_depth=6,
+            eps_grad=1e-3,
+            eps_energy=1e-8,
+            maxiter=200,
+            seed=7,
+            allow_repeats=True,
+            finite_angle_fallback=True,
+            finite_angle=0.1,
+            finite_angle_min_improvement=1e-12,
+            paop_r=1,
+            paop_split_paulis=False,
+            paop_prune_eps=0.0,
+            paop_normalization="none",
+        )
+        assert payload["success"] is True
+        assert str(payload["pool_type"]) == "uccsd_paop_lf_full"
+        assert int(payload["pool_size"]) > 0
 
 
 # ============================================================================
@@ -639,6 +848,25 @@ class TestAdaptEdgeCases:
                 h_poly=h_poly,
                 num_sites=2, ordering="blocked",
                 problem="hubbard", adapt_pool="nonexistent_pool",
+                t=1.0, u=4.0, dv=0.0, boundary="periodic",
+                omega0=0.0, g_ep=0.0, n_ph_max=1, boson_encoding="binary",
+                max_depth=5, eps_grad=1e-2, eps_energy=1e-6,
+                maxiter=50, seed=7,
+                allow_repeats=True, finite_angle_fallback=False,
+                finite_angle=0.1, finite_angle_min_improvement=1e-12,
+            )
+
+    def test_hubbard_pool_uccsd_paop_lf_full_raises(self):
+        """Composite HH-only pool must reject pure Hubbard runs."""
+        h_poly = build_hubbard_hamiltonian(
+            dims=2, t=1.0, U=4.0, v=0.0,
+            repr_mode="JW", indexing="blocked", pbc=True,
+        )
+        with pytest.raises(ValueError, match="only valid for problem='hh'"):
+            _run_hardcoded_adapt_vqe(
+                h_poly=h_poly,
+                num_sites=2, ordering="blocked",
+                problem="hubbard", adapt_pool="uccsd_paop_lf_full",
                 t=1.0, u=4.0, dv=0.0, boundary="periodic",
                 omega0=0.0, g_ep=0.0, n_ph_max=1, boson_encoding="binary",
                 max_depth=5, eps_grad=1e-2, eps_energy=1e-6,

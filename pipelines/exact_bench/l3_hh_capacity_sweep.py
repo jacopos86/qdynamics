@@ -31,6 +31,7 @@ from pipelines.exact_bench.overnight_l3_hh_four_method_benchmark import (  # noq
     SUMMARY_FIELDS,
     _execute_with_timeout,
 )
+from pipelines.exact_bench.benchmark_metrics_proxy import write_proxy_sidecars
 
 
 DEFAULT_METHODS = ["m1_hh_hva", "m3_adapt_paop_std", "m4_adapt_paop_lf_std"]
@@ -702,6 +703,13 @@ def main(argv: list[str] | None = None) -> None:
         json.dumps(payload, indent=2), encoding="utf-8"
     )
     _write_markdown_summary(summary_dir / "capacity_sweep_summary.md", payload)
+    sidecars = write_proxy_sidecars(all_rows, summary_dir)
+    _ai_log(
+        "metrics_proxy_written",
+        csv=str(sidecars["csv"]),
+        jsonl=str(sidecars["jsonl"]),
+        summary_json=str(sidecars["summary_json"]),
+    )
 
     _ai_log(
         "capacity_sweep_done",

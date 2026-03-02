@@ -1,3 +1,239 @@
+<!--
+This guide is consumed by AI agents.
+
+Editing contract (keep stable):
+- Prefer additive edits and new sections over rewrites.
+- When introducing “autoscaling”, express formulas explicitly (closed form), plus a reference-run anchored form.
+- Record empirically validated baselines with timestamps + artifact filenames.
+-->
+
+# Hubbard Pipeline Run Guide
+
+## HH + drive production prologue (2026-03-02)
+
+### Scope (current reality)
+
+- **Production target:** **Hubbard–Holstein (HH)** with **time-dependent drive enabled**.
+- **Pure Hubbard** remains a **validation limit** only (regression / consistency gate), not a primary production target.
+- The **drive waveform parameters** (A, ω, t̄, ϕ, pattern) are orthogonal to the **state-prep** knobs; this guide’s autoscaling focuses on the knobs that dominate convergence:
+  - warm-start (conventional VQE seed stage),
+  - ADAPT-VQE (PAOP(+LF) pool),
+  - and the time-evolution grid (trotter_steps / t_final / num_times).
+
+### Last known-good HH, drive-enabled L=3 artifacts (UTC)
+
+Scoped to **HH + drive-enabled** with **L=3**, the last successful runs are:
+
+- `2026-03-02T16:32:50Z` — `drive_from_fix1_warm_start_B_full.json`
+- `2026-03-02T15:10:11Z` — `drive_from_fix1_warm_start_B_depth15.json`
+
+### Common execution context (both runs)
+
+- `problem=hh`, `L=3`, `t=1.0`, `U=4.0`, `dv=0.0`, `omega0=1.0`, `g_ep=0.5`, `n_ph_max=1`
+- `ordering=blocked`, `boundary=open`
+- Evolution grid: `trotter_steps=192`, `num_times=201`, `t_final=15.0`
+- Conventional branch ansatz: `hh_hva_ptw`
+  - Internal “regular VQE branch” stays poor in both: `|ΔE_abs| ≈ 1.7768e-01`
+
+### Run A (full warm-start + deeper ADAPT) — **baseline to scale from**
+
+- Imported ADAPT state from `fix1_warm_start_B_full_state.json`
+- ADAPT branch: `pool=paop_lf_std`, `ansatz_depth=42`, `num_parameters=42`
+- State quality:
+  - `E=0.25144823353`
+  - `E_exact_filtered=0.24494070013`
+  - `ΔE_abs = |E - E_exact_filtered| = 6.5075e-03`
+- Fidelity during drive: ~`0.9957` to `0.9960`
+- State-build knobs behind the input state:
+  - warm-start: `reps=3`, `restarts=5`, `maxiter=4000`
+  - ADAPT rung: `max_depth=120`, `maxiter=5000`, `eps_grad=5e-7`, `eps_energy=1e-9` (wallclock-capped)
+
+### Run B (depth-15 proxy) — **do not treat as production-quality**
+
+- Imported ADAPT state from `fix1_warm_start_B_depth15_state.json`
+- ADAPT branch: `pool=paop_lf_std`, `ansatz_depth=15`, `num_parameters=15`
+- State quality:
+  - `E=0.43085525147`
+  - `E_exact_filtered=0.24494070013`
+  - `ΔE_abs = 1.8591e-01`
+- Fidelity during drive: ~`0.8323` to `0.8333`
+- State-build knobs: warm-start `reps=3,restarts=1,maxiter=600`; ADAPT `max_depth=15,maxiter=300,eps_grad=5e-7,eps_energy=1e-9`
+
+### Bottom line for HH+drive state-prep in this repo
+
+- The parameter set that produced the expected convergence behavior is **Run A**, not the depth-15 proxy.
+- **Current best observed HH L=3 drive-start convergence is** `ΔE_abs ≈ 6.5e-03` (not `1e-4`, not `1e-7`).
+- Any legacy “accuracy gate” language (e.g. `ΔE < 1e-7`) should be treated as **Hubbard-era / aspirational** unless a new HH baseline demonstrates it.
+
+---
+
+## HH autoscaling preset for L ≤ 10 (warm-start + ADAPT → drive)
+
+This section is designed so an agent can compute defaults deterministically from:
+- an **empirical reference run** (currently the L=3 Run A baseline), and
+- a target lattice size `L ≤ 10`.
+
+### Staged HH convergence gates
+
+Define workflow-level energy gates for HH warm-start → ADAPT → final VQE:
+
+- `ecut_1` (handoff gate): `ΔE_ws = |E_ws - E_exact_filtered| <= 1e-2` by default.
+  - Use after warm-start VQE to decide whether to switch to ADAPT.
+- `ecut_2` (final acceptance gate): `ΔE_final = |E_final - E_exact_filtered| <= 1e-4` by default.
+  - Apply after final VQE on top of ADAPT.
+
+Notes:
+- ADAPT internal stopping remains controlled by existing knobs (`adapt-eps-grad`, `adapt-eps-energy`, `adapt-max-depth`, `adapt-maxiter`) and is separate from `ecut_*`.
+- This is a runbook convention. If you script this, enforce `ecut_1/ecut_2` as post-stage checks in the orchestration layer; defaults above apply unless overridden by experiment policy.
+- `run_L_drive_accurate.sh` and HH scaling preset scripts keep their own documented gates unless explicitly overridden in wrappers.
+
+### Symbols
+
+- `L`: target lattice size.
+- `L_ref`: reference lattice size (default: `3`).
+- `s := L / L_ref`: scale factor.
+- `E_exact_filtered(L)`: exact filtered-sector ground energy (assumed available every run).
+- `E_best(L)`: best energy reached by state-prep (warm-start+ADAPT).
+- `ΔE_abs(L) := |E_best(L) - E_exact_filtered(L)|`.
+
+### Reference run (locked to the known-good L=3 baseline)
+
+Use these as the reference knobs unless you intentionally re-calibrate:
+
+**Physics (HH):**
+- `t=1.0`, `U=4.0`, `dv=0.0`, `omega0=1.0`, `g_ep=0.5`, `n_ph_max=1`
+- `boundary=open`, `ordering=blocked`
+
+**Time grid (drive run):**
+- `t_final_ref = 15.0`
+- `num_times_ref = 201`
+- `trotter_steps_ref = 192`
+
+**Warm-start (seed stage):**
+- `ws_reps_ref = 3`
+- `ws_restarts_ref = 5`
+- `ws_maxiter_ref = 4000`
+
+**ADAPT (PAOP+LF stage):**
+- `adapt_pool = paop_lf_std`
+- `adapt_max_depth_ref = 120`
+- `adapt_maxiter_ref = 5000`
+- `adapt_eps_grad = 5e-7`
+- `adapt_eps_energy = 1e-9`
+
+### Scaling philosophy (what scales vs what stays fixed)
+
+- Scale “how hard you search” with `L`:
+  - warm-start reps/restarts/maxiter,
+  - ADAPT max_depth/maxiter,
+  - trotter_steps and total evolution time (if you want longer physical windows for larger L).
+- Keep convergence thresholds fixed unless you have a specific reason to change them:
+  - `adapt_eps_grad`, `adapt_eps_energy` remain constant.
+- Drive waveform parameters are **not** scaled here (treat as experiment design), but the **time grid** is scaled.
+
+### Default scaling formulas (anchored to L_ref)
+
+#### Time grid (drive run)
+
+Define the reference step sizes:
+- `dt_ref := t_final_ref / (num_times_ref - 1)`
+- `dt_trot_ref := t_final_ref / trotter_steps_ref`
+
+Defaults:
+- `t_final(L) := t_final_ref * s`
+- `trotter_steps(L) := round_to_multiple(trotter_steps_ref * s, 64)`
+- `num_times(L) := 1 + ceil( t_final(L) / dt_ref )`
+
+Helper:
+- `round_to_multiple(x, m) := m * round(x / m)`
+
+**Closed form with L_ref=3 baseline:**
+- `t_final(L) = 5 L`
+- `trotter_steps(L) = 64 L`
+- `num_times(L) = 1 + ceil(200 L / 3)`  (reproduces 201 at L=3)
+
+Optional (reference-propagator refinement):
+- `exact_steps_multiplier(L) := ceil((L + 1)/2)`
+
+#### Warm-start (seed stage)
+
+- `ws_reps(L) := max(1, round(ws_reps_ref * s))`
+- `ws_restarts(L) := max(1, ceil(ws_restarts_ref * s))`
+- `ws_maxiter(L) := max(200, round(ws_maxiter_ref * s^2))`
+
+**Closed form with L_ref=3 baseline:**
+- `ws_reps(L) = L`
+- `ws_restarts(L) = ceil(5 L / 3)`
+- `ws_maxiter(L) = round(4000 L^2 / 9)`
+
+#### ADAPT (PAOP+LF stage)
+
+- `adapt_max_depth(L) := max(15, round(adapt_max_depth_ref * s))`
+- `adapt_maxiter(L) := max(300, round(adapt_maxiter_ref * s^2))`
+- `adapt_eps_grad = 5e-7`, `adapt_eps_energy = 1e-9`
+
+**Closed form with L_ref=3 baseline:**
+- `adapt_max_depth(L) = 40 L`
+- `adapt_maxiter(L) = round(5000 L^2 / 9)`
+
+### Convergence gates (absolute error)
+
+Because `E_exact_filtered` is always computed:
+
+- `ΔE_abs(L) := |E_best(L) - E_exact_filtered(L)|`
+
+Gates (tuned to separate Run A “good” from the depth-15 proxy “bad”):
+- **Probe gate (initial convergence):** `ΔE_abs ≤ 5e-2`
+- **Production gate (good convergence):** `ΔE_abs ≤ 1e-2`
+- Optional aspirational target: `ΔE_abs ≤ 5e-3` (do not hard-fail on this unless you have evidence at that L)
+
+### Probe → production ladder (agent-friendly)
+
+Goal: avoid spending full budget if state-prep is obviously failing.
+
+**Probe settings from the full scaled defaults:**
+- `ws_restarts_probe := max(1, ceil(ws_restarts(L) / 2))`
+- `ws_maxiter_probe := max(200, ceil(ws_maxiter(L) / 4))`
+- `adapt_max_depth_probe := max(15, ceil(adapt_max_depth(L) / 3))`
+- `adapt_maxiter_probe := max(300, ceil(adapt_maxiter(L) / 5))`
+
+**Workflow:**
+1) Run warm-start + ADAPT with probe settings.
+2) Compute `ΔE_abs`.
+3) If `ΔE_abs > 5e-2`: escalate and rerun probe (see below).
+4) If probe passes: run the production settings.
+5) Production passes if `ΔE_abs ≤ 1e-2` (or record best achieved if wallclock-capped).
+
+### Escalation ladder (deterministic)
+
+If probe fails (`ΔE_abs > 5e-2`), apply in order:
+
+- **Escalation A (optimizer effort):**
+  - `ws_restarts += ceil(L/3)`
+  - `ws_maxiter *= 2`
+  - `adapt_maxiter *= 2`
+
+- **Escalation B (ansatz/search space):**
+  - `adapt_max_depth := ceil(1.25 * adapt_max_depth)`  (cap optional: `≤ 60L` for L≤10)
+
+Stop escalating once probe passes or you hit a wallclock/budget cap.
+
+### Example computed defaults (from the L_ref=3 baseline)
+
+These are direct evaluations of the closed-form rules above.
+
+| L | t_final | num_times | trotter_steps | ws_reps | ws_restarts | ws_maxiter | adapt_max_depth | adapt_maxiter |
+|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| 2 | 10.0 | 135 | 128 | 2 | 4 | 1778 | 80 | 2222 |
+| 3 | 15.0 | 201 | 192 | 3 | 5 | 4000 | 120 | 5000 |
+| 4 | 20.0 | 268 | 256 | 4 | 7 | 7111 | 160 | 8889 |
+| 5 | 25.0 | 335 | 320 | 5 | 9 | 11111 | 200 | 13889 |
+| 6 | 30.0 | 401 | 384 | 6 | 10 | 16000 | 240 | 20000 |
+| 7 | 35.0 | 468 | 448 | 7 | 12 | 21778 | 280 | 27222 |
+| 8 | 40.0 | 535 | 512 | 8 | 14 | 28444 | 320 | 35556 |
+| 9 | 45.0 | 601 | 576 | 9 | 15 | 36000 | 360 | 45000 |
+| 10 | 50.0 | 668 | 640 | 10 | 17 | 44444 | 400 | 55556 |
+
 ---
 
 ## HH-First Workflow (Hubbard as limiting-case validation)
@@ -31,7 +267,9 @@ python pipelines/hardcoded/hubbard_pipeline.py \
   --initial-state-source vqe --skip-qpe \
   --output-json artifacts/json/hc_hubbard_L2_ref.json \
   --output-pdf artifacts/pdf/hc_hubbard_L2_ref.pdf
+```
 
+---
 
 # Hubbard Pipeline Run Guide
 
@@ -54,6 +292,9 @@ Run from the repository root (`Holstein_test/`).
 | `pipelines/run_hva_uccsd_qiskit_L2_L3.sh` | Repro runner for hardcoded layer-wise UCCSD/HVA vs shared qiskit baseline on L=2,3 |
 | `pipelines/run_L_drive_accurate.sh` | Shorthand runner for "run L": drive-only, accuracy-gated (`delta_e < 1e-7`) with L-scaled heaviness |
 | `pipelines/run_scaling_preset_L2_L6.sh` | Hardcoded+drive scaling preset for L=2..6 with VQE error gate and fallback ladder |
+
+> **HH note:** The `run_L_drive_accurate.sh` “`1e-7`” energy gate is legacy / Hubbard-era.
+> For HH production state-prep, use the absolute-error gates in **HH autoscaling preset** above.
 
 ---
 
@@ -129,7 +370,7 @@ projection.
 | `--suzuki-order` | int | `2` | Suzuki–Trotter product-formula order |
 | `--trotter-steps` | int | `64` | Number of Trotter steps |
 | `--fidelity-subspace-energy-tol` | float | `1e-8` | Ground-manifold selection tolerance for trajectory subspace fidelity: include filtered-sector states with `E <= E0 + tol`. |
-| `--term-order` | choice | `sorted` | Term ordering for Trotter product. Hardcoded: `native\|sorted`. Qiskit: `qiskit\|sorted` |
+| `--term-order` | choice | `sorted` | Term ordering for Trotter product. Hardcoded: `native|sorted`. Qiskit: `qiskit|sorted`. |
 
 ### Time-Dependent Drive Parameters (all three pipelines)
 
@@ -387,14 +628,14 @@ python pipelines/qiskit_archive/compare_hc_vs_qk.py --help
 Defaults:
 
 - `--l-values 2,3,4,5`
-- `--run-pipelines` (use `--no-run-pipelines` to reuse JSONs)
+- `--run-pipelines` (use `--no-run-pipelines` to reuse existing JSONs)
 - `--t 1.0 --u 4.0 --dv 0.0`
 - `--boundary periodic --ordering blocked`
 - `--t-final 20.0 --num-times 201 --suzuki-order 2 --trotter-steps 64`
 - `--fidelity-subspace-energy-tol 1e-8`
 - `--hardcoded-vqe-ansatzes uccsd` (set `uccsd,hva` for 3-way hardcoded-vs-qiskit runs)
 - `--hardcoded-vqe-reps 2 --hardcoded-vqe-restarts 3 --hardcoded-vqe-seed 7 --hardcoded-vqe-maxiter 600`
-- `--qiskit-vqe-reps 2 --qiskit-vqe-restarts 3 --qiskit-vqe-seed 7 --qiskit-vqe-maxiter 600`
+- `--qiskit-vqe-reps 2 --qiskit-vqe-restarts 3 --qiskit-vqe-maxiter 600 --qiskit-vqe-seed 7`
 - `--qpe-eval-qubits 5 --qpe-shots 256 --qpe-seed 11`
 - `--initial-state-source vqe` (`exact|vqe|hf`)
 - `--artifacts-dir artifacts`
@@ -721,11 +962,11 @@ The JSON `settings` block records:
 Each trajectory row in the JSON output contains two families of energy fields:
 
 | Key | Observable | Formula |
-|-----|-----------|---------|
-| `energy_static_exact` | Static Hamiltonian expectation (exact propagator) | ⟨ψ\_exact\|H\_static\|ψ\_exact⟩ |
-| `energy_static_trotter` | Static Hamiltonian expectation (Trotter propagator) | ⟨ψ\_trotter\|H\_static\|ψ\_trotter⟩ |
-| `energy_total_exact` | **Total** instantaneous energy (exact propagator) | ⟨ψ\_exact\|H\_static + H\_drive(t₀+t)\|ψ\_exact⟩ |
-| `energy_total_trotter` | **Total** instantaneous energy (Trotter propagator) | ⟨ψ\_trotter\|H\_static + H\_drive(t₀+t)\|ψ\_trotter⟩ |
+|------|-----------|---------|
+| `energy_static_exact` | Static Hamiltonian expectation (exact propagator) | ⟨ψ_exact\|H_static\|ψ_exact⟩ |
+| `energy_static_trotter` | Static Hamiltonian expectation (Trotter propagator) | ⟨ψ_trotter\|H_static\|ψ_trotter⟩ |
+| `energy_total_exact` | **Total** instantaneous energy (exact propagator) | ⟨ψ_exact\|H_static + H_drive(t₀+t)\|ψ_exact⟩ |
+| `energy_total_trotter` | **Total** instantaneous energy (Trotter propagator) | ⟨ψ_trotter\|H_static + H_drive(t₀+t)\|ψ_trotter⟩ |
 
 ### Behaviour by drive state
 
@@ -733,7 +974,7 @@ Each trajectory row in the JSON output contains two families of energy fields:
 |-------------|-------------------|
 | Disabled (`--enable-drive` absent) | Identical to `energy_static_*` (no overhead) |
 | Enabled with `A = 0` (safe-test) | Identical to `energy_static_*` within machine precision |
-| Enabled with `A > 0` | Differs from `energy_static_*` by the drive contribution ⟨ψ\|H\_drive(t)\|ψ⟩ |
+| Enabled with `A > 0` | Differs from `energy_static_*` by the drive contribution ⟨ψ\|H_drive(t)\|ψ⟩ |
 
 ### Physical time convention
 

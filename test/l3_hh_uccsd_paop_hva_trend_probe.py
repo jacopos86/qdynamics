@@ -53,6 +53,7 @@ from src.quantum.vqe_latex_python_pairs import (
     hubbard_holstein_reference_state,
     jw_number_operator,
 )
+from pipelines.exact_bench.benchmark_metrics_proxy import write_proxy_sidecars
 
 try:
     from scipy.optimize import minimize as scipy_minimize
@@ -771,7 +772,55 @@ def main(argv: list[str] | None = None) -> None:
     cfg.output_json.parent.mkdir(parents=True, exist_ok=True)
     cfg.output_json.write_text(json.dumps(payload, indent=2), encoding="utf-8")
 
+    metric_rows: list[dict[str, Any]] = []
+    for run_id, run in payload.get("runs", {}).items():
+        if not isinstance(run, dict):
+            continue
+        pool_name = ""
+        if str(run_id).startswith("A_"):
+            pool_name = "uccsd+paop"
+        elif str(run_id).startswith("B_"):
+            pool_name = "uccsd+paop+hva"
+        budget = run.get("budget", {}) if isinstance(run.get("budget", {}), dict) else {}
+        metric_rows.append(
+            {
+                "run_id": str(run_id),
+                "status": "ok" if bool(run.get("ok", False)) else "error",
+                "method_id": str(run_id),
+                "method_kind": "adapt",
+                "ansatz_name": "adapt",
+                "pool_name": pool_name,
+                "problem": "hh",
+                "L": int(cfg.L),
+                "runtime_s": run.get("runtime_s"),
+                "wallclock_cap_s": budget.get("wallclock_cap_s"),
+                "nfev": run.get("nfev_total"),
+                "nit": run.get("nit_total"),
+                "num_parameters": run.get("num_parameters"),
+                "vqe_maxiter": budget.get("maxiter"),
+                "depth_proxy": run.get("adapt_depth_reached"),
+                "delta_E_abs": run.get("delta_E_abs"),
+                "sector_leak_flag": (run.get("sector_diag", {}) or {}).get("sector_leak_flag"),
+                "adapt_stop_reason": run.get("adapt_stop_reason"),
+                "adapt_depth_reached": run.get("adapt_depth_reached"),
+            }
+        )
+    source_comp = {
+        "A_uccsd_plus_paop": (meta_A.get("dedup_source_presence_counts", {}) if isinstance(meta_A, dict) else {}),
+        "B_uccsd_plus_paop_plus_hva": (meta_B.get("dedup_source_presence_counts", {}) if isinstance(meta_B, dict) else {}),
+    }
+    sidecars = write_proxy_sidecars(
+        metric_rows,
+        cfg.output_json.parent,
+        csv_name=f"{cfg.output_json.stem}_metrics_proxy.csv",
+        jsonl_name=f"{cfg.output_json.stem}_metrics_proxy.jsonl",
+        summary_name=f"{cfg.output_json.stem}_metrics_proxy.json",
+        summary_extras={"source_composition_proxy": source_comp},
+    )
+
     print(f"WROTE {cfg.output_json}")
+    print(f"WROTE {sidecars['summary_json']}")
+    print(f"WROTE {sidecars['csv']}")
     print(
         "A (UCCSD+PAOP): "
         f"med_ok={run_A_medium.get('ok')} heavy_ok={run_A_heavy.get('ok')} "

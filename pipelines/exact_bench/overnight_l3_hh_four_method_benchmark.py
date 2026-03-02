@@ -45,6 +45,7 @@ from src.quantum.vqe_latex_python_pairs import (
     expval_pauli_polynomial,
     hubbard_holstein_reference_state,
 )
+from pipelines.exact_bench.benchmark_metrics_proxy import write_proxy_sidecars
 
 
 def _now_utc_iso() -> str:
@@ -1033,6 +1034,13 @@ def _run_attempt_batch(attempts: list[AttemptConfig], out_dir: Path) -> list[dic
                 delta_E_abs=row.get("delta_E_abs"),
                 runtime_s=row.get("runtime_s"),
             )
+    sidecars = write_proxy_sidecars(rows, summary_dir)
+    _ai_log(
+        "metrics_proxy_written",
+        csv=str(sidecars["csv"]),
+        jsonl=str(sidecars["jsonl"]),
+        summary_json=str(sidecars["summary_json"]),
+    )
     return rows
 
 
@@ -1239,6 +1247,13 @@ def main(argv: list[str] | None = None) -> None:
             writer.writerow({k: row.get(k, None) for k in SUMMARY_FIELDS})
             f_jsonl.write(json.dumps(row, sort_keys=True, default=str) + "\n")
     _write_markdown_reports(all_rows, out_dir)
+    combined_sidecars = write_proxy_sidecars(all_rows, summary_dir)
+    _ai_log(
+        "metrics_proxy_written",
+        csv=str(combined_sidecars["csv"]),
+        jsonl=str(combined_sidecars["jsonl"]),
+        summary_json=str(combined_sidecars["summary_json"]),
+    )
 
     _ai_log(
         "overnight_runner_done",

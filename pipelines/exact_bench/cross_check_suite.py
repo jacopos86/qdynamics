@@ -74,6 +74,7 @@ from src.quantum.vqe_latex_python_pairs import (
     hartree_fock_bitstring,
     vqe_minimize,
 )
+from pipelines.exact_bench.benchmark_metrics_proxy import write_proxy_sidecars
 
 # ---------------------------------------------------------------------------
 # Structured-log helper
@@ -937,6 +938,25 @@ def run_cross_check(args: argparse.Namespace) -> dict[str, Any]:
     else:
         _ai_log("pdf_skipped", reason="matplotlib_unavailable")
 
+    summary_dir = out_dir / "summary"
+    sidecars = write_proxy_sidecars(
+        payload.get("trials", []),
+        summary_dir,
+        defaults={
+            "problem": str(problem),
+            "L": int(L),
+            "vqe_reps": int(reps),
+            "vqe_restarts": int(restarts),
+            "vqe_maxiter": int(maxiter),
+        },
+    )
+    _ai_log(
+        "metrics_proxy_written",
+        csv=str(sidecars["csv"]),
+        jsonl=str(sidecars["jsonl"]),
+        summary_json=str(sidecars["summary_json"]),
+    )
+
     _ai_log("cross_check_done", n_trials=len(trials))
     return payload
 
@@ -955,17 +975,25 @@ def _build_payload(
     trial_summaries = []
     for tr in trials:
         d: dict[str, Any] = {
+            "run_id": tr.name,
+            "method_id": tr.name,
+            "method_kind": tr.category,
+            "ansatz_name": tr.ansatz_label,
             "name": tr.name,
             "category": tr.category,
             "energy": tr.energy,
             "exact_energy": tr.exact_energy,
             "delta_e": tr.delta_e,
             "abs_delta_e": abs(tr.delta_e),
+            "delta_E_abs": abs(tr.delta_e),
+            "num_parameters": tr.num_params,
             "num_params": tr.num_params,
             "nfev": tr.nfev,
+            "runtime_s": round(tr.elapsed_s, 3),
             "elapsed_s": round(tr.elapsed_s, 3),
         }
         if tr.category == "adapt_vqe":
+            d["adapt_depth_reached"] = tr.adapt_depth
             d["adapt_depth"] = tr.adapt_depth
             d["adapt_stop_reason"] = tr.adapt_stop_reason
         if tr.trajectory:

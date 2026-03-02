@@ -927,6 +927,7 @@ def _run_internal_adapt_paop(
     paop_prune_eps: float,
     paop_normalization: str,
     adapt_disable_hh_seed: bool,
+    psi_ref_override: np.ndarray | None = None,
 ) -> tuple[dict[str, Any], np.ndarray]:
     from pipelines.hardcoded import adapt_pipeline as adapt_mod
 
@@ -958,6 +959,7 @@ def _run_internal_adapt_paop(
         paop_prune_eps=float(paop_prune_eps),
         paop_normalization=str(paop_normalization),
         disable_hh_seed=bool(adapt_disable_hh_seed),
+        psi_ref_override=psi_ref_override,
     )
 
 
@@ -1827,6 +1829,8 @@ def _write_pipeline_pdf(pdf_path: Path, payload: dict[str, Any], run_command: st
                 f"  - hva_ansatz: {hva_meta.get('ansatz')}",
                 f"  - hva_vqe_success: {hva_meta.get('vqe_success')}",
             ]
+            if settings.get("adapt_ref_source") is not None:
+                manifest_lines.append(f"  - adapt_ref_source: {settings.get('adapt_ref_source')}")
         if has_adapt_import:
             manifest_lines += [
                 "",
@@ -2432,6 +2436,7 @@ def parse_args() -> argparse.Namespace:
             "cse",
             "full_hamiltonian",
             "hva",
+            "uccsd_paop_lf_full",
             "paop",
             "paop_min",
             "paop_std",
@@ -2443,6 +2448,12 @@ def parse_args() -> argparse.Namespace:
         ],
         default="paop_std",
         help="PAOP/ADAPT branch pool used for the explicit PAOP trajectory branch.",
+    )
+    parser.add_argument(
+        "--adapt-ref-source",
+        choices=["hf", "vqe"],
+        default="hf",
+        help="Reference source for internal ADAPT branch optimization (HF default, or warm-start from hardcoded VQE state).",
     )
     parser.add_argument("--adapt-max-depth", type=int, default=30)
     parser.add_argument("--adapt-eps-grad", type=float, default=1e-5)
@@ -2704,6 +2715,14 @@ def main() -> None:
             "source": "adapt_json",
         }
     else:
+        adapt_ref_source_key = str(args.adapt_ref_source).strip().lower()
+        psi_ref_override_for_adapt: np.ndarray | None = None
+        if adapt_ref_source_key == "vqe":
+            if not bool(vqe_payload.get("success", False)):
+                raise RuntimeError(
+                    "Requested --adapt-ref-source vqe but hardcoded VQE failed; internal ADAPT reference state is unavailable."
+                )
+            psi_ref_override_for_adapt = np.asarray(psi_vqe, dtype=complex).reshape(-1)
         try:
             adapt_internal_payload_raw, psi_paop = _run_internal_adapt_paop(
                 h_poly=h_poly,
@@ -2733,6 +2752,7 @@ def main() -> None:
                 paop_prune_eps=float(args.paop_prune_eps),
                 paop_normalization=str(args.paop_normalization),
                 adapt_disable_hh_seed=bool(args.adapt_disable_hh_seed),
+                psi_ref_override=psi_ref_override_for_adapt,
             )
         except Exception as exc:
             raise RuntimeError(f"Failed to build required internal PAOP branch via ADAPT: {exc}") from exc
@@ -2748,6 +2768,9 @@ def main() -> None:
             "elapsed_s": adapt_internal_payload_raw.get("elapsed_s"),
             "allow_repeats": adapt_internal_payload_raw.get("allow_repeats"),
         }
+        if adapt_ref_source_key != "hf" or str(args.adapt_pool).strip().lower() == "uccsd_paop_lf_full":
+            adapt_internal_payload["adapt_ref_source"] = str(adapt_ref_source_key)
+            adapt_internal_payload["nfev_total"] = adapt_internal_payload_raw.get("nfev_total")
         _ai_log(
             "hardcoded_paop_branch_built",
             source="internal_adapt",
@@ -2927,6 +2950,12 @@ def main() -> None:
             "trotter_hva",
         ],
     }
+    _use_internal_adapt = str(args.initial_state_source) != "adapt_json"
+    _adapt_ref_source_key = str(args.adapt_ref_source).strip().lower()
+    if _use_internal_adapt and (
+        _adapt_ref_source_key != "hf" or str(args.adapt_pool).strip().lower() == "uccsd_paop_lf_full"
+    ):
+        settings["adapt_ref_source"] = str(_adapt_ref_source_key)
     if bool(args.enable_drive):
         settings["drive"] = {
             "enabled": True,
