@@ -304,6 +304,7 @@ Qiskit baseline scripts may be used to sanity check, but they are not the core t
 ## Plans
 
 - Make the plan extremely consise. Sacrifice grammar for the sake of concision.
-- At the end of each plan, give me a list of unresolved questions to answer/problems, if any, and the files you will edit.
+- Near the end of each plan, give me a list of unresolved questions to answer/problems, if any, and the files you will edit.
+- At the end of each plan, state all files intended to alter, and functions and classes to be altered. If none, write 'Files to edit: None'.
 
 
