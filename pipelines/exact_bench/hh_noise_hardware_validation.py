@@ -41,10 +41,15 @@ from reports.pdf_utils import (
     render_text_page,
     require_matplotlib,
 )
+from src.quantum.compiled_polynomial import (
+    compile_polynomial_action,
+    energy_via_one_apply,
+)
 from src.quantum.hartree_fock_reference_state import (
     hartree_fock_statevector,
     hubbard_holstein_reference_state,
 )
+from src.quantum.spsa_optimizer import spsa_minimize
 from src.quantum.hubbard_latex_python_pairs import (
     build_hubbard_hamiltonian,
     build_hubbard_holstein_hamiltonian,
@@ -482,10 +487,26 @@ def _run_noisy_adapt(
     if not pool:
         raise ValueError("ADAPT pool is empty.")
 
-    try:
-        from scipy.optimize import minimize
-    except Exception as exc:
-        raise RuntimeError("SciPy is required for phase-2 ADAPT optimization.") from exc
+    adapt_inner_key = str(args.adapt_inner_optimizer).strip().upper()
+    adapt_spsa_eval_agg = str(args.adapt_spsa_eval_agg).strip().lower()
+    adapt_spsa_params = {
+        "a": float(args.adapt_spsa_a),
+        "c": float(args.adapt_spsa_c),
+        "alpha": float(args.adapt_spsa_alpha),
+        "gamma": float(args.adapt_spsa_gamma),
+        "A": float(args.adapt_spsa_A),
+        "avg_last": int(args.adapt_spsa_avg_last),
+        "eval_repeats": int(args.adapt_spsa_eval_repeats),
+        "eval_agg": str(adapt_spsa_eval_agg),
+    }
+
+    minimize = None
+    if adapt_inner_key != "SPSA":
+        try:
+            from scipy.optimize import minimize as _scipy_minimize
+        except Exception as exc:
+            raise RuntimeError("SciPy is required for phase-2 ADAPT COBYLA optimization.") from exc
+        minimize = _scipy_minimize
 
     rng = np.random.default_rng(int(args.adapt_seed))
     max_depth = int(args.adapt_max_depth)
@@ -586,35 +607,66 @@ def _run_noisy_adapt(
             return float(est.mean)
 
         x0 = np.asarray(theta, dtype=float) + 0.02 * rng.normal(size=theta.size)
-        res = minimize(
-            _obj,
-            x0,
-            method="COBYLA",
-            options={"maxiter": int(args.adapt_maxiter), "rhobeg": 0.3},
-        )
-        theta = np.asarray(res.x, dtype=float)
-        energy_current = float(res.fun)
+        if adapt_inner_key == "SPSA":
+            spsa_res = spsa_minimize(
+                fun=_obj,
+                x0=x0,
+                maxiter=int(args.adapt_maxiter),
+                seed=int(args.adapt_seed) + int(depth),
+                a=float(args.adapt_spsa_a),
+                c=float(args.adapt_spsa_c),
+                alpha=float(args.adapt_spsa_alpha),
+                gamma=float(args.adapt_spsa_gamma),
+                A=float(args.adapt_spsa_A),
+                bounds=None,
+                project="none",
+                eval_repeats=int(args.adapt_spsa_eval_repeats),
+                eval_agg=str(adapt_spsa_eval_agg),
+                avg_last=int(args.adapt_spsa_avg_last),
+            )
+            theta = np.asarray(spsa_res.x, dtype=float)
+            energy_current = float(spsa_res.fun)
+            opt_nfev = int(spsa_res.nfev)
+            opt_nit = int(spsa_res.nit)
+            opt_success = bool(spsa_res.success)
+            opt_message = str(spsa_res.message)
+        else:
+            assert minimize is not None
+            res = minimize(
+                _obj,
+                x0,
+                method="COBYLA",
+                options={"maxiter": int(args.adapt_maxiter), "rhobeg": 0.3},
+            )
+            theta = np.asarray(res.x, dtype=float)
+            energy_current = float(res.fun)
+            opt_nfev = int(getattr(res, "nfev", 0))
+            opt_nit = int(getattr(res, "nit", 0))
+            opt_success = bool(getattr(res, "success", False))
+            opt_message = str(getattr(res, "message", ""))
         delta_e = float(abs(energy_current - energy_prev))
 
-        history.append(
-            {
-                "depth": int(depth + 1),
-                "selected_pool_index": int(best_idx),
-                "selected_label": str(pool[best_idx].label),
-                "max_gradient": float(best_grad),
-                "max_gradient_abs": float(best_abs_grad),
-                "max_gradient_std": float(best_grad_std),
-                "gradient_confidence": float(grad_conf),
-                "energy_before_opt": float(energy_prev),
-                "energy_after_opt": float(energy_current),
-                "delta_energy_abs": float(delta_e),
-                "opt_nfev": int(getattr(res, "nfev", 0)),
-                "opt_nit": int(getattr(res, "nit", 0)),
-                "opt_success": bool(getattr(res, "success", False)),
-                "opt_message": str(getattr(res, "message", "")),
-                "objective_trace": objective_trace,
-            }
-        )
+        history_row = {
+            "depth": int(depth + 1),
+            "selected_pool_index": int(best_idx),
+            "selected_label": str(pool[best_idx].label),
+            "max_gradient": float(best_grad),
+            "max_gradient_abs": float(best_abs_grad),
+            "max_gradient_std": float(best_grad_std),
+            "gradient_confidence": float(grad_conf),
+            "energy_before_opt": float(energy_prev),
+            "energy_after_opt": float(energy_current),
+            "delta_energy_abs": float(delta_e),
+            "opt_method": str(adapt_inner_key),
+            "opt_nfev": int(opt_nfev),
+            "opt_nit": int(opt_nit),
+            "opt_success": bool(opt_success),
+            "opt_message": str(opt_message),
+            "objective_trace": objective_trace,
+        }
+        if adapt_inner_key == "SPSA":
+            history_row["spsa_params"] = dict(adapt_spsa_params)
+        history.append(history_row)
         _ai_log(
             "hh_noise_adapt_iter_done",
             depth=int(depth + 1),
@@ -623,6 +675,7 @@ def _run_noisy_adapt(
             delta_e_abs=float(delta_e),
             gradient_abs=float(best_abs_grad),
             gradient_confidence=float(grad_conf),
+            opt_method=str(adapt_inner_key),
         )
 
         if delta_e < eps_energy:
@@ -643,6 +696,7 @@ def _run_noisy_adapt(
     payload = {
         "success": True,
         "method": "adapt_vqe_noisy_oracle",
+        "inner_optimizer": str(adapt_inner_key),
         "pool_type": str(args.adapt_pool),
         "pool_size": int(len(pool)),
         "allow_repeats": bool(allow_repeats),
@@ -663,6 +717,8 @@ def _run_noisy_adapt(
         "adapt_min_confidence": float(min_conf),
         "elapsed_s": float(time.perf_counter() - t0),
     }
+    if adapt_inner_key == "SPSA":
+        payload["spsa"] = dict(adapt_spsa_params)
     return payload, selected_ops, theta
 
 
@@ -671,6 +727,7 @@ def _run_noisy_vqe(
     args: argparse.Namespace,
     ansatz: Any,
     psi_ref: np.ndarray,
+    h_poly: Any,
     h_qop: SparsePauliOp,
     noisy_oracle: ExpectationOracle,
     ideal_oracle: ExpectationOracle,
@@ -689,58 +746,133 @@ def _run_noisy_vqe(
     best_nit = 0
     best_success = False
     best_message = "no run"
+    method_key = str(args.vqe_method).strip().lower()
+    noise_mode_key = str(args.noise_mode).strip().lower()
+    backend_key = str(args.vqe_energy_backend).strip().lower()
 
-    try:
-        from scipy.optimize import minimize
-    except Exception as exc:
-        raise RuntimeError(
-            "SciPy is required for this validation VQE loop. "
-            "Install scipy to run noisy VQE optimization."
-        ) from exc
+    objective_source = "noisy_oracle"
+    compiled_h = None
+    if noise_mode_key == "ideal" and backend_key == "one_apply_compiled":
+        compiled_h = compile_polynomial_action(
+            h_poly,
+            tol=1e-12,
+        )
+        objective_source = "compiled_one_apply_ideal"
+
+    minimize = None
+    if method_key != "spsa":
+        try:
+            from scipy.optimize import minimize as _scipy_minimize
+        except Exception as exc:
+            raise RuntimeError(
+                "SciPy is required for this validation VQE loop when vqe-method is not SPSA. "
+                "Install scipy or use --vqe-method SPSA."
+            ) from exc
+        minimize = _scipy_minimize
+
+    vqe_spsa_eval_agg = str(args.vqe_spsa_eval_agg).strip().lower()
+    vqe_spsa_params = {
+        "a": float(args.vqe_spsa_a),
+        "c": float(args.vqe_spsa_c),
+        "alpha": float(args.vqe_spsa_alpha),
+        "gamma": float(args.vqe_spsa_gamma),
+        "A": float(args.vqe_spsa_A),
+        "avg_last": int(args.vqe_spsa_avg_last),
+        "eval_repeats": int(args.vqe_spsa_eval_repeats),
+        "eval_agg": str(vqe_spsa_eval_agg),
+    }
 
     for r in range(max(1, int(args.vqe_restarts))):
         x0 = 0.3 * rng.normal(size=npar)
+        nfev_local = 0
 
         def _objective(x: np.ndarray) -> float:
-            qc = _ansatz_to_circuit(
-                ansatz,
-                np.asarray(x, dtype=float),
-                num_qubits=int(h_qop.num_qubits),
-                reference_state=psi_ref,
-            )
-            estimate = noisy_oracle.evaluate(qc, h_qop)
+            nonlocal nfev_local
+            nfev_local += 1
+            x_vec = np.asarray(x, dtype=float)
+            if objective_source == "compiled_one_apply_ideal":
+                assert compiled_h is not None
+                psi = ansatz.prepare_state(x_vec, psi_ref)
+                energy_obj, _hpsi = energy_via_one_apply(np.asarray(psi, dtype=complex), compiled_h)
+                energy_mean = float(energy_obj)
+                energy_std = 0.0
+                oracle_samples = 0
+            else:
+                qc = _ansatz_to_circuit(
+                    ansatz,
+                    x_vec,
+                    num_qubits=int(h_qop.num_qubits),
+                    reference_state=psi_ref,
+                )
+                estimate = noisy_oracle.evaluate(qc, h_qop)
+                energy_mean = float(estimate.mean)
+                energy_std = float(estimate.std)
+                oracle_samples = int(estimate.n_samples)
             history.append(
                 {
                     "restart": int(r + 1),
-                    "nfev_local": int(sum(1 for row in history if row["restart"] == int(r + 1)) + 1),
-                    "energy_noisy": float(estimate.mean),
-                    "energy_noisy_std": float(estimate.std),
-                    "oracle_samples": int(estimate.n_samples),
+                    "nfev_local": int(nfev_local),
+                    "objective_source": str(objective_source),
+                    "energy_objective": float(energy_mean),
+                    "energy_noisy": float(energy_mean),
+                    "energy_noisy_std": float(energy_std),
+                    "oracle_samples": int(oracle_samples),
                 }
             )
-            return float(estimate.mean)
+            return float(energy_mean)
 
-        res = minimize(
-            _objective,
-            x0,
-            method=str(args.vqe_method),
-            options={"maxiter": int(args.vqe_maxiter)},
-        )
+        if method_key == "spsa":
+            res = spsa_minimize(
+                fun=_objective,
+                x0=x0,
+                maxiter=int(args.vqe_maxiter),
+                seed=int(args.vqe_seed) + 1000 * int(r),
+                a=float(args.vqe_spsa_a),
+                c=float(args.vqe_spsa_c),
+                alpha=float(args.vqe_spsa_alpha),
+                gamma=float(args.vqe_spsa_gamma),
+                A=float(args.vqe_spsa_A),
+                bounds=None,
+                project="none",
+                eval_repeats=int(args.vqe_spsa_eval_repeats),
+                eval_agg=str(vqe_spsa_eval_agg),
+                avg_last=int(args.vqe_spsa_avg_last),
+            )
+            res_fun = float(res.fun)
+            res_x = np.asarray(res.x, dtype=float)
+            res_nfev = int(res.nfev)
+            res_nit = int(res.nit)
+            res_success = bool(res.success)
+            res_message = str(res.message)
+        else:
+            assert minimize is not None
+            res = minimize(
+                _objective,
+                x0,
+                method=str(args.vqe_method),
+                options={"maxiter": int(args.vqe_maxiter)},
+            )
+            res_fun = float(res.fun)
+            res_x = np.asarray(res.x, dtype=float)
+            res_nfev = int(getattr(res, "nfev", 0))
+            res_nit = int(getattr(res, "nit", 0))
+            res_success = bool(getattr(res, "success", False))
+            res_message = str(getattr(res, "message", ""))
 
-        if float(res.fun) < best_energy:
-            best_energy = float(res.fun)
-            best_theta = np.asarray(res.x, dtype=float)
+        if float(res_fun) < best_energy:
+            best_energy = float(res_fun)
+            best_theta = np.asarray(res_x, dtype=float)
             best_restart = int(r)
-            best_nfev = int(getattr(res, "nfev", 0))
-            best_nit = int(getattr(res, "nit", 0))
-            best_success = bool(getattr(res, "success", False))
-            best_message = str(getattr(res, "message", ""))
+            best_nfev = int(res_nfev)
+            best_nit = int(res_nit)
+            best_success = bool(res_success)
+            best_message = str(res_message)
 
         _ai_log(
             "hh_noise_vqe_restart_done",
             restart=int(r + 1),
             restarts=int(args.vqe_restarts),
-            energy=float(res.fun),
+            energy=float(res_fun),
             best_energy=float(best_energy),
         )
 
@@ -758,6 +890,8 @@ def _run_noisy_vqe(
         "method": "noisy_vqe_qiskit_oracle",
         "ansatz": str(args.ansatz),
         "optimizer_method": str(args.vqe_method),
+        "objective_source": str(objective_source),
+        "energy_backend": str(args.vqe_energy_backend),
         "reps": int(args.vqe_reps),
         "restarts": int(args.vqe_restarts),
         "maxiter": int(args.vqe_maxiter),
@@ -774,6 +908,8 @@ def _run_noisy_vqe(
         "objective_history": history,
         "elapsed_s": float(time.perf_counter() - t0),
     }
+    if method_key == "spsa":
+        payload["spsa"] = dict(vqe_spsa_params)
     return payload, best_theta
 
 
@@ -1092,6 +1228,9 @@ def _write_noise_validation_pdf(
             "",
             "VQE:",
             f"  success: {vqe.get('success')}",
+            f"  optimizer: {vqe.get('optimizer_method')}",
+            f"  objective_source: {vqe.get('objective_source')}",
+            f"  energy_backend: {vqe.get('energy_backend')}",
             f"  noisy energy: {vqe.get('energy_noisy')}",
             f"  ideal reference energy: {vqe.get('energy_ideal_reference')}",
             f"  noisy-ideal delta: {vqe.get('delta_noisy_minus_ideal')}",
@@ -1099,6 +1238,7 @@ def _write_noise_validation_pdf(
             "ADAPT (phase 2):",
             f"  enabled: {settings.get('run_adapt')}",
             f"  success: {adapt.get('success')}",
+            f"  inner optimizer: {adapt.get('inner_optimizer')}",
             f"  depth: {adapt.get('ansatz_depth')}",
             f"  stop_reason: {adapt.get('stop_reason')}",
             f"  noisy-ideal delta: {adapt.get('delta_noisy_minus_ideal')}",
@@ -1111,6 +1251,40 @@ def _write_noise_validation_pdf(
             f"  doublon ideal: {final.get('doublon_trotter_ideal')}",
             f"  doublon delta: {final.get('doublon_trotter_delta_noisy_minus_ideal')}",
         ]
+        vqe_spsa = vqe.get("spsa")
+        if isinstance(vqe_spsa, dict):
+            lines.extend(
+                [
+                    "",
+                    "VQE SPSA params:",
+                    f"  a={vqe_spsa.get('a')} c={vqe_spsa.get('c')} A={vqe_spsa.get('A')}",
+                    f"  alpha={vqe_spsa.get('alpha')} gamma={vqe_spsa.get('gamma')}",
+                    (
+                        "  eval_repeats={eval_repeats} eval_agg={eval_agg} avg_last={avg_last}".format(
+                            eval_repeats=vqe_spsa.get("eval_repeats"),
+                            eval_agg=vqe_spsa.get("eval_agg"),
+                            avg_last=vqe_spsa.get("avg_last"),
+                        )
+                    ),
+                ]
+            )
+        adapt_spsa = adapt.get("spsa")
+        if isinstance(adapt_spsa, dict):
+            lines.extend(
+                [
+                    "",
+                    "ADAPT SPSA params:",
+                    f"  a={adapt_spsa.get('a')} c={adapt_spsa.get('c')} A={adapt_spsa.get('A')}",
+                    f"  alpha={adapt_spsa.get('alpha')} gamma={adapt_spsa.get('gamma')}",
+                    (
+                        "  eval_repeats={eval_repeats} eval_agg={eval_agg} avg_last={avg_last}".format(
+                            eval_repeats=adapt_spsa.get("eval_repeats"),
+                            eval_agg=adapt_spsa.get("eval_agg"),
+                            avg_last=adapt_spsa.get("avg_last"),
+                        )
+                    ),
+                ]
+            )
         per_obs = legacy_parity.get("per_observable", {})
         obs_order = legacy_parity.get("observables", [])
         if isinstance(per_obs, dict) and isinstance(obs_order, list):
@@ -1217,10 +1391,24 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     p.add_argument(
         "--vqe-method",
         type=str,
-        choices=["SLSQP", "COBYLA", "L-BFGS-B", "Powell", "Nelder-Mead"],
+        choices=["SLSQP", "COBYLA", "L-BFGS-B", "Powell", "Nelder-Mead", "SPSA"],
         default=None,
     )
     p.add_argument("--vqe-seed", type=int, default=7)
+    p.add_argument(
+        "--vqe-energy-backend",
+        type=str,
+        default="legacy",
+        choices=["legacy", "one_apply_compiled"],
+    )
+    p.add_argument("--vqe-spsa-a", type=float, default=0.2)
+    p.add_argument("--vqe-spsa-c", type=float, default=0.1)
+    p.add_argument("--vqe-spsa-alpha", type=float, default=0.602)
+    p.add_argument("--vqe-spsa-gamma", type=float, default=0.101)
+    p.add_argument("--vqe-spsa-A", type=float, default=10.0)
+    p.add_argument("--vqe-spsa-avg-last", type=int, default=0)
+    p.add_argument("--vqe-spsa-eval-repeats", type=int, default=1)
+    p.add_argument("--vqe-spsa-eval-agg", choices=["mean", "median"], default="mean")
 
     p.add_argument("--adapt-pool", choices=["hva", "uccsd", "full_hamiltonian"], default="hva")
     p.add_argument("--adapt-max-depth", type=int, default=20)
@@ -1228,6 +1416,15 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     p.add_argument("--adapt-eps-energy", type=float, default=1e-8)
     p.add_argument("--adapt-maxiter", type=int, default=300)
     p.add_argument("--adapt-seed", type=int, default=7)
+    p.add_argument("--adapt-inner-optimizer", choices=["COBYLA", "SPSA"], default="COBYLA")
+    p.add_argument("--adapt-spsa-a", type=float, default=0.2)
+    p.add_argument("--adapt-spsa-c", type=float, default=0.1)
+    p.add_argument("--adapt-spsa-alpha", type=float, default=0.602)
+    p.add_argument("--adapt-spsa-gamma", type=float, default=0.101)
+    p.add_argument("--adapt-spsa-A", type=float, default=10.0)
+    p.add_argument("--adapt-spsa-avg-last", type=int, default=0)
+    p.add_argument("--adapt-spsa-eval-repeats", type=int, default=1)
+    p.add_argument("--adapt-spsa-eval-agg", choices=["mean", "median"], default="mean")
     p.set_defaults(adapt_allow_repeats=True)
     p.add_argument("--adapt-allow-repeats", dest="adapt_allow_repeats", action="store_true")
     p.add_argument("--adapt-no-repeats", dest="adapt_allow_repeats", action="store_false")
@@ -1401,6 +1598,7 @@ def main(argv: list[str] | None = None) -> None:
                 args=args,
                 ansatz=ansatz,
                 psi_ref=psi_ref,
+                h_poly=h_poly,
                 h_qop=h_qop,
                 noisy_oracle=noisy_oracle,
                 ideal_oracle=ideal_oracle,
@@ -1477,12 +1675,30 @@ def main(argv: list[str] | None = None) -> None:
             "vqe_maxiter": int(args.vqe_maxiter),
             "vqe_method": str(args.vqe_method),
             "vqe_seed": int(args.vqe_seed),
+            "vqe_energy_backend": str(args.vqe_energy_backend),
+            "vqe_spsa_a": float(args.vqe_spsa_a),
+            "vqe_spsa_c": float(args.vqe_spsa_c),
+            "vqe_spsa_alpha": float(args.vqe_spsa_alpha),
+            "vqe_spsa_gamma": float(args.vqe_spsa_gamma),
+            "vqe_spsa_A": float(args.vqe_spsa_A),
+            "vqe_spsa_avg_last": int(args.vqe_spsa_avg_last),
+            "vqe_spsa_eval_repeats": int(args.vqe_spsa_eval_repeats),
+            "vqe_spsa_eval_agg": str(args.vqe_spsa_eval_agg),
             "adapt_pool": str(args.adapt_pool),
             "adapt_max_depth": int(args.adapt_max_depth),
             "adapt_eps_grad": float(args.adapt_eps_grad),
             "adapt_eps_energy": float(args.adapt_eps_energy),
             "adapt_maxiter": int(args.adapt_maxiter),
             "adapt_seed": int(args.adapt_seed),
+            "adapt_inner_optimizer": str(args.adapt_inner_optimizer),
+            "adapt_spsa_a": float(args.adapt_spsa_a),
+            "adapt_spsa_c": float(args.adapt_spsa_c),
+            "adapt_spsa_alpha": float(args.adapt_spsa_alpha),
+            "adapt_spsa_gamma": float(args.adapt_spsa_gamma),
+            "adapt_spsa_A": float(args.adapt_spsa_A),
+            "adapt_spsa_avg_last": int(args.adapt_spsa_avg_last),
+            "adapt_spsa_eval_repeats": int(args.adapt_spsa_eval_repeats),
+            "adapt_spsa_eval_agg": str(args.adapt_spsa_eval_agg),
             "adapt_allow_repeats": bool(args.adapt_allow_repeats),
             "adapt_gradient_step": float(args.adapt_gradient_step),
             "adapt_min_confidence": float(args.adapt_min_confidence),

@@ -177,11 +177,11 @@ round_to_64() {
 primary_params_for_L() {
   local L="$1"
   case "${L}" in
-    2) echo "128 2 201 2 2 COBYLA 1200" ;;
-    3) echo "192 2 201 2 3 COBYLA 2400" ;;
-    4) echo "256 3 241 4 4 SLSQP 6000" ;;
-    5) echo "384 3 301 4 5 SLSQP 8000" ;;
-    6) echo "512 4 361 5 6 SLSQP 10000" ;;
+    2) echo "128 2 201 2 2 SPSA 1200" ;;
+    3) echo "192 2 201 2 3 SPSA 2400" ;;
+    4) echo "256 3 241 4 4 SPSA 6000" ;;
+    5) echo "384 3 301 4 5 SPSA 8000" ;;
+    6) echo "512 4 361 5 6 SPSA 10000" ;;
     *)
       "${PYTHON_BIN}" - "${L}" <<'PY'
 import math
@@ -193,7 +193,7 @@ reps = min(6, 3 + ((L - 3) // 2))
 restarts = min(8, 4 + ((L - 3) // 2))
 maxiter = 6000 + 1500 * (L - 4)
 num_times = min(401, 201 + 40 * (L - 2))
-method = "SLSQP"
+  method = "SPSA"
 print(f"{trotter} {exact_mult} {num_times} {reps} {restarts} {method} {maxiter}")
 PY
       ;;

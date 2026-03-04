@@ -11,6 +11,7 @@ This guide answers one question: is the current implementation faithful and audi
 What is in scope:
 
 - exact codepath mapping for HH and Hubbard runs,
+- new propagator stack behavior (`suzuki2`, `piecewise_exact`, `cfqm4`, `cfqm6`),
 - invariants that must not drift,
 - how VQE/ADAPT/Trotter/drive are actually implemented,
 - what each JSON key and plot channel means,
@@ -29,6 +30,13 @@ Canonical audit artifacts in this guide:
 - HH primary ADAPT: `artifacts/json/adapt_hh_L2_static_t1.0_U2.0_g1.0_nph1_paop_deep.json`
 - Hubbard context static: `artifacts/json/hc_hubbard_L3_static_t1.0_U4.0_S128_heavy.json`
 - Hubbard context drive: `artifacts/json/hc_hubbard_L4_drive_t1.0_U4.0_S256.json`
+
+Recent implementation-context docs that inform this guide update:
+
+- `README.md` (HH focus, warm-start and run-family context),
+- `pipelines/run_guide.md` (current CLI-level implementation contracts),
+- `docs/hh_l2_l3_warmstart_paop_hva_results_explainer.md` (artifact-grounded L2/L3 interpretation),
+- `docs/LLM_RESEARCH_CONTEXT.md` (broader notes and scenario framing).
 
 Review method used throughout:
 
@@ -71,6 +79,15 @@ Compare pipeline forwards drive parameters; it should not reinterpret drive phys
 
 The A=0 drive path should match no-drive trajectory behavior within threshold (`1e-10` in compare checks).
 
+### 2.7 ADAPT continuation invariant (agent-run HH)
+
+For HH continuation/handoff decisions, energy-error drop is the primary stop signal:
+
+- `DeltaE_abs(d) = |E_best(d) - E_exact_filtered|`,
+- `drop(d) = DeltaE_abs(d-1) - DeltaE_abs(d)`.
+
+Gradient floors are secondary diagnostics only; they must not be used as the sole stop reason.
+
 ![Qubit ordering](repo_guide_assets/04_qubit_ordering_convention.png)
 
 ![Invariant evidence](repo_guide_assets/43_invariant_evidence_snippets.png)
@@ -93,6 +110,22 @@ Primary active code paths in this repo shape:
   - `src/quantum/hartree_fock_reference_state.py`
   - `src/quantum/drives_time_potential.py`
   - `src/quantum/operator_pools/polaron_paop.py`
+  - `src/quantum/time_propagation/cfqm_schemes.py`
+  - `src/quantum/time_propagation/cfqm_propagator.py`
+- exact benchmark and efficiency tooling:
+  - `pipelines/exact_bench/cross_check_suite.py`
+  - `pipelines/exact_bench/cfqm_vs_suzuki_qproc_proxy_benchmark.py`
+  - `pipelines/exact_bench/cfqm_vs_suzuki_efficiency_suite.py`
+  - `pipelines/exact_bench/hh_noise_hardware_validation.py`
+  - `pipelines/exact_bench/hh_noise_robustness_seq_report.py`
+  - `pipelines/exact_bench/hh_seq_transition_utils.py`
+
+Recent practical split (2026-03 updates):
+
+- HH runs now commonly use warm-start seeding plus ADAPT (`paop_lf_std` family) for stronger state preparation.
+- hardcoded trajectory propagation now exposes CFQM methods and stage backends through the same interface as legacy Suzuki/reference modes.
+- exact-bench tooling now separates integrator-order studies from hardware-proxy cost comparisons.
+- sequential HH noise-robustness reporting now exists as an active-WIP exact-bench workflow with dedicated helper/test coverage.
 
 Implementation split used in practice:
 
@@ -201,7 +234,8 @@ with statevector backend in hardcoded path.
 `theta` is always a real vector, but dimension semantics differ by ansatz family.
 
 - layerwise families: grouped parameterization,
-- termwise families: one scalar per traversed generator term per repetition.
+- termwise families: one scalar per traversed generator term per repetition,
+- HH physical-termwise (`hh_hva_ptw`) keeps per-physical-term parameters while preserving sector structure better than unconstrained termwise variants.
 
 ### 6.3 Inner optimizer and restarts
 
@@ -222,6 +256,10 @@ For meaningful comparisons, keep fixed:
 - `maxiter`,
 - seed,
 - ansatz family/depth.
+
+Warm-start interpretation note:
+
+- a warm-start VQE branch can intentionally be used as ADAPT reference (`adapt_ref_source=vqe`) while the final reported branch quality is determined by subsequent ADAPT evolution and not by warm-stage energy alone.
 
 ![Theta layout](repo_guide_assets/22_theta_vector_layout.png)
 
@@ -253,6 +291,13 @@ HH pool families are materially distinct and should not be treated as aliases ex
 
 PAOP-LF additions introduce new channel structure (e.g., current-like odd channel, second-order even channel, full extensions).
 
+Current pool surface in `hubbard_pipeline.py` includes:
+
+- `uccsd`, `cse`, `full_hamiltonian`, `hva`,
+- `uccsd_paop_lf_full` (combined family),
+- `paop`, `paop_min`, `paop_std`, `paop_full`,
+- `paop_lf`, `paop_lf_std`, `paop_lf2_std`, `paop_lf_full`.
+
 ### 7.3 Merge/dedup path
 
 For HH with nonzero coupling in several branches, merged pool construction and polynomial-signature deduplication are explicit implementation steps.
@@ -260,6 +305,19 @@ For HH with nonzero coupling in several branches, merged pool construction and p
 ### 7.4 Artifact interpretation impact
 
 `adapt_vqe` payload fields (depth, selected operators, stop reason, pool type) must be read with the same weight as final energy when validating implementation behavior.
+
+Additional branch-provenance fields (for import/warm-start workflows) in hardcoded payloads:
+
+- `adapt_import` block for imported ADAPT states,
+- `ansatz_branches` block for legacy/paop/hva branch lineage,
+- ADAPT metadata strict-match diagnostics when `adapt_json` import is used.
+
+### 7.5 Continuation stop policy alignment (runbook/agents)
+
+For agent-run HH continuation policies, stop decisions should be interpreted through completed-depth energy-drop traces, not raw gradient magnitude:
+
+- primary gate: low `drop(d)` over patience window after minimum depth guard,
+- optional secondary gate: low pre-opt `max|g|` for safety diagnostics.
 
 ![ADAPT loop](repo_guide_assets/49_adapt_loop_gradient_fallback.png)
 
@@ -270,6 +328,29 @@ For HH with nonzero coupling in several branches, merged pool construction and p
 For finite step size, product ordering matters whenever terms do not commute.
 
 Implemented symmetric Suzuki-2 style traversal uses forward/reverse passes over ordered labels with per-step sampling semantics.
+
+Current hardcoded propagator interface adds:
+
+- `suzuki2` (legacy default),
+- `piecewise_exact`,
+- `cfqm4`,
+- `cfqm6`.
+
+CFQM-specific implementation details inferred from code:
+
+- CFQM uses fixed scheme nodes `c_j`; `drive_time_sampling` (`midpoint/left/right`) is ignored for CFQM and emits:
+  - `CFQM ignores midpoint/left/right sampling; uses fixed scheme nodes c_j.`
+- CFQM stage backend is configurable: `expm_multiply_sparse`, `dense_expm`, or `pauli_suzuki2`.
+- choosing `pauli_suzuki2` as stage backend intentionally lowers effective global order to second order; runtime warns with:
+  - `Inner Suzuki-2 makes overall method 2nd order; use expm_multiply_sparse/dense_expm for true CFQM order.`
+- `exact_steps_multiplier` refines only the reference trajectory branch; it does not alter CFQM macro-step count.
+- `cfqm_coeff_drop_abs_tol` and `cfqm_normalize` can change trajectories by construction and must be treated as physics-affecting numerical controls, not display-only settings.
+
+Compact implementation form for CFQM macro-step:
+
+$$
+\\psi_{k+1} = \\prod_j \\exp\\left(-i\\,\\Delta t\\,\\alpha_j H(t_k + c_j\\Delta t)\\right)\\psi_k.
+$$
 
 Why step refinement helps:
 
@@ -358,7 +439,9 @@ Pipeline PDFs combine trajectory arrays into page families (summary, energy over
 
 - mistaking ordering effects for Hamiltonian-definition changes,
 - mixing branch labels across paop/hva/legacy tracks,
-- interpreting `A=0` drive equivalence failures as physical instead of implementation routing issues.
+- interpreting `A=0` drive equivalence failures as physical instead of implementation routing issues,
+- comparing CFQM runs with different stage backends as if they were the same method order class,
+- treating hardware-proxy benchmark curves as direct surrogates for dense/sparse exact-stage efficiency curves.
 
 ![Plot meaning map](repo_guide_assets/46_plot_meaning_map.png)
 
@@ -424,6 +507,38 @@ Purpose:
 - maintain continuity with prior validation baseline,
 - sanity-check shared kernels and interpretation rules outside HH-primary trio.
 
+### 12.5 Recent L2/L3 HH warm-start evidence (artifact docs)
+
+From `docs/hh_l2_l3_warmstart_paop_hva_results_explainer.md` and linked JSON artifacts:
+
+- L2 strong static VQE can reach very small absolute energy error (reported near `6.0e-07` in that report context).
+- L3 warm VQE alone is materially weaker (reported around `1.97e-02`).
+- warm-start plus ADAPT improves L3 significantly (report shows accessibility-C around `4.39e-03`).
+- separate trend-family runs can push lower (report includes points near `2.62e-04`).
+
+Implementation takeaway:
+
+- these are different run families (accessibility reruns, export reruns, combined-pool trends), so depth/parameter-count mismatches across similarly named runs are not automatically contradictions.
+- provenance fields and source JSON identity must be treated as part of correctness review, not optional metadata.
+
+### 12.6 HH noise robustness sequential workflow (active-WIP audit path)
+
+Current tree includes:
+
+- `pipelines/exact_bench/hh_noise_robustness_seq_report.py`,
+- `pipelines/exact_bench/hh_seq_transition_utils.py`,
+- `pipelines/shell/build_hh_noise_robustness_report.sh`,
+- tests:
+  - `test/test_hh_seq_transition_logic.py`,
+  - `test/test_hh_pool_b_union.py`,
+  - `test/test_hh_drive_qop_builder.py`.
+
+Audit interpretation notes for this workflow:
+
+- transition policy records plateau/slope traces for stage handoff diagnostics,
+- Pool-B strict union provenance (`uccsd_lifted + hva + paop_full`) is serialized for overlap accountability,
+- report JSON/PDF gates enforce manifest-first output and section/caption contracts.
+
 ![Canonical metrics table](repo_guide_assets/44_canonical_artifact_metrics_table.png)
 
 ![Case summary](repo_guide_assets/40_case_comparison_summary.png)
@@ -442,7 +557,10 @@ High-risk edits include:
 - changing indexing/bit mapping without synchronized observable updates,
 - rewriting number/JW logic ad hoc,
 - adding drive knobs without full pipeline surfacing,
-- changing existing JSON key semantics under old names.
+- changing existing JSON key semantics under old names,
+- changing CFQM scheme coefficients/nodes or stage-backend semantics without rerunning efficiency and parity benchmarks,
+- comparing benchmark tracks that intentionally optimize different cost models (integrator-order vs hardware-proxy) as if they were identical acceptance tests,
+- declaring parity for the legacy noiseless-estimator path without anchor-artifact/full-match checks (`artifacts/json/hc_hh_L2_static_t1.0_U2.0_g1.0_nph1.json`, strict `max_abs_delta <= 1e-10`, exact time-grid match).
 
 Minimal pre-merge checks for implementation changes:
 

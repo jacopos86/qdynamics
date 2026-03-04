@@ -2,14 +2,13 @@
 
 Document path: `docs/LLM_RESEARCH_CONTEXT.md`  
 Repository root: `/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test`  
-Snapshot generated: `2026-03-01T20:06:19Z` (UTC)  
+Snapshot generated: `2026-03-04T04:16:35Z` (UTC)  
 Git branch at snapshot: `backup/pre-delete-20260221_213720`  
-Git short commit at snapshot: `96b33f9`
+Git short commit at snapshot: `1be683c`
 
 This dossier is designed as an LLM-first handoff artifact for deep research and implementation planning. It prioritizes implementation truth, invariants, and concrete code anchors over abstract summaries.
 
 ## Purpose and How to Use This with an LLM
-Hello. 
 ### Why this exists
 
 This file is meant to remove repeated onboarding friction when handing this repo to a deep-research LLM model. Instead of asking the model to rediscover conventions, locate entry points, infer state from scattered docs, and guess what is already in flight, this dossier centralizes all of that context.
@@ -122,6 +121,9 @@ Based on current repository text and active docs:
 | [`pipelines/qiskit_archive/qiskit_baseline.py`](../pipelines/qiskit_archive/qiskit_baseline.py) | Qiskit baseline for comparison/validation | Not core production VQE path. |
 | [`pipelines/qiskit_archive/compare_hc_vs_qk.py`](../pipelines/qiskit_archive/compare_hc_vs_qk.py) | Orchestrator for HC vs QK compare artifacts | Includes drive passthrough, safe-test checks, and compare PDFs. |
 | [`pipelines/exact_bench/cross_check_suite.py`](../pipelines/exact_bench/cross_check_suite.py) | Exact benchmark suite across ansatz/modes | Auto-scales from AGENTS minimum guidance tables. |
+| [`pipelines/exact_bench/cfqm_vs_suzuki_efficiency_suite.py`](../pipelines/exact_bench/cfqm_vs_suzuki_efficiency_suite.py) | CFQM-vs-Suzuki error/cost suite | Includes `hh_L2_nb1` and `hh_L3_nb1`, `adapt_json` imports, and `adapt_pool=auto` mapping. |
+| [`pipelines/exact_bench/hh_noise_hardware_validation.py`](../pipelines/exact_bench/hh_noise_hardware_validation.py) | HH noisy-estimator and hardware-facing validation | Produces JSON/PDF with manifest-first report structure. |
+| [`pipelines/exact_bench/hh_noise_robustness_seq_report.py`](../pipelines/exact_bench/hh_noise_robustness_seq_report.py) | Sequential HH robustness report | Warm-start -> ADAPT Pool-B strict union -> conventional VQE, then noiseless/noisy audits. |
 
 ### Reality note on script naming
 
@@ -249,6 +251,7 @@ flowchart TB
 | Qiskit baseline runtime | [`pipelines/qiskit_archive/qiskit_baseline.py`](../pipelines/qiskit_archive/qiskit_baseline.py) | Baseline comparison implementation and optional QPE path. |
 | Compare orchestration | [`pipelines/qiskit_archive/compare_hc_vs_qk.py`](../pipelines/qiskit_archive/compare_hc_vs_qk.py) | Cross-run orchestration, metrics extraction, compare PDFs. |
 | Benchmarking/oracle support | [`pipelines/exact_bench/cross_check_suite.py`](../pipelines/exact_bench/cross_check_suite.py), [`src/quantum/ed_hubbard_holstein.py`](../src/quantum/ed_hubbard_holstein.py) | Exact references and cross-check runs. |
+| Sequential HH robustness tooling | [`pipelines/exact_bench/hh_noise_robustness_seq_report.py`](../pipelines/exact_bench/hh_noise_robustness_seq_report.py), [`pipelines/exact_bench/hh_seq_transition_utils.py`](../pipelines/exact_bench/hh_seq_transition_utils.py), [`pipelines/shell/build_hh_noise_robustness_report.sh`](../pipelines/shell/build_hh_noise_robustness_report.sh) | Stage-transition diagnostics, Pool-B strict-union provenance, manifest-gated JSON/PDF outputs. |
 | Report rendering | [`reports/pdf_utils.py`](../reports/pdf_utils.py) | Shared PDF page and manifest rendering helpers. |
 
 ### Staleness and alias notes (important)
@@ -387,7 +390,7 @@ High-risk extension points:
 
 ### Current pool extension direction
 
-Current in-progress work indicates expanded PAOP/LF pool families in [`src/quantum/operator_pools/polaron_paop.py`](../src/quantum/operator_pools/polaron_paop.py), including new LF channels and aliases. This is captured in WIP section with confidence tags.
+Current tree includes expanded PAOP/LF pool families in [`src/quantum/operator_pools/polaron_paop.py`](../src/quantum/operator_pools/polaron_paop.py), including LF channels and aliases. Treat ongoing tuning as workflow-level WIP, not missing implementation surface.
 
 ### Operator-layer anti-patterns to avoid in proposals
 
@@ -715,7 +718,10 @@ Manifest-first consistency is both a readability requirement and a reproducibili
 | [`pipelines/shell/run_drive_accurate.sh`](../pipelines/shell/run_drive_accurate.sh) | Drive-enabled accuracy-gated runner. |
 | [`pipelines/shell/run_scaling_L2_L6.sh`](../pipelines/shell/run_scaling_L2_L6.sh) | Scaling preset orchestration. |
 | [`pipelines/exact_bench/cross_check_suite.py`](../pipelines/exact_bench/cross_check_suite.py) | Exact benchmark suite across ansatz families. |
-| [`pipelines/exact_bench/overnight_l3_hh_four_method_benchmark.py`](../pipelines/exact_bench/overnight_l3_hh_four_method_benchmark.py) | WIP overnight HH benchmark orchestration. |
+| [`pipelines/exact_bench/cfqm_vs_suzuki_efficiency_suite.py`](../pipelines/exact_bench/cfqm_vs_suzuki_efficiency_suite.py) | Integrator-order and hardware-proxy cost benchmarking with equal-cost tie tables. |
+| [`pipelines/shell/build_hh_noise_robustness_report.sh`](../pipelines/shell/build_hh_noise_robustness_report.sh) | End-to-end HH sequential robustness report build + JSON/PDF contract gates. |
+| [`pipelines/exact_bench/hh_noise_robustness_seq_report.py`](../pipelines/exact_bench/hh_noise_robustness_seq_report.py) | Direct runner for sequential stage-transition robustness and noisy/noiseless overlays. |
+| [`pipelines/exact_bench/overnight_l3_hh_four_method_benchmark.py`](../pipelines/exact_bench/overnight_l3_hh_four_method_benchmark.py) | Experimental overnight HH benchmark orchestration. |
 
 ### Test-to-invariant coverage matrix
 
@@ -727,7 +733,11 @@ Manifest-first consistency is both a readability requirement and a reproducibili
 | Compare HH guard behavior | `test/test_trotter_hh_integration.py` class `TestComparePipelineHHGuard` |
 | Qiskit baseline HH guard behavior | `test/test_trotter_hh_integration.py` class `TestQiskitBaselineHHGuard` |
 | HH exact-ground consistency helpers | `test/test_trotter_hh_integration.py` class `TestHHExactGroundEnergy` |
-| ADAPT pool behavior, including LF additions in WIP | `test/test_adapt_vqe_integration.py` class groups `TestPAOPPoolBuilder` and related integration checks |
+| ADAPT pool behavior, including LF additions | `test/test_adapt_vqe_integration.py` class groups `TestPAOPPoolBuilder` and related integration checks |
+| CFQM efficiency-suite scenario/CLI expansion | `test/test_cfqm_efficiency_benchmark.py` (`hh_L2_nb1`, `hh_L3_nb1`, `--sinusoid-omegas`, `--gaussian-tbars`, `adapt_json` pass-through, `adapt_pool=auto`) |
+| HH transition plateau logic | `test/test_hh_seq_transition_logic.py` |
+| Pool-B strict-union dedup/provenance | `test/test_hh_pool_b_union.py` |
+| Time-dependent SparsePauliOp drive merge logic | `test/test_hh_drive_qop_builder.py` |
 
 ### Residual testing gaps worth tracking
 
@@ -744,46 +754,44 @@ Status basis for this section: current uncommitted and untracked files in workin
 
 Tag format used below: `[WIP-UNCOMMITTED][confidence=<stable|likely-stable|provisional>]`
 
+Snapshot working-tree summary: `modified=15`, `untracked=13` (no staged additions/deletions at snapshot time).
+
 ### [WIP-UNCOMMITTED][confidence=stable]
 
-- [`pipelines/run_guide.md`](../pipelines/run_guide.md)
-  - Description: ADAPT pool docs updated to include new LF pool family names and definitions.
-  - Reason confidence is stable: documentation aligns with direct code-level CLI changes and explicit tests were added.
+- [`AGENTS.md`](../AGENTS.md), [`pipelines/run_guide.md`](../pipelines/run_guide.md), [`README.md`](../README.md)
+  - Description: policy/doc updates now include ADAPT continuation stop semantics (energy-error-drop first) and refreshed CFQM efficiency examples.
+  - Reason confidence is stable: contracts are explicit and are reflected in updated CLI/test behavior.
+
+- [`pipelines/exact_bench/cfqm_vs_suzuki_efficiency_suite.py`](../pipelines/exact_bench/cfqm_vs_suzuki_efficiency_suite.py), [`test/test_cfqm_efficiency_benchmark.py`](../test/test_cfqm_efficiency_benchmark.py)
+  - Description: new scenario keys (`hh_L2_nb1`, `hh_L3_nb1`), configurable drive grids (`--sinusoid-omegas`, `--gaussian-tbars`), `adapt_json` import path/strict-match controls, and `adapt_pool=auto` mapping.
+  - Reason confidence is stable: targeted regression tests pass in current tree.
 
 ### [WIP-UNCOMMITTED][confidence=likely-stable]
 
-- [`pipelines/hardcoded/adapt_pipeline.py`](../pipelines/hardcoded/adapt_pipeline.py)
-  - Description: new accepted `--adapt-pool` choices include `paop_lf`, `paop_lf_std`, `paop_lf2_std`, `paop_lf_full`.
-  - Notes: updates include parse choices and HH pool validation messages.
-
-- [`pipelines/hardcoded/hubbard_pipeline.py`](../pipelines/hardcoded/hubbard_pipeline.py)
-  - Description: internal ADAPT branch pool choices expanded to include LF pool family names.
-
-- [`src/quantum/operator_pools/polaron_paop.py`](../src/quantum/operator_pools/polaron_paop.py)
-  - Description: expanded PAOP generation logic with LF channels (for example curdrag/hop2 and LF-full extensions), import canonicalization to `qubitization_module.PauliTerm`.
-
-- [`test/test_adapt_vqe_integration.py`](../test/test_adapt_vqe_integration.py)
-  - Description: new tests for LF pool variants, alias behavior, and coefficient sanity.
+- [`pipelines/exact_bench/hh_noise_robustness_seq_report.py`](../pipelines/exact_bench/hh_noise_robustness_seq_report.py)
+- [`pipelines/exact_bench/hh_seq_transition_utils.py`](../pipelines/exact_bench/hh_seq_transition_utils.py)
+- [`pipelines/shell/build_hh_noise_robustness_report.sh`](../pipelines/shell/build_hh_noise_robustness_report.sh)
+- [`test/test_hh_seq_transition_logic.py`](../test/test_hh_seq_transition_logic.py)
+- [`test/test_hh_pool_b_union.py`](../test/test_hh_pool_b_union.py)
+- [`test/test_hh_drive_qop_builder.py`](../test/test_hh_drive_qop_builder.py)
+  - Description: new sequential HH robustness workflow and helper primitives (transition policy, Pool-B strict union, drive QOP builder) plus focused tests.
+  - Reason confidence is likely-stable: local targeted tests pass; broader long-horizon run coverage is still maturing.
 
 ### [WIP-UNCOMMITTED][confidence=provisional]
 
 - [`docs/repo_implementation_guide.md`](../docs/repo_implementation_guide.md)
-- [`reports/guide_assets.py`](../reports/guide_assets.py)
-- [`pipelines/shell/build_guide.sh`](../pipelines/shell/build_guide.sh)
-- multiple regenerated binary assets in [`docs/repo_guide_assets`](../docs/repo_guide_assets)
-  - Description: extensive guide/documentation regeneration in progress.
-  - Reason provisional: large surface area and regenerated assets likely still iterating.
+- [`docs/LLM_RESEARCH_CONTEXT.md`](../docs/LLM_RESEARCH_CONTEXT.md)
+- regenerated guide outputs in [`docs/repo_guide_assets`](../docs/repo_guide_assets) and [`docs/Repo implementation guide.PDF`](../docs/Repo implementation guide.PDF)
+  - Description: documentation/asset refresh is active in this snapshot and may continue to iterate with report wording and figure layout adjustments.
+  - Reason provisional: large generated surface with many dependent assets.
 
-- [`docs/main1_hh_math_extension.md`](../docs/main1_hh_math_extension.md) (untracked)
-- [`docs/Main1_HH_Math_Extension.pdf`](../docs/Main1_HH_Math_Extension.pdf) (untracked)
-  - Description: extensive HH mathematical extension manuscript and PDF output.
-  - Reason provisional: new document family not yet clearly integrated into canonical doc order.
+- [`docs/HH noise robustness report.PDF`](../docs/HH noise robustness report.PDF) (untracked)
+  - Description: generated report artifact from sequential HH robustness workflow.
+  - Reason provisional: output artifact is not yet part of a pinned baseline set.
 
-- [`pipelines/exact_bench/overnight_l3_hh_four_method_benchmark.py`](../pipelines/exact_bench/overnight_l3_hh_four_method_benchmark.py) (untracked)
-- [`pipelines/shell/run_l3_hh_4method_overnight.sh`](../pipelines/shell/run_l3_hh_4method_overnight.sh) (untracked)
-- [`pipelines/shell/build_main1_hh_math_extension.sh`](../pipelines/shell/build_main1_hh_math_extension.sh) (untracked)
-  - Description: overnight benchmark and build script additions.
-  - Reason provisional: appears to be active development branch additions not yet reflected in standard runbook contract.
+- local workspace scratch files (for example `.obsidian/`, `Untitled*.base`, `Untitled.canvas`, `2026-03-03.md`)
+  - Description: editor/session artifacts not part of repository runtime contracts.
+  - Reason provisional: should be ignored by implementation proposals unless explicitly requested.
 
 ### WIP interpretation guidance for LLM consumers
 
@@ -826,48 +834,49 @@ Impact:
 
 - core hardcoded path still depends on adapter pattern for QPE requests.
 
-### 4) Documentation path drift can mislead automation/LLMs
+### 4) Legacy path aliases still appear in selected older docs
 
 Evidence:
 
-- legacy names in [`docs/FERMI_HAMIL_README.md`](../docs/FERMI_HAMIL_README.md)
-- legacy script names in [`pipelines/run_guide.md`](../pipelines/run_guide.md)
+- legacy names remain in [`docs/FERMI_HAMIL_README.md`](../docs/FERMI_HAMIL_README.md) and similar archival notes,
+- active runbook/docs now mostly normalized to current paths.
 
 Impact:
 
-- generated proposals may reference non-existent files unless normalized through alias table.
+- LLM proposals should still normalize through the alias table before emitting implementation paths.
 
-### 5) Artifact naming assumptions are not fully stable across docs and files
+### 5) Artifact filename assumptions are still brittle across producer families
 
 Evidence:
 
-- expected `*_S256_dyn.json` pattern in some narratives vs actual on-disk `*_S256.json` observed in [`artifacts/json`](../artifacts/json)
+- multiple JSON families (`hc_*`, `adapt_*`, compare `cmp_*`, efficiency suite outputs) use different naming conventions,
+- some downstream narratives still assume pattern variants not universally present.
 
 Impact:
 
-- rigid filename parsing may fail; semantic field checks are safer.
+- parsers should key off payload structure and required fields rather than filename regex alone.
 
-### 6) Amplitude comparison mode has policy/docs support but no local sample artifacts in this snapshot
+### 6) Amplitude-comparison mode remains underrepresented in local artifact baselines
 
 Evidence:
 
-- compare code includes `_run_amplitude_comparison_for_l` and PDF writer,
-- AGENTS/run docs define mode and required metrics,
-- no `amp_*` JSON files observed in current `artifacts/json` listing.
+- compare code/runbook support amplitude mode,
+- local artifact directories do not yet include a pinned canonical `amp_*` reference set at snapshot time.
 
 Impact:
 
-- downstream consumers may need a reference run to validate expected schema/pages.
+- downstream report tooling and schema checks need either generated reference artifacts or tolerant fallback handling.
 
-### 7) Large-L HH performance confidence remains emerging
+### 7) Environment-level Aer stability can block full-suite reproducibility
 
 Evidence:
 
-- dedicated overnight benchmark scripts currently appear as untracked WIP.
+- full `pytest -q` in this environment can abort in Aer-backed noise tests (`Abort trap: 6`),
+- targeted and most non-Aer suites pass; build pipeline succeeded with Aer-sensitive tests deselected.
 
 Impact:
 
-- heavy scaling claims need consolidation into reproducible benchmark outputs.
+- CI/proposal validation plans should explicitly separate environment-sensitive Aer checks from core logic regressions.
 
 ## Research Opportunity Matrix
 
@@ -879,7 +888,7 @@ This matrix is factual-plus-hypothesis: opportunities are grounded in current co
 | Hardcoded QPE replacement | Replacing temporary Qiskit adapter can remove dependency and align with no-Qiskit core intent | TODO explicitly exists; current path still adapter-based | [`pipelines/qiskit_archive/qpe_helper.py`](../pipelines/qiskit_archive/qpe_helper.py), hardcoded pipeline QPE call sites | Hardcoded QPE module + regression report vs exact small-L cases |
 | Amplitude-comparison reference pack | Producing canonical `amp_*` artifacts improves report/tooling calibration | Feature is implemented but no sample artifacts currently present | compare pipeline amplitude functions + runbook docs | `amp_cmp_hubbard_*.pdf` and `amp_cmp_hubbard_*_metrics.json` baseline set |
 | Schema contract formalization | Explicit JSON schema docs/tests reduce parser drift and filename brittleness | Multiple payload families and naming drift exist | pipeline JSON emitters + tests + docs | versioned schema docs and validation tests |
-| HH pool family benchmarking | Systematic benchmark of `paop_*` vs `paop_lf_*` could identify convergence/runtime tradeoffs | New LF pool family is in WIP and needs quantitative framing | [`src/quantum/operator_pools/polaron_paop.py`](../src/quantum/operator_pools/polaron_paop.py), adapt pipeline, benchmark scripts | benchmark summary CSV/JSON + comparative PDF |
+| HH pool family benchmarking | Systematic benchmark of `paop_*` vs `paop_lf_*` could identify convergence/runtime tradeoffs | LF pool family is implemented and needs quantitative framing under standardized workloads | [`src/quantum/operator_pools/polaron_paop.py`](../src/quantum/operator_pools/polaron_paop.py), adapt pipeline, benchmark scripts | benchmark summary CSV/JSON + comparative PDF |
 | Drive strong-regime reference strategy | Clarifying when piecewise reference is sufficient vs stronger solvers improves scientific trust | comments note deferred stronger options | qiskit baseline drive path + design note + tests | documented regime table and error-vs-step sweeps |
 | Doc/runtime path normalization | Reducing legacy path names lowers LLM and contributor navigation errors | current docs contain legacy aliases | README + run_guide + legacy docs | consistent path map and deprecation notes |
 | Cross-check suite expansion | Additional ansatz/problem matrix and richer report channels can improve research throughput | cross-check suite already auto-scales and writes multipage PDFs | [`pipelines/exact_bench/cross_check_suite.py`](../pipelines/exact_bench/cross_check_suite.py), report helpers | expanded xchk PDFs and summary metrics index |
@@ -905,6 +914,8 @@ This section is a condensed execution policy map intended to prevent invalid pro
 4. Preserve safe-test invariant (`A=0` vs no-drive).
 5. Preserve PDF manifest-first policy.
 6. Do not run under-parameterized pipeline runs below AGENTS minimum tables unless explicitly marked as smoke tests.
+7. For agent-run HH continuation/handoff, use energy-error drop as primary stop signal; gradient floors are secondary diagnostics.
+8. For legacy noiseless-estimator parity checks, use the locked L2 anchor artifact and enforce strict `max_abs_delta <= 1e-10` with exact time-grid match.
 
 ### Mandatory minimum runtime guidance (Hubbard)
 
@@ -941,96 +952,130 @@ For shorthand "cross-check L=...":
 - keep parameter scales at or above AGENTS minimum guidance,
 - do not undercut `vqe-maxiter` or trotter depth in normal runs.
 
+### ADAPT continuation stop policy (agent-run HH)
+
+Use energy-drop-first semantics:
+
+- `DeltaE_abs(d) := |E_best(d) - E_exact_filtered|`
+- `drop(d) := DeltaE_abs(d-1) - DeltaE_abs(d)`
+
+Required interpretation:
+
+- stop on low `drop(d)` for `M` consecutive completed depths after minimum depth guard `d_min`,
+- treat gradient floors (`max|g| < g_floor`) as optional secondary safety gates only.
+
+Recommended L=4 overnight defaults from run guide:
+
+- `drop_floor = 5e-4`
+- `M = 3`
+- `d_min = 12`
+- optional `g_floor = 2e-2`
+
+### Legacy noiseless-estimator parity anchor (validation exception)
+
+When parity between new noiseless-estimator path and pre-noise HH pipeline is requested:
+
+1. Use locked baseline artifact: `artifacts/json/hc_hh_L2_static_t1.0_U2.0_g1.0_nph1.json`.
+2. Run full-match settings (no downscaled knobs).
+3. Require exact time-grid match and strict gate `max_abs_delta <= 1e-10` on selected observables.
+4. Record parity results in JSON/PDF fields (`legacy_parity.*`) and emit comparison plot when requested.
+
 ## Exhaustive Function Inventory Appendices (key files, function/class names, line anchors)
 
-The generated appendix below is exhaustive for top-level functions/classes/methods in required major modules at this snapshot.
+The generated appendix below is refreshed from current AST state for major runtime and operator modules, including new exact-bench HH robustness tooling.
 
 ### Appendix A. Function and Class Inventory (Generated from AST)
 
-Scope: exhaustive top-level functions, classes, and class methods for key pipeline modules and core quantum modules.
+Scope: exhaustive top-level functions, classes, and class methods for selected key pipeline and core quantum modules at this snapshot.
 
 #### `pipelines/hardcoded/hubbard_pipeline.py`
 | Kind | Symbol | Line Anchor |
 |---|---|---|
-| FUNC | `_ai_log` | `pipelines/hardcoded/hubbard_pipeline.py:65` |
-| CLASS | `CompiledPauliAction` | `pipelines/hardcoded/hubbard_pipeline.py:86` |
-| FUNC | `_to_ixyz` | `pipelines/hardcoded/hubbard_pipeline.py:92` |
-| FUNC | `_normalize_state` | `pipelines/hardcoded/hubbard_pipeline.py:96` |
-| FUNC | `_half_filled_particles` | `pipelines/hardcoded/hubbard_pipeline.py:103` |
-| FUNC | `_sector_basis_indices` | `pipelines/hardcoded/hubbard_pipeline.py:107` |
-| FUNC | `_ground_manifold_basis_sector_filtered` | `pipelines/hardcoded/hubbard_pipeline.py:141` |
-| FUNC | `_sector_basis_indices_hh` | `pipelines/hardcoded/hubbard_pipeline.py:176` |
-| FUNC | `_ground_manifold_basis_sector_filtered_hh` | `pipelines/hardcoded/hubbard_pipeline.py:213` |
-| FUNC | `_orthonormalize_basis_columns` | `pipelines/hardcoded/hubbard_pipeline.py:245` |
-| FUNC | `_projector_fidelity_from_basis` | `pipelines/hardcoded/hubbard_pipeline.py:261` |
-| FUNC | `_exact_ground_state_sector_filtered` | `pipelines/hardcoded/hubbard_pipeline.py:276` |
-| FUNC | `_exact_energy_sector_filtered` | `pipelines/hardcoded/hubbard_pipeline.py:294` |
-| FUNC | `_pauli_matrix_exyz` | `pipelines/hardcoded/hubbard_pipeline.py:310` |
-| FUNC | `_collect_hardcoded_terms_exyz` | `pipelines/hardcoded/hubbard_pipeline.py:318` |
-| FUNC | `_build_hamiltonian_matrix` | `pipelines/hardcoded/hubbard_pipeline.py:341` |
-| FUNC | `_compile_pauli_action` | `pipelines/hardcoded/hubbard_pipeline.py:352` |
-| FUNC | `_apply_compiled_pauli` | `pipelines/hardcoded/hubbard_pipeline.py:380` |
-| FUNC | `_apply_exp_term` | `pipelines/hardcoded/hubbard_pipeline.py:386` |
-| FUNC | `_evolve_trotter_suzuki2_absolute` | `pipelines/hardcoded/hubbard_pipeline.py:400` |
-| FUNC | `_expectation_hamiltonian` | `pipelines/hardcoded/hubbard_pipeline.py:473` |
-| FUNC | `_build_drive_matrix_at_time` | `pipelines/hardcoded/hubbard_pipeline.py:477` |
-| FUNC | `_spin_orbital_bit_index` | `pipelines/hardcoded/hubbard_pipeline.py:509` |
-| FUNC | `_site_resolved_number_observables` | `pipelines/hardcoded/hubbard_pipeline.py:518` |
-| FUNC | `_staggered_order` | `pipelines/hardcoded/hubbard_pipeline.py:543` |
-| FUNC | `_state_to_amplitudes_qn_to_q0` | `pipelines/hardcoded/hubbard_pipeline.py:550` |
-| FUNC | `_state_from_amplitudes_qn_to_q0` | `pipelines/hardcoded/hubbard_pipeline.py:561` |
-| FUNC | `_load_adapt_initial_state` | `pipelines/hardcoded/hubbard_pipeline.py:581` |
-| FUNC | `_validate_adapt_metadata` | `pipelines/hardcoded/hubbard_pipeline.py:603` |
-| FUNC | `_load_hardcoded_vqe_namespace` | `pipelines/hardcoded/hubbard_pipeline.py:645` |
-| FUNC | `_run_hardcoded_vqe` | `pipelines/hardcoded/hubbard_pipeline.py:670` |
-| FUNC | `_run_internal_adapt_paop` | `pipelines/hardcoded/hubbard_pipeline.py:885` |
-| FUNC | `_run_qpe_adapter_qiskit` | `pipelines/hardcoded/hubbard_pipeline.py:948` |
-| FUNC | `_reference_terms_for_case` | `pipelines/hardcoded/hubbard_pipeline.py:967` |
-| FUNC | `_reference_sanity` | `pipelines/hardcoded/hubbard_pipeline.py:1002` |
-| FUNC | `_is_all_z_type` | `pipelines/hardcoded/hubbard_pipeline.py:1061` |
-| FUNC | `_build_drive_diagonal` | `pipelines/hardcoded/hubbard_pipeline.py:1076` |
-| FUNC | `_evolve_piecewise_exact` | `pipelines/hardcoded/hubbard_pipeline.py:1123` |
-| FUNC | `_simulate_trajectory` | `pipelines/hardcoded/hubbard_pipeline.py:1284` |
-| FUNC | `_write_pipeline_pdf` | `pipelines/hardcoded/hubbard_pipeline.py:1573` |
-| FUNC | `parse_args` | `pipelines/hardcoded/hubbard_pipeline.py:2266` |
-| FUNC | `main` | `pipelines/hardcoded/hubbard_pipeline.py:2458` |
+| FUNC | `_ai_log` | `pipelines/hardcoded/hubbard_pipeline.py:84` |
+| FUNC | `_to_ixyz` | `pipelines/hardcoded/hubbard_pipeline.py:104` |
+| FUNC | `_normalize_state` | `pipelines/hardcoded/hubbard_pipeline.py:108` |
+| FUNC | `_half_filled_particles` | `pipelines/hardcoded/hubbard_pipeline.py:115` |
+| FUNC | `_sector_basis_indices` | `pipelines/hardcoded/hubbard_pipeline.py:119` |
+| FUNC | `_ground_manifold_basis_sector_filtered` | `pipelines/hardcoded/hubbard_pipeline.py:153` |
+| FUNC | `_sector_basis_indices_hh` | `pipelines/hardcoded/hubbard_pipeline.py:188` |
+| FUNC | `_ground_manifold_basis_sector_filtered_hh` | `pipelines/hardcoded/hubbard_pipeline.py:225` |
+| FUNC | `_orthonormalize_basis_columns` | `pipelines/hardcoded/hubbard_pipeline.py:257` |
+| FUNC | `_projector_fidelity_from_basis` | `pipelines/hardcoded/hubbard_pipeline.py:273` |
+| FUNC | `_exact_ground_state_sector_filtered` | `pipelines/hardcoded/hubbard_pipeline.py:288` |
+| FUNC | `_exact_energy_sector_filtered` | `pipelines/hardcoded/hubbard_pipeline.py:306` |
+| FUNC | `_pauli_matrix_exyz` | `pipelines/hardcoded/hubbard_pipeline.py:322` |
+| FUNC | `_collect_hardcoded_terms_exyz` | `pipelines/hardcoded/hubbard_pipeline.py:330` |
+| FUNC | `_build_hamiltonian_matrix` | `pipelines/hardcoded/hubbard_pipeline.py:353` |
+| FUNC | `_compile_pauli_action` | `pipelines/hardcoded/hubbard_pipeline.py:364` |
+| FUNC | `_apply_compiled_pauli` | `pipelines/hardcoded/hubbard_pipeline.py:368` |
+| FUNC | `_apply_exp_term` | `pipelines/hardcoded/hubbard_pipeline.py:372` |
+| FUNC | `_evolve_trotter_suzuki2_absolute` | `pipelines/hardcoded/hubbard_pipeline.py:388` |
+| FUNC | `_expectation_hamiltonian` | `pipelines/hardcoded/hubbard_pipeline.py:461` |
+| FUNC | `_build_drive_matrix_at_time` | `pipelines/hardcoded/hubbard_pipeline.py:465` |
+| FUNC | `_spin_orbital_bit_index` | `pipelines/hardcoded/hubbard_pipeline.py:497` |
+| FUNC | `_site_resolved_number_observables` | `pipelines/hardcoded/hubbard_pipeline.py:506` |
+| FUNC | `_staggered_order` | `pipelines/hardcoded/hubbard_pipeline.py:531` |
+| FUNC | `_state_to_amplitudes_qn_to_q0` | `pipelines/hardcoded/hubbard_pipeline.py:538` |
+| FUNC | `_state_from_amplitudes_qn_to_q0` | `pipelines/hardcoded/hubbard_pipeline.py:549` |
+| FUNC | `_load_adapt_initial_state` | `pipelines/hardcoded/hubbard_pipeline.py:569` |
+| FUNC | `_validate_adapt_metadata` | `pipelines/hardcoded/hubbard_pipeline.py:591` |
+| FUNC | `_load_hardcoded_vqe_namespace` | `pipelines/hardcoded/hubbard_pipeline.py:633` |
+| FUNC | `_run_hardcoded_vqe` | `pipelines/hardcoded/hubbard_pipeline.py:659` |
+| FUNC | `_run_internal_adapt_paop` | `pipelines/hardcoded/hubbard_pipeline.py:889` |
+| FUNC | `_run_qpe_adapter_qiskit` | `pipelines/hardcoded/hubbard_pipeline.py:954` |
+| FUNC | `_reference_terms_for_case` | `pipelines/hardcoded/hubbard_pipeline.py:973` |
+| FUNC | `_reference_sanity` | `pipelines/hardcoded/hubbard_pipeline.py:1008` |
+| FUNC | `_is_all_z_type` | `pipelines/hardcoded/hubbard_pipeline.py:1067` |
+| FUNC | `_build_drive_diagonal` | `pipelines/hardcoded/hubbard_pipeline.py:1082` |
+| FUNC | `_evolve_piecewise_exact` | `pipelines/hardcoded/hubbard_pipeline.py:1129` |
+| FUNC | `_simulate_trajectory` | `pipelines/hardcoded/hubbard_pipeline.py:1290` |
+| FUNC | `_write_pipeline_pdf` | `pipelines/hardcoded/hubbard_pipeline.py:1687` |
+| FUNC | `parse_args` | `pipelines/hardcoded/hubbard_pipeline.py:2382` |
+| FUNC | `main` | `pipelines/hardcoded/hubbard_pipeline.py:2613` |
 
 #### `pipelines/hardcoded/adapt_pipeline.py`
 | Kind | Symbol | Line Anchor |
 |---|---|---|
 | FUNC | `_ai_log` | `pipelines/hardcoded/adapt_pipeline.py:99` |
 | CLASS | `CompiledPauliAction` | `pipelines/hardcoded/adapt_pipeline.py:113` |
-| FUNC | `_to_ixyz` | `pipelines/hardcoded/adapt_pipeline.py:119` |
-| FUNC | `_normalize_state` | `pipelines/hardcoded/adapt_pipeline.py:123` |
-| FUNC | `_collect_hardcoded_terms_exyz` | `pipelines/hardcoded/adapt_pipeline.py:130` |
-| FUNC | `_pauli_matrix_exyz` | `pipelines/hardcoded/adapt_pipeline.py:147` |
-| FUNC | `_build_hamiltonian_matrix` | `pipelines/hardcoded/adapt_pipeline.py:155` |
-| FUNC | `_compile_pauli_action` | `pipelines/hardcoded/adapt_pipeline.py:170` |
-| FUNC | `_apply_compiled_pauli` | `pipelines/hardcoded/adapt_pipeline.py:195` |
-| FUNC | `_apply_exp_term` | `pipelines/hardcoded/adapt_pipeline.py:201` |
-| FUNC | `_evolve_trotter_suzuki2_absolute` | `pipelines/hardcoded/adapt_pipeline.py:211` |
-| FUNC | `_expectation_hamiltonian` | `pipelines/hardcoded/adapt_pipeline.py:227` |
-| FUNC | `_occupation_site0` | `pipelines/hardcoded/adapt_pipeline.py:235` |
-| FUNC | `_doublon_total` | `pipelines/hardcoded/adapt_pipeline.py:245` |
-| FUNC | `_state_to_amplitudes_qn_to_q0` | `pipelines/hardcoded/adapt_pipeline.py:258` |
-| CLASS | `AdaptVQEResult` | `pipelines/hardcoded/adapt_pipeline.py:274` |
-| FUNC | `_build_uccsd_pool` | `pipelines/hardcoded/adapt_pipeline.py:284` |
-| FUNC | `_build_cse_pool` | `pipelines/hardcoded/adapt_pipeline.py:306` |
-| FUNC | `_build_full_hamiltonian_pool` | `pipelines/hardcoded/adapt_pipeline.py:329` |
-| FUNC | `_polynomial_signature` | `pipelines/hardcoded/adapt_pipeline.py:361` |
-| FUNC | `_build_hh_termwise_augmented_pool` | `pipelines/hardcoded/adapt_pipeline.py:376` |
-| FUNC | `_build_hva_pool` | `pipelines/hardcoded/adapt_pipeline.py:415` |
-| FUNC | `_build_paop_pool` | `pipelines/hardcoded/adapt_pipeline.py:491` |
-| FUNC | `_apply_pauli_polynomial` | `pipelines/hardcoded/adapt_pipeline.py:523` |
-| FUNC | `_commutator_gradient` | `pipelines/hardcoded/adapt_pipeline.py:544` |
-| FUNC | `_prepare_adapt_state` | `pipelines/hardcoded/adapt_pipeline.py:567` |
-| FUNC | `_adapt_energy_fn` | `pipelines/hardcoded/adapt_pipeline.py:579` |
-| FUNC | `_exact_gs_energy_for_problem` | `pipelines/hardcoded/adapt_pipeline.py:590` |
-| FUNC | `_run_hardcoded_adapt_vqe` | `pipelines/hardcoded/adapt_pipeline.py:623` |
-| FUNC | `_simulate_trajectory` | `pipelines/hardcoded/adapt_pipeline.py:1121` |
-| FUNC | `_write_pipeline_pdf` | `pipelines/hardcoded/adapt_pipeline.py:1201` |
-| FUNC | `parse_args` | `pipelines/hardcoded/adapt_pipeline.py:1312` |
-| FUNC | `main` | `pipelines/hardcoded/adapt_pipeline.py:1417` |
+| CLASS | `CompiledPolynomialTerm` | `pipelines/hardcoded/adapt_pipeline.py:120` |
+| CLASS | `CompiledPolynomialAction` | `pipelines/hardcoded/adapt_pipeline.py:126` |
+| FUNC | `_to_ixyz` | `pipelines/hardcoded/adapt_pipeline.py:130` |
+| FUNC | `_normalize_state` | `pipelines/hardcoded/adapt_pipeline.py:134` |
+| FUNC | `_collect_hardcoded_terms_exyz` | `pipelines/hardcoded/adapt_pipeline.py:141` |
+| FUNC | `_pauli_matrix_exyz` | `pipelines/hardcoded/adapt_pipeline.py:158` |
+| FUNC | `_build_hamiltonian_matrix` | `pipelines/hardcoded/adapt_pipeline.py:166` |
+| FUNC | `_compile_pauli_action` | `pipelines/hardcoded/adapt_pipeline.py:181` |
+| FUNC | `_apply_compiled_pauli` | `pipelines/hardcoded/adapt_pipeline.py:206` |
+| FUNC | `_compile_polynomial_action` | `pipelines/hardcoded/adapt_pipeline.py:212` |
+| FUNC | `_apply_compiled_polynomial` | `pipelines/hardcoded/adapt_pipeline.py:249` |
+| FUNC | `_apply_exp_term` | `pipelines/hardcoded/adapt_pipeline.py:260` |
+| FUNC | `_evolve_trotter_suzuki2_absolute` | `pipelines/hardcoded/adapt_pipeline.py:270` |
+| FUNC | `_expectation_hamiltonian` | `pipelines/hardcoded/adapt_pipeline.py:286` |
+| FUNC | `_occupation_site0` | `pipelines/hardcoded/adapt_pipeline.py:294` |
+| FUNC | `_doublon_total` | `pipelines/hardcoded/adapt_pipeline.py:304` |
+| FUNC | `_state_to_amplitudes_qn_to_q0` | `pipelines/hardcoded/adapt_pipeline.py:317` |
+| CLASS | `AdaptVQEResult` | `pipelines/hardcoded/adapt_pipeline.py:333` |
+| FUNC | `_build_uccsd_pool` | `pipelines/hardcoded/adapt_pipeline.py:343` |
+| FUNC | `_build_cse_pool` | `pipelines/hardcoded/adapt_pipeline.py:365` |
+| FUNC | `_build_full_hamiltonian_pool` | `pipelines/hardcoded/adapt_pipeline.py:388` |
+| FUNC | `_polynomial_signature` | `pipelines/hardcoded/adapt_pipeline.py:420` |
+| FUNC | `_build_hh_termwise_augmented_pool` | `pipelines/hardcoded/adapt_pipeline.py:435` |
+| FUNC | `_build_hva_pool` | `pipelines/hardcoded/adapt_pipeline.py:474` |
+| FUNC | `_build_hh_uccsd_fermion_lifted_pool` | `pipelines/hardcoded/adapt_pipeline.py:550` |
+| FUNC | `_build_paop_pool` | `pipelines/hardcoded/adapt_pipeline.py:607` |
+| FUNC | `_deduplicate_pool_terms` | `pipelines/hardcoded/adapt_pipeline.py:639` |
+| FUNC | `_apply_pauli_polynomial_uncached` | `pipelines/hardcoded/adapt_pipeline.py:652` |
+| FUNC | `_apply_pauli_polynomial` | `pipelines/hardcoded/adapt_pipeline.py:675` |
+| FUNC | `_commutator_gradient` | `pipelines/hardcoded/adapt_pipeline.py:686` |
+| FUNC | `_prepare_adapt_state` | `pipelines/hardcoded/adapt_pipeline.py:712` |
+| FUNC | `_adapt_energy_fn` | `pipelines/hardcoded/adapt_pipeline.py:724` |
+| FUNC | `_exact_gs_energy_for_problem` | `pipelines/hardcoded/adapt_pipeline.py:735` |
+| FUNC | `_run_hardcoded_adapt_vqe` | `pipelines/hardcoded/adapt_pipeline.py:768` |
+| FUNC | `_simulate_trajectory` | `pipelines/hardcoded/adapt_pipeline.py:1335` |
+| FUNC | `_write_pipeline_pdf` | `pipelines/hardcoded/adapt_pipeline.py:1415` |
+| FUNC | `parse_args` | `pipelines/hardcoded/adapt_pipeline.py:1526` |
+| FUNC | `main` | `pipelines/hardcoded/adapt_pipeline.py:1632` |
 
 #### `pipelines/qiskit_archive/compare_hc_vs_qk.py`
 | Kind | Symbol | Line Anchor |
@@ -1126,8 +1171,187 @@ Scope: exhaustive top-level functions, classes, and class methods for key pipeli
 | FUNC | `parse_args` | `pipelines/qiskit_archive/qiskit_baseline.py:1552` |
 | FUNC | `main` | `pipelines/qiskit_archive/qiskit_baseline.py:1652` |
 
-#### `src/quantum/__init__.py`
-No top-level functions/classes defined in this file.
+#### `pipelines/exact_bench/cross_check_suite.py`
+| Kind | Symbol | Line Anchor |
+|---|---|---|
+| FUNC | `_ai_log` | `pipelines/exact_bench/cross_check_suite.py:83` |
+| FUNC | `_get_hubbard_params` | `pipelines/exact_bench/cross_check_suite.py:118` |
+| FUNC | `_get_hh_params` | `pipelines/exact_bench/cross_check_suite.py:129` |
+| FUNC | `_get_adapt_params` | `pipelines/exact_bench/cross_check_suite.py:141` |
+| FUNC | `_pauli_matrix_exyz` | `pipelines/exact_bench/cross_check_suite.py:163` |
+| FUNC | `_normalize_state` | `pipelines/exact_bench/cross_check_suite.py:171` |
+| FUNC | `_collect_hardcoded_terms_exyz` | `pipelines/exact_bench/cross_check_suite.py:178` |
+| FUNC | `_build_hamiltonian_matrix` | `pipelines/exact_bench/cross_check_suite.py:192` |
+| CLASS | `_CompiledPauliAction` | `pipelines/exact_bench/cross_check_suite.py:204` |
+| FUNC | `_compile_pauli_action` | `pipelines/exact_bench/cross_check_suite.py:210` |
+| FUNC | `_apply_compiled_pauli` | `pipelines/exact_bench/cross_check_suite.py:233` |
+| FUNC | `_apply_exp_term` | `pipelines/exact_bench/cross_check_suite.py:239` |
+| FUNC | `_evolve_trotter_suzuki2` | `pipelines/exact_bench/cross_check_suite.py:247` |
+| FUNC | `_expectation_hamiltonian` | `pipelines/exact_bench/cross_check_suite.py:269` |
+| FUNC | `_spin_orbital_bit_index` | `pipelines/exact_bench/cross_check_suite.py:273` |
+| FUNC | `_site_resolved_observables` | `pipelines/exact_bench/cross_check_suite.py:282` |
+| FUNC | `_sector_basis_indices` | `pipelines/exact_bench/cross_check_suite.py:310` |
+| FUNC | `_exact_ground_state_sector_filtered` | `pipelines/exact_bench/cross_check_suite.py:335` |
+| FUNC | `_build_adapt_pool_hubbard` | `pipelines/exact_bench/cross_check_suite.py:356` |
+| FUNC | `_build_adapt_pool_hh` | `pipelines/exact_bench/cross_check_suite.py:407` |
+| FUNC | `_run_adapt_vqe` | `pipelines/exact_bench/cross_check_suite.py:465` |
+| FUNC | `_apply_pauli_polynomial` | `pipelines/exact_bench/cross_check_suite.py:541` |
+| FUNC | `_commutator_gradient` | `pipelines/exact_bench/cross_check_suite.py:557` |
+| FUNC | `_prepare_adapt_state` | `pipelines/exact_bench/cross_check_suite.py:563` |
+| FUNC | `_adapt_energy_fn` | `pipelines/exact_bench/cross_check_suite.py:570` |
+| CLASS | `TrialResult` | `pipelines/exact_bench/cross_check_suite.py:580` |
+| FUNC | `_simulate_trajectory` | `pipelines/exact_bench/cross_check_suite.py:602` |
+| FUNC | `_run_conventional_vqe_trial` | `pipelines/exact_bench/cross_check_suite.py:652` |
+| FUNC | `_run_adapt_vqe_trial` | `pipelines/exact_bench/cross_check_suite.py:690` |
+| FUNC | `run_cross_check` | `pipelines/exact_bench/cross_check_suite.py:736` |
+| FUNC | `_build_payload` | `pipelines/exact_bench/cross_check_suite.py:968` |
+| FUNC | `_write_pdf` | `pipelines/exact_bench/cross_check_suite.py:1027` |
+| FUNC | `parse_args` | `pipelines/exact_bench/cross_check_suite.py:1208` |
+| FUNC | `main` | `pipelines/exact_bench/cross_check_suite.py:1245` |
+
+#### `pipelines/exact_bench/cfqm_vs_suzuki_efficiency_suite.py`
+| Kind | Symbol | Line Anchor |
+|---|---|---|
+| CLASS | `BenchmarkScenario` | `pipelines/exact_bench/cfqm_vs_suzuki_efficiency_suite.py:52` |
+| CLASS | `BenchmarkRunRecord` | `pipelines/exact_bench/cfqm_vs_suzuki_efficiency_suite.py:65` |
+| METHOD | `BenchmarkRunRecord.to_public_dict` | `pipelines/exact_bench/cfqm_vs_suzuki_efficiency_suite.py:90` |
+| CLASS | `EfficiencyConfig` | `pipelines/exact_bench/cfqm_vs_suzuki_efficiency_suite.py:95` |
+| FUNC | `_parse_csv` | `pipelines/exact_bench/cfqm_vs_suzuki_efficiency_suite.py:155` |
+| FUNC | `_parse_csv_ints` | `pipelines/exact_bench/cfqm_vs_suzuki_efficiency_suite.py:162` |
+| FUNC | `_parse_csv_positive_floats` | `pipelines/exact_bench/cfqm_vs_suzuki_efficiency_suite.py:169` |
+| FUNC | `_expand_scenarios` | `pipelines/exact_bench/cfqm_vs_suzuki_efficiency_suite.py:179` |
+| FUNC | `_scenario_default_steps` | `pipelines/exact_bench/cfqm_vs_suzuki_efficiency_suite.py:258` |
+| FUNC | `_scenario_dimension_proxy` | `pipelines/exact_bench/cfqm_vs_suzuki_efficiency_suite.py:272` |
+| FUNC | `_expand_drive_cases` | `pipelines/exact_bench/cfqm_vs_suzuki_efficiency_suite.py:279` |
+| FUNC | `_stage_mode_to_backend` | `pipelines/exact_bench/cfqm_vs_suzuki_efficiency_suite.py:313` |
+| FUNC | `_track_for_stage_mode` | `pipelines/exact_bench/cfqm_vs_suzuki_efficiency_suite.py:324` |
+| FUNC | `_effective_track_id` | `pipelines/exact_bench/cfqm_vs_suzuki_efficiency_suite.py:331` |
+| FUNC | `_should_include_stage_mode_for_scenario` | `pipelines/exact_bench/cfqm_vs_suzuki_efficiency_suite.py:342` |
+| FUNC | `_build_pipeline_cmd` | `pipelines/exact_bench/cfqm_vs_suzuki_efficiency_suite.py:352` |
+| FUNC | `_run_pipeline_subprocess` | `pipelines/exact_bench/cfqm_vs_suzuki_efficiency_suite.py:477` |
+| FUNC | `_extract_time_series` | `pipelines/exact_bench/cfqm_vs_suzuki_efficiency_suite.py:511` |
+| FUNC | `_align_reference_values` | `pipelines/exact_bench/cfqm_vs_suzuki_efficiency_suite.py:529` |
+| FUNC | `_compute_error_metrics` | `pipelines/exact_bench/cfqm_vs_suzuki_efficiency_suite.py:546` |
+| FUNC | `_compute_expm_multiply_calls` | `pipelines/exact_bench/cfqm_vs_suzuki_efficiency_suite.py:586` |
+| FUNC | `_compute_cost_metrics` | `pipelines/exact_bench/cfqm_vs_suzuki_efficiency_suite.py:614` |
+| FUNC | `_cost_axis_field` | `pipelines/exact_bench/cfqm_vs_suzuki_efficiency_suite.py:694` |
+| FUNC | `_group_key` | `pipelines/exact_bench/cfqm_vs_suzuki_efficiency_suite.py:706` |
+| FUNC | `_build_exact_tie_tables` | `pipelines/exact_bench/cfqm_vs_suzuki_efficiency_suite.py:714` |
+| FUNC | `_build_walltime_near_ties` | `pipelines/exact_bench/cfqm_vs_suzuki_efficiency_suite.py:756` |
+| FUNC | `_build_fallback_appendix` | `pipelines/exact_bench/cfqm_vs_suzuki_efficiency_suite.py:804` |
+| FUNC | `_fit_loglog_slope` | `pipelines/exact_bench/cfqm_vs_suzuki_efficiency_suite.py:841` |
+| FUNC | `_build_slope_fits` | `pipelines/exact_bench/cfqm_vs_suzuki_efficiency_suite.py:861` |
+| FUNC | `_build_pareto_by_metric` | `pipelines/exact_bench/cfqm_vs_suzuki_efficiency_suite.py:892` |
+| FUNC | `_write_csv` | `pipelines/exact_bench/cfqm_vs_suzuki_efficiency_suite.py:950` |
+| FUNC | `_chunk_rows` | `pipelines/exact_bench/cfqm_vs_suzuki_efficiency_suite.py:963` |
+| FUNC | `_compact_cell_text` | `pipelines/exact_bench/cfqm_vs_suzuki_efficiency_suite.py:968` |
+| FUNC | `_display_drive_id` | `pipelines/exact_bench/cfqm_vs_suzuki_efficiency_suite.py:982` |
+| FUNC | `_display_track_id` | `pipelines/exact_bench/cfqm_vs_suzuki_efficiency_suite.py:986` |
+| FUNC | `_build_pdf_headline_lines` | `pipelines/exact_bench/cfqm_vs_suzuki_efficiency_suite.py:990` |
+| FUNC | `_write_efficiency_pdf` | `pipelines/exact_bench/cfqm_vs_suzuki_efficiency_suite.py:1120` |
+| FUNC | `_backend_num_qubits` | `pipelines/exact_bench/cfqm_vs_suzuki_efficiency_suite.py:1462` |
+| FUNC | `_list_fake_backend_specs` | `pipelines/exact_bench/cfqm_vs_suzuki_efficiency_suite.py:1477` |
+| FUNC | `_select_fake_backend_spec` | `pipelines/exact_bench/cfqm_vs_suzuki_efficiency_suite.py:1496` |
+| FUNC | `_calibration_summary_from_samples` | `pipelines/exact_bench/cfqm_vs_suzuki_efficiency_suite.py:1520` |
+| FUNC | `_maybe_calibrate_transpile` | `pipelines/exact_bench/cfqm_vs_suzuki_efficiency_suite.py:1544` |
+| FUNC | `run_efficiency_suite` | `pipelines/exact_bench/cfqm_vs_suzuki_efficiency_suite.py:1710` |
+| FUNC | `parse_args` | `pipelines/exact_bench/cfqm_vs_suzuki_efficiency_suite.py:2030` |
+| FUNC | `_to_config` | `pipelines/exact_bench/cfqm_vs_suzuki_efficiency_suite.py:2103` |
+| FUNC | `main` | `pipelines/exact_bench/cfqm_vs_suzuki_efficiency_suite.py:2196` |
+
+#### `pipelines/exact_bench/hh_noise_hardware_validation.py`
+| Kind | Symbol | Line Anchor |
+|---|---|---|
+| FUNC | `_ai_log` | `pipelines/exact_bench/hh_noise_hardware_validation.py:78` |
+| FUNC | `_half_filled_particles` | `pipelines/exact_bench/hh_noise_hardware_validation.py:98` |
+| FUNC | `_fermion_mode_index` | `pipelines/exact_bench/hh_noise_hardware_validation.py:102` |
+| FUNC | `_collect_hardcoded_terms_exyz` | `pipelines/exact_bench/hh_noise_hardware_validation.py:114` |
+| FUNC | `_trotterized_circuit` | `pipelines/exact_bench/hh_noise_hardware_validation.py:134` |
+| FUNC | `_get_hubbard_minimum` | `pipelines/exact_bench/hh_noise_hardware_validation.py:154` |
+| FUNC | `_get_hh_minimum` | `pipelines/exact_bench/hh_noise_hardware_validation.py:166` |
+| FUNC | `_apply_defaults_and_minimums` | `pipelines/exact_bench/hh_noise_hardware_validation.py:180` |
+| FUNC | `_build_hamiltonian` | `pipelines/exact_bench/hh_noise_hardware_validation.py:232` |
+| FUNC | `_build_ansatz` | `pipelines/exact_bench/hh_noise_hardware_validation.py:261` |
+| FUNC | `_build_reference_state` | `pipelines/exact_bench/hh_noise_hardware_validation.py:344` |
+| FUNC | `_build_adapt_pool` | `pipelines/exact_bench/hh_noise_hardware_validation.py:370` |
+| FUNC | `_adapt_ops_to_circuit` | `pipelines/exact_bench/hh_noise_hardware_validation.py:448` |
+| FUNC | `_run_noisy_adapt` | `pipelines/exact_bench/hh_noise_hardware_validation.py:472` |
+| FUNC | `_run_noisy_vqe` | `pipelines/exact_bench/hh_noise_hardware_validation.py:669` |
+| FUNC | `_run_noisy_trotter` | `pipelines/exact_bench/hh_noise_hardware_validation.py:780` |
+| FUNC | `_initial_state_selection` | `pipelines/exact_bench/hh_noise_hardware_validation.py:822` |
+| FUNC | `_parse_compare_observables` | `pipelines/exact_bench/hh_noise_hardware_validation.py:874` |
+| FUNC | `_load_legacy_trajectory` | `pipelines/exact_bench/hh_noise_hardware_validation.py:897` |
+| FUNC | `_compute_legacy_parity` | `pipelines/exact_bench/hh_noise_hardware_validation.py:928` |
+| FUNC | `_write_legacy_comparison_plot` | `pipelines/exact_bench/hh_noise_hardware_validation.py:987` |
+| FUNC | `_write_noise_validation_pdf` | `pipelines/exact_bench/hh_noise_hardware_validation.py:1034` |
+| FUNC | `parse_args` | `pipelines/exact_bench/hh_noise_hardware_validation.py:1175` |
+| FUNC | `main` | `pipelines/exact_bench/hh_noise_hardware_validation.py:1262` |
+
+#### `pipelines/exact_bench/hh_noise_robustness_seq_report.py`
+| Kind | Symbol | Line Anchor |
+|---|---|---|
+| FUNC | `_ai_log` | `pipelines/exact_bench/hh_noise_robustness_seq_report.py:96` |
+| FUNC | `_half_filled_particles` | `pipelines/exact_bench/hh_noise_robustness_seq_report.py:112` |
+| FUNC | `_collect_hardcoded_terms_exyz` | `pipelines/exact_bench/hh_noise_robustness_seq_report.py:116` |
+| FUNC | `_normalize_state` | `pipelines/exact_bench/hh_noise_robustness_seq_report.py:133` |
+| FUNC | `_build_hh_hamiltonian` | `pipelines/exact_bench/hh_noise_robustness_seq_report.py:141` |
+| FUNC | `_build_reference_state` | `pipelines/exact_bench/hh_noise_robustness_seq_report.py:160` |
+| FUNC | `_build_hh_hva_ansatz` | `pipelines/exact_bench/hh_noise_robustness_seq_report.py:175` |
+| FUNC | `_apply_pauli_polynomial` | `pipelines/exact_bench/hh_noise_robustness_seq_report.py:191` |
+| FUNC | `_prepare_state` | `pipelines/exact_bench/hh_noise_robustness_seq_report.py:210` |
+| FUNC | `_energy` | `pipelines/exact_bench/hh_noise_robustness_seq_report.py:217` |
+| FUNC | `_commutator_gradient` | `pipelines/exact_bench/hh_noise_robustness_seq_report.py:222` |
+| FUNC | `_build_uccsd_fermion_lifted_pool` | `pipelines/exact_bench/hh_noise_robustness_seq_report.py:229` |
+| FUNC | `_build_hva_pool` | `pipelines/exact_bench/hh_noise_robustness_seq_report.py:272` |
+| FUNC | `_build_paop_full_pool` | `pipelines/exact_bench/hh_noise_robustness_seq_report.py:276` |
+| FUNC | `_run_vqe_stage_with_transition` | `pipelines/exact_bench/hh_noise_robustness_seq_report.py:297` |
+| FUNC | `_run_adapt_stage_with_transition` | `pipelines/exact_bench/hh_noise_robustness_seq_report.py:393` |
+| FUNC | `_parse_custom_s` | `pipelines/exact_bench/hh_noise_robustness_seq_report.py:530` |
+| FUNC | `_build_drive_profile` | `pipelines/exact_bench/hh_noise_robustness_seq_report.py:546` |
+| FUNC | `_drive_provider_from_profile` | `pipelines/exact_bench/hh_noise_robustness_seq_report.py:566` |
+| FUNC | `_spin_orbital_bit_index` | `pipelines/exact_bench/hh_noise_robustness_seq_report.py:595` |
+| FUNC | `_staggered_qop` | `pipelines/exact_bench/hh_noise_robustness_seq_report.py:604` |
+| FUNC | `_time_sample` | `pipelines/exact_bench/hh_noise_robustness_seq_report.py:616` |
+| FUNC | `_build_suzuki2_time_dependent_circuit` | `pipelines/exact_bench/hh_noise_robustness_seq_report.py:627` |
+| FUNC | `_run_noisy_suzuki_trajectory` | `pipelines/exact_bench/hh_noise_robustness_seq_report.py:662` |
+| FUNC | `_noisy_worker_entry` | `pipelines/exact_bench/hh_noise_robustness_seq_report.py:828` |
+| FUNC | `_run_noisy_mode_isolated` | `pipelines/exact_bench/hh_noise_robustness_seq_report.py:836` |
+| FUNC | `_extract_series` | `pipelines/exact_bench/hh_noise_robustness_seq_report.py:886` |
+| FUNC | `_compute_exact_reference_for_hh` | `pipelines/exact_bench/hh_noise_robustness_seq_report.py:890` |
+| FUNC | `_run_hardcoded_suzuki_profile` | `pipelines/exact_bench/hh_noise_robustness_seq_report.py:916` |
+| FUNC | `_run_noiseless_profile` | `pipelines/exact_bench/hh_noise_robustness_seq_report.py:992` |
+| FUNC | `_compute_comparisons` | `pipelines/exact_bench/hh_noise_robustness_seq_report.py:1092` |
+| FUNC | `_build_summary` | `pipelines/exact_bench/hh_noise_robustness_seq_report.py:1165` |
+| FUNC | `_build_equation_registry_and_contracts` | `pipelines/exact_bench/hh_noise_robustness_seq_report.py:1193` |
+| FUNC | `_apply_report_theme` | `pipelines/exact_bench/hh_noise_robustness_seq_report.py:1493` |
+| FUNC | `_render_page_header_footer` | `pipelines/exact_bench/hh_noise_robustness_seq_report.py:1512` |
+| FUNC | `_build_caption_overrides` | `pipelines/exact_bench/hh_noise_robustness_seq_report.py:1520` |
+| FUNC | `_fallback_caption_line` | `pipelines/exact_bench/hh_noise_robustness_seq_report.py:1641` |
+| FUNC | `_extract_numeric_caption_line` | `pipelines/exact_bench/hh_noise_robustness_seq_report.py:1660` |
+| FUNC | `_latex_to_unicode_math` | `pipelines/exact_bench/hh_noise_robustness_seq_report.py:1668` |
+| FUNC | `_latex_to_mathtext` | `pipelines/exact_bench/hh_noise_robustness_seq_report.py:1710` |
+| FUNC | `_annotate_plot_with_equations` | `pipelines/exact_bench/hh_noise_robustness_seq_report.py:1723` |
+| FUNC | `_matrix_from_rows` | `pipelines/exact_bench/hh_noise_robustness_seq_report.py:1770` |
+| FUNC | `_render_formula_atlas` | `pipelines/exact_bench/hh_noise_robustness_seq_report.py:1774` |
+| FUNC | `_write_pdf` | `pipelines/exact_bench/hh_noise_robustness_seq_report.py:1842` |
+| FUNC | `_json_dump` | `pipelines/exact_bench/hh_noise_robustness_seq_report.py:2829` |
+| FUNC | `_enforce_defaults_and_minimums` | `pipelines/exact_bench/hh_noise_robustness_seq_report.py:2834` |
+| FUNC | `parse_args` | `pipelines/exact_bench/hh_noise_robustness_seq_report.py:2886` |
+| FUNC | `main` | `pipelines/exact_bench/hh_noise_robustness_seq_report.py:2981` |
+
+#### `pipelines/exact_bench/hh_seq_transition_utils.py`
+| Kind | Symbol | Line Anchor |
+|---|---|---|
+| FUNC | `_to_ixyz` | `pipelines/exact_bench/hh_seq_transition_utils.py:19` |
+| FUNC | `polynomial_signature` | `pipelines/exact_bench/hh_seq_transition_utils.py:29` |
+| CLASS | `TransitionConfig` | `pipelines/exact_bench/hh_seq_transition_utils.py:46` |
+| CLASS | `TransitionState` | `pipelines/exact_bench/hh_seq_transition_utils.py:56` |
+| FUNC | `_window_slope` | `pipelines/exact_bench/hh_seq_transition_utils.py:68` |
+| FUNC | `update_transition_state` | `pipelines/exact_bench/hh_seq_transition_utils.py:83` |
+| FUNC | `summarize_transition` | `pipelines/exact_bench/hh_seq_transition_utils.py:133` |
+| FUNC | `build_pool_b_strict_union` | `pipelines/exact_bench/hh_seq_transition_utils.py:152` |
+| FUNC | `build_time_dependent_sparse_qop` | `pipelines/exact_bench/hh_seq_transition_utils.py:234` |
+| FUNC | `flatten_coeff_map_real_imag` | `pipelines/exact_bench/hh_seq_transition_utils.py:263` |
 
 #### `src/quantum/drives_time_potential.py`
 | Kind | Symbol | Line Anchor |
@@ -1147,25 +1371,6 @@ No top-level functions/classes defined in this file.
 | CLASS | `TimeDependentOnsiteDensityDrive` | `src/quantum/drives_time_potential.py:334` |
 | METHOD | `TimeDependentOnsiteDensityDrive.coeff_map_exyz` | `src/quantum/drives_time_potential.py:351` |
 | FUNC | `build_gaussian_sinusoid_density_drive` | `src/quantum/drives_time_potential.py:385` |
-
-#### `src/quantum/ed_hubbard_holstein.py`
-| Kind | Symbol | Line Anchor |
-|---|---|---|
-| CLASS | `HHPhysicalState` | `src/quantum/ed_hubbard_holstein.py:62` |
-| CLASS | `HHEDBasis` | `src/quantum/ed_hubbard_holstein.py:69` |
-| METHOD | `HHEDBasis.dimension` | `src/quantum/ed_hubbard_holstein.py:85` |
-| FUNC | `_parse_site_potential` | `src/quantum/ed_hubbard_holstein.py:93` |
-| FUNC | `_spin_orbital_index_sets` | `src/quantum/ed_hubbard_holstein.py:111` |
-| FUNC | `_fermion_sector_bitstrings` | `src/quantum/ed_hubbard_holstein.py:122` |
-| FUNC | `encode_state_to_qubit_index` | `src/quantum/ed_hubbard_holstein.py:151` |
-| FUNC | `build_hh_sector_basis` | `src/quantum/ed_hubbard_holstein.py:197` |
-| FUNC | `_annihilation_phase` | `src/quantum/ed_hubbard_holstein.py:271` |
-| FUNC | `_creation_phase` | `src/quantum/ed_hubbard_holstein.py:276` |
-| FUNC | `_apply_cdag_c` | `src/quantum/ed_hubbard_holstein.py:281` |
-| FUNC | `_append_entry` | `src/quantum/ed_hubbard_holstein.py:302` |
-| FUNC | `build_hh_sector_hamiltonian_ed` | `src/quantum/ed_hubbard_holstein.py:317` |
-| FUNC | `matrix_to_dense` | `src/quantum/ed_hubbard_holstein.py:465` |
-| FUNC | `hermiticity_residual` | `src/quantum/ed_hubbard_holstein.py:471` |
 
 #### `src/quantum/hartree_fock_reference_state.py`
 | Kind | Symbol | Line Anchor |
@@ -1223,6 +1428,83 @@ No top-level functions/classes defined in this file.
 | FUNC | `show_latex_and_code` | `src/quantum/hubbard_latex_python_pairs.py:1140` |
 | FUNC | `show_hubbard_latex_python_pairs` | `src/quantum/hubbard_latex_python_pairs.py:1153` |
 
+#### `src/quantum/vqe_latex_python_pairs.py`
+| Kind | Symbol | Line Anchor |
+|---|---|---|
+| CLASS | `_FallbackLog` | `src/quantum/vqe_latex_python_pairs.py:33` |
+| METHOD | `_FallbackLog.error` | `src/quantum/vqe_latex_python_pairs.py:35` |
+| METHOD | `_FallbackLog.info` | `src/quantum/vqe_latex_python_pairs.py:39` |
+| FUNC | `_normalize_pauli_string` | `src/quantum/vqe_latex_python_pairs.py:205` |
+| FUNC | `basis_state` | `src/quantum/vqe_latex_python_pairs.py:220` |
+| FUNC | `apply_pauli_string` | `src/quantum/vqe_latex_python_pairs.py:236` |
+| FUNC | `expval_pauli_string` | `src/quantum/vqe_latex_python_pairs.py:273` |
+| FUNC | `expval_pauli_polynomial` | `src/quantum/vqe_latex_python_pairs.py:278` |
+| FUNC | `apply_pauli_rotation` | `src/quantum/vqe_latex_python_pairs.py:302` |
+| FUNC | `apply_exp_pauli_polynomial` | `src/quantum/vqe_latex_python_pairs.py:312` |
+| FUNC | `half_filled_num_particles` | `src/quantum/vqe_latex_python_pairs.py:350` |
+| FUNC | `jw_number_operator` | `src/quantum/vqe_latex_python_pairs.py:363` |
+| FUNC | `hubbard_hop_term` | `src/quantum/vqe_latex_python_pairs.py:384` |
+| FUNC | `hubbard_onsite_term` | `src/quantum/vqe_latex_python_pairs.py:399` |
+| FUNC | `hubbard_potential_term` | `src/quantum/vqe_latex_python_pairs.py:412` |
+| FUNC | `_parse_site_potential` | `src/quantum/vqe_latex_python_pairs.py:422` |
+| FUNC | `_single_term_polynomials_sorted` | `src/quantum/vqe_latex_python_pairs.py:454` |
+| CLASS | `AnsatzTerm` | `src/quantum/vqe_latex_python_pairs.py:485` |
+| CLASS | `HubbardTermwiseAnsatz` | `src/quantum/vqe_latex_python_pairs.py:492` |
+| METHOD | `HubbardTermwiseAnsatz.__init__` | `src/quantum/vqe_latex_python_pairs.py:504` |
+| METHOD | `HubbardTermwiseAnsatz._build_base_terms` | `src/quantum/vqe_latex_python_pairs.py:540` |
+| METHOD | `HubbardTermwiseAnsatz.prepare_state` | `src/quantum/vqe_latex_python_pairs.py:567` |
+| CLASS | `HubbardLayerwiseAnsatz` | `src/quantum/vqe_latex_python_pairs.py:594` |
+| METHOD | `HubbardLayerwiseAnsatz._build_base_terms` | `src/quantum/vqe_latex_python_pairs.py:604` |
+| METHOD | `HubbardLayerwiseAnsatz.prepare_state` | `src/quantum/vqe_latex_python_pairs.py:649` |
+| CLASS | `HardcodedUCCSDAnsatz` | `src/quantum/vqe_latex_python_pairs.py:679` |
+| METHOD | `HardcodedUCCSDAnsatz.__init__` | `src/quantum/vqe_latex_python_pairs.py:689` |
+| METHOD | `HardcodedUCCSDAnsatz._single_generator` | `src/quantum/vqe_latex_python_pairs.py:725` |
+| METHOD | `HardcodedUCCSDAnsatz._double_generator` | `src/quantum/vqe_latex_python_pairs.py:735` |
+| METHOD | `HardcodedUCCSDAnsatz._build_base_terms` | `src/quantum/vqe_latex_python_pairs.py:750` |
+| METHOD | `HardcodedUCCSDAnsatz.prepare_state` | `src/quantum/vqe_latex_python_pairs.py:832` |
+| CLASS | `HardcodedUCCSDLayerwiseAnsatz` | `src/quantum/vqe_latex_python_pairs.py:860` |
+| METHOD | `HardcodedUCCSDLayerwiseAnsatz._build_base_terms` | `src/quantum/vqe_latex_python_pairs.py:869` |
+| METHOD | `HardcodedUCCSDLayerwiseAnsatz.prepare_state` | `src/quantum/vqe_latex_python_pairs.py:962` |
+| CLASS | `HubbardHolsteinTermwiseAnsatz` | `src/quantum/vqe_latex_python_pairs.py:996` |
+| METHOD | `HubbardHolsteinTermwiseAnsatz.__init__` | `src/quantum/vqe_latex_python_pairs.py:1015` |
+| METHOD | `HubbardHolsteinTermwiseAnsatz._build_base_terms` | `src/quantum/vqe_latex_python_pairs.py:1071` |
+| METHOD | `HubbardHolsteinTermwiseAnsatz.prepare_state` | `src/quantum/vqe_latex_python_pairs.py:1139` |
+| CLASS | `HubbardHolsteinPhysicalTermwiseAnsatz` | `src/quantum/vqe_latex_python_pairs.py:1176` |
+| METHOD | `HubbardHolsteinPhysicalTermwiseAnsatz.__init__` | `src/quantum/vqe_latex_python_pairs.py:1192` |
+| METHOD | `HubbardHolsteinPhysicalTermwiseAnsatz._build_base_terms` | `src/quantum/vqe_latex_python_pairs.py:1248` |
+| METHOD | `HubbardHolsteinPhysicalTermwiseAnsatz.prepare_state` | `src/quantum/vqe_latex_python_pairs.py:1356` |
+| CLASS | `HubbardHolsteinLayerwiseAnsatz` | `src/quantum/vqe_latex_python_pairs.py:1393` |
+| METHOD | `HubbardHolsteinLayerwiseAnsatz.__init__` | `src/quantum/vqe_latex_python_pairs.py:1411` |
+| METHOD | `HubbardHolsteinLayerwiseAnsatz._poly_group` | `src/quantum/vqe_latex_python_pairs.py:1470` |
+| METHOD | `HubbardHolsteinLayerwiseAnsatz._build_base_terms` | `src/quantum/vqe_latex_python_pairs.py:1494` |
+| METHOD | `HubbardHolsteinLayerwiseAnsatz.prepare_state` | `src/quantum/vqe_latex_python_pairs.py:1569` |
+| CLASS | `VQEResult` | `src/quantum/vqe_latex_python_pairs.py:1607` |
+| FUNC | `_try_import_scipy_minimize` | `src/quantum/vqe_latex_python_pairs.py:1617` |
+| FUNC | `vqe_minimize` | `src/quantum/vqe_latex_python_pairs.py:1625` |
+| FUNC | `pauli_matrix` | `src/quantum/vqe_latex_python_pairs.py:1963` |
+| FUNC | `hamiltonian_matrix` | `src/quantum/vqe_latex_python_pairs.py:1971` |
+| FUNC | `_spin_orbital_index_sets` | `src/quantum/vqe_latex_python_pairs.py:1986` |
+| FUNC | `_sector_basis_indices` | `src/quantum/vqe_latex_python_pairs.py:1996` |
+| FUNC | `exact_ground_energy_sector` | `src/quantum/vqe_latex_python_pairs.py:2012` |
+| FUNC | `_sector_basis_indices_fermion_only` | `src/quantum/vqe_latex_python_pairs.py:2032` |
+| FUNC | `exact_ground_energy_sector_hh` | `src/quantum/vqe_latex_python_pairs.py:2053` |
+| FUNC | `show_latex_and_code` | `src/quantum/vqe_latex_python_pairs.py:2091` |
+| FUNC | `show_vqe_latex_python_pairs` | `src/quantum/vqe_latex_python_pairs.py:2103` |
+
+#### `src/quantum/operator_pools/polaron_paop.py`
+| Kind | Symbol | Line Anchor |
+|---|---|---|
+| FUNC | `_to_signature` | `src/quantum/operator_pools/polaron_paop.py:24` |
+| FUNC | `_clean_poly` | `src/quantum/operator_pools/polaron_paop.py:37` |
+| FUNC | `_normalize_poly` | `src/quantum/operator_pools/polaron_paop.py:55` |
+| FUNC | `_append_operator` | `src/quantum/operator_pools/polaron_paop.py:78` |
+| FUNC | `_distance_1d` | `src/quantum/operator_pools/polaron_paop.py:103` |
+| FUNC | `_word_from_qubit_letters` | `src/quantum/operator_pools/polaron_paop.py:111` |
+| FUNC | `jw_current_hop` | `src/quantum/operator_pools/polaron_paop.py:122` |
+| FUNC | `_drop_terms_with_identity_on_qubits` | `src/quantum/operator_pools/polaron_paop.py:157` |
+| FUNC | `_make_paop_core` | `src/quantum/operator_pools/polaron_paop.py:173` |
+| FUNC | `make_pool` | `src/quantum/operator_pools/polaron_paop.py:448` |
+
 #### `src/quantum/pauli_letters_module.py`
 | Kind | Symbol | Line Anchor |
 |---|---|---|
@@ -1272,97 +1554,22 @@ No top-level functions/classes defined in this file.
 | METHOD | `PauliTerm.pw2strng` | `src/quantum/qubitization_module.py:48` |
 | METHOD | `PauliTerm.pw2sparsePauliOp` | `src/quantum/qubitization_module.py:53` |
 | METHOD | `PauliTerm.visualize` | `src/quantum/qubitization_module.py:58` |
-
-#### `src/quantum/vqe_latex_python_pairs.py`
-| Kind | Symbol | Line Anchor |
-|---|---|---|
-| CLASS | `_FallbackLog` | `src/quantum/vqe_latex_python_pairs.py:32` |
-| METHOD | `_FallbackLog.error` | `src/quantum/vqe_latex_python_pairs.py:34` |
-| METHOD | `_FallbackLog.info` | `src/quantum/vqe_latex_python_pairs.py:38` |
-| FUNC | `_normalize_pauli_string` | `src/quantum/vqe_latex_python_pairs.py:197` |
-| FUNC | `basis_state` | `src/quantum/vqe_latex_python_pairs.py:212` |
-| FUNC | `apply_pauli_string` | `src/quantum/vqe_latex_python_pairs.py:228` |
-| FUNC | `expval_pauli_string` | `src/quantum/vqe_latex_python_pairs.py:265` |
-| FUNC | `expval_pauli_polynomial` | `src/quantum/vqe_latex_python_pairs.py:270` |
-| FUNC | `apply_pauli_rotation` | `src/quantum/vqe_latex_python_pairs.py:294` |
-| FUNC | `apply_exp_pauli_polynomial` | `src/quantum/vqe_latex_python_pairs.py:304` |
-| FUNC | `half_filled_num_particles` | `src/quantum/vqe_latex_python_pairs.py:342` |
-| FUNC | `jw_number_operator` | `src/quantum/vqe_latex_python_pairs.py:355` |
-| FUNC | `hubbard_hop_term` | `src/quantum/vqe_latex_python_pairs.py:376` |
-| FUNC | `hubbard_onsite_term` | `src/quantum/vqe_latex_python_pairs.py:391` |
-| FUNC | `hubbard_potential_term` | `src/quantum/vqe_latex_python_pairs.py:404` |
-| FUNC | `_parse_site_potential` | `src/quantum/vqe_latex_python_pairs.py:414` |
-| FUNC | `_single_term_polynomials_sorted` | `src/quantum/vqe_latex_python_pairs.py:446` |
-| CLASS | `AnsatzTerm` | `src/quantum/vqe_latex_python_pairs.py:477` |
-| CLASS | `HubbardTermwiseAnsatz` | `src/quantum/vqe_latex_python_pairs.py:484` |
-| METHOD | `HubbardTermwiseAnsatz.__init__` | `src/quantum/vqe_latex_python_pairs.py:496` |
-| METHOD | `HubbardTermwiseAnsatz._build_base_terms` | `src/quantum/vqe_latex_python_pairs.py:532` |
-| METHOD | `HubbardTermwiseAnsatz.prepare_state` | `src/quantum/vqe_latex_python_pairs.py:559` |
-| CLASS | `HubbardLayerwiseAnsatz` | `src/quantum/vqe_latex_python_pairs.py:586` |
-| METHOD | `HubbardLayerwiseAnsatz._build_base_terms` | `src/quantum/vqe_latex_python_pairs.py:596` |
-| METHOD | `HubbardLayerwiseAnsatz.prepare_state` | `src/quantum/vqe_latex_python_pairs.py:641` |
-| CLASS | `HardcodedUCCSDAnsatz` | `src/quantum/vqe_latex_python_pairs.py:671` |
-| METHOD | `HardcodedUCCSDAnsatz.__init__` | `src/quantum/vqe_latex_python_pairs.py:681` |
-| METHOD | `HardcodedUCCSDAnsatz._single_generator` | `src/quantum/vqe_latex_python_pairs.py:717` |
-| METHOD | `HardcodedUCCSDAnsatz._double_generator` | `src/quantum/vqe_latex_python_pairs.py:727` |
-| METHOD | `HardcodedUCCSDAnsatz._build_base_terms` | `src/quantum/vqe_latex_python_pairs.py:742` |
-| METHOD | `HardcodedUCCSDAnsatz.prepare_state` | `src/quantum/vqe_latex_python_pairs.py:824` |
-| CLASS | `HardcodedUCCSDLayerwiseAnsatz` | `src/quantum/vqe_latex_python_pairs.py:852` |
-| METHOD | `HardcodedUCCSDLayerwiseAnsatz._build_base_terms` | `src/quantum/vqe_latex_python_pairs.py:861` |
-| METHOD | `HardcodedUCCSDLayerwiseAnsatz.prepare_state` | `src/quantum/vqe_latex_python_pairs.py:954` |
-| CLASS | `HubbardHolsteinTermwiseAnsatz` | `src/quantum/vqe_latex_python_pairs.py:988` |
-| METHOD | `HubbardHolsteinTermwiseAnsatz.__init__` | `src/quantum/vqe_latex_python_pairs.py:1007` |
-| METHOD | `HubbardHolsteinTermwiseAnsatz._build_base_terms` | `src/quantum/vqe_latex_python_pairs.py:1063` |
-| METHOD | `HubbardHolsteinTermwiseAnsatz.prepare_state` | `src/quantum/vqe_latex_python_pairs.py:1131` |
-| CLASS | `HubbardHolsteinLayerwiseAnsatz` | `src/quantum/vqe_latex_python_pairs.py:1168` |
-| METHOD | `HubbardHolsteinLayerwiseAnsatz.__init__` | `src/quantum/vqe_latex_python_pairs.py:1186` |
-| METHOD | `HubbardHolsteinLayerwiseAnsatz._poly_group` | `src/quantum/vqe_latex_python_pairs.py:1245` |
-| METHOD | `HubbardHolsteinLayerwiseAnsatz._build_base_terms` | `src/quantum/vqe_latex_python_pairs.py:1269` |
-| METHOD | `HubbardHolsteinLayerwiseAnsatz.prepare_state` | `src/quantum/vqe_latex_python_pairs.py:1344` |
-| CLASS | `VQEResult` | `src/quantum/vqe_latex_python_pairs.py:1382` |
-| FUNC | `_try_import_scipy_minimize` | `src/quantum/vqe_latex_python_pairs.py:1392` |
-| FUNC | `vqe_minimize` | `src/quantum/vqe_latex_python_pairs.py:1400` |
-| FUNC | `pauli_matrix` | `src/quantum/vqe_latex_python_pairs.py:1515` |
-| FUNC | `hamiltonian_matrix` | `src/quantum/vqe_latex_python_pairs.py:1523` |
-| FUNC | `_spin_orbital_index_sets` | `src/quantum/vqe_latex_python_pairs.py:1538` |
-| FUNC | `_sector_basis_indices` | `src/quantum/vqe_latex_python_pairs.py:1548` |
-| FUNC | `exact_ground_energy_sector` | `src/quantum/vqe_latex_python_pairs.py:1564` |
-| FUNC | `_sector_basis_indices_fermion_only` | `src/quantum/vqe_latex_python_pairs.py:1584` |
-| FUNC | `exact_ground_energy_sector_hh` | `src/quantum/vqe_latex_python_pairs.py:1605` |
-| FUNC | `show_latex_and_code` | `src/quantum/vqe_latex_python_pairs.py:1643` |
-| FUNC | `show_vqe_latex_python_pairs` | `src/quantum/vqe_latex_python_pairs.py:1655` |
-
-#### `src/quantum/operator_pools/polaron_paop.py`
-| Kind | Symbol | Line Anchor |
-|---|---|---|
-| FUNC | `_to_signature` | `src/quantum/operator_pools/polaron_paop.py:24` |
-| FUNC | `_clean_poly` | `src/quantum/operator_pools/polaron_paop.py:37` |
-| FUNC | `_normalize_poly` | `src/quantum/operator_pools/polaron_paop.py:55` |
-| FUNC | `_append_operator` | `src/quantum/operator_pools/polaron_paop.py:78` |
-| FUNC | `_distance_1d` | `src/quantum/operator_pools/polaron_paop.py:103` |
-| FUNC | `_word_from_qubit_letters` | `src/quantum/operator_pools/polaron_paop.py:111` |
-| FUNC | `jw_current_hop` | `src/quantum/operator_pools/polaron_paop.py:122` |
-| FUNC | `_drop_terms_with_identity_on_qubits` | `src/quantum/operator_pools/polaron_paop.py:157` |
-| FUNC | `_make_paop_core` | `src/quantum/operator_pools/polaron_paop.py:173` |
-| FUNC | `make_pool` | `src/quantum/operator_pools/polaron_paop.py:448` |
-
-
 ## Update Checklist Template (Manual Refresh Workflow)
 
 Use this checklist whenever refreshing this dossier.
 
 ### Refresh checklist
 
-- [ ] Record snapshot metadata (timestamp, branch, commit).
-- [ ] Re-run working tree scan and update WIP section with confidence labels.
-- [ ] Re-scan for stale alias references and update alias table.
-- [ ] Re-verify active pipeline entrypoint paths.
-- [ ] Re-sample representative JSON artifacts and update schema notes.
-- [ ] Re-check compare/HH guard behavior against current tests.
-- [ ] Re-check drive invariant statements against compare helper and tests.
-- [ ] Regenerate exhaustive function inventory appendix from AST.
-- [ ] Re-validate all local markdown links resolve.
-- [ ] Re-run section contract checklist and mark completed.
+- [x] Record snapshot metadata (timestamp, branch, commit).
+- [x] Re-run working tree scan and update WIP section with confidence labels.
+- [x] Re-scan for stale alias references and update alias table.
+- [x] Re-verify active pipeline entrypoint paths.
+- [x] Re-sample representative JSON artifacts and update schema notes.
+- [x] Re-check compare/HH guard behavior against current tests.
+- [x] Re-check drive invariant statements against compare helper and tests.
+- [x] Regenerate exhaustive function inventory appendix from AST.
+- [x] Re-validate all local markdown links resolve.
+- [x] Re-run section contract checklist and mark completed.
 
 ### Section contract checklist
 

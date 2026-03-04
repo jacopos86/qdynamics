@@ -5,7 +5,7 @@ Flow:
 1) Build Hubbard (or HH) Hamiltonian (JW) from repo source-of-truth helpers.
 2) Build operator pool (UCCSD, CSE, full_hamiltonian, HVA, or PAOP variants).
 3) Run standard ADAPT-VQE: commutator gradients, one operator per
-   iteration, COBYLA inner optimizer, optional repeats.
+   iteration, COBYLA/SPSA inner optimizer, optional repeats.
 4) Run Suzuki-2 Trotter dynamics + exact dynamics from the ADAPT ground state.
 5) Emit JSON + compact PDF artifact.
 
@@ -58,8 +58,23 @@ from src.quantum.hubbard_latex_python_pairs import (
     boson_qubits_per_site,
 )
 from src.quantum.hartree_fock_reference_state import hartree_fock_statevector
+from src.quantum.compiled_ansatz import CompiledAnsatzExecutor
+from src.quantum.compiled_polynomial import (
+    CompiledPolynomialAction,
+    adapt_commutator_grad_from_hpsi,
+    apply_compiled_polynomial as _apply_compiled_polynomial_shared,
+    compile_polynomial_action as _compile_polynomial_action_shared,
+    energy_via_one_apply,
+)
+from src.quantum.pauli_actions import (
+    CompiledPauliAction,
+    apply_compiled_pauli as _apply_compiled_pauli_shared,
+    apply_exp_term as _apply_exp_term_shared,
+    compile_pauli_action_exyz as _compile_pauli_action_exyz_shared,
+)
 from src.quantum.pauli_polynomial_class import PauliPolynomial
 from src.quantum.pauli_words import PauliTerm
+from src.quantum.spsa_optimizer import spsa_minimize
 from src.quantum.vqe_latex_python_pairs import (
     AnsatzTerm,
     HardcodedUCCSDAnsatz,
@@ -87,6 +102,7 @@ else:
 
 EXACT_LABEL = "Exact_Hardcode"
 EXACT_METHOD = "python_matrix_eigendecomposition"
+_ADAPT_GRADIENT_PARITY_RTOL = 1e-8
 
 PAULI_MATS = {
     "e": np.array([[1.0, 0.0], [0.0, 1.0]], dtype=complex),
@@ -108,24 +124,6 @@ def _ai_log(event: str, **fields: Any) -> None:
 # ---------------------------------------------------------------------------
 # Utility helpers (mirror hardcoded VQE pipeline)
 # ---------------------------------------------------------------------------
-
-@dataclass(frozen=True)
-class CompiledPauliAction:
-    label_exyz: str
-    perm: np.ndarray
-    phase: np.ndarray
-
-
-@dataclass(frozen=True)
-class CompiledPolynomialTerm:
-    coeff: complex
-    action: CompiledPauliAction | None
-
-
-@dataclass(frozen=True)
-class CompiledPolynomialAction:
-    terms: tuple[CompiledPolynomialTerm, ...]
-
 
 def _to_ixyz(label_exyz: str) -> str:
     return str(label_exyz).replace("e", "I").upper()
@@ -179,92 +177,47 @@ def _build_hamiltonian_matrix(coeff_map_exyz: dict[str, complex]) -> np.ndarray:
 # ---------------------------------------------------------------------------
 
 def _compile_pauli_action(label_exyz: str, nq: int) -> CompiledPauliAction:
-    dim = 1 << nq
-    idx = np.arange(dim, dtype=np.int64)
-    perm = idx.copy()
-    phase = np.ones(dim, dtype=complex)
-    for q in range(nq):
-        op = label_exyz[nq - 1 - q]
-        bits = ((idx >> q) & 1).astype(np.int8)
-        sign = (1 - 2 * bits).astype(np.int8)
-        if op == "e":
-            continue
-        if op == "x":
-            perm ^= (1 << q)
-            continue
-        if op == "y":
-            perm ^= (1 << q)
-            phase *= 1j * sign
-            continue
-        if op == "z":
-            phase *= sign
-            continue
-        raise ValueError(f"Unsupported Pauli symbol '{op}' in '{label_exyz}'.")
-    return CompiledPauliAction(label_exyz=label_exyz, perm=perm, phase=phase)
+    return _compile_pauli_action_exyz_shared(label_exyz=label_exyz, nq=nq)
 
 
 def _apply_compiled_pauli(psi: np.ndarray, action: CompiledPauliAction) -> np.ndarray:
-    out = np.empty_like(psi)
-    out[action.perm] = action.phase * psi
-    return out
+    return _apply_compiled_pauli_shared(psi=psi, action=action)
 
 
-def _compile_polynomial_action(poly: Any, tol: float = 1e-15) -> CompiledPolynomialAction:
+def _compile_polynomial_action(
+    poly: Any,
+    tol: float = 1e-15,
+    *,
+    pauli_action_cache: dict[str, CompiledPauliAction] | None = None,
+) -> CompiledPolynomialAction:
     """Compile a PauliPolynomial into reusable Pauli actions for repeated apply."""
     terms = poly.return_polynomial()
     if not terms:
-        return CompiledPolynomialAction(terms=tuple())
-
-    nq = int(terms[0].nqubit())
-    id_str = "e" * nq
-    coeff_map: dict[str, complex] = {}
-    order: list[str] = []
-    for term in terms:
-        label = str(term.pw2strng())
-        coeff = complex(term.p_coeff)
-        if abs(coeff) <= tol:
-            continue
-        if label not in coeff_map:
-            coeff_map[label] = 0.0 + 0.0j
-            order.append(label)
-        coeff_map[label] += coeff
-
-    pauli_cache: dict[str, CompiledPauliAction] = {}
-    compiled_terms: list[CompiledPolynomialTerm] = []
-    for label in order:
-        coeff = complex(coeff_map[label])
-        if abs(coeff) <= tol:
-            continue
-        if label == id_str:
-            compiled_terms.append(CompiledPolynomialTerm(coeff=coeff, action=None))
-            continue
-        action = pauli_cache.get(label)
-        if action is None:
-            action = _compile_pauli_action(label, nq)
-            pauli_cache[label] = action
-        compiled_terms.append(CompiledPolynomialTerm(coeff=coeff, action=action))
-    return CompiledPolynomialAction(terms=tuple(compiled_terms))
+        return CompiledPolynomialAction(nq=0, terms=tuple())
+    return _compile_polynomial_action_shared(
+        poly,
+        tol=float(tol),
+        pauli_action_cache=pauli_action_cache,
+    )
 
 
 def _apply_compiled_polynomial(state: np.ndarray, compiled_poly: CompiledPolynomialAction) -> np.ndarray:
     """Apply a compiled PauliPolynomial action to a statevector."""
-    result = np.zeros_like(state)
-    for compiled_term in compiled_poly.terms:
-        if compiled_term.action is None:
-            result += compiled_term.coeff * state
-        else:
-            result += compiled_term.coeff * _apply_compiled_pauli(state, compiled_term.action)
-    return result
+    if int(getattr(compiled_poly, "nq", 0)) == 0 and len(compiled_poly.terms) == 0:
+        return np.zeros_like(state)
+    return _apply_compiled_polynomial_shared(state, compiled_poly)
 
 
 def _apply_exp_term(
     psi: np.ndarray, action: CompiledPauliAction, coeff: complex, alpha: float, tol: float = 1e-12,
 ) -> np.ndarray:
-    if abs(coeff.imag) > tol:
-        raise ValueError(f"Imaginary coefficient encountered for {action.label_exyz}: {coeff}")
-    theta = float(alpha) * float(coeff.real)
-    ppsi = _apply_compiled_pauli(psi, action)
-    return math.cos(theta) * psi - 1j * math.sin(theta) * ppsi
+    return _apply_exp_term_shared(
+        psi=psi,
+        action=action,
+        coeff=complex(coeff),
+        dt=float(alpha),
+        tol=float(tol),
+    )
 
 
 def _evolve_trotter_suzuki2_absolute(
@@ -690,6 +643,7 @@ def _commutator_gradient(
     *,
     h_compiled: CompiledPolynomialAction | None = None,
     pool_compiled: CompiledPolynomialAction | None = None,
+    hpsi_precomputed: np.ndarray | None = None,
 ) -> float:
     r"""Compute dE/dtheta at theta=0 for appending pool_op to the current state.
 
@@ -703,10 +657,13 @@ def _commutator_gradient(
     This is exact and works for multi-term PauliPolynomial generators
     (unlike the parameter-shift rule which requires single-Pauli generators).
     """
-    G_psi = _apply_pauli_polynomial(psi_current, pool_op.polynomial, compiled=pool_compiled)
-    H_psi = _apply_pauli_polynomial(psi_current, h_poly, compiled=h_compiled)
-    hg_expect = np.vdot(H_psi, G_psi)  # <H psi | G psi> = <psi|H G|psi>
-    return float(2.0 * hg_expect.imag)
+    g_psi = _apply_pauli_polynomial(psi_current, pool_op.polynomial, compiled=pool_compiled)
+    h_psi = (
+        np.asarray(hpsi_precomputed, dtype=complex)
+        if hpsi_precomputed is not None
+        else _apply_pauli_polynomial(psi_current, h_poly, compiled=h_compiled)
+    )
+    return adapt_commutator_grad_from_hpsi(h_psi, g_psi)
 
 
 def _prepare_adapt_state(
@@ -726,9 +683,14 @@ def _adapt_energy_fn(
     psi_ref: np.ndarray,
     selected_ops: list[AnsatzTerm],
     theta: np.ndarray,
+    *,
+    h_compiled: CompiledPolynomialAction | None = None,
 ) -> float:
     """Energy of the current ADAPT ansatz at parameters theta."""
     psi = _prepare_adapt_state(psi_ref, selected_ops, theta)
+    if h_compiled is not None:
+        energy, _hpsi = energy_via_one_apply(psi, h_compiled)
+        return float(energy)
     return float(expval_pauli_polynomial(psi, h_poly))
 
 
@@ -785,6 +747,15 @@ def _run_hardcoded_adapt_vqe(
     eps_energy: float,
     maxiter: int,
     seed: int,
+    adapt_inner_optimizer: str = "COBYLA",
+    adapt_spsa_a: float = 0.2,
+    adapt_spsa_c: float = 0.1,
+    adapt_spsa_alpha: float = 0.602,
+    adapt_spsa_gamma: float = 0.101,
+    adapt_spsa_A: float = 10.0,
+    adapt_spsa_avg_last: int = 0,
+    adapt_spsa_eval_repeats: int = 1,
+    adapt_spsa_eval_agg: str = "mean",
     allow_repeats: bool,
     finite_angle_fallback: bool,
     finite_angle: float,
@@ -795,12 +766,33 @@ def _run_hardcoded_adapt_vqe(
     paop_normalization: str = "none",
     disable_hh_seed: bool = False,
     psi_ref_override: np.ndarray | None = None,
+    adapt_gradient_parity_check: bool = False,
+    adapt_state_backend: str = "compiled",
 ) -> tuple[dict[str, Any], np.ndarray]:
     """Run standard ADAPT-VQE and return (payload, psi_ground)."""
     if float(finite_angle) <= 0.0:
         raise ValueError("finite_angle must be > 0.")
     if float(finite_angle_min_improvement) < 0.0:
         raise ValueError("finite_angle_min_improvement must be >= 0.")
+    adapt_state_backend_key = str(adapt_state_backend).strip().lower()
+    if adapt_state_backend_key not in {"legacy", "compiled"}:
+        raise ValueError("adapt_state_backend must be one of {'legacy','compiled'}.")
+    adapt_inner_optimizer_key = str(adapt_inner_optimizer).strip().upper()
+    if adapt_inner_optimizer_key not in {"COBYLA", "SPSA"}:
+        raise ValueError("adapt_inner_optimizer must be one of {'COBYLA','SPSA'}.")
+    adapt_spsa_eval_agg_key = str(adapt_spsa_eval_agg).strip().lower()
+    if adapt_spsa_eval_agg_key not in {"mean", "median"}:
+        raise ValueError("adapt_spsa_eval_agg must be one of {'mean','median'}.")
+    adapt_spsa_params = {
+        "a": float(adapt_spsa_a),
+        "c": float(adapt_spsa_c),
+        "alpha": float(adapt_spsa_alpha),
+        "gamma": float(adapt_spsa_gamma),
+        "A": float(adapt_spsa_A),
+        "avg_last": int(adapt_spsa_avg_last),
+        "eval_repeats": int(adapt_spsa_eval_repeats),
+        "eval_agg": str(adapt_spsa_eval_agg_key),
+    }
 
     t0 = time.perf_counter()
     hf_bits = "N/A"
@@ -811,9 +803,12 @@ def _run_hardcoded_adapt_vqe(
         adapt_pool=str(adapt_pool),
         max_depth=int(max_depth),
         maxiter=int(maxiter),
+        adapt_inner_optimizer=str(adapt_inner_optimizer_key),
         finite_angle_fallback=bool(finite_angle_fallback),
         finite_angle=float(finite_angle),
         finite_angle_min_improvement=float(finite_angle_min_improvement),
+        adapt_gradient_parity_check=bool(adapt_gradient_parity_check),
+        adapt_state_backend=str(adapt_state_backend_key),
     )
 
     num_particles = half_filled_num_particles(int(num_sites))
@@ -997,8 +992,18 @@ def _run_hardcoded_adapt_vqe(
     )
 
     compile_cache_t0 = time.perf_counter()
-    h_compiled = _compile_polynomial_action(h_poly)
-    pool_compiled = [_compile_polynomial_action(op.polynomial) for op in pool]
+    pauli_action_cache: dict[str, CompiledPauliAction] = {}
+    h_compiled = _compile_polynomial_action(
+        h_poly,
+        pauli_action_cache=pauli_action_cache,
+    )
+    pool_compiled = [
+        _compile_polynomial_action(
+            op.polynomial,
+            pauli_action_cache=pauli_action_cache,
+        )
+        for op in pool
+    ]
     compile_cache_elapsed_s = float(time.perf_counter() - compile_cache_t0)
     pool_compiled_terms_total = int(sum(len(compiled_poly.terms) for compiled_poly in pool_compiled))
     _ai_log(
@@ -1006,23 +1011,44 @@ def _run_hardcoded_adapt_vqe(
         pool_size=int(len(pool)),
         h_terms=int(len(h_compiled.terms)),
         pool_terms_total=pool_compiled_terms_total,
+        unique_pauli_actions=int(len(pauli_action_cache)),
         compile_elapsed_s=compile_cache_elapsed_s,
     )
+    _ai_log(
+        "hardcoded_adapt_compile_timing",
+        pool_size=int(len(pool)),
+        pool_terms_total=pool_compiled_terms_total,
+        unique_pauli_actions=int(len(pauli_action_cache)),
+        compile_elapsed_s=compile_cache_elapsed_s,
+    )
+
+    def _build_compiled_executor(ops: list[AnsatzTerm]) -> CompiledAnsatzExecutor:
+        return CompiledAnsatzExecutor(
+            ops,
+            coefficient_tolerance=1e-12,
+            ignore_identity=True,
+            sort_terms=True,
+            pauli_action_cache=pauli_action_cache,
+        )
 
     # ADAPT-VQE main loop
     selected_ops: list[AnsatzTerm] = []
     theta = np.zeros(0, dtype=float)
+    selected_executor: CompiledAnsatzExecutor | None = None
     history: list[dict[str, Any]] = []
     nfev_total = 0
     stop_reason = "max_depth"
 
-    from scipy.optimize import minimize as scipy_minimize
+    scipy_minimize = None
+    if adapt_inner_optimizer_key == "COBYLA":
+        from scipy.optimize import minimize as scipy_minimize
 
     # Pool availability tracking (for no-repeat mode)
     available_indices = set(range(len(pool)))
     selection_counts = np.zeros(len(pool), dtype=np.int64)
 
-    energy_current = float(expval_pauli_polynomial(psi_ref, h_poly))
+    energy_current, _ = energy_via_one_apply(psi_ref, h_compiled)
+    energy_current = float(energy_current)
     nfev_total += 1
     _ai_log("hardcoded_adapt_initial_energy", energy=energy_current)
 
@@ -1053,19 +1079,65 @@ def _run_hardcoded_adapt_vqe(
         if seed_indices:
             seed_ops = [pool[i] for i in seed_indices]
             theta_seed0 = np.zeros(len(seed_ops), dtype=float)
+            seed_executor = (
+                _build_compiled_executor(seed_ops)
+                if adapt_state_backend_key == "compiled"
+                else None
+            )
 
             def _seed_obj(x: np.ndarray) -> float:
-                return _adapt_energy_fn(h_poly, psi_ref, seed_ops, x)
+                if seed_executor is not None:
+                    psi_seed = seed_executor.prepare_state(np.asarray(x, dtype=float), psi_ref)
+                    seed_energy, _ = energy_via_one_apply(psi_seed, h_compiled)
+                    return float(seed_energy)
+                return _adapt_energy_fn(
+                    h_poly,
+                    psi_ref,
+                    seed_ops,
+                    x,
+                    h_compiled=h_compiled,
+                )
 
-            seed_result = scipy_minimize(
-                _seed_obj,
-                theta_seed0,
-                method="COBYLA",
-                options={"maxiter": int(max(100, min(int(maxiter), 600))), "rhobeg": 0.3},
-            )
-            seed_theta = np.asarray(seed_result.x, dtype=float)
-            seed_energy = float(seed_result.fun)
-            nfev_total += int(getattr(seed_result, "nfev", 0))
+            seed_maxiter = int(max(100, min(int(maxiter), 600)))
+            if adapt_inner_optimizer_key == "SPSA":
+                seed_result = spsa_minimize(
+                    fun=_seed_obj,
+                    x0=theta_seed0,
+                    maxiter=int(seed_maxiter),
+                    seed=int(seed) + 90000,
+                    a=float(adapt_spsa_a),
+                    c=float(adapt_spsa_c),
+                    alpha=float(adapt_spsa_alpha),
+                    gamma=float(adapt_spsa_gamma),
+                    A=float(adapt_spsa_A),
+                    bounds=None,
+                    project="none",
+                    eval_repeats=int(adapt_spsa_eval_repeats),
+                    eval_agg=str(adapt_spsa_eval_agg_key),
+                    avg_last=int(adapt_spsa_avg_last),
+                )
+                seed_theta = np.asarray(seed_result.x, dtype=float)
+                seed_energy = float(seed_result.fun)
+                seed_nfev = int(seed_result.nfev)
+                seed_nit = int(seed_result.nit)
+                seed_success = bool(seed_result.success)
+                seed_message = str(seed_result.message)
+            else:
+                if scipy_minimize is None:
+                    raise RuntimeError("SciPy minimize is unavailable for COBYLA ADAPT inner optimizer.")
+                seed_result = scipy_minimize(
+                    _seed_obj,
+                    theta_seed0,
+                    method="COBYLA",
+                    options={"maxiter": int(seed_maxiter), "rhobeg": 0.3},
+                )
+                seed_theta = np.asarray(seed_result.x, dtype=float)
+                seed_energy = float(seed_result.fun)
+                seed_nfev = int(getattr(seed_result, "nfev", 0))
+                seed_nit = int(getattr(seed_result, "nit", 0))
+                seed_success = bool(getattr(seed_result, "success", False))
+                seed_message = str(getattr(seed_result, "message", ""))
+            nfev_total += int(seed_nfev)
 
             selected_ops = list(seed_ops)
             theta = np.asarray(seed_theta, dtype=float)
@@ -1073,40 +1145,74 @@ def _run_hardcoded_adapt_vqe(
                 for idx in seed_indices:
                     available_indices.discard(idx)
             energy_current = float(seed_energy)
+            selected_executor = (
+                seed_executor
+                if seed_executor is not None
+                else None
+            )
             _ai_log(
                 "hardcoded_adapt_hh_seed_preopt",
                 num_seed_ops=int(len(seed_ops)),
+                seed_opt_method=str(adapt_inner_optimizer_key),
                 seed_energy=float(seed_energy),
-                seed_nfev=int(getattr(seed_result, "nfev", 0)),
-                seed_success=bool(getattr(seed_result, "success", False)),
+                seed_nfev=int(seed_nfev),
+                seed_nit=int(seed_nit),
+                seed_success=bool(seed_success),
+                seed_message=str(seed_message),
             )
 
     for depth in range(int(max_depth)):
         iter_t0 = time.perf_counter()
 
         # 1) Compute the current state
-        psi_current = _prepare_adapt_state(psi_ref, selected_ops, theta)
+        if adapt_state_backend_key == "compiled":
+            if len(selected_ops) == 0:
+                psi_current = np.array(psi_ref, copy=True)
+            else:
+                if selected_executor is None:
+                    selected_executor = _build_compiled_executor(selected_ops)
+                psi_current = selected_executor.prepare_state(theta, psi_ref)
+        else:
+            psi_current = _prepare_adapt_state(psi_ref, selected_ops, theta)
+        energy_current, hpsi_current = energy_via_one_apply(psi_current, h_compiled)
+        energy_current = float(energy_current)
 
         # 2) Compute commutator gradients for all pool operators
         gradient_eval_t0 = time.perf_counter()
         gradients = np.zeros(len(pool), dtype=float)
+        grad_magnitudes = np.zeros(len(pool), dtype=float)
         for i in available_indices:
-            gradients[i] = _commutator_gradient(
+            apsi = _apply_compiled_polynomial(psi_current, pool_compiled[i])
+            gradients[i] = adapt_commutator_grad_from_hpsi(hpsi_current, apsi)
+            grad_magnitudes[i] = abs(float(gradients[i]))
+        if bool(adapt_gradient_parity_check) and available_indices:
+            parity_idx = max(available_indices, key=lambda idx: grad_magnitudes[int(idx)])
+            grad_old = _commutator_gradient(
                 h_poly,
-                pool[i],
+                pool[int(parity_idx)],
                 psi_current,
                 h_compiled=h_compiled,
-                pool_compiled=pool_compiled[i],
+                pool_compiled=pool_compiled[int(parity_idx)],
             )
+            grad_new = float(gradients[int(parity_idx)])
+            rel_err = abs(grad_new - grad_old) / max(abs(grad_new), abs(grad_old), 1e-15)
+            if rel_err > float(_ADAPT_GRADIENT_PARITY_RTOL):
+                raise AssertionError(
+                    "ADAPT gradient parity check failed: "
+                    f"depth={depth + 1}, idx={int(parity_idx)}, grad_new={grad_new:.16e}, "
+                    f"grad_old={float(grad_old):.16e}, rel_err={float(rel_err):.3e}, "
+                    f"rtol={_ADAPT_GRADIENT_PARITY_RTOL:.1e}"
+                )
         gradient_eval_elapsed_s = float(time.perf_counter() - gradient_eval_t0)
+        _ai_log(
+            "hardcoded_adapt_gradient_timing",
+            depth=int(depth + 1),
+            available_count=int(len(available_indices)),
+            gradient_eval_elapsed_s=float(gradient_eval_elapsed_s),
+        )
 
         # Find the operator with the largest gradient magnitude
-        grad_magnitudes = np.abs(gradients)
-        # Zero out unavailable operators so they can't be selected
-        mask = np.zeros(len(pool), dtype=bool)
-        for i in available_indices:
-            mask[i] = True
-        grad_magnitudes[~mask] = 0.0
+        # grad_magnitudes is zero for unavailable indices by construction.
 
         if allow_repeats:
             # Diversity-biased scoring in repeat mode: discourage selecting
@@ -1139,12 +1245,28 @@ def _run_hardcoded_adapt_vqe(
                 best_probe_energy = float(energy_current)
                 best_probe_idx = None
                 best_probe_theta = None
+                fallback_executor_cache: dict[int, CompiledAnsatzExecutor] = {}
 
                 for idx in available_indices:
                     trial_ops = selected_ops + [pool[idx]]
                     for trial_theta in (float(finite_angle), -float(finite_angle)):
                         trial_theta_vec = np.append(theta, trial_theta)
-                        probe_energy = _adapt_energy_fn(h_poly, psi_ref, trial_ops, trial_theta_vec)
+                        if adapt_state_backend_key == "compiled":
+                            trial_executor = fallback_executor_cache.get(int(idx))
+                            if trial_executor is None:
+                                trial_executor = _build_compiled_executor(trial_ops)
+                                fallback_executor_cache[int(idx)] = trial_executor
+                            psi_trial = trial_executor.prepare_state(trial_theta_vec, psi_ref)
+                            probe_energy, _ = energy_via_one_apply(psi_trial, h_compiled)
+                            probe_energy = float(probe_energy)
+                        else:
+                            probe_energy = _adapt_energy_fn(
+                                h_poly,
+                                psi_ref,
+                                trial_ops,
+                                trial_theta_vec,
+                                h_compiled=h_compiled,
+                            )
                         nfev_total += 1
                         if probe_energy < best_probe_energy:
                             best_probe_energy = float(probe_energy)
@@ -1200,30 +1322,89 @@ def _run_hardcoded_adapt_vqe(
         selection_counts[best_idx] += 1
         if not allow_repeats:
             available_indices.discard(best_idx)
+        if adapt_state_backend_key == "compiled":
+            selected_executor = _build_compiled_executor(selected_ops)
+        else:
+            selected_executor = None
 
-        # 5) Re-optimize ALL parameters with COBYLA
+        # 5) Re-optimize ALL parameters with selected inner optimizer
         energy_prev = energy_current
 
         def _obj(x: np.ndarray) -> float:
-            return _adapt_energy_fn(h_poly, psi_ref, selected_ops, x)
+            if adapt_state_backend_key == "compiled":
+                assert selected_executor is not None
+                psi_obj = selected_executor.prepare_state(np.asarray(x, dtype=float), psi_ref)
+                energy_obj, _ = energy_via_one_apply(psi_obj, h_compiled)
+                return float(energy_obj)
+            return _adapt_energy_fn(
+                h_poly,
+                psi_ref,
+                selected_ops,
+                x,
+                h_compiled=h_compiled,
+            )
 
-        result = scipy_minimize(
-            _obj,
-            theta,
-            method="COBYLA",
-            options={"maxiter": int(maxiter), "rhobeg": 0.3},
+        optimizer_t0 = time.perf_counter()
+        if adapt_inner_optimizer_key == "SPSA":
+            result = spsa_minimize(
+                fun=_obj,
+                x0=theta,
+                maxiter=int(maxiter),
+                seed=int(seed) + int(depth),
+                a=float(adapt_spsa_a),
+                c=float(adapt_spsa_c),
+                alpha=float(adapt_spsa_alpha),
+                gamma=float(adapt_spsa_gamma),
+                A=float(adapt_spsa_A),
+                bounds=None,
+                project="none",
+                eval_repeats=int(adapt_spsa_eval_repeats),
+                eval_agg=str(adapt_spsa_eval_agg_key),
+                avg_last=int(adapt_spsa_avg_last),
+            )
+            theta = np.asarray(result.x, dtype=float)
+            energy_current = float(result.fun)
+            nfev_opt = int(result.nfev)
+            nit_opt = int(result.nit)
+            opt_success = bool(result.success)
+            opt_message = str(result.message)
+        else:
+            if scipy_minimize is None:
+                raise RuntimeError("SciPy minimize is unavailable for COBYLA ADAPT inner optimizer.")
+            result = scipy_minimize(
+                _obj,
+                theta,
+                method="COBYLA",
+                options={"maxiter": int(maxiter), "rhobeg": 0.3},
+            )
+            theta = np.asarray(result.x, dtype=float)
+            energy_current = float(result.fun)
+            nfev_opt = int(getattr(result, "nfev", 0))
+            nit_opt = int(getattr(result, "nit", 0))
+            opt_success = bool(getattr(result, "success", False))
+            opt_message = str(getattr(result, "message", ""))
+        optimizer_elapsed_s = float(time.perf_counter() - optimizer_t0)
+        nfev_total += int(nfev_opt)
+        _ai_log(
+            "hardcoded_adapt_optimizer_timing",
+            depth=int(depth + 1),
+            opt_method=str(adapt_inner_optimizer_key),
+            nfev_opt=int(nfev_opt),
+            nit_opt=int(nit_opt),
+            opt_success=bool(opt_success),
+            opt_message=str(opt_message),
+            optimizer_elapsed_s=float(optimizer_elapsed_s),
         )
-        theta = np.asarray(result.x, dtype=float)
-        energy_current = float(result.fun)
-        nfev_total += int(getattr(result, "nfev", 0))
 
-        history.append({
+        history_row = {
             "depth": int(depth + 1),
             "selected_op": str(pool[best_idx].label),
             "pool_index": int(best_idx),
             "selection_mode": str(selection_mode),
             "init_theta": float(init_theta),
             "max_grad": float(max_grad),
+            "selected_grad_signed": float(gradients[best_idx]),
+            "selected_grad_abs": float(grad_magnitudes[best_idx]),
             "fallback_scan_size": int(fallback_scan_size),
             "fallback_best_probe_delta_e": (
                 float(fallback_best_probe_delta_e) if fallback_best_probe_delta_e is not None else None
@@ -1234,11 +1415,18 @@ def _run_hardcoded_adapt_vqe(
             "energy_before_opt": float(energy_prev),
             "energy_after_opt": float(energy_current),
             "delta_energy": float(energy_current - energy_prev),
-            "nfev_opt": int(getattr(result, "nfev", 0)),
-            "opt_success": bool(getattr(result, "success", False)),
+            "opt_method": str(adapt_inner_optimizer_key),
+            "nfev_opt": int(nfev_opt),
+            "nit_opt": int(nit_opt),
+            "opt_success": bool(opt_success),
+            "opt_message": str(opt_message),
             "gradient_eval_elapsed_s": float(gradient_eval_elapsed_s),
+            "optimizer_elapsed_s": float(optimizer_elapsed_s),
             "iter_elapsed_s": float(time.perf_counter() - iter_t0),
-        })
+        }
+        if adapt_inner_optimizer_key == "SPSA":
+            history_row["spsa_params"] = dict(adapt_spsa_params)
+        history.append(history_row)
 
         _ai_log(
             "hardcoded_adapt_iter_done",
@@ -1246,6 +1434,7 @@ def _run_hardcoded_adapt_vqe(
             energy=float(energy_current),
             delta_e=float(energy_current - energy_prev),
             gradient_eval_elapsed_s=float(gradient_eval_elapsed_s),
+            optimizer_elapsed_s=float(optimizer_elapsed_s),
         )
 
         # 6) Check energy convergence
@@ -1265,7 +1454,15 @@ def _run_hardcoded_adapt_vqe(
             break
 
     # Build final state
-    psi_adapt = _prepare_adapt_state(psi_ref, selected_ops, theta)
+    if adapt_state_backend_key == "compiled":
+        if len(selected_ops) == 0:
+            psi_adapt = np.array(psi_ref, copy=True)
+        else:
+            if selected_executor is None:
+                selected_executor = _build_compiled_executor(selected_ops)
+            psi_adapt = selected_executor.prepare_state(theta, psi_ref)
+    else:
+        psi_adapt = _prepare_adapt_state(psi_ref, selected_ops, theta)
     psi_adapt = _normalize_state(psi_adapt)
 
     elapsed = time.perf_counter() - t0
@@ -1300,24 +1497,31 @@ def _run_hardcoded_adapt_vqe(
         "pool_type": str(pool_key),
         "stop_reason": str(stop_reason),
         "nfev_total": int(nfev_total),
+        "adapt_inner_optimizer": str(adapt_inner_optimizer_key),
         "allow_repeats": bool(allow_repeats),
         "finite_angle_fallback": bool(finite_angle_fallback),
         "finite_angle": float(finite_angle),
         "finite_angle_min_improvement": float(finite_angle_min_improvement),
+        "adapt_gradient_parity_check": bool(adapt_gradient_parity_check),
+        "adapt_state_backend": str(adapt_state_backend_key),
         "compiled_pauli_cache": {
             "enabled": True,
             "compile_elapsed_s": compile_cache_elapsed_s,
             "h_terms": int(len(h_compiled.terms)),
             "pool_terms_total": int(pool_compiled_terms_total),
+            "unique_pauli_actions": int(len(pauli_action_cache)),
         },
         "history": history,
         "elapsed_s": float(elapsed),
         "hf_bitstring_qn_to_q0": str(hf_bits),
     }
+    if adapt_inner_optimizer_key == "SPSA":
+        payload["adapt_spsa"] = dict(adapt_spsa_params)
 
     _ai_log(
         "hardcoded_adapt_vqe_done",
         L=int(num_sites),
+        adapt_inner_optimizer=str(adapt_inner_optimizer_key),
         energy=float(energy_current),
         exact_gs=float(exact_gs),
         abs_delta_e=float(abs(energy_current - exact_gs)),
@@ -1438,6 +1642,7 @@ def _write_pipeline_pdf(pdf_path: Path, payload: dict[str, Any], run_command: st
             f"ADAPT max depth:         {settings.get('adapt_max_depth', '?')}",
             f"ADAPT eps_grad:          {settings.get('adapt_eps_grad', '?')}",
             f"ADAPT eps_energy:        {settings.get('adapt_eps_energy', '?')}",
+            f"ADAPT inner optimizer:   {settings.get('adapt_inner_optimizer', '?')}",
             f"ADAPT finite angle fb:   {settings.get('adapt_finite_angle_fallback', '?')}",
             f"ADAPT finite angle:      {settings.get('adapt_finite_angle', '?')}",
             "",
@@ -1445,6 +1650,20 @@ def _write_pipeline_pdf(pdf_path: Path, payload: dict[str, Any], run_command: st
             f"t_final:                 {settings.get('t_final')}",
             f"Suzuki order:            {settings.get('suzuki_order')}",
         ]
+        if str(settings.get("adapt_inner_optimizer", "")).strip().upper() == "SPSA":
+            adapt_spsa = settings.get("adapt_spsa", {})
+            if isinstance(adapt_spsa, dict):
+                manifest_lines += [
+                    f"SPSA: a={adapt_spsa.get('a')}  c={adapt_spsa.get('c')}  A={adapt_spsa.get('A')}",
+                    f"SPSA: alpha={adapt_spsa.get('alpha')}  gamma={adapt_spsa.get('gamma')}",
+                    (
+                        "SPSA: eval_repeats={eval_repeats}  eval_agg={eval_agg}  avg_last={avg_last}".format(
+                            eval_repeats=adapt_spsa.get("eval_repeats"),
+                            eval_agg=adapt_spsa.get("eval_agg"),
+                            avg_last=adapt_spsa.get("avg_last"),
+                        )
+                    ),
+                ]
         render_text_page(pdf, manifest_lines, fontsize=10, line_spacing=0.03)
 
         # Command page
@@ -1463,6 +1682,7 @@ def _write_pipeline_pdf(pdf_path: Path, payload: dict[str, Any], run_command: st
             f"L={settings.get('L')}  t={settings.get('t')}  u={settings.get('u')}  dv={settings.get('dv')}",
             f"boundary={settings.get('boundary')}  ordering={settings.get('ordering')}",
             f"initial_state_source={settings.get('initial_state_source')}",
+            f"adapt_inner_optimizer={settings.get('adapt_inner_optimizer')}",
             "",
             f"ADAPT-VQE energy:  {adapt.get('energy')}",
             f"Exact GS energy:   {adapt.get('exact_gs_energy')}",
@@ -1561,7 +1781,25 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--adapt-max-depth", type=int, default=20)
     p.add_argument("--adapt-eps-grad", type=float, default=1e-4)
     p.add_argument("--adapt-eps-energy", type=float, default=1e-8)
-    p.add_argument("--adapt-maxiter", type=int, default=300, help="COBYLA maxiter per re-optimization")
+    p.add_argument(
+        "--adapt-inner-optimizer",
+        choices=["COBYLA", "SPSA"],
+        default="COBYLA",
+        help="Inner re-optimizer for HH seed pre-opt and per-depth ADAPT re-optimization.",
+    )
+    p.add_argument("--adapt-maxiter", type=int, default=300, help="Inner optimizer maxiter per re-optimization")
+    p.add_argument("--adapt-spsa-a", type=float, default=0.2)
+    p.add_argument("--adapt-spsa-c", type=float, default=0.1)
+    p.add_argument("--adapt-spsa-alpha", type=float, default=0.602)
+    p.add_argument("--adapt-spsa-gamma", type=float, default=0.101)
+    p.add_argument("--adapt-spsa-A", type=float, default=10.0)
+    p.add_argument("--adapt-spsa-avg-last", type=int, default=0)
+    p.add_argument("--adapt-spsa-eval-repeats", type=int, default=1)
+    p.add_argument(
+        "--adapt-spsa-eval-agg",
+        choices=["mean", "median"],
+        default="mean",
+    )
     p.add_argument("--adapt-seed", type=int, default=7)
     p.set_defaults(adapt_allow_repeats=True)
     p.add_argument("--adapt-allow-repeats", dest="adapt_allow_repeats", action="store_true")
@@ -1595,6 +1833,14 @@ def parse_args() -> argparse.Namespace:
         "--adapt-disable-hh-seed",
         action="store_true",
         help="Disable HH preconditioning with the compact quadrature seed block.",
+    )
+    p.add_argument(
+        "--adapt-gradient-parity-check",
+        action="store_true",
+        help=(
+            "Debug-only parity guard: compare one reused-Hpsi gradient per ADAPT depth "
+            f"against the legacy commutator path (rtol={_ADAPT_GRADIENT_PARITY_RTOL:.1e})."
+        ),
     )
     p.add_argument("--paop-r", type=int, default=1, help="Cloud radius R for paop_full/paop_lf_full pools.")
     p.add_argument(
@@ -1734,6 +1980,15 @@ def main() -> None:
             eps_energy=float(args.adapt_eps_energy),
             maxiter=int(args.adapt_maxiter),
             seed=int(args.adapt_seed),
+            adapt_inner_optimizer=str(args.adapt_inner_optimizer),
+            adapt_spsa_a=float(args.adapt_spsa_a),
+            adapt_spsa_c=float(args.adapt_spsa_c),
+            adapt_spsa_alpha=float(args.adapt_spsa_alpha),
+            adapt_spsa_gamma=float(args.adapt_spsa_gamma),
+            adapt_spsa_A=float(args.adapt_spsa_A),
+            adapt_spsa_avg_last=int(args.adapt_spsa_avg_last),
+            adapt_spsa_eval_repeats=int(args.adapt_spsa_eval_repeats),
+            adapt_spsa_eval_agg=str(args.adapt_spsa_eval_agg),
             allow_repeats=bool(args.adapt_allow_repeats),
             finite_angle_fallback=bool(args.adapt_finite_angle_fallback),
             finite_angle=float(args.adapt_finite_angle),
@@ -1743,6 +1998,7 @@ def main() -> None:
             paop_prune_eps=float(args.paop_prune_eps),
             paop_normalization=str(args.paop_normalization),
             disable_hh_seed=bool(args.adapt_disable_hh_seed),
+            adapt_gradient_parity_check=bool(args.adapt_gradient_parity_check),
         )
     except Exception as exc:
         _ai_log("hardcoded_adapt_vqe_failed", L=int(args.L), error=str(exc))
@@ -1750,8 +2006,20 @@ def main() -> None:
             "success": False,
             "method": f"hardcoded_adapt_vqe_{str(args.adapt_pool).lower()}",
             "energy": None,
+            "adapt_inner_optimizer": str(args.adapt_inner_optimizer),
             "error": str(exc),
         }
+        if str(args.adapt_inner_optimizer).strip().upper() == "SPSA":
+            adapt_payload["adapt_spsa"] = {
+                "a": float(args.adapt_spsa_a),
+                "c": float(args.adapt_spsa_c),
+                "alpha": float(args.adapt_spsa_alpha),
+                "gamma": float(args.adapt_spsa_gamma),
+                "A": float(args.adapt_spsa_A),
+                "avg_last": int(args.adapt_spsa_avg_last),
+                "eval_repeats": int(args.adapt_spsa_eval_repeats),
+                "eval_agg": str(args.adapt_spsa_eval_agg),
+            }
         psi_adapt = psi_exact_ground
 
     # 3) Select initial state for dynamics
@@ -1827,9 +2095,11 @@ def main() -> None:
             "adapt_max_depth": int(args.adapt_max_depth),
             "adapt_eps_grad": float(args.adapt_eps_grad),
             "adapt_eps_energy": float(args.adapt_eps_energy),
+            "adapt_inner_optimizer": str(args.adapt_inner_optimizer),
             "adapt_finite_angle_fallback": bool(args.adapt_finite_angle_fallback),
             "adapt_finite_angle": float(args.adapt_finite_angle),
             "adapt_finite_angle_min_improvement": float(args.adapt_finite_angle_min_improvement),
+            "adapt_gradient_parity_check": bool(args.adapt_gradient_parity_check),
             "adapt_seed": int(args.adapt_seed),
             "paop_r": int(args.paop_r),
             "paop_split_paulis": bool(args.paop_split_paulis),
@@ -1863,6 +2133,17 @@ def main() -> None:
         },
         "trajectory": trajectory,
     }
+    if str(args.adapt_inner_optimizer).strip().upper() == "SPSA":
+        payload["settings"]["adapt_spsa"] = {
+            "a": float(args.adapt_spsa_a),
+            "c": float(args.adapt_spsa_c),
+            "alpha": float(args.adapt_spsa_alpha),
+            "gamma": float(args.adapt_spsa_gamma),
+            "A": float(args.adapt_spsa_A),
+            "avg_last": int(args.adapt_spsa_avg_last),
+            "eval_repeats": int(args.adapt_spsa_eval_repeats),
+            "eval_agg": str(args.adapt_spsa_eval_agg),
+        }
 
     output_json.parent.mkdir(parents=True, exist_ok=True)
     output_pdf.parent.mkdir(parents=True, exist_ok=True)

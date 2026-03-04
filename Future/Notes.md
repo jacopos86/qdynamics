@@ -80,21 +80,22 @@ grouping, symmetry checks
 - Continue on attempt-level errors; do not abort entire workflow because one attempt fails.
 
 ### ADAPT handoff cutoff policy (combined criteria)
-Use both criteria; hand off ADAPT -> final VQE when either condition is satisfied:
+Use an energy-first policy; hand off ADAPT -> final VQE when primary criterion is satisfied:
 
-1. Slope + patience cutoff
-- Track recent `delta_E_abs` slope over last 3 checkpoints.
-- If slope magnitude remains below a threshold for `N` windows and projected gain cannot meet the active gate within remaining budget, stop ADAPT.
+1. Primary: energy-error-drop + patience cutoff
+- Track per-depth `delta_E_abs_best` and `drop(d) = delta_E_abs(d-1) - delta_E_abs(d)`.
+- If `drop(d)` stays below a configured floor for `N` consecutive completed depths
+  (after minimum depth guard), stop ADAPT.
 
-2. Gradient-floor cutoff
-- Track `max|g|` during ADAPT.
-- If `max|g|` remains below `g_min` for `M` checks, stop ADAPT.
+2. Secondary: gradient-floor diagnostic (optional)
+- Track `max|g|` during ADAPT for diagnostics/safety.
+- Use gradient floor only as a secondary guard; never as the sole stop trigger.
 
 Initial tuning placeholders (must be set before production campaign):
-- slope threshold
+- drop floor
 - patience windows `N`
-- gradient floor `g_min`
-- gradient patience `M`
+- minimum depth guard
+- optional gradient floor `g_min` (secondary only)
 
 ### Execution sequence
 1. Run PROBE attempt with probe settings.
@@ -142,3 +143,93 @@ Basically, we want the HVA algorithm to stop after a fixed number of depths, whe
 4. Optional non-matching-grid interpolation mode:
 - Keep strict default (`time_grid_match` required).
 - Add an explicit opt-in interpolation compare mode for diagnostics only, never as the parity pass/fail gate.
+
+
+## L4 HH Overnight Diagnostic Plan (2026-03-04)
+
+### Context
+- Observation: convergence is slower than expected despite using an expressive pool path.
+- Current decision: continue seeded conventional VQE as primary branch; ADAPT branch is stopped.
+- Requirement: preserve current overnight run continuity and extend runtime safety cap by `+12h`.
+
+### Fixed physics contract (must remain unchanged)
+- `problem=HH`
+- `L=4`
+- `boundary=open`
+- `ordering=blocked`
+- `boson_encoding=binary`
+- `n_ph_max=1`
+- `sector=(2,2)`
+- `t=1.0`, `U=4.0`, `dv=0.0`, `omega0=1.0`, `g_ep=0.5`
+
+### Diagnostic objective
+Disambiguate which factor dominates slow progress:
+- expressivity ceiling
+- optimizer/conditioning bottleneck
+- initialization/restart strategy inefficiency
+
+### Diagnostic matrix (future runs; same wallclock budget per branch)
+1. Branch A: seeded conventional VQE continuation (baseline).
+2. Branch B: seeded ADAPT continuation with the same seed state and equal budget.
+3. Branch C: seeded VQE variant with optimizer perturbation (method/restart behavior), same physics.
+
+Each branch should run with:
+- same initial checkpoint state source
+- same heartbeat cadence
+- equal fixed budget per diagnostic window (for example 45-60 min)
+
+### Metrics to record per branch
+- best `|DeltaE_abs|` trajectory
+- slope windows on best `|DeltaE_abs|` vs time:
+  - last 5 heartbeats
+  - last 10 heartbeats
+  - last 20 heartbeats
+- efficiency:
+  - drop in best `|DeltaE_abs|` per minute
+  - drop in best `|DeltaE_abs|` per 100 objective calls
+- event structure:
+  - restart boundaries
+  - abrupt curvature/slope regime changes
+  - flat-tail onset indicators
+
+### Decision gates
+- Primary winner: highest stable decrease rate over the last 10-heartbeat window.
+- Tie-break (<10% difference): choose lower-variance slope branch.
+- Plateau flag: trigger if last 20-heartbeat drop `< 5e-4` and slope magnitude decreases over 3 consecutive windows.
+
+### Operational handoff rule (overnight safety)
+- If run has finite cap, extend by restarting from latest checkpoint and increasing `budget_s`.
+- Extension target for this campaign: `+12h` from prior cap.
+- Preserve checkpoint continuity in logs and artifacts; no physics changes during handoff.
+
+### Expected outcome statement
+- Near-zero `|DeltaE_abs|` is not assumed on current trend.
+- Use measured rate windows to decide continue vs strategy shift (optimizer, ansatz parameterization, or ADAPT re-entry).
+
+## Execution Status Snapshot (L4 HH, active campaign)
+
+- Current active branch: seeded conventional VQE from the ADAPT-B checkpoint.
+- Last checked heartbeat (UTC): `2026-03-04T05:37:27Z`.
+- `|ΔE|` (current): `4.965389e-01`.
+- `|ΔE|` best-so-far: `4.963192e-01`.
+- Warm-seed restart summary:
+  - restart 1/16 end (04:47:44Z): best `4.989841e-01`
+  - restart 2/16 end (05:08:59Z): best `4.963192e-01`
+  - restart 3/16 end (05:35:27Z): best `4.963192e-01`
+  - restart 4/16 currently running (05:37:27Z).
+- Latest crossover metric is near-flat best-trajectory slope; current run is in the low-improvement regime.
+
+#### Live slope diagnostics
+- Best-trajectory slope over last 5 heartbeats: effectively `0 /s` (best has not improved since 05:08:59).
+- Current trajectory `|ΔE|` slope over last 5 heartbeats: `-4.9e-06 /s`.
+- Approx. best `|ΔE|` gain from first heartbeat to now: `~2.67e-03` over `~74 min` (`~6.1e-7 /s`).
+
+#### Relevant artifacts
+- Running VQE log: `/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test/artifacts/useful/L4/l4_hh_seq_20260302_215706_parallel_vqe_from_adaptB_ext12h_20260303_222230_vqe_heavy.log`
+- Last checkpoint state: `/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test/artifacts/useful/L4/l4_hh_seq_20260302_215706_parallel_vqe_from_adaptB_ext12h_20260303_222230_vqe_checkpoint_state.json`
+- Seed checkpoint used: `/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test/artifacts/useful/L4/l4_hh_seq_20260302_215706_resume_adaptB_20260303_111311_adapt_B_B_probe_checkpoint_state.json`
+- Summary index: `/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test/artifacts/useful/L4/hh_runs/L4_HH_20260303_poolA_stop_poolB_continue/L4_HH_overall_results.md`
+
+
+- Confusion matrix
+- Inner optimizer improvements, such as maybe Bayesian inference .

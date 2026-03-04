@@ -104,6 +104,8 @@ class EfficiencyConfig:
     equal_cost_axis: tuple[str, ...]
     equal_cost_policy: str
     calibrate_transpile: bool
+    calibration_backend: str
+    calibration_strict: bool
     output_dir: Path
     include_fallback_appendix: bool
 
@@ -115,8 +117,12 @@ class EfficiencyConfig:
     drive_phi: float
     drive_include_identity: bool
     drive_time_sampling: str
+    sinusoid_omegas: tuple[float, ...]
+    gaussian_tbars: tuple[float, ...]
 
     initial_state_source: str
+    adapt_input_json: Path | None
+    adapt_strict_match: bool
     vqe_ansatz: str
     vqe_reps: int
     vqe_restarts: int
@@ -127,7 +133,7 @@ class EfficiencyConfig:
     adapt_maxiter: int
 
 
-_SUPPORTED_PROBLEMS = ("hubbard_L4", "hh_L2_nb2", "hh_L2_nb3")
+_SUPPORTED_PROBLEMS = ("hubbard_L4", "hh_L2_nb1", "hh_L2_nb2", "hh_L2_nb3", "hh_L3_nb1")
 _SUPPORTED_DRIVES = ("sinusoid", "gaussian_sharp")
 _SUPPORTED_METHODS = ("suzuki2", "cfqm4", "cfqm6")
 _SUPPORTED_STAGE_MODES = ("exact_sparse", "exact_dense", "pauli_suzuki2")
@@ -157,6 +163,16 @@ def _parse_csv_ints(raw: str) -> tuple[int, ...]:
     vals = tuple(int(tok.strip()) for tok in str(raw).split(",") if tok.strip())
     if not vals:
         raise ValueError("Expected non-empty CSV integer list.")
+    return vals
+
+
+def _parse_csv_positive_floats(raw: str) -> tuple[float, ...]:
+    vals = tuple(float(tok.strip()) for tok in str(raw).split(",") if tok.strip())
+    if not vals:
+        raise ValueError("Expected non-empty CSV float list.")
+    for v in vals:
+        if not math.isfinite(float(v)) or float(v) <= 0.0:
+            raise ValueError(f"Expected positive finite float values; got {v}.")
     return vals
 
 
@@ -192,6 +208,20 @@ def _expand_scenarios(problem_grid: Sequence[str]) -> list[BenchmarkScenario]:
                     g_ep=0.5,
                 )
             )
+        elif key == "hh_L2_nb1":
+            out.append(
+                BenchmarkScenario(
+                    scenario_id="hh_L2_nb1",
+                    problem="hh",
+                    L=2,
+                    n_ph_max=1,
+                    t=1.0,
+                    u=2.0,
+                    dv=0.0,
+                    omega0=1.0,
+                    g_ep=0.5,
+                )
+            )
         elif key == "hh_L2_nb3":
             out.append(
                 BenchmarkScenario(
@@ -199,6 +229,20 @@ def _expand_scenarios(problem_grid: Sequence[str]) -> list[BenchmarkScenario]:
                     problem="hh",
                     L=2,
                     n_ph_max=3,
+                    t=1.0,
+                    u=2.0,
+                    dv=0.0,
+                    omega0=1.0,
+                    g_ep=0.5,
+                )
+            )
+        elif key == "hh_L3_nb1":
+            out.append(
+                BenchmarkScenario(
+                    scenario_id="hh_L3_nb1",
+                    problem="hh",
+                    L=3,
+                    n_ph_max=1,
                     t=1.0,
                     u=2.0,
                     dv=0.0,
@@ -214,10 +258,14 @@ def _expand_scenarios(problem_grid: Sequence[str]) -> list[BenchmarkScenario]:
 def _scenario_default_steps(scenario_id: str) -> tuple[int, ...]:
     if scenario_id == "hubbard_L4":
         return (256, 384, 512, 768)
+    if scenario_id == "hh_L2_nb1":
+        return (64, 96, 128, 192)
     if scenario_id == "hh_L2_nb2":
         return (128, 192, 256, 384)
     if scenario_id == "hh_L2_nb3":
         return (192, 256, 384, 512)
+    if scenario_id == "hh_L3_nb1":
+        return (192, 256, 320, 384)
     raise ValueError(f"Unknown scenario_id '{scenario_id}'.")
 
 
@@ -232,7 +280,7 @@ def _expand_drive_cases(cfg: EfficiencyConfig) -> list[dict[str, Any]]:
     out: list[dict[str, Any]] = []
     for drive_kind in cfg.drive_grid:
         if drive_kind == "sinusoid":
-            for omega in (0.5, 2.0, 8.0):
+            for omega in cfg.sinusoid_omegas:
                 out.append(
                     {
                         "drive_kind": "sinusoid",
@@ -245,7 +293,7 @@ def _expand_drive_cases(cfg: EfficiencyConfig) -> list[dict[str, Any]]:
                     }
                 )
         elif drive_kind == "gaussian_sharp":
-            for tbar in (0.25, 0.5):
+            for tbar in cfg.gaussian_tbars:
                 out.append(
                     {
                         "drive_kind": "gaussian_sharp",
@@ -312,6 +360,10 @@ def _build_pipeline_cmd(
     drive_case: Mapping[str, Any],
     exact_steps_multiplier: int,
 ) -> list[str]:
+    adapt_pool = str(cfg.adapt_pool).strip()
+    if adapt_pool == "auto":
+        adapt_pool = "paop_std" if scenario.problem == "hh" else "uccsd"
+
     cmd = [
         sys.executable,
         "pipelines/hardcoded/hubbard_pipeline.py",
@@ -352,7 +404,7 @@ def _build_pipeline_cmd(
         "--vqe-method",
         str(cfg.vqe_method),
         "--adapt-pool",
-        str(cfg.adapt_pool),
+        str(adapt_pool),
         "--adapt-max-depth",
         str(int(cfg.adapt_max_depth)),
         "--adapt-maxiter",
@@ -396,6 +448,18 @@ def _build_pipeline_cmd(
                 str(int(scenario.n_ph_max)),
             ]
         )
+
+    if str(cfg.initial_state_source).strip().lower() == "adapt_json":
+        if cfg.adapt_input_json is None:
+            raise ValueError("initial_state_source=adapt_json requires adapt_input_json path.")
+        cmd.extend(
+            [
+                "--adapt-input-json",
+                str(cfg.adapt_input_json),
+            ]
+        )
+        if not bool(cfg.adapt_strict_match):
+            cmd.append("--no-adapt-strict-match")
 
     if cfqm_stage_exp is not None:
         cmd.extend(
@@ -901,6 +965,305 @@ def _chunk_rows(rows: list[list[str]], chunk_size: int = 24) -> Iterable[list[li
         yield rows[i : i + int(chunk_size)]
 
 
+def _compact_cell_text(value: Any, *, width: int = 12, max_lines: int = 2) -> str:
+    """Format long cell values to avoid table overflow in PDF pages."""
+    txt = str(value)
+    if len(txt) <= width:
+        return txt
+    chunks = [txt[i : i + width] for i in range(0, len(txt), width)]
+    if len(chunks) > max_lines:
+        kept = chunks[:max_lines]
+        tail = kept[-1]
+        kept[-1] = (tail[:-1] + "~") if len(tail) >= 1 else "~"
+        chunks = kept
+    return "\n".join(chunks)
+
+
+def _display_drive_id(drive_case_id: Any) -> str:
+    return _compact_cell_text(drive_case_id, width=12, max_lines=2)
+
+
+def _display_track_id(track_id: Any) -> str:
+    return _compact_cell_text(track_id, width=12, max_lines=2)
+
+
+def _as_finite_float(value: Any) -> float | None:
+    try:
+        out = float(value)
+    except Exception:
+        return None
+    return out if math.isfinite(out) else None
+
+
+def _relative_improvement_str(
+    *,
+    baseline: float | None,
+    candidate: float | None,
+) -> str:
+    """Return relative improvement of candidate vs baseline as a percentage string.
+
+    Positive means candidate is lower (better for error metrics).
+    """
+    if baseline is None or candidate is None:
+        return "nan"
+    b = abs(float(baseline))
+    if b > 0.0:
+        rel = (float(baseline) - float(candidate)) / b
+        return f"{100.0 * rel:.3g}%"
+    if abs(float(candidate)) == 0.0:
+        return "0%"
+    return "n/a"
+
+
+def _closest_suzuki_cfqm4_pair_for_axis(
+    *,
+    rows: Sequence[Mapping[str, Any]],
+    axis_field: str,
+) -> tuple[Mapping[str, Any], Mapping[str, Any], float] | None:
+    suz_rows = [
+        r
+        for r in rows
+        if str(r.get("method", "")) == "suzuki2" and _as_finite_float(r.get(axis_field)) is not None
+    ]
+    c4_rows = [
+        r
+        for r in rows
+        if str(r.get("method", "")) == "cfqm4" and _as_finite_float(r.get(axis_field)) is not None
+    ]
+    best: tuple[Mapping[str, Any], Mapping[str, Any], float] | None = None
+    best_tie: tuple[float, int, int] | None = None
+    for rs in suz_rows:
+        sv = _as_finite_float(rs.get(axis_field))
+        if sv is None:
+            continue
+        for rc in c4_rows:
+            # Keep comparisons within same benchmark track and scenario.
+            if str(rs.get("scenario_id", "")) != str(rc.get("scenario_id", "")):
+                continue
+            if str(rs.get("track", "")) != str(rc.get("track", "")):
+                continue
+            cv = _as_finite_float(rc.get(axis_field))
+            if cv is None:
+                continue
+            delta = abs(float(sv) - float(cv))
+            tie_key = (
+                float(max(abs(sv), abs(cv))),
+                int(rs.get("trotter_steps", 0)),
+                int(rc.get("trotter_steps", 0)),
+            )
+            if best is None or delta < best[2] - 1e-18 or (abs(delta - best[2]) <= 1e-18 and tie_key < best_tie):
+                best = (rs, rc, float(delta))
+                best_tie = tie_key
+    return best
+
+
+def _format_closest_pair_line(
+    *,
+    label: str,
+    axis_field: str,
+    rows: Sequence[Mapping[str, Any]],
+) -> str:
+    pair = _closest_suzuki_cfqm4_pair_for_axis(rows=rows, axis_field=axis_field)
+    if pair is None:
+        return f"- Closest {label} (Suzuki2 vs CFQM4): unavailable in this payload."
+
+    rs, rc, delta = pair
+    sval = _as_finite_float(rs.get(axis_field))
+    cval = _as_finite_float(rc.get(axis_field))
+    e_s = _as_finite_float(rs.get("max_energy_abs_err"))
+    e_c = _as_finite_float(rc.get("max_energy_abs_err"))
+    d_s = _as_finite_float(rs.get("max_doublon_abs_err"))
+    d_c = _as_finite_float(rc.get("max_doublon_abs_err"))
+    s_drive = str(rs.get("drive_case_id", ""))
+    c_drive = str(rc.get("drive_case_id", ""))
+    s_steps = int(rs.get("trotter_steps", 0))
+    c_steps = int(rc.get("trotter_steps", 0))
+    metric_name = str(axis_field)
+    rel_delta = float("nan")
+    if sval is not None and cval is not None:
+        denom = abs(float(sval))
+        if denom > 0.0:
+            rel_delta = abs(float(sval) - float(cval)) / denom
+        elif abs(float(cval)) == 0.0:
+            rel_delta = 0.0
+        else:
+            rel_delta = float("inf")
+    rel_str = "inf" if math.isinf(rel_delta) else ("nan" if not math.isfinite(rel_delta) else f"{100.0*rel_delta:.3g}%")
+    rel_improve_e = _relative_improvement_str(baseline=e_s, candidate=e_c)
+    rel_improve_d = _relative_improvement_str(baseline=d_s, candidate=d_c)
+
+    return (
+        f"- Closest {label} (Suzuki2 vs CFQM4): "
+        f"Suzuki2[drive={s_drive}, S={s_steps}, {metric_name}={sval:.6g}] vs "
+        f"CFQM4[drive={c_drive}, S={c_steps}, {metric_name}={cval:.6g}], "
+        f"|Δ|={delta:.6g}, rel|Δ|={rel_str} (vs Suzuki2); "
+        f"max_E: {e_s:.3e} vs {e_c:.3e} (rel improve={rel_improve_e}); "
+        f"max_doublon: {d_s:.3e} vs {d_c:.3e} (rel improve={rel_improve_d})."
+    )
+
+
+def _build_pdf_headline_lines(
+    *,
+    rows: Sequence[Mapping[str, Any]],
+    drives: Sequence[str],
+    tracks: Sequence[str],
+) -> list[str]:
+    """Create a concise, explicit conclusions block for the PDF front matter."""
+
+    lines: list[str] = [
+        "Headline Conclusions (Auto-generated from this report payload)",
+        "",
+        f"- Drive cases benchmarked: {', '.join(str(d) for d in drives)}",
+        f"- Tracks benchmarked: {', '.join(str(t) for t in tracks)}",
+    ]
+
+    # Same-step comparisons: suzuki2 vs cfqm4 on identical scenario/drive/track/stage/S.
+    suz_by_key: dict[tuple[str, str, str, str, int], Mapping[str, Any]] = {}
+    c4_by_key: dict[tuple[str, str, str, str, int], Mapping[str, Any]] = {}
+    for r in rows:
+        key = (
+            str(r.get("scenario_id", "")),
+            str(r.get("drive_case_id", "")),
+            str(r.get("track", "")),
+            str(r.get("stage_mode", "")),
+            int(r.get("trotter_steps", 0)),
+        )
+        m = str(r.get("method", ""))
+        if m == "suzuki2":
+            suz_by_key[key] = r
+        elif m == "cfqm4":
+            c4_by_key[key] = r
+
+    shared_keys = sorted(set(suz_by_key).intersection(c4_by_key))
+    same_step_pairs = 0
+    same_step_c4_better_E = 0
+    same_step_c4_better_D = 0
+    for k in shared_keys:
+        rs = suz_by_key[k]
+        rc = c4_by_key[k]
+        e_s = float(rs.get("max_energy_abs_err", float("nan")))
+        e_c = float(rc.get("max_energy_abs_err", float("nan")))
+        d_s = float(rs.get("max_doublon_abs_err", float("nan")))
+        d_c = float(rc.get("max_doublon_abs_err", float("nan")))
+        if math.isfinite(e_s) and math.isfinite(e_c) and math.isfinite(d_s) and math.isfinite(d_c):
+            same_step_pairs += 1
+            if e_c < e_s:
+                same_step_c4_better_E += 1
+            if d_c < d_s:
+                same_step_c4_better_D += 1
+
+    if same_step_pairs > 0:
+        if same_step_c4_better_E == same_step_pairs and same_step_c4_better_D == same_step_pairs:
+            lines.append(
+                "- CFQM4 is better than Suzuki2 on all same-step comparisons in this payload "
+                "(both max_energy_abs_err and max_doublon_abs_err)."
+            )
+        else:
+            lines.append(
+                "- Same-step CFQM4 vs Suzuki2: "
+                f"max_energy_abs_err better in {same_step_c4_better_E}/{same_step_pairs}, "
+                f"max_doublon_abs_err better in {same_step_c4_better_D}/{same_step_pairs}."
+            )
+    else:
+        lines.append("- No same-step CFQM4 vs Suzuki2 overlap was found in this payload.")
+
+    # Pairwise equal proxy-cost ties (cx + pauli-rotation) for suzuki2 vs cfqm4.
+    suz_by_proxy: dict[tuple[str, str, str, str, int, int], Mapping[str, Any]] = {}
+    c4_by_proxy: dict[tuple[str, str, str, str, int, int], Mapping[str, Any]] = {}
+    for r in rows:
+        key = (
+            str(r.get("scenario_id", "")),
+            str(r.get("drive_case_id", "")),
+            str(r.get("track", "")),
+            str(r.get("stage_mode", "")),
+            int(r.get("cx_proxy_total", 0)),
+            int(r.get("pauli_rot_count_total", 0)),
+        )
+        m = str(r.get("method", ""))
+        if m == "suzuki2":
+            suz_by_proxy[key] = r
+        elif m == "cfqm4":
+            c4_by_proxy[key] = r
+
+    tie_keys = sorted(set(suz_by_proxy).intersection(c4_by_proxy))
+    tie_pairs = 0
+    tie_c4_better_E = 0
+    tie_c4_better_D = 0
+    for k in tie_keys:
+        rs = suz_by_proxy[k]
+        rc = c4_by_proxy[k]
+        e_s = float(rs.get("max_energy_abs_err", float("nan")))
+        e_c = float(rc.get("max_energy_abs_err", float("nan")))
+        d_s = float(rs.get("max_doublon_abs_err", float("nan")))
+        d_c = float(rc.get("max_doublon_abs_err", float("nan")))
+        if math.isfinite(e_s) and math.isfinite(e_c) and math.isfinite(d_s) and math.isfinite(d_c):
+            tie_pairs += 1
+            if e_c < e_s:
+                tie_c4_better_E += 1
+            if d_c < d_s:
+                tie_c4_better_D += 1
+
+    if tie_pairs > 0:
+        lines.append(
+            "- Pairwise equal-cost ties (cx_proxy_total + pauli_rot_count_total) between "
+            f"Suzuki2 and CFQM4: {tie_pairs}; CFQM4 better in max_energy_abs_err "
+            f"{tie_c4_better_E}/{tie_pairs}, max_doublon_abs_err {tie_c4_better_D}/{tie_pairs}."
+        )
+    else:
+        lines.append(
+            "- No pairwise exact ties on (cx_proxy_total, pauli_rot_count_total) were found for Suzuki2 vs CFQM4."
+        )
+
+    lines.append(
+        "- Closest-pair comparisons requested (Suzuki2 vs CFQM4) when exact ties are absent:"
+    )
+    lines.append(
+        _format_closest_pair_line(
+            label="CX proxy total",
+            axis_field="cx_proxy_total",
+            rows=rows,
+        )
+    )
+    lines.append(
+        _format_closest_pair_line(
+            label="2Q transpiled total",
+            axis_field="transpiled_2q_count",
+            rows=rows,
+        )
+    )
+    lines.append(
+        _format_closest_pair_line(
+            label="PROT total (pauli_rot_count_total)",
+            axis_field="pauli_rot_count_total",
+            rows=rows,
+        )
+    )
+    lines.append(
+        _format_closest_pair_line(
+            label="XM/EXPM total (expm_multiply_calls_total)",
+            axis_field="expm_multiply_calls_total",
+            rows=rows,
+        )
+    )
+
+    # Explicit wall-time caveat for recovered reports.
+    wall_vals = [float(r.get("wall_time_s", float("nan"))) for r in rows]
+    finite_wall = [w for w in wall_vals if math.isfinite(w)]
+    if not finite_wall:
+        lines.append(
+            "- Wall-time comparisons are unavailable in this report (wall_time_s is NaN in payload)."
+        )
+    else:
+        lines.append(
+            f"- Wall-time values present for {len(finite_wall)}/{len(wall_vals)} runs; interpret with machine-load caveats."
+        )
+
+    lines.append(
+        "- Scope note: conclusions above apply only to the listed drive cases/tracks in this report."
+    )
+    return lines
+
+
 def _write_efficiency_pdf(
     *,
     output_pdf: Path,
@@ -916,6 +1279,8 @@ def _write_efficiency_pdf(
     rows = [r for r in rows if isinstance(r, Mapping)]
     if not rows:
         return
+    unique_drive_ids = sorted({str(r.get("drive_case_id", "")) for r in rows})
+    unique_track_ids = sorted({str(r.get("track", "")) for r in rows})
 
     output_pdf.parent.mkdir(parents=True, exist_ok=True)
     with PdfPages(str(output_pdf)) as pdf:
@@ -941,8 +1306,22 @@ def _write_efficiency_pdf(
             f"- methods={','.join(str(m) for m in settings.get('methods', []))}",
             f"- stage_mode_grid={','.join(str(m) for m in settings.get('stage_mode_grid', []))}",
             f"- equal_cost_axis={','.join(str(m) for m in settings.get('equal_cost_axis', []))}",
+            f"- Drive cases in this report: {', '.join(unique_drive_ids)}",
+            f"- Tracks in this report: {', '.join(unique_track_ids)}",
+            "- Table formatting note: scenario/drive/track cells are wrapped for readability.",
         ]
         render_text_page(pdf, manifest, fontsize=9, line_spacing=0.035)
+        render_text_page(
+            pdf,
+            _build_pdf_headline_lines(
+                rows=rows,
+                drives=unique_drive_ids,
+                tracks=unique_track_ids,
+            ),
+            fontsize=9,
+            line_spacing=0.035,
+            max_line_width=110,
+        )
 
         headers = [
             "scenario",
@@ -964,9 +1343,9 @@ def _write_efficiency_pdf(
         for r in rows:
             table_rows.append(
                 [
-                    str(r.get("scenario_id", "")),
-                    str(r.get("drive_case_id", "")),
-                    str(r.get("track", "")),
+                    _compact_cell_text(r.get("scenario_id", ""), width=11, max_lines=2),
+                    _display_drive_id(r.get("drive_case_id", "")),
+                    _display_track_id(r.get("track", "")),
                     str(r.get("method", "")),
                     str(r.get("stage_mode", "")),
                     f"{int(r.get('trotter_steps', 0))}",
@@ -998,9 +1377,9 @@ def _write_efficiency_pdf(
         if isinstance(slope_rows, list) and slope_rows:
             rows_fmt = [
                 [
-                    str(r.get("scenario_id", "")),
-                    str(r.get("drive_case_id", "")),
-                    str(r.get("track", "")),
+                    _compact_cell_text(r.get("scenario_id", ""), width=12, max_lines=2),
+                    _display_drive_id(r.get("drive_case_id", "")),
+                    _display_track_id(r.get("track", "")),
                     str(r.get("method", "")),
                     str(r.get("error_metric", "")),
                     "nan" if r.get("slope") is None else f"{float(r['slope']):.3f}",
@@ -1036,9 +1415,9 @@ def _write_efficiency_pdf(
                             continue
                         display_rows.append(
                             [
-                                str(block.get("scenario_id", "")),
-                                str(block.get("drive_case_id", "")),
-                                str(block.get("track", "")),
+                                _compact_cell_text(block.get("scenario_id", ""), width=12, max_lines=2),
+                                _display_drive_id(block.get("drive_case_id", "")),
+                                _display_track_id(block.get("track", "")),
                                 str(rr.get("method", "")),
                                 str(rr.get("stage_mode", "")),
                                 f"{int(rr.get('trotter_steps', 0))}",
@@ -1086,9 +1465,9 @@ def _write_efficiency_pdf(
                         continue
                     fmt_rows.append(
                         [
-                            str(block.get("scenario_id", "")),
-                            str(block.get("drive_case_id", "")),
-                            str(block.get("track", "")),
+                            _compact_cell_text(block.get("scenario_id", ""), width=12, max_lines=2),
+                            _display_drive_id(block.get("drive_case_id", "")),
+                            _display_track_id(block.get("track", "")),
                             str(rr.get("method", "")),
                             f"{int(rr.get('trotter_steps', 0))}",
                             f"{target:.3e}",
@@ -1153,6 +1532,26 @@ def _write_efficiency_pdf(
 
         # Calibration summary page if present.
         calib = payload.get("transpile_calibration", {})
+        if isinstance(calib, Mapping):
+            summ = calib.get("summary", {})
+            if isinstance(summ, Mapping):
+                coverage_lines = [
+                    "Transpile Calibration Coverage",
+                    "",
+                    f"- enabled: {bool(calib.get('enabled', False))}",
+                    f"- status: {str(calib.get('status', 'unknown'))}",
+                    f"- backend_request: {str(calib.get('backend_request', 'n/a'))}",
+                    f"- backend_names_used: {','.join(str(x) for x in calib.get('backend_names_used', []))}",
+                    f"- targets_total: {int(summ.get('targets_total', 0))}",
+                    f"- ok: {int(summ.get('ok', 0))}",
+                    f"- skipped: {int(summ.get('skipped', 0))}",
+                    f"- failed: {int(summ.get('failed', 0))}",
+                ]
+                reason = calib.get("reason")
+                if reason is not None:
+                    coverage_lines.append(f"- reason: {str(reason)}")
+                render_text_page(pdf, coverage_lines, fontsize=9, line_spacing=0.035)
+
         samples = calib.get("samples") if isinstance(calib, Mapping) else None
         if isinstance(samples, list) and samples:
             fmt_rows: list[list[str]] = []
@@ -1166,9 +1565,19 @@ def _write_efficiency_pdf(
                         str(s.get("stage_mode", "")),
                         str(s.get("scenario_id", "")),
                         f"{int(s.get('trotter_steps', 0))}",
+                        str(s.get("status", "")),
+                        str(s.get("backend", "")),
                         f"{int(s.get('proxy_cx_total', 0))}",
-                        f"{int(s.get('transpiled_2q_count', 0))}",
-                        f"{int(s.get('transpiled_depth', 0))}",
+                        (
+                            "nan"
+                            if s.get("transpiled_2q_count") is None
+                            else f"{int(s.get('transpiled_2q_count', 0))}"
+                        ),
+                        (
+                            "nan"
+                            if s.get("transpiled_depth") is None
+                            else f"{int(s.get('transpiled_depth', 0))}"
+                        ),
                     ]
                 )
             for chunk in _chunk_rows(fmt_rows, chunk_size=24):
@@ -1177,7 +1586,18 @@ def _write_efficiency_pdf(
                 render_compact_table(
                     ax,
                     title="Calibration (proxy vs transpiled 2q/depth)",
-                    col_labels=["run_id", "method", "stage", "scenario", "S", "proxy_cx", "trans_2q", "trans_depth"],
+                    col_labels=[
+                        "run_id",
+                        "method",
+                        "stage",
+                        "scenario",
+                        "S",
+                        "status",
+                        "backend",
+                        "proxy_cx",
+                        "trans_2q",
+                        "trans_depth",
+                    ],
                     rows=chunk,
                     fontsize=7,
                 )
@@ -1186,18 +1606,106 @@ def _write_efficiency_pdf(
 
 
 
+def _backend_num_qubits(backend: Any) -> int | None:
+    nq = getattr(backend, "num_qubits", None)
+    if nq is None:
+        cfg_fn = getattr(backend, "configuration", None)
+        if callable(cfg_fn):
+            cfg = cfg_fn()
+            nq = getattr(cfg, "num_qubits", None)
+    if nq is None:
+        return None
+    try:
+        return int(nq)
+    except Exception:
+        return None
+
+
+def _list_fake_backend_specs(fake_provider: Any) -> list[tuple[str, type, int]]:
+    specs: list[tuple[str, type, int]] = []
+    for name in dir(fake_provider):
+        if not (name.startswith("Fake") and name.endswith("V2")):
+            continue
+        cls = getattr(fake_provider, name, None)
+        if not isinstance(cls, type):
+            continue
+        try:
+            backend = cls()
+        except Exception:
+            continue
+        nq = _backend_num_qubits(backend)
+        if nq is None:
+            continue
+        specs.append((str(name), cls, int(nq)))
+    return sorted(specs, key=lambda x: (x[2], x[0]))
+
+
+def _select_fake_backend_spec(
+    *,
+    specs: Sequence[tuple[str, type, int]],
+    required_nq: int,
+    requested: str,
+) -> tuple[tuple[str, type, int] | None, str | None]:
+    if not specs:
+        return None, "no_fake_backends_available"
+
+    req = str(requested).strip()
+    if req != "auto":
+        for spec in specs:
+            if spec[0] == req:
+                if int(spec[2]) < int(required_nq):
+                    return None, f"requested_backend_too_small:{req}:{spec[2]}<{required_nq}"
+                return spec, None
+        return None, f"requested_backend_not_found:{req}"
+
+    candidates = [spec for spec in specs if int(spec[2]) >= int(required_nq)]
+    if not candidates:
+        return None, f"no_backend_wide_enough:{required_nq}"
+    return candidates[0], None
+
+
+def _calibration_summary_from_samples(
+    samples: Sequence[Mapping[str, Any]],
+    *,
+    targets_total: int,
+) -> dict[str, int]:
+    ok = 0
+    skipped = 0
+    failed = 0
+    for s in samples:
+        status = str(s.get("status", ""))
+        if status == "ok":
+            ok += 1
+        elif status == "skipped":
+            skipped += 1
+        elif status == "failed":
+            failed += 1
+    return {
+        "targets_total": int(targets_total),
+        "ok": int(ok),
+        "skipped": int(skipped),
+        "failed": int(failed),
+    }
+
+
 def _maybe_calibrate_transpile(
     *,
     rows_internal: list[dict[str, Any]],
     active_coeff_tol: float,
     t_final: float,
     enabled: bool,
+    backend_request: str,
+    strict: bool,
 ) -> dict[str, Any]:
+    targets_total = int(len(rows_internal))
     if not bool(enabled):
         return {
             "enabled": False,
             "status": "skipped",
             "reason": "--calibrate-transpile disabled",
+            "backend_request": str(backend_request),
+            "backend_names_used": [],
+            "summary": _calibration_summary_from_samples([], targets_total=targets_total),
             "samples": [],
         }
 
@@ -1213,68 +1721,135 @@ def _maybe_calibrate_transpile(
             "enabled": True,
             "status": "skipped",
             "reason": f"import_failed: {exc}",
+            "backend_request": str(backend_request),
+            "backend_names_used": [],
+            "summary": _calibration_summary_from_samples([], targets_total=targets_total),
             "samples": [],
         }
 
-    backend_cls = getattr(fake_provider, "FakeManilaV2", None)
-    if backend_cls is None:
+    specs = _list_fake_backend_specs(fake_provider)
+    if not specs:
         return {
             "enabled": True,
             "status": "skipped",
-            "reason": "FakeManilaV2 unavailable",
+            "reason": "no_fake_backends_available",
+            "backend_request": str(backend_request),
+            "backend_names_used": [],
+            "summary": _calibration_summary_from_samples([], targets_total=targets_total),
             "samples": [],
         }
 
-    backend = backend_cls()
     samples: list[dict[str, Any]] = []
+    backend_names_used: set[str] = set()
     for row in rows_internal:
-        ordered = row.get("ordered_labels", [])
-        static_map = row.get("static_coeff_map", {})
-        if not isinstance(ordered, list) or not ordered:
-            continue
-        if not isinstance(static_map, Mapping):
-            continue
-        terms: list[tuple[str, complex]] = []
-        for lbl in ordered:
-            coeff = complex(static_map.get(lbl, 0.0 + 0.0j))
-            if abs(coeff) <= float(active_coeff_tol):
+        sample: dict[str, Any] = {
+            "run_id": str(row.get("run_id", "")),
+            "scenario_id": str(row.get("scenario_id", "")),
+            "method": str(row.get("method", "")),
+            "stage_mode": str(row.get("stage_mode", "")),
+            "trotter_steps": int(row.get("trotter_steps", 0)),
+            "proxy_cx_total": int(row.get("cx_proxy_total", 0)),
+            "status": "skipped",
+            "reason": "",
+            "backend": "",
+            "backend_num_qubits": None,
+            "circuit_num_qubits": None,
+            "transpiled_depth": None,
+            "transpiled_2q_count": None,
+        }
+        try:
+            ordered = row.get("ordered_labels", [])
+            static_map = row.get("static_coeff_map", {})
+            if not isinstance(ordered, list) or not ordered:
+                sample["status"] = "skipped"
+                sample["reason"] = "missing_or_empty_ordered_labels"
+                samples.append(sample)
                 continue
-            terms.append((str(lbl).replace("e", "I").upper(), coeff))
-        if not terms:
-            continue
+            if not isinstance(static_map, Mapping):
+                sample["status"] = "skipped"
+                sample["reason"] = "invalid_static_coeff_map"
+                samples.append(sample)
+                continue
 
-        qop = SparsePauliOp.from_list(terms)
-        nq = int(qop.num_qubits)
-        qc = QuantumCircuit(nq)
-        qc.append(
-            PauliEvolutionGate(
-                qop,
-                time=float(t_final),
-                synthesis=SuzukiTrotter(order=2, reps=1, preserve_order=True),
-            ),
-            list(range(nq)),
-        )
-        tqc = transpile(qc, backend=backend, optimization_level=1)
-        counts = tqc.count_ops()
-        samples.append(
-            {
-                "run_id": str(row.get("run_id", "")),
-                "scenario_id": str(row.get("scenario_id", "")),
-                "method": str(row.get("method", "")),
-                "stage_mode": str(row.get("stage_mode", "")),
-                "trotter_steps": int(row.get("trotter_steps", 0)),
-                "transpiled_depth": int(tqc.depth()),
-                "transpiled_2q_count": int(
-                    sum(int(v) for k, v in counts.items() if str(k) in {"cx", "ecr", "cz"})
+            terms: list[tuple[str, complex]] = []
+            for lbl in ordered:
+                coeff = complex(static_map.get(lbl, 0.0 + 0.0j))
+                if abs(coeff) <= float(active_coeff_tol):
+                    continue
+                terms.append((str(lbl).replace("e", "I").upper(), coeff))
+            if not terms:
+                sample["status"] = "skipped"
+                sample["reason"] = "no_active_terms_after_tolerance"
+                samples.append(sample)
+                continue
+
+            qop = SparsePauliOp.from_list(terms)
+            nq = int(qop.num_qubits)
+            sample["circuit_num_qubits"] = nq
+
+            spec, select_reason = _select_fake_backend_spec(
+                specs=specs,
+                required_nq=nq,
+                requested=str(backend_request),
+            )
+            if spec is None:
+                sample["status"] = "skipped"
+                sample["reason"] = str(select_reason or "backend_selection_failed")
+                samples.append(sample)
+                continue
+
+            backend_name, backend_cls, backend_nq = spec
+            backend = backend_cls()
+            sample["backend"] = str(backend_name)
+            sample["backend_num_qubits"] = int(backend_nq)
+
+            qc = QuantumCircuit(nq)
+            qc.append(
+                PauliEvolutionGate(
+                    qop,
+                    time=float(t_final),
+                    synthesis=SuzukiTrotter(order=2, reps=1, preserve_order=True),
                 ),
-                "proxy_cx_total": int(row.get("cx_proxy_total", 0)),
-            }
-        )
+                list(range(nq)),
+            )
+            tqc = transpile(qc, backend=backend, optimization_level=1)
+            counts = tqc.count_ops()
+            sample["status"] = "ok"
+            sample["reason"] = ""
+            sample["transpiled_depth"] = int(tqc.depth())
+            sample["transpiled_2q_count"] = int(
+                sum(int(v) for k, v in counts.items() if str(k) in {"cx", "ecr", "cz"})
+            )
+            backend_names_used.add(str(backend_name))
+            samples.append(sample)
+        except Exception as exc:
+            sample["status"] = "failed"
+            sample["reason"] = f"{type(exc).__name__}: {exc}"
+            samples.append(sample)
+            if bool(strict):
+                raise RuntimeError(
+                    f"Calibration failed for run_id={sample['run_id']}: {sample['reason']}"
+                ) from exc
+
+    summary = _calibration_summary_from_samples(samples, targets_total=targets_total)
+    failed = int(summary.get("failed", 0))
+    ok = int(summary.get("ok", 0))
+    skipped = int(summary.get("skipped", 0))
+    if failed > 0:
+        status = "partial_with_failures"
+    elif ok > 0 and skipped > 0:
+        status = "partial"
+    elif ok > 0:
+        status = "ok"
+    else:
+        status = "skipped"
 
     return {
         "enabled": True,
-        "status": "ok",
-        "backend": "FakeManilaV2",
+        "status": status,
+        "backend_request": str(backend_request),
+        "backend_names_used": sorted(backend_names_used),
+        "summary": summary,
         "samples": samples,
     }
 
@@ -1456,6 +2031,8 @@ def run_efficiency_suite(
         active_coeff_tol=float(active_coeff_tol),
         t_final=float(config.t_final),
         enabled=bool(config.calibrate_transpile),
+        backend_request=str(config.calibration_backend),
+        strict=bool(config.calibration_strict),
     )
 
     if isinstance(calibration.get("samples"), list):
@@ -1468,8 +2045,14 @@ def run_efficiency_suite(
             sample = by_run.get(str(row["run_id"]))
             if sample is None:
                 continue
-            row["transpiled_2q_count"] = int(sample.get("transpiled_2q_count", 0))
-            row["transpiled_depth"] = int(sample.get("transpiled_depth", 0))
+            if str(sample.get("status", "")) != "ok":
+                continue
+            t2q = sample.get("transpiled_2q_count")
+            tdp = sample.get("transpiled_depth")
+            if t2q is not None:
+                row["transpiled_2q_count"] = int(t2q)
+            if tdp is not None:
+                row["transpiled_depth"] = int(tdp)
 
     slope_fits = _build_slope_fits(rows_public, config.error_metrics)
     pareto = _build_pareto_by_metric(
@@ -1503,8 +2086,14 @@ def run_efficiency_suite(
         "equal_cost_axis": [str(x) for x in config.equal_cost_axis],
         "equal_cost_policy": str(config.equal_cost_policy),
         "calibrate_transpile": bool(config.calibrate_transpile),
+        "calibration_backend": str(config.calibration_backend),
+        "calibration_strict": bool(config.calibration_strict),
         "include_fallback_appendix": bool(config.include_fallback_appendix),
+        "sinusoid_omegas": [float(x) for x in config.sinusoid_omegas],
+        "gaussian_tbars": [float(x) for x in config.gaussian_tbars],
         "initial_state_source": str(config.initial_state_source),
+        "adapt_input_json": None if config.adapt_input_json is None else str(config.adapt_input_json),
+        "adapt_strict_match": bool(config.adapt_strict_match),
         "t_default": 1.0,
         "u_default": 4.0,
         "dv_default": 0.0,
@@ -1614,6 +2203,8 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     )
     p.add_argument("--equal-cost-policy", type=str, choices=["exact_tie_only"], default="exact_tie_only")
     p.add_argument("--calibrate-transpile", action="store_true")
+    p.add_argument("--calibration-backend", type=str, default="auto")
+    p.add_argument("--calibration-strict", action="store_true")
     p.add_argument("--output-dir", type=Path, default=REPO_ROOT / "artifacts" / "cfqm_efficiency_benchmark")
     p.add_argument("--include-fallback-appendix", action="store_true", default=True)
     p.add_argument("--no-fallback-appendix", dest="include_fallback_appendix", action="store_false")
@@ -1626,14 +2217,30 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     p.add_argument("--drive-phi", type=float, default=0.0)
     p.add_argument("--drive-include-identity", action="store_true")
     p.add_argument("--drive-time-sampling", choices=["midpoint", "left", "right"], default="midpoint")
+    p.add_argument("--sinusoid-omegas", type=str, default="0.5,2.0,8.0")
+    p.add_argument("--gaussian-tbars", type=str, default="0.25,0.5")
 
     p.add_argument("--initial-state-source", choices=["exact", "vqe", "hf", "adapt_json"], default="exact")
+    p.add_argument("--adapt-input-json", type=Path, default=None)
+    p.set_defaults(adapt_strict_match=True)
+    p.add_argument(
+        "--adapt-strict-match",
+        dest="adapt_strict_match",
+        action="store_true",
+        help="Require strict metadata match for adapt_json initial-state imports.",
+    )
+    p.add_argument(
+        "--no-adapt-strict-match",
+        dest="adapt_strict_match",
+        action="store_false",
+        help="Allow adapt_json initial-state imports with metadata mismatches.",
+    )
     p.add_argument("--vqe-ansatz", choices=["uccsd", "hva", "hh_hva", "hh_hva_tw", "hh_hva_ptw"], default="uccsd")
     p.add_argument("--vqe-reps", type=int, default=2)
     p.add_argument("--vqe-restarts", type=int, default=2)
     p.add_argument("--vqe-maxiter", type=int, default=600)
     p.add_argument("--vqe-method", choices=["SLSQP", "COBYLA", "L-BFGS-B", "Powell", "Nelder-Mead"], default="COBYLA")
-    p.add_argument("--adapt-pool", type=str, default="uccsd")
+    p.add_argument("--adapt-pool", type=str, default="auto")
     p.add_argument("--adapt-max-depth", type=int, default=2)
     p.add_argument("--adapt-maxiter", type=int, default=30)
 
@@ -1648,6 +2255,8 @@ def _to_config(args: argparse.Namespace) -> EfficiencyConfig:
     error_metrics = _parse_csv(str(args.error_metrics))
     cost_metrics = _parse_csv(str(args.cost_metrics))
     equal_cost_axis = _parse_csv(str(args.equal_cost_axis))
+    sinusoid_omegas = _parse_csv_positive_floats(str(args.sinusoid_omegas))
+    gaussian_tbars = _parse_csv_positive_floats(str(args.gaussian_tbars))
 
     for token in problem_grid:
         if token not in _SUPPORTED_PROBLEMS:
@@ -1679,6 +2288,17 @@ def _to_config(args: argparse.Namespace) -> EfficiencyConfig:
         raise ValueError("--t-final must be > 0")
     if int(args.num_times) < 2:
         raise ValueError("--num-times must be >= 2")
+    if str(args.initial_state_source).strip().lower() == "adapt_json":
+        if args.adapt_input_json is None:
+            raise ValueError("--adapt-input-json is required when --initial-state-source adapt_json")
+        adapt_path = Path(args.adapt_input_json)
+        if not adapt_path.exists():
+            raise FileNotFoundError(f"ADAPT input JSON not found: {adapt_path}")
+    else:
+        adapt_path = None
+    calibration_backend = str(args.calibration_backend).strip()
+    if not calibration_backend:
+        raise ValueError("--calibration-backend must be non-empty")
 
     return EfficiencyConfig(
         problem_grid=tuple(problem_grid),
@@ -1692,6 +2312,8 @@ def _to_config(args: argparse.Namespace) -> EfficiencyConfig:
         equal_cost_axis=tuple(equal_cost_axis),
         equal_cost_policy=str(args.equal_cost_policy),
         calibrate_transpile=bool(args.calibrate_transpile),
+        calibration_backend=calibration_backend,
+        calibration_strict=bool(args.calibration_strict),
         output_dir=Path(args.output_dir),
         include_fallback_appendix=bool(args.include_fallback_appendix),
         boundary=str(args.boundary),
@@ -1702,7 +2324,11 @@ def _to_config(args: argparse.Namespace) -> EfficiencyConfig:
         drive_phi=float(args.drive_phi),
         drive_include_identity=bool(args.drive_include_identity),
         drive_time_sampling=str(args.drive_time_sampling),
+        sinusoid_omegas=tuple(float(x) for x in sinusoid_omegas),
+        gaussian_tbars=tuple(float(x) for x in gaussian_tbars),
         initial_state_source=str(args.initial_state_source),
+        adapt_input_json=adapt_path,
+        adapt_strict_match=bool(args.adapt_strict_match),
         vqe_ansatz=str(args.vqe_ansatz),
         vqe_reps=int(args.vqe_reps),
         vqe_restarts=int(args.vqe_restarts),

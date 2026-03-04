@@ -29,9 +29,13 @@ This manuscript is a self-contained extension of `main (1).pdf`, with strict sub
 - Reproducibility-defining implementation parameters discussed in this manuscript:
 - ordering in fermion sector: `blocked` or `interleaved`.
 - boundary: `open` or `periodic`.
-- VQE optimizer method: `COBYLA`, `SLSQP`, optional fallback coordinate search when SciPy is unavailable.
+- VQE optimizer method: includes `SPSA` (noise-oriented) plus SciPy methods (`COBYLA`, `SLSQP`).
+- VQE energy backend: `legacy` or `one_apply_compiled`.
 - VQE restart count, max iterations, initial point scale, bounds.
-- ADAPT controls: `adapt_max_depth`, `adapt_eps_grad`, `adapt_eps_energy`, `adapt_maxiter`, repeat policy, finite-angle fallback settings.
+- ADAPT inner optimizer: `COBYLA` or `SPSA`.
+- ADAPT SPSA controls: `adapt_spsa_a`, `adapt_spsa_c`, `adapt_spsa_alpha`, `adapt_spsa_gamma`, `adapt_spsa_A`, `adapt_spsa_avg_last`, `adapt_spsa_eval_repeats`, `adapt_spsa_eval_agg`.
+- ADAPT state backend: `legacy` or `compiled`.
+- ADAPT controls: `adapt_max_depth`, `adapt_eps_grad`, `adapt_eps_energy`, `adapt_maxiter`, repeat policy, finite-angle fallback settings, optional `adapt_gradient_parity_check`.
 - PAOP controls: radius `paop_r`, split mode, prune threshold, normalization mode.
 
 ## 1.2 Reader contract
@@ -86,6 +90,10 @@ $$
 \mathcal P = (L, t, U, dv, \omega_0, g, n_{\mathrm{ph,max}}, \text{encoding}, \text{ordering}, \text{boundary}, \text{optimizer}, \text{restarts}, \text{maxiter}, \text{ADAPT controls}, \text{PAOP controls}, \text{drive controls})
 $$
 with explicit implementation names in the listed source files.
+For current repo branches this tuple is refined to include
+$$
+\mathcal P_{\mathrm{opt}}=(\texttt{vqe\_method},\texttt{vqe\_energy\_backend},\texttt{adapt\_inner\_optimizer},\texttt{adapt\_state\_backend},\texttt{adapt\_spsa\_*},\texttt{adapt\_gradient\_parity\_check}).
+$$
 
 # 2. Continuity Recap from main (1).pdf
 
@@ -531,28 +539,46 @@ E^*=E_*^{(r^*)},\qquad
 \theta^*=\theta_*^{(r^*)}.
 $$
 
-## 8.3 SciPy branch (default inner kernel)
+## 8.3 SPSA branch (primary inner kernel)
 
-When SciPy exists:
+For `method=SPSA`, each inner iteration uses perturbation pair evaluations:
 $$
-\theta_*^{(r)}=\arg\min_{\theta\in\mathcal B}E(\theta),
+\Delta_k\in\{-1,+1\}^p,\qquad
+\theta_k^{\pm}=\Pi_{\mathcal B}\!\left(\theta_k\pm c_k\Delta_k\right),
 $$
-with `scipy.optimize.minimize` called as
-
 $$
-\texttt{minimize}(E,\theta_0,\texttt{method},\texttt{bounds},\texttt{options}).
+y_k^{\pm}=\operatorname{Agg}\left(\left\{E\!\left(\theta_k^{\pm}\right)\right\}_{s=1}^{R_{\mathrm{eval}}}\right),
+\qquad
+\operatorname{Agg}\in\{\operatorname{mean},\operatorname{median}\}.
 $$
-Bounds are
+Gradient estimator:
 $$
-\mathcal B=
+\widehat g_k=\frac{y_k^+-y_k^-}{2c_k}\,\Delta_k^{-1}
+=\frac{y_k^+-y_k^-}{2c_k}\,\Delta_k,
+$$
+since each component of $\Delta_k$ is $\pm1$.
+Gain schedules:
+$$
+a_k=\frac{a}{(k+1+A)^{\alpha}},\qquad
+c_k=\frac{c}{(k+1)^{\gamma}}.
+$$
+Update:
+$$
+\theta_{k+1}=\Pi_{\mathcal B}\!\left(\theta_k-a_k\widehat g_k\right).
+$$
+Optional terminal averaging (`avg_last = m`):
+$$
+\bar\theta_T=\frac{1}{m}\sum_{j=0}^{m-1}\theta_{T-j},
+\qquad
+\theta_\star=
 \begin{cases}
-[\ell,h]^p,&\text{if bounds provided as }(\ell,h),\\
-\mathbb R^p,&\text{if bounds is }None.
+\bar\theta_T,&m>0,\\
+\theta_T,&m=0.
 \end{cases}
 $$
-For this repository defaults, $(\ell,h)=(-\pi,\pi)$.
+Implementation anchor: `spsa_minimize(...)` in `src/quantum/spsa_optimizer.py`, called via `vqe_minimize` and `_run_hardcoded_adapt_vqe`.
 
-## 8.4 Fallback branch (deterministic coordinate search)
+## 8.4 Legacy deterministic fallback branch (non-SPSA)
 
 If SciPy is missing, fallback performs:
 $$
@@ -568,18 +594,20 @@ $$
 $$
 where the leading `1` is the start-energy evaluation and the `2p` term applies per scan round until step decay truncates at $10^{-6}$.
 
-## 8.5 ADAPT-linked reoptimization inside the inner loop
+## 8.5 ADAPT-linked reoptimization inside the inner loop (SPSA-main)
 
 When ADAPT appends an operator, parameters are all re-optimized jointly:
 $$
 \theta_n^*=\arg\min_{\theta\in\mathbb R^n} E_n(\theta),\qquad
 E_n(\theta)=\langle\psi_n(\theta)|\hat H|\psi_n(\theta)\rangle.
 $$
-The COBYLA call is
+In primary flow this is executed by SPSA as
 $$
-\texttt{minimize}(\_obj,\theta,\texttt{method}=\mathrm{COBYLA},\texttt{options}=\{\texttt{maxiter},\texttt{rhobeg}=0.3\}).
+\theta_n^*\approx \operatorname{SPSA}\!\left(E_n,\theta_n^{(0)};\;a,c,\alpha,\gamma,A,R_{\mathrm{eval}},\operatorname{Agg},m\right).
 $$
+where $\theta_n^{(0)}$ is the appended vector before reoptimization.
 This happens every ADAPT iteration where a new operator is appended.
+COBYLA branch is documented in Appendix D.1.
 
 ## 8.6 Score map and repeat policy
 
@@ -612,11 +640,13 @@ For HH (`problem="hh"`, $g_{\mathrm{ep}}\neq 0$, and seed not disabled), there i
 
 1. identify seed terms whose labels begin with `hh_termwise_ham_quadrature_term(`.
 2. require at least one boson-$Y$ and one electron-$Z$ support in the Pauli polynomial.
-3. optimize the seed vector with COBYLA:
+3. optimize the seed vector in primary flow with SPSA:
 $$
-\phi_*=\arg\min_{\phi}E_{\mathrm{seed}}(\phi),\quad \texttt{maxiter}=\max(100,\min(\texttt{adapt\_maxiter},600)).
+\phi_* \approx \operatorname{SPSA}\!\left(E_{\mathrm{seed}},\phi_0;\;a,c,\alpha,\gamma,A,R_{\mathrm{eval}},\operatorname{Agg},m\right),
+\quad \texttt{maxiter}=\max(100,\min(\texttt{adapt\_maxiter},600)).
 $$
 The seeded state then becomes the initial state for the greedy loop.
+COBYLA seed-preopt branch is listed in Appendix D.1.
 
 ## 8.9 Final fully substituted stopping map
 
@@ -638,15 +668,20 @@ $$
 
 Hence the overall map is
 $$
-(\text{VQE restart-minimization})+\bigl(\text{ADAPT gradient-greedy with full COBYLA refit}\bigr)
+(\text{VQE restart-minimization})+\bigl(\text{ADAPT gradient-greedy with full SPSA refit}\bigr)
 \to(E_{\mathrm{final}},\theta_{\mathrm{final}},\mathcal S_{\mathrm{final}}).
 $$
+COBYLA variant is treated as alternate branch in Appendix D.1.
 
 ## 8.10 Deterministic-restart interpretation
 
 For fixed backend parameters, each restart obeys
 $$
 x_0^{(r)}=\sigma\,\xi_r,\qquad \xi_r=\texttt{RNG}_{\text{seed}}(r)\in\mathbb R^p,\qquad E^{(r)}_{\mathrm{best}}=E(\theta^{(r)}_{\mathrm{opt}}),
+$$
+and SPSA perturbations are
+$$
+\Delta_k^{(r)}=\texttt{RNG}_{\text{seed}}(r,k)\in\{-1,+1\}^{p}.
 $$
 and therefore
 $$
@@ -680,15 +715,17 @@ and exits on `eps_grad`.
 ## 8.12 NFEV accounting
 
 Let $n_{\mathrm{par}}^{(n)}$ be the ADAPT parameter count before re-optimization at iteration $n$,
-$\nu_n$ SciPy-`nfev` (or fallback scan count), and $S_n$ the fallback scan size.
+$\nu_n$ inner-optimizer objective count at iteration $n$, and $S_n$ the fallback scan size.
 Then a useful accounting identity is
 $$
 N_{\mathrm{tot}}^{(N)}=\sum_{n=1}^{N}\nu_n+\sum_{n=1}^{N}\mathbf 1_{\text{fallback}_n}S_n.
 $$
-In coordinate fallback mode, with full $2p$ scans and step halving,
+For SPSA inner optimization with eval repeats $R_{\mathrm{eval}}$ and iteration count $T_n$:
 $$
-\nu_n\le 1+2n_{\mathrm{par}}^{(n)}\,\texttt{maxiter}.
+\nu_n\approx 2R_{\mathrm{eval}}T_n,\qquad
+\nu_n\le 2R_{\mathrm{eval}}\texttt{adapt\_maxiter}.
 $$
+If averaging over last `avg_last` parameters is enabled, this modifies terminal parameter reporting but not objective-evaluation count.
 
 ## 8.13 Inner-loop objective geometry
 
@@ -721,7 +758,7 @@ $$
 \left(\Theta^{(r)},\mathcal E^{(r)}\right)
 =\arg\min_{\Theta}\mathcal J_r(\Theta),
 \quad
-\mathcal J_r(\Theta)=\operatorname{expval}\bigl(U(\Theta;\mathcal S_n)|\psi_{\mathrm{ref}}\rangle\bigr),
+\mathcal J_r(\Theta)=\left\langle\psi_{\mathrm{ref}}\right|U^\dagger(\Theta;\mathcal S_n)\,H\,U(\Theta;\mathcal S_n)\left|\psi_{\mathrm{ref}}\right\rangle,
 $$
 with fixed seed
 $$
@@ -734,7 +771,7 @@ $$
 r^\star=\arg\min_r \mathcal E^{(r)},\quad
 \left(E_n,\Theta_n\right)=\left(\mathcal E^{(r^\star)},\Theta^{(r^\star)}\right).
 $$
-If SciPy is available, each inner restart is deterministic given `seed`, solver method, and `options` because `scipy.optimize.minimize` call data are fixed for fixed floating-point order.
+For SPSA, each restart is deterministic for fixed seed because the perturbation stream $\{\Delta_k^{(r)}\}_k$ and objective backend are fixed.
 
 ## 8.15 Commutator gradient in full tensor form
 
@@ -952,7 +989,8 @@ Parameter append and inner optimization:
 $$
 \Theta_{n+1}^{(0)}=(\Theta_n,\theta_{\mathrm{init}}),
 \qquad
-\Theta_{n+1}^\star=\arg\min_{\Theta\in\mathbb R^{n+1}}E_{n+1}(\Theta).
+\Theta_{n+1}^\star\approx
+\operatorname{SPSA}\!\left(E_{n+1},\Theta_{n+1}^{(0)};\;a,c,\alpha,\gamma,A,R_{\mathrm{eval}},\operatorname{Agg},m\right).
 $$
 Pool-availability update:
 $$
@@ -1024,6 +1062,8 @@ E_{\mathrm{final}},\;
 \Theta_{\mathrm{final}},\;
 \texttt{ansatz\_depth}=|\mathcal S_{\mathrm{final}}|,\;
 \texttt{pool\_size}=|\mathcal P^{(\kappa)}|,\;
+\texttt{adapt\_inner\_optimizer},\;
+\texttt{adapt\_state\_backend},\;
 \texttt{stop\_reason},\;
 \texttt{nfev\_total},\;
 \Delta E=E_{\mathrm{final}}-E_{\mathrm{exact,sector}}.
@@ -1053,7 +1093,7 @@ $$
 $$
 m_n=\arg\max_{m\in\mathcal I_n}s_m,\qquad
 \Theta_{n+1}^{(0)}=(\Theta_n,\theta_{\mathrm{init}}),\qquad
-\Theta_{n+1}^\star=\arg\min_{\Theta}E_{n+1}(\Theta),
+\Theta_{n+1}^\star\approx\operatorname{SPSA}(E_{n+1},\Theta_{n+1}^{(0)};\text{SPSA params}),
 $$
 $$
 \mathcal S_{n+1}=\operatorname{append}(\mathcal S_n,A_{m_n}),
@@ -1077,6 +1117,7 @@ In the master ADAPT derivation these are all injected through the single generic
   - `apply_pauli_string`
   - `apply_exp_pauli_polynomial`
   - `expval_pauli_polynomial`
+  - `expval_pauli_polynomial_one_apply`
   - `vqe_minimize`
 - `pipelines/hardcoded/adapt_pipeline.py`:
   - `_apply_pauli_polynomial`
@@ -1084,6 +1125,11 @@ In the master ADAPT derivation these are all injected through the single generic
   - `_prepare_adapt_state`
   - `_adapt_energy_fn`
   - `_run_hardcoded_adapt_vqe`
+- `src/quantum/spsa_optimizer.py`:
+  - `spsa_minimize`
+- `src/quantum/compiled_polynomial.py`:
+  - `compile_polynomial_action`
+  - `energy_via_one_apply`
 # 10. HH-VA (Termwise and Layerwise)
 
 ## 10.1 HH termwise ansatz primitive
@@ -1276,6 +1322,7 @@ with `mode` selecting the enabled generator family subset as listed above.
 - `apply_pauli_rotation`: single-Pauli closed form.
 - `apply_exp_pauli_polynomial`: ordered product over terms.
 - `expval_pauli_polynomial`: expectation accumulation.
+- `expval_pauli_polynomial_one_apply`: compiled one-apply energy branch.
 - `vqe_minimize`: multi-restart optimization front-end.
 
 ## 12.3 ADAPT ledger
@@ -1283,6 +1330,7 @@ with `mode` selecting the enabled generator family subset as listed above.
 - `_build_uccsd_pool`, `_build_cse_pool`, `_build_full_hamiltonian_pool`, `_build_hva_pool`, `_build_paop_pool`.
 - `_commutator_gradient`: analytic commutator gradient implementation.
 - `_run_hardcoded_adapt_vqe`: full ADAPT loop with fallback and HH seed preconditioning.
+- `spsa_minimize`: SPSA inner optimizer branch for VQE and ADAPT reoptimization.
 
 ## 12.4 PAOP ledger
 
@@ -1465,3 +1513,73 @@ $$
 \left(H_{\mathrm{HH}}(t)=\sum_r h_r(t)Q_r\right)\text{ in }Q_r\in\{e,x,y,z\}^{\otimes N_q},
 $$
 with selected generators $A_k\in\mathcal P_{\mathrm{selected}}\subseteq\mathcal P_{\mathrm{HH\!-\!VA}}\cup\mathcal P_{\mathrm{PAOP}}\cup\mathcal P_{\mathrm{ADAPT}}$.
+
+# 15. Appendix D: Alternate Inner Optimizer and Backend Branches
+
+## D.1 COBYLA alternate branch
+
+When `adapt_inner_optimizer=COBYLA`, inner refit in `_run_hardcoded_adapt_vqe` is:
+$$
+\Theta_{n+1}^\star\approx
+\operatorname*{arg\,min}_{\Theta\in\mathbb R^{n+1}}E_{n+1}(\Theta)
+\quad\text{via}\quad
+\texttt{minimize}(\_obj,\Theta_{n+1}^{(0)},\texttt{method}=\mathrm{COBYLA},\texttt{options}=\{\texttt{maxiter},\texttt{rhobeg}=0.3\}).
+$$
+HH seed preconditioning branch under COBYLA is
+$$
+\phi_\star\approx
+\operatorname*{arg\,min}_{\phi}E_{\mathrm{seed}}(\phi)
+\quad\text{with}\quad
+\texttt{maxiter}=\max(100,\min(\texttt{adapt\_maxiter},600)).
+$$
+This branch keeps the same pool growth, gradient selection, fallback, and stopping predicates as Chapter 8.
+Code anchors: `pipelines/hardcoded/adapt_pipeline.py`, `src/quantum/vqe_latex_python_pairs.py`.
+
+## D.2 Compiled one-apply backend branch
+
+When compiled backend is enabled (`vqe_energy_backend=one_apply_compiled` or `adapt_state_backend=compiled`), the core primitive is:
+$$
+\widetilde H=\operatorname{Compile}(H),\qquad
+h_\psi=\widetilde H|\psi\rangle,\qquad
+E(\psi)=\langle\psi|h_\psi\rangle.
+$$
+So energy evaluation is a one-apply contraction:
+$$
+E(\Theta)=\left\langle\psi(\Theta)\right|\widetilde H\left|\psi(\Theta)\right\rangle.
+$$
+Compiled ADAPT commutator form uses
+$$
+g_m=2\,\Im\langle h_\psi|a_\psi^{(m)}\rangle,\qquad
+a_\psi^{(m)}=\widetilde A_m|\psi\rangle,
+$$
+where $\widetilde A_m$ is compiled from pool polynomial $A_m$.
+
+Compiled ansatz execution branch:
+$$
+|\psi(\Theta)\rangle=\operatorname{CompiledPrepare}(\Theta,|\psi_{\mathrm{ref}}\rangle,\mathcal S),
+$$
+then
+$$
+E(\Theta)=\operatorname{OneApplyEnergy}(\widetilde H,|\psi(\Theta)\rangle).
+$$
+Code anchors:
+
+- `src/quantum/compiled_polynomial.py`
+- `src/quantum/compiled_ansatz.py`
+- `src/quantum/vqe_latex_python_pairs.py` (`expval_pauli_polynomial_one_apply`)
+- `pipelines/hardcoded/adapt_pipeline.py` (`energy_via_one_apply`, compiled-state branch)
+
+## D.3 Optimizer/backend switch map
+
+The implementation branch map is:
+$$
+\texttt{adapt\_inner\_optimizer}\in\{\mathrm{SPSA},\mathrm{COBYLA}\},
+\qquad
+\texttt{adapt\_state\_backend}\in\{\mathrm{compiled},\mathrm{legacy}\},
+$$
+$$
+\texttt{vqe\_method}\in\{\mathrm{SPSA},\mathrm{SciPy\ methods}\},
+\qquad
+\texttt{vqe\_energy\_backend}\in\{\mathrm{one\_apply\_compiled},\mathrm{legacy}\}.
+$$
+SPSA-main derivation in Chapter 8 is unchanged by these switches; only inner optimizer mechanics and objective-evaluation backend are swapped.

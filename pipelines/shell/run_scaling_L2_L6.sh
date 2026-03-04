@@ -63,11 +63,11 @@ VQE_ANSATZ_OVERRIDE="${VQE_ANSATZ_OVERRIDE:-}"
 primary_params_for_L() {
   local L="$1"
   case "${L}" in
-    2) echo "128 2 2 COBYLA 2 600" ;;
-    3) echo "192 2 2 COBYLA 3 1200" ;;
-    4) echo "256 3 3 SLSQP 2 80" ;;
-    5) echo "384 4 3 SLSQP 1 90" ;;
-    6) echo "512 4 3 SLSQP 1 120" ;;
+    2) echo "128 2 2 SPSA 2 600" ;;
+    3) echo "192 2 2 SPSA 3 1200" ;;
+    4) echo "256 3 3 SPSA 2 80" ;;
+    5) echo "384 4 3 SPSA 1 90" ;;
+    6) echo "512 4 3 SPSA 1 120" ;;
     *)
       echo "ERROR: unsupported L=${L}" >&2
       return 1

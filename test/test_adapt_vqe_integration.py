@@ -153,6 +153,65 @@ class TestCompiledPauliCache:
         )
 
 
+class TestAdaptCompiledStateBackendParity:
+    """Compiled ansatz execution must preserve ADAPT selection/energy parity."""
+
+    def test_compiled_state_backend_matches_legacy_sequence(self):
+        h_poly = build_hubbard_hamiltonian(
+            dims=2,
+            t=1.0,
+            U=4.0,
+            v=0.0,
+            repr_mode="JW",
+            indexing="blocked",
+            pbc=True,
+        )
+        common_kwargs = dict(
+            h_poly=h_poly,
+            num_sites=2,
+            ordering="blocked",
+            problem="hubbard",
+            adapt_pool="uccsd",
+            t=1.0,
+            u=4.0,
+            dv=0.0,
+            boundary="periodic",
+            omega0=0.0,
+            g_ep=0.0,
+            n_ph_max=1,
+            boson_encoding="binary",
+            max_depth=6,
+            eps_grad=1e-6,
+            eps_energy=1e-10,
+            maxiter=120,
+            seed=17,
+            allow_repeats=False,
+            finite_angle_fallback=True,
+            finite_angle=0.1,
+            finite_angle_min_improvement=1e-12,
+        )
+
+        payload_legacy, _psi_legacy = _run_hardcoded_adapt_vqe(
+            **common_kwargs,
+            adapt_state_backend="legacy",
+        )
+        payload_compiled, _psi_compiled = _run_hardcoded_adapt_vqe(
+            **common_kwargs,
+            adapt_state_backend="compiled",
+        )
+
+        seq_legacy = [int(row["pool_index"]) for row in payload_legacy.get("history", [])]
+        seq_compiled = [int(row["pool_index"]) for row in payload_compiled.get("history", [])]
+        labels_legacy = [str(row["selected_op"]) for row in payload_legacy.get("history", [])]
+        labels_compiled = [str(row["selected_op"]) for row in payload_compiled.get("history", [])]
+
+        n_check = min(5, len(seq_legacy), len(seq_compiled))
+        assert n_check > 0
+        assert seq_compiled[:n_check] == seq_legacy[:n_check]
+        assert labels_compiled[:n_check] == labels_legacy[:n_check]
+        assert abs(float(payload_compiled["energy"]) - float(payload_legacy["energy"])) < 1e-8
+
+
 # ============================================================================
 # Pool builder tests
 # ============================================================================

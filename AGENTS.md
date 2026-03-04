@@ -339,6 +339,13 @@ Required conventions for agent runs:
    running conventional VQE+trotter trajectories from a saved state.
 4. For “UCCSD + PAOP only” handoff, use **A-arm** exports; do not use B-arm
    files (`B_*` includes HVA in pool construction).
+5. ADAPT stop/handoff decisions must be **energy-error-drop first**:
+   - Primary signal: per-depth `ΔE_abs` improvement (`drop = ΔE_abs(d-1)-ΔE_abs(d)`).
+   - Use patience over completed depths (`M` consecutive low-drop depths) with
+     a minimum depth guard (`d_min`) before stopping.
+   - Gradient floors (`max|g|`) are secondary diagnostics/safety checks only;
+     they must not be the sole stop reason in agent-run HH workflows.
+   - Do not interpret `max|g|` as “the energy-error drop per depth.”
 
 ---
 

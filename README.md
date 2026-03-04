@@ -2,63 +2,28 @@
 
 Canonical repository onboarding document.
 
-This repo implements Hubbard / Hubbard-Holstein (HH) simulation workflows with
-Jordan-Wigner operator construction, hardcoded VQE/ADAPT ground-state
-preparation, and exact vs Trotterized dynamics pipelines.
+This repo implements Hubbard-Holstein (HH) simulation workflows with
+Jordan-Wigner operator construction, binary or unary bosonic encoding, blocked or periodic boundary conditions, with hardcoded HVA/ADAPT/VQE ground-state preparation, and exact vs Trotterized vs CFQM dynamics pipelines.
 
 ## Project focus
 
 - Primary production model: `Hubbard-Holstein (HH)`.
 - Pure Hubbard is retained as a limiting-case validation path.
-- Standard regression limit check: HH with `g_ep = 0` and `omega0 = 0` under
+- Standard regression checks: HH with `g_ep = 0` and `omega0 = 0` under
   matched settings should reduce to Hubbard behavior.
+- Noiseless shots and Aer simulator should match the pipeline with noise simular turned off.
 
-## Recent HH L2/L3 Results (as of 2026-03-02)
 
-### Warm-start chain (separate family)
+### Warm-start chain
 
 Warm-start runs use a two-stage sequence:
 
-1. Run HH-HVA VQE warm start (for example `hh_hva_ptw`).
+1. Run HH-HVA VQE warm start with always default `hh_hva_ptw`.
 2. Use that warm-start state as the ADAPT reference state.
-3. Run ADAPT with `paop_lf_std`.
+3. Run ADAPT from that warm-start state with the agent max meta-pool: `UCCSD + HVA/PTW + (PAOP_full union PAOP_lf_full)`. This is a custom merged pool, not a single `--adapt-pool` value; `curdrag` is already included via PAOP-LF pools.
 
-Do not mix interpretation of this family with the separate combined-pool trend
-family below.
 
-### Combined pools (separate family)
 
-Separate trend runs evaluate:
-
-- `UCCSD+PAOP`
-- `UCCSD+PAOP+HVA`
-
-These are a different experiment family from warm-start B/C runs.
-
-### Default path going forward (L-specific)
-
-- `L3+` static runs: use the combined-pool family as primary.
-- `L2` and driven runs: use warm-start + `paop_lf_std` as the fallback path.
-
-### Evidence Table (artifact-backed)
-
-| Case | Artifact run | `|DeltaE|` |
-|---|---|---:|
-| L3 meta-pool best | `A_medium` in `l3_uccsd_paop_hva_trend_full_20260302T000521.json` | `2.622402274776725e-4` |
-| L3 warm-start C | `fix1_warm_start_C` in `l3_hh_accessibility_fixes_under8pct.json` | `4.393299375013565e-3` |
-| L2 warm-start C/export | exported state in `fix1_warm_start_B_l2_state.json` (`adapt_vqe.abs_delta_e`) | `1.0866130099410898e-3` |
-| L2 strict meta-pool crosscheck | `A_heavy` in `l2_uccsd_paop_hva_trend_crosscheck.json` | `3.283230696724525e-1` |
-
-L2 caveat: in the strict L2 meta-pool crosscheck artifact above, the combined
-pool family is not competitive versus the warm-start accessibility export.
-
-### Provenance links
-
-- [docs/hh_l2_l3_warmstart_paop_hva_results_explainer.md](docs/hh_l2_l3_warmstart_paop_hva_results_explainer.md)
-- [artifacts/useful/L3/l3_uccsd_paop_hva_trend_full_20260302T000521.json](artifacts/useful/L3/l3_uccsd_paop_hva_trend_full_20260302T000521.json)
-- [artifacts/useful/L3/l3_hh_accessibility_fixes_under8pct.json](artifacts/useful/L3/l3_hh_accessibility_fixes_under8pct.json)
-- [artifacts/useful/L2/warmstart_states/fix1_warm_start_B_l2_state.json](artifacts/useful/L2/warmstart_states/fix1_warm_start_B_l2_state.json)
-- [artifacts/useful/L2/l2_uccsd_paop_hva_trend_crosscheck.json](artifacts/useful/L2/l2_uccsd_paop_hva_trend_crosscheck.json)
 
 ## Repository map (minimal)
 
@@ -199,21 +164,62 @@ graph TB
 
 - `hubbard` pools: `uccsd`, `cse`, `full_hamiltonian`.
 - `hh` pools: `hva`, `full_hamiltonian`, `paop_min`, `paop_std`, `paop_full`, `paop_lf` (`paop_lf_std` alias), `paop_lf2_std`, `paop_lf_full`.
+- HH built-in combined preset: `uccsd_paop_lf_full` = `uccsd_lifted + paop_lf_full` (deduplicated) via one CLI value.
+- Agent max custom meta-pool (not a single CLI value): `uccsd_lifted + hva + paop_full + paop_lf_full`.
 - `paop_min`: displacement-focused PAOP operators.
 - `paop_std`: displacement plus dressed-hopping (`hopdrag`) operators.
 - `paop_full`: `paop_std` plus doublon dressing and extended cloud operators.
 - `paop_lf_std`: `paop_std` plus LF-leading odd channel (`curdrag`).
 - HH merge behavior (when `g_ep != 0`): merge `hva` + `hh_termwise_augmented` + selected `paop_*` pool, then deduplicate by polynomial signature.
 
-### ADAPT gradient performance note (2026-03-03)
+### Compiled speedup stack note (2026-03-04)
 
-- `pipelines/hardcoded/adapt_pipeline.py` now caches compiled Pauli actions for repeated ADAPT commutator-gradient evaluations.
-- The cache is built once per ADAPT run (Hamiltonian + pool operators) and reused across gradient sweeps.
-- Cache behavior is always on; there is no dedicated CLI toggle.
-- Numerical behavior is unchanged (cached and uncached paths are parity-tested).
-- ADAPT JSON includes additive telemetry:
+The hardcoded VQE/ADAPT path now includes a shared compiled-action acceleration stack, with additive (backward-compatible) interfaces and parity tests.
+
+- Shared compiled polynomial utility:
+  - `src/quantum/compiled_polynomial.py`
+  - Provides `compile_polynomial_action`, `apply_compiled_polynomial`, `energy_via_one_apply`, and `adapt_commutator_grad_from_hpsi`.
+- Compiled ansatz executor:
+  - `src/quantum/compiled_ansatz.py`
+  - Applies Pauli rotations through compiled permutation+phase actions (no per-amplitude string loops).
+- VQE one-apply energy backend:
+  - `src/quantum/vqe_latex_python_pairs.py` adds `expval_pauli_polynomial_one_apply(...)`.
+  - `vqe_minimize(...)` supports `energy_backend="legacy"|"one_apply_compiled"` (default remains legacy).
+  - `pipelines/hardcoded/hubbard_pipeline.py` exposes `--vqe-energy-backend {legacy,one_apply_compiled}` and defaults to `one_apply_compiled`.
+  - Hardcoded VQE can emit live progress heartbeats via `--vqe-progress-every-s` (default `60` seconds), including restart lifecycle and periodic energy/nfev telemetry.
+- ADAPT runtime acceleration:
+  - `pipelines/hardcoded/adapt_pipeline.py` compiles Hamiltonian/pool once, computes `H|psi>` once per depth, evaluates pool gradients via `2*Im(<Hpsi|Apsi>)`, and uses compiled ansatz execution in COBYLA objective/state updates.
+- Regression coverage added:
+  - `test/test_compiled_polynomial.py`
+  - `test/test_compiled_ansatz.py`
+  - `test/test_vqe_energy_backend.py`
+  - existing ADAPT integration suite remains passing.
+- Additive ADAPT telemetry fields:
   - `adapt_vqe.compiled_pauli_cache`
   - `adapt_vqe.history[*].gradient_eval_elapsed_s`
+  - `adapt_vqe.history[*].optimizer_elapsed_s`
+- New benchmark utility:
+  - `pipelines/hardcoded/bench_compiled_energy_and_grad.py`
+  - Times legacy vs compiled energy and gradient scoring paths, reports speedups and parity deltas.
+
+Fast VQE-from-ADAPT replay (HH, hardcoded):
+
+```bash
+python pipelines/hardcoded/hubbard_pipeline.py \
+  --problem hh \
+  --L 4 --boundary open --ordering blocked \
+  --boson-encoding binary --n-ph-max 1 \
+  --t 1.0 --u 4.0 --dv 0.0 --omega0 1.0 --g-ep 0.5 \
+  --vqe-ansatz hh_hva_tw --vqe-reps 1 \
+  --vqe-restarts 16 --vqe-maxiter 12000 --vqe-method COBYLA --vqe-seed 7 \
+  --vqe-energy-backend one_apply_compiled --vqe-progress-every-s 60 \
+  --initial-state-source adapt_json \
+  --adapt-input-json .vscode-userdata/artifacts/useful/L4/l4_hh_seq_20260302_215706_resume_adaptB_20260303_111311_adapt_B_B_probe_checkpoint_state.json \
+  --skip-qpe --num-times 1 --t-final 0.0 --skip-pdf \
+  --output-json artifacts/json/hc_hh_L4_from_adaptB_fastcomp.json
+```
+
+Keep strict metadata matching enabled by default. Use `--no-adapt-strict-match` only for legacy/import files that do not carry complete HH metadata keys.
 
 ## Start here (doc priority)
 
@@ -223,7 +229,6 @@ Use this order when onboarding:
 2. `pipelines/run_guide.md` - CLI and runbook for active pipelines
 3. `docs/repo_implementation_guide.md` - implementation-deep walkthrough
 4. `docs/HH_IMPLEMENTATION_STATUS.md` - current HH status and remaining work
-5. `docs/FERMI_HAMIL_README.md` - legacy high-level architecture overview
 
 ## Important note on README files
 
@@ -242,6 +247,13 @@ python pipelines/hardcoded/adapt_pipeline.py \
   --adapt-max-depth 30 --adapt-eps-grad 1e-5 --adapt-maxiter 600 \
   --initial-state-source adapt_vqe --skip-pdf \
   --output-json artifacts/json/adapt_L2_hh_paop_std.json
+```
+
+Compiled energy/gradient micro-benchmark (HH):
+
+```bash
+python pipelines/hardcoded/bench_compiled_energy_and_grad.py \
+  --L 3 --n-ph-max 1 --repeats 5
 ```
 
 Cross-check suite (exact benchmark; auto-scaled by L/problem defaults):
@@ -343,7 +355,7 @@ CFQM efficiency suite (error-vs-cost, apples-to-apples):
 
 ```bash
 python pipelines/exact_bench/cfqm_vs_suzuki_efficiency_suite.py \
-  --problem-grid hubbard_L4,hh_L2_nb2,hh_L2_nb3 \
+  --problem-grid hubbard_L4,hh_L2_nb1,hh_L2_nb2,hh_L2_nb3,hh_L3_nb1 \
   --drive-grid sinusoid,gaussian_sharp \
   --methods suzuki2,cfqm4,cfqm6 \
   --stage-mode-grid exact_sparse,exact_dense,pauli_suzuki2 \
@@ -353,6 +365,30 @@ python pipelines/exact_bench/cfqm_vs_suzuki_efficiency_suite.py \
   --calibrate-transpile \
   --output-dir artifacts/cfqm_efficiency_benchmark
 ```
+
+L2 HH statevector warm-start variant:
+
+```bash
+python pipelines/exact_bench/cfqm_vs_suzuki_efficiency_suite.py \
+  --problem-grid hh_L2_nb1 \
+  --drive-grid sinusoid,gaussian_sharp \
+  --methods suzuki2,cfqm4,cfqm6 \
+  --stage-mode-grid exact_sparse,exact_dense,pauli_suzuki2 \
+  --initial-state-source adapt_json \
+  --adapt-input-json artifacts/useful/L2/H_L2_hh_termwise_regular_lbfgs_t1.0_U2.0_g1_nph1.json \
+  --no-adapt-strict-match \
+  --reference-steps-multiplier 8 \
+  --equal-cost-axis cx_proxy,pauli_rot_count,expm_calls,wall_time \
+  --equal-cost-policy exact_tie_only \
+  --calibrate-transpile \
+  --output-dir artifacts/cfqm_efficiency_benchmark/overnight_hh_L2_nb1_lbfgs_state
+```
+
+Note: strict ADAPT metadata matching is on by default; this command disables it because the referenced warm-start JSON does not carry full HH metadata keys.
+
+Efficiency-suite ADAPT pool default is `auto`:
+- `hubbard*` scenarios resolve to `--adapt-pool uccsd`
+- `hh*` scenarios resolve to `--adapt-pool paop_std`
 
 Efficiency-suite outputs:
 - `artifacts/cfqm_efficiency_benchmark/runs_full.json`
@@ -389,5 +425,23 @@ For compare/orchestration workflows, use `pipelines/run_guide.md`.
 The repo now includes an HH-first noisy/hardware validation pipeline:
 - `pipelines/exact_bench/hh_noise_hardware_validation.py`
 
-It provides one shared expectation oracle across `ideal`, `shots`, `aer_noise`, and `runtime` modes, with optional noisy ADAPT and PDF/JSON reporting.  
+It provides one shared expectation oracle across `ideal`, `shots`, `aer_noise`, and `runtime` modes.  
+`shots`/`aer_noise` emulate finite-shot measurement noise using Qiskit `AerSimulator`, with optional noisy ADAPT and PDF/JSON reporting.  
 Use `pipelines/run_guide.md` section 11+ for operational commands and mode-by-mode guidance.
+
+For staged heavy HH robustness with warm-start -> ADAPT Pool B -> final VQE and noisy dynamics benchmarking:
+- `pipelines/exact_bench/hh_noise_robustness_seq_report.py`
+
+Key additions:
+- strict ADAPT Pool B composition enforcement (`UCCSD_lifted + HVA + PAOP_full`)
+- noisy dynamics methods via `--noisy-methods` (default `suzuki2,cfqm4`)
+- embedded benchmark metrics in JSON/PDF (`term_exp_count_total`, `cx_proxy_total`, `sq_proxy_total`, `depth_proxy_total`, `wall_total_s`, `oracle_eval_s_total`)
+- backward-compatible `dynamics_noisy.profiles.<profile>.modes` alias mirroring `suzuki2`
+
+For a long, code/docs-only repository guide focused on noise-model behavior:
+- `pipelines/exact_bench/hh_noise_model_repo_guide.py`
+- convenience wrapper: `pipelines/shell/build_hh_noise_model_repo_guide.sh`
+
+Default guide artifacts:
+- `docs/HH_noise_model_repo_guide.pdf`
+- `artifacts/json/hh_noise_model_repo_guide_index.json`

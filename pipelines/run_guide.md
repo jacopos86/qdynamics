@@ -16,8 +16,8 @@ Editing contract (keep stable):
 - **Production target:** **Hubbard–Holstein (HH)** with **time-dependent drive enabled**.
 - **Pure Hubbard** remains a **validation limit** only (regression / consistency gate), not a primary production target.
 - The **drive waveform parameters** (A, ω, t̄, ϕ, pattern) are orthogonal to the **state-prep** knobs; this guide’s autoscaling focuses on the knobs that dominate convergence:
-  - warm-start (conventional VQE seed stage),
-  - ADAPT-VQE (PAOP(+LF) pool),
+  - warm-start (conventional VQE seed stage; intermediate HH ansatz `hh_hva_ptw`),
+  - ADAPT-VQE (full meta-pool target: `uccsd_lifted + hva + paop_full + paop_lf_full`),
   - and the time-evolution grid (trotter_steps / t_final / num_times).
 
 ### Last known-good HH, drive-enabled L=3 artifacts (UTC)
@@ -87,6 +87,19 @@ Notes:
 - This is a runbook convention. If you script this, enforce `ecut_1/ecut_2` as post-stage checks in the orchestration layer; defaults above apply unless overridden by experiment policy.
 - `run_L_drive_accurate.sh` and HH scaling preset scripts keep their own documented gates unless explicitly overridden in wrappers.
 
+### Agent stage contract (intermediate -> full -> switch -> replay)
+
+For agent-run HH workflows, use this stage contract:
+
+1. Warm-start stage: conventional VQE with intermediate HH ansatz `hh_hva_ptw`.
+2. ADAPT stage: full meta-pool target `uccsd_lifted + hva + paop_full + paop_lf_full`.
+3. ADAPT -> final VQE switch: apply an energy-drop switching criterion (see "ADAPT continuation stop policy (energy-first, mandatory for agent runs)").
+4. Final VQE replay: initialize from ADAPT state (`--initial-state-source adapt_json`) with `--vqe-reps L`.
+
+CLI note:
+- The full meta-pool in step 2 is a custom merged pool contract, not a single current `--adapt-pool` token.
+- Nearest built-in single preset is `--adapt-pool uccsd_paop_lf_full`.
+
 ### Symbols
 
 - `L`: target lattice size.
@@ -114,8 +127,9 @@ Use these as the reference knobs unless you intentionally re-calibrate:
 - `ws_restarts_ref = 5`
 - `ws_maxiter_ref = 4000`
 
-**ADAPT (PAOP+LF stage):**
+**ADAPT (historical Run A stage):**
 - `adapt_pool = paop_lf_std`
+- For current agent target policy, use the full meta-pool contract from "Agent stage contract (intermediate -> full -> switch -> replay)".
 - `adapt_max_depth_ref = 120`
 - `adapt_maxiter_ref = 5000`
 - `adapt_eps_grad = 5e-7`
@@ -126,6 +140,7 @@ Use these as the reference knobs unless you intentionally re-calibrate:
 - Scale “how hard you search” with `L`:
   - warm-start reps/restarts/maxiter,
   - ADAPT max_depth/maxiter,
+  - final VQE replay depth from imported ADAPT state (`vqe_reps(L) = L`),
   - trotter_steps and total evolution time (if you want longer physical windows for larger L).
 - Keep convergence thresholds fixed unless you have a specific reason to change them:
   - `adapt_eps_grad`, `adapt_eps_energy` remain constant.
@@ -175,6 +190,12 @@ Optional (reference-propagator refinement):
 **Closed form with L_ref=3 baseline:**
 - `adapt_max_depth(L) = 40 L`
 - `adapt_maxiter(L) = round(5000 L^2 / 9)`
+
+#### Final VQE replay (from ADAPT state)
+
+- `vqe_reps(L) := L`
+- `initial_state_source := adapt_json`
+- `adapt_input_json := <exported ADAPT state json>`
 
 ### Convergence gates (absolute error)
 
@@ -248,21 +269,49 @@ Conventional pipeline handoff:
 - Example:
   - `--initial-state-source adapt_json --adapt-input-json artifacts/useful/L4/<prefix>_A_probe_state.json`
 
+### ADAPT continuation stop policy (energy-first, mandatory for agent runs)
+
+For HH ADAPT continuation/handoff decisions, use **energy-error drop** as the
+primary stop signal. Do **not** treat raw gradient magnitude as a direct proxy
+for energy-error improvement.
+
+Definitions:
+- `ΔE_abs(d) := |E_best(d) - E_exact_filtered|` at ADAPT depth `d`
+- `drop(d) := ΔE_abs(d-1) - ΔE_abs(d)` (positive means improvement)
+
+Policy:
+1) Primary stop criterion (required):
+- Stop ADAPT when `drop(d) < drop_floor` for `M` consecutive completed depths,
+  after a minimum depth guard `d >= d_min`.
+2) Secondary criterion (optional safety):
+- A gradient floor (`pre-opt max|g| < g_floor` for `M` depths) may be used as
+  an additional guard, but it must not be the only stop signal.
+
+Recommended L=4 overnight defaults:
+- `drop_floor = 5e-4`
+- `M = 3`
+- `d_min = 12`
+- optional `g_floor = 2e-2` (secondary only)
+
+Interpretation note:
+- `max|g|` is a selection/landscape signal and has different units/scale than
+  `ΔE_abs`; it is not “how much closer to zero energy error” a depth step gets.
+
 ### Example computed defaults (from the L_ref=3 baseline)
 
 These are direct evaluations of the closed-form rules above.
 
-| L | t_final | num_times | trotter_steps | ws_reps | ws_restarts | ws_maxiter | adapt_max_depth | adapt_maxiter |
-|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| 2 | 10.0 | 135 | 128 | 2 | 4 | 1778 | 80 | 2222 |
-| 3 | 15.0 | 201 | 192 | 3 | 5 | 4000 | 120 | 5000 |
-| 4 | 20.0 | 268 | 256 | 4 | 7 | 7111 | 160 | 8889 |
-| 5 | 25.0 | 335 | 320 | 5 | 9 | 11111 | 200 | 13889 |
-| 6 | 30.0 | 401 | 384 | 6 | 10 | 16000 | 240 | 20000 |
-| 7 | 35.0 | 468 | 448 | 7 | 12 | 21778 | 280 | 27222 |
-| 8 | 40.0 | 535 | 512 | 8 | 14 | 28444 | 320 | 35556 |
-| 9 | 45.0 | 601 | 576 | 9 | 15 | 36000 | 360 | 45000 |
-| 10 | 50.0 | 668 | 640 | 10 | 17 | 44444 | 400 | 55556 |
+| L | t_final | num_times | trotter_steps | ws_reps | ws_restarts | ws_maxiter | adapt_max_depth | adapt_maxiter | final_vqe_reps |
+|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| 2 | 10.0 | 135 | 128 | 2 | 4 | 1778 | 80 | 2222 | 2 |
+| 3 | 15.0 | 201 | 192 | 3 | 5 | 4000 | 120 | 5000 | 3 |
+| 4 | 20.0 | 268 | 256 | 4 | 7 | 7111 | 160 | 8889 | 4 |
+| 5 | 25.0 | 335 | 320 | 5 | 9 | 11111 | 200 | 13889 | 5 |
+| 6 | 30.0 | 401 | 384 | 6 | 10 | 16000 | 240 | 20000 | 6 |
+| 7 | 35.0 | 468 | 448 | 7 | 12 | 21778 | 280 | 27222 | 7 |
+| 8 | 40.0 | 535 | 512 | 8 | 14 | 28444 | 320 | 35556 | 8 |
+| 9 | 45.0 | 601 | 576 | 9 | 15 | 36000 | 360 | 45000 | 9 |
+| 10 | 50.0 | 668 | 640 | 10 | 17 | 44444 | 400 | 55556 | 10 |
 
 ---
 
@@ -408,7 +457,7 @@ projection.
 
 | Flag | Type | Default | Description |
 |------|------|---------|-------------|
-| `--propagator` | choice | `suzuki2` | `suzuki2`, `piecewise_exact`, `cfqm4`, `cfqm6`. Existing behavior is unchanged unless `cfqm4/cfqm6` is selected. |
+| `--propagator` | choice | `cfqm4` | `suzuki2`, `piecewise_exact`, `cfqm4`, `cfqm6`. Default is `cfqm4`; use `suzuki2` explicitly for baseline comparison. |
 | `--cfqm-stage-exp` | choice | `expm_multiply_sparse` | Stage exponential backend for CFQM: `expm_multiply_sparse`, `dense_expm`, `pauli_suzuki2`. |
 | `--cfqm-coeff-drop-abs-tol` | float | `0.0` | Drops stage coefficients with `abs(coeff) < tol` after stage-map accumulation. |
 | `--cfqm-normalize` | flag | `false` | If set, renormalizes state after each CFQM macro-step. |
@@ -491,10 +540,52 @@ python pipelines/exact_bench/cfqm_vs_suzuki_qproc_proxy_benchmark.py \
   --drive-enabled
 ```
 
+### HH staged noisy dynamics benchmark (Phase 2D)
+
+Heavy staged workflow entrypoint:
+- `pipelines/exact_bench/hh_noise_robustness_seq_report.py`
+
+Pipeline sequence:
+1. HVA warm-start with `hh_hva_ptw` (intermediate HH variant)
+2. ADAPT stage:
+   - strict legacy mode: Pool B union (`UCCSD_lifted + HVA + PAOP_full`)
+   - full target mode: custom union (`UCCSD_lifted + HVA + PAOP_full + PAOP_lf_full`)
+3. switch from ADAPT to final VQE using the energy-drop criterion (see ADAPT continuation stop policy)
+4. conventional VQE seeded from ADAPT with `vqe_reps = L`
+5. noisy dynamics benchmark for selected methods (default `cfqm4,suzuki2`)
+
+New interface flags:
+- `--noisy-methods` (CSV, default `cfqm4,suzuki2`; allowed: `suzuki2,cfqm4,cfqm6`)
+- `--benchmark-active-coeff-tol` (default `1e-12`)
+
+New output schema:
+- `dynamics_noisy.profiles.<profile>.methods.<method>.modes.<mode>`
+- benchmark fields under each successful mode:
+  - `benchmark_cost.term_exp_count_total`
+  - `benchmark_cost.pauli_rot_count_total`
+  - `benchmark_cost.cx_proxy_total`
+  - `benchmark_cost.sq_proxy_total`
+  - `benchmark_cost.depth_proxy_total`
+  - `benchmark_runtime.wall_total_s`
+  - `benchmark_runtime.oracle_eval_s_total`
+- backward-compatible alias:
+  - `dynamics_noisy.profiles.<profile>.modes` mirrors `methods.suzuki2.modes`
+
+Strict Pool B requirement (strict legacy mode only):
+- Runtime fails fast if ADAPT pool composition metadata is not exactly the Pool B family set.
+- Audit is persisted at `diagnostics.pool_b_audit`.
+
+Propagation policy (Phase 2D report path):
+- `warm`, `adapt`, and `final` are optimization-stage checkpoints only.
+- Time dynamics (`dynamics_noiseless`, `dynamics_noisy`) are propagated from `psi_final` only.
+- `hardcoded_superset` is retained in JSON for schema compatibility as deactivated metadata:
+  - `{"profiles": {}, "disabled": true, "reason": "branch propagation deactivated; final-only dynamics"}`
+
 What it measures:
 - Headline metric: final absolute energy error versus a fine `piecewise_exact` reference.
 - Cost axis: hardware-oriented proxy budgets (`term_exp_count_total`, `cx_proxy_total`, `sq_proxy_total`).
 - `S` in output rows means macro-steps (`trotter_steps`) and is not itself a cost measure.
+- Stage rows/labels (`warm`, `adapt`, `final`) in the PDF summarize optimizer checkpoints only and are not separate propagated trajectories.
 - Ranking outputs include Pareto front and best-by-budget summary.
 - `--compare-policy` controls apples-to-apples matching:
   - `sweep_only` (default): raw sweep rows only.
@@ -517,7 +608,7 @@ This suite runs both integrator-order and hardware-proxy comparisons and writes 
 
 ```bash
 python pipelines/exact_bench/cfqm_vs_suzuki_efficiency_suite.py \
-  --problem-grid hubbard_L4,hh_L2_nb2,hh_L2_nb3 \
+  --problem-grid hubbard_L4,hh_L2_nb1,hh_L2_nb2,hh_L2_nb3,hh_L3_nb1 \
   --drive-grid sinusoid,gaussian_sharp \
   --methods suzuki2,cfqm4,cfqm6 \
   --stage-mode-grid exact_sparse,exact_dense,pauli_suzuki2 \
@@ -527,6 +618,30 @@ python pipelines/exact_bench/cfqm_vs_suzuki_efficiency_suite.py \
   --calibrate-transpile \
   --output-dir artifacts/cfqm_efficiency_benchmark
 ```
+
+HH L2 warm-start benchmark (imported ADAPT statevector):
+
+```bash
+python pipelines/exact_bench/cfqm_vs_suzuki_efficiency_suite.py \
+  --problem-grid hh_L2_nb1 \
+  --drive-grid sinusoid,gaussian_sharp \
+  --methods suzuki2,cfqm4,cfqm6 \
+  --stage-mode-grid exact_sparse,exact_dense,pauli_suzuki2 \
+  --initial-state-source adapt_json \
+  --adapt-input-json artifacts/useful/L2/H_L2_hh_termwise_regular_lbfgs_t1.0_U2.0_g1_nph1.json \
+  --no-adapt-strict-match \
+  --reference-steps-multiplier 8 \
+  --equal-cost-axis cx_proxy,pauli_rot_count,expm_calls,wall_time \
+  --equal-cost-policy exact_tie_only \
+  --calibrate-transpile \
+  --output-dir artifacts/cfqm_efficiency_benchmark/overnight_hh_L2_nb1_lbfgs_state
+```
+
+Note: keep strict ADAPT metadata matching enabled by default; use `--no-adapt-strict-match` only when importing legacy warm-start JSONs missing HH metadata keys.
+
+Efficiency-suite ADAPT pool default is `auto`:
+- Hubbard scenarios map to `--adapt-pool uccsd`
+- HH scenarios map to `--adapt-pool paop_std`
 
 What it reports:
 - Error metrics: `final_infidelity`, `max_doublon_abs_err`, `max_energy_abs_err`.
@@ -577,11 +692,13 @@ $$v(t) = A \cdot \sin(\omega t + \phi) \cdot \exp\!\Big(-\frac{(t - t_0)^2}{2\,\
 
 | Flag | Type | Default (HC) | Default (QK) | Description |
 |------|------|-------------|-------------|-------------|
-| `--vqe-ansatz` | choice | `uccsd` | Hardcoded-only ansatz family: `uccsd`, `hva`, or `hh_hva` (all layer-wise) |
+| `--vqe-ansatz` | choice | `uccsd` | N/A | Hardcoded-only ansatz family: `uccsd`, `hva`, `hh_hva`, `hh_hva_tw`, `hh_hva_ptw` |
 | `--vqe-reps` | int | `2` | `2` | Number of ansatz repetitions (circuit depth) |
 | `--vqe-restarts` | int | `1` | `3` | Number of independent VQE optimisation restarts |
 | `--vqe-seed` | int | `7` | `7` | Random seed for VQE parameter initialisation |
 | `--vqe-maxiter` | int | `120` | `120` | Maximum optimiser iterations per restart |
+| `--vqe-energy-backend` | choice | `one_apply_compiled` | N/A | Hardcoded-only VQE objective backend: `legacy` or `one_apply_compiled` |
+| `--vqe-progress-every-s` | float | `60.0` | N/A | Hardcoded-only VQE heartbeat interval in seconds for progress `AI_LOG` events |
 
 **Compare pipeline** (separate knobs for each sub-pipeline):
 
@@ -596,6 +713,23 @@ $$v(t) = A \cdot \sin(\omega t + \phi) \cdot \exp\!\Big(-\frac{(t - t_0)^2}{2\,\
 | `--qiskit-vqe-restarts` | int | `3` | QK restarts |
 | `--qiskit-vqe-seed` | int | `7` | QK seed |
 | `--qiskit-vqe-maxiter` | int | `600` | QK max iterations |
+
+### SPSA optimizer (noise-tolerant)
+
+Use SPSA when objective evaluations are noisy (shot noise, hardware noise, stochastic estimators).
+
+- Hardcoded VQE (`pipelines/hardcoded/hubbard_pipeline.py`):
+  - Enable with `--vqe-method SPSA`
+  - SPSA knobs: `--vqe-spsa-a`, `--vqe-spsa-c`, `--vqe-spsa-alpha`, `--vqe-spsa-gamma`, `--vqe-spsa-A`, `--vqe-spsa-avg-last`, `--vqe-spsa-eval-repeats`, `--vqe-spsa-eval-agg`
+- ADAPT inner optimizer (`pipelines/hardcoded/adapt_pipeline.py`):
+  - Enable with `--adapt-inner-optimizer SPSA`
+  - SPSA knobs: `--adapt-spsa-a`, `--adapt-spsa-c`, `--adapt-spsa-alpha`, `--adapt-spsa-gamma`, `--adapt-spsa-A`, `--adapt-spsa-avg-last`, `--adapt-spsa-eval-repeats`, `--adapt-spsa-eval-agg`
+
+Noise-control note:
+- `eval_repeats > 1` reduces estimator variance but increases wallclock roughly proportionally.
+
+Typical starting values:
+- `a=0.2`, `c=0.1`, `A=10.0`, `alpha=0.602`, `gamma=0.101`, `avg_last=0` (or `20` for end-of-run averaging).
 
 ### QPE Parameters (all three pipelines)
 
@@ -679,14 +813,48 @@ re-optimising all parameters at each depth, until gradient or energy convergence
 
 - ADAPT commutator-gradient evaluation uses an always-on compiled Pauli-action cache in `hardcoded/adapt_pipeline.py`.
 - Cache build happens once per ADAPT run for the Hamiltonian and pool operators, then is reused across gradient sweeps.
-- There is no separate CLI flag for enabling/disabling this cache path.
+- Shared compiled helpers are centralized in:
+  - `src/quantum/compiled_polynomial.py`
+  - `src/quantum/compiled_ansatz.py`
+- Per-depth ADAPT gradient scoring reuses one Hamiltonian action:
+  - compute `Hpsi = H|psi>` once per depth
+  - score pool operators with `g_i = 2 * Im(vdot(Hpsi, A_i psi))`
+- ADAPT inner COBYLA objective now uses compiled ansatz state preparation + one-apply compiled energy.
+- There is no separate CLI flag for enabling/disabling this compiled cache path.
+- Hardcoded conventional VQE (in `hubbard_pipeline.py`) has explicit backend control via `--vqe-energy-backend`; default is `one_apply_compiled`.
+- Hardcoded conventional VQE emits lifecycle + heartbeat events when running via `hubbard_pipeline.py`:
+  - `hardcoded_vqe_run_start`
+  - `hardcoded_vqe_restart_start`
+  - `hardcoded_vqe_heartbeat`
+  - `hardcoded_vqe_restart_end`
+  - `hardcoded_vqe_run_end`
 - Output telemetry fields:
   - `adapt_vqe.compiled_pauli_cache.enabled`
   - `adapt_vqe.compiled_pauli_cache.compile_elapsed_s`
   - `adapt_vqe.compiled_pauli_cache.h_terms`
   - `adapt_vqe.compiled_pauli_cache.pool_terms_total`
   - `adapt_vqe.history[*].gradient_eval_elapsed_s`
+  - `adapt_vqe.history[*].optimizer_elapsed_s`
+- ADAPT timing `AI_LOG` events:
+  - `hardcoded_adapt_compile_timing`
+  - `hardcoded_adapt_gradient_timing`
+  - `hardcoded_adapt_optimizer_timing`
 - These fields are additive and backward-compatible for existing JSON consumers.
+
+### ADAPT/VQE compiled micro-benchmark
+
+Non-pytest benchmark script for local wallclock deltas:
+
+```bash
+python pipelines/hardcoded/bench_compiled_energy_and_grad.py \
+  --L 3 --n-ph-max 1 --repeats 5
+```
+
+What it reports:
+- legacy vs compiled energy evaluation time
+- legacy vs `Hpsi`-reuse gradient scoring time over a PAOP pool
+- speedup factors
+- parity diagnostics (`abs_delta_energy`, `max_abs_delta_grad`)
 
 ### ADAPT-VQE Parameters
 
@@ -760,6 +928,7 @@ Defaults:
 - `--fidelity-subspace-energy-tol 1e-8`
 - `--term-order sorted` (`native|sorted`)
 - `--vqe-ansatz uccsd` (`uccsd|hva|hh_hva`)
+- `--vqe-method SPSA` (`SPSA|SLSQP|COBYLA|L-BFGS-B|Powell|Nelder-Mead`)
 - `--vqe-reps 2 --vqe-restarts 1 --vqe-seed 7 --vqe-maxiter 120`
 - `--qpe-eval-qubits 6 --qpe-shots 1024 --qpe-seed 11`
 - `--initial-state-source vqe`
@@ -871,11 +1040,11 @@ Primary per-L presets used by the shorthand runner:
 
 | L | trotter_steps | exact_steps_multiplier | num_times | vqe_reps | vqe_restarts | vqe_method | vqe_maxiter |
 |---|---:|---:|---:|---:|---:|---|---:|
-| 2 | 128 | 2 | 201 | 2 | 2 | COBYLA | 1200 |
-| 3 | 192 | 2 | 201 | 2 | 3 | COBYLA | 2400 |
-| 4 | 256 | 3 | 241 | 4 | 4 | SLSQP | 6000 |
-| 5 | 384 | 3 | 301 | 4 | 5 | SLSQP | 8000 |
-| 6 | 512 | 4 | 361 | 5 | 6 | SLSQP | 10000 |
+| 2 | 128 | 2 | 201 | 2 | 2 | SPSA | 1200 |
+| 3 | 192 | 2 | 201 | 2 | 3 | SPSA | 2400 |
+| 4 | 256 | 3 | 241 | 4 | 4 | SPSA | 6000 |
+| 5 | 384 | 3 | 301 | 4 | 5 | SPSA | 8000 |
+| 6 | 512 | 4 | 361 | 5 | 6 | SPSA | 10000 |
 
 Fallback behavior:
 - `fallback_A`: increase optimizer effort (`restarts + 2`, `maxiter * 2`, method `L-BFGS-B` for `L >= 4`).
@@ -1049,6 +1218,25 @@ python pipelines/hardcoded/hubbard_pipeline.py \
 > including phonon qubits. The reference propagator uses `expm_multiply` with
 > piecewise-constant H(t) when drive is enabled, matching the static
 > eigendecomposition reference when `A=0`.
+
+### 5h) Fast conventional VQE replay from imported ADAPT state (HH)
+
+```bash
+python pipelines/hardcoded/hubbard_pipeline.py \
+  --problem hh \
+  --L 4 --boundary open --ordering blocked \
+  --boson-encoding binary --n-ph-max 1 \
+  --t 1.0 --u 4.0 --dv 0.0 --omega0 1.0 --g-ep 0.5 \
+  --vqe-ansatz hh_hva_tw --vqe-reps 1 \
+  --vqe-restarts 16 --vqe-maxiter 12000 --vqe-method SPSA --vqe-seed 7 \
+  --vqe-energy-backend one_apply_compiled --vqe-progress-every-s 60 \
+  --initial-state-source adapt_json \
+  --adapt-input-json .vscode-userdata/artifacts/useful/L4/l4_hh_seq_20260302_215706_resume_adaptB_20260303_111311_adapt_B_B_probe_checkpoint_state.json \
+  --skip-qpe --num-times 1 --t-final 0.0 --skip-pdf \
+  --output-json artifacts/json/hc_hh_L4_from_adaptB_fastcomp.json
+```
+
+Keep strict ADAPT metadata matching enabled by default. Use `--no-adapt-strict-match` only for legacy imports missing complete HH metadata fields.
 
 ### 6) Compare pipeline with drive enabled
 
@@ -1341,7 +1529,33 @@ PDF page 1 contains the mandatory parameter manifest (model, ansatz, drive-enabl
 - For intentionally weak smoke runs, pass `--smoke-test-intentionally-weak`.
 - Default parameter guards enforce AGENTS minimum VQE/Trotter settings unless smoke mode is explicitly requested.
 
-### 11h) Troubleshooting: OMP/SHM2 startup abort in Aer modes
+### 11h) SPSA + compiled backend controls (VQE)
+
+`hh_noise_hardware_validation.py` now accepts SPSA controls and a VQE energy backend selector:
+
+- `--vqe-method ...` includes `SPSA`
+- `--vqe-energy-backend {legacy,one_apply_compiled}`
+- `--vqe-spsa-a`, `--vqe-spsa-c`, `--vqe-spsa-alpha`, `--vqe-spsa-gamma`, `--vqe-spsa-A`
+- `--vqe-spsa-avg-last`, `--vqe-spsa-eval-repeats`, `--vqe-spsa-eval-agg`
+
+Noise-authoritative contract:
+
+- In non-ideal noise modes (`shots`, `aer_noise`, `runtime`), optimization remains noisy-oracle driven.
+- The compiled one-apply backend is used only in compatible deterministic (`noise-mode ideal`) objective paths.
+
+Example (shots + SPSA):
+
+```bash
+python pipelines/exact_bench/hh_noise_hardware_validation.py \
+  --problem hh --ansatz hh_hva --L 2 \
+  --run-adapt --run-vqe --run-trotter --initial-state-source adapt \
+  --noise-mode shots --shots 2048 --oracle-repeats 8 --oracle-aggregate mean --seed 7 \
+  --vqe-method SPSA --vqe-energy-backend one_apply_compiled \
+  --vqe-spsa-a 0.2 --vqe-spsa-c 0.1 --vqe-spsa-alpha 0.602 --vqe-spsa-gamma 0.101 --vqe-spsa-A 10.0 \
+  --vqe-spsa-eval-repeats 1 --vqe-spsa-eval-agg mean --vqe-spsa-avg-last 0
+```
+
+### 11i) Troubleshooting: OMP/SHM2 startup abort in Aer modes
 
 If `--noise-mode shots` or `--noise-mode aer_noise` fails immediately with output like:
 
@@ -1402,7 +1616,29 @@ JSON now includes an `adapt` block with:
 - `gradient_confidence = |grad| / grad_std`; low confidence can trigger early stop (`low_gradient_confidence`).
 - Keep phase-1 ladder (`ideal -> shots -> aer_noise -> runtime`) for the same physics setup before trusting ADAPT selections on hardware.
 
-### 11i) Aer fallback controls (new)
+### 12e) ADAPT inner optimizer SPSA
+
+Noisy ADAPT now supports an inner optimizer selector:
+
+- `--adapt-inner-optimizer {COBYLA,SPSA}`
+- SPSA knobs:
+  - `--adapt-spsa-a`, `--adapt-spsa-c`, `--adapt-spsa-alpha`, `--adapt-spsa-gamma`, `--adapt-spsa-A`
+  - `--adapt-spsa-avg-last`, `--adapt-spsa-eval-repeats`, `--adapt-spsa-eval-agg`
+
+Example (ADAPT inner SPSA + noisy objective):
+
+```bash
+python pipelines/exact_bench/hh_noise_hardware_validation.py \
+  --problem hh --ansatz hh_hva --L 2 \
+  --run-adapt --run-vqe --run-trotter --initial-state-source adapt \
+  --adapt-pool hva --adapt-max-depth 12 --adapt-maxiter 200 \
+  --adapt-inner-optimizer SPSA \
+  --adapt-spsa-a 0.2 --adapt-spsa-c 0.1 --adapt-spsa-alpha 0.602 --adapt-spsa-gamma 0.101 --adapt-spsa-A 10.0 \
+  --adapt-spsa-eval-repeats 1 --adapt-spsa-eval-agg mean --adapt-spsa-avg-last 0 \
+  --noise-mode shots --shots 2048 --oracle-repeats 8 --seed 7
+```
+
+### 12f) Aer fallback controls (new)
 
 `hh_noise_hardware_validation.py` now supports reliability flags for constrained environments:
 
@@ -1467,3 +1703,24 @@ python pipelines/exact_bench/hh_noise_hardware_validation.py \
   --output-pdf artifacts/pdf/hh_noise_L2_legacy_parity_ideal.pdf \
   --output-compare-plot artifacts/pdf/hh_noise_L2_legacy_parity_compare.png
 ```
+
+### 11k) Full repository noise-model guide PDF (code/docs only)
+
+Use this documentation runner when you need an exhaustive map of noise-model
+implementation surfaces and contracts (without running trajectory experiments):
+
+```bash
+pipelines/shell/build_hh_noise_model_repo_guide.sh
+```
+
+Direct runner form:
+
+```bash
+python pipelines/exact_bench/hh_noise_model_repo_guide.py \
+  --output-pdf docs/HH_noise_model_repo_guide.pdf \
+  --output-json artifacts/json/hh_noise_model_repo_guide_index.json
+```
+
+Default outputs:
+- `docs/HH_noise_model_repo_guide.pdf`
+- `artifacts/json/hh_noise_model_repo_guide_index.json`

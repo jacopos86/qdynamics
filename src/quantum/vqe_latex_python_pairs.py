@@ -22,6 +22,7 @@ from dataclasses import dataclass
 from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union
 
 import numpy as np
+from src.quantum.spsa_optimizer import SPSAResult, spsa_minimize
 
 try:
     from IPython.display import Markdown, Math as IPyMath, display
@@ -123,6 +124,7 @@ __all__ = [
     "apply_pauli_string",
     "expval_pauli_string",
     "expval_pauli_polynomial",
+    "expval_pauli_polynomial_one_apply",
     "apply_pauli_rotation",
     "apply_exp_pauli_polynomial",
     # Hamiltonian term builders
@@ -298,6 +300,43 @@ def expval_pauli_polynomial(state: np.ndarray, H: PauliPolynomial, tol: float = 
     if abs(acc.imag) > 1e-8:
         log.error(f"Non-negligible imaginary energy residual: {acc}")
     return float(acc.real)
+
+
+def expval_pauli_polynomial_one_apply(
+    state: np.ndarray,
+    H: PauliPolynomial,
+    *,
+    tol: float = 1e-12,
+    cache: Optional[Dict[str, Any]] = None,
+) -> float:
+    r"""<psi|H|psi> via one H|psi> apply and one inner product."""
+    from src.quantum.compiled_polynomial import compile_polynomial_action, energy_via_one_apply
+
+    cache_dict = cache if cache is not None else {}
+    compiled_key = "__compiled_h__"
+    h_id_key = "__compiled_h_id__"
+    tol_key = "__compiled_h_tol__"
+    compiled_h = cache_dict.get(compiled_key)
+    cached_h_id = cache_dict.get(h_id_key)
+    cached_tol = cache_dict.get(tol_key)
+    needs_compile = (
+        compiled_h is None
+        or cached_h_id != int(id(H))
+        or cached_tol != float(tol)
+    )
+
+    if needs_compile:
+        compiled_h = compile_polynomial_action(
+            H,
+            tol=float(tol),
+            pauli_action_cache=cache_dict,
+        )
+        cache_dict[compiled_key] = compiled_h
+        cache_dict[h_id_key] = int(id(H))
+        cache_dict[tol_key] = float(tol)
+
+    energy, _hpsi = energy_via_one_apply(np.asarray(state, dtype=complex), compiled_h)
+    return float(energy)
 
 def apply_pauli_rotation(state: np.ndarray, pauli: str, angle: float) -> np.ndarray:
     r"""
@@ -1640,6 +1679,15 @@ def vqe_minimize(
     emit_theta_in_progress: bool = False,
     return_best_on_keyboard_interrupt: bool = False,
     early_stop_checker: Optional[Callable[[Dict[str, Any]], bool]] = None,
+    spsa_a: float = 0.2,
+    spsa_c: float = 0.1,
+    spsa_alpha: float = 0.602,
+    spsa_gamma: float = 0.101,
+    spsa_A: float = 10.0,
+    spsa_avg_last: int = 0,
+    spsa_eval_repeats: int = 1,
+    spsa_eval_agg: str = "mean",
+    energy_backend: str = "legacy",
 ) -> VQEResult:
     """
     Hardcoded VQE: minimize <psi(theta)|H|psi(theta)> with a statevector backend.
@@ -1652,10 +1700,27 @@ def vqe_minimize(
     if npar <= 0:
         log.error("ansatz has no parameters")
 
+    backend_key = str(energy_backend).strip().lower()
+    if backend_key not in {"legacy", "one_apply_compiled"}:
+        log.error("energy_backend must be 'legacy' or 'one_apply_compiled'")
+
+    energy_cache: Optional[Dict[str, Any]] = None
+    if backend_key == "one_apply_compiled":
+        from src.quantum.compiled_polynomial import compile_polynomial_action
+
+        energy_cache = {}
+        energy_cache["__compiled_h__"] = compile_polynomial_action(
+            H,
+            tol=1e-12,
+            pauli_action_cache=energy_cache,
+        )
+
     def energy_fn(x: np.ndarray) -> float:
         theta = np.asarray(x, dtype=float)
         psi = ansatz.prepare_state(theta, psi_ref)
-        return expval_pauli_polynomial(psi, H)
+        if backend_key == "legacy":
+            return expval_pauli_polynomial(psi, H)
+        return expval_pauli_polynomial_one_apply(psi, H, tol=1e-12, cache=energy_cache)
 
     best_energy = float("inf")
     best_theta = None
@@ -1802,7 +1867,96 @@ def vqe_minimize(
                     heartbeat_last_t = now
             return float(e_val)
 
-        if minimize is not None:
+        method_key = str(method).strip().lower()
+
+        if method_key == "spsa":
+            bnds = None
+            if bounds is not None:
+                lo, hi = float(bounds[0]), float(bounds[1])
+                bnds = [(lo, hi)] * npar
+
+            def _spsa_heartbeat(_payload: Dict[str, Any]) -> None:
+                nonlocal heartbeat_last_t
+                if not emit_heartbeat:
+                    return
+                now = time.perf_counter()
+                if heartbeat_period == 0.0 or (now - heartbeat_last_t) >= heartbeat_period:
+                    _emit_progress(
+                        "heartbeat",
+                        restart_index=int(r + 1),
+                        restarts_total=int(restarts),
+                        elapsed_s=float(now - run_t0),
+                        elapsed_restart_s=float(now - restart_t0),
+                        nfev_restart=int(restart_nfev),
+                        nfev_so_far=int(total_nfev + restart_nfev),
+                        energy_current=float(restart_last if restart_last is not None else np.nan),
+                        energy_restart_best=float(restart_best),
+                        energy_best_global=float(min(best_energy, restart_best)),
+                        theta_current=(
+                            [float(v) for v in np.asarray(restart_last_theta, dtype=float).tolist()]
+                            if (bool(emit_theta_in_progress) and restart_last_theta is not None)
+                            else None
+                        ),
+                        theta_restart_best=(
+                            [float(v) for v in np.asarray(restart_best_theta, dtype=float).tolist()]
+                            if (bool(emit_theta_in_progress) and restart_best_theta is not None)
+                            else None
+                        ),
+                        method=str(method),
+                        maxiter=int(maxiter),
+                    )
+                    heartbeat_last_t = now
+
+            try:
+                spsa_result: SPSAResult = spsa_minimize(
+                    fun=_objective_with_progress,
+                    x0=x0,
+                    maxiter=int(maxiter),
+                    seed=int(seed) + 1000 * int(r),
+                    a=float(spsa_a),
+                    c=float(spsa_c),
+                    alpha=float(spsa_alpha),
+                    gamma=float(spsa_gamma),
+                    A=float(spsa_A),
+                    bounds=bnds,
+                    project=("clip" if bounds is not None else "none"),
+                    eval_repeats=int(spsa_eval_repeats),
+                    eval_agg=str(spsa_eval_agg),
+                    avg_last=int(spsa_avg_last),
+                    callback=_spsa_heartbeat,
+                    callback_every=1,
+                )
+
+                energy = float(spsa_result.fun)
+                theta_opt = np.asarray(spsa_result.x, dtype=float)
+                nfev = int(spsa_result.nfev)
+                nit = int(spsa_result.nit)
+                success = bool(spsa_result.success)
+                message = str(spsa_result.message)
+            except KeyboardInterrupt:
+                if not bool(return_best_on_keyboard_interrupt):
+                    raise
+                interrupted = True
+                if restart_best_theta is not None and np.isfinite(restart_best):
+                    theta_opt = np.asarray(restart_best_theta, dtype=float)
+                    energy = float(restart_best)
+                elif restart_last_theta is not None and restart_last is not None:
+                    theta_opt = np.asarray(restart_last_theta, dtype=float)
+                    energy = float(restart_last)
+                else:
+                    theta_opt = np.asarray(x0, dtype=float)
+                    energy = float(energy_fn(theta_opt))
+                    restart_nfev += 1
+                nfev = int(max(restart_nfev, 0))
+                nit = 0
+                success = False
+                message = (
+                    "early_stop_checker_returning_best_restart"
+                    if bool(interrupted_by_checker)
+                    else "interrupted_keyboard_returning_best_restart"
+                )
+
+        elif minimize is not None:
             bnds = None
             if bounds is not None:
                 lo, hi = float(bounds[0]), float(bounds[1])

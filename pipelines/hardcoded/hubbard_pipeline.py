@@ -670,7 +670,17 @@ def _run_hardcoded_vqe(
     seed: int,
     maxiter: int,
     method: str,
+    energy_backend: str,
+    vqe_progress_every_s: float = 60.0,
     ansatz_name: str,
+    spsa_a: float = 0.2,
+    spsa_c: float = 0.1,
+    spsa_alpha: float = 0.602,
+    spsa_gamma: float = 0.101,
+    spsa_A: float = 10.0,
+    spsa_avg_last: int = 0,
+    spsa_eval_repeats: int = 1,
+    spsa_eval_agg: str = "mean",
     # --- HH-specific (ignored when problem=hubbard) ---
     problem: str = "hubbard",
     omega0: float = 0.0,
@@ -688,6 +698,8 @@ def _run_hardcoded_vqe(
         maxiter=int(maxiter),
         seed=int(seed),
         method=str(method),
+        energy_backend=str(energy_backend),
+        vqe_progress_every_s=float(vqe_progress_every_s),
         ansatz=str(ansatz_name),
         problem=str(problem),
     )
@@ -797,6 +809,22 @@ def _run_hardcoded_vqe(
     else:
         raise ValueError(f"Unsupported ansatz: {ansatz_name_s}")
 
+    progress_event_map = {
+        "run_start": "hardcoded_vqe_run_start",
+        "restart_start": "hardcoded_vqe_restart_start",
+        "heartbeat": "hardcoded_vqe_heartbeat",
+        "restart_end": "hardcoded_vqe_restart_end",
+        "run_end": "hardcoded_vqe_run_end",
+    }
+
+    def _vqe_progress_logger(payload: dict[str, Any]) -> None:
+        raw_event = str(payload.get("event", ""))
+        mapped_event = progress_event_map.get(raw_event)
+        if mapped_event is None:
+            return
+        fields = {k: v for k, v in payload.items() if k != "event"}
+        _ai_log(mapped_event, **fields)
+
     result = ns["vqe_minimize"](
         h_poly,
         ansatz,
@@ -805,6 +833,18 @@ def _run_hardcoded_vqe(
         seed=int(seed),
         maxiter=int(maxiter),
         method=str(method),
+        energy_backend=str(energy_backend),
+        spsa_a=float(spsa_a),
+        spsa_c=float(spsa_c),
+        spsa_alpha=float(spsa_alpha),
+        spsa_gamma=float(spsa_gamma),
+        spsa_A=float(spsa_A),
+        spsa_avg_last=int(spsa_avg_last),
+        spsa_eval_repeats=int(spsa_eval_repeats),
+        spsa_eval_agg=str(spsa_eval_agg),
+        progress_logger=_vqe_progress_logger,
+        progress_every_s=float(vqe_progress_every_s),
+        progress_label="hardcoded_vqe",
     )
 
     theta = np.asarray(result.theta, dtype=float)
@@ -853,9 +893,21 @@ def _run_hardcoded_vqe(
         "num_parameters": int(ansatz.num_parameters),
         "reps": int(reps),
         "optimizer_method": str(method),
+        "energy_backend": str(energy_backend),
         "optimal_point": [float(x) for x in theta.tolist()],
         "hf_bitstring_qn_to_q0": hf_bits_display,
     }
+    if str(method).strip().lower() == "spsa":
+        payload["spsa"] = {
+            "a": float(spsa_a),
+            "c": float(spsa_c),
+            "alpha": float(spsa_alpha),
+            "gamma": float(spsa_gamma),
+            "A": float(spsa_A),
+            "avg_last": int(spsa_avg_last),
+            "eval_repeats": int(spsa_eval_repeats),
+            "eval_agg": str(spsa_eval_agg),
+        }
     if ansatz_name_s == "hva" and int(num_sites) == 2:
         delta_vs_exact = float(payload["energy"]) - float(exact_filtered_energy)
         if np.isfinite(delta_vs_exact) and delta_vs_exact > 1e-3:
@@ -875,6 +927,7 @@ def _run_hardcoded_vqe(
         "hardcoded_vqe_done",
         L=int(num_sites),
         ansatz=str(ansatz_name_s),
+        energy_backend=str(energy_backend),
         success=True,
         energy=float(result.energy),
         exact_filtered_energy=float(exact_filtered_energy),
@@ -1309,7 +1362,7 @@ def _simulate_trajectory(
     drive_t0: float = 0.0,
     drive_time_sampling: str = "midpoint",
     exact_steps_multiplier: int = 1,
-    propagator: str = "suzuki2",
+    propagator: str = "cfqm4",
     cfqm_stage_exp: str = "expm_multiply_sparse",
     cfqm_coeff_drop_abs_tol: float = 0.0,
     cfqm_normalize: bool = False,
@@ -1882,6 +1935,8 @@ def _write_pipeline_pdf(pdf_path: Path, payload: dict[str, Any], run_command: st
     settings = payload.get("settings", {})
     ansatz_label = str(payload.get("vqe", {}).get("ansatz", settings.get("vqe_ansatz", "unknown"))).strip().lower()
     vqe_method = payload.get("vqe", {}).get("method", "unknown")
+    vqe_optimizer_method = payload.get("vqe", {}).get("optimizer_method", settings.get("vqe_method", "unknown"))
+    vqe_spsa_cfg = payload.get("vqe", {}).get("spsa", settings.get("vqe_spsa", {}))
     adapt_import = payload.get("adapt_import", {})
     has_adapt_import = isinstance(adapt_import, dict) and bool(adapt_import)
     branch_meta = payload.get("ansatz_branches", {}) if isinstance(payload.get("ansatz_branches", {}), dict) else {}
@@ -1906,12 +1961,30 @@ def _write_pipeline_pdf(pdf_path: Path, payload: dict[str, Any], run_command: st
             "",
             "Ansatz:",
             f"  - ansatz_type: {ansatz_label}",
-            f"  - vqe_method: {vqe_method}",
+            f"  - vqe_method: {vqe_optimizer_method}",
+            f"  - vqe_method_internal: {vqe_method}",
             f"  - initial_state_source: {settings.get('initial_state_source')}",
             "  - branch_order: exact_gs_filtered, exact_paop, trotter_paop, exact_hva, trotter_hva",
             "",
             f"Drive Enabled: {drive_enabled}",
         ]
+        if str(vqe_optimizer_method).strip().lower() == "spsa" and isinstance(vqe_spsa_cfg, dict):
+            manifest_lines += [
+                "  - spsa_a={a}  spsa_c={c}  spsa_A={A}".format(
+                    a=vqe_spsa_cfg.get("a"),
+                    c=vqe_spsa_cfg.get("c"),
+                    A=vqe_spsa_cfg.get("A"),
+                ),
+                "  - spsa_alpha={alpha}  spsa_gamma={gamma}".format(
+                    alpha=vqe_spsa_cfg.get("alpha"),
+                    gamma=vqe_spsa_cfg.get("gamma"),
+                ),
+                "  - spsa_eval_repeats={eval_repeats}  spsa_eval_agg={eval_agg}  spsa_avg_last={avg_last}".format(
+                    eval_repeats=vqe_spsa_cfg.get("eval_repeats"),
+                    eval_agg=vqe_spsa_cfg.get("eval_agg"),
+                    avg_last=vqe_spsa_cfg.get("avg_last"),
+                ),
+            ]
         if branch_meta:
             paop_meta = branch_meta.get("paop", {})
             hva_meta = branch_meta.get("hva", {})
@@ -2412,9 +2485,9 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--propagator",
         choices=["suzuki2", "piecewise_exact", "cfqm4", "cfqm6"],
-        default="suzuki2",
+        default="cfqm4",
         help=(
-            "Trajectory propagator: suzuki2 (default, existing behavior), "
+            "Trajectory propagator: cfqm4 (default), "
             "piecewise_exact, or CFQM variants cfqm4/cfqm6."
         ),
     )
@@ -2512,9 +2585,38 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--vqe-method",
         type=str,
-        default="COBYLA",
-        choices=["SLSQP", "COBYLA", "L-BFGS-B", "Powell", "Nelder-Mead"],
-        help="SciPy optimizer used by hardcoded VQE.",
+        default="SPSA",
+        choices=["SLSQP", "COBYLA", "L-BFGS-B", "Powell", "Nelder-Mead", "SPSA"],
+        help="SciPy optimizer (or SPSA) used by hardcoded VQE.",
+    )
+    parser.add_argument("--vqe-spsa-a", type=float, default=0.2)
+    parser.add_argument("--vqe-spsa-c", type=float, default=0.1)
+    parser.add_argument("--vqe-spsa-alpha", type=float, default=0.602)
+    parser.add_argument("--vqe-spsa-gamma", type=float, default=0.101)
+    parser.add_argument("--vqe-spsa-A", type=float, default=10.0)
+    parser.add_argument("--vqe-spsa-avg-last", type=int, default=0)
+    parser.add_argument("--vqe-spsa-eval-repeats", type=int, default=1)
+    parser.add_argument(
+        "--vqe-spsa-eval-agg",
+        choices=["mean", "median"],
+        default="mean",
+    )
+    parser.add_argument(
+        "--vqe-energy-backend",
+        type=str,
+        default="one_apply_compiled",
+        choices=["legacy", "one_apply_compiled"],
+        help=(
+            "Hardcoded VQE energy objective backend: "
+            "'legacy' (termwise expectation sum) or "
+            "'one_apply_compiled' (compiled one-apply energy)."
+        ),
+    )
+    parser.add_argument(
+        "--vqe-progress-every-s",
+        type=float,
+        default=60.0,
+        help="Emit hardcoded VQE heartbeat AI_LOG events every N seconds.",
     )
 
     parser.add_argument("--qpe-eval-qubits", type=int, default=6)
@@ -2754,6 +2856,16 @@ def main() -> None:
             seed=int(args.vqe_seed),
             maxiter=int(args.vqe_maxiter),
             method=str(args.vqe_method),
+            energy_backend=str(args.vqe_energy_backend),
+            vqe_progress_every_s=float(args.vqe_progress_every_s),
+            spsa_a=float(args.vqe_spsa_a),
+            spsa_c=float(args.vqe_spsa_c),
+            spsa_alpha=float(args.vqe_spsa_alpha),
+            spsa_gamma=float(args.vqe_spsa_gamma),
+            spsa_A=float(args.vqe_spsa_A),
+            spsa_avg_last=int(args.vqe_spsa_avg_last),
+            spsa_eval_repeats=int(args.vqe_spsa_eval_repeats),
+            spsa_eval_agg=str(args.vqe_spsa_eval_agg),
             ansatz_name=str(args.vqe_ansatz),
             problem=str(args.problem),
             omega0=float(args.omega0),
@@ -2767,11 +2879,24 @@ def main() -> None:
             "success": False,
             "method": "hardcoded_layerwise_statevector",
             "ansatz": str(args.vqe_ansatz),
+            "optimizer_method": str(args.vqe_method),
+            "energy_backend": str(args.vqe_energy_backend),
             "parameterization": "layerwise",
             "exact_filtered_energy": None,
             "energy": None,
             "error": str(exc),
         }
+        if str(args.vqe_method).strip().lower() == "spsa":
+            vqe_payload["spsa"] = {
+                "a": float(args.vqe_spsa_a),
+                "c": float(args.vqe_spsa_c),
+                "alpha": float(args.vqe_spsa_alpha),
+                "gamma": float(args.vqe_spsa_gamma),
+                "A": float(args.vqe_spsa_A),
+                "avg_last": int(args.vqe_spsa_avg_last),
+                "eval_repeats": int(args.vqe_spsa_eval_repeats),
+                "eval_agg": str(args.vqe_spsa_eval_agg),
+            }
         psi_vqe = psi_exact_ground
 
     num_particles = _half_filled_particles(int(args.L))
@@ -3011,6 +3136,9 @@ def main() -> None:
         "trotter_steps": int(args.trotter_steps),
         "term_order": str(args.term_order),
         "vqe_ansatz": str(args.vqe_ansatz),
+        "vqe_method": str(args.vqe_method),
+        "vqe_energy_backend": str(args.vqe_energy_backend),
+        "vqe_progress_every_s": float(args.vqe_progress_every_s),
         "initial_state_source": str(args.initial_state_source),
         "adapt_input_json": (str(args.adapt_input_json) if args.adapt_input_json is not None else None),
         "adapt_strict_match": bool(args.adapt_strict_match),
@@ -3080,6 +3208,17 @@ def main() -> None:
             "trotter_hva",
         ],
     }
+    if str(args.vqe_method).strip().lower() == "spsa":
+        settings["vqe_spsa"] = {
+            "a": float(args.vqe_spsa_a),
+            "c": float(args.vqe_spsa_c),
+            "alpha": float(args.vqe_spsa_alpha),
+            "gamma": float(args.vqe_spsa_gamma),
+            "A": float(args.vqe_spsa_A),
+            "avg_last": int(args.vqe_spsa_avg_last),
+            "eval_repeats": int(args.vqe_spsa_eval_repeats),
+            "eval_agg": str(args.vqe_spsa_eval_agg),
+        }
     _propagator_key = str(args.propagator).strip().lower()
     if _propagator_key != "suzuki2":
         settings["propagator"] = str(_propagator_key)
