@@ -8,8 +8,8 @@ from qiskit.primitives import Estimator
 from qiskit.algorithms.minimum_eigensolvers import VQE
 from qiskit.circuit.library import PauliEvolutionGate
 from qiskit.synthesis import SuzukiTrotter
-from quantum.qubitization_module import PauliTerm
-from quantum.pauli_polynomial_class import fermion_plus_operator, fermion_minus_operator, PauliPolynomial
+from src.qubitization.qubitization_module import PauliTerm
+from src.qubitization.pauli_polynomial_class import fermion_plus_operator, fermion_minus_operator, PauliPolynomial
 import pytest
 import numpy as np
 import matplotlib.pyplot as plt

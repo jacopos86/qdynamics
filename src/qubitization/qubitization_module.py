@@ -1,6 +1,6 @@
 from src.utilities.log import log
-from src.quantum.pauli_letters_module import PauliLetter
-from src.set_param_object import p
+from src.qubitization.pauli_letters_module import PauliLetter
+from src.parameters.set_param_object import p
 
 #
 #   This module defines the basic Pauli term entity

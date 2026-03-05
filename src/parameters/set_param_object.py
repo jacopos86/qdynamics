@@ -1,7 +1,7 @@
 import os
 from src.utilities.input_parser import parser
 from src.utilities.log import log
-from src.input_parameters import Q_real_time_input, Q_psi4_input
+from src.parameters.input_parameters import Q_real_time_input, Q_psi4_input
 
 # parameters proxy class
 

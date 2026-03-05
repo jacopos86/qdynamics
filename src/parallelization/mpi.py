@@ -1,7 +1,7 @@
 from mpi4py import MPI
 import numpy as np
 import random
-from src.global_params import MPI_ROOT
+from src.parameters.global_params import MPI_ROOT
 
 #
 # MPI class

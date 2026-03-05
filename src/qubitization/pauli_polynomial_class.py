@@ -1,7 +1,7 @@
 import numpy as np
-from src.set_param_object import p
+from src.parameters.set_param_object import p
 from src.utilities.log import log
-from src.quantum.qubitization_module import PauliTerm
+from src.qubitization.qubitization_module import PauliTerm
 
 #
 #   Pauli polynomial class definition
