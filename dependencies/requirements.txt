@@ -4,5 +4,3 @@ PyYAML
 pytest
 pytest-mpi
 pylatexenc
-qiskit==0.45.1
-qiskit-aer==0.13.3

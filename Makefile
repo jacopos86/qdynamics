@@ -26,6 +26,8 @@ CONDA_BASE_DEPS = \
   matplotlib \
   mpi4py \
   h5py \
+  qiskit==0.45.1 \
+  qiskit-aer==0.13.3 \
   pip
   
 # ================================
