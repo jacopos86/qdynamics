@@ -50,6 +50,12 @@ from docs.reports.pdf_utils import (
     render_command_page,
     current_command_string,
 )
+from docs.reports.report_labels import report_branch_label, report_method_label
+from docs.reports.report_pages import (
+    render_executive_summary_page,
+    render_manifest_overview_page,
+    render_section_divider_page,
+)
 
 # Module-level aliases used by the plotting body
 plt = get_plt() if HAS_MATPLOTLIB else None  # type: ignore[assignment]
@@ -1987,286 +1993,228 @@ def _write_pipeline_pdf(pdf_path: Path, payload: dict[str, Any], run_command: st
     has_adapt_import = isinstance(adapt_import, dict) and bool(adapt_import)
     branch_meta = payload.get("ansatz_branches", {}) if isinstance(payload.get("ansatz_branches", {}), dict) else {}
     legacy_plot_label = str(branch_meta.get("legacy_selected_branch", "selected")).strip().lower()
-    run_mode = "drive-enabled" if isinstance(settings.get("drive"), dict) else "static"
-    _ = run_command  # command text is preserved in CLI logs; PDF starts with summary
+    problem_label = str(settings.get("problem", "hubbard")).strip().lower()
+    model_name = "Hubbard-Holstein" if problem_label == "hh" else "Hubbard"
+    hh_block = settings.get("holstein", {})
+    drive_block = settings.get("drive")
+    drive_enabled = isinstance(drive_block, dict) and bool(drive_block.get("enabled", False))
+    run_mode = "drive-enabled" if drive_enabled else "static"
+    legacy_branch_display = report_branch_label(legacy_plot_label)
+    propagator_label = report_method_label(str(settings.get("propagator", "suzuki2")))
+    vqe_abs_delta = abs(vqe_val - gs_exact_filtered) if (np.isfinite(vqe_val) and np.isfinite(gs_exact_filtered)) else np.nan
+
+    manifest_sections: list[tuple[str, list[tuple[str, Any]]]] = [
+        (
+            "Model and regime",
+            [
+                ("Model family", model_name),
+                ("Problem", problem_label),
+                ("L", settings.get("L")),
+                ("Boundary", settings.get("boundary")),
+                ("Ordering", settings.get("ordering")),
+                ("Drive enabled", drive_enabled),
+            ],
+        ),
+        (
+            "Method chain",
+            [
+                ("Ansatz type", ansatz_label),
+                ("Optimizer", vqe_optimizer_method),
+                ("Internal VQE method", vqe_method),
+                ("Propagator", propagator_label),
+                ("Initial state source", settings.get("initial_state_source")),
+                ("Selected propagated branch", legacy_branch_display),
+                ("Branch order", "Exact filtered GS, Exact PAOP, Trotter PAOP, Exact HVA, Trotter HVA"),
+            ],
+        ),
+        (
+            "Core physical parameters",
+            [
+                ("t", settings.get("t")),
+                ("U", settings.get("u")),
+                ("dv", settings.get("dv")),
+            ],
+        ),
+        (
+            "Trajectory settings",
+            [
+                ("t_final", settings.get("t_final")),
+                ("num_times", settings.get("num_times")),
+                ("trotter_steps", settings.get("trotter_steps")),
+                ("Suzuki order", settings.get("suzuki_order")),
+                ("Term order", settings.get("term_order")),
+            ],
+        ),
+    ]
+    if str(vqe_optimizer_method).strip().lower() == "spsa" and isinstance(vqe_spsa_cfg, dict):
+        manifest_sections.append(
+            (
+                "SPSA settings",
+                [
+                    ("a", vqe_spsa_cfg.get("a")),
+                    ("c", vqe_spsa_cfg.get("c")),
+                    ("A", vqe_spsa_cfg.get("A")),
+                    ("alpha", vqe_spsa_cfg.get("alpha")),
+                    ("gamma", vqe_spsa_cfg.get("gamma")),
+                    ("eval repeats", vqe_spsa_cfg.get("eval_repeats")),
+                    ("eval aggregate", vqe_spsa_cfg.get("eval_agg")),
+                    ("average last", vqe_spsa_cfg.get("avg_last")),
+                ],
+            )
+        )
+    if drive_enabled and isinstance(drive_block, dict):
+        manifest_sections.append(
+            (
+                "Drive settings",
+                [
+                    ("A", drive_block.get("A")),
+                    ("omega", drive_block.get("omega")),
+                    ("tbar", drive_block.get("tbar")),
+                    ("phi", drive_block.get("phi")),
+                    ("t0", drive_block.get("t0")),
+                    ("Pattern", drive_block.get("pattern")),
+                    ("Time sampling", drive_block.get("time_sampling")),
+                    ("Exact-steps multiplier", drive_block.get("reference_steps_multiplier")),
+                ],
+            )
+        )
+    if problem_label == "hh":
+        manifest_sections.append(
+            (
+                "Hubbard-Holstein parameters",
+                [
+                    ("omega0", hh_block.get("omega0")),
+                    ("g_ep", hh_block.get("g_ep")),
+                    ("n_ph_max", hh_block.get("n_ph_max")),
+                    ("Boson encoding", hh_block.get("boson_encoding")),
+                    ("nq_fermion", hh_block.get("nq_fermion")),
+                    ("nq_phonon", hh_block.get("nq_phonon")),
+                    ("nq_total", hh_block.get("nq_total")),
+                ],
+            )
+        )
+    if branch_meta:
+        paop_meta = branch_meta.get("paop", {})
+        hva_meta = branch_meta.get("hva", {})
+        branch_rows: list[tuple[str, Any]] = [
+            ("PAOP source", paop_meta.get("source")),
+            ("PAOP pool", paop_meta.get("pool_type")),
+            ("PAOP depth", paop_meta.get("ansatz_depth")),
+            ("HVA source", hva_meta.get("source")),
+            ("HVA ansatz", hva_meta.get("ansatz")),
+            ("HVA VQE success", hva_meta.get("vqe_success")),
+        ]
+        if settings.get("adapt_ref_source") is not None:
+            branch_rows.append(("ADAPT reference source", settings.get("adapt_ref_source")))
+        manifest_sections.append(("Branch provenance", branch_rows))
+    if has_adapt_import:
+        manifest_sections.append(
+            (
+                "Imported ADAPT state",
+                [
+                    ("Source JSON", adapt_import.get("input_json_path")),
+                    ("Metadata match passed", adapt_import.get("metadata_match_passed")),
+                    ("Strict match", adapt_import.get("strict_match")),
+                    ("Pool", adapt_import.get("pool_type")),
+                    ("Ansatz depth", adapt_import.get("ansatz_depth")),
+                    ("ADAPT energy", adapt_import.get("energy")),
+                    ("ADAPT |ΔE|", adapt_import.get("abs_delta_e")),
+                ],
+            )
+        )
+
+    summary_sections: list[tuple[str, list[tuple[str, Any]]]] = [
+        (
+            "Headline results",
+            [
+                ("Run mode", run_mode),
+                ("Subspace fidelity at t=0", float(fid[0]) if fid.size > 0 else None),
+                ("VQE energy", payload.get("vqe", {}).get("energy")),
+                ("Exact filtered energy", payload["ground_state"].get("exact_energy_filtered")),
+                ("|VQE - exact(filtered)|", vqe_abs_delta),
+                ("QPE energy estimate", payload.get("qpe", {}).get("energy_estimate")),
+            ],
+        ),
+        (
+            "Prepared state and propagation",
+            [
+                ("Ansatz", ansatz_label),
+                ("Propagator", propagator_label),
+                ("Initial state source", settings.get("initial_state_source")),
+                ("Selected propagated branch", legacy_branch_display),
+                ("Filtered sector", payload["ground_state"].get("filtered_sector")),
+            ],
+        ),
+        (
+            "Trajectory coverage",
+            [
+                ("t_final", settings.get("t_final")),
+                ("num_times", settings.get("num_times")),
+                ("trotter_steps", settings.get("trotter_steps")),
+                ("Boundary", settings.get("boundary")),
+                ("Ordering", settings.get("ordering")),
+            ],
+        ),
+    ]
+
+    adapt_summary_lines: list[str] | None = None
+    if has_adapt_import and bool(settings.get("adapt_summary_in_pdf", True)):
+        mismatch_lines = adapt_import.get("metadata_mismatches") or []
+        adapt_summary_lines = [
+            "ADAPT Initial-State Provenance",
+            "",
+            f"import_json: {adapt_import.get('input_json_path')}",
+            f"import_source: {adapt_import.get('initial_state_source')}",
+            f"strict_match: {adapt_import.get('strict_match')}",
+            f"metadata_match_passed: {adapt_import.get('metadata_match_passed')}",
+            "",
+            f"pool_type: {adapt_import.get('pool_type')}",
+            f"ansatz_depth: {adapt_import.get('ansatz_depth')}",
+            f"num_parameters: {adapt_import.get('num_parameters')}",
+            f"operator_count: {adapt_import.get('operator_count')}",
+            f"adapt_energy: {adapt_import.get('energy')}",
+            f"adapt_abs_delta_e: {adapt_import.get('abs_delta_e')}",
+            "",
+            "Dynamics used imported ADAPT state as t=0 initial condition.",
+        ]
+        if isinstance(mismatch_lines, list) and len(mismatch_lines) > 0:
+            adapt_summary_lines += ["", "Metadata mismatches:"]
+            adapt_summary_lines.extend([f"  - {str(item)}" for item in mismatch_lines])
 
     with PdfPages(str(pdf_path)) as pdf:
-        # ---- Parameter Manifest (AGENTS.md §1 mandatory) ----
-        problem_label = str(settings.get("problem", "hubbard")).strip().lower()
-        model_name = "Hubbard-Holstein" if problem_label == "hh" else "Hubbard"
-        hh_block = settings.get("holstein", {})
-        drive_block = settings.get("drive")
-        drive_enabled = isinstance(drive_block, dict) and bool(drive_block.get("enabled", False))
-
-        manifest_lines = [
-            f"Parameter Manifest — {model_name} L={settings.get('L')}",
-            "",
-            "Model:",
-            f"  - model_family: {model_name}",
-            f"  - problem: {problem_label}",
-            "",
-            "Ansatz:",
-            f"  - ansatz_type: {ansatz_label}",
-            f"  - vqe_method: {vqe_optimizer_method}",
-            f"  - vqe_method_internal: {vqe_method}",
-            f"  - initial_state_source: {settings.get('initial_state_source')}",
-            "  - branch_order: exact_gs_filtered, exact_paop, trotter_paop, exact_hva, trotter_hva",
-            "",
-            f"Drive Enabled: {drive_enabled}",
-        ]
-        if str(vqe_optimizer_method).strip().lower() == "spsa" and isinstance(vqe_spsa_cfg, dict):
-            manifest_lines += [
-                "  - spsa_a={a}  spsa_c={c}  spsa_A={A}".format(
-                    a=vqe_spsa_cfg.get("a"),
-                    c=vqe_spsa_cfg.get("c"),
-                    A=vqe_spsa_cfg.get("A"),
-                ),
-                "  - spsa_alpha={alpha}  spsa_gamma={gamma}".format(
-                    alpha=vqe_spsa_cfg.get("alpha"),
-                    gamma=vqe_spsa_cfg.get("gamma"),
-                ),
-                "  - spsa_eval_repeats={eval_repeats}  spsa_eval_agg={eval_agg}  spsa_avg_last={avg_last}".format(
-                    eval_repeats=vqe_spsa_cfg.get("eval_repeats"),
-                    eval_agg=vqe_spsa_cfg.get("eval_agg"),
-                    avg_last=vqe_spsa_cfg.get("avg_last"),
-                ),
-            ]
-        if branch_meta:
-            paop_meta = branch_meta.get("paop", {})
-            hva_meta = branch_meta.get("hva", {})
-            manifest_lines += [
-                "",
-                "Branch Provenance:",
-                f"  - paop_source: {paop_meta.get('source')}",
-                f"  - paop_pool: {paop_meta.get('pool_type')}",
-                f"  - paop_depth: {paop_meta.get('ansatz_depth')}",
-                f"  - hva_source: {hva_meta.get('source')}",
-                f"  - hva_ansatz: {hva_meta.get('ansatz')}",
-                f"  - hva_vqe_success: {hva_meta.get('vqe_success')}",
-            ]
-            if settings.get("adapt_ref_source") is not None:
-                manifest_lines.append(f"  - adapt_ref_source: {settings.get('adapt_ref_source')}")
-        if has_adapt_import:
-            manifest_lines += [
-                "",
-                "ADAPT Import:",
-                f"  - source_json: {adapt_import.get('input_json_path')}",
-                f"  - metadata_match_passed: {adapt_import.get('metadata_match_passed')}",
-                f"  - strict_match: {adapt_import.get('strict_match')}",
-                f"  - pool: {adapt_import.get('pool_type')}",
-                f"  - ansatz_depth: {adapt_import.get('ansatz_depth')}",
-                f"  - adapt_energy: {adapt_import.get('energy')}",
-                f"  - adapt_abs_delta_e: {adapt_import.get('abs_delta_e')}",
-            ]
-        if drive_enabled:
-            manifest_lines += [
-                f"  - A={drive_block.get('A')}  omega={drive_block.get('omega')}",
-                f"  - tbar={drive_block.get('tbar')}  phi={drive_block.get('phi')}  t0={drive_block.get('t0')}",
-                f"  - pattern={drive_block.get('pattern')}  time_sampling={drive_block.get('time_sampling')}",
-                f"  - exact_steps_multiplier={drive_block.get('reference_steps_multiplier')}",
-            ]
-        manifest_lines += [
-            "",
-            "Core Physical Parameters:",
-            f"  - t={settings.get('t')}",
-            f"  - U={settings.get('u')}",
-            f"  - dv={settings.get('dv')}",
-        ]
-        if problem_label == "hh":
-            manifest_lines += [
-                "",
-                "Hubbard-Holstein Parameters:",
-                f"  - omega0={hh_block.get('omega0')}",
-                f"  - g_ep={hh_block.get('g_ep')}",
-                f"  - n_ph_max={hh_block.get('n_ph_max')}",
-                f"  - boson_encoding={hh_block.get('boson_encoding')}",
-                f"  - nq_fermion={hh_block.get('nq_fermion')}",
-                f"  - nq_phonon={hh_block.get('nq_phonon')}",
-                f"  - nq_total={hh_block.get('nq_total')}",
-            ]
-        manifest_lines += [
-            "",
-            "Trajectory Settings:",
-            f"  - t_final={settings.get('t_final')}",
-            f"  - num_times={settings.get('num_times')}",
-            f"  - trotter_steps={settings.get('trotter_steps')}",
-            f"  - suzuki_order={settings.get('suzuki_order')}",
-            f"  - term_order={settings.get('term_order')}",
-            f"  - boundary={settings.get('boundary')}",
-            f"  - ordering={settings.get('ordering')}",
-            f"  - initial_state_source={settings.get('initial_state_source')}",
-            "",
-            "Topline Results:",
-            f"  - subspace_fidelity_at_t0: {float(fid[0]) if fid.size > 0 else None}",
-            f"  - vqe_energy: {payload.get('vqe', {}).get('energy')}",
-            f"  - exact_filtered_energy: {payload['ground_state'].get('exact_energy_filtered')}",
-            f"  - qpe_energy_estimate: {payload.get('qpe', {}).get('energy_estimate')}",
-        ]
-        render_text_page(pdf, manifest_lines, fontsize=10)
-
-        if has_adapt_import and bool(settings.get("adapt_summary_in_pdf", True)):
-            mismatch_lines = adapt_import.get("metadata_mismatches") or []
-            summary_lines = [
-                "ADAPT Initial-State Provenance",
-                "",
-                f"import_json: {adapt_import.get('input_json_path')}",
-                f"import_source: {adapt_import.get('initial_state_source')}",
-                f"strict_match: {adapt_import.get('strict_match')}",
-                f"metadata_match_passed: {adapt_import.get('metadata_match_passed')}",
-                "",
-                f"pool_type: {adapt_import.get('pool_type')}",
-                f"ansatz_depth: {adapt_import.get('ansatz_depth')}",
-                f"num_parameters: {adapt_import.get('num_parameters')}",
-                f"operator_count: {adapt_import.get('operator_count')}",
-                f"adapt_energy: {adapt_import.get('energy')}",
-                f"adapt_abs_delta_e: {adapt_import.get('abs_delta_e')}",
-                "",
-                "Dynamics used imported ADAPT state as t=0 initial condition.",
-            ]
-            if isinstance(mismatch_lines, list) and len(mismatch_lines) > 0:
-                summary_lines += ["", "Metadata mismatches:"]
-                summary_lines.extend([f"  - {str(item)}" for item in mismatch_lines])
-            render_text_page(pdf, summary_lines, fontsize=10, line_spacing=0.03)
-
-        # ------------------------------------------------------------------
-        # Front matter: 3D pages first (non-redundant)
-        # ------------------------------------------------------------------
-        dens_all = np.concatenate([n_site_exact.reshape(-1), n_site_exact_ans.reshape(-1), n_site_trot.reshape(-1)])
-        dens_zlim = (float(np.min(dens_all)), float(np.max(dens_all)))
-        if abs(dens_zlim[1] - dens_zlim[0]) < 1e-12:
-            dens_zlim = (dens_zlim[0] - 1e-6, dens_zlim[1] + 1e-6)
-
-        fig3d_n = plt.figure(figsize=(14.0, 8.5))
-        axn0 = fig3d_n.add_subplot(1, 3, 1, projection="3d")
-        axn1 = fig3d_n.add_subplot(1, 3, 2, projection="3d")
-        axn2 = fig3d_n.add_subplot(1, 3, 3, projection="3d")
-        _plot_density_surface(axn0, n_site_exact, title="Exact GS Filtered: n(site,t)", zlim=dens_zlim, cmap="Blues")
-        _plot_density_surface(axn1, n_site_exact_ans, title=f"Exact selected ({legacy_plot_label}): n(site,t)", zlim=dens_zlim, cmap="Greens")
-        _plot_density_surface(axn2, n_site_trot, title=f"Trotter selected ({legacy_plot_label}): n(site,t)", zlim=dens_zlim, cmap="Oranges")
-        fig3d_n.suptitle(f"L={payload['settings']['L']} 3D Densities (Total n)", fontsize=13)
-        fig3d_n.tight_layout(rect=(0.0, 0.02, 1.0, 0.93))
-        pdf.savefig(fig3d_n)
-        plt.close(fig3d_n)
-
-        up_all = np.concatenate([n_up_site_exact.reshape(-1), n_up_site_exact_ans.reshape(-1), n_up_site_trot.reshape(-1)])
-        up_zlim = (float(np.min(up_all)), float(np.max(up_all)))
-        if abs(up_zlim[1] - up_zlim[0]) < 1e-12:
-            up_zlim = (up_zlim[0] - 1e-6, up_zlim[1] + 1e-6)
-        fig3d_up = plt.figure(figsize=(14.0, 8.5))
-        axu0 = fig3d_up.add_subplot(1, 3, 1, projection="3d")
-        axu1 = fig3d_up.add_subplot(1, 3, 2, projection="3d")
-        axu2 = fig3d_up.add_subplot(1, 3, 3, projection="3d")
-        _plot_density_surface(axu0, n_up_site_exact, title="Exact GS Filtered: n_up(site,t)", zlim=up_zlim, cmap="PuBu")
-        _plot_density_surface(axu1, n_up_site_exact_ans, title=f"Exact selected ({legacy_plot_label}): n_up(site,t)", zlim=up_zlim, cmap="YlGn")
-        _plot_density_surface(axu2, n_up_site_trot, title=f"Trotter selected ({legacy_plot_label}): n_up(site,t)", zlim=up_zlim, cmap="YlOrBr")
-        fig3d_up.suptitle(f"L={payload['settings']['L']} 3D Densities (Spin-Up)", fontsize=13)
-        fig3d_up.tight_layout(rect=(0.0, 0.02, 1.0, 0.93))
-        pdf.savefig(fig3d_up)
-        plt.close(fig3d_up)
-
-        dn_all = np.concatenate([n_dn_site_exact.reshape(-1), n_dn_site_exact_ans.reshape(-1), n_dn_site_trot.reshape(-1)])
-        dn_zlim = (float(np.min(dn_all)), float(np.max(dn_all)))
-        if abs(dn_zlim[1] - dn_zlim[0]) < 1e-12:
-            dn_zlim = (dn_zlim[0] - 1e-6, dn_zlim[1] + 1e-6)
-        fig3d_dn = plt.figure(figsize=(14.0, 8.5))
-        axd0 = fig3d_dn.add_subplot(1, 3, 1, projection="3d")
-        axd1 = fig3d_dn.add_subplot(1, 3, 2, projection="3d")
-        axd2 = fig3d_dn.add_subplot(1, 3, 3, projection="3d")
-        _plot_density_surface(axd0, n_dn_site_exact, title="Exact GS Filtered: n_dn(site,t)", zlim=dn_zlim, cmap="PuBu")
-        _plot_density_surface(axd1, n_dn_site_exact_ans, title=f"Exact selected ({legacy_plot_label}): n_dn(site,t)", zlim=dn_zlim, cmap="YlGn")
-        _plot_density_surface(axd2, n_dn_site_trot, title=f"Trotter selected ({legacy_plot_label}): n_dn(site,t)", zlim=dn_zlim, cmap="YlOrBr")
-        fig3d_dn.suptitle(f"L={payload['settings']['L']} 3D Densities (Spin-Down)", fontsize=13)
-        fig3d_dn.tight_layout(rect=(0.0, 0.02, 1.0, 0.93))
-        pdf.savefig(fig3d_dn)
-        plt.close(fig3d_dn)
-
-        fig3d_scalars = plt.figure(figsize=(14.0, 8.5))
-        axe0 = fig3d_scalars.add_subplot(2, 2, 1, projection="3d")
-        axe1 = fig3d_scalars.add_subplot(2, 2, 2, projection="3d")
-        axe2 = fig3d_scalars.add_subplot(2, 2, 3, projection="3d")
-        axe3 = fig3d_scalars.add_subplot(2, 2, 4, projection="3d")
-        labels_5 = ["Exact GS", "Exact PAOP", "Trotter PAOP", "Exact HVA", "Trotter HVA"]
-        colors_5 = ["#111111", "#2ca02c", "#d62728", "#1f77b4", "#ff7f0e"]
-        _plot_lane_3d(
-            axe0,
-            series=[e_total_exact, e_total_exact_paop, e_total_trot_paop, e_total_exact_hva, e_total_trot_hva],
-            labels=labels_5,
-            colors=colors_5,
-            title="3D Lanes: Total Energy",
-            zlabel="Energy",
+        render_manifest_overview_page(
+            pdf,
+            title=f"{model_name} report — L={settings.get('L')}",
+            experiment_statement=(
+                f"Prepared-state quality and exact-vs-propagated dynamics for {model_name} "
+                f"using {ansatz_label} state preparation and {propagator_label} evolution."
+            ),
+            sections=manifest_sections,
+            notes=[
+                "The parameter manifest is intentionally separate from the executed command; full provenance appears in the appendix.",
+            ],
         )
-        _plot_lane_3d(
-            axe1,
-            series=[e_exact, e_exact_paop, e_trot_paop, e_exact_hva, e_trot_hva],
-            labels=labels_5,
-            colors=colors_5,
-            title="3D Lanes: Static Energy",
-            zlabel="Energy",
+        render_executive_summary_page(
+            pdf,
+            title="Executive summary",
+            experiment_statement=(
+                f"Scientist-facing overview of the selected {legacy_branch_display.lower()} versus exact reference."
+            ),
+            sections=summary_sections,
+            notes=[
+                "Core result pages focus on prepared-state quality and exact-versus-propagated observables.",
+                "3D surfaces, branch-complete diagnostics, imported-state metadata, and the full command are appendix material.",
+            ],
         )
-        _plot_lane_3d(
-            axe2,
-            series=[d_exact, d_exact_paop, d_trot_paop, d_exact_hva, d_trot_hva],
-            labels=labels_5,
-            colors=colors_5,
-            title="3D Lanes: Doublon",
-            zlabel="Doublon",
+        render_section_divider_page(
+            pdf,
+            title="Core scientific results",
+            summary="Prepared-state quality is shown first; supporting diagnostic surfaces are deferred to the appendix.",
+            bullets=[
+                "Reference / prepared / propagated observables only.",
+                "Drive diagnostics stay near the main dynamics pages when drive is enabled.",
+            ],
         )
-        _plot_lane_3d(
-            axe3,
-            series=[stg_exact, stg_exact_paop, stg_trot_paop, stg_exact_hva, stg_trot_hva],
-            labels=labels_5,
-            colors=colors_5,
-            title="3D Lanes: Staggered Order",
-            zlabel="Order",
-        )
-        fig3d_scalars.suptitle(f"L={payload['settings']['L']} 3D Scalar Observables (Five Branches)", fontsize=13)
-        fig3d_scalars.tight_layout(rect=(0.0, 0.02, 1.0, 0.94))
-        pdf.savefig(fig3d_scalars)
-        plt.close(fig3d_scalars)
-
-        fig_err = plt.figure(figsize=(14.0, 8.5))
-        axh0 = fig_err.add_subplot(1, 3, 1)
-        axh1 = fig_err.add_subplot(1, 3, 2)
-        axh2 = fig_err.add_subplot(1, 3, 3)
-        heatmaps = [
-            (err_n_trot_vs_exact_ans, f"|n_trot(selected={legacy_plot_label}) - n_exact(selected={legacy_plot_label})|"),
-            (err_n_exact_ans_vs_exact_gs, f"|n_exact(selected={legacy_plot_label}) - n_exact_gs|"),
-            (err_n_trot_vs_exact_gs, "|n_trot - n_exact_gs|"),
-        ]
-        for axh, (hmat_err, title) in zip((axh0, axh1, axh2), heatmaps):
-            im = axh.imshow(
-                hmat_err.T,
-                origin="lower",
-                aspect="auto",
-                extent=(float(times[0]), float(times[-1]), -0.5, float(hmat_err.shape[1] - 0.5)),
-                cmap="magma",
-            )
-            axh.set_title(title)
-            axh.set_xlabel("Time")
-            axh.set_ylabel("Site")
-            plt.colorbar(im, ax=axh, fraction=0.046, pad=0.04, label="Absolute Error")
-        fig_err.suptitle(f"L={payload['settings']['L']} Error Heatmaps (Absolute Errors)", fontsize=13)
-        fig_err.tight_layout(rect=(0.0, 0.02, 1.0, 0.94))
-        pdf.savefig(fig_err)
-        plt.close(fig_err)
-
-        fig_err_scalar, axes_scalar = plt.subplots(1, 1, figsize=(14.0, 8.5))
-        im_scalar = axes_scalar.imshow(
-            err_scalar_rows,
-            origin="lower",
-            aspect="auto",
-            extent=(float(times[0]), float(times[-1]), -0.5, float(err_scalar_rows.shape[0] - 0.5)),
-            cmap="inferno",
-        )
-        axes_scalar.set_yticks(np.arange(len(err_scalar_labels)))
-        axes_scalar.set_yticklabels(err_scalar_labels, fontsize=9)
-        axes_scalar.set_xlabel("Time")
-        axes_scalar.set_title("Absolute Error Heatmap (Scalar Observables)")
-        plt.colorbar(im_scalar, ax=axes_scalar, fraction=0.03, pad=0.02, label="Absolute Error")
-        fig_err_scalar.suptitle(f"L={payload['settings']['L']} Scalar Error Heatmap", fontsize=13)
-        fig_err_scalar.tight_layout(rect=(0.0, 0.02, 1.0, 0.94))
-        pdf.savefig(fig_err_scalar)
-        plt.close(fig_err_scalar)
 
         # ------------------------------------------------------------------
         # Main body: drive diagnostics + compact 2D diagnostics
@@ -2431,18 +2379,156 @@ def _write_pipeline_pdf(pdf_path: Path, payload: dict[str, Any], run_command: st
         # ------------------------------------------------------------------
         # Appendix: redundant/supporting material
         # ------------------------------------------------------------------
-        fig_appendix = plt.figure(figsize=(11.0, 8.5))
-        ax_appendix = fig_appendix.add_subplot(111)
-        ax_appendix.axis("off")
-        appendix_lines = [
-            f"Appendix — L={payload['settings']['L']}",
-            "",
-            "This section contains supporting/redundant views and metadata.",
-            "Core non-redundant analysis appears earlier in the PDF.",
+        render_section_divider_page(
+            pdf,
+            title="Technical appendix",
+            summary="Supporting diagnostics, imported-state provenance, branch-complete views, and reproducibility material.",
+            bullets=[
+                "3D density surfaces and scalar lane plots.",
+                "Absolute-error heatmaps.",
+                "Imported ADAPT state metadata when present.",
+                "Full executed command for reproducibility.",
+            ],
+        )
+        if adapt_summary_lines is not None:
+            render_text_page(pdf, adapt_summary_lines, fontsize=10, line_spacing=0.03)
+
+        dens_all = np.concatenate([n_site_exact.reshape(-1), n_site_exact_ans.reshape(-1), n_site_trot.reshape(-1)])
+        dens_zlim = (float(np.min(dens_all)), float(np.max(dens_all)))
+        if abs(dens_zlim[1] - dens_zlim[0]) < 1e-12:
+            dens_zlim = (dens_zlim[0] - 1e-6, dens_zlim[1] + 1e-6)
+
+        fig3d_n = plt.figure(figsize=(14.0, 8.5))
+        axn0 = fig3d_n.add_subplot(1, 3, 1, projection="3d")
+        axn1 = fig3d_n.add_subplot(1, 3, 2, projection="3d")
+        axn2 = fig3d_n.add_subplot(1, 3, 3, projection="3d")
+        _plot_density_surface(axn0, n_site_exact, title="Exact GS filtered: n(site,t)", zlim=dens_zlim, cmap="Blues")
+        _plot_density_surface(axn1, n_site_exact_ans, title=f"Exact {legacy_branch_display}: n(site,t)", zlim=dens_zlim, cmap="Greens")
+        _plot_density_surface(axn2, n_site_trot, title=f"Trotter {legacy_branch_display}: n(site,t)", zlim=dens_zlim, cmap="Oranges")
+        fig3d_n.suptitle(f"L={payload['settings']['L']} 3D Densities (Total n)", fontsize=13)
+        fig3d_n.tight_layout(rect=(0.0, 0.02, 1.0, 0.93))
+        pdf.savefig(fig3d_n)
+        plt.close(fig3d_n)
+
+        up_all = np.concatenate([n_up_site_exact.reshape(-1), n_up_site_exact_ans.reshape(-1), n_up_site_trot.reshape(-1)])
+        up_zlim = (float(np.min(up_all)), float(np.max(up_all)))
+        if abs(up_zlim[1] - up_zlim[0]) < 1e-12:
+            up_zlim = (up_zlim[0] - 1e-6, up_zlim[1] + 1e-6)
+        fig3d_up = plt.figure(figsize=(14.0, 8.5))
+        axu0 = fig3d_up.add_subplot(1, 3, 1, projection="3d")
+        axu1 = fig3d_up.add_subplot(1, 3, 2, projection="3d")
+        axu2 = fig3d_up.add_subplot(1, 3, 3, projection="3d")
+        _plot_density_surface(axu0, n_up_site_exact, title="Exact GS filtered: n_up(site,t)", zlim=up_zlim, cmap="PuBu")
+        _plot_density_surface(axu1, n_up_site_exact_ans, title=f"Exact {legacy_branch_display}: n_up(site,t)", zlim=up_zlim, cmap="YlGn")
+        _plot_density_surface(axu2, n_up_site_trot, title=f"Trotter {legacy_branch_display}: n_up(site,t)", zlim=up_zlim, cmap="YlOrBr")
+        fig3d_up.suptitle(f"L={payload['settings']['L']} 3D Densities (Spin-Up)", fontsize=13)
+        fig3d_up.tight_layout(rect=(0.0, 0.02, 1.0, 0.93))
+        pdf.savefig(fig3d_up)
+        plt.close(fig3d_up)
+
+        dn_all = np.concatenate([n_dn_site_exact.reshape(-1), n_dn_site_exact_ans.reshape(-1), n_dn_site_trot.reshape(-1)])
+        dn_zlim = (float(np.min(dn_all)), float(np.max(dn_all)))
+        if abs(dn_zlim[1] - dn_zlim[0]) < 1e-12:
+            dn_zlim = (dn_zlim[0] - 1e-6, dn_zlim[1] + 1e-6)
+        fig3d_dn = plt.figure(figsize=(14.0, 8.5))
+        axd0 = fig3d_dn.add_subplot(1, 3, 1, projection="3d")
+        axd1 = fig3d_dn.add_subplot(1, 3, 2, projection="3d")
+        axd2 = fig3d_dn.add_subplot(1, 3, 3, projection="3d")
+        _plot_density_surface(axd0, n_dn_site_exact, title="Exact GS filtered: n_dn(site,t)", zlim=dn_zlim, cmap="PuBu")
+        _plot_density_surface(axd1, n_dn_site_exact_ans, title=f"Exact {legacy_branch_display}: n_dn(site,t)", zlim=dn_zlim, cmap="YlGn")
+        _plot_density_surface(axd2, n_dn_site_trot, title=f"Trotter {legacy_branch_display}: n_dn(site,t)", zlim=dn_zlim, cmap="YlOrBr")
+        fig3d_dn.suptitle(f"L={payload['settings']['L']} 3D Densities (Spin-Down)", fontsize=13)
+        fig3d_dn.tight_layout(rect=(0.0, 0.02, 1.0, 0.93))
+        pdf.savefig(fig3d_dn)
+        plt.close(fig3d_dn)
+
+        fig3d_scalars = plt.figure(figsize=(14.0, 8.5))
+        axe0 = fig3d_scalars.add_subplot(2, 2, 1, projection="3d")
+        axe1 = fig3d_scalars.add_subplot(2, 2, 2, projection="3d")
+        axe2 = fig3d_scalars.add_subplot(2, 2, 3, projection="3d")
+        axe3 = fig3d_scalars.add_subplot(2, 2, 4, projection="3d")
+        labels_5 = ["Exact GS", "Exact PAOP", "Trotter PAOP", "Exact HVA", "Trotter HVA"]
+        colors_5 = ["#111111", "#2ca02c", "#d62728", "#1f77b4", "#ff7f0e"]
+        _plot_lane_3d(
+            axe0,
+            series=[e_total_exact, e_total_exact_paop, e_total_trot_paop, e_total_exact_hva, e_total_trot_hva],
+            labels=labels_5,
+            colors=colors_5,
+            title="3D lanes: total energy",
+            zlabel="Energy",
+        )
+        _plot_lane_3d(
+            axe1,
+            series=[e_exact, e_exact_paop, e_trot_paop, e_exact_hva, e_trot_hva],
+            labels=labels_5,
+            colors=colors_5,
+            title="3D lanes: static energy",
+            zlabel="Energy",
+        )
+        _plot_lane_3d(
+            axe2,
+            series=[d_exact, d_exact_paop, d_trot_paop, d_exact_hva, d_trot_hva],
+            labels=labels_5,
+            colors=colors_5,
+            title="3D lanes: doublon",
+            zlabel="Doublon",
+        )
+        _plot_lane_3d(
+            axe3,
+            series=[stg_exact, stg_exact_paop, stg_trot_paop, stg_exact_hva, stg_trot_hva],
+            labels=labels_5,
+            colors=colors_5,
+            title="3D lanes: staggered order",
+            zlabel="Order",
+        )
+        fig3d_scalars.suptitle(f"L={payload['settings']['L']} 3D Scalar Observables (Five Branches)", fontsize=13)
+        fig3d_scalars.tight_layout(rect=(0.0, 0.02, 1.0, 0.94))
+        pdf.savefig(fig3d_scalars)
+        plt.close(fig3d_scalars)
+
+        fig_err = plt.figure(figsize=(14.0, 8.5))
+        axh0 = fig_err.add_subplot(1, 3, 1)
+        axh1 = fig_err.add_subplot(1, 3, 2)
+        axh2 = fig_err.add_subplot(1, 3, 3)
+        heatmaps = [
+            (err_n_trot_vs_exact_ans, f"|n_trot({legacy_branch_display}) - n_exact({legacy_branch_display})|"),
+            (err_n_exact_ans_vs_exact_gs, f"|n_exact({legacy_branch_display}) - n_exact_gs|"),
+            (err_n_trot_vs_exact_gs, "|n_trot - n_exact_gs|"),
         ]
-        ax_appendix.text(0.03, 0.95, "\n".join(appendix_lines), va="top", ha="left", family="monospace", fontsize=12)
-        pdf.savefig(fig_appendix)
-        plt.close(fig_appendix)
+        for axh, (hmat_err, title) in zip((axh0, axh1, axh2), heatmaps):
+            im = axh.imshow(
+                hmat_err.T,
+                origin="lower",
+                aspect="auto",
+                extent=(float(times[0]), float(times[-1]), -0.5, float(hmat_err.shape[1] - 0.5)),
+                cmap="magma",
+            )
+            axh.set_title(title)
+            axh.set_xlabel("Time")
+            axh.set_ylabel("Site")
+            plt.colorbar(im, ax=axh, fraction=0.046, pad=0.04, label="Absolute Error")
+        fig_err.suptitle(f"L={payload['settings']['L']} Error Heatmaps (Absolute Errors)", fontsize=13)
+        fig_err.tight_layout(rect=(0.0, 0.02, 1.0, 0.94))
+        pdf.savefig(fig_err)
+        plt.close(fig_err)
+
+        fig_err_scalar, axes_scalar = plt.subplots(1, 1, figsize=(14.0, 8.5))
+        im_scalar = axes_scalar.imshow(
+            err_scalar_rows,
+            origin="lower",
+            aspect="auto",
+            extent=(float(times[0]), float(times[-1]), -0.5, float(err_scalar_rows.shape[0] - 0.5)),
+            cmap="inferno",
+        )
+        axes_scalar.set_yticks(np.arange(len(err_scalar_labels)))
+        axes_scalar.set_yticklabels(err_scalar_labels, fontsize=9)
+        axes_scalar.set_xlabel("Time")
+        axes_scalar.set_title("Absolute Error Heatmap (Scalar Observables)")
+        plt.colorbar(im_scalar, ax=axes_scalar, fraction=0.03, pad=0.02, label="Absolute Error")
+        fig_err_scalar.suptitle(f"L={payload['settings']['L']} Scalar Error Heatmap", fontsize=13)
+        fig_err_scalar.tight_layout(rect=(0.0, 0.02, 1.0, 0.94))
+        pdf.savefig(fig_err_scalar)
+        plt.close(fig_err_scalar)
 
         filt_label = f"Exact (sector {sector_label})"
         figv, vx0 = plt.subplots(1, 1, figsize=(11.0, 8.5))
@@ -2496,6 +2582,11 @@ def _write_pipeline_pdf(pdf_path: Path, payload: dict[str, Any], run_command: st
             f"  - reference_sanity: {payload['sanity']['jw_reference']}",
         ]
         render_text_page(pdf, lines, fontsize=9)
+        render_command_page(
+            pdf,
+            run_command,
+            script_name="pipelines/hardcoded/hubbard_pipeline.py",
+        )
 
 
 def parse_args() -> argparse.Namespace:

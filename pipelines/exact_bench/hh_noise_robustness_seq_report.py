@@ -43,9 +43,18 @@ from docs.reports.pdf_utils import (
     get_plt,
     render_command_page,
     render_compact_table,
-    render_parameter_manifest,
     render_text_page,
     require_matplotlib,
+)
+from docs.reports.report_labels import (
+    report_method_label,
+    report_metric_label,
+    report_stage_label,
+)
+from docs.reports.report_pages import (
+    render_executive_summary_page,
+    render_manifest_overview_page,
+    render_section_divider_page,
 )
 from src.quantum.drives_time_potential import (
     build_gaussian_sinusoid_density_drive,
@@ -157,6 +166,15 @@ def _parse_noisy_methods_csv(raw: str) -> list[str]:
     if not vals:
         raise ValueError("Expected at least one noisy method in --noisy-methods.")
     return vals
+
+
+def _normalize_display_string_list(raw: Any, *, default: list[str]) -> list[str]:
+    values: list[str] = []
+    if isinstance(raw, (list, tuple, set)):
+        values = [str(item).strip() for item in raw if str(item).strip()]
+    elif raw is not None and str(raw).strip():
+        values = [tok.strip() for tok in str(raw).split(",") if tok.strip()]
+    return values or [str(item).strip() for item in default if str(item).strip()]
 
 
 def _build_mitigation_config(
@@ -2978,81 +2996,139 @@ def _write_pdf(pdf_path: Path, payload: dict[str, Any]) -> None:
         "exact ref     : #111111",
     ]
     noise_style_lines = _noise_style_legend_lines()
+    summary = payload.get("summary", {})
+    used_eq_ids: set[str] = set()
+    disable_time_dynamics = bool(settings.get("disable_time_dynamics", False))
+    drive_cfg = settings.get("drive_profile", {})
+    drive_enabled = bool(isinstance(drive_cfg, dict) and drive_cfg.get("enabled", False))
+    selected_noisy_methods = _normalize_display_string_list(
+        settings.get("noisy_methods"),
+        default=["cfqm4", "suzuki2"],
+    )
+    selected_noise_modes = _normalize_display_string_list(
+        settings.get("noise_modes"),
+        default=["ideal", "shots", "aer_noise"],
+    )
+
+    manifest_sections: list[tuple[str, list[tuple[str, Any]]]] = [
+        (
+            "Model and regime",
+            [
+                ("Model family", "Hubbard-Holstein"),
+                ("L", settings.get("L")),
+                ("Drive enabled", drive_enabled),
+                ("Disable time dynamics", disable_time_dynamics),
+                ("Noise modes", selected_noise_modes),
+                ("Configured noisy method set", [report_method_label(m) for m in selected_noisy_methods]),
+            ],
+        ),
+        (
+            "Method chain",
+            [
+                (report_stage_label("warm_start"), "hh_hva_ptw"),
+                (report_stage_label("adapt_pool_b"), "Pool B (UCCSD + HVA + PAOP_FULL)"),
+                (report_stage_label("conventional_vqe"), "hh_hva_ptw"),
+                ("Noiseless comparison methods", [report_method_label(name) for name in ("suzuki2", "magnus2", "cfqm4", "cfqm6")]),
+            ],
+        ),
+        (
+            "Core physical parameters",
+            [
+                ("t", settings.get("t")),
+                ("U", settings.get("u")),
+                ("dv", settings.get("dv")),
+                ("omega0", settings.get("omega0")),
+                ("g_ep", settings.get("g_ep")),
+                ("n_ph_max", settings.get("n_ph_max")),
+            ],
+        ),
+        (
+            "Dynamics and audit settings",
+            [
+                ("trotter_steps", settings.get("trotter_steps")),
+                ("num_times", settings.get("num_times")),
+                ("shots", settings.get("shots")),
+                ("Mitigation", settings.get("mitigation_config")),
+                ("Symmetry mitigation", settings.get("symmetry_mitigation_config")),
+                ("Hardcoded family", "deactivated (final-only dynamics)"),
+            ],
+        ),
+    ]
+
+    summary_sections: list[tuple[str, list[tuple[str, Any]]]] = [
+        (
+            "Headline robustness metrics",
+            [
+                (report_metric_label("final_delta_abs"), summary.get("final_delta_abs")),
+                (report_metric_label("max_abs_delta"), summary.get("max_abs_delta")),
+                (report_metric_label("max_abs_delta_over_stderr"), summary.get("max_abs_delta_over_stderr")),
+                (report_metric_label("mean_abs_delta_over_stderr"), summary.get("mean_abs_delta_over_stderr")),
+                (report_metric_label("noisy_audit_max_abs_delta"), summary.get("noisy_audit_max_abs_delta")),
+            ],
+        ),
+        (
+            "State-preparation checkpoints",
+            [
+                (f"{report_stage_label('warm_start')} |ΔE|", summary.get("warm_delta_abs")),
+                (f"{report_stage_label('warm_start')} stop", summary.get("warm_stop_reason")),
+                (f"{report_stage_label('adapt_pool_b')} |ΔE|", summary.get("adapt_delta_abs")),
+                (f"{report_stage_label('adapt_pool_b')} stop", summary.get("adapt_stop_reason")),
+                (f"{report_stage_label('conventional_vqe')} stop", summary.get("final_stop_reason")),
+            ],
+        ),
+        (
+            "Coverage and audit",
+            [
+                (report_metric_label("noisy_modes_completed"), f"{summary.get('noisy_modes_completed')} / {summary.get('noisy_modes_total')}"),
+                (report_metric_label("noisy_method_modes_completed"), f"{summary.get('noisy_method_modes_completed')} / {summary.get('noisy_method_modes_total')}"),
+                (report_metric_label("noisy_audit_modes_completed"), f"{summary.get('noisy_audit_modes_completed')} / {summary.get('noisy_audit_modes_total')}"),
+                (report_metric_label("dynamics_benchmark_rows"), summary.get("dynamics_benchmark_rows")),
+            ],
+        ),
+        (
+            "Transition policy",
+            [
+                ("Warm → ADAPT", stage_pipeline.get("warm_start", {}).get("transition", {}).get("policy", {})),
+                ("ADAPT → final replay", stage_pipeline.get("adapt_pool_b", {}).get("transition", {}).get("policy", {})),
+            ],
+        ),
+    ]
 
     with PdfPages(str(pdf_path)) as pdf:
-        render_parameter_manifest(
+        render_manifest_overview_page(
             pdf,
-            model="Hubbard-Holstein",
-            ansatz="warm:hh_hva_ptw -> adapt:PoolB(UCCSD+HVA+PAOP_FULL) -> final:hh_hva_ptw",
-            drive_enabled=True,
-            t=float(settings.get("t", 0.0)),
-            U=float(settings.get("u", 0.0)),
-            dv=float(settings.get("dv", 0.0)),
-            extra={
-                "L": settings.get("L"),
-                "n_ph_max": settings.get("n_ph_max"),
-                "omega0": settings.get("omega0"),
-                "g_ep": settings.get("g_ep"),
-                "disable_time_dynamics": bool(settings.get("disable_time_dynamics", False)),
-                "noise_modes": settings.get("noise_modes"),
-                "noisy_methods": settings.get("noisy_methods"),
-                "mitigation": settings.get("mitigation_config"),
-                "trotter_steps": settings.get("trotter_steps"),
-                "num_times": settings.get("num_times"),
-                "magnus_variants": "midpoint_magnus2,cfqm4,cfqm6",
-                "hardcoded_family": "deactivated(final-only dynamics)",
-            },
-            command=str(payload.get("run_command", "")),
-        )
-
-        summary = payload.get("summary", {})
-        used_eq_ids: set[str] = set()
-        lines = [
-            "SECTION: RESULTS SUMMARY",
-            "",
-            "HH Noise Robustness Report Summary",
-            "",
-            f"final delta_abs: {summary.get('final_delta_abs')}",
-            f"max_abs_delta: {summary.get('max_abs_delta')}",
-            f"max_abs_delta_over_stderr: {summary.get('max_abs_delta_over_stderr')}",
-            f"mean_abs_delta_over_stderr: {summary.get('mean_abs_delta_over_stderr')}",
-            f"noisy_audit_max_abs_delta: {summary.get('noisy_audit_max_abs_delta')}",
-            f"noisy_audit_max_abs_delta_over_stderr: {summary.get('noisy_audit_max_abs_delta_over_stderr')}",
-            f"noisy_audit_mean_abs_delta_over_stderr: {summary.get('noisy_audit_mean_abs_delta_over_stderr')}",
-            f"warm stop: {summary.get('warm_stop_reason')}",
-            f"adapt stop: {summary.get('adapt_stop_reason')}",
-            f"final stop: {summary.get('final_stop_reason')}",
-            f"noisy modes completed: {summary.get('noisy_modes_completed')} / {summary.get('noisy_modes_total')}",
-            f"noisy method-modes completed: {summary.get('noisy_method_modes_completed')} / {summary.get('noisy_method_modes_total')}",
-            f"noisy audit modes completed: {summary.get('noisy_audit_modes_completed')} / {summary.get('noisy_audit_modes_total')}",
-            f"disable_time_dynamics: {bool(settings.get('disable_time_dynamics', False))}",
-            "",
-            "Transition policies:",
-            f"  warm->adapt: {stage_pipeline.get('warm_start', {}).get('transition', {}).get('policy', {})}",
-            f"  adapt->vqe: {stage_pipeline.get('adapt_pool_b', {}).get('transition', {}).get('policy', {})}",
-            "",
-            "Definitions:",
-            "  DeltaE_k = E_k - E_exact_sector",
-            "  switch when abs(slope( |DeltaE| window )) <= epsilon for patience checkpoints",
-            "",
-            "Noisy-vs-noiseless policy:",
-            f"  noisy methods: {settings.get('noisy_methods', ['suzuki2'])} with modes {settings.get('noise_modes', ['ideal','shots','aer_noise'])}.",
-            "  Magnus/CFQM remain in noiseless matrix; noisy matrix includes selected methods above.",
-            "",
-            "SECTION: HARDCODED FAMILY REMAP",
-            "  legacy lane -> warm-start HVA seed",
-            "  paop lane   -> ADAPT Pool-B seed",
-            "  hva lane    -> final seeded conventional VQE",
-        ]
-        render_text_page(pdf, lines, fontsize=9)
-        render_text_page(
-            pdf,
-            [
-                "SECTION: RESULTS STAGE TRANSITIONS",
-                "",
-                "Transition traces and Pool-B composition.",
+            title=f"Hubbard-Holstein report — L={settings.get('L')}",
+            experiment_statement=(
+                "Driven HH robustness study with warm-start → ADAPT → final replay state preparation, "
+                "followed by noiseless and noisy dynamics seeded from the final VQE state."
+            ),
+            sections=manifest_sections,
+            notes=[
+                "Warm / ADAPT / final are optimization checkpoints only.",
+                "Dynamics and noise pages in this report propagate from the final VQE state only.",
+                "The full command and formula atlas are appendix material.",
             ],
-            fontsize=10,
+        )
+        render_executive_summary_page(
+            pdf,
+            title="Executive summary",
+            experiment_statement=(
+                "Front-matter summary of prepared-state quality, noisy-minus-ideal effect size, and audit coverage."
+            ),
+            sections=summary_sections,
+            notes=[
+                f"Configured noisy method set: {', '.join(report_method_label(m) for m in selected_noisy_methods) or 'none'}.",
+                "Magnus / CFQM stay in the noiseless comparison matrix; method-level coverage is recorded in the benchmark appendix.",
+            ],
+        )
+        render_section_divider_page(
+            pdf,
+            title="State-preparation checkpoints",
+            summary="Checkpoint pages report warm-start, ADAPT, and final replay quality before any propagated dynamics.",
+            bullets=[
+                "Transition traces and Pool-B composition.",
+                "Warm / ADAPT / final are not separate propagated branches in this report path.",
+            ],
         )
 
         # Stage transition slopes
@@ -3132,9 +3208,18 @@ def _write_pdf(pdf_path: Path, payload: dict[str, Any]) -> None:
                 "They are not independently time-evolved in this report path.",
                 "Dynamics/noise comparisons below are seeded from final VQE only.",
                 "",
-                f"warm_start: energy={warm_stage.get('energy')} delta_abs={warm_stage.get('delta_abs')} stop={warm_stage.get('stop_reason')}",
-                f"adapt_pool_b: energy={adapt_stage.get('energy')} delta_abs={adapt_stage.get('delta_abs')} stop={adapt_stage.get('stop_reason')}",
-                f"conventional_vqe: energy={final_stage.get('energy')} delta_abs={final_stage.get('delta_abs')} stop={final_stage.get('stop_reason')}",
+                (
+                    f"{report_stage_label('warm_start')}: energy={warm_stage.get('energy')} "
+                    f"delta_abs={warm_stage.get('delta_abs')} stop={warm_stage.get('stop_reason')}"
+                ),
+                (
+                    f"{report_stage_label('adapt_pool_b')}: energy={adapt_stage.get('energy')} "
+                    f"delta_abs={adapt_stage.get('delta_abs')} stop={adapt_stage.get('stop_reason')}"
+                ),
+                (
+                    f"{report_stage_label('conventional_vqe')}: energy={final_stage.get('energy')} "
+                    f"delta_abs={final_stage.get('delta_abs')} stop={final_stage.get('stop_reason')}"
+                ),
                 "",
                 f"hardcoded_superset disabled: {bool(hardcoded_superset.get('disabled', False))}",
                 f"reason: {hardcoded_superset.get('reason', '')}",
@@ -3142,21 +3227,16 @@ def _write_pdf(pdf_path: Path, payload: dict[str, Any]) -> None:
             fontsize=10,
         )
 
-        render_text_page(
+        render_section_divider_page(
             pdf,
-            [
-                "SECTION: RESULTS METHOD COMPARISON",
-                "",
-                "Suzuki / Magnus / CFQM comparison overlays versus exact reference.",
-                "",
-                "Legend key (applies to this section):",
-                "  Exact: exact reference evolution.",
-                "  Noiseless: ADAPT-HVA pipeline on noiseless simulator.",
-                "  Integrators: Suzuki-2, Magnus-2, CFQM4, CFQM6.",
+            title="Dynamics from final replay state",
+            summary="Noiseless comparison pages show exact reference versus final-state propagation with Suzuki, Magnus, and CFQM methods.",
+            bullets=[
+                "Warm / ADAPT / final checkpoints do not appear as propagated branches here.",
+                "Method labels are presentation labels only; raw payload keys remain in sidecars.",
             ],
-            fontsize=10,
         )
-        if bool(settings.get("disable_time_dynamics", False)):
+        if disable_time_dynamics:
             render_text_page(
                 pdf,
                 [
@@ -3257,22 +3337,17 @@ def _write_pdf(pdf_path: Path, payload: dict[str, Any]) -> None:
             pdf.savefig(fig_err)
             plt.close(fig_err)
 
-        render_text_page(
+        render_section_divider_page(
             pdf,
-            [
-                "SECTION: RESULTS NOISE DETAILS",
-                "",
-                "Overlay + per-mode detail pages for noise robustness.",
-                "",
-                "Legend key (applies to this section):",
-                "  Exact: exact reference evolution.",
-                "  Noiseless: ADAPT-HVA pipeline on noiseless simulator.",
-                f"  Noisy: shot-based estimator under selected mode ({int(settings.get('shots', 0))} shots).",
-                "  Ideal-reference: baseline used for Delta(noisy-ideal) panels.",
+            title="Noisy-minus-ideal dynamics",
+            summary="Noise pages compare the final-state noiseless baseline to selected noisy modes and show Δ(noisy-ideal) significance bands.",
+            bullets=[
+                f"Configured noisy method set: {', '.join(report_method_label(m) for m in selected_noisy_methods) or 'none'}.",
+                f"Selected modes: {', '.join(selected_noise_modes) or 'none'}.",
+                f"Shot budget: {int(settings.get('shots', 0))}.",
             ],
-            fontsize=10,
         )
-        if bool(settings.get("disable_time_dynamics", False)):
+        if disable_time_dynamics:
             render_text_page(
                 pdf,
                 [
@@ -3295,7 +3370,7 @@ def _write_pdf(pdf_path: Path, payload: dict[str, Any]) -> None:
             if not base_traj:
                 continue
             times = np.asarray([float(r["time"]) for r in base_traj], dtype=float)
-            mode_order = list(settings.get("noise_modes", ["ideal", "shots", "aer_noise"]))
+            mode_order = list(selected_noise_modes)
             available_modes = [
                 m for m in mode_order if bool(nprof.get("modes", {}).get(str(m), {}).get("success", False))
             ]
@@ -3498,7 +3573,7 @@ def _write_pdf(pdf_path: Path, payload: dict[str, Any]) -> None:
             up_base = np.asarray([float(r["n_up_site0_trotter_hva"]) for r in base_traj], dtype=float)
             dn_base = np.asarray([float(r["n_dn_site0_trotter_hva"]) for r in base_traj], dtype=float)
 
-            mode_order = list(settings.get("noise_modes", ["ideal", "shots", "aer_noise"]))
+            mode_order = list(selected_noise_modes)
             for mode in mode_order:
                 color = {"ideal": "#ff7f0e", "shots": "#2ca02c", "aer_noise": "#d62728"}.get(str(mode), "#9467bd")
                 mdata = nprof.get("modes", {}).get(str(mode), {})
@@ -3871,6 +3946,15 @@ def _write_pdf(pdf_path: Path, payload: dict[str, Any]) -> None:
             pdf.savefig(fig)
             plt.close(fig)
 
+        render_section_divider_page(
+            pdf,
+            title="Benchmark and audit appendix",
+            summary="Benchmark tables and diagnostics are separated from the main science pages so cost/error audit does not crowd the headline results.",
+            bullets=[
+                "Proxy costs and runtime totals.",
+                "Diagnostics, equation definitions, plot contracts, and full command.",
+            ],
+        )
         benchmark_rows = payload.get("dynamics_benchmarks", {}).get("rows", [])
         if isinstance(benchmark_rows, list) and benchmark_rows:
             fig = plt.figure(figsize=(12.0, 7.0))

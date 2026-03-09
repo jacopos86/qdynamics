@@ -42,8 +42,14 @@ from docs.reports.pdf_utils import (
     require_matplotlib,
     get_plt,
     get_PdfPages,
+    render_command_page,
     render_text_page,
     current_command_string,
+)
+from docs.reports.report_pages import (
+    render_executive_summary_page,
+    render_manifest_overview_page,
+    render_section_divider_page,
 )
 
 # Module-level aliases used by the plotting body
@@ -4907,87 +4913,153 @@ def _simulate_trajectory(
 # ---------------------------------------------------------------------------
 
 def _write_pipeline_pdf(pdf_path: Path, payload: dict[str, Any], run_command: str) -> None:
+    require_matplotlib()
+    settings = payload.get("settings", {})
+    adapt = payload.get("adapt_vqe", {})
+    problem = settings.get("problem", "hubbard")
+    model_name = "Hubbard-Holstein" if problem == "hh" else "Hubbard"
+
+    manifest_sections: list[tuple[str, list[tuple[str, Any]]]] = [
+        (
+            "Model and regime",
+            [
+                ("Model family", model_name),
+                ("Ansatz type", f"ADAPT-VQE (pool: {settings.get('adapt_pool', '?')})"),
+                ("Drive enabled", False),
+                ("L", settings.get("L")),
+                ("Boundary", settings.get("boundary")),
+                ("Ordering", settings.get("ordering")),
+            ],
+        ),
+        (
+            "Core physical parameters",
+            [
+                ("t", settings.get("t")),
+                ("U", settings.get("u")),
+                ("dv", settings.get("dv")),
+            ],
+        ),
+        (
+            "ADAPT controls",
+            [
+                ("ADAPT max depth", settings.get("adapt_max_depth", "?")),
+                ("ADAPT eps_grad", settings.get("adapt_eps_grad", "?")),
+                ("ADAPT eps_energy", settings.get("adapt_eps_energy", "?")),
+                ("Inner optimizer", settings.get("adapt_inner_optimizer", "?")),
+                ("Finite-angle fallback", settings.get("adapt_finite_angle_fallback", "?")),
+                ("Finite-angle probe", settings.get("adapt_finite_angle", "?")),
+            ],
+        ),
+        (
+            "Trajectory settings",
+            [
+                ("trotter_steps", settings.get("trotter_steps")),
+                ("t_final", settings.get("t_final")),
+                ("Suzuki order", settings.get("suzuki_order")),
+                ("Initial state source", settings.get("initial_state_source")),
+            ],
+        ),
+    ]
+    if problem == "hh":
+        manifest_sections.append(
+            (
+                "Hubbard-Holstein parameters",
+                [
+                    ("omega0", settings.get("omega0")),
+                    ("g_ep", settings.get("g_ep")),
+                    ("n_ph_max", settings.get("n_ph_max")),
+                    ("Boson encoding", settings.get("boson_encoding")),
+                ],
+            )
+        )
+    if str(settings.get("adapt_inner_optimizer", "")).strip().upper() == "SPSA":
+        adapt_spsa = settings.get("adapt_spsa", {})
+        if isinstance(adapt_spsa, dict):
+            manifest_sections.append(
+                (
+                    "SPSA settings",
+                    [
+                        ("a", adapt_spsa.get("a")),
+                        ("c", adapt_spsa.get("c")),
+                        ("A", adapt_spsa.get("A")),
+                        ("alpha", adapt_spsa.get("alpha")),
+                        ("gamma", adapt_spsa.get("gamma")),
+                        ("eval_repeats", adapt_spsa.get("eval_repeats")),
+                        ("eval_agg", adapt_spsa.get("eval_agg")),
+                        ("avg_last", adapt_spsa.get("avg_last")),
+                    ],
+                )
+            )
+
+    summary_sections: list[tuple[str, list[tuple[str, Any]]]] = [
+        (
+            "ADAPT outcome",
+            [
+                ("ADAPT-VQE energy", adapt.get("energy")),
+                ("Exact GS energy", adapt.get("exact_gs_energy")),
+                ("|ΔE|", adapt.get("abs_delta_e")),
+                ("Ansatz depth", adapt.get("ansatz_depth")),
+                ("Pool size", adapt.get("pool_size")),
+            ],
+        ),
+        (
+            "Optimization summary",
+            [
+                ("Stop reason", adapt.get("stop_reason")),
+                ("Total nfev", adapt.get("nfev_total")),
+                ("Elapsed (s)", adapt.get("elapsed_s")),
+                ("Inner optimizer", settings.get("adapt_inner_optimizer")),
+            ],
+        ),
+        (
+            "Trajectory grid",
+            [
+                ("trotter_steps", settings.get("trotter_steps")),
+                ("t_final", settings.get("t_final")),
+                ("Initial state source", settings.get("initial_state_source")),
+            ],
+        ),
+    ]
+
+    operator_lines = [
+        "Selected operators",
+        "",
+        f"Ansatz depth: {adapt.get('ansatz_depth')}",
+        f"Pool size: {adapt.get('pool_size')}",
+        f"Stop reason: {adapt.get('stop_reason')}",
+        "",
+    ]
+    for op_label in (adapt.get("operators") or []):
+        operator_lines.append(f"  {op_label}")
+
     with PdfPages(str(pdf_path)) as pdf:
-        # Parameter manifest (AGENTS.md requirement)
-        settings = payload.get("settings", {})
-        adapt = payload.get("adapt_vqe", {})
-        problem = settings.get("problem", "hubbard")
-
-        manifest_lines = [
-            "ADAPT-VQE Pipeline — Parameter Manifest",
-            "",
-            f"Model:           {'Hubbard-Holstein' if problem == 'hh' else 'Hubbard'}",
-            f"Ansatz type:     ADAPT-VQE (pool: {settings.get('adapt_pool', '?')})",
-            f"Drive:           disabled (static ADAPT pipeline)",
-            f"t = {settings.get('t')}    U = {settings.get('u')}    dv = {settings.get('dv')}",
-            f"L = {settings.get('L')}    boundary = {settings.get('boundary')}    ordering = {settings.get('ordering')}",
-        ]
-        if problem == "hh":
-            manifest_lines += [
-                f"omega0 = {settings.get('omega0')}    g_ep = {settings.get('g_ep')}",
-                f"n_ph_max = {settings.get('n_ph_max')}    boson_encoding = {settings.get('boson_encoding')}",
-            ]
-        manifest_lines += [
-            "",
-            f"ADAPT max depth:         {settings.get('adapt_max_depth', '?')}",
-            f"ADAPT eps_grad:          {settings.get('adapt_eps_grad', '?')}",
-            f"ADAPT eps_energy:        {settings.get('adapt_eps_energy', '?')}",
-            f"ADAPT inner optimizer:   {settings.get('adapt_inner_optimizer', '?')}",
-            f"ADAPT finite angle fb:   {settings.get('adapt_finite_angle_fallback', '?')}",
-            f"ADAPT finite angle:      {settings.get('adapt_finite_angle', '?')}",
-            "",
-            f"Trotter steps:           {settings.get('trotter_steps')}",
-            f"t_final:                 {settings.get('t_final')}",
-            f"Suzuki order:            {settings.get('suzuki_order')}",
-        ]
-        if str(settings.get("adapt_inner_optimizer", "")).strip().upper() == "SPSA":
-            adapt_spsa = settings.get("adapt_spsa", {})
-            if isinstance(adapt_spsa, dict):
-                manifest_lines += [
-                    f"SPSA: a={adapt_spsa.get('a')}  c={adapt_spsa.get('c')}  A={adapt_spsa.get('A')}",
-                    f"SPSA: alpha={adapt_spsa.get('alpha')}  gamma={adapt_spsa.get('gamma')}",
-                    (
-                        "SPSA: eval_repeats={eval_repeats}  eval_agg={eval_agg}  avg_last={avg_last}".format(
-                            eval_repeats=adapt_spsa.get("eval_repeats"),
-                            eval_agg=adapt_spsa.get("eval_agg"),
-                            avg_last=adapt_spsa.get("avg_last"),
-                        )
-                    ),
-                ]
-        render_text_page(pdf, manifest_lines, fontsize=10, line_spacing=0.03)
-
-        # Command page
-        render_text_page(pdf, [
-            "Executed Command",
-            "",
-            "Script: pipelines/hardcoded/adapt_pipeline.py",
-            "",
-            run_command,
-        ], fontsize=10, line_spacing=0.03, max_line_width=110)
-
-        # Settings + ADAPT summary page
-        lines = [
-            "Hardcoded ADAPT-VQE Pipeline Summary",
-            "",
-            f"L={settings.get('L')}  t={settings.get('t')}  u={settings.get('u')}  dv={settings.get('dv')}",
-            f"boundary={settings.get('boundary')}  ordering={settings.get('ordering')}",
-            f"initial_state_source={settings.get('initial_state_source')}",
-            f"adapt_inner_optimizer={settings.get('adapt_inner_optimizer')}",
-            "",
-            f"ADAPT-VQE energy:  {adapt.get('energy')}",
-            f"Exact GS energy:   {adapt.get('exact_gs_energy')}",
-            f"|ΔE|:              {adapt.get('abs_delta_e')}",
-            f"Ansatz depth:      {adapt.get('ansatz_depth')}",
-            f"Pool size:         {adapt.get('pool_size')}",
-            f"Stop reason:       {adapt.get('stop_reason')}",
-            f"Total nfev:        {adapt.get('nfev_total')}",
-            f"Elapsed:           {adapt.get('elapsed_s'):.2f}s" if adapt.get("elapsed_s") is not None else "",
-            "",
-            "Selected operators:",
-        ]
-        for op_label in (adapt.get("operators") or []):
-            lines.append(f"  {op_label}")
-        render_text_page(pdf, lines)
+        render_manifest_overview_page(
+            pdf,
+            title=f"{model_name} ADAPT-VQE report — L={settings.get('L')}",
+            experiment_statement="ADAPT-VQE state preparation followed by exact-versus-Trotter trajectory diagnostics.",
+            sections=manifest_sections,
+            notes=[
+                "The full operator list and executed command are moved to the appendix.",
+            ],
+        )
+        render_executive_summary_page(
+            pdf,
+            title="Executive summary",
+            experiment_statement="Prepared-state quality and convergence summary before trajectory pages.",
+            sections=summary_sections,
+            notes=[
+                "Trajectory pages show fidelity, energy, occupations, and doublon from the ADAPT state.",
+            ],
+        )
+        render_section_divider_page(
+            pdf,
+            title="Trajectory diagnostics",
+            summary="Main result pages compare exact and Trotter trajectories starting from the ADAPT-prepared state.",
+            bullets=[
+                "Fidelity and energy.",
+                "Site-0 occupations and doublon.",
+            ],
+        )
 
         # Trajectory plots
         rows = payload.get("trajectory", [])
@@ -5027,6 +5099,22 @@ def _write_pipeline_pdf(pdf_path: Path, payload: dict[str, Any], run_command: st
             fig.tight_layout(rect=(0.0, 0.02, 1.0, 0.95))
             pdf.savefig(fig)
             plt.close(fig)
+
+        render_section_divider_page(
+            pdf,
+            title="Technical appendix",
+            summary="Detailed operator provenance and full reproducibility material.",
+            bullets=[
+                "Selected operator list.",
+                "Executed command.",
+            ],
+        )
+        render_text_page(pdf, operator_lines)
+        render_command_page(
+            pdf,
+            run_command,
+            script_name="pipelines/hardcoded/adapt_pipeline.py",
+        )
 
 
 # ---------------------------------------------------------------------------

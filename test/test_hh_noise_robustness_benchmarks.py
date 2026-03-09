@@ -9,6 +9,7 @@ from pipelines.exact_bench.hh_noise_robustness_seq_report import (
     _disabled_hardcoded_superset_meta,
     _noise_config_caption,
     _noise_style_legend_lines,
+    _normalize_display_string_list,
     _parse_noisy_methods_csv,
     _validate_pool_b_strict_composition,
     parse_args,
@@ -87,6 +88,13 @@ def test_mitigation_schema_defaults_and_caption() -> None:
 
 def test_parse_noisy_methods_csv_validation() -> None:
     assert _parse_noisy_methods_csv("suzuki2,cfqm4,suzuki2") == ["suzuki2", "cfqm4"]
+
+
+def test_normalize_display_string_list_uses_defaults_when_missing() -> None:
+    assert _normalize_display_string_list(None, default=["cfqm4", "suzuki2"]) == ["cfqm4", "suzuki2"]
+    assert _normalize_display_string_list([], default=["ideal", "shots", "aer_noise"]) == ["ideal", "shots", "aer_noise"]
+    assert _normalize_display_string_list(["shots", "aer_noise"], default=["ideal"]) == ["shots", "aer_noise"]
+    assert _normalize_display_string_list("cfqm4,suzuki2", default=["ideal"]) == ["cfqm4", "suzuki2"]
 
 
 def test_pool_b_enforcement_passes_for_exact_family_set() -> None:

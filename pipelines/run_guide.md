@@ -662,6 +662,8 @@ Strict Pool B requirement (strict legacy mode only):
 Propagation policy (Phase 2D report path):
 - `warm`, `adapt`, and `final` are optimization-stage checkpoints only.
 - Time dynamics (`dynamics_noiseless`, `dynamics_noisy`) are propagated from `psi_final` only.
+- Staged HH energy-error plots/tables use the replay exact-sector ground-state energy as the baseline, so `t=0` reflects preparation error.
+- Seeded exact-reference trajectory arrays remain diagnostic only; fidelity is measured against exact propagation from that same `psi_final` seed.
 - `hardcoded_superset` is retained in JSON for schema compatibility as deactivated metadata:
   - `{"profiles": {}, "disabled": true, "reason": "branch propagation deactivated; final-only dynamics"}`
 
@@ -1359,7 +1361,7 @@ Notes:
 
 ### 5i) One-shot staged HH noiseless wrapper
 
-For the full noiseless chain in one command (HF -> `hh_hva_ptw` warm-start -> staged ADAPT -> matched-family replay -> Suzuki/CFQM vs exact), use:
+For the full noiseless chain in one command (HF -> `hh_hva_ptw` warm-start -> staged ADAPT -> matched-family replay -> Suzuki/CFQM dynamics from replay seed), use:
 
 ```bash
 python pipelines/hardcoded/hh_staged_noiseless.py --L 2
@@ -1371,6 +1373,7 @@ Wrapper contract:
 - default stage effort is resolved from the HH scaling formulas in this guide,
 - when this guide does not specify separate replay optimizer effort, the wrapper reuses the warm-stage restart/maxiter scaling for replay,
 - default replay continuation mode follows ADAPT continuation mode unless explicitly overridden,
+- staged energy-error plots/tables use the replay exact-sector ground-state baseline, while fidelity remains against the seeded exact-reference trajectory,
 - diagnostics record `ecut_1` / `ecut_2` in the workflow payload instead of stopping mid-run.
 
 Primary artifacts:

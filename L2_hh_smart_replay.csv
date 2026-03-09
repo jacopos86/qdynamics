@@ -1,0 +1,2 @@
+tag,family_requested,family_resolved,method,reps,delta_abs,relative_error_abs,gate_pass_1e2,runtime_s,stop_reason,output_json,output_log
+hh_adapt_family_20260309T022346Z,match_adapt,full_meta,SPSA,2,0.0095581258364765,0.06023981906827715,True,485.0401125829667,converged,L2_hh_smart_replay.json,L2_hh_smart_replay.log

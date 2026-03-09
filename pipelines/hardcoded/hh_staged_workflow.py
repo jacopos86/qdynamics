@@ -1217,6 +1217,7 @@ def _run_noiseless_profile(
     ordered_labels_exyz: list[str],
     coeff_map_exyz: dict[str, complex],
     drive_enabled: bool,
+    ground_state_reference_energy: float,
 ) -> dict[str, Any]:
     drive_provider = None
     drive_meta = None
@@ -1232,6 +1233,7 @@ def _run_noiseless_profile(
     method_payloads: dict[str, Any] = {}
     reference_rows: list[dict[str, Any]] | None = None
     psi_seed_arr = np.asarray(psi_seed, dtype=complex).reshape(-1)
+    ground_state_energy = float(ground_state_reference_energy)
 
     for method in cfg.dynamics.methods:
         rows, _ = hc_pipeline._simulate_trajectory(
@@ -1260,15 +1262,27 @@ def _run_noiseless_profile(
             cfqm_coeff_drop_abs_tol=float(cfg.dynamics.cfqm_coeff_drop_abs_tol),
             cfqm_normalize=bool(cfg.dynamics.cfqm_normalize),
         )
-        reference_rows = rows if reference_rows is None else reference_rows
-        final_row = rows[-1]
+        rows_with_metrics: list[dict[str, Any]] = []
+        for row in rows:
+            row_out = dict(row)
+            row_out["abs_energy_error_vs_ground_state"] = float(
+                abs(float(row_out["energy_total_trotter"]) - ground_state_energy)
+            )
+            rows_with_metrics.append(row_out)
+        reference_rows = rows_with_metrics if reference_rows is None else reference_rows
+        final_row = rows_with_metrics[-1]
+        final_reference_error = float(
+            abs(float(final_row["energy_total_trotter"]) - float(final_row["energy_total_exact"]))
+        )
         method_payloads[str(method)] = {
             "propagator": str(method),
-            "trajectory": rows,
+            "trajectory": rows_with_metrics,
             "final": {
                 "energy_total_trotter": float(final_row["energy_total_trotter"]),
                 "energy_total_exact": float(final_row["energy_total_exact"]),
-                "abs_energy_total_error": float(abs(float(final_row["energy_total_trotter"]) - float(final_row["energy_total_exact"]))),
+                "abs_energy_total_error": float(final_reference_error),
+                "abs_energy_total_error_vs_reference": float(final_reference_error),
+                "abs_energy_error_vs_ground_state": float(final_row["abs_energy_error_vs_ground_state"]),
                 "fidelity": float(final_row["fidelity"]),
                 "doublon_trotter": float(final_row["doublon_trotter"]),
                 "doublon_exact": float(final_row["doublon_exact"]),
@@ -1289,7 +1303,14 @@ def _run_noiseless_profile(
         "drive_profile": drive_profile,
         "drive_meta": drive_meta,
         "times": [float(row["time"]) for row in reference_rows],
+        "ground_state_reference": {
+            "energy": float(ground_state_energy),
+            "kind": "filtered_sector_ground_state_static",
+            "source": "stage_pipeline.conventional_replay.exact_energy",
+        },
         "reference": {
+            "kind": "seeded_exact_reference",
+            "initial_state": "psi_final",
             "method": (
                 "eigendecomposition"
                 if not drive_enabled
@@ -1303,6 +1324,7 @@ def _run_noiseless_profile(
 
 
 def run_noiseless_profiles(stage_result: StageExecutionResult, cfg: StagedHHConfig) -> dict[str, Any]:
+    replay_exact = float(stage_result.replay_payload.get("exact", {}).get("E_exact_sector", float("nan")))
     profiles = {
         "static": _run_noiseless_profile(
             cfg=cfg,
@@ -1311,6 +1333,7 @@ def run_noiseless_profiles(stage_result: StageExecutionResult, cfg: StagedHHConf
             ordered_labels_exyz=stage_result.ordered_labels_exyz,
             coeff_map_exyz=stage_result.coeff_map_exyz,
             drive_enabled=False,
+            ground_state_reference_energy=replay_exact,
         )
     }
     if bool(cfg.dynamics.enable_drive):
@@ -1321,6 +1344,7 @@ def run_noiseless_profiles(stage_result: StageExecutionResult, cfg: StagedHHConf
             ordered_labels_exyz=stage_result.ordered_labels_exyz,
             coeff_map_exyz=stage_result.coeff_map_exyz,
             drive_enabled=True,
+            ground_state_reference_energy=replay_exact,
         )
     return {"profiles": profiles}
 
@@ -1386,7 +1410,8 @@ def _stage_summary(stage_result: StageExecutionResult, cfg: StagedHHConfig) -> d
 
 def _compute_comparisons(payload: Mapping[str, Any]) -> dict[str, Any]:
     out: dict[str, Any] = {
-        "noiseless_vs_exact": {},
+        "noiseless_vs_ground_state": {},
+        "noiseless_vs_reference": {},
         "stage_gates": {},
     }
     stage_pipeline = payload.get("stage_pipeline", {})
@@ -1403,16 +1428,33 @@ def _compute_comparisons(payload: Mapping[str, Any]) -> dict[str, Any]:
         for profile_name, profile_payload in dynamics.get("profiles", {}).items():
             if not isinstance(profile_payload, Mapping):
                 continue
-            method_cmp: dict[str, Any] = {}
+            ground_state_cmp: dict[str, Any] = {}
+            reference_cmp: dict[str, Any] = {}
+            ground_state_ref = profile_payload.get("ground_state_reference", {})
+            ground_state_energy = (
+                float(ground_state_ref.get("energy", float("nan")))
+                if isinstance(ground_state_ref, Mapping)
+                else float("nan")
+            )
             for method_name, method_payload in profile_payload.get("methods", {}).items():
                 if not isinstance(method_payload, Mapping):
                     continue
                 final = method_payload.get("final", {})
-                method_cmp[str(method_name)] = {
-                    "final_abs_energy_total_error": float(final.get("abs_energy_total_error", float("nan"))),
+                ground_state_cmp[str(method_name)] = {
+                    "ground_state_reference_energy": float(ground_state_energy),
+                    "final_abs_energy_error": float(final.get("abs_energy_error_vs_ground_state", float("nan"))),
+                }
+                reference_cmp[str(method_name)] = {
+                    "final_abs_energy_total_error": float(
+                        final.get(
+                            "abs_energy_total_error_vs_reference",
+                            final.get("abs_energy_total_error", float("nan")),
+                        )
+                    ),
                     "final_fidelity": float(final.get("fidelity", float("nan"))),
                 }
-            out["noiseless_vs_exact"][str(profile_name)] = method_cmp
+            out["noiseless_vs_ground_state"][str(profile_name)] = ground_state_cmp
+            out["noiseless_vs_reference"][str(profile_name)] = reference_cmp
     return out
 
 
@@ -1452,6 +1494,8 @@ def assemble_payload(
             ],
             "conventional_vqe_definition": "non-ADAPT matched-family replay from ADAPT handoff",
             "drive_default": "opt_in",
+            "noiseless_energy_metric": "|E_method(t) - E_exact_sector_replay| with replay exact sector energy as baseline",
+            "noiseless_fidelity_metric": "fidelity(method(t), exact-propagated psi_final)",
         },
         "settings": _jsonable(asdict(cfg)),
         "default_provenance": dict(cfg.default_provenance),
@@ -1476,14 +1520,14 @@ def _profile_plot_page(pdf: Any, profile_name: str, profile_payload: Mapping[str
         rows = method_payload.get("trajectory", [])
         if not rows:
             continue
-        energy_err = [abs(float(r["energy_total_trotter"]) - float(r["energy_total_exact"])) for r in rows]
+        energy_err = [float(r.get("abs_energy_error_vs_ground_state", float("nan"))) for r in rows]
         fidelity = [float(r["fidelity"]) for r in rows]
         axes[0].plot(times, energy_err, label=str(method_name))
         axes[1].plot(times, fidelity, label=str(method_name))
-    axes[0].set_title(f"{profile_name}: |E_method - E_exact|")
-    axes[0].set_ylabel("abs energy error")
+    axes[0].set_title(f"{profile_name}: |E_method - E_GS|")
+    axes[0].set_ylabel("abs energy error vs GS")
     axes[0].grid(True, alpha=0.3)
-    axes[1].set_title(f"{profile_name}: fidelity to exact")
+    axes[1].set_title(f"{profile_name}: fidelity to seeded exact reference")
     axes[1].set_xlabel("time")
     axes[1].set_ylabel("fidelity")
     axes[1].set_ylim(0.0, 1.01)
@@ -1540,6 +1584,7 @@ def write_staged_hh_pdf(payload: Mapping[str, Any], cfg: StagedHHConfig, run_com
             f"Warm-start: E={warm.get('energy')} exact={warm.get('exact_energy')} delta={warm.get('delta_abs')} ecut_1={warm.get('ecut_1')}",
             f"ADAPT: depth={adapt.get('depth')} pool={adapt.get('pool_type')} delta={adapt.get('delta_abs')} stop={adapt.get('stop_reason')}",
             f"Replay: E={replay.get('energy')} exact={replay.get('exact_energy')} delta={replay.get('delta_abs')} ecut_2={replay.get('ecut_2')}",
+            "Dynamics metrics: energy uses replay exact-sector GS baseline; fidelity uses exact propagation from psi_final.",
             "",
             "Artifacts",
             f"- workflow_json: {cfg.artifacts.output_json}",
@@ -1565,20 +1610,24 @@ def write_staged_hh_pdf(payload: Mapping[str, Any], cfg: StagedHHConfig, run_com
             fontsize=8,
         )
         cmp_rows: list[list[str]] = []
-        for profile_name, profile_cmp in payload.get("comparisons", {}).get("noiseless_vs_exact", {}).items():
+        gs_cmp = payload.get("comparisons", {}).get("noiseless_vs_ground_state", {})
+        ref_cmp = payload.get("comparisons", {}).get("noiseless_vs_reference", {})
+        for profile_name, profile_cmp in gs_cmp.items():
+            reference_methods = ref_cmp.get(profile_name, {}) if isinstance(ref_cmp, Mapping) else {}
             for method_name, rec in profile_cmp.items():
+                ref_rec = reference_methods.get(method_name, {}) if isinstance(reference_methods, Mapping) else {}
                 cmp_rows.append([
                     str(profile_name),
                     str(method_name),
-                    f"{float(rec.get('final_abs_energy_total_error', float('nan'))):.3e}",
-                    f"{float(rec.get('final_fidelity', float('nan'))):.6f}",
+                    f"{float(rec.get('final_abs_energy_error', float('nan'))):.3e}",
+                    f"{float(ref_rec.get('final_fidelity', float('nan'))):.6f}",
                 ])
         if not cmp_rows:
             cmp_rows = [["(none)", "(none)", "nan", "nan"]]
         render_compact_table(
             axes[1],
-            title="Noiseless dynamics vs exact",
-            col_labels=["Profile", "Method", "Final |ΔE|", "Final fidelity"],
+            title="Noiseless dynamics: GS error + seeded-reference fidelity",
+            col_labels=["Profile", "Method", "Final |E-E_GS|", "Final fidelity"],
             rows=cmp_rows,
             fontsize=8,
         )

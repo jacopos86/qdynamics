@@ -440,6 +440,13 @@ def write_staged_hh_noise_pdf(payload: Mapping[str, Any], cfg: StagedHHNoiseConf
 def run_staged_hh_noise(cfg: StagedHHNoiseConfig, *, run_command: str | None = None) -> dict[str, Any]:
     run_command_str = base_wf.current_command_string() if run_command is None else str(run_command)
     staged_cfg = cfg.staged
+    staged_cfg.artifacts.output_json.parent.mkdir(parents=True, exist_ok=True)
+    staged_cfg.artifacts.output_pdf.parent.mkdir(parents=True, exist_ok=True)
+    staged_cfg.artifacts.handoff_json.parent.mkdir(parents=True, exist_ok=True)
+    staged_cfg.artifacts.replay_output_json.parent.mkdir(parents=True, exist_ok=True)
+    staged_cfg.artifacts.replay_output_csv.parent.mkdir(parents=True, exist_ok=True)
+    staged_cfg.artifacts.replay_output_md.parent.mkdir(parents=True, exist_ok=True)
+    staged_cfg.artifacts.replay_output_log.parent.mkdir(parents=True, exist_ok=True)
     stage_result = base_wf.run_stage_pipeline(staged_cfg)
     dynamics_noiseless = base_wf.run_noiseless_profiles(stage_result, staged_cfg)
     dynamics_noisy, noisy_final_audit, dynamics_benchmarks = run_noisy_profiles(stage_result, cfg)

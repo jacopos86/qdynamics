@@ -36,10 +36,15 @@ from docs.reports.pdf_utils import (
     current_command_string,
     get_PdfPages,
     get_plt,
+    render_command_page,
     render_compact_table,
-    render_parameter_manifest,
     render_text_page,
     require_matplotlib,
+)
+from docs.reports.report_pages import (
+    render_executive_summary_page,
+    render_manifest_overview_page,
+    render_section_divider_page,
 )
 from src.quantum.compiled_polynomial import (
     compile_polynomial_action,
@@ -1322,82 +1327,177 @@ def _write_noise_validation_pdf(
         f"oracle_aggregate={noise.get('oracle_aggregate')}, "
         f"{_mitigation_caption(noise.get('mitigation', {}), noise.get('symmetry_mitigation', {}))}"
     )
+    manifest_sections: list[tuple[str, list[tuple[str, Any]]]] = [
+        (
+            "Model and regime",
+            [
+                ("Model family", str(payload.get("model", "Hubbard-Holstein"))),
+                ("Problem", settings.get("problem")),
+                ("Ansatz", settings.get("ansatz")),
+                ("L", settings.get("L")),
+                ("Boundary", settings.get("boundary")),
+                ("Ordering", settings.get("ordering")),
+            ],
+        ),
+        (
+            "Noise and backend",
+            [
+                ("Noise mode", noise.get("noise_mode")),
+                ("shots", noise.get("shots")),
+                ("oracle_repeats", noise.get("oracle_repeats")),
+                ("oracle_aggregate", noise.get("oracle_aggregate")),
+                ("Mitigation", noise.get("mitigation")),
+                ("Backend", backend.get("backend_name")),
+                ("Using fake backend", backend.get("using_fake_backend")),
+            ],
+        ),
+        (
+            "Core physical parameters",
+            [
+                ("t", settings.get("t")),
+                ("U", settings.get("u")),
+                ("dv", settings.get("dv")),
+                ("omega0", settings.get("omega0")),
+                ("g_ep", settings.get("g_ep")),
+                ("n_ph_max", settings.get("n_ph_max")),
+            ],
+        ),
+        (
+            "Validation workload",
+            [
+                ("Run VQE", settings.get("run_vqe")),
+                ("Run Trotter", settings.get("run_trotter")),
+                ("Run ADAPT", settings.get("run_adapt")),
+                ("Initial state source", settings.get("initial_state_source")),
+            ],
+        ),
+    ]
 
+    summary_sections: list[tuple[str, list[tuple[str, Any]]]] = [
+        (
+            "Validation verdict",
+            [
+                ("Fallback used", fallback.get("used")),
+                ("Fallback mode", fallback.get("mode")),
+                ("Legacy parity enabled", not bool(legacy_parity.get("skipped", True))),
+                ("Legacy parity passed", legacy_parity.get("passed_all")),
+                ("Legacy parity time-grid match", legacy_parity.get("time_grid_match")),
+            ],
+        ),
+        (
+            "VQE effect summary",
+            [
+                ("Noisy energy", vqe.get("energy_noisy")),
+                ("Noisy energy stderr", vqe.get("energy_noisy_stderr")),
+                ("Ideal reference energy", vqe.get("energy_ideal_reference")),
+                ("Noisy-ideal delta", vqe.get("delta_noisy_minus_ideal")),
+                ("Noisy-ideal delta stderr", vqe.get("delta_noisy_minus_ideal_stderr")),
+            ],
+        ),
+        (
+            "Final trajectory point",
+            [
+                ("Energy delta", final.get("energy_static_trotter_delta_noisy_minus_ideal")),
+                ("Energy delta stderr", final.get("energy_static_trotter_delta_noisy_minus_ideal_stderr")),
+                ("Doublon delta", final.get("doublon_trotter_delta_noisy_minus_ideal")),
+                ("Doublon delta stderr", final.get("doublon_trotter_delta_noisy_minus_ideal_stderr")),
+            ],
+        ),
+        (
+            "ADAPT summary",
+            [
+                ("Enabled", settings.get("run_adapt")),
+                ("Success", adapt.get("success")),
+                ("Depth", adapt.get("ansatz_depth")),
+                ("Stop reason", adapt.get("stop_reason")),
+            ],
+        ),
+    ]
+
+    detail_lines = [
+        "HH/Hubbard Noise Validation Summary",
+        "",
+        f"problem: {settings.get('problem')}",
+        f"ansatz: {settings.get('ansatz')}",
+        f"noise_mode: {noise.get('noise_mode')}",
+        noise_caption,
+        f"backend: {backend.get('backend_name')}",
+        f"fallback_used: {fallback.get('used')}",
+        f"fallback_mode: {fallback.get('mode')}",
+        f"fallback_reason: {str(fallback.get('reason', ''))[:140]}",
+        "",
+        "Legacy parity (vs pre-noise baseline):",
+        f"  enabled: {not bool(legacy_parity.get('skipped', True))}",
+        f"  passed_all: {legacy_parity.get('passed_all')}",
+        f"  time_grid_match: {legacy_parity.get('time_grid_match')}",
+        f"  tolerance: {legacy_parity.get('tolerance')}",
+        f"  reference_json: {legacy_parity.get('reference_json')}",
+        "",
+        "VQE:",
+        f"  success: {vqe.get('success')}",
+        f"  optimizer: {vqe.get('optimizer_method')}",
+        f"  objective_source: {vqe.get('objective_source')}",
+        f"  energy_backend: {vqe.get('energy_backend')}",
+        f"  noisy energy: {vqe.get('energy_noisy')}",
+        f"  noisy energy stderr: {vqe.get('energy_noisy_stderr')}",
+        f"  ideal reference energy: {vqe.get('energy_ideal_reference')}",
+        f"  noisy-ideal delta: {vqe.get('delta_noisy_minus_ideal')}",
+        f"  noisy-ideal delta stderr: {vqe.get('delta_noisy_minus_ideal_stderr')}",
+        "",
+        "ADAPT (phase 2):",
+        f"  enabled: {settings.get('run_adapt')}",
+        f"  success: {adapt.get('success')}",
+        f"  inner optimizer: {adapt.get('inner_optimizer')}",
+        f"  depth: {adapt.get('ansatz_depth')}",
+        f"  stop_reason: {adapt.get('stop_reason')}",
+        f"  noisy-ideal delta: {adapt.get('delta_noisy_minus_ideal')}",
+        f"  noisy-ideal delta stderr: {adapt.get('delta_noisy_minus_ideal_stderr')}",
+        "",
+        "Final trajectory point:",
+        f"  energy noisy: {final.get('energy_static_trotter_noisy')}",
+        f"  energy ideal: {final.get('energy_static_trotter_ideal')}",
+        f"  energy delta: {final.get('energy_static_trotter_delta_noisy_minus_ideal')}",
+        f"  energy delta stderr: {final.get('energy_static_trotter_delta_noisy_minus_ideal_stderr')}",
+        f"  doublon noisy: {final.get('doublon_trotter_noisy')}",
+        f"  doublon ideal: {final.get('doublon_trotter_ideal')}",
+        f"  doublon delta: {final.get('doublon_trotter_delta_noisy_minus_ideal')}",
+        f"  doublon delta stderr: {final.get('doublon_trotter_delta_noisy_minus_ideal_stderr')}",
+    ]
     with PdfPages(str(pdf_path)) as pdf:
-        render_parameter_manifest(
+        render_manifest_overview_page(
             pdf,
-            model=str(payload.get("model", "Hubbard-Holstein")),
-            ansatz=str(settings.get("ansatz")),
-            drive_enabled=False,
-            t=float(settings.get("t", 0.0)),
-            U=float(settings.get("u", 0.0)),
-            dv=float(settings.get("dv", 0.0)),
-            extra={
-                "problem": settings.get("problem"),
-                "L": settings.get("L"),
-                "noise_mode": noise.get("noise_mode"),
-                "shots": noise.get("shots"),
-                "oracle_repeats": noise.get("oracle_repeats"),
-                "oracle_aggregate": noise.get("oracle_aggregate"),
-                "mitigation": noise.get("mitigation"),
-                "backend": backend.get("backend_name"),
-                "using_fake_backend": backend.get("using_fake_backend"),
-            },
-            command=str(payload.get("run_command", "")),
+            title=f"{payload.get('model', 'HH/Hubbard')} noise validation — L={settings.get('L')}",
+            experiment_statement=(
+                "Validation run comparing noisy and ideal observables, with optional parity checks against the legacy baseline."
+            ),
+            sections=manifest_sections,
+            notes=[
+                "Noise/backend/fallback details are summarized up front; full audit detail appears later.",
+                "The full executed command appears in the appendix.",
+            ],
         )
-
-        lines = [
-            "HH/Hubbard Noise Validation Summary",
-            "",
-            f"problem: {settings.get('problem')}",
-            f"ansatz: {settings.get('ansatz')}",
-            f"noise_mode: {noise.get('noise_mode')}",
-            noise_caption,
-            f"backend: {backend.get('backend_name')}",
-            f"fallback_used: {fallback.get('used')}",
-            f"fallback_mode: {fallback.get('mode')}",
-            f"fallback_reason: {str(fallback.get('reason', ''))[:140]}",
-            "",
-            "Legacy parity (vs pre-noise baseline):",
-            f"  enabled: {not bool(legacy_parity.get('skipped', True))}",
-            f"  passed_all: {legacy_parity.get('passed_all')}",
-            f"  time_grid_match: {legacy_parity.get('time_grid_match')}",
-            f"  tolerance: {legacy_parity.get('tolerance')}",
-            f"  reference_json: {legacy_parity.get('reference_json')}",
-            "",
-            "VQE:",
-            f"  success: {vqe.get('success')}",
-            f"  optimizer: {vqe.get('optimizer_method')}",
-            f"  objective_source: {vqe.get('objective_source')}",
-            f"  energy_backend: {vqe.get('energy_backend')}",
-            f"  noisy energy: {vqe.get('energy_noisy')}",
-            f"  noisy energy stderr: {vqe.get('energy_noisy_stderr')}",
-            f"  ideal reference energy: {vqe.get('energy_ideal_reference')}",
-            f"  noisy-ideal delta: {vqe.get('delta_noisy_minus_ideal')}",
-            f"  noisy-ideal delta stderr: {vqe.get('delta_noisy_minus_ideal_stderr')}",
-            "",
-            "ADAPT (phase 2):",
-            f"  enabled: {settings.get('run_adapt')}",
-            f"  success: {adapt.get('success')}",
-            f"  inner optimizer: {adapt.get('inner_optimizer')}",
-            f"  depth: {adapt.get('ansatz_depth')}",
-            f"  stop_reason: {adapt.get('stop_reason')}",
-            f"  noisy-ideal delta: {adapt.get('delta_noisy_minus_ideal')}",
-            f"  noisy-ideal delta stderr: {adapt.get('delta_noisy_minus_ideal_stderr')}",
-            "",
-            "Final trajectory point:",
-            f"  energy noisy: {final.get('energy_static_trotter_noisy')}",
-            f"  energy ideal: {final.get('energy_static_trotter_ideal')}",
-            f"  energy delta: {final.get('energy_static_trotter_delta_noisy_minus_ideal')}",
-            f"  energy delta stderr: {final.get('energy_static_trotter_delta_noisy_minus_ideal_stderr')}",
-            f"  doublon noisy: {final.get('doublon_trotter_noisy')}",
-            f"  doublon ideal: {final.get('doublon_trotter_ideal')}",
-            f"  doublon delta: {final.get('doublon_trotter_delta_noisy_minus_ideal')}",
-            f"  doublon delta stderr: {final.get('doublon_trotter_delta_noisy_minus_ideal_stderr')}",
-        ]
+        render_executive_summary_page(
+            pdf,
+            title="Executive summary",
+            experiment_statement="Headline verdict first: validation status, noisy-minus-ideal effect size, and final observable deltas.",
+            sections=summary_sections,
+            notes=[
+                noise_caption,
+            ],
+        )
+        render_section_divider_page(
+            pdf,
+            title="Scientific effect pages",
+            summary="These pages foreground how noise changed the observables before backend and parity audit detail.",
+            bullets=[
+                "Noisy vs ideal trajectories.",
+                "Noisy-minus-ideal delta bands.",
+                "Compact VQE scoreboard.",
+            ],
+        )
         vqe_spsa = vqe.get("spsa")
         if isinstance(vqe_spsa, dict):
-            lines.extend(
+            detail_lines.extend(
                 [
                     "",
                     "VQE SPSA params:",
@@ -1414,7 +1514,7 @@ def _write_noise_validation_pdf(
             )
         adapt_spsa = adapt.get("spsa")
         if isinstance(adapt_spsa, dict):
-            lines.extend(
+            detail_lines.extend(
                 [
                     "",
                     "ADAPT SPSA params:",
@@ -1432,18 +1532,17 @@ def _write_noise_validation_pdf(
         per_obs = legacy_parity.get("per_observable", {})
         obs_order = legacy_parity.get("observables", [])
         if isinstance(per_obs, dict) and isinstance(obs_order, list):
-            lines.append("")
-            lines.append("Legacy parity deltas:")
+            detail_lines.append("")
+            detail_lines.append("Legacy parity deltas:")
             for obs in obs_order:
                 if obs not in per_obs:
                     continue
                 rec = per_obs.get(obs, {})
-                lines.append(
+                detail_lines.append(
                     f"  {obs}: max={rec.get('max_abs_delta')} "
                     f"mean={rec.get('mean_abs_delta')} final={rec.get('final_abs_delta')} "
                     f"passed={rec.get('passed')}"
                 )
-        render_text_page(pdf, lines, fontsize=9)
 
         if trajectory:
             ts = np.array([float(r["time"]) for r in trajectory], dtype=float)
@@ -1542,6 +1641,23 @@ def _write_noise_validation_pdf(
             fig_tbl.tight_layout()
             pdf.savefig(fig_tbl)
             plt.close(fig_tbl)
+
+        render_section_divider_page(
+            pdf,
+            title="Technical appendix",
+            summary="Backend fallback detail, mitigation configuration, legacy parity audit, and reproducibility information.",
+            bullets=[
+                "Detailed validation summary.",
+                "Legacy parity breakdown by observable.",
+                "Executed command.",
+            ],
+        )
+        render_text_page(pdf, detail_lines, fontsize=9)
+        render_command_page(
+            pdf,
+            str(payload.get("run_command", "")),
+            script_name="pipelines/exact_bench/hh_noise_hardware_validation.py",
+        )
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:

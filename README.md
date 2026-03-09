@@ -32,7 +32,7 @@ One-shot noiseless wrapper for this contract:
 python pipelines/hardcoded/hh_staged_noiseless.py --L 2
 ```
 
-This wrapper keeps drive opt-in, runs final matched-family replay (not fixed `hh_hva_*` replay), and compares final Suzuki/CFQM dynamics to exact.
+This wrapper keeps drive opt-in, runs final matched-family replay (not fixed `hh_hva_*` replay), and reports Suzuki/CFQM dynamics from the replay seed with GS-baseline energy error plus seeded exact-reference fidelity.
 
 ## Repository map (minimal)
 

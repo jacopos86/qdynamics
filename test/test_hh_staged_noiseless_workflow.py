@@ -216,5 +216,14 @@ def test_workflow_runs_matched_family_replay_and_static_plus_drive_profiles(
     assert replay_cfg.replay_continuation_mode == "phase1_v1"
     assert payload["stage_pipeline"]["conventional_replay"]["generator_family"]["requested"] == "match_adapt"
     assert set(payload["dynamics_noiseless"]["profiles"].keys()) == {"static", "drive"}
+    static_profile = payload["dynamics_noiseless"]["profiles"]["static"]
+    static_rows = static_profile["methods"]["suzuki2"]["trajectory"]
+    assert static_profile["ground_state_reference"]["energy"] == pytest.approx(-1.05)
+    assert abs(static_rows[0]["energy_total_trotter"] - static_rows[0]["energy_total_exact"]) == pytest.approx(0.0)
+    assert static_rows[0]["abs_energy_error_vs_ground_state"] == pytest.approx(1e-3)
+    assert payload["comparisons"]["noiseless_vs_ground_state"]["static"]["suzuki2"]["final_abs_energy_error"] == pytest.approx(5e-3)
+    assert payload["comparisons"]["noiseless_vs_reference"]["static"]["suzuki2"]["final_fidelity"] == pytest.approx(0.99)
+    assert "noiseless_vs_exact" not in payload["comparisons"]
+    assert payload["workflow_contract"]["noiseless_energy_metric"].startswith("|E_method(t) - E_exact_sector_replay|")
     assert calls["propagators"] == ["suzuki2", "cfqm4", "suzuki2", "cfqm4"]
     assert Path(cfg.artifacts.output_json).exists()
