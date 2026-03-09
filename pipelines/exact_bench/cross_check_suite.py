@@ -35,7 +35,7 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from reports.pdf_utils import (
+from docs.reports.pdf_utils import (
     HAS_MATPLOTLIB,
     require_matplotlib,
     get_plt,

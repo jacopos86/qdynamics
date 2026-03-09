@@ -41,7 +41,7 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from reports.pdf_utils import (
+from docs.reports.pdf_utils import (
     HAS_MATPLOTLIB,
     require_matplotlib,
     get_plt,
@@ -953,7 +953,7 @@ def _run_internal_adapt_paop(
     g_ep: float,
     n_ph_max: int,
     boson_encoding: str,
-    adapt_pool: str,
+    adapt_pool: str | None,
     adapt_max_depth: int,
     adapt_eps_grad: float,
     adapt_eps_energy: float,
@@ -969,6 +969,29 @@ def _run_internal_adapt_paop(
     paop_normalization: str,
     adapt_disable_hh_seed: bool,
     psi_ref_override: np.ndarray | None = None,
+    adapt_reopt_policy: str = "append_only",
+    adapt_window_size: int = 3,
+    adapt_window_topk: int = 0,
+    adapt_full_refit_every: int = 0,
+    adapt_final_full_refit: bool = True,
+    adapt_continuation_mode: str = "legacy",
+    phase1_lambda_F: float = 1.0,
+    phase1_lambda_compile: float = 0.05,
+    phase1_lambda_measure: float = 0.02,
+    phase1_lambda_leak: float = 0.0,
+    phase1_score_z_alpha: float = 0.0,
+    phase1_probe_max_positions: int = 6,
+    phase1_plateau_patience: int = 2,
+    phase1_trough_margin_ratio: float = 1.0,
+    phase1_prune_enabled: bool = True,
+    phase1_prune_fraction: float = 0.25,
+    phase1_prune_max_candidates: int = 6,
+    phase1_prune_max_regression: float = 1e-8,
+    phase3_motif_source_json: Path | None = None,
+    phase3_symmetry_mitigation_mode: str = "off",
+    phase3_enable_rescue: bool = False,
+    phase3_lifetime_cost_mode: str = "phase3_v1",
+    phase3_runtime_split_mode: str = "off",
 ) -> tuple[dict[str, Any], np.ndarray]:
     from pipelines.hardcoded import adapt_pipeline as adapt_mod
 
@@ -977,7 +1000,7 @@ def _run_internal_adapt_paop(
         num_sites=int(num_sites),
         ordering=str(ordering),
         problem=str(problem),
-        adapt_pool=str(adapt_pool),
+        adapt_pool=(str(adapt_pool) if adapt_pool is not None else None),
         t=float(t),
         u=float(u),
         dv=float(dv),
@@ -1001,6 +1024,29 @@ def _run_internal_adapt_paop(
         paop_normalization=str(paop_normalization),
         disable_hh_seed=bool(adapt_disable_hh_seed),
         psi_ref_override=psi_ref_override,
+        adapt_reopt_policy=str(adapt_reopt_policy),
+        adapt_window_size=int(adapt_window_size),
+        adapt_window_topk=int(adapt_window_topk),
+        adapt_full_refit_every=int(adapt_full_refit_every),
+        adapt_final_full_refit=bool(adapt_final_full_refit),
+        adapt_continuation_mode=str(adapt_continuation_mode),
+        phase1_lambda_F=float(phase1_lambda_F),
+        phase1_lambda_compile=float(phase1_lambda_compile),
+        phase1_lambda_measure=float(phase1_lambda_measure),
+        phase1_lambda_leak=float(phase1_lambda_leak),
+        phase1_score_z_alpha=float(phase1_score_z_alpha),
+        phase1_probe_max_positions=int(phase1_probe_max_positions),
+        phase1_plateau_patience=int(phase1_plateau_patience),
+        phase1_trough_margin_ratio=float(phase1_trough_margin_ratio),
+        phase1_prune_enabled=bool(phase1_prune_enabled),
+        phase1_prune_fraction=float(phase1_prune_fraction),
+        phase1_prune_max_candidates=int(phase1_prune_max_candidates),
+        phase1_prune_max_regression=float(phase1_prune_max_regression),
+        phase3_motif_source_json=(Path(phase3_motif_source_json) if phase3_motif_source_json is not None else None),
+        phase3_symmetry_mitigation_mode=str(phase3_symmetry_mitigation_mode),
+        phase3_enable_rescue=bool(phase3_enable_rescue),
+        phase3_lifetime_cost_mode=str(phase3_lifetime_cost_mode),
+        phase3_runtime_split_mode=str(phase3_runtime_split_mode),
     )
 
 
@@ -1012,8 +1058,8 @@ def _run_qpe_adapter_qiskit(
     shots: int,
     seed: int,
 ) -> dict[str, Any]:
-    """Delegate to Qiskit QPE adapter in qiskit_archive/qpe_helper.py."""
-    from pipelines.qiskit_archive.qpe_helper import run_qpe_adapter_qiskit
+    """Delegate to the temporary Qiskit-backed hardcoded QPE shim."""
+    from pipelines.hardcoded.qpe_qiskit_shim import run_qpe_adapter_qiskit
     return run_qpe_adapter_qiskit(
         coeff_map_exyz=coeff_map_exyz,
         psi_init=psi_init,
@@ -2664,6 +2710,7 @@ def parse_args() -> argparse.Namespace:
             "cse",
             "full_hamiltonian",
             "hva",
+            "full_meta",
             "uccsd_paop_lf_full",
             "paop",
             "paop_min",
@@ -2674,8 +2721,17 @@ def parse_args() -> argparse.Namespace:
             "paop_lf2_std",
             "paop_lf_full",
         ],
-        default="paop_std",
-        help="PAOP/ADAPT branch pool used for the explicit PAOP trajectory branch.",
+        default=None,
+        help=(
+            "PAOP/ADAPT branch pool. If omitted, runtime resolves by mode/problem "
+            "(hh phase1_v1/phase2_v1/phase3_v1 core defaults to paop_lf_std; hubbard legacy defaults to uccsd)."
+        ),
+    )
+    parser.add_argument(
+        "--adapt-continuation-mode",
+        choices=["legacy", "phase1_v1", "phase2_v1", "phase3_v1"],
+        default="legacy",
+        help="Continuation mode for internal ADAPT branch (default: legacy). phase1_v1 is staged HH continuation; phase2_v1 adds shortlist/full scoring; phase3_v1 adds generator/motif/symmetry/rescue metadata.",
     )
     parser.add_argument(
         "--adapt-ref-source",
@@ -2697,6 +2753,68 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--adapt-finite-angle", type=float, default=0.1)
     parser.add_argument("--adapt-finite-angle-min-improvement", type=float, default=1e-12)
     parser.add_argument("--adapt-disable-hh-seed", action="store_true")
+    parser.add_argument(
+        "--adapt-reopt-policy",
+        choices=["append_only", "full", "windowed"],
+        default="append_only",
+        help=(
+            "Per-depth ADAPT re-optimization policy. "
+            "'append_only' (default): newest parameter only. "
+            "'full': all parameters. "
+            "'windowed': sliding window + optional top-k carry."
+        ),
+    )
+    parser.add_argument(
+        "--adapt-window-size", type=int, default=3,
+        help="Window size for 'windowed' reopt policy.",
+    )
+    parser.add_argument(
+        "--adapt-window-topk", type=int, default=0,
+        help="Number of older high-magnitude parameters in windowed active set.",
+    )
+    parser.add_argument(
+        "--adapt-full-refit-every", type=int, default=0,
+        help="Periodic full-prefix cadence for 'windowed' (0=disabled).",
+    )
+    parser.add_argument(
+        "--adapt-final-full-refit",
+        choices=["true", "false"],
+        default="true",
+        help="Final full-prefix refit after ADAPT loop for 'windowed'.",
+    )
+    parser.add_argument("--phase1-lambda-F", type=float, default=1.0)
+    parser.add_argument("--phase1-lambda-compile", type=float, default=0.05)
+    parser.add_argument("--phase1-lambda-measure", type=float, default=0.02)
+    parser.add_argument("--phase1-lambda-leak", type=float, default=0.0)
+    parser.add_argument("--phase1-score-z-alpha", type=float, default=0.0)
+    parser.add_argument("--phase1-probe-max-positions", type=int, default=6)
+    parser.add_argument("--phase1-plateau-patience", type=int, default=2)
+    parser.add_argument("--phase1-trough-margin-ratio", type=float, default=1.0)
+    parser.set_defaults(phase1_prune_enabled=True)
+    parser.add_argument("--phase1-prune-enabled", dest="phase1_prune_enabled", action="store_true")
+    parser.add_argument("--phase1-no-prune", dest="phase1_prune_enabled", action="store_false")
+    parser.add_argument("--phase1-prune-fraction", type=float, default=0.25)
+    parser.add_argument("--phase1-prune-max-candidates", type=int, default=6)
+    parser.add_argument("--phase1-prune-max-regression", type=float, default=1e-8)
+    parser.add_argument("--phase3-motif-source-json", type=Path, default=None)
+    parser.add_argument(
+        "--phase3-symmetry-mitigation-mode",
+        choices=["off", "verify_only", "postselect_diag_v1", "projector_renorm_v1"],
+        default="off",
+    )
+    parser.set_defaults(phase3_enable_rescue=False)
+    parser.add_argument("--phase3-enable-rescue", dest="phase3_enable_rescue", action="store_true")
+    parser.add_argument("--phase3-no-rescue", dest="phase3_enable_rescue", action="store_false")
+    parser.add_argument(
+        "--phase3-lifetime-cost-mode",
+        choices=["off", "phase3_v1"],
+        default="phase3_v1",
+    )
+    parser.add_argument(
+        "--phase3-runtime-split-mode",
+        choices=["off", "shortlist_pauli_children_v1"],
+        default="off",
+    )
     parser.add_argument("--paop-r", type=int, default=1)
     parser.add_argument("--paop-split-paulis", action="store_true")
     parser.add_argument("--paop-prune-eps", type=float, default=0.0)
@@ -2988,7 +3106,7 @@ def main() -> None:
                 g_ep=float(args.g_ep),
                 n_ph_max=int(args.n_ph_max),
                 boson_encoding=str(args.boson_encoding),
-                adapt_pool=str(args.adapt_pool),
+                adapt_pool=(str(args.adapt_pool) if args.adapt_pool is not None else None),
                 adapt_max_depth=int(args.adapt_max_depth),
                 adapt_eps_grad=float(args.adapt_eps_grad),
                 adapt_eps_energy=float(args.adapt_eps_energy),
@@ -3004,6 +3122,29 @@ def main() -> None:
                 paop_normalization=str(args.paop_normalization),
                 adapt_disable_hh_seed=bool(args.adapt_disable_hh_seed),
                 psi_ref_override=psi_ref_override_for_adapt,
+                adapt_reopt_policy=str(args.adapt_reopt_policy),
+                adapt_window_size=int(args.adapt_window_size),
+                adapt_window_topk=int(args.adapt_window_topk),
+                adapt_full_refit_every=int(args.adapt_full_refit_every),
+                adapt_final_full_refit=bool(str(args.adapt_final_full_refit).strip().lower() == "true"),
+                adapt_continuation_mode=str(args.adapt_continuation_mode),
+                phase1_lambda_F=float(args.phase1_lambda_F),
+                phase1_lambda_compile=float(args.phase1_lambda_compile),
+                phase1_lambda_measure=float(args.phase1_lambda_measure),
+                phase1_lambda_leak=float(args.phase1_lambda_leak),
+                phase1_score_z_alpha=float(args.phase1_score_z_alpha),
+                phase1_probe_max_positions=int(args.phase1_probe_max_positions),
+                phase1_plateau_patience=int(args.phase1_plateau_patience),
+                phase1_trough_margin_ratio=float(args.phase1_trough_margin_ratio),
+                phase1_prune_enabled=bool(args.phase1_prune_enabled),
+                phase1_prune_fraction=float(args.phase1_prune_fraction),
+                phase1_prune_max_candidates=int(args.phase1_prune_max_candidates),
+                phase1_prune_max_regression=float(args.phase1_prune_max_regression),
+                phase3_motif_source_json=(Path(args.phase3_motif_source_json) if args.phase3_motif_source_json is not None else None),
+                phase3_symmetry_mitigation_mode=str(args.phase3_symmetry_mitigation_mode),
+                phase3_enable_rescue=bool(args.phase3_enable_rescue),
+                phase3_lifetime_cost_mode=str(args.phase3_lifetime_cost_mode),
+                phase3_runtime_split_mode=str(args.phase3_runtime_split_mode),
             )
         except Exception as exc:
             raise RuntimeError(f"Failed to build required internal PAOP branch via ADAPT: {exc}") from exc
@@ -3019,7 +3160,7 @@ def main() -> None:
             "elapsed_s": adapt_internal_payload_raw.get("elapsed_s"),
             "allow_repeats": adapt_internal_payload_raw.get("allow_repeats"),
         }
-        if adapt_ref_source_key != "hf" or str(args.adapt_pool).strip().lower() == "uccsd_paop_lf_full":
+        if adapt_ref_source_key != "hf" or str(args.adapt_pool).strip().lower() in {"uccsd_paop_lf_full", "full_meta"}:
             adapt_internal_payload["adapt_ref_source"] = str(adapt_ref_source_key)
             adapt_internal_payload["nfev_total"] = adapt_internal_payload_raw.get("nfev_total")
         _ai_log(
@@ -3143,7 +3284,8 @@ def main() -> None:
         "adapt_input_json": (str(args.adapt_input_json) if args.adapt_input_json is not None else None),
         "adapt_strict_match": bool(args.adapt_strict_match),
         "adapt_summary_in_pdf": bool(args.adapt_summary_in_pdf),
-        "adapt_pool": str(args.adapt_pool),
+        "adapt_pool": (str(args.adapt_pool) if args.adapt_pool is not None else None),
+        "adapt_continuation_mode": str(args.adapt_continuation_mode),
         "adapt_max_depth": int(args.adapt_max_depth),
         "adapt_eps_grad": float(args.adapt_eps_grad),
         "adapt_eps_energy": float(args.adapt_eps_energy),
@@ -3158,6 +3300,23 @@ def main() -> None:
         "paop_split_paulis": bool(args.paop_split_paulis),
         "paop_prune_eps": float(args.paop_prune_eps),
         "paop_normalization": str(args.paop_normalization),
+        "phase1_lambda_F": float(args.phase1_lambda_F),
+        "phase1_lambda_compile": float(args.phase1_lambda_compile),
+        "phase1_lambda_measure": float(args.phase1_lambda_measure),
+        "phase1_lambda_leak": float(args.phase1_lambda_leak),
+        "phase1_score_z_alpha": float(args.phase1_score_z_alpha),
+        "phase1_probe_max_positions": int(args.phase1_probe_max_positions),
+        "phase1_plateau_patience": int(args.phase1_plateau_patience),
+        "phase1_trough_margin_ratio": float(args.phase1_trough_margin_ratio),
+        "phase1_prune_enabled": bool(args.phase1_prune_enabled),
+        "phase1_prune_fraction": float(args.phase1_prune_fraction),
+        "phase1_prune_max_candidates": int(args.phase1_prune_max_candidates),
+        "phase1_prune_max_regression": float(args.phase1_prune_max_regression),
+        "phase3_motif_source_json": (str(args.phase3_motif_source_json) if args.phase3_motif_source_json is not None else None),
+        "phase3_symmetry_mitigation_mode": str(args.phase3_symmetry_mitigation_mode),
+        "phase3_enable_rescue": bool(args.phase3_enable_rescue),
+        "phase3_lifetime_cost_mode": str(args.phase3_lifetime_cost_mode),
+        "phase3_runtime_split_mode": str(args.phase3_runtime_split_mode),
         "skip_qpe": bool(args.skip_qpe),
         "fidelity_definition_short": (
             "Subspace Fidelity(t): projected fidelity of trotterized PAOP/HVA branches vs filtered exact GS manifold."
@@ -3231,7 +3390,7 @@ def main() -> None:
     _use_internal_adapt = str(args.initial_state_source) != "adapt_json"
     _adapt_ref_source_key = str(args.adapt_ref_source).strip().lower()
     if _use_internal_adapt and (
-        _adapt_ref_source_key != "hf" or str(args.adapt_pool).strip().lower() == "uccsd_paop_lf_full"
+        _adapt_ref_source_key != "hf" or str(args.adapt_pool).strip().lower() in {"uccsd_paop_lf_full", "full_meta"}
     ):
         settings["adapt_ref_source"] = str(_adapt_ref_source_key)
     if bool(args.enable_drive):

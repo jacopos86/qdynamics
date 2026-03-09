@@ -26,7 +26,6 @@ from __future__ import annotations
 
 import math
 import sys
-import types
 import unittest
 from pathlib import Path
 
@@ -277,77 +276,6 @@ class TestJSONMetadataKeys(unittest.TestCase):
         for sampling, expected in pairs:
             with self.subTest(sampling=sampling):
                 self.assertEqual(reference_method_name(sampling), expected)
-
-
-# ---------------------------------------------------------------------------
-# 5. Compare runner _DRIVE_FLAG_DEFAULTS includes exact_steps_multiplier
-# ---------------------------------------------------------------------------
-
-class TestCompareRunnerDefaults(unittest.TestCase):
-    """Verify the compare runner updated _DRIVE_FLAG_DEFAULTS."""
-
-    def test_exact_steps_multiplier_in_defaults(self) -> None:
-        import pipelines.qiskit_archive.compare_hc_vs_qk as cmp
-        self.assertIn("exact_steps_multiplier", cmp._DRIVE_FLAG_DEFAULTS)
-        self.assertEqual(cmp._DRIVE_FLAG_DEFAULTS["exact_steps_multiplier"], 1)
-
-    def test_build_drive_args_includes_multiplier_flag(self) -> None:
-        import pipelines.qiskit_archive.compare_hc_vs_qk as cmp
-        ns = types.SimpleNamespace(
-            enable_drive=True,
-            drive_A=0.2,
-            drive_omega=1.7,
-            drive_tbar=4.0,
-            drive_phi=0.0,
-            drive_pattern="staggered",
-            drive_custom_s=None,
-            drive_include_identity=False,
-            drive_time_sampling="midpoint",
-            drive_t0=0.0,
-            exact_steps_multiplier=4,
-        )
-        tokens = cmp._build_drive_args(ns)
-        self.assertIn("--exact-steps-multiplier", tokens)
-        idx = tokens.index("--exact-steps-multiplier")
-        self.assertEqual(tokens[idx + 1], "4")
-
-    def test_build_drive_args_multiplier_default_1(self) -> None:
-        import pipelines.qiskit_archive.compare_hc_vs_qk as cmp
-        ns = types.SimpleNamespace(
-            enable_drive=True,
-            drive_A=0.2,
-            drive_omega=1.7,
-            drive_tbar=4.0,
-            drive_phi=0.0,
-            drive_pattern="staggered",
-            drive_custom_s=None,
-            drive_include_identity=False,
-            drive_time_sampling="midpoint",
-            drive_t0=0.0,
-            exact_steps_multiplier=1,
-        )
-        tokens = cmp._build_drive_args(ns)
-        idx = tokens.index("--exact-steps-multiplier")
-        self.assertEqual(tokens[idx + 1], "1")
-
-    def test_build_drive_args_disabled_empty(self) -> None:
-        import pipelines.qiskit_archive.compare_hc_vs_qk as cmp
-        ns = types.SimpleNamespace(
-            enable_drive=False,
-            drive_A=0.2,
-            drive_omega=1.7,
-            drive_tbar=4.0,
-            drive_phi=0.0,
-            drive_pattern="staggered",
-            drive_custom_s=None,
-            drive_include_identity=False,
-            drive_time_sampling="midpoint",
-            drive_t0=0.0,
-            exact_steps_multiplier=4,
-        )
-        tokens = cmp._build_drive_args(ns)
-        # Drive disabled → empty list regardless of multiplier.
-        self.assertEqual(tokens, [])
 
 
 if __name__ == "__main__":

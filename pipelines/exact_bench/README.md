@@ -9,13 +9,22 @@ for benchmarking the hardcoded quantum algorithms.
 - **Accuracy oracle** for VQE, Trotter, and future QPE results
 - Produces reference eigenvalues, sector-filtered ground states, fidelity benchmarks
 
-## Planned contents
+## Current contents
 
 | File | Purpose |
 |------|---------|
-| `ed_reference_sweep.py` | ED across parameter sweeps (L, t, U, g, ω) → reference JSON |
-| `restrict_paulipoly.py` | Sector-restricted Hamiltonian matrix (never builds full 2^n) |
-| `accuracy_gate.py` | Load VQE JSON → compare against ED reference → pass/fail |
+| `cross_check_suite.py` | Exact benchmark matrix across ansatz/VQE modes with JSON/PDF outputs |
+| `cfqm_vs_suzuki_efficiency_suite.py` | Error-vs-cost CFQM/Suzuki benchmarking suite |
+| `cfqm_vs_suzuki_qproc_proxy_benchmark.py` | Processor-proxy benchmark and summary artifacts |
+| `hh_noise_hardware_validation.py` | HH noisy/hardware-facing validation runner |
+| `hh_noise_robustness_seq_report.py` | Sequential HH robustness report workflow |
+| `hh_noise_model_repo_guide.py` | Code/docs-derived HH noise-model guide generator |
+| `benchmark_metrics_proxy.py` | Shared benchmark proxy metric utilities |
+| `statevector_kernels.py` | Shared statevector kernel helpers for exact-bench runners |
+| `noise_oracle_runtime.py` | Runtime/noise oracle support helpers |
+
+Campaign-specific runners that are no longer part of the active benchmark
+surface now live under `archive/exact_bench_campaigns/`.
 
 ## Relationship to `test/`
 

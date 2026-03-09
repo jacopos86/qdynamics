@@ -36,7 +36,7 @@ from qiskit.circuit.library import PauliEvolutionGate
 from qiskit.quantum_info import SparsePauliOp
 from qiskit.synthesis import SuzukiTrotter
 
-from reports.pdf_utils import (
+from docs.reports.pdf_utils import (
     HAS_MATPLOTLIB,
     current_command_string,
     get_PdfPages,
@@ -68,10 +68,7 @@ from src.quantum.vqe_latex_python_pairs import (
     AnsatzTerm,
     HardcodedUCCSDAnsatz,
     HubbardHolsteinPhysicalTermwiseAnsatz,
-    apply_exp_pauli_polynomial,
-    apply_pauli_string,
     exact_ground_energy_sector_hh,
-    expval_pauli_polynomial,
     hamiltonian_matrix,
     vqe_minimize,
 )
@@ -85,12 +82,23 @@ from pipelines.exact_bench.hh_seq_transition_utils import (
     summarize_transition,
     update_transition_state,
 )
+from pipelines.exact_bench.statevector_kernels import (
+    apply_h_poly as _apply_pauli_polynomial,
+    commutator_gradient as _commutator_gradient,
+    compile_ansatz_executor as _compile_ansatz_executor_shared,
+    compile_h_poly as _compile_h_poly_shared,
+    energy_one_apply as _energy_one_apply_shared,
+    prepare_state_for_ansatz as _prepare_state_for_ansatz,
+)
 from pipelines.exact_bench.noise_oracle_runtime import (
     ExpectationOracle,
     OracleConfig,
     _append_reference_state,
     _doublon_site_qop,
     _number_operator_qop,
+    normalize_ideal_reference_symmetry_mitigation,
+    normalize_mitigation_config,
+    normalize_symmetry_mitigation_config,
 )
 from pipelines.hardcoded import hubbard_pipeline as hc_pipeline
 
@@ -151,6 +159,39 @@ def _parse_noisy_methods_csv(raw: str) -> list[str]:
     return vals
 
 
+def _build_mitigation_config(
+    *,
+    mitigation: str,
+    zne_scales: str | None,
+    dd_sequence: str | None,
+) -> dict[str, Any]:
+    return normalize_mitigation_config(
+        {
+            "mode": str(mitigation),
+            "zne_scales": zne_scales,
+            "dd_sequence": dd_sequence,
+        }
+    )
+
+
+def _build_symmetry_mitigation_config(
+    *,
+    mode: str,
+    L: int,
+    ordering: str,
+) -> dict[str, Any]:
+    num_particles = _half_filled_particles(int(L))
+    return normalize_symmetry_mitigation_config(
+        {
+            "mode": str(mode),
+            "num_sites": int(L),
+            "ordering": str(ordering),
+            "sector_n_up": int(num_particles[0]),
+            "sector_n_dn": int(num_particles[1]),
+        }
+    )
+
+
 def _normalize_state(psi: np.ndarray) -> np.ndarray:
     arr = np.asarray(psi, dtype=complex).reshape(-1)
     nrm = float(np.linalg.norm(arr))
@@ -207,44 +248,6 @@ def _build_hh_hva_ansatz(args: argparse.Namespace, *, reps: int) -> Any:
         indexing=str(args.ordering),
         pbc=(str(args.boundary).strip().lower() == "periodic"),
     )
-
-
-def _apply_pauli_polynomial(state: np.ndarray, poly: Any) -> np.ndarray:
-    terms = poly.return_polynomial()
-    if not terms:
-        return np.zeros_like(state)
-    nq = int(terms[0].nqubit())
-    id_str = "e" * nq
-    out = np.zeros_like(state)
-    for term in terms:
-        coeff = complex(term.p_coeff)
-        if abs(coeff) <= 1e-15:
-            continue
-        ps = str(term.pw2strng())
-        if ps == id_str:
-            out += coeff * state
-        else:
-            out += coeff * apply_pauli_string(state, ps)
-    return out
-
-
-def _prepare_state(psi_ref: np.ndarray, selected_ops: list[AnsatzTerm], theta: np.ndarray) -> np.ndarray:
-    psi = np.array(psi_ref, copy=True)
-    for k, op in enumerate(selected_ops):
-        psi = apply_exp_pauli_polynomial(psi, op.polynomial, float(theta[k]))
-    return _normalize_state(psi)
-
-
-def _energy(h_poly: Any, psi_ref: np.ndarray, selected_ops: list[AnsatzTerm], theta: np.ndarray) -> float:
-    psi = _prepare_state(psi_ref, selected_ops, theta)
-    return float(expval_pauli_polynomial(psi, h_poly))
-
-
-def _commutator_gradient(h_poly: Any, op: AnsatzTerm, psi_current: np.ndarray) -> float:
-    # dE/dtheta|_0 = i<psi|[H,G]|psi> = 2 Im(<Hpsi|Gpsi>)
-    g_psi = _apply_pauli_polynomial(psi_current, op.polynomial)
-    h_psi = _apply_pauli_polynomial(psi_current, h_poly)
-    return float(2.0 * np.vdot(h_psi, g_psi).imag)
 
 
 def _build_uccsd_fermion_lifted_pool(
@@ -375,6 +378,7 @@ def _run_vqe_stage_with_transition(
         emit_theta_in_progress=False,
         return_best_on_keyboard_interrupt=True,
         early_stop_checker=_early_stop_checker,
+        energy_backend="one_apply_compiled",
     )
 
     theta = np.asarray(res.theta, dtype=float)
@@ -437,12 +441,29 @@ def _run_adapt_stage_with_transition(
     rng = np.random.default_rng(int(seed))
     selected_ops: list[AnsatzTerm] = []
     theta = np.zeros(0, dtype=float)
+    selected_executor: Any | None = None
     available_indices = set(range(len(pool)))
     history: list[dict[str, Any]] = []
+    pauli_action_cache: dict[str, Any] = {}
+    h_compiled = _compile_h_poly_shared(
+        h_poly,
+        tol=1e-12,
+        pauli_action_cache=pauli_action_cache,
+    )
+    pool_compiled = [
+        _compile_h_poly_shared(
+            op.polynomial,
+            tol=1e-12,
+            pauli_action_cache=pauli_action_cache,
+        )
+        for op in pool
+    ]
     nfev_total = 1
     nit_total = 0
 
-    energy_current = float(expval_pauli_polynomial(np.asarray(psi_start, dtype=complex), h_poly))
+    energy_current = float(
+        _energy_one_apply_shared(np.asarray(psi_start, dtype=complex), h_poly, compiled=h_compiled)
+    )
     transition_state = TransitionState(cfg=transition_cfg)
     update_transition_state(transition_state, delta_abs=abs(float(energy_current) - float(exact_energy)))
 
@@ -454,9 +475,28 @@ def _run_adapt_stage_with_transition(
             stop_reason = "pool_exhausted"
             break
 
-        psi_current = _prepare_state(np.asarray(psi_start, dtype=complex), selected_ops, theta)
+        psi_current = _prepare_state_for_ansatz(
+            np.asarray(psi_start, dtype=complex),
+            selected_ops,
+            theta,
+            compiled_cache=selected_executor,
+            normalize=True,
+        )
+        hpsi_current = _apply_pauli_polynomial(psi_current, h_poly, compiled=h_compiled)
         gradients = {
-            idx: float(_commutator_gradient(h_poly, pool[idx], psi_current)) for idx in candidate_indices
+            idx: float(
+                _commutator_gradient(
+                    pool[idx],
+                    psi_current,
+                    h_poly,
+                    compiled={
+                        "h_compiled": h_compiled,
+                        "pool_compiled": pool_compiled[idx],
+                    },
+                    h_psi_precomputed=hpsi_current,
+                )
+            )
+            for idx in candidate_indices
         }
         grad_abs = {idx: abs(v) for idx, v in gradients.items()}
         best_idx = max(candidate_indices, key=lambda i: (grad_abs[i], -i))
@@ -468,13 +508,26 @@ def _run_adapt_stage_with_transition(
 
         selected_ops.append(pool[best_idx])
         theta = np.append(theta, 0.0)
+        selected_executor = _compile_ansatz_executor_shared(
+            selected_ops,
+            coefficient_tolerance=1e-12,
+            ignore_identity=True,
+            sort_terms=True,
+            pauli_action_cache=pauli_action_cache,
+        )
         if not bool(allow_repeats):
             available_indices.discard(best_idx)
 
         energy_prev = float(energy_current)
-
         def _obj(x: np.ndarray) -> float:
-            return _energy(h_poly, np.asarray(psi_start, dtype=complex), selected_ops, np.asarray(x, dtype=float))
+            psi_obj = _prepare_state_for_ansatz(
+                np.asarray(psi_start, dtype=complex),
+                selected_ops,
+                np.asarray(x, dtype=float),
+                compiled_cache=selected_executor,
+                normalize=True,
+            )
+            return float(_energy_one_apply_shared(psi_obj, h_poly, compiled=h_compiled))
 
         x0 = np.asarray(theta, dtype=float) + 0.02 * rng.normal(size=theta.size)
         res = scipy_minimize(
@@ -521,7 +574,13 @@ def _run_adapt_stage_with_transition(
             stop_reason = "slope_plateau"
             break
 
-    psi_best = _prepare_state(np.asarray(psi_start, dtype=complex), selected_ops, theta)
+    psi_best = _prepare_state_for_ansatz(
+        np.asarray(psi_start, dtype=complex),
+        selected_ops,
+        theta,
+        compiled_cache=selected_executor,
+        normalize=True,
+    )
 
     payload = {
         "stage": "adapt_pool_b",
@@ -901,6 +960,8 @@ def _run_noisy_suzuki_trajectory(
     seed: int,
     oracle_repeats: int,
     oracle_aggregate: str,
+    mitigation_config: dict[str, Any],
+    symmetry_mitigation_config: dict[str, Any],
     backend_name: str | None,
     use_fake_backend: bool,
     allow_aer_fallback: bool,
@@ -930,6 +991,11 @@ def _run_noisy_suzuki_trajectory(
     obs_doublon0 = _doublon_site_qop(int(nq), int(up0_idx), int(dn0_idx))
     obs_staggered = _staggered_qop(int(nq), int(L), str(ordering))
 
+    ideal_symmetry_mitigation_config = normalize_ideal_reference_symmetry_mitigation(
+        symmetry_mitigation_config,
+        noise_mode=str(noise_mode),
+    )
+
     noisy_cfg = OracleConfig(
         noise_mode=str(noise_mode),
         shots=int(shots),
@@ -941,6 +1007,8 @@ def _run_noisy_suzuki_trajectory(
         allow_aer_fallback=bool(allow_aer_fallback),
         aer_fallback_mode="sampler_shots",
         omp_shm_workaround=bool(omp_shm_workaround),
+        mitigation=dict(mitigation_config),
+        symmetry_mitigation=dict(symmetry_mitigation_config),
     )
     ideal_cfg = OracleConfig(
         noise_mode="ideal",
@@ -950,6 +1018,8 @@ def _run_noisy_suzuki_trajectory(
         oracle_aggregate=str(oracle_aggregate),
         backend_name=None,
         use_fake_backend=False,
+        mitigation={"mode": "none", "zne_scales": [], "dd_sequence": None},
+        symmetry_mitigation=dict(ideal_symmetry_mitigation_config),
     )
 
     times = np.linspace(0.0, float(t_final), int(num_times))
@@ -984,15 +1054,23 @@ def _run_noisy_suzuki_trajectory(
                     drive_coeff_map_exyz=drive_obs_map,
                 )
 
-            def _pair(obs: SparsePauliOp) -> tuple[float, float, float, float]:
+            def _pair(obs: SparsePauliOp) -> dict[str, float]:
                 n_est = noisy_oracle.evaluate(qc_t, obs)
                 i_est = ideal_oracle.evaluate(qc_t, obs)
-                return (
-                    float(n_est.mean),
-                    float(n_est.std),
-                    float(i_est.mean),
-                    float(n_est.mean - i_est.mean),
-                )
+                delta_mean = float(n_est.mean - i_est.mean)
+                delta_stderr = _combine_stderr(n_est.stderr, i_est.stderr)
+                return {
+                    "noisy_mean": float(n_est.mean),
+                    "noisy_std": float(n_est.std),
+                    "noisy_stdev": float(n_est.stdev),
+                    "noisy_stderr": float(n_est.stderr),
+                    "ideal_mean": float(i_est.mean),
+                    "ideal_std": float(i_est.std),
+                    "ideal_stdev": float(i_est.stdev),
+                    "ideal_stderr": float(i_est.stderr),
+                    "delta_mean": float(delta_mean),
+                    "delta_stderr": float(delta_stderr),
+                }
 
             e_s = _pair(static_qop)
             e_t = _pair(total_qop)
@@ -1004,30 +1082,84 @@ def _run_noisy_suzuki_trajectory(
             rows.append(
                 {
                     "time": float(t_val),
-                    "energy_static_noisy": e_s[0],
-                    "energy_static_noisy_std": e_s[1],
-                    "energy_static_ideal": e_s[2],
-                    "energy_static_delta_noisy_minus_ideal": e_s[3],
-                    "energy_total_noisy": e_t[0],
-                    "energy_total_noisy_std": e_t[1],
-                    "energy_total_ideal": e_t[2],
-                    "energy_total_delta_noisy_minus_ideal": e_t[3],
-                    "n_up_site0_noisy": up0[0],
-                    "n_up_site0_noisy_std": up0[1],
-                    "n_up_site0_ideal": up0[2],
-                    "n_up_site0_delta_noisy_minus_ideal": up0[3],
-                    "n_dn_site0_noisy": dn0[0],
-                    "n_dn_site0_noisy_std": dn0[1],
-                    "n_dn_site0_ideal": dn0[2],
-                    "n_dn_site0_delta_noisy_minus_ideal": dn0[3],
-                    "doublon_noisy": dbl[0],
-                    "doublon_noisy_std": dbl[1],
-                    "doublon_ideal": dbl[2],
-                    "doublon_delta_noisy_minus_ideal": dbl[3],
-                    "staggered_noisy": stg[0],
-                    "staggered_noisy_std": stg[1],
-                    "staggered_ideal": stg[2],
-                    "staggered_delta_noisy_minus_ideal": stg[3],
+                    "energy_static_noisy": e_s["noisy_mean"],
+                    "energy_static_noisy_mean": e_s["noisy_mean"],
+                    "energy_static_noisy_std": e_s["noisy_std"],
+                    "energy_static_noisy_stdev": e_s["noisy_stdev"],
+                    "energy_static_noisy_stderr": e_s["noisy_stderr"],
+                    "energy_static_ideal": e_s["ideal_mean"],
+                    "energy_static_ideal_mean": e_s["ideal_mean"],
+                    "energy_static_ideal_std": e_s["ideal_std"],
+                    "energy_static_ideal_stdev": e_s["ideal_stdev"],
+                    "energy_static_ideal_stderr": e_s["ideal_stderr"],
+                    "energy_static_delta_noisy_minus_ideal": e_s["delta_mean"],
+                    "energy_static_delta_noisy_minus_ideal_mean": e_s["delta_mean"],
+                    "energy_static_delta_noisy_minus_ideal_stderr": e_s["delta_stderr"],
+                    "energy_total_noisy": e_t["noisy_mean"],
+                    "energy_total_noisy_mean": e_t["noisy_mean"],
+                    "energy_total_noisy_std": e_t["noisy_std"],
+                    "energy_total_noisy_stdev": e_t["noisy_stdev"],
+                    "energy_total_noisy_stderr": e_t["noisy_stderr"],
+                    "energy_total_ideal": e_t["ideal_mean"],
+                    "energy_total_ideal_mean": e_t["ideal_mean"],
+                    "energy_total_ideal_std": e_t["ideal_std"],
+                    "energy_total_ideal_stdev": e_t["ideal_stdev"],
+                    "energy_total_ideal_stderr": e_t["ideal_stderr"],
+                    "energy_total_delta_noisy_minus_ideal": e_t["delta_mean"],
+                    "energy_total_delta_noisy_minus_ideal_mean": e_t["delta_mean"],
+                    "energy_total_delta_noisy_minus_ideal_stderr": e_t["delta_stderr"],
+                    "n_up_site0_noisy": up0["noisy_mean"],
+                    "n_up_site0_noisy_mean": up0["noisy_mean"],
+                    "n_up_site0_noisy_std": up0["noisy_std"],
+                    "n_up_site0_noisy_stdev": up0["noisy_stdev"],
+                    "n_up_site0_noisy_stderr": up0["noisy_stderr"],
+                    "n_up_site0_ideal": up0["ideal_mean"],
+                    "n_up_site0_ideal_mean": up0["ideal_mean"],
+                    "n_up_site0_ideal_std": up0["ideal_std"],
+                    "n_up_site0_ideal_stdev": up0["ideal_stdev"],
+                    "n_up_site0_ideal_stderr": up0["ideal_stderr"],
+                    "n_up_site0_delta_noisy_minus_ideal": up0["delta_mean"],
+                    "n_up_site0_delta_noisy_minus_ideal_mean": up0["delta_mean"],
+                    "n_up_site0_delta_noisy_minus_ideal_stderr": up0["delta_stderr"],
+                    "n_dn_site0_noisy": dn0["noisy_mean"],
+                    "n_dn_site0_noisy_mean": dn0["noisy_mean"],
+                    "n_dn_site0_noisy_std": dn0["noisy_std"],
+                    "n_dn_site0_noisy_stdev": dn0["noisy_stdev"],
+                    "n_dn_site0_noisy_stderr": dn0["noisy_stderr"],
+                    "n_dn_site0_ideal": dn0["ideal_mean"],
+                    "n_dn_site0_ideal_mean": dn0["ideal_mean"],
+                    "n_dn_site0_ideal_std": dn0["ideal_std"],
+                    "n_dn_site0_ideal_stdev": dn0["ideal_stdev"],
+                    "n_dn_site0_ideal_stderr": dn0["ideal_stderr"],
+                    "n_dn_site0_delta_noisy_minus_ideal": dn0["delta_mean"],
+                    "n_dn_site0_delta_noisy_minus_ideal_mean": dn0["delta_mean"],
+                    "n_dn_site0_delta_noisy_minus_ideal_stderr": dn0["delta_stderr"],
+                    "doublon_noisy": dbl["noisy_mean"],
+                    "doublon_noisy_mean": dbl["noisy_mean"],
+                    "doublon_noisy_std": dbl["noisy_std"],
+                    "doublon_noisy_stdev": dbl["noisy_stdev"],
+                    "doublon_noisy_stderr": dbl["noisy_stderr"],
+                    "doublon_ideal": dbl["ideal_mean"],
+                    "doublon_ideal_mean": dbl["ideal_mean"],
+                    "doublon_ideal_std": dbl["ideal_std"],
+                    "doublon_ideal_stdev": dbl["ideal_stdev"],
+                    "doublon_ideal_stderr": dbl["ideal_stderr"],
+                    "doublon_delta_noisy_minus_ideal": dbl["delta_mean"],
+                    "doublon_delta_noisy_minus_ideal_mean": dbl["delta_mean"],
+                    "doublon_delta_noisy_minus_ideal_stderr": dbl["delta_stderr"],
+                    "staggered_noisy": stg["noisy_mean"],
+                    "staggered_noisy_mean": stg["noisy_mean"],
+                    "staggered_noisy_std": stg["noisy_std"],
+                    "staggered_noisy_stdev": stg["noisy_stdev"],
+                    "staggered_noisy_stderr": stg["noisy_stderr"],
+                    "staggered_ideal": stg["ideal_mean"],
+                    "staggered_ideal_mean": stg["ideal_mean"],
+                    "staggered_ideal_std": stg["ideal_std"],
+                    "staggered_ideal_stdev": stg["ideal_stdev"],
+                    "staggered_ideal_stderr": stg["ideal_stderr"],
+                    "staggered_delta_noisy_minus_ideal": stg["delta_mean"],
+                    "staggered_delta_noisy_minus_ideal_mean": stg["delta_mean"],
+                    "staggered_delta_noisy_minus_ideal_stderr": stg["delta_stderr"],
                 }
             )
 
@@ -1046,7 +1178,16 @@ def _run_noisy_suzuki_trajectory(
         "noise_mode": str(noise_mode),
         "drive_enabled": bool(drive_profile is not None),
         "drive_meta": drive_meta,
+        "noise_config": {
+            "noise_mode": str(noise_mode),
+            "shots": int(shots),
+            "oracle_repeats": int(oracle_repeats),
+            "oracle_aggregate": str(oracle_aggregate),
+            "mitigation": dict(mitigation_config),
+            "symmetry_mitigation": dict(symmetry_mitigation_config),
+        },
         "trajectory": rows,
+        "delta_uncertainty": _trajectory_delta_uncertainty(rows),
         **backend_details,
     }
 
@@ -1067,6 +1208,8 @@ def _run_noisy_method_trajectory(
     seed: int,
     oracle_repeats: int,
     oracle_aggregate: str,
+    mitigation_config: dict[str, Any],
+    symmetry_mitigation_config: dict[str, Any],
     backend_name: str | None,
     use_fake_backend: bool,
     allow_aer_fallback: bool,
@@ -1104,6 +1247,11 @@ def _run_noisy_method_trajectory(
     obs_doublon0 = _doublon_site_qop(int(nq), int(up0_idx), int(dn0_idx))
     obs_staggered = _staggered_qop(int(nq), int(L), str(ordering))
 
+    ideal_symmetry_mitigation_config = normalize_ideal_reference_symmetry_mitigation(
+        symmetry_mitigation_config,
+        noise_mode=str(noise_mode),
+    )
+
     noisy_cfg = OracleConfig(
         noise_mode=str(noise_mode),
         shots=int(shots),
@@ -1115,6 +1263,8 @@ def _run_noisy_method_trajectory(
         allow_aer_fallback=bool(allow_aer_fallback),
         aer_fallback_mode="sampler_shots",
         omp_shm_workaround=bool(omp_shm_workaround),
+        mitigation=dict(mitigation_config),
+        symmetry_mitigation=dict(symmetry_mitigation_config),
     )
     ideal_cfg = OracleConfig(
         noise_mode="ideal",
@@ -1124,6 +1274,8 @@ def _run_noisy_method_trajectory(
         oracle_aggregate=str(oracle_aggregate),
         backend_name=None,
         use_fake_backend=False,
+        mitigation={"mode": "none", "zne_scales": [], "dd_sequence": None},
+        symmetry_mitigation=dict(ideal_symmetry_mitigation_config),
     )
 
     times = np.linspace(0.0, float(t_final), int(num_times))
@@ -1176,19 +1328,27 @@ def _run_noisy_method_trajectory(
                     drive_coeff_map_exyz=drive_obs_map,
                 )
 
-            def _pair(obs: SparsePauliOp) -> tuple[float, float, float, float]:
+            def _pair(obs: SparsePauliOp) -> dict[str, float]:
                 nonlocal oracle_eval_s_total, oracle_calls_total
                 t_eval0 = float(time.perf_counter())
                 n_est = noisy_oracle.evaluate(qc_t, obs)
                 i_est = ideal_oracle.evaluate(qc_t, obs)
                 oracle_eval_s_total += float(time.perf_counter() - t_eval0)
                 oracle_calls_total += 2
-                return (
-                    float(n_est.mean),
-                    float(n_est.std),
-                    float(i_est.mean),
-                    float(n_est.mean - i_est.mean),
-                )
+                delta_mean = float(n_est.mean - i_est.mean)
+                delta_stderr = _combine_stderr(n_est.stderr, i_est.stderr)
+                return {
+                    "noisy_mean": float(n_est.mean),
+                    "noisy_std": float(n_est.std),
+                    "noisy_stdev": float(n_est.stdev),
+                    "noisy_stderr": float(n_est.stderr),
+                    "ideal_mean": float(i_est.mean),
+                    "ideal_std": float(i_est.std),
+                    "ideal_stdev": float(i_est.stdev),
+                    "ideal_stderr": float(i_est.stderr),
+                    "delta_mean": float(delta_mean),
+                    "delta_stderr": float(delta_stderr),
+                }
 
             e_s = _pair(static_qop)
             e_t = _pair(total_qop)
@@ -1200,30 +1360,84 @@ def _run_noisy_method_trajectory(
             rows.append(
                 {
                     "time": float(t_val),
-                    "energy_static_noisy": e_s[0],
-                    "energy_static_noisy_std": e_s[1],
-                    "energy_static_ideal": e_s[2],
-                    "energy_static_delta_noisy_minus_ideal": e_s[3],
-                    "energy_total_noisy": e_t[0],
-                    "energy_total_noisy_std": e_t[1],
-                    "energy_total_ideal": e_t[2],
-                    "energy_total_delta_noisy_minus_ideal": e_t[3],
-                    "n_up_site0_noisy": up0[0],
-                    "n_up_site0_noisy_std": up0[1],
-                    "n_up_site0_ideal": up0[2],
-                    "n_up_site0_delta_noisy_minus_ideal": up0[3],
-                    "n_dn_site0_noisy": dn0[0],
-                    "n_dn_site0_noisy_std": dn0[1],
-                    "n_dn_site0_ideal": dn0[2],
-                    "n_dn_site0_delta_noisy_minus_ideal": dn0[3],
-                    "doublon_noisy": dbl[0],
-                    "doublon_noisy_std": dbl[1],
-                    "doublon_ideal": dbl[2],
-                    "doublon_delta_noisy_minus_ideal": dbl[3],
-                    "staggered_noisy": stg[0],
-                    "staggered_noisy_std": stg[1],
-                    "staggered_ideal": stg[2],
-                    "staggered_delta_noisy_minus_ideal": stg[3],
+                    "energy_static_noisy": e_s["noisy_mean"],
+                    "energy_static_noisy_mean": e_s["noisy_mean"],
+                    "energy_static_noisy_std": e_s["noisy_std"],
+                    "energy_static_noisy_stdev": e_s["noisy_stdev"],
+                    "energy_static_noisy_stderr": e_s["noisy_stderr"],
+                    "energy_static_ideal": e_s["ideal_mean"],
+                    "energy_static_ideal_mean": e_s["ideal_mean"],
+                    "energy_static_ideal_std": e_s["ideal_std"],
+                    "energy_static_ideal_stdev": e_s["ideal_stdev"],
+                    "energy_static_ideal_stderr": e_s["ideal_stderr"],
+                    "energy_static_delta_noisy_minus_ideal": e_s["delta_mean"],
+                    "energy_static_delta_noisy_minus_ideal_mean": e_s["delta_mean"],
+                    "energy_static_delta_noisy_minus_ideal_stderr": e_s["delta_stderr"],
+                    "energy_total_noisy": e_t["noisy_mean"],
+                    "energy_total_noisy_mean": e_t["noisy_mean"],
+                    "energy_total_noisy_std": e_t["noisy_std"],
+                    "energy_total_noisy_stdev": e_t["noisy_stdev"],
+                    "energy_total_noisy_stderr": e_t["noisy_stderr"],
+                    "energy_total_ideal": e_t["ideal_mean"],
+                    "energy_total_ideal_mean": e_t["ideal_mean"],
+                    "energy_total_ideal_std": e_t["ideal_std"],
+                    "energy_total_ideal_stdev": e_t["ideal_stdev"],
+                    "energy_total_ideal_stderr": e_t["ideal_stderr"],
+                    "energy_total_delta_noisy_minus_ideal": e_t["delta_mean"],
+                    "energy_total_delta_noisy_minus_ideal_mean": e_t["delta_mean"],
+                    "energy_total_delta_noisy_minus_ideal_stderr": e_t["delta_stderr"],
+                    "n_up_site0_noisy": up0["noisy_mean"],
+                    "n_up_site0_noisy_mean": up0["noisy_mean"],
+                    "n_up_site0_noisy_std": up0["noisy_std"],
+                    "n_up_site0_noisy_stdev": up0["noisy_stdev"],
+                    "n_up_site0_noisy_stderr": up0["noisy_stderr"],
+                    "n_up_site0_ideal": up0["ideal_mean"],
+                    "n_up_site0_ideal_mean": up0["ideal_mean"],
+                    "n_up_site0_ideal_std": up0["ideal_std"],
+                    "n_up_site0_ideal_stdev": up0["ideal_stdev"],
+                    "n_up_site0_ideal_stderr": up0["ideal_stderr"],
+                    "n_up_site0_delta_noisy_minus_ideal": up0["delta_mean"],
+                    "n_up_site0_delta_noisy_minus_ideal_mean": up0["delta_mean"],
+                    "n_up_site0_delta_noisy_minus_ideal_stderr": up0["delta_stderr"],
+                    "n_dn_site0_noisy": dn0["noisy_mean"],
+                    "n_dn_site0_noisy_mean": dn0["noisy_mean"],
+                    "n_dn_site0_noisy_std": dn0["noisy_std"],
+                    "n_dn_site0_noisy_stdev": dn0["noisy_stdev"],
+                    "n_dn_site0_noisy_stderr": dn0["noisy_stderr"],
+                    "n_dn_site0_ideal": dn0["ideal_mean"],
+                    "n_dn_site0_ideal_mean": dn0["ideal_mean"],
+                    "n_dn_site0_ideal_std": dn0["ideal_std"],
+                    "n_dn_site0_ideal_stdev": dn0["ideal_stdev"],
+                    "n_dn_site0_ideal_stderr": dn0["ideal_stderr"],
+                    "n_dn_site0_delta_noisy_minus_ideal": dn0["delta_mean"],
+                    "n_dn_site0_delta_noisy_minus_ideal_mean": dn0["delta_mean"],
+                    "n_dn_site0_delta_noisy_minus_ideal_stderr": dn0["delta_stderr"],
+                    "doublon_noisy": dbl["noisy_mean"],
+                    "doublon_noisy_mean": dbl["noisy_mean"],
+                    "doublon_noisy_std": dbl["noisy_std"],
+                    "doublon_noisy_stdev": dbl["noisy_stdev"],
+                    "doublon_noisy_stderr": dbl["noisy_stderr"],
+                    "doublon_ideal": dbl["ideal_mean"],
+                    "doublon_ideal_mean": dbl["ideal_mean"],
+                    "doublon_ideal_std": dbl["ideal_std"],
+                    "doublon_ideal_stdev": dbl["ideal_stdev"],
+                    "doublon_ideal_stderr": dbl["ideal_stderr"],
+                    "doublon_delta_noisy_minus_ideal": dbl["delta_mean"],
+                    "doublon_delta_noisy_minus_ideal_mean": dbl["delta_mean"],
+                    "doublon_delta_noisy_minus_ideal_stderr": dbl["delta_stderr"],
+                    "staggered_noisy": stg["noisy_mean"],
+                    "staggered_noisy_mean": stg["noisy_mean"],
+                    "staggered_noisy_std": stg["noisy_std"],
+                    "staggered_noisy_stdev": stg["noisy_stdev"],
+                    "staggered_noisy_stderr": stg["noisy_stderr"],
+                    "staggered_ideal": stg["ideal_mean"],
+                    "staggered_ideal_mean": stg["ideal_mean"],
+                    "staggered_ideal_std": stg["ideal_std"],
+                    "staggered_ideal_stdev": stg["ideal_stdev"],
+                    "staggered_ideal_stderr": stg["ideal_stderr"],
+                    "staggered_delta_noisy_minus_ideal": stg["delta_mean"],
+                    "staggered_delta_noisy_minus_ideal_mean": stg["delta_mean"],
+                    "staggered_delta_noisy_minus_ideal_stderr": stg["delta_stderr"],
                 }
             )
 
@@ -1265,9 +1479,168 @@ def _run_noisy_method_trajectory(
         "noise_mode": str(noise_mode),
         "drive_enabled": bool(drive_profile is not None),
         "drive_meta": drive_meta,
+        "noise_config": {
+            "noise_mode": str(noise_mode),
+            "shots": int(shots),
+            "oracle_repeats": int(oracle_repeats),
+            "oracle_aggregate": str(oracle_aggregate),
+            "mitigation": dict(mitigation_config),
+            "symmetry_mitigation": dict(symmetry_mitigation_config),
+        },
         "trajectory": rows,
+        "delta_uncertainty": _trajectory_delta_uncertainty(rows),
         "benchmark_cost": benchmark_cost,
         "benchmark_runtime": benchmark_runtime,
+        **backend_details,
+    }
+
+
+def _run_noisy_final_state_audit(
+    *,
+    L: int,
+    ordering: str,
+    psi_seed: np.ndarray,
+    ordered_labels_exyz: list[str],
+    static_coeff_map_exyz: dict[str, complex],
+    drive_profile: dict[str, Any] | None,
+    noise_mode: str,
+    shots: int,
+    seed: int,
+    oracle_repeats: int,
+    oracle_aggregate: str,
+    mitigation_config: dict[str, Any],
+    symmetry_mitigation_config: dict[str, Any],
+    backend_name: str | None,
+    use_fake_backend: bool,
+    allow_aer_fallback: bool,
+    omp_shm_workaround: bool,
+) -> dict[str, Any]:
+    nq = int(round(math.log2(int(np.asarray(psi_seed).size))))
+    drive_provider_exyz, drive_meta = _drive_provider_from_profile(
+        profile=drive_profile,
+        num_sites=int(L),
+        nq_total=int(nq),
+        ordering=str(ordering),
+    )
+
+    initial_circuit = QuantumCircuit(int(nq))
+    _append_reference_state(initial_circuit, np.asarray(psi_seed, dtype=complex))
+
+    static_qop = build_time_dependent_sparse_qop(
+        ordered_labels_exyz=ordered_labels_exyz,
+        static_coeff_map_exyz=static_coeff_map_exyz,
+        drive_coeff_map_exyz=None,
+    )
+    if drive_provider_exyz is None:
+        total_qop = static_qop
+    else:
+        t0 = float(0.0 if drive_profile is None else drive_profile.get("t0", 0.0))
+        drive_obs_map = dict(drive_provider_exyz(t0))
+        total_qop = build_time_dependent_sparse_qop(
+            ordered_labels_exyz=ordered_labels_exyz,
+            static_coeff_map_exyz=static_coeff_map_exyz,
+            drive_coeff_map_exyz=drive_obs_map,
+        )
+
+    up0_idx = _spin_orbital_bit_index(0, 0, int(L), ordering)
+    dn0_idx = _spin_orbital_bit_index(0, 1, int(L), ordering)
+    obs_up0 = _number_operator_qop(int(nq), int(up0_idx))
+    obs_dn0 = _number_operator_qop(int(nq), int(dn0_idx))
+    obs_doublon0 = _doublon_site_qop(int(nq), int(up0_idx), int(dn0_idx))
+    obs_staggered = _staggered_qop(int(nq), int(L), str(ordering))
+
+    ideal_symmetry_mitigation_config = normalize_ideal_reference_symmetry_mitigation(
+        symmetry_mitigation_config,
+        noise_mode=str(noise_mode),
+    )
+
+    noisy_cfg = OracleConfig(
+        noise_mode=str(noise_mode),
+        shots=int(shots),
+        seed=int(seed),
+        oracle_repeats=int(oracle_repeats),
+        oracle_aggregate=str(oracle_aggregate),
+        backend_name=(None if backend_name is None else str(backend_name)),
+        use_fake_backend=bool(use_fake_backend),
+        allow_aer_fallback=bool(allow_aer_fallback),
+        aer_fallback_mode="sampler_shots",
+        omp_shm_workaround=bool(omp_shm_workaround),
+        mitigation=dict(mitigation_config),
+        symmetry_mitigation=dict(symmetry_mitigation_config),
+    )
+    ideal_cfg = OracleConfig(
+        noise_mode="ideal",
+        shots=int(shots),
+        seed=int(seed),
+        oracle_repeats=int(oracle_repeats),
+        oracle_aggregate=str(oracle_aggregate),
+        backend_name=None,
+        use_fake_backend=False,
+        mitigation={"mode": "none", "zne_scales": [], "dd_sequence": None},
+        symmetry_mitigation=dict(ideal_symmetry_mitigation_config),
+    )
+
+    with ExpectationOracle(noisy_cfg) as noisy_oracle, ExpectationOracle(ideal_cfg) as ideal_oracle:
+        def _pair(obs: SparsePauliOp) -> dict[str, float]:
+            n_est = noisy_oracle.evaluate(initial_circuit, obs)
+            i_est = ideal_oracle.evaluate(initial_circuit, obs)
+            delta_mean = float(n_est.mean - i_est.mean)
+            delta_stderr = _combine_stderr(n_est.stderr, i_est.stderr)
+            return {
+                "noisy_mean": float(n_est.mean),
+                "noisy_std": float(n_est.std),
+                "noisy_stdev": float(n_est.stdev),
+                "noisy_stderr": float(n_est.stderr),
+                "ideal_mean": float(i_est.mean),
+                "ideal_std": float(i_est.std),
+                "ideal_stdev": float(i_est.stdev),
+                "ideal_stderr": float(i_est.stderr),
+                "delta_mean": float(delta_mean),
+                "delta_stderr": float(delta_stderr),
+            }
+
+        obs_map = {
+            "energy_static": _pair(static_qop),
+            "energy_total": _pair(total_qop),
+            "n_up_site0": _pair(obs_up0),
+            "n_dn_site0": _pair(obs_dn0),
+            "doublon": _pair(obs_doublon0),
+            "staggered": _pair(obs_staggered),
+        }
+
+        backend_details = {
+            "backend_info": {
+                "noise_mode": str(noisy_oracle.backend_info.noise_mode),
+                "estimator_kind": str(noisy_oracle.backend_info.estimator_kind),
+                "backend_name": noisy_oracle.backend_info.backend_name,
+                "using_fake_backend": bool(noisy_oracle.backend_info.using_fake_backend),
+                "details": dict(noisy_oracle.backend_info.details),
+            }
+        }
+
+    delta_unc: dict[str, dict[str, float]] = {}
+    for name, rec in obs_map.items():
+        delta_unc[name] = _delta_uncertainty_metrics(
+            np.asarray([float(rec["delta_mean"])], dtype=float),
+            np.asarray([float(rec["delta_stderr"])], dtype=float),
+        )
+
+    return {
+        "success": True,
+        "noise_mode": str(noise_mode),
+        "drive_enabled": bool(drive_profile is not None),
+        "drive_meta": drive_meta,
+        "time": 0.0,
+        "noise_config": {
+            "noise_mode": str(noise_mode),
+            "shots": int(shots),
+            "oracle_repeats": int(oracle_repeats),
+            "oracle_aggregate": str(oracle_aggregate),
+            "mitigation": dict(mitigation_config),
+            "symmetry_mitigation": dict(symmetry_mitigation_config),
+        },
+        "final_observables": obs_map,
+        "delta_uncertainty": delta_unc,
         **backend_details,
     }
 
@@ -1330,8 +1703,120 @@ def _run_noisy_mode_isolated(
     return dict(msg.get("payload", {}))
 
 
+def _noisy_audit_worker_entry(queue: Any, kwargs: dict[str, Any]) -> None:
+    try:
+        payload = _run_noisy_final_state_audit(**kwargs)
+        queue.put({"ok": True, "payload": payload})
+    except Exception as exc:  # pragma: no cover - subprocess fault path
+        queue.put({"ok": False, "error": f"{type(exc).__name__}: {exc}"})
+
+
+def _run_noisy_audit_mode_isolated(
+    *,
+    kwargs: dict[str, Any],
+    timeout_s: int,
+) -> dict[str, Any]:
+    ctx = mp.get_context("spawn")
+    queue = ctx.Queue()
+    proc = ctx.Process(target=_noisy_audit_worker_entry, args=(queue, kwargs), daemon=False)
+    proc.start()
+    proc.join(timeout=float(timeout_s))
+
+    if proc.is_alive():
+        proc.terminate()
+        proc.join(5.0)
+        return {
+            "success": False,
+            "env_blocked": True,
+            "reason": f"timeout_after_{int(timeout_s)}s",
+            "exitcode": proc.exitcode,
+        }
+
+    if int(proc.exitcode or 0) != 0:
+        return {
+            "success": False,
+            "env_blocked": True,
+            "reason": "subprocess_nonzero_exit",
+            "exitcode": int(proc.exitcode or 0),
+        }
+
+    if queue.empty():
+        return {
+            "success": False,
+            "env_blocked": True,
+            "reason": "subprocess_completed_without_payload",
+            "exitcode": int(proc.exitcode or 0),
+        }
+
+    msg = queue.get()
+    if not bool(msg.get("ok", False)):
+        return {
+            "success": False,
+            "env_blocked": True,
+            "reason": "worker_exception",
+            "error": str(msg.get("error", "unknown")),
+            "exitcode": int(proc.exitcode or 0),
+        }
+    return dict(msg.get("payload", {}))
+
+
 def _extract_series(rows: list[dict[str, Any]], key: str) -> np.ndarray:
     return np.asarray([float(row[key]) for row in rows], dtype=float)
+
+
+def _combine_stderr(noisy_stderr: float, ideal_stderr: float) -> float:
+    n = float(noisy_stderr)
+    i = float(ideal_stderr)
+    if not np.isfinite(i):
+        i = 0.0
+    if not np.isfinite(n):
+        n = 0.0
+    return float(np.sqrt(max(0.0, n * n + i * i)))
+
+
+def _delta_uncertainty_metrics(
+    delta: np.ndarray,
+    delta_stderr: np.ndarray,
+) -> dict[str, float]:
+    delta_abs = np.abs(np.asarray(delta, dtype=float))
+    stderr_arr = np.asarray(delta_stderr, dtype=float)
+    with np.errstate(divide="ignore", invalid="ignore"):
+        z = np.where(stderr_arr > 0.0, delta_abs / stderr_arr, np.nan)
+    finite_z = z[np.isfinite(z)]
+    return {
+        "max_abs_delta": float(np.max(delta_abs)) if delta_abs.size > 0 else float("nan"),
+        "max_abs_delta_over_stderr": (
+            float(np.max(finite_z)) if finite_z.size > 0 else float("nan")
+        ),
+        "mean_abs_delta_over_stderr": (
+            float(np.mean(finite_z)) if finite_z.size > 0 else float("nan")
+        ),
+    }
+
+
+def _trajectory_delta_uncertainty(trajectory: list[dict[str, Any]]) -> dict[str, dict[str, float]]:
+    if not trajectory:
+        return {}
+    channels = [
+        "energy_static",
+        "energy_total",
+        "n_up_site0",
+        "n_dn_site0",
+        "doublon",
+        "staggered",
+    ]
+    out: dict[str, dict[str, float]] = {}
+    for ch in channels:
+        delta_key = f"{ch}_delta_noisy_minus_ideal"
+        delta_stderr_key = f"{delta_key}_stderr"
+        if delta_key not in trajectory[0]:
+            continue
+        delta = np.asarray([float(r[delta_key]) for r in trajectory], dtype=float)
+        delta_stderr = np.asarray(
+            [float(r.get(delta_stderr_key, float("nan"))) for r in trajectory], dtype=float
+        )
+        out[ch] = _delta_uncertainty_metrics(delta, delta_stderr)
+    return out
 
 
 def _compute_exact_reference_for_hh(
@@ -1541,6 +2026,7 @@ def _compute_comparisons(payload: dict[str, Any]) -> dict[str, Any]:
         "noiseless_vs_exact": {},
         "noise_vs_noiseless": {},
         "noise_vs_noiseless_methods": {},
+        "noise_final_audit": {},
     }
 
     noiseless = payload.get("dynamics_noiseless", {})
@@ -1611,10 +2097,19 @@ def _compute_comparisons(payload: dict[str, Any]) -> dict[str, Any]:
                     "final_energy_total_delta_noisy_minus_ideal": float(
                         traj[-1]["energy_total_delta_noisy_minus_ideal"]
                     ),
+                    "final_energy_total_delta_noisy_minus_ideal_stderr": float(
+                        traj[-1].get("energy_total_delta_noisy_minus_ideal_stderr", float("nan"))
+                    ),
                     "final_doublon_delta_noisy_minus_ideal": float(
                         traj[-1]["doublon_delta_noisy_minus_ideal"]
                     ),
+                    "final_doublon_delta_noisy_minus_ideal_stderr": float(
+                        traj[-1].get("doublon_delta_noisy_minus_ideal_stderr", float("nan"))
+                    ),
                 }
+                delta_unc = mode_data.get("delta_uncertainty", {})
+                if isinstance(delta_unc, dict):
+                    rec["delta_uncertainty"] = dict(delta_unc)
                 if e_ref_final is not None:
                     rec[f"final_energy_total_delta_noisy_minus_noiseless_{method_name}"] = float(e_noisy_final - e_ref_final)
                 if d_ref_final is not None:
@@ -1624,6 +2119,39 @@ def _compute_comparisons(payload: dict[str, Any]) -> dict[str, Any]:
 
         out["noise_vs_noiseless_methods"][str(profile_name)] = method_cmp
         out["noise_vs_noiseless"][str(profile_name)] = dict(method_cmp.get("suzuki2", {}))
+
+    noisy_audit = payload.get("noisy_final_audit", {})
+    for profile_name, profile_data in noisy_audit.get("profiles", {}).items():
+        modes = profile_data.get("modes", {}) if isinstance(profile_data, dict) else {}
+        profile_cmp: dict[str, Any] = {}
+        for mode_name, mode_data in modes.items():
+            if not bool(isinstance(mode_data, dict) and mode_data.get("success", False)):
+                profile_cmp[str(mode_name)] = {
+                    "available": False,
+                    "reason": str(mode_data.get("reason", mode_data.get("error", "unknown"))),
+                }
+                continue
+            obs = mode_data.get("final_observables", {}) if isinstance(mode_data, dict) else {}
+            e_total = obs.get("energy_total", {}) if isinstance(obs.get("energy_total", {}), dict) else {}
+            doublon = obs.get("doublon", {}) if isinstance(obs.get("doublon", {}), dict) else {}
+            rec = {
+                "available": True,
+                "final_energy_total_noisy": float(e_total.get("noisy_mean", float("nan"))),
+                "final_doublon_noisy": float(doublon.get("noisy_mean", float("nan"))),
+                "final_energy_total_delta_noisy_minus_ideal": float(e_total.get("delta_mean", float("nan"))),
+                "final_energy_total_delta_noisy_minus_ideal_stderr": float(
+                    e_total.get("delta_stderr", float("nan"))
+                ),
+                "final_doublon_delta_noisy_minus_ideal": float(doublon.get("delta_mean", float("nan"))),
+                "final_doublon_delta_noisy_minus_ideal_stderr": float(
+                    doublon.get("delta_stderr", float("nan"))
+                ),
+            }
+            delta_unc = mode_data.get("delta_uncertainty", {})
+            if isinstance(delta_unc, dict):
+                rec["delta_uncertainty"] = dict(delta_unc)
+            profile_cmp[str(mode_name)] = rec
+        out["noise_final_audit"][str(profile_name)] = profile_cmp
 
     return out
 
@@ -1639,6 +2167,12 @@ def _build_summary(payload: dict[str, Any]) -> dict[str, Any]:
     noisy_total = 0
     noisy_method_modes_completed = 0
     noisy_method_modes_total = 0
+    delta_abs_vals: list[float] = []
+    delta_sig_vals: list[float] = []
+    delta_sig_mean_vals: list[float] = []
+    audit_delta_abs_vals: list[float] = []
+    audit_delta_sig_vals: list[float] = []
+    audit_delta_sig_mean_vals: list[float] = []
     for prof in noisy.values():
         modes = prof.get("modes", {}) if isinstance(prof, dict) else {}
         for mode_data in modes.values():
@@ -1653,9 +2187,50 @@ def _build_summary(payload: dict[str, Any]) -> dict[str, Any]:
                     noisy_method_modes_total += 1
                     if bool(mode_data.get("success", False)):
                         noisy_method_modes_completed += 1
+                    delta_unc = mode_data.get("delta_uncertainty", {}) if isinstance(mode_data, dict) else {}
+                    if isinstance(delta_unc, dict):
+                        for rec in delta_unc.values():
+                            if not isinstance(rec, dict):
+                                continue
+                            max_abs = float(rec.get("max_abs_delta", float("nan")))
+                            max_sig = float(rec.get("max_abs_delta_over_stderr", float("nan")))
+                            mean_sig = float(rec.get("mean_abs_delta_over_stderr", float("nan")))
+                            if np.isfinite(max_abs):
+                                delta_abs_vals.append(max_abs)
+                            if np.isfinite(max_sig):
+                                delta_sig_vals.append(max_sig)
+                            if np.isfinite(mean_sig):
+                                delta_sig_mean_vals.append(mean_sig)
+
+    noisy_audit = payload.get("noisy_final_audit", {}).get("profiles", {})
+    noisy_audit_modes_completed = 0
+    noisy_audit_modes_total = 0
+    for prof in noisy_audit.values():
+        modes = prof.get("modes", {}) if isinstance(prof, dict) else {}
+        for mode_data in modes.values():
+            noisy_audit_modes_total += 1
+            if bool(isinstance(mode_data, dict) and mode_data.get("success", False)):
+                noisy_audit_modes_completed += 1
+            delta_unc = mode_data.get("delta_uncertainty", {}) if isinstance(mode_data, dict) else {}
+            if isinstance(delta_unc, dict):
+                for rec in delta_unc.values():
+                    if not isinstance(rec, dict):
+                        continue
+                    max_abs = float(rec.get("max_abs_delta", float("nan")))
+                    max_sig = float(rec.get("max_abs_delta_over_stderr", float("nan")))
+                    mean_sig = float(rec.get("mean_abs_delta_over_stderr", float("nan")))
+                    if np.isfinite(max_abs):
+                        audit_delta_abs_vals.append(max_abs)
+                    if np.isfinite(max_sig):
+                        audit_delta_sig_vals.append(max_sig)
+                    if np.isfinite(mean_sig):
+                        audit_delta_sig_mean_vals.append(mean_sig)
 
     dyn_bench = payload.get("dynamics_benchmarks", {})
     dyn_rows = dyn_bench.get("rows", []) if isinstance(dyn_bench, dict) else []
+    delta_abs_all = [*delta_abs_vals, *audit_delta_abs_vals]
+    delta_sig_all = [*delta_sig_vals, *audit_delta_sig_vals]
+    delta_sig_mean_all = [*delta_sig_mean_vals, *audit_delta_sig_mean_vals]
 
     return {
         "warm_delta_abs": float(warm.get("delta_abs", float("nan"))),
@@ -1668,6 +2243,38 @@ def _build_summary(payload: dict[str, Any]) -> dict[str, Any]:
         "noisy_modes_total": int(noisy_total),
         "noisy_method_modes_completed": int(noisy_method_modes_completed),
         "noisy_method_modes_total": int(noisy_method_modes_total),
+        "noisy_audit_modes_completed": int(noisy_audit_modes_completed),
+        "noisy_audit_modes_total": int(noisy_audit_modes_total),
+        "max_abs_delta": (
+            float(np.max(np.asarray(delta_abs_all, dtype=float)))
+            if delta_abs_all
+            else float("nan")
+        ),
+        "max_abs_delta_over_stderr": (
+            float(np.max(np.asarray(delta_sig_all, dtype=float)))
+            if delta_sig_all
+            else float("nan")
+        ),
+        "mean_abs_delta_over_stderr": (
+            float(np.mean(np.asarray(delta_sig_mean_all, dtype=float)))
+            if delta_sig_mean_all
+            else float("nan")
+        ),
+        "noisy_audit_max_abs_delta": (
+            float(np.max(np.asarray(audit_delta_abs_vals, dtype=float)))
+            if audit_delta_abs_vals
+            else float("nan")
+        ),
+        "noisy_audit_max_abs_delta_over_stderr": (
+            float(np.max(np.asarray(audit_delta_sig_vals, dtype=float)))
+            if audit_delta_sig_vals
+            else float("nan")
+        ),
+        "noisy_audit_mean_abs_delta_over_stderr": (
+            float(np.mean(np.asarray(audit_delta_sig_mean_vals, dtype=float)))
+            if audit_delta_sig_mean_vals
+            else float("nan")
+        ),
         "dynamics_benchmark_rows": int(len(dyn_rows) if isinstance(dyn_rows, list) else 0),
     }
 
@@ -1791,16 +2398,23 @@ def _build_equation_registry_and_contracts(payload: dict[str, Any]) -> tuple[dic
     )
     _add(
         "eq_noisy_estimator",
-        latex=r"\mu_O=\mathrm{agg}(\{\langle O\rangle_r\}_{r=1}^{R}),\quad \sigma_O=\mathrm{std}(\{\langle O\rangle_r\}_{r=1}^{R})",
-        plain="Noisy oracle aggregate and empirical spread.",
+        latex=(
+            r"\mu_O=\mathrm{agg}(\{\langle O\rangle_r\}_{r=1}^{R}),\quad "
+            r"\sigma_O=\mathrm{std}(\{\langle O\rangle_r\}_{r=1}^{R}),\quad "
+            r"\mathrm{stderr}_O=\sigma_O/\sqrt{R}"
+        ),
+        plain="Noisy oracle aggregate, empirical spread, and standard error over repeats.",
         symbols={"R": "oracle repeats", "agg": "mean/median aggregate"},
         units="observable units",
         source_keys=["settings.oracle_repeats", "settings.oracle_aggregate"],
     )
     _add(
         "eq_noisy_delta",
-        latex=r"\Delta_O^{\mathrm{noise-ideal}}(t)=\mu_O^{\mathrm{noise}}(t)-\mu_O^{\mathrm{ideal}}(t)",
-        plain="Noisy-vs-ideal observable delta.",
+        latex=(
+            r"\Delta_O^{\mathrm{noise-ideal}}(t)=\mu_O^{\mathrm{noise}}(t)-\mu_O^{\mathrm{ideal}}(t),\quad "
+            r"\mathrm{stderr}_{\Delta}=\sqrt{\mathrm{stderr}_{\mathrm{noise}}^2+\mathrm{stderr}_{\mathrm{ideal}}^2}"
+        ),
+        plain="Noisy-vs-ideal observable delta with propagated standard error.",
         symbols={"O": "observable channel"},
         units="observable units",
         source_keys=["dynamics_noisy.profiles.*.modes.*.trajectory.*.*_delta_noisy_minus_ideal"],
@@ -2132,7 +2746,24 @@ def _noise_style_legend_lines() -> list[str]:
         "exact reference                    : #111111",
         "solid mode color = noisy measured; dashed mode color = ideal reference for mode",
         "dotted black horizontal = zero baseline for Δ(noisy-ideal)",
+        "translucent mode band = ±2*stderr around Δ(noisy-ideal)",
     ]
+
+
+def _noise_config_caption(settings: dict[str, Any], mode: str) -> str:
+    mitigation = settings.get("mitigation_config", {}) if isinstance(settings, dict) else {}
+    symmetry = settings.get("symmetry_mitigation_config", {}) if isinstance(settings, dict) else {}
+    return (
+        "noise_config: "
+        f"mode={str(mode)}, "
+        f"shots={settings.get('shots')}, "
+        f"oracle_repeats={settings.get('oracle_repeats')}, "
+        f"oracle_aggregate={settings.get('oracle_aggregate')}, "
+        f"mitigation={mitigation.get('mode', 'none')}, "
+        f"zne_scales={mitigation.get('zne_scales', [])}, "
+        f"dd_sequence={mitigation.get('dd_sequence', None)}, "
+        f"symmetry={symmetry.get('mode', 'off')}"
+    )
 
 
 def _latex_to_unicode_math(expr: str) -> str:
@@ -2362,8 +2993,10 @@ def _write_pdf(pdf_path: Path, payload: dict[str, Any]) -> None:
                 "n_ph_max": settings.get("n_ph_max"),
                 "omega0": settings.get("omega0"),
                 "g_ep": settings.get("g_ep"),
+                "disable_time_dynamics": bool(settings.get("disable_time_dynamics", False)),
                 "noise_modes": settings.get("noise_modes"),
                 "noisy_methods": settings.get("noisy_methods"),
+                "mitigation": settings.get("mitigation_config"),
                 "trotter_steps": settings.get("trotter_steps"),
                 "num_times": settings.get("num_times"),
                 "magnus_variants": "midpoint_magnus2,cfqm4,cfqm6",
@@ -2380,11 +3013,19 @@ def _write_pdf(pdf_path: Path, payload: dict[str, Any]) -> None:
             "HH Noise Robustness Report Summary",
             "",
             f"final delta_abs: {summary.get('final_delta_abs')}",
+            f"max_abs_delta: {summary.get('max_abs_delta')}",
+            f"max_abs_delta_over_stderr: {summary.get('max_abs_delta_over_stderr')}",
+            f"mean_abs_delta_over_stderr: {summary.get('mean_abs_delta_over_stderr')}",
+            f"noisy_audit_max_abs_delta: {summary.get('noisy_audit_max_abs_delta')}",
+            f"noisy_audit_max_abs_delta_over_stderr: {summary.get('noisy_audit_max_abs_delta_over_stderr')}",
+            f"noisy_audit_mean_abs_delta_over_stderr: {summary.get('noisy_audit_mean_abs_delta_over_stderr')}",
             f"warm stop: {summary.get('warm_stop_reason')}",
             f"adapt stop: {summary.get('adapt_stop_reason')}",
             f"final stop: {summary.get('final_stop_reason')}",
             f"noisy modes completed: {summary.get('noisy_modes_completed')} / {summary.get('noisy_modes_total')}",
             f"noisy method-modes completed: {summary.get('noisy_method_modes_completed')} / {summary.get('noisy_method_modes_total')}",
+            f"noisy audit modes completed: {summary.get('noisy_audit_modes_completed')} / {summary.get('noisy_audit_modes_total')}",
+            f"disable_time_dynamics: {bool(settings.get('disable_time_dynamics', False))}",
             "",
             "Transition policies:",
             f"  warm->adapt: {stage_pipeline.get('warm_start', {}).get('transition', {}).get('policy', {})}",
@@ -2515,6 +3156,18 @@ def _write_pdf(pdf_path: Path, payload: dict[str, Any]) -> None:
             ],
             fontsize=10,
         )
+        if bool(settings.get("disable_time_dynamics", False)):
+            render_text_page(
+                pdf,
+                [
+                    "SECTION: RESULTS METHOD COMPARISON",
+                    "",
+                    "Time-dynamics propagation disabled by --disable-time-dynamics.",
+                    "No Suzuki/Magnus/CFQM trajectory overlays are produced in this run.",
+                    "Noisy outputs are reported via final-state t=0 audit pages.",
+                ],
+                fontsize=10,
+            )
 
         # Noiseless overlays for static + drive (Magnus/CFQM extension)
         for profile_name in ("static", "drive"):
@@ -2619,6 +3272,18 @@ def _write_pdf(pdf_path: Path, payload: dict[str, Any]) -> None:
             ],
             fontsize=10,
         )
+        if bool(settings.get("disable_time_dynamics", False)):
+            render_text_page(
+                pdf,
+                [
+                    "SECTION: RESULTS NOISE DETAILS",
+                    "",
+                    "Time-dynamics propagation disabled by --disable-time-dynamics.",
+                    "Noise results below are final-state t=0 audits on the seeded conventional VQE state.",
+                    "Each mode reports noisy/ideal means, propagated delta stderr, and significance metrics.",
+                ],
+                fontsize=10,
+            )
 
         # Mandatory overlay pages: exact + noiseless + all available noisy modes.
         for profile_name in ("static", "drive"):
@@ -2857,24 +3522,52 @@ def _write_pdf(pdf_path: Path, payload: dict[str, Any]) -> None:
                 e_sta_n = np.asarray([float(r["energy_static_noisy"]) for r in traj], dtype=float)
                 e_sta_i = np.asarray([float(r["energy_static_ideal"]) for r in traj], dtype=float)
                 e_tot_d = np.asarray([float(r["energy_total_delta_noisy_minus_ideal"]) for r in traj], dtype=float)
+                e_tot_d_se = np.asarray(
+                    [float(r.get("energy_total_delta_noisy_minus_ideal_stderr", 0.0)) for r in traj],
+                    dtype=float,
+                )
                 e_sta_d = np.asarray([float(r["energy_static_delta_noisy_minus_ideal"]) for r in traj], dtype=float)
+                e_sta_d_se = np.asarray(
+                    [float(r.get("energy_static_delta_noisy_minus_ideal_stderr", 0.0)) for r in traj],
+                    dtype=float,
+                )
                 up_n = np.asarray([float(r["n_up_site0_noisy"]) for r in traj], dtype=float)
                 up_i = np.asarray([float(r["n_up_site0_ideal"]) for r in traj], dtype=float)
                 up_d = np.asarray([float(r["n_up_site0_delta_noisy_minus_ideal"]) for r in traj], dtype=float)
+                up_d_se = np.asarray(
+                    [float(r.get("n_up_site0_delta_noisy_minus_ideal_stderr", 0.0)) for r in traj], dtype=float
+                )
                 dn_n = np.asarray([float(r["n_dn_site0_noisy"]) for r in traj], dtype=float)
                 dn_i = np.asarray([float(r["n_dn_site0_ideal"]) for r in traj], dtype=float)
                 dn_d = np.asarray([float(r["n_dn_site0_delta_noisy_minus_ideal"]) for r in traj], dtype=float)
+                dn_d_se = np.asarray(
+                    [float(r.get("n_dn_site0_delta_noisy_minus_ideal_stderr", 0.0)) for r in traj], dtype=float
+                )
                 dbl_n = np.asarray([float(r["doublon_noisy"]) for r in traj], dtype=float)
                 dbl_i = np.asarray([float(r["doublon_ideal"]) for r in traj], dtype=float)
                 dbl_d = np.asarray([float(r["doublon_delta_noisy_minus_ideal"]) for r in traj], dtype=float)
+                dbl_d_se = np.asarray(
+                    [float(r.get("doublon_delta_noisy_minus_ideal_stderr", 0.0)) for r in traj], dtype=float
+                )
                 stg_n = np.asarray([float(r["staggered_noisy"]) for r in traj], dtype=float)
                 stg_i = np.asarray([float(r["staggered_ideal"]) for r in traj], dtype=float)
                 stg_d = np.asarray([float(r["staggered_delta_noisy_minus_ideal"]) for r in traj], dtype=float)
+                stg_d_se = np.asarray(
+                    [float(r.get("staggered_delta_noisy_minus_ideal_stderr", 0.0)) for r in traj], dtype=float
+                )
+                mode_unc = mdata.get("delta_uncertainty", {})
+                energy_unc = (
+                    mode_unc.get("energy_total", {})
+                    if isinstance(mode_unc, dict) and isinstance(mode_unc.get("energy_total", {}), dict)
+                    else {}
+                )
                 delta_stats = (
                     f"max|ΔE_total|={float(np.max(np.abs(e_tot_d))):.3e}; "
                     f"RMS|ΔE_total|={float(np.sqrt(np.mean(e_tot_d ** 2))):.3e}; "
-                    f"max|ΔD|={float(np.max(np.abs(dbl_d))):.3e}"
+                    f"max|ΔD|={float(np.max(np.abs(dbl_d))):.3e}; "
+                    f"max|Δ|/stderr={float(energy_unc.get('max_abs_delta_over_stderr', float('nan'))):.3e}"
                 )
+                noise_cfg_line = _noise_config_caption(settings, str(mode))
 
                 # Energy page
                 fig_e, axes_e = plt.subplots(3, 1, figsize=(10.8, 9.0), sharex=True)
@@ -2908,6 +3601,24 @@ def _write_pdf(pdf_path: Path, payload: dict[str, Any]) -> None:
                 axes_e[1].legend(fontsize=7, ncol=2)
                 axes_e[2].plot(times, e_tot_d, color=color, linewidth=1.2, label="Δ(noisy-ideal) total")
                 axes_e[2].plot(times, e_sta_d, color=color, linewidth=1.2, linestyle="--", label="Δ(noisy-ideal) static")
+                axes_e[2].fill_between(
+                    times,
+                    e_tot_d - (2.0 * e_tot_d_se),
+                    e_tot_d + (2.0 * e_tot_d_se),
+                    color=color,
+                    alpha=0.16,
+                    linewidth=0.0,
+                    label="±2 stderr (total)",
+                )
+                axes_e[2].fill_between(
+                    times,
+                    e_sta_d - (2.0 * e_sta_d_se),
+                    e_sta_d + (2.0 * e_sta_d_se),
+                    color=color,
+                    alpha=0.10,
+                    linewidth=0.0,
+                    label="±2 stderr (static)",
+                )
                 axes_e[2].axhline(0.0, color="#111111", linewidth=0.8, linestyle=":", label="zero baseline")
                 axes_e[2].set_ylabel("Δ(noisy-ideal) E")
                 axes_e[2].set_xlabel("time")
@@ -2920,7 +3631,7 @@ def _write_pdf(pdf_path: Path, payload: dict[str, Any]) -> None:
                     equation_registry=equation_registry,
                     plot_id=f"plot_{profile_name}_{mode}_energy",
                     plot_contracts=plot_contracts,
-                    style_legend_lines=noise_style_lines + [delta_stats],
+                    style_legend_lines=noise_style_lines + [noise_cfg_line, delta_stats],
                 )
                 used_eq_ids.update(["eq_energy_static", "eq_energy_total", "eq_noisy_estimator", "eq_noisy_delta"])
                 fig_e.tight_layout()
@@ -2958,6 +3669,24 @@ def _write_pdf(pdf_path: Path, payload: dict[str, Any]) -> None:
                 axes_o[1].legend(fontsize=7, ncol=2)
                 axes_o[2].plot(times, up_d, color=color, linewidth=1.2, label="Δ(noisy-ideal) up0")
                 axes_o[2].plot(times, dn_d, color=color, linewidth=1.2, linestyle="--", label="Δ(noisy-ideal) dn0")
+                axes_o[2].fill_between(
+                    times,
+                    up_d - (2.0 * up_d_se),
+                    up_d + (2.0 * up_d_se),
+                    color=color,
+                    alpha=0.16,
+                    linewidth=0.0,
+                    label="±2 stderr (up0)",
+                )
+                axes_o[2].fill_between(
+                    times,
+                    dn_d - (2.0 * dn_d_se),
+                    dn_d + (2.0 * dn_d_se),
+                    color=color,
+                    alpha=0.10,
+                    linewidth=0.0,
+                    label="±2 stderr (dn0)",
+                )
                 axes_o[2].axhline(0.0, color="#111111", linewidth=0.8, linestyle=":", label="zero baseline")
                 axes_o[2].set_ylabel("Δ(noisy-ideal) n(0)")
                 axes_o[2].set_xlabel("time")
@@ -2970,7 +3699,7 @@ def _write_pdf(pdf_path: Path, payload: dict[str, Any]) -> None:
                     equation_registry=equation_registry,
                     plot_id=f"plot_{profile_name}_{mode}_occupancy",
                     plot_contracts=plot_contracts,
-                    style_legend_lines=noise_style_lines + [delta_stats],
+                    style_legend_lines=noise_style_lines + [noise_cfg_line, delta_stats],
                 )
                 used_eq_ids.update(["eq_number_operator", "eq_total_density", "eq_noisy_estimator", "eq_noisy_delta"])
                 fig_o.tight_layout()
@@ -3008,6 +3737,24 @@ def _write_pdf(pdf_path: Path, payload: dict[str, Any]) -> None:
                 axes_d[1].legend(fontsize=7, ncol=2)
                 axes_d[2].plot(times, dbl_d, color=color, linewidth=1.2, label="Δ(noisy-ideal) doublon")
                 axes_d[2].plot(times, stg_d, color=color, linewidth=1.2, linestyle="--", label="Δ(noisy-ideal) staggered")
+                axes_d[2].fill_between(
+                    times,
+                    dbl_d - (2.0 * dbl_d_se),
+                    dbl_d + (2.0 * dbl_d_se),
+                    color=color,
+                    alpha=0.16,
+                    linewidth=0.0,
+                    label="±2 stderr (doublon)",
+                )
+                axes_d[2].fill_between(
+                    times,
+                    stg_d - (2.0 * stg_d_se),
+                    stg_d + (2.0 * stg_d_se),
+                    color=color,
+                    alpha=0.10,
+                    linewidth=0.0,
+                    label="±2 stderr (staggered)",
+                )
                 axes_d[2].axhline(0.0, color="#111111", linewidth=0.8, linestyle=":", label="zero baseline")
                 axes_d[2].set_ylabel("Δ(noisy-ideal)")
                 axes_d[2].set_xlabel("time")
@@ -3020,12 +3767,84 @@ def _write_pdf(pdf_path: Path, payload: dict[str, Any]) -> None:
                     equation_registry=equation_registry,
                     plot_id=f"plot_{profile_name}_{mode}_doublon_staggered",
                     plot_contracts=plot_contracts,
-                    style_legend_lines=noise_style_lines + [delta_stats],
+                    style_legend_lines=noise_style_lines + [noise_cfg_line, delta_stats],
                 )
                 used_eq_ids.update(["eq_doublon", "eq_staggered", "eq_noisy_estimator", "eq_noisy_delta"])
                 fig_d.tight_layout()
                 pdf.savefig(fig_d)
                 plt.close(fig_d)
+
+        noisy_audit = payload.get("noisy_final_audit", {}).get("profiles", {})
+        if bool(settings.get("disable_time_dynamics", False)) and isinstance(noisy_audit, dict):
+            for profile_name in ("static", "drive"):
+                prof = noisy_audit.get(profile_name, {})
+                if not isinstance(prof, dict):
+                    continue
+                modes = prof.get("modes", {}) if isinstance(prof.get("modes", {}), dict) else {}
+                for mode_name, mode_data in modes.items():
+                    if not bool(isinstance(mode_data, dict) and mode_data.get("success", False)):
+                        render_text_page(
+                            pdf,
+                            [
+                                f"SECTION: NOISE MODE UNAVAILABLE ({profile_name}/{mode_name})",
+                                "",
+                                f"Reason: {mode_data.get('reason', mode_data.get('error', 'unknown'))}",
+                                f"Diagnostics: {json.dumps(mode_data, indent=2)}",
+                            ],
+                            fontsize=9,
+                        )
+                        continue
+                    obs = mode_data.get("final_observables", {}) if isinstance(mode_data, dict) else {}
+                    noise_cfg = mode_data.get("noise_config", {}) if isinstance(mode_data, dict) else {}
+                    cfg_line = (
+                        "noise_config: "
+                        f"mode={noise_cfg.get('noise_mode')}, "
+                        f"shots={noise_cfg.get('shots')}, "
+                        f"oracle_repeats={noise_cfg.get('oracle_repeats')}, "
+                        f"oracle_aggregate={noise_cfg.get('oracle_aggregate')}, "
+                        f"mitigation={noise_cfg.get('mitigation', {}).get('mode', 'none')}"
+                    )
+                    rows = []
+                    for obs_key in [
+                        "energy_static",
+                        "energy_total",
+                        "n_up_site0",
+                        "n_dn_site0",
+                        "doublon",
+                        "staggered",
+                    ]:
+                        rec = obs.get(obs_key, {}) if isinstance(obs.get(obs_key, {}), dict) else {}
+                        rows.append(
+                            [
+                                str(obs_key),
+                                f"{float(rec.get('noisy_mean', float('nan'))):.8f}",
+                                f"{float(rec.get('noisy_stderr', float('nan'))):.3e}",
+                                f"{float(rec.get('ideal_mean', float('nan'))):.8f}",
+                                f"{float(rec.get('ideal_stderr', float('nan'))):.3e}",
+                                f"{float(rec.get('delta_mean', float('nan'))):.3e}",
+                                f"{float(rec.get('delta_stderr', float('nan'))):.3e}",
+                            ]
+                        )
+                    fig_tbl, ax_tbl = plt.subplots(figsize=(12.0, 6.0))
+                    render_compact_table(
+                        ax_tbl,
+                        title=f"Final-state noisy audit (t=0) profile={profile_name}, mode={mode_name}",
+                        col_labels=[
+                            "Observable",
+                            "Noisy mean",
+                            "Noisy stderr",
+                            "Ideal mean",
+                            "Ideal stderr",
+                            "Delta",
+                            "Delta stderr",
+                        ],
+                        rows=rows,
+                        fontsize=8,
+                    )
+                    fig_tbl.text(0.01, 0.01, cfg_line, fontsize=8, ha="left", va="bottom")
+                    fig_tbl.tight_layout()
+                    pdf.savefig(fig_tbl)
+                    plt.close(fig_tbl)
 
         # Drive waveform diagnostics
         drive_cfg = settings.get("drive_profile", {})
@@ -3056,7 +3875,20 @@ def _write_pdf(pdf_path: Path, payload: dict[str, Any]) -> None:
         if isinstance(benchmark_rows, list) and benchmark_rows:
             fig = plt.figure(figsize=(12.0, 7.0))
             ax = fig.add_subplot(111)
-            headers = ["profile", "method", "mode", "cx", "term_exp", "sq", "depth", "wall_s", "oracle_s"]
+            headers = [
+                "profile",
+                "method",
+                "mode",
+                "cx",
+                "term_exp",
+                "sq",
+                "depth",
+                "wall_s",
+                "oracle_s",
+                "max|Δ|",
+                "max|Δ|/stderr",
+                "mean|Δ|/stderr",
+            ]
             rows: list[list[str]] = []
             for rec in benchmark_rows:
                 if not isinstance(rec, dict):
@@ -3072,6 +3904,9 @@ def _write_pdf(pdf_path: Path, payload: dict[str, Any]) -> None:
                         f"{int(rec.get('depth_proxy_total', 0))}",
                         f"{float(rec.get('wall_total_s', float('nan'))):.3f}",
                         f"{float(rec.get('oracle_eval_s_total', float('nan'))):.3f}",
+                        f"{float(rec.get('max_abs_delta', float('nan'))):.3e}",
+                        f"{float(rec.get('max_abs_delta_over_stderr', float('nan'))):.3e}",
+                        f"{float(rec.get('mean_abs_delta_over_stderr', float('nan'))):.3e}",
                     ]
                 )
             if rows:
@@ -3288,6 +4123,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     p.add_argument("--cfqm-stage-exp", choices=["expm_multiply_sparse", "dense_expm", "pauli_suzuki2"], default="expm_multiply_sparse")
     p.add_argument("--cfqm-coeff-drop-abs-tol", type=float, default=0.0)
     p.add_argument("--cfqm-normalize", action="store_true")
+    p.add_argument("--disable-time-dynamics", action="store_true")
 
     p.add_argument("--include-drive-profile", action="store_true", default=True)
     p.add_argument("--drive-A", type=float, default=0.6)
@@ -3306,6 +4142,14 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     p.add_argument("--shots", type=int, default=2048)
     p.add_argument("--oracle-repeats", type=int, default=4)
     p.add_argument("--oracle-aggregate", choices=["mean", "median"], default="mean")
+    p.add_argument("--mitigation", choices=["none", "readout", "zne", "dd"], default="none")
+    p.add_argument(
+        "--symmetry-mitigation-mode",
+        choices=["off", "verify_only", "postselect_diag_v1", "projector_renorm_v1"],
+        default="off",
+    )
+    p.add_argument("--zne-scales", type=str, default=None)
+    p.add_argument("--dd-sequence", type=str, default=None)
     p.add_argument("--noise-seed", type=int, default=7)
     p.add_argument("--backend-name", type=str, default="FakeManilaV2")
     p.add_argument("--use-fake-backend", action="store_true")
@@ -3377,6 +4221,10 @@ def _collect_noisy_benchmark_rows(dynamics_noisy: dict[str, Any]) -> list[dict[s
                     continue
                 cost = mode_data.get("benchmark_cost", {})
                 runtime = mode_data.get("benchmark_runtime", {})
+                delta_unc = mode_data.get("delta_uncertainty", {})
+                energy_unc = {}
+                if isinstance(delta_unc, dict):
+                    energy_unc = delta_unc.get("energy_total", {}) if isinstance(delta_unc.get("energy_total", {}), dict) else {}
                 rows.append(
                     {
                         "profile": str(profile_name),
@@ -3390,6 +4238,13 @@ def _collect_noisy_benchmark_rows(dynamics_noisy: dict[str, Any]) -> list[dict[s
                         "wall_total_s": float(runtime.get("wall_total_s", float("nan"))),
                         "oracle_eval_s_total": float(runtime.get("oracle_eval_s_total", float("nan"))),
                         "oracle_calls_total": int(runtime.get("oracle_calls_total", 0)),
+                        "max_abs_delta": float(energy_unc.get("max_abs_delta", float("nan"))),
+                        "max_abs_delta_over_stderr": float(
+                            energy_unc.get("max_abs_delta_over_stderr", float("nan"))
+                        ),
+                        "mean_abs_delta_over_stderr": float(
+                            energy_unc.get("mean_abs_delta_over_stderr", float("nan"))
+                        ),
                     }
                 )
     return rows
@@ -3398,6 +4253,16 @@ def _collect_noisy_benchmark_rows(dynamics_noisy: dict[str, Any]) -> list[dict[s
 def main(argv: list[str] | None = None) -> None:
     args = _enforce_defaults_and_minimums(parse_args(argv))
     noisy_methods = _parse_noisy_methods_csv(str(args.noisy_methods))
+    mitigation_cfg = _build_mitigation_config(
+        mitigation=str(args.mitigation),
+        zne_scales=(None if args.zne_scales is None else str(args.zne_scales)),
+        dd_sequence=(None if args.dd_sequence is None else str(args.dd_sequence)),
+    )
+    symmetry_mitigation_cfg = _build_symmetry_mitigation_config(
+        mode=str(args.symmetry_mitigation_mode),
+        L=int(args.L),
+        ordering=str(args.ordering),
+    )
 
     if int(args.L) != 2 and not bool(args.smoke_test_intentionally_weak):
         raise ValueError("This report is currently locked to L=2 for the full static+drive noise matrix.")
@@ -3537,44 +4402,113 @@ def main(argv: list[str] | None = None) -> None:
     if not bool(args.retain_stage_events):
         warm_payload.pop("progress_events", None)
 
-    # Noiseless dynamics matrix (static + drive)
+    disable_time_dynamics = bool(args.disable_time_dynamics)
+    # Noiseless/noisy profiles use static + optional drive semantics.
     static_profile = None
     drive_profile = _build_drive_profile(args, enabled=bool(args.include_drive_profile))
 
-    dynamics_noiseless = {
-        "profiles": {
-            "static": _run_noiseless_profile(
+    hardcoded_superset: dict[str, Any] = _disabled_hardcoded_superset_meta()
+    noise_modes = [x.strip() for x in str(args.noise_modes).split(",") if x.strip()]
+    noisy_mode_diagnostics: dict[str, Any] = {}
+    noisy_audit_diagnostics: dict[str, Any] = {}
+    noisy_final_audit: dict[str, Any] = {"enabled": bool(disable_time_dynamics), "profiles": {}}
+
+    if not disable_time_dynamics:
+        dynamics_noiseless = {
+            "profiles": {
+                "static": _run_noiseless_profile(
+                    args=args,
+                    psi_seed=np.asarray(psi_final, dtype=complex),
+                    hmat=hmat,
+                    ordered_labels_exyz=ordered_labels_exyz,
+                    coeff_map_exyz=coeff_map_exyz,
+                    drive_profile=static_profile,
+                )
+            }
+        }
+        if drive_profile is not None:
+            dynamics_noiseless["profiles"]["drive"] = _run_noiseless_profile(
                 args=args,
                 psi_seed=np.asarray(psi_final, dtype=complex),
                 hmat=hmat,
                 ordered_labels_exyz=ordered_labels_exyz,
                 coeff_map_exyz=coeff_map_exyz,
-                drive_profile=static_profile,
+                drive_profile=drive_profile,
             )
+
+        dynamics_noisy = {"profiles": {}}
+        for profile_name, profile_cfg in [("static", static_profile), ("drive", drive_profile)]:
+            if profile_name == "drive" and profile_cfg is None:
+                continue
+
+            method_payloads: dict[str, Any] = {}
+            for method in noisy_methods:
+                profile_modes: dict[str, Any] = {}
+                for mode in noise_modes:
+                    kwargs = {
+                        "L": int(args.L),
+                        "ordering": str(args.ordering),
+                        "psi_seed": np.asarray(psi_final, dtype=complex),
+                        "ordered_labels_exyz": list(ordered_labels_exyz),
+                        "static_coeff_map_exyz": dict(coeff_map_exyz),
+                        "t_final": float(args.t_final),
+                        "num_times": int(args.num_times),
+                        "trotter_steps": int(args.trotter_steps),
+                        "drive_profile": profile_cfg,
+                        "noise_mode": str(mode),
+                        "shots": int(args.shots),
+                        "seed": int(args.noise_seed),
+                        "oracle_repeats": int(args.oracle_repeats),
+                        "oracle_aggregate": str(args.oracle_aggregate),
+                        "mitigation_config": dict(mitigation_cfg),
+                        "symmetry_mitigation_config": dict(symmetry_mitigation_cfg),
+                        "backend_name": (None if args.backend_name is None else str(args.backend_name)),
+                        "use_fake_backend": bool(args.use_fake_backend),
+                        "allow_aer_fallback": bool(args.allow_aer_fallback),
+                        "omp_shm_workaround": bool(args.omp_shm_workaround),
+                        "method": str(method),
+                        "benchmark_active_coeff_tol": float(args.benchmark_active_coeff_tol),
+                        "cfqm_coeff_drop_abs_tol": float(args.cfqm_coeff_drop_abs_tol),
+                    }
+                    mode_result = _run_noisy_mode_isolated(
+                        kwargs=kwargs,
+                        timeout_s=int(args.noisy_mode_timeout_s),
+                    )
+                    profile_modes[str(mode)] = mode_result
+                    noisy_mode_diagnostics[f"{profile_name}:{method}:{mode}"] = {
+                        "success": bool(mode_result.get("success", False)),
+                        "env_blocked": bool(mode_result.get("env_blocked", False)),
+                        "reason": mode_result.get("reason", None),
+                        "error": mode_result.get("error", None),
+                    }
+                method_payloads[str(method)] = {"modes": profile_modes}
+
+            suzuki_alias_modes = (
+                method_payloads.get("suzuki2", {}).get("modes", {})
+                if isinstance(method_payloads.get("suzuki2", {}), dict)
+                else {}
+            )
+            dynamics_noisy["profiles"][profile_name] = {
+                "drive_enabled": bool(profile_cfg is not None),
+                "methods": method_payloads,
+                "modes": suzuki_alias_modes,
+            }
+        dynamics_benchmark_rows = _collect_noisy_benchmark_rows(dynamics_noisy)
+    else:
+        dynamics_noiseless = {
+            "profiles": {},
+            "disabled": True,
+            "reason": "time dynamics disabled by --disable-time-dynamics",
         }
-    }
-    if drive_profile is not None:
-        dynamics_noiseless["profiles"]["drive"] = _run_noiseless_profile(
-            args=args,
-            psi_seed=np.asarray(psi_final, dtype=complex),
-            hmat=hmat,
-            ordered_labels_exyz=ordered_labels_exyz,
-            coeff_map_exyz=coeff_map_exyz,
-            drive_profile=drive_profile,
-        )
-
-    hardcoded_superset: dict[str, Any] = _disabled_hardcoded_superset_meta()
-
-    noise_modes = [x.strip() for x in str(args.noise_modes).split(",") if x.strip()]
-    dynamics_noisy: dict[str, Any] = {"profiles": {}}
-    noisy_mode_diagnostics: dict[str, Any] = {}
-
-    for profile_name, profile_cfg in [("static", static_profile), ("drive", drive_profile)]:
-        if profile_name == "drive" and profile_cfg is None:
-            continue
-
-        method_payloads: dict[str, Any] = {}
-        for method in noisy_methods:
+        dynamics_noisy = {
+            "profiles": {},
+            "disabled": True,
+            "reason": "time dynamics disabled by --disable-time-dynamics",
+        }
+        dynamics_benchmark_rows = []
+        for profile_name, profile_cfg in [("static", static_profile), ("drive", drive_profile)]:
+            if profile_name == "drive" and profile_cfg is None:
+                continue
             profile_modes: dict[str, Any] = {}
             for mode in noise_modes:
                 kwargs = {
@@ -3583,48 +4517,34 @@ def main(argv: list[str] | None = None) -> None:
                     "psi_seed": np.asarray(psi_final, dtype=complex),
                     "ordered_labels_exyz": list(ordered_labels_exyz),
                     "static_coeff_map_exyz": dict(coeff_map_exyz),
-                    "t_final": float(args.t_final),
-                    "num_times": int(args.num_times),
-                    "trotter_steps": int(args.trotter_steps),
                     "drive_profile": profile_cfg,
                     "noise_mode": str(mode),
                     "shots": int(args.shots),
                     "seed": int(args.noise_seed),
                     "oracle_repeats": int(args.oracle_repeats),
                     "oracle_aggregate": str(args.oracle_aggregate),
+                    "mitigation_config": dict(mitigation_cfg),
+                    "symmetry_mitigation_config": dict(symmetry_mitigation_cfg),
                     "backend_name": (None if args.backend_name is None else str(args.backend_name)),
                     "use_fake_backend": bool(args.use_fake_backend),
                     "allow_aer_fallback": bool(args.allow_aer_fallback),
                     "omp_shm_workaround": bool(args.omp_shm_workaround),
-                    "method": str(method),
-                    "benchmark_active_coeff_tol": float(args.benchmark_active_coeff_tol),
-                    "cfqm_coeff_drop_abs_tol": float(args.cfqm_coeff_drop_abs_tol),
                 }
-                mode_result = _run_noisy_mode_isolated(
+                mode_result = _run_noisy_audit_mode_isolated(
                     kwargs=kwargs,
                     timeout_s=int(args.noisy_mode_timeout_s),
                 )
                 profile_modes[str(mode)] = mode_result
-                noisy_mode_diagnostics[f"{profile_name}:{method}:{mode}"] = {
+                noisy_audit_diagnostics[f"{profile_name}:{mode}"] = {
                     "success": bool(mode_result.get("success", False)),
                     "env_blocked": bool(mode_result.get("env_blocked", False)),
                     "reason": mode_result.get("reason", None),
                     "error": mode_result.get("error", None),
                 }
-            method_payloads[str(method)] = {"modes": profile_modes}
-
-        suzuki_alias_modes = (
-            method_payloads.get("suzuki2", {}).get("modes", {})
-            if isinstance(method_payloads.get("suzuki2", {}), dict)
-            else {}
-        )
-        dynamics_noisy["profiles"][profile_name] = {
-            "drive_enabled": bool(profile_cfg is not None),
-            "methods": method_payloads,
-            "modes": suzuki_alias_modes,
-        }
-
-    dynamics_benchmark_rows = _collect_noisy_benchmark_rows(dynamics_noisy)
+            noisy_final_audit["profiles"][profile_name] = {
+                "drive_enabled": bool(profile_cfg is not None),
+                "modes": profile_modes,
+            }
 
     run_command = current_command_string()
 
@@ -3645,6 +4565,7 @@ def main(argv: list[str] | None = None) -> None:
             "num_times": int(args.num_times),
             "trotter_steps": int(args.trotter_steps),
             "exact_steps_multiplier": int(args.exact_steps_multiplier),
+            "disable_time_dynamics": bool(disable_time_dynamics),
             "fidelity_subspace_energy_tol": float(args.fidelity_subspace_energy_tol),
             "include_drive_profile": bool(args.include_drive_profile),
             "smoke_test_intentionally_weak": bool(args.smoke_test_intentionally_weak),
@@ -3653,6 +4574,12 @@ def main(argv: list[str] | None = None) -> None:
             "shots": int(args.shots),
             "oracle_repeats": int(args.oracle_repeats),
             "oracle_aggregate": str(args.oracle_aggregate),
+            "mitigation": str(args.mitigation),
+            "symmetry_mitigation_mode": str(args.symmetry_mitigation_mode),
+            "zne_scales": (None if args.zne_scales is None else str(args.zne_scales)),
+            "dd_sequence": (None if args.dd_sequence is None else str(args.dd_sequence)),
+            "mitigation_config": dict(mitigation_cfg),
+            "symmetry_mitigation_config": dict(symmetry_mitigation_cfg),
             "benchmark_active_coeff_tol": float(args.benchmark_active_coeff_tol),
             "drive_profile": drive_profile,
             "transition_policy": {
@@ -3678,6 +4605,7 @@ def main(argv: list[str] | None = None) -> None:
         "hardcoded_superset": hardcoded_superset,
         "dynamics_noiseless": dynamics_noiseless,
         "dynamics_noisy": dynamics_noisy,
+        "noisy_final_audit": noisy_final_audit,
         "dynamics_benchmarks": {
             "rows": dynamics_benchmark_rows,
             "metric_fields": [
@@ -3689,6 +4617,9 @@ def main(argv: list[str] | None = None) -> None:
                 "wall_total_s",
                 "oracle_eval_s_total",
                 "oracle_calls_total",
+                "max_abs_delta",
+                "max_abs_delta_over_stderr",
+                "mean_abs_delta_over_stderr",
             ],
         },
         "comparisons": {},
@@ -3697,6 +4628,7 @@ def main(argv: list[str] | None = None) -> None:
         "plot_contracts": {},
         "diagnostics": {
             "noisy_mode_diagnostics": noisy_mode_diagnostics,
+            "noisy_audit_diagnostics": noisy_audit_diagnostics,
             "pool_signature_space": int(len(pool_B_source_by_sig)),
             "pool_b_audit": pool_b_audit,
             "coeff_map_exyz": flatten_coeff_map_real_imag(coeff_map_exyz),
@@ -3727,7 +4659,14 @@ def main(argv: list[str] | None = None) -> None:
         _write_pdf(output_pdf, payload)
 
     if bool(args.require_at_least_one_noisy):
-        completed = int(payload["summary"].get("noisy_method_modes_completed", payload["summary"].get("noisy_modes_completed", 0)))
+        completed = int(
+            payload["summary"].get(
+                "noisy_method_modes_completed",
+                payload["summary"].get("noisy_modes_completed", 0),
+            )
+        )
+        if completed < 1:
+            completed = int(payload["summary"].get("noisy_audit_modes_completed", 0))
         if completed < 1:
             raise RuntimeError(
                 "No noisy mode completed successfully. "
@@ -3740,6 +4679,8 @@ def main(argv: list[str] | None = None) -> None:
         output_pdf=(None if bool(args.skip_pdf) else str(output_pdf)),
         noisy_completed=int(payload["summary"].get("noisy_method_modes_completed", payload["summary"].get("noisy_modes_completed", 0))),
         noisy_total=int(payload["summary"].get("noisy_method_modes_total", payload["summary"].get("noisy_modes_total", 0))),
+        noisy_audit_completed=int(payload["summary"].get("noisy_audit_modes_completed", 0)),
+        noisy_audit_total=int(payload["summary"].get("noisy_audit_modes_total", 0)),
     )
 
 

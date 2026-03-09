@@ -47,6 +47,21 @@ class TestParseArgsAdaptRefSource:
         assert str(args.adapt_pool) == "uccsd_paop_lf_full"
         assert str(args.adapt_ref_source) == "vqe"
 
+    def test_parse_accepts_full_meta_pool(self, monkeypatch: pytest.MonkeyPatch):
+        monkeypatch.setattr(
+            sys,
+            "argv",
+            [
+                "hubbard_pipeline.py",
+                "--L", "2",
+                "--adapt-pool", "full_meta",
+                "--adapt-ref-source", "vqe",
+            ],
+        )
+        args = hp.parse_args()
+        assert str(args.adapt_pool) == "full_meta"
+        assert str(args.adapt_ref_source) == "vqe"
+
     def test_adapt_ref_source_default_is_hf(self, monkeypatch: pytest.MonkeyPatch):
         monkeypatch.setattr(sys, "argv", ["hubbard_pipeline.py", "--L", "2"])
         args = hp.parse_args()
@@ -173,3 +188,113 @@ class TestAdaptRefSourceVQEPath:
         with pytest.raises(RuntimeError, match="--adapt-ref-source vqe"):
             hp.main()
         assert calls["internal_adapt_called"] is False
+
+
+# ────────────────────────────────────────────────────────────────────
+#  P2 — windowed reopt wrapper plumbing (hubbard_pipeline)
+# ────────────────────────────────────────────────────────────────────
+
+
+class TestHubbardPipelineWindowedCLI:
+    """CLI arg-parsing for windowed reopt knobs via hubbard_pipeline."""
+
+    def test_parse_accepts_windowed_policy(self, monkeypatch):
+        monkeypatch.setattr(
+            sys, "argv",
+            ["hubbard_pipeline.py", "--L", "2",
+             "--adapt-reopt-policy", "windowed"],
+        )
+        args = hp.parse_args()
+        assert args.adapt_reopt_policy == "windowed"
+
+    def test_parse_windowed_knob_defaults(self, monkeypatch):
+        monkeypatch.setattr(sys, "argv", ["hubbard_pipeline.py", "--L", "2"])
+        args = hp.parse_args()
+        assert args.adapt_reopt_policy == "append_only"
+        assert args.adapt_window_size == 3
+        assert args.adapt_window_topk == 0
+        assert args.adapt_full_refit_every == 0
+        assert args.adapt_final_full_refit == "true"
+
+    def test_parse_windowed_knob_overrides(self, monkeypatch):
+        monkeypatch.setattr(
+            sys, "argv",
+            [
+                "hubbard_pipeline.py", "--L", "2",
+                "--adapt-reopt-policy", "windowed",
+                "--adapt-window-size", "4",
+                "--adapt-window-topk", "2",
+                "--adapt-full-refit-every", "3",
+                "--adapt-final-full-refit", "false",
+            ],
+        )
+        args = hp.parse_args()
+        assert args.adapt_window_size == 4
+        assert args.adapt_window_topk == 2
+        assert args.adapt_full_refit_every == 3
+        assert args.adapt_final_full_refit == "false"
+
+
+class TestHubbardPipelineWindowedPassthrough:
+    """Verify windowed knobs are forwarded from main() to _run_internal_adapt_paop."""
+
+    def test_windowed_knobs_reach_internal_adapt(
+        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path,
+    ):
+        dim = _hh_state_dim(2, 1, "binary")
+        captured: dict[str, object] = {}
+
+        def _fake_run_hardcoded_vqe(**kwargs):
+            return {
+                "success": True, "method": "mock", "ansatz": "hh_hva_ptw",
+                "energy": -1.0, "exact_filtered_energy": -1.1,
+                "num_particles": {"n_up": 1, "n_dn": 1},
+            }, _basis0(dim)
+
+        def _fake_run_internal_adapt_paop(**kwargs):
+            captured["adapt_reopt_policy"] = kwargs.get("adapt_reopt_policy")
+            captured["adapt_window_size"] = kwargs.get("adapt_window_size")
+            captured["adapt_window_topk"] = kwargs.get("adapt_window_topk")
+            captured["adapt_full_refit_every"] = kwargs.get("adapt_full_refit_every")
+            captured["adapt_final_full_refit"] = kwargs.get("adapt_final_full_refit")
+            return {
+                "success": True, "pool_type": "uccsd", "ansatz_depth": 1,
+                "num_parameters": 1, "energy": -1.0, "abs_delta_e": 0.1,
+                "stop_reason": "max_depth", "elapsed_s": 0.01,
+                "allow_repeats": True,
+            }, _basis0(dim)
+
+        def _fake_simulate_trajectory(**kwargs):
+            return ([{"time": 0.0, "fidelity": 1.0}], [])
+
+        monkeypatch.setattr(hp, "_run_hardcoded_vqe", _fake_run_hardcoded_vqe)
+        monkeypatch.setattr(hp, "_run_internal_adapt_paop", _fake_run_internal_adapt_paop)
+        monkeypatch.setattr(hp, "_simulate_trajectory", _fake_simulate_trajectory)
+
+        out_json = tmp_path / "hc_windowed_passthrough.json"
+        monkeypatch.setattr(
+            sys, "argv",
+            [
+                "hubbard_pipeline.py",
+                "--L", "2",
+                "--problem", "hh",
+                "--omega0", "1.0", "--g-ep", "0.5",
+                "--n-ph-max", "1", "--boson-encoding", "binary",
+                "--vqe-ansatz", "hh_hva_ptw",
+                "--adapt-pool", "uccsd",
+                "--adapt-reopt-policy", "windowed",
+                "--adapt-window-size", "4",
+                "--adapt-window-topk", "2",
+                "--adapt-full-refit-every", "5",
+                "--adapt-final-full-refit", "false",
+                "--skip-qpe", "--skip-pdf",
+                "--output-json", str(out_json),
+            ],
+        )
+        hp.main()
+
+        assert captured["adapt_reopt_policy"] == "windowed"
+        assert captured["adapt_window_size"] == 4
+        assert captured["adapt_window_topk"] == 2
+        assert captured["adapt_full_refit_every"] == 5
+        assert captured["adapt_final_full_refit"] is False

@@ -3,6 +3,8 @@ from __future__ import annotations
 import pytest
 
 from pipelines.exact_bench.hh_noise_hardware_validation import (
+    _build_mitigation_config_from_args,
+    _build_symmetry_mitigation_config_from_args,
     _apply_defaults_and_minimums,
     parse_args,
 )
@@ -118,3 +120,60 @@ def test_cli_parses_legacy_parity_flags() -> None:
     assert float(args.legacy_parity_tol) == pytest.approx(1e-10)
     assert str(args.output_compare_plot).endswith("artifacts/pdf/hh_noise_cmp.png")
     assert str(args.compare_observables) == "energy_static_trotter,doublon_trotter"
+
+
+def test_cli_parses_mitigation_flags_defaults_and_values() -> None:
+    args = parse_args(["--L", "2"])
+    assert str(args.mitigation) == "none"
+    assert args.zne_scales is None
+    assert args.dd_sequence is None
+    assert _build_mitigation_config_from_args(args) == {
+        "mode": "none",
+        "zne_scales": [],
+        "dd_sequence": None,
+    }
+
+    args = parse_args(
+        [
+            "--L",
+            "2",
+            "--mitigation",
+            "zne",
+            "--zne-scales",
+            "1.0,2.0,3.0",
+            "--dd-sequence",
+            "XY4",
+        ]
+    )
+    assert str(args.mitigation) == "zne"
+    assert str(args.zne_scales) == "1.0,2.0,3.0"
+    assert str(args.dd_sequence) == "XY4"
+
+
+def test_cli_parses_symmetry_mitigation_flags_defaults_and_values() -> None:
+    args = parse_args(["--L", "2"])
+    assert str(args.symmetry_mitigation_mode) == "off"
+    assert _build_symmetry_mitigation_config_from_args(args) == {
+        "mode": "off",
+        "num_sites": 2,
+        "ordering": "blocked",
+        "sector_n_up": 1,
+        "sector_n_dn": 1,
+    }
+
+    args = parse_args(
+        [
+            "--L",
+            "2",
+            "--symmetry-mitigation-mode",
+            "postselect_diag_v1",
+        ]
+    )
+    assert str(args.symmetry_mitigation_mode) == "postselect_diag_v1"
+    assert _build_symmetry_mitigation_config_from_args(args) == {
+        "mode": "postselect_diag_v1",
+        "num_sites": 2,
+        "ordering": "blocked",
+        "sector_n_up": 1,
+        "sector_n_dn": 1,
+    }

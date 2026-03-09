@@ -1651,6 +1651,9 @@ class VQEResult:
     nfev: int
     nit: int
     best_restart: int
+    progress_history: list[dict[str, Any]] | None = None
+    restart_summaries: list[dict[str, Any]] | None = None
+    optimizer_memory: dict[str, Any] | None = None
 
 
 def _try_import_scipy_minimize():
@@ -1669,6 +1672,8 @@ def vqe_minimize(
     restarts: int = 3,
     seed: int = 7,
     initial_point_stddev: float = 0.3,
+    initial_point: Optional[np.ndarray] = None,
+    use_initial_point_first_restart: bool = True,
     method: str = "SLSQP",
     maxiter: int = 1800,
     bounds: Optional[Tuple[float, float]] = (-math.pi, math.pi),
@@ -1688,6 +1693,9 @@ def vqe_minimize(
     spsa_eval_repeats: int = 1,
     spsa_eval_agg: str = "mean",
     energy_backend: str = "legacy",
+    optimizer_memory: Optional[Dict[str, Any]] = None,
+    spsa_refresh_every: int = 0,
+    spsa_precondition_mode: str = "none",
 ) -> VQEResult:
     """
     Hardcoded VQE: minimize <psi(theta)|H|psi(theta)> with a statevector backend.
@@ -1699,6 +1707,15 @@ def vqe_minimize(
     npar = int(ansatz.num_parameters)
     if npar <= 0:
         log.error("ansatz has no parameters")
+
+    initial_point_arr: Optional[np.ndarray] = None
+    if initial_point is not None:
+        initial_point_arr = np.asarray(initial_point, dtype=float).reshape(-1)
+        if int(initial_point_arr.size) != int(npar):
+            log.error(
+                "initial_point size mismatch: expected "
+                f"{int(npar)}, got {int(initial_point_arr.size)}"
+            )
 
     backend_key = str(energy_backend).strip().lower()
     if backend_key not in {"legacy", "one_apply_compiled"}:
@@ -1729,12 +1746,14 @@ def vqe_minimize(
     best_nit = 0
     best_success = False
     best_message = "no run"
+    best_optimizer_memory: Dict[str, Any] | None = None
     total_nfev = 0
     total_nit = 0
     run_t0 = time.perf_counter()
     heartbeat_period = max(0.0, float(progress_every_s))
     emit_heartbeat = progress_logger is not None
     history: List[Dict[str, Any]] = []
+    restart_summaries: List[Dict[str, Any]] = []
 
     def _emit_progress(event: str, **payload: Any) -> None:
         event_payload: Dict[str, Any] = {
@@ -1764,7 +1783,13 @@ def vqe_minimize(
     interrupted = False
 
     for r in range(int(restarts)):
-        x0 = initial_point_stddev * rng.normal(size=npar)
+        if bool(use_initial_point_first_restart) and r == 0 and initial_point_arr is not None:
+            x0 = np.array(initial_point_arr, copy=True)
+        else:
+            x0 = initial_point_stddev * rng.normal(size=npar)
+        restart_optimizer_memory: Optional[Dict[str, Any]] = None
+        if r == 0 and isinstance(optimizer_memory, dict):
+            restart_optimizer_memory = dict(optimizer_memory)
         restart_t0 = time.perf_counter()
         restart_nfev = 0
         restart_best = float("inf")
@@ -1925,6 +1950,9 @@ def vqe_minimize(
                     avg_last=int(spsa_avg_last),
                     callback=_spsa_heartbeat,
                     callback_every=1,
+                    memory=restart_optimizer_memory,
+                    refresh_every=int(spsa_refresh_every),
+                    precondition_mode=str(spsa_precondition_mode),
                 )
 
                 energy = float(spsa_result.fun)
@@ -1933,6 +1961,11 @@ def vqe_minimize(
                 nit = int(spsa_result.nit)
                 success = bool(spsa_result.success)
                 message = str(spsa_result.message)
+                restart_optimizer_memory = (
+                    dict(spsa_result.optimizer_memory)
+                    if isinstance(spsa_result.optimizer_memory, dict)
+                    else None
+                )
             except KeyboardInterrupt:
                 if not bool(return_best_on_keyboard_interrupt):
                     raise
@@ -1955,6 +1988,14 @@ def vqe_minimize(
                     if bool(interrupted_by_checker)
                     else "interrupted_keyboard_returning_best_restart"
                 )
+                restart_optimizer_memory = {
+                    "version": "phase2_vqe_missing_optimizer_memory_v1",
+                    "optimizer": "SPSA",
+                    "parameter_count": int(npar),
+                    "available": False,
+                    "reason": "keyboard_interrupt_before_spsa_result",
+                    "source": "vqe_minimize",
+                }
 
         elif minimize is not None:
             bnds = None
@@ -1977,6 +2018,14 @@ def vqe_minimize(
                 nit = int(getattr(res, "nit", 0))
                 success = bool(getattr(res, "success", False))
                 message = str(getattr(res, "message", ""))
+                restart_optimizer_memory = {
+                    "version": "phase2_vqe_missing_optimizer_memory_v1",
+                    "optimizer": str(method),
+                    "parameter_count": int(npar),
+                    "available": False,
+                    "reason": "non_spsa_method",
+                    "source": "vqe_minimize",
+                }
             except KeyboardInterrupt:
                 if not bool(return_best_on_keyboard_interrupt):
                     raise
@@ -1999,6 +2048,14 @@ def vqe_minimize(
                     if bool(interrupted_by_checker)
                     else "interrupted_keyboard_returning_best_restart"
                 )
+                restart_optimizer_memory = {
+                    "version": "phase2_vqe_missing_optimizer_memory_v1",
+                    "optimizer": str(method),
+                    "parameter_count": int(npar),
+                    "available": False,
+                    "reason": "non_spsa_restart_interrupt",
+                    "source": "vqe_minimize",
+                }
 
         else:
             theta_opt = np.array(x0, dtype=float)
@@ -2027,6 +2084,14 @@ def vqe_minimize(
                         break
             success = True
             message = "fallback coordinate search"
+            restart_optimizer_memory = {
+                "version": "phase2_vqe_missing_optimizer_memory_v1",
+                "optimizer": str(method),
+                "parameter_count": int(npar),
+                "available": False,
+                "reason": "fallback_coordinate_search",
+                "source": "vqe_minimize",
+            }
 
         total_nfev += int(nfev)
         total_nit += int(nit)
@@ -2060,6 +2125,21 @@ def vqe_minimize(
             method=str(method),
             maxiter=int(maxiter),
         )
+        restart_summaries.append(
+            {
+                "restart_index": int(r + 1),
+                "energy": float(energy),
+                "best_energy": float(restart_best),
+                "nfev": int(nfev),
+                "nit": int(nit),
+                "success": bool(success),
+                "message": str(message),
+                "optimizer_memory_available": bool(
+                    isinstance(restart_optimizer_memory, dict)
+                    and restart_optimizer_memory.get("available", False)
+                ),
+            }
+        )
 
         if energy < best_energy:
             best_energy = energy
@@ -2069,6 +2149,7 @@ def vqe_minimize(
             best_nit = nit
             best_success = success
             best_message = message
+            best_optimizer_memory = dict(restart_optimizer_memory) if isinstance(restart_optimizer_memory, dict) else None
 
         if interrupted:
             _emit_progress(
@@ -2104,6 +2185,9 @@ def vqe_minimize(
         nfev=int(best_nfev),
         nit=int(best_nit),
         best_restart=int(best_restart),
+        progress_history=list(history) if bool(track_history) else [],
+        restart_summaries=list(restart_summaries),
+        optimizer_memory=(dict(best_optimizer_memory) if isinstance(best_optimizer_memory, dict) else None),
     )
 
 _PAULI_MATS: Dict[str, np.ndarray] = {

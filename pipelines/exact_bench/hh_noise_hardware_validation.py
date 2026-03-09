@@ -31,7 +31,7 @@ from qiskit.circuit.library import PauliEvolutionGate
 from qiskit.quantum_info import SparsePauliOp
 from qiskit.synthesis import SuzukiTrotter
 
-from reports.pdf_utils import (
+from docs.reports.pdf_utils import (
     HAS_MATPLOTLIB,
     current_command_string,
     get_PdfPages,
@@ -77,6 +77,9 @@ from pipelines.exact_bench.noise_oracle_runtime import (
     _number_operator_qop,
     _ordered_qop_from_exyz,
     _pauli_poly_to_sparse_pauli_op,
+    normalize_ideal_reference_symmetry_mitigation,
+    normalize_mitigation_config,
+    normalize_symmetry_mitigation_config,
 )
 
 
@@ -131,6 +134,71 @@ def _collect_hardcoded_terms_exyz(poly: Any, tol: float = 1e-12) -> tuple[list[s
     cleaned_order = [lbl for lbl in order if abs(coeff_map[lbl]) > float(tol)]
     cleaned_map = {lbl: coeff_map[lbl] for lbl in cleaned_order}
     return cleaned_order, cleaned_map
+
+
+def _combine_stderr(noisy_stderr: float, ideal_stderr: float) -> float:
+    n = float(noisy_stderr)
+    i = float(ideal_stderr)
+    if not np.isfinite(i):
+        i = 0.0
+    if not np.isfinite(n):
+        n = 0.0
+    return float(np.sqrt(max(0.0, n * n + i * i)))
+
+
+def _delta_uncertainty_metrics(
+    delta: np.ndarray,
+    delta_stderr: np.ndarray,
+) -> dict[str, float]:
+    delta_abs = np.abs(np.asarray(delta, dtype=float))
+    stderr_arr = np.asarray(delta_stderr, dtype=float)
+    with np.errstate(divide="ignore", invalid="ignore"):
+        z = np.where(stderr_arr > 0.0, delta_abs / stderr_arr, np.nan)
+    finite_z = z[np.isfinite(z)]
+    max_z = float(np.max(finite_z)) if finite_z.size > 0 else float("nan")
+    mean_z = float(np.mean(finite_z)) if finite_z.size > 0 else float("nan")
+    return {
+        "max_abs_delta": float(np.max(delta_abs)) if delta_abs.size > 0 else float("nan"),
+        "max_abs_delta_over_stderr": max_z,
+        "mean_abs_delta_over_stderr": mean_z,
+    }
+
+
+def _build_mitigation_config_from_args(args: argparse.Namespace) -> dict[str, Any]:
+    return normalize_mitigation_config(
+        {
+            "mode": str(args.mitigation),
+            "zne_scales": args.zne_scales,
+            "dd_sequence": args.dd_sequence,
+        }
+    )
+
+
+def _build_symmetry_mitigation_config_from_args(args: argparse.Namespace) -> dict[str, Any]:
+    n_up, n_dn = _half_filled_particles(int(args.L))
+    return normalize_symmetry_mitigation_config(
+        {
+            "mode": str(args.symmetry_mitigation_mode),
+            "num_sites": int(args.L),
+            "ordering": str(args.ordering),
+            "sector_n_up": int(n_up),
+            "sector_n_dn": int(n_dn),
+        }
+    )
+
+
+def _mitigation_caption(
+    cfg: dict[str, Any] | None,
+    symmetry_cfg: dict[str, Any] | None = None,
+) -> str:
+    data = cfg or {}
+    sym = symmetry_cfg or {}
+    return (
+        f"mitigation={data.get('mode', 'none')}, "
+        f"zne_scales={data.get('zne_scales', [])}, "
+        f"dd_sequence={data.get('dd_sequence', None)}, "
+        f"symmetry={sym.get('mode', 'off')}"
+    )
 
 
 _SUZUKI2_MATH = "U(t) ~= [prod_j exp(-i (t/r)/2 H_j) * prod_j^rev exp(-i (t/r)/2 H_j)]^r"
@@ -543,6 +611,7 @@ def _run_noisy_adapt(
         best_abs_grad = -1.0
         best_grad = 0.0
         best_grad_std = 0.0
+        best_grad_stderr = 0.0
 
         for idx in candidate_indices:
             trial_ops = selected_ops + [pool[idx]]
@@ -560,12 +629,14 @@ def _run_noisy_adapt(
 
             grad = float((e_plus.mean - e_minus.mean) / (2.0 * grad_step))
             grad_std = float(np.sqrt(e_plus.std ** 2 + e_minus.std ** 2) / (2.0 * grad_step))
+            grad_stderr = float(np.sqrt(e_plus.stderr ** 2 + e_minus.stderr ** 2) / (2.0 * grad_step))
             abs_grad = abs(grad)
             if abs_grad > best_abs_grad:
                 best_abs_grad = abs_grad
                 best_idx = int(idx)
                 best_grad = float(grad)
                 best_grad_std = float(grad_std)
+                best_grad_stderr = float(grad_stderr)
 
         if best_idx is None:
             stop_reason = "no_candidate"
@@ -600,7 +671,10 @@ def _run_noisy_adapt(
             objective_trace.append(
                 {
                     "energy_noisy": float(est.mean),
+                    "energy_noisy_mean": float(est.mean),
                     "energy_noisy_std": float(est.std),
+                    "energy_noisy_stdev": float(est.stdev),
+                    "energy_noisy_stderr": float(est.stderr),
                     "samples": int(est.n_samples),
                 }
             )
@@ -653,6 +727,7 @@ def _run_noisy_adapt(
             "max_gradient": float(best_grad),
             "max_gradient_abs": float(best_abs_grad),
             "max_gradient_std": float(best_grad_std),
+            "max_gradient_stderr": float(best_grad_stderr),
             "gradient_confidence": float(grad_conf),
             "energy_before_opt": float(energy_prev),
             "energy_after_opt": float(energy_current),
@@ -693,6 +768,8 @@ def _run_noisy_adapt(
     )
     e_noisy = noisy_oracle.evaluate(final_circuit, h_qop)
     e_ideal = ideal_oracle.evaluate(final_circuit, h_qop)
+    delta_noisy_minus_ideal = float(e_noisy.mean - e_ideal.mean)
+    delta_noisy_minus_ideal_stderr = _combine_stderr(e_noisy.stderr, e_ideal.stderr)
     payload = {
         "success": True,
         "method": "adapt_vqe_noisy_oracle",
@@ -705,9 +782,18 @@ def _run_noisy_adapt(
         "operators": [str(op.label) for op in selected_ops],
         "optimal_point": [float(x) for x in theta.tolist()],
         "energy_noisy": float(e_noisy.mean),
+        "energy_noisy_mean": float(e_noisy.mean),
         "energy_noisy_std": float(e_noisy.std),
+        "energy_noisy_stdev": float(e_noisy.stdev),
+        "energy_noisy_stderr": float(e_noisy.stderr),
         "energy_ideal_reference": float(e_ideal.mean),
-        "delta_noisy_minus_ideal": float(e_noisy.mean - e_ideal.mean),
+        "energy_ideal_reference_mean": float(e_ideal.mean),
+        "energy_ideal_reference_std": float(e_ideal.std),
+        "energy_ideal_reference_stdev": float(e_ideal.stdev),
+        "energy_ideal_reference_stderr": float(e_ideal.stderr),
+        "delta_noisy_minus_ideal": float(delta_noisy_minus_ideal),
+        "delta_noisy_minus_ideal_mean": float(delta_noisy_minus_ideal),
+        "delta_noisy_minus_ideal_stderr": float(delta_noisy_minus_ideal_stderr),
         "stop_reason": str(stop_reason),
         "nfev_total": int(nfev_total),
         "history": history,
@@ -796,6 +882,8 @@ def _run_noisy_vqe(
                 energy_obj, _hpsi = energy_via_one_apply(np.asarray(psi, dtype=complex), compiled_h)
                 energy_mean = float(energy_obj)
                 energy_std = 0.0
+                energy_stdev = 0.0
+                energy_stderr = 0.0
                 oracle_samples = 0
             else:
                 qc = _ansatz_to_circuit(
@@ -807,6 +895,8 @@ def _run_noisy_vqe(
                 estimate = noisy_oracle.evaluate(qc, h_qop)
                 energy_mean = float(estimate.mean)
                 energy_std = float(estimate.std)
+                energy_stdev = float(estimate.stdev)
+                energy_stderr = float(estimate.stderr)
                 oracle_samples = int(estimate.n_samples)
             history.append(
                 {
@@ -815,7 +905,10 @@ def _run_noisy_vqe(
                     "objective_source": str(objective_source),
                     "energy_objective": float(energy_mean),
                     "energy_noisy": float(energy_mean),
+                    "energy_noisy_mean": float(energy_mean),
                     "energy_noisy_std": float(energy_std),
+                    "energy_noisy_stdev": float(energy_stdev),
+                    "energy_noisy_stderr": float(energy_stderr),
                     "oracle_samples": int(oracle_samples),
                 }
             )
@@ -884,6 +977,8 @@ def _run_noisy_vqe(
     )
     best_noisy = noisy_oracle.evaluate(best_circuit, h_qop)
     best_ideal = ideal_oracle.evaluate(best_circuit, h_qop)
+    delta_noisy_minus_ideal = float(best_noisy.mean - best_ideal.mean)
+    delta_noisy_minus_ideal_stderr = _combine_stderr(best_noisy.stderr, best_ideal.stderr)
 
     payload = {
         "success": bool(best_success),
@@ -901,9 +996,18 @@ def _run_noisy_vqe(
         "nit": int(best_nit),
         "message": str(best_message),
         "energy_noisy": float(best_noisy.mean),
+        "energy_noisy_mean": float(best_noisy.mean),
         "energy_noisy_std": float(best_noisy.std),
+        "energy_noisy_stdev": float(best_noisy.stdev),
+        "energy_noisy_stderr": float(best_noisy.stderr),
         "energy_ideal_reference": float(best_ideal.mean),
-        "delta_noisy_minus_ideal": float(best_noisy.mean - best_ideal.mean),
+        "energy_ideal_reference_mean": float(best_ideal.mean),
+        "energy_ideal_reference_std": float(best_ideal.std),
+        "energy_ideal_reference_stdev": float(best_ideal.stdev),
+        "energy_ideal_reference_stderr": float(best_ideal.stderr),
+        "delta_noisy_minus_ideal": float(delta_noisy_minus_ideal),
+        "delta_noisy_minus_ideal_mean": float(delta_noisy_minus_ideal),
+        "delta_noisy_minus_ideal_stderr": float(delta_noisy_minus_ideal_stderr),
         "optimal_point": [float(x) for x in best_theta.tolist()],
         "objective_history": history,
         "elapsed_s": float(time.perf_counter() - t0),
@@ -939,10 +1043,21 @@ def _run_noisy_trotter(
         for key, obs in observables.items():
             noisy = noisy_oracle.evaluate(qc_t, obs)
             ideal = ideal_oracle.evaluate(qc_t, obs)
+            delta_mean = float(noisy.mean - ideal.mean)
+            delta_stderr = _combine_stderr(noisy.stderr, ideal.stderr)
             row[f"{key}_noisy"] = float(noisy.mean)
+            row[f"{key}_noisy_mean"] = float(noisy.mean)
             row[f"{key}_noisy_std"] = float(noisy.std)
+            row[f"{key}_noisy_stdev"] = float(noisy.stdev)
+            row[f"{key}_noisy_stderr"] = float(noisy.stderr)
             row[f"{key}_ideal"] = float(ideal.mean)
-            row[f"{key}_delta_noisy_minus_ideal"] = float(noisy.mean - ideal.mean)
+            row[f"{key}_ideal_mean"] = float(ideal.mean)
+            row[f"{key}_ideal_std"] = float(ideal.std)
+            row[f"{key}_ideal_stdev"] = float(ideal.stdev)
+            row[f"{key}_ideal_stderr"] = float(ideal.stderr)
+            row[f"{key}_delta_noisy_minus_ideal"] = float(delta_mean)
+            row[f"{key}_delta_noisy_minus_ideal_mean"] = float(delta_mean)
+            row[f"{key}_delta_noisy_minus_ideal_stderr"] = float(delta_stderr)
         rows.append(row)
 
         if idx % stride == 0 or idx == total - 1:
@@ -953,6 +1068,20 @@ def _run_noisy_trotter(
                 t=float(t_val),
             )
     return rows
+
+
+def _trajectory_delta_uncertainty(trajectory_rows: list[dict[str, Any]]) -> dict[str, dict[str, float]]:
+    if not trajectory_rows:
+        return {}
+    keys = [str(k) for k in trajectory_rows[0].keys() if str(k).endswith("_delta_noisy_minus_ideal")]
+    out: dict[str, dict[str, float]] = {}
+    for delta_key in keys:
+        stderr_key = f"{delta_key}_stderr"
+        delta = np.asarray([float(r.get(delta_key, float("nan"))) for r in trajectory_rows], dtype=float)
+        stderr = np.asarray([float(r.get(stderr_key, float("nan"))) for r in trajectory_rows], dtype=float)
+        observable = str(delta_key).replace("_delta_noisy_minus_ideal", "")
+        out[observable] = _delta_uncertainty_metrics(delta, stderr)
+    return out
 
 
 def _initial_state_selection(
@@ -1185,6 +1314,14 @@ def _write_noise_validation_pdf(
     adapt = payload.get("adapt", {})
     legacy_parity = payload.get("legacy_parity", {})
     final = trajectory[-1] if trajectory else {}
+    noise_caption = (
+        "noise_config: "
+        f"mode={noise.get('noise_mode')}, "
+        f"shots={noise.get('shots')}, "
+        f"oracle_repeats={noise.get('oracle_repeats')}, "
+        f"oracle_aggregate={noise.get('oracle_aggregate')}, "
+        f"{_mitigation_caption(noise.get('mitigation', {}), noise.get('symmetry_mitigation', {}))}"
+    )
 
     with PdfPages(str(pdf_path)) as pdf:
         render_parameter_manifest(
@@ -1202,6 +1339,7 @@ def _write_noise_validation_pdf(
                 "shots": noise.get("shots"),
                 "oracle_repeats": noise.get("oracle_repeats"),
                 "oracle_aggregate": noise.get("oracle_aggregate"),
+                "mitigation": noise.get("mitigation"),
                 "backend": backend.get("backend_name"),
                 "using_fake_backend": backend.get("using_fake_backend"),
             },
@@ -1214,6 +1352,7 @@ def _write_noise_validation_pdf(
             f"problem: {settings.get('problem')}",
             f"ansatz: {settings.get('ansatz')}",
             f"noise_mode: {noise.get('noise_mode')}",
+            noise_caption,
             f"backend: {backend.get('backend_name')}",
             f"fallback_used: {fallback.get('used')}",
             f"fallback_mode: {fallback.get('mode')}",
@@ -1232,8 +1371,10 @@ def _write_noise_validation_pdf(
             f"  objective_source: {vqe.get('objective_source')}",
             f"  energy_backend: {vqe.get('energy_backend')}",
             f"  noisy energy: {vqe.get('energy_noisy')}",
+            f"  noisy energy stderr: {vqe.get('energy_noisy_stderr')}",
             f"  ideal reference energy: {vqe.get('energy_ideal_reference')}",
             f"  noisy-ideal delta: {vqe.get('delta_noisy_minus_ideal')}",
+            f"  noisy-ideal delta stderr: {vqe.get('delta_noisy_minus_ideal_stderr')}",
             "",
             "ADAPT (phase 2):",
             f"  enabled: {settings.get('run_adapt')}",
@@ -1242,14 +1383,17 @@ def _write_noise_validation_pdf(
             f"  depth: {adapt.get('ansatz_depth')}",
             f"  stop_reason: {adapt.get('stop_reason')}",
             f"  noisy-ideal delta: {adapt.get('delta_noisy_minus_ideal')}",
+            f"  noisy-ideal delta stderr: {adapt.get('delta_noisy_minus_ideal_stderr')}",
             "",
             "Final trajectory point:",
             f"  energy noisy: {final.get('energy_static_trotter_noisy')}",
             f"  energy ideal: {final.get('energy_static_trotter_ideal')}",
             f"  energy delta: {final.get('energy_static_trotter_delta_noisy_minus_ideal')}",
+            f"  energy delta stderr: {final.get('energy_static_trotter_delta_noisy_minus_ideal_stderr')}",
             f"  doublon noisy: {final.get('doublon_trotter_noisy')}",
             f"  doublon ideal: {final.get('doublon_trotter_ideal')}",
             f"  doublon delta: {final.get('doublon_trotter_delta_noisy_minus_ideal')}",
+            f"  doublon delta stderr: {final.get('doublon_trotter_delta_noisy_minus_ideal_stderr')}",
         ]
         vqe_spsa = vqe.get("spsa")
         if isinstance(vqe_spsa, dict):
@@ -1305,8 +1449,22 @@ def _write_noise_validation_pdf(
             ts = np.array([float(r["time"]) for r in trajectory], dtype=float)
             e_noisy = np.array([float(r["energy_static_trotter_noisy"]) for r in trajectory], dtype=float)
             e_ideal = np.array([float(r["energy_static_trotter_ideal"]) for r in trajectory], dtype=float)
+            e_delta = np.array(
+                [float(r["energy_static_trotter_delta_noisy_minus_ideal"]) for r in trajectory], dtype=float
+            )
+            e_delta_stderr = np.array(
+                [float(r.get("energy_static_trotter_delta_noisy_minus_ideal_stderr", 0.0)) for r in trajectory],
+                dtype=float,
+            )
             d_noisy = np.array([float(r["doublon_trotter_noisy"]) for r in trajectory], dtype=float)
             d_ideal = np.array([float(r["doublon_trotter_ideal"]) for r in trajectory], dtype=float)
+            d_delta = np.array(
+                [float(r["doublon_trotter_delta_noisy_minus_ideal"]) for r in trajectory], dtype=float
+            )
+            d_delta_stderr = np.array(
+                [float(r.get("doublon_trotter_delta_noisy_minus_ideal_stderr", 0.0)) for r in trajectory],
+                dtype=float,
+            )
 
             fig, axes = plt.subplots(2, 1, figsize=(10.5, 8.0), sharex=True)
             axes[0].plot(ts, e_noisy, label="energy noisy", color="#1f77b4")
@@ -1322,15 +1480,55 @@ def _write_noise_validation_pdf(
             axes[1].grid(alpha=0.25)
             axes[1].legend(fontsize=8, loc="best")
             fig.suptitle("Noisy vs Ideal Trajectory")
+            fig.text(0.01, 0.01, noise_caption, fontsize=8, ha="left", va="bottom")
             fig.tight_layout(rect=(0.0, 0.0, 1.0, 0.96))
             pdf.savefig(fig)
             plt.close(fig)
 
+            fig_delta, axes_delta = plt.subplots(2, 1, figsize=(10.5, 8.0), sharex=True)
+            axes_delta[0].plot(ts, e_delta, color="#d62728", linewidth=1.2, label="ΔE (noisy-ideal)")
+            axes_delta[0].fill_between(
+                ts,
+                e_delta - (2.0 * e_delta_stderr),
+                e_delta + (2.0 * e_delta_stderr),
+                color="#d62728",
+                alpha=0.18,
+                linewidth=0.0,
+                label="±2 stderr",
+            )
+            axes_delta[0].axhline(0.0, color="#111111", linewidth=0.8, linestyle=":")
+            axes_delta[0].set_ylabel("ΔEnergy")
+            axes_delta[0].grid(alpha=0.25)
+            axes_delta[0].legend(fontsize=8, loc="best")
+
+            axes_delta[1].plot(ts, d_delta, color="#9467bd", linewidth=1.2, label="ΔDoublon (noisy-ideal)")
+            axes_delta[1].fill_between(
+                ts,
+                d_delta - (2.0 * d_delta_stderr),
+                d_delta + (2.0 * d_delta_stderr),
+                color="#9467bd",
+                alpha=0.18,
+                linewidth=0.0,
+                label="±2 stderr",
+            )
+            axes_delta[1].axhline(0.0, color="#111111", linewidth=0.8, linestyle=":")
+            axes_delta[1].set_xlabel("Time")
+            axes_delta[1].set_ylabel("ΔDoublon")
+            axes_delta[1].grid(alpha=0.25)
+            axes_delta[1].legend(fontsize=8, loc="best")
+            fig_delta.suptitle("Noisy-Ideal Delta with Uncertainty Bands")
+            fig_delta.text(0.01, 0.01, noise_caption, fontsize=8, ha="left", va="bottom")
+            fig_delta.tight_layout(rect=(0.0, 0.0, 1.0, 0.96))
+            pdf.savefig(fig_delta)
+            plt.close(fig_delta)
+
         if vqe:
             rows = [
                 ["Noisy VQE", f"{float(vqe.get('energy_noisy', float('nan'))):.8f}"],
+                ["Noisy VQE stderr", f"{float(vqe.get('energy_noisy_stderr', float('nan'))):.3e}"],
                 ["Ideal reference", f"{float(vqe.get('energy_ideal_reference', float('nan'))):.8f}"],
                 ["Noisy-Ideal", f"{float(vqe.get('delta_noisy_minus_ideal', float('nan'))):.3e}"],
+                ["Noisy-Ideal stderr", f"{float(vqe.get('delta_noisy_minus_ideal_stderr', float('nan'))):.3e}"],
                 ["#params", str(vqe.get("num_parameters"))],
                 ["best restart", str(vqe.get("best_restart"))],
             ]
@@ -1366,6 +1564,14 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     p.add_argument("--seed", type=int, default=7)
     p.add_argument("--oracle-repeats", type=int, default=1)
     p.add_argument("--oracle-aggregate", choices=["mean", "median"], default="mean")
+    p.add_argument("--mitigation", choices=["none", "readout", "zne", "dd"], default="none")
+    p.add_argument(
+        "--symmetry-mitigation-mode",
+        choices=["off", "verify_only", "postselect_diag_v1", "projector_renorm_v1"],
+        default="off",
+    )
+    p.add_argument("--zne-scales", type=str, default=None)
+    p.add_argument("--dd-sequence", type=str, default=None)
     p.add_argument("--backend-name", type=str, default=None)
     p.add_argument("--use-fake-backend", action="store_true")
     p.set_defaults(allow_aer_fallback=True)
@@ -1416,7 +1622,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     p.add_argument("--adapt-eps-energy", type=float, default=1e-8)
     p.add_argument("--adapt-maxiter", type=int, default=300)
     p.add_argument("--adapt-seed", type=int, default=7)
-    p.add_argument("--adapt-inner-optimizer", choices=["COBYLA", "SPSA"], default="COBYLA")
+    p.add_argument("--adapt-inner-optimizer", choices=["COBYLA", "SPSA"], default="SPSA")
     p.add_argument("--adapt-spsa-a", type=float, default=0.2)
     p.add_argument("--adapt-spsa-c", type=float, default=0.1)
     p.add_argument("--adapt-spsa-alpha", type=float, default=0.602)
@@ -1515,6 +1721,12 @@ def main(argv: list[str] | None = None) -> None:
 
     ansatz = _build_ansatz(args, num_particles)
     psi_ref = _build_reference_state(args=args, num_particles=num_particles)
+    mitigation_cfg = _build_mitigation_config_from_args(args)
+    symmetry_mitigation_cfg = _build_symmetry_mitigation_config_from_args(args)
+    ideal_symmetry_mitigation_cfg = normalize_ideal_reference_symmetry_mitigation(
+        symmetry_mitigation_cfg,
+        noise_mode=str(args.noise_mode),
+    )
 
     noisy_cfg = OracleConfig(
         noise_mode=str(args.noise_mode),
@@ -1527,6 +1739,8 @@ def main(argv: list[str] | None = None) -> None:
         allow_aer_fallback=bool(args.allow_aer_fallback),
         aer_fallback_mode="sampler_shots",
         omp_shm_workaround=bool(args.omp_shm_workaround),
+        mitigation=dict(mitigation_cfg),
+        symmetry_mitigation=dict(symmetry_mitigation_cfg),
     )
     ideal_cfg = OracleConfig(
         noise_mode="ideal",
@@ -1536,6 +1750,8 @@ def main(argv: list[str] | None = None) -> None:
         oracle_aggregate=str(args.oracle_aggregate),
         backend_name=None,
         use_fake_backend=False,
+        mitigation={"mode": "none", "zne_scales": [], "dd_sequence": None},
+        symmetry_mitigation=dict(ideal_symmetry_mitigation_cfg),
     )
 
     vqe_payload: dict[str, Any] = {
@@ -1639,6 +1855,7 @@ def main(argv: list[str] | None = None) -> None:
             observables=compare_observables,
             tolerance=float(args.legacy_parity_tol),
         )
+    delta_uncertainty = _trajectory_delta_uncertainty(trajectory_rows)
 
     payload: dict[str, Any] = {
         "pipeline": "hh_noise_hardware_validation",
@@ -1670,6 +1887,12 @@ def main(argv: list[str] | None = None) -> None:
             "exact_steps_multiplier": int(args.exact_steps_multiplier),
             "allow_aer_fallback": bool(args.allow_aer_fallback),
             "omp_shm_workaround": bool(args.omp_shm_workaround),
+            "mitigation": str(args.mitigation),
+            "symmetry_mitigation_mode": str(args.symmetry_mitigation_mode),
+            "zne_scales": (None if args.zne_scales is None else str(args.zne_scales)),
+            "dd_sequence": (None if args.dd_sequence is None else str(args.dd_sequence)),
+            "mitigation_config": dict(mitigation_cfg),
+            "symmetry_mitigation_config": dict(symmetry_mitigation_cfg),
             "vqe_reps": int(args.vqe_reps),
             "vqe_restarts": int(args.vqe_restarts),
             "vqe_maxiter": int(args.vqe_maxiter),
@@ -1725,23 +1948,38 @@ def main(argv: list[str] | None = None) -> None:
         "vqe": vqe_payload,
         "adapt": adapt_payload,
         "trajectory": trajectory_rows,
+        "delta_uncertainty": delta_uncertainty,
         "execution_fallback": {
             "used": bool(backend_info.details.get("fallback_used", False)),
             "mode": backend_info.details.get("fallback_mode"),
             "reason": backend_info.details.get("fallback_reason", ""),
             "aer_failed": bool(backend_info.details.get("aer_failed", False)),
+            "mitigation": dict(backend_info.details.get("mitigation", {})),
+            "symmetry_mitigation": dict(backend_info.details.get("symmetry_mitigation", {})),
         },
         "legacy_parity": legacy_parity_payload,
     }
 
     if trajectory_rows:
         final = trajectory_rows[-1]
+        energy_metrics = dict(delta_uncertainty.get("energy_static_trotter", {}))
+        if not energy_metrics and delta_uncertainty:
+            # Fallback: use the first available observable channel.
+            first_key = sorted(delta_uncertainty.keys())[0]
+            energy_metrics = dict(delta_uncertainty.get(first_key, {}))
         payload["summary"] = {
             "final_energy_delta_noisy_minus_ideal": float(
                 final["energy_static_trotter_delta_noisy_minus_ideal"]
             ),
             "final_doublon_delta_noisy_minus_ideal": float(
                 final["doublon_trotter_delta_noisy_minus_ideal"]
+            ),
+            "max_abs_delta": float(energy_metrics.get("max_abs_delta", float("nan"))),
+            "max_abs_delta_over_stderr": float(
+                energy_metrics.get("max_abs_delta_over_stderr", float("nan"))
+            ),
+            "mean_abs_delta_over_stderr": float(
+                energy_metrics.get("mean_abs_delta_over_stderr", float("nan"))
             ),
         }
 

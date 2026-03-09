@@ -6,13 +6,10 @@ Test categories:
      short Trotter propagation, verify fidelity.
   2. HH → Hubbard reduction — omega0=0, g_ep=0 gives same Hamiltonian spectrum
      as pure Hubbard ⊗ I_phonon.
-  3. Compare pipeline HH guard — parse_args accepts --problem hh but main()
-     rejects it with SystemExit.
-  4. Qiskit baseline HH guard — same rejection pattern.
-  5. PDF manifest field presence — manifest logic branches correctly for HH.
-  6. Sector filtering correctness — _sector_basis_indices_hh gives correct
+  3. PDF manifest field presence — manifest logic branches correctly for HH.
+  4. Sector filtering correctness — _sector_basis_indices_hh gives correct
      fermion-only count mask with phonon qubits unconstrained.
-  7. HH exact ground energy cross-check — pipeline helper matches VQE module.
+  5. HH exact ground energy cross-check — pipeline helper matches VQE module.
 """
 from __future__ import annotations
 
@@ -20,7 +17,6 @@ import math
 import sys
 import unittest
 from pathlib import Path
-from unittest import mock
 
 import numpy as np
 
@@ -51,19 +47,6 @@ _sector_basis_indices_hh = hc_pipe._sector_basis_indices_hh
 _ground_manifold_basis_sector_filtered_hh = hc_pipe._ground_manifold_basis_sector_filtered_hh
 _collect_hardcoded_terms_exyz = hc_pipe._collect_hardcoded_terms_exyz
 _build_hamiltonian_matrix = hc_pipe._build_hamiltonian_matrix
-
-# ── Imports from compare pipeline (pure function, no side effects) ─────────
-import pipelines.qiskit_archive.compare_hc_vs_qk as cmp_pipe
-
-# ── Imports from Qiskit baseline pipeline ──────────────────────────────────
-# The Qiskit baseline has top-level qiskit_algorithms imports that may not
-# be installed.  We import it lazily and skip tests when unavailable.
-try:
-    import pipelines.qiskit_archive.qiskit_baseline as qk_pipe
-    _HAS_QK_PIPE = True
-except (ImportError, ModuleNotFoundError):
-    qk_pipe = None  # type: ignore[assignment]
-    _HAS_QK_PIPE = False
 
 
 # ────────────────────────────────────────────────────────────────────────────
@@ -210,67 +193,7 @@ class TestHHToHubbardReduction(unittest.TestCase):
 
 
 # ════════════════════════════════════════════════════════════════════════════
-# 3) Compare Pipeline HH Guard
-# ════════════════════════════════════════════════════════════════════════════
-class TestComparePipelineHHGuard(unittest.TestCase):
-    """Compare pipeline rejects --problem hh with SystemExit."""
-
-    def test_parse_args_accepts_problem(self):
-        """parse_args() recognizes --problem hubbard and --problem hh."""
-        with mock.patch("sys.argv", ["prog", "--l-values", "2", "--problem", "hubbard"]):
-            args = cmp_pipe.parse_args()
-            self.assertEqual(args.problem, "hubbard")
-
-        with mock.patch("sys.argv", ["prog", "--l-values", "2", "--problem", "hh"]):
-            args = cmp_pipe.parse_args()
-            self.assertEqual(args.problem, "hh")
-
-    def test_main_rejects_hh(self):
-        """main() raises SystemExit for --problem hh."""
-        with mock.patch("sys.argv", ["prog", "--l-values", "2", "--problem", "hh"]):
-            with self.assertRaises(SystemExit) as ctx:
-                cmp_pipe.main()
-            msg = str(ctx.exception)
-            self.assertIn("hh", msg.lower())
-
-    def test_default_problem_is_hubbard(self):
-        """Default --problem should be 'hubbard', not 'hh'."""
-        with mock.patch("sys.argv", ["prog", "--l-values", "2"]):
-            args = cmp_pipe.parse_args()
-            self.assertEqual(args.problem, "hubbard")
-
-
-# ════════════════════════════════════════════════════════════════════════════
-# 4) Qiskit Baseline HH Guard
-# ════════════════════════════════════════════════════════════════════════════
-@unittest.skipUnless(_HAS_QK_PIPE, "qiskit_algorithms not installed")
-class TestQiskitBaselineHHGuard(unittest.TestCase):
-    """Qiskit baseline rejects --problem hh with SystemExit."""
-
-    def test_parse_args_accepts_problem(self):
-        with mock.patch("sys.argv", ["prog", "--L", "2", "--problem", "hubbard"]):
-            args = qk_pipe.parse_args()
-            self.assertEqual(args.problem, "hubbard")
-
-        with mock.patch("sys.argv", ["prog", "--L", "2", "--problem", "hh"]):
-            args = qk_pipe.parse_args()
-            self.assertEqual(args.problem, "hh")
-
-    def test_main_rejects_hh(self):
-        with mock.patch("sys.argv", ["prog", "--L", "2", "--problem", "hh"]):
-            with self.assertRaises(SystemExit) as ctx:
-                qk_pipe.main()
-            msg = str(ctx.exception)
-            self.assertIn("hh", msg.lower())
-
-    def test_default_problem_is_hubbard(self):
-        with mock.patch("sys.argv", ["prog", "--L", "2"]):
-            args = qk_pipe.parse_args()
-            self.assertEqual(args.problem, "hubbard")
-
-
-# ════════════════════════════════════════════════════════════════════════════
-# 5) PDF Manifest Field Presence
+# 3) PDF Manifest Field Presence
 # ════════════════════════════════════════════════════════════════════════════
 class TestPDFManifestFields(unittest.TestCase):
     """Verify manifest construction logic branches correctly for HH vs Hubbard."""
@@ -319,7 +242,7 @@ class TestPDFManifestFields(unittest.TestCase):
 
 
 # ════════════════════════════════════════════════════════════════════════════
-# 6) Sector Filtering Correctness
+# 4) Sector Filtering Correctness
 # ════════════════════════════════════════════════════════════════════════════
 class TestSectorFilteringHH(unittest.TestCase):
     """_sector_basis_indices_hh returns correct fermion-only sector mask."""
@@ -374,7 +297,7 @@ class TestSectorFilteringHH(unittest.TestCase):
 
 
 # ════════════════════════════════════════════════════════════════════════════
-# 7) HH Exact Ground Energy Cross-check
+# 5) HH Exact Ground Energy Cross-check
 # ════════════════════════════════════════════════════════════════════════════
 class TestHHExactGroundEnergy(unittest.TestCase):
     """exact_ground_energy_sector_hh matches direct pipeline diagonalization."""

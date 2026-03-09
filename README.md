@@ -16,11 +16,15 @@ Jordan-Wigner operator construction, binary or unary bosonic encoding, blocked o
 
 ### Warm-start chain
 
-Warm-start runs use a two-stage sequence:
+Warm-start runs follow the active three-stage HH continuation contract:
 
-1. Run HH-HVA VQE warm start with always default `hh_hva_ptw`.
+1. Run HH-HVA VQE warm start with `hh_hva_ptw`.
 2. Use that warm-start state as the ADAPT reference state.
-3. Run ADAPT from that warm-start state with the agent max meta-pool: `UCCSD + HVA/PTW + (PAOP_full union PAOP_lf_full)`. This is a custom merged pool, not a single `--adapt-pool` value; `curdrag` is already included via PAOP-LF pools.
+3. Run ADAPT from that warm-start state in staged HH continuation mode (`phase1_v1` / `phase2_v1` / `phase3_v1`).
+   - For new HH agent work, depth-0 ADAPT starts from the narrow physics-aligned core; current runtime resolves this to `paop_lf_std`.
+   - `full_meta` remains a supported broad-pool preset, but only as controlled residual enrichment after plateau diagnosis, not the default depth-0 path.
+   - Optional phase-3 follow-ons stay opt-in: `--phase3-runtime-split-mode shortlist_pauli_children_v1` is a shortlist-only continuation aid, and widened `--phase3-symmetry-mitigation-mode` choices remain phase-3 metadata/telemetry hooks on raw staged/hardcoded/replay paths.
+4. Replay conventional VQE from ADAPT with ADAPT-family matching (`--generator-family match_adapt`, fallback `full_meta`) via `pipelines/hardcoded/hh_vqe_from_adapt_family.py`.
 
 
 
@@ -30,8 +34,9 @@ Warm-start runs use a two-stage sequence:
 - `src/quantum/`: operator algebra, Hamiltonian builders, ansatz/statevector math
 - `pipelines/hardcoded/`: production hardcoded pipeline entrypoints
 - `pipelines/exact_bench/`: exact-diagonalization benchmark tooling
-- `reports/`: PDF and reporting utilities
-- `docs/`: architecture, implementation, and status documents
+- `docs/reports/`: PDF and reporting utilities
+- root markdown docs: active repo-facing contracts and workflow notes
+- `MATH/`: near-term HH implementation notes and math targets
 
 ## Visual overview
 
@@ -40,14 +45,9 @@ graph TB
   R["README.md canonical entrypoint"]
 
   subgraph DOCS
-    D1["docs/repo_implementation_guide.md"]
-    D2["docs/HH_IMPLEMENTATION_STATUS.md"]
-    D3["docs/FERMI_HAMIL_README.md"]
-  end
-
-  subgraph RULES
-    G0["AGENTS.md"]
-    G1["pipelines/run_guide.md"]
+    D1["AGENTS.md"]
+    D2["pipelines/run_guide.md"]
+    D3["MATH/IMPLEMENT_NEXT.md"]
   end
 
   subgraph SRC
@@ -62,34 +62,23 @@ graph TB
     P3["pipelines/exact_bench/"]
     P4["cross_check_suite.py"]
     P5["pipelines/shell/"]
-    P6["pipelines/qiskit_archive/"]
   end
 
   subgraph REPORTS
-    RP0["reports/pdf_utils.py"]
-    RP1["reports/README.md"]
-  end
-
-  subgraph OUTPUT
-    O1["artifacts/json/"]
-    O2["artifacts/pdf/"]
-    O3["artifacts/overnight_l3_hh_4method/"]
+    RP0["docs/reports/pdf_utils.py"]
   end
 
   subgraph TESTS
     T0["test/test_adapt_vqe_integration.py"]
   end
 
-  R --> G0
-  R --> G1
   R --> D1
   R --> D2
   R --> D3
 
-  G1 --> P0
-  G1 --> P3
-  G1 --> P5
-  G1 --> P6
+  D2 --> P0
+  D2 --> P3
+  D2 --> P5
 
   P0 --> P1
   P0 --> P2
@@ -100,13 +89,6 @@ graph TB
   P2 --> S1
   P1 --> RP0
   P2 --> RP0
-
-  P1 --> O1
-  P1 --> O2
-  P2 --> O1
-  P2 --> O2
-  O1 --> O3
-  O2 --> O3
 
   T0 --> P2
   T0 --> S0
@@ -164,8 +146,10 @@ graph TB
 
 - `hubbard` pools: `uccsd`, `cse`, `full_hamiltonian`.
 - `hh` pools: `hva`, `full_hamiltonian`, `paop_min`, `paop_std`, `paop_full`, `paop_lf` (`paop_lf_std` alias), `paop_lf2_std`, `paop_lf_full`.
+- HH staged continuation default for new agent work: `phase1_v1` / `phase2_v1` / `phase3_v1` start from the narrow HH core and runtime-resolve depth-0 HH ADAPT to `paop_lf_std`.
 - HH built-in combined preset: `uccsd_paop_lf_full` = `uccsd_lifted + paop_lf_full` (deduplicated) via one CLI value.
-- Agent max custom meta-pool (not a single CLI value): `uccsd_lifted + hva + paop_full + paop_lf_full`.
+- HH full-meta preset: `full_meta` = `uccsd_lifted + hva + paop_full + paop_lf_full` (deduplicated) via one CLI value; keep it as a compatibility/broad-pool preset and replay fallback, not the default depth-0 staged HH pool.
+- Opt-in runtime split (`--phase3-runtime-split-mode shortlist_pauli_children_v1`) probes shortlisted macro generators as serialized child terms for continuation/replay provenance; it does **not** change the default HH pool curriculum or create a new replay mode.
 - `paop_min`: displacement-focused PAOP operators.
 - `paop_std`: displacement plus dressed-hopping (`hopdrag`) operators.
 - `paop_full`: `paop_std` plus doublon dressing and extended cloud operators.
@@ -198,28 +182,22 @@ The hardcoded VQE/ADAPT path now includes a shared compiled-action acceleration 
   - `adapt_vqe.compiled_pauli_cache`
   - `adapt_vqe.history[*].gradient_eval_elapsed_s`
   - `adapt_vqe.history[*].optimizer_elapsed_s`
-- New benchmark utility:
-  - `pipelines/hardcoded/bench_compiled_energy_and_grad.py`
-  - Times legacy vs compiled energy and gradient scoring paths, reports speedups and parity deltas.
-
-Fast VQE-from-ADAPT replay (HH, hardcoded):
+Fast VQE-from-ADAPT replay (HH, ADAPT-family matched):
 
 ```bash
-python pipelines/hardcoded/hubbard_pipeline.py \
-  --problem hh \
-  --L 4 --boundary open --ordering blocked \
-  --boson-encoding binary --n-ph-max 1 \
-  --t 1.0 --u 4.0 --dv 0.0 --omega0 1.0 --g-ep 0.5 \
-  --vqe-ansatz hh_hva_tw --vqe-reps 1 \
-  --vqe-restarts 16 --vqe-maxiter 12000 --vqe-method COBYLA --vqe-seed 7 \
-  --vqe-energy-backend one_apply_compiled --vqe-progress-every-s 60 \
-  --initial-state-source adapt_json \
+python pipelines/hardcoded/hh_vqe_from_adapt_family.py \
   --adapt-input-json .vscode-userdata/artifacts/useful/L4/l4_hh_seq_20260302_215706_resume_adaptB_20260303_111311_adapt_B_B_probe_checkpoint_state.json \
-  --skip-qpe --num-times 1 --t-final 0.0 --skip-pdf \
-  --output-json artifacts/json/hc_hh_L4_from_adaptB_fastcomp.json
+  --generator-family match_adapt --fallback-family full_meta \
+  --L 4 --boundary open --ordering blocked \
+  --boson-encoding binary --n-ph-max 1 --t 1.0 --u 4.0 --dv 0.0 --omega0 1.0 --g-ep 0.5 \
+  --reps 4 --restarts 16 --maxiter 12000 --method SPSA --seed 7 \
+  --energy-backend one_apply_compiled --progress-every-s 60 \
+  --output-json artifacts/json/hc_hh_L4_from_adaptB_family_matched_fastcomp.json
 ```
 
-Keep strict metadata matching enabled by default. Use `--no-adapt-strict-match` only for legacy/import files that do not carry complete HH metadata keys.
+This path matches the ADAPT generator-family contract. Replay remains canonical via `--generator-family match_adapt` with `--fallback-family full_meta`, and replay continuation modes stay `legacy | phase1_v1 | phase2_v1 | phase3_v1`.
+If an opt-in runtime split admitted child labels outside the resolved family pool, replay can still rebuild them from serialized continuation metadata when that metadata is present.
+`hubbard_pipeline.py --vqe-ansatz hh_hva_*` remains a fixed-ansatz baseline.
 
 ## Start here (doc priority)
 
@@ -227,8 +205,17 @@ Use this order when onboarding:
 
 1. `AGENTS.md` - repo conventions and non-negotiable implementation rules
 2. `pipelines/run_guide.md` - CLI and runbook for active pipelines
-3. `docs/repo_implementation_guide.md` - implementation-deep walkthrough
-4. `docs/HH_IMPLEMENTATION_STATUS.md` - current HH status and remaining work
+3. `README.md` - current repo map and kept workflow surface
+4. `MATH/IMPLEMENT_NEXT.md` - next HH implementation target when math work is in scope
+
+Canonical authority chain: `AGENTS.md` -> `pipelines/run_guide.md` -> `README.md` -> task-specific `MATH/` notes.
+Agent-facing automation should ignore `docs/` unless PDF/report output is in scope, in which case use `docs/reports/`.
+
+Task-type doc split:
+- `AGENTS.md`: hard policy and escalation rules.
+- `pipelines/run_guide.md`: executable commands and run contracts.
+- `README.md`: repo map and active workflow overview.
+- `MATH/IMPLEMENT_NEXT.md`: near-term HH implementation target.
 
 ## Important note on README files
 
@@ -237,6 +224,10 @@ onboarding docs. Use this root `README.md` first, then drill into local READMEs
 for module-specific details.
 
 ## Quick run examples
+
+Default hard gate policy for agent execution:
+- Final conventional VQE hard gate: `ΔE_abs < 1e-4`.
+- Script strict mode (`1e-7`) is optional and should be treated as strict mode only.
 
 ADAPT-VQE (HH, PAOP pool):
 
@@ -247,13 +238,6 @@ python pipelines/hardcoded/adapt_pipeline.py \
   --adapt-max-depth 30 --adapt-eps-grad 1e-5 --adapt-maxiter 600 \
   --initial-state-source adapt_vqe --skip-pdf \
   --output-json artifacts/json/adapt_L2_hh_paop_std.json
-```
-
-Compiled energy/gradient micro-benchmark (HH):
-
-```bash
-python pipelines/hardcoded/bench_compiled_energy_and_grad.py \
-  --L 3 --n-ph-max 1 --repeats 5
 ```
 
 Cross-check suite (exact benchmark; auto-scaled by L/problem defaults):
@@ -275,7 +259,7 @@ python pipelines/hardcoded/hubbard_pipeline.py \
 ```
 
 CFQM propagation status (hardcoded pipeline):
-- `--propagator` defaults to `suzuki2`; existing run behavior is unchanged unless `cfqm4`/`cfqm6` is selected.
+- `--propagator` defaults to `cfqm4`; use `suzuki2` explicitly for baseline comparison.
 - CFQM uses fixed scheme nodes (`c_j`) and ignores legacy midpoint/left/right `--drive-time-sampling`.
 - `--exact-steps-multiplier` remains a reference-only control and does not change CFQM macro-step count.
 - `--cfqm-stage-exp` default is `expm_multiply_sparse`; `--cfqm-coeff-drop-abs-tol` default is `0.0`; `--cfqm-normalize` default is off.
@@ -410,15 +394,13 @@ For compare/orchestration workflows, use `pipelines/run_guide.md`.
 ## Major Markdown docs index
 
 - `AGENTS.md`
+- `README.md`
 - `pipelines/run_guide.md`
-- `docs/LLM_RESEARCH_CONTEXT.md`
-- `docs/repo_implementation_guide.md`
-- `docs/HH_IMPLEMENTATION_STATUS.md`
-- `docs/FERMI_HAMIL_README.md`
-- `reports/README.md`
+- `MATH/IMPLEMENT_NEXT.md`
+- `MATH/IMPLEMENT_SOON.md`
 - `pipelines/exact_bench/README.md`
-- `pipelines/qiskit_archive/README.md`
-- `pipelines/qiskit_archive/DESIGN_NOTE_TIMEDEP.md`
+
+Legacy archived docs live under `docs/archive/` and are non-canonical.
 
 ## HH noisy estimator validation
 
@@ -429,12 +411,18 @@ It provides one shared expectation oracle across `ideal`, `shots`, `aer_noise`, 
 `shots`/`aer_noise` emulate finite-shot measurement noise using Qiskit `AerSimulator`, with optional noisy ADAPT and PDF/JSON reporting.  
 Use `pipelines/run_guide.md` section 11+ for operational commands and mode-by-mode guidance.
 
+High-level symmetry note:
+- `--symmetry-mitigation-mode` is the active oracle-backed symmetry surface in the noise validation / robustness flows; default is `off`.
+- Active modes (`postselect_diag_v1`, `projector_renorm_v1`) are intentionally narrow first versions: they run only on eligible diagonal/counts-compatible paths and fall back explicitly to `verify_only` when unsupported.
+- This differs from `--phase3-symmetry-mitigation-mode` on raw staged ADAPT / hardcoded / replay paths, where the flag is a continuation metadata/telemetry hook unless the workflow is routed through the oracle runtime.
+
 For staged heavy HH robustness with warm-start -> ADAPT Pool B -> final VQE and noisy dynamics benchmarking:
 - `pipelines/exact_bench/hh_noise_robustness_seq_report.py`
 
 Key additions:
 - strict ADAPT Pool B composition enforcement (`UCCSD_lifted + HVA + PAOP_full`)
 - noisy dynamics methods via `--noisy-methods` (default `suzuki2,cfqm4`)
+- shared oracle-backed `--symmetry-mitigation-mode` surface (default `off`; active modes remain opt-in and diagnostics-backed)
 - embedded benchmark metrics in JSON/PDF (`term_exp_count_total`, `cx_proxy_total`, `sq_proxy_total`, `depth_proxy_total`, `wall_total_s`, `oracle_eval_s_total`)
 - backward-compatible `dynamics_noisy.profiles.<profile>.modes` alias mirroring `suzuki2`
 

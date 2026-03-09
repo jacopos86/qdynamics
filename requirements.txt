@@ -1,5 +1,0 @@
--r requirements-core.txt
-
-# Plotting/reporting stack (optional in locked-down environments).
-# Install separately when available:
-#   pip install matplotlib

@@ -1,3 +1,29 @@
+## Default working scope
+
+Default focus for coding tasks:
+- `src/`
+- `pipelines/hardcoded/`
+- `test/`
+- `pipelines/run_guide.md`
+- `AGENTS.md`
+- `README.md`
+
+Ignore by default unless the user explicitly asks for them:
+- `.obsidian/`
+- `.vscode-extensions/`
+- `.vscode-home/`
+- `.vscode-userdata/`
+- `archive/`
+- `docs/` except `docs/reports/` when PDF/report output is in scope
+- `claude_code_adapt_wave/`
+
+Use only when the task explicitly requires them:
+- `MATH/`
+- `docs/reports/`
+- `pipelines/exact_bench/`
+- `pipelines/shell/`
+
+If the user narrows scope further (for example, “focus only on X and Y”), obey the user’s narrower scope over this default.
 
 ```markdown
 <!-- agents.md -->
@@ -13,8 +39,25 @@ The priority is **correctness and consistency of operator conventions**, not “
 ## 1) Non-negotiable conventions
 
 ### Runbook authority for operational workflows
-- For HH staging, run presets, and the new `ecut_1`/`ecut_2` interpretation, agents must consult [`pipelines/run_guide.md`](/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test/pipelines/run_guide.md) before editing pipeline invocation defaults, scaling tables, or manual run plans.
+- For HH staging, run presets, and the new `ecut_1`/`ecut_2` interpretation, agents must consult `pipelines/run_guide.md` before editing pipeline invocation defaults, scaling tables, or manual run plans.
 - Treat this as the canonical source for execution contracts that are not operator-level invariants (e.g., thresholds, gating policy, and recommended run ladders).
+- Canonical doc order for agent decisions: `AGENTS.md` -> `pipelines/run_guide.md` -> `README.md` -> task-specific `MATH/` notes.
+- Root-level supporting docs for agents: `README.md` and task-specific `MATH/` notes.
+- Agents should ignore `docs/` unless the user explicitly asks for material from that folder or PDF/report output is in scope.
+- Agents may use `docs/reports/` when repairing or extending PDF/report output.
+
+### Policy-vs-code conflict rule (mandatory)
+- If AGENTS policy and current code/CLI behavior diverge, agents must **stop and ask the user before proceeding**.
+- In docs, when such a mismatch exists, present:
+  - `AGENTS target`
+  - `Current code behavior`
+  - `Required action: ask user before proceeding`
+
+### Terminology contract (agent-run commands)
+- When the user says **"conventional VQE"**, interpret it as the **non-ADAPT VQE** path.
+- In this repo, **"conventional VQE"** maps to hardcoded non-ADAPT VQE flows (for example, the VQE stage in `pipelines/hardcoded/hubbard_pipeline.py` and non-ADAPT replay paths).
+- **"ADAPT"** / **"ADAPT-VQE"** refers specifically to `pipelines/hardcoded/adapt_pipeline.py` and ADAPT stages.
+- The phrase **"hardcoded pipeline"** in repo history/agent direction should be interpreted as the conventional (**non-ADAPT**) path unless ADAPT is explicitly named.
 
 ### Pauli symbols
 - Use `e/x/y/z` internally (`e` = identity)
@@ -147,7 +190,7 @@ Three built-in patterns (`--drive-pattern`):
 | `custom` | User-supplied JSON array via `--drive-custom-s` |
 
 ### Rules for agents modifying drive code
-- Do **not** add new drive parameters without also updating: (1) both pipeline `parse_args()`, (2) the compare pipeline's `_build_drive_args()` and `_build_drive_args_with_amplitude()`, (3) `PIPELINE_RUN_GUIDE.md`.
+- Do **not** add new drive parameters without also updating: (1) both pipeline `parse_args()`, (2) the compare pipeline's `_build_drive_args()` and `_build_drive_args_with_amplitude()`, (3) `pipelines/run_guide.md`.
 - Drive must be **opt-in** (`--enable-drive`). Default behaviour (no flag) must be bit-for-bit identical to the static case.
 - All drive-related CLI args must have the `--drive-` prefix (except `--enable-drive` and `--exact-steps-multiplier`).
 - The safe-test (`_safe_test_check`) must remain: A=0 drive must produce trajectories identical to the no-drive case within `_SAFE_TEST_THRESHOLD = 1e-10`.
@@ -176,16 +219,18 @@ When the user requests a shorthand run like:
 interpret it with the following **default contract**:
 
 1. The run is **drive-enabled, never static**.
-2. The run is **accuracy-gated** and must target:
+2. **Default Hard Gate (final conventional VQE):**
    `abs(vqe.energy - ground_state.exact_energy_filtered) < 1e-4`.
 3. Use **L-scaled heaviness** (stronger settings for larger L), not one-size-fits-all settings.
+4. Pre-VQE stages (warm-start HVA / ADAPT) are **diagnostic** by default and are not hard-fail gates unless explicitly requested by the user.
 
 Implementation rule:
-- Prefer `pipelines/run_L_drive_accurate.sh --L <L>` when available.
+- Prefer `pipelines/shell/run_drive_accurate.sh --L <L>` when available.
 - If this script is unavailable, emulate its semantics manually:
   - drive enabled with scaling profile defaults,
   - per-L parameter table,
-  - fallback escalation until the `1e-7` gate passes or budget is exhausted.
+  - enforce at least the shorthand contract gate (`< 1e-4`),
+  - treat `< 1e-7` as **optional strict mode**, not the default hard stop.
 
 ## 4d) Mandatory minimum VQE / Trotter parameters per L
 
@@ -223,7 +268,7 @@ the enlarged Hilbert space (phonon modes).
    (Hubbard) or $2^{2L} \cdot (n_{ph}+1)^L$ (HH). Parameters that converge
    at L=2 are catastrophically insufficient at L=3+.
 2. If the user says "run L=3" without specifying parameters, use this table
-   (or `run_L_drive_accurate.sh`) — do not invent lighter settings.
+   (or `pipelines/shell/run_drive_accurate.sh`) — do not invent lighter settings.
 3. For validation / smoke-test runs that intentionally use weak settings,
    add an explicit comment: `# SMOKE TEST — intentionally weak settings`.
 4. When writing tests, light settings (e.g., `maxiter=40`) are acceptable
@@ -323,17 +368,24 @@ python pipelines/hardcoded/hubbard_pipeline.py --help | rg -n "propagator|cfqm-s
 ## 4g) Codex-run HH warm cutoff + state handoff (no manual keypresses)
 
 For Codex-agent runs, do **not** rely on interactive `Ctrl+C` behavior as part
-of the normal workflow. Use scripted warm cutoff and exported state bundles.
+of the normal workflow. Use exported state bundles as the active handoff
+contract, and treat warm-cutoff orchestration scripts as archived examples.
 
-Canonical script:
-- `test/l4_hh_warmstart_uccsd_paop_hva_seq_probe.py`
+Canonical active contract:
+- `pipelines/hardcoded/handoff_state_bundle.py`
+- `pipelines/hardcoded/hubbard_pipeline.py --initial-state-source adapt_json`
+
+Archived workflow examples:
+- `archive/handoff/l4_hh_warmstart_uccsd_paop_hva_seq_probe.py`
 
 Required conventions for agent runs:
-1. If warm-stage runtime must be bounded by convergence trend, enable:
+1. If warm-stage runtime must be bounded by convergence trend in an archived
+   sequential workflow, enable:
    - `--warm-auto-cutoff`
    - slope/window knobs (`--warm-cutoff-*`)
 2. Always set state export paths (`--state-export-dir`, `--state-export-prefix`)
-   so warm and ADAPT checkpoints are persisted.
+   so warm and ADAPT checkpoints are persisted, then write reusable handoff
+   bundles with `pipelines/hardcoded/handoff_state_bundle.py`.
 3. Use exported `*_A_probe_state.json` / `*_A_medium_state.json` as
    `adapt_json` handoff into `pipelines/hardcoded/hubbard_pipeline.py` when
    running conventional VQE+trotter trajectories from a saved state.
@@ -380,7 +432,7 @@ Qiskit baseline scripts may be used to sanity check, but they are not the core t
 - Do not introduce Qiskit into core/'hardcoded' algorithm modules.
 - Do not add heavy dependencies without a strong reason.
 - Do not "optimize" by rewriting algebra rules unless correctness is proven with regression tests.
-- Do not add new drive parameters without updating all three pipelines' `parse_args()`, `_build_drive_args()`, `_build_drive_args_with_amplitude()`, and `PIPELINE_RUN_GUIDE.md`.
+- Do not add new drive parameters without updating all three pipelines' `parse_args()`, `_build_drive_args()`, `_build_drive_args_with_amplitude()`, and `pipelines/run_guide.md`.
 - Do not break the safe-test invariant (A=0 drive must equal no-drive to machine precision).
 - Do not stop a run because you think it is taking up too much run-time. The only acceptable reason to stop/interrupt an already active run/script is for debugging.
 - **Do not run a pipeline with parameters below the §4d minimum table.** If the user does not specify parameters, look up the table — never guess or use L=2 defaults for larger L.
@@ -395,7 +447,7 @@ Qiskit baseline scripts may be used to sanity check, but they are not the core t
 - Near the end of each plan, give me a list of unresolved questions to answer/problems, if any, and the files you will edit.
 - At the end of each plan, state all files intended to alter, and functions and classes to be altered. If none, write 'Files to edit: None'.
 
-## 4f) Legacy noiseless-estimator parity rule (HH anchor)
+## 4h) Legacy noiseless-estimator parity rule (HH anchor)
 
 When a user asks to verify that the new noiseless-estimator path is equivalent to the pre-noise HH pipeline:
 

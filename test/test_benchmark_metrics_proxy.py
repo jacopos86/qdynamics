@@ -15,8 +15,6 @@ from pipelines.exact_bench.benchmark_metrics_proxy import (
     extract_proxy_metric_row,
     write_proxy_sidecars,
 )
-from pipelines.exact_bench.l3_hh_exp_fidelity_wrapper import RUN_FIELDS as FIDELITY_RUN_FIELDS
-from pipelines.exact_bench.overnight_l3_hh_four_method_benchmark import SUMMARY_FIELDS as OVERNIGHT_SUMMARY_FIELDS
 
 
 class TestProxyRowExtraction(unittest.TestCase):
@@ -125,15 +123,5 @@ class TestProxySidecarWriter(unittest.TestCase):
             self.assertEqual(payload["row_count"], 2)
             self.assertIn("source_composition_proxy", payload)
 
-
-class TestNonRegressionFieldContracts(unittest.TestCase):
-    def test_existing_benchmark_fields_unchanged(self) -> None:
-        self.assertNotIn("depth_proxy", OVERNIGHT_SUMMARY_FIELDS)
-        self.assertNotIn("operator_family_proxy", OVERNIGHT_SUMMARY_FIELDS)
-        self.assertNotIn("depth_proxy", FIDELITY_RUN_FIELDS)
-        self.assertNotIn("operator_family_proxy", FIDELITY_RUN_FIELDS)
-
-
 if __name__ == "__main__":
     unittest.main()
-

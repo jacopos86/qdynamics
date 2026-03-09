@@ -46,6 +46,7 @@ class SPSAResult:
     success: bool
     message: str
     history: list[dict[str, Any]]
+    optimizer_memory: dict[str, Any] | None = None
 
 
 def _validate_inputs(
@@ -149,6 +150,9 @@ def spsa_minimize(
     avg_last: int = 0,
     callback: Optional[Callable[[dict[str, Any]], None]] = None,
     callback_every: int = 1,
+    memory: dict[str, Any] | None = None,
+    refresh_every: int = 0,
+    precondition_mode: str = "none",
 ) -> SPSAResult:
     x, lo, hi = _validate_inputs(
         x0=np.asarray(x0, dtype=float),
@@ -164,10 +168,46 @@ def spsa_minimize(
     nfev_counter = [0]
     history: list[dict[str, Any]] = []
     iterates: list[np.ndarray] = []
+    npar = int(x.size)
+
+    precondition_mode_key = str(precondition_mode).strip().lower()
+    if precondition_mode_key not in {"none", "diag_rms_grad"}:
+        raise ValueError("precondition_mode must be 'none' or 'diag_rms_grad'")
+    refresh_every_val = int(max(0, refresh_every))
+    if isinstance(memory, dict):
+        raw_precond = list(memory.get("preconditioner_diag", []))
+        raw_grad_sq = list(memory.get("grad_sq_ema", []))
+        preconditioner_diag = np.ones(npar, dtype=float)
+        grad_sq_ema = np.zeros(npar, dtype=float)
+        for i in range(min(npar, len(raw_precond))):
+            preconditioner_diag[i] = float(raw_precond[i])
+        for i in range(min(npar, len(raw_grad_sq))):
+            grad_sq_ema[i] = float(raw_grad_sq[i])
+        memory_available = bool(memory.get("available", False))
+        memory_source = str(memory.get("source", "input_memory"))
+        refresh_points = [int(v) for v in memory.get("refresh_points", [])]
+        remap_events = [dict(x) for x in memory.get("remap_events", []) if isinstance(x, dict)]
+    else:
+        preconditioner_diag = np.ones(npar, dtype=float)
+        grad_sq_ema = np.zeros(npar, dtype=float)
+        memory_available = False
+        memory_source = "fresh"
+        refresh_points = []
+        remap_events = []
+    grad_ema_beta = 0.9
+    preconditioner_eps = 1e-8
 
     x_current = _clip_if_needed(x, lo, hi, project)
-    best_x_observed: Optional[np.ndarray] = None
-    best_y_observed = float("inf")
+
+    # Seed best-tracking with f(x0) so we never return worse than entry.
+    best_x_observed = np.array(x_current, copy=True)
+    best_y_observed = _aggregate_eval(
+        fun,
+        x_current,
+        eval_repeats=int(eval_repeats),
+        eval_agg=str(eval_agg),
+        nfev_counter=nfev_counter,
+    )
     nit = 0
 
     try:
@@ -204,7 +244,21 @@ def spsa_minimize(
 
             ghat = ((float(y_plus) - float(y_minus)) / (2.0 * ck)) * delta
             grad_norm = float(np.linalg.norm(ghat))
-            x_current = _clip_if_needed(x_current - ak * ghat, lo, hi, project)
+            grad_sq_ema = float(grad_ema_beta) * grad_sq_ema + (1.0 - float(grad_ema_beta)) * (ghat ** 2)
+            refresh_triggered = False
+            if (
+                precondition_mode_key == "diag_rms_grad"
+                and refresh_every_val > 0
+                and ((k + 1) % refresh_every_val == 0)
+            ):
+                preconditioner_diag = 1.0 / np.sqrt(np.maximum(grad_sq_ema, float(preconditioner_eps)))
+                preconditioner_diag = np.clip(preconditioner_diag, 0.1, 10.0)
+                refresh_points.append(int(k + 1))
+                refresh_triggered = True
+            update_direction = np.asarray(ghat, dtype=float)
+            if precondition_mode_key == "diag_rms_grad":
+                update_direction = np.asarray(preconditioner_diag, dtype=float) * update_direction
+            x_current = _clip_if_needed(x_current - ak * update_direction, lo, hi, project)
             iterates.append(np.array(x_current, copy=True))
             nit = k + 1
 
@@ -217,6 +271,8 @@ def spsa_minimize(
                 "grad_norm": float(grad_norm),
                 "best_fun": float(best_y_observed),
                 "nfev_so_far": int(nfev_counter[0]),
+                "preconditioner_mean": float(np.mean(preconditioner_diag)),
+                "refresh_triggered": bool(refresh_triggered),
             }
             history.append(item)
 
@@ -236,15 +292,7 @@ def spsa_minimize(
                 nfev_counter=nfev_counter,
             )
         else:
-            if best_x_observed is None:
-                best_x_observed = np.array(x_current, copy=True)
-                best_y_observed = _aggregate_eval(
-                    fun,
-                    best_x_observed,
-                    eval_repeats=int(eval_repeats),
-                    eval_agg=str(eval_agg),
-                    nfev_counter=nfev_counter,
-                )
+            # best_x_observed is always seeded with f(x0), so never None here.
             x_out = np.array(best_x_observed, copy=True)
             fun_out = float(best_y_observed)
 
@@ -261,6 +309,20 @@ def spsa_minimize(
                 f"eval_agg={str(eval_agg)},avg_last={int(avg_last)})"
             ),
             history=history,
+            optimizer_memory={
+                "version": "phase2_spsa_diag_memory_v1",
+                "optimizer": "SPSA",
+                "parameter_count": int(npar),
+                "available": bool(precondition_mode_key == "diag_rms_grad"),
+                "source": str(memory_source),
+                "reused": bool(memory_available),
+                "reason": ("" if precondition_mode_key == "diag_rms_grad" else "preconditioner_disabled"),
+                "preconditioner_diag": [float(v) for v in np.asarray(preconditioner_diag, dtype=float).tolist()],
+                "grad_sq_ema": [float(v) for v in np.asarray(grad_sq_ema, dtype=float).tolist()],
+                "history_tail": [dict(x) for x in history[-32:]],
+                "refresh_points": [int(v) for v in refresh_points],
+                "remap_events": [dict(x) for x in remap_events],
+            },
         )
     except KeyboardInterrupt:
         raise
@@ -279,4 +341,18 @@ def spsa_minimize(
             success=False,
             message=f"spsa_failed({type(exc).__name__}: {exc})",
             history=history,
+            optimizer_memory={
+                "version": "phase2_spsa_diag_memory_v1",
+                "optimizer": "SPSA",
+                "parameter_count": int(npar),
+                "available": bool(precondition_mode_key == "diag_rms_grad"),
+                "source": str(memory_source),
+                "reused": bool(memory_available),
+                "reason": f"spsa_failed({type(exc).__name__})",
+                "preconditioner_diag": [float(v) for v in np.asarray(preconditioner_diag, dtype=float).tolist()],
+                "grad_sq_ema": [float(v) for v in np.asarray(grad_sq_ema, dtype=float).tolist()],
+                "history_tail": [dict(x) for x in history[-32:]],
+                "refresh_points": [int(v) for v in refresh_points],
+                "remap_events": [dict(x) for x in remap_events],
+            },
         )
