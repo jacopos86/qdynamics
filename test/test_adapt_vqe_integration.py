@@ -11,6 +11,7 @@ Tests cover:
 
 from __future__ import annotations
 
+import json
 import math
 import sys
 import time
@@ -290,6 +291,14 @@ class TestAdaptCLIParsing:
         args = _adapt_mod.parse_args()
         assert int(args.adapt_eps_energy_min_extra_depth) == -1
         assert int(args.adapt_eps_energy_patience) == -1
+
+    def test_parse_defaults_drop_knobs_to_auto(self, monkeypatch: pytest.MonkeyPatch):
+        monkeypatch.setattr(sys, "argv", ["adapt_pipeline.py"])
+        args = _adapt_mod.parse_args()
+        assert args.adapt_drop_floor is None
+        assert args.adapt_drop_patience is None
+        assert args.adapt_drop_min_depth is None
+        assert args.adapt_grad_floor is None
 
     def test_parse_accepts_eps_energy_gate_knobs(self, monkeypatch: pytest.MonkeyPatch):
         monkeypatch.setattr(
@@ -1215,6 +1224,7 @@ class TestAdaptEnergyStopGate:
             )
             assert payload["success"] is True
             assert str(payload["stop_reason"]) == "eps_energy"
+            assert bool(payload["eps_energy_termination_enabled"]) is True
             assert int(payload["eps_energy_min_extra_depth_effective"]) == 2
             assert int(payload["eps_energy_patience_effective"]) == 2
             assert int(payload["ansatz_depth"]) >= 3
@@ -1225,6 +1235,7 @@ class TestAdaptEnergyStopGate:
             assert bool(by_depth[2]["eps_energy_gate_open"]) is True
             assert int(by_depth[2]["eps_energy_low_streak"]) == 1
             assert int(by_depth[3]["eps_energy_low_streak"]) >= 2
+            assert bool(by_depth[3]["eps_energy_termination_enabled"]) is True
 
             gate_wait_events = [ev for ev in events if ev[0] == "hardcoded_adapt_energy_convergence_gate_wait"]
             assert len(gate_wait_events) >= 1
@@ -1275,6 +1286,7 @@ class TestAdaptEnergyStopGate:
             )
             assert payload["success"] is True
             assert str(payload["stop_reason"]) == "eps_energy"
+            assert bool(payload["eps_energy_termination_enabled"]) is True
             assert int(payload["eps_energy_min_extra_depth_effective"]) == 3
             assert int(payload["eps_energy_patience_effective"]) == 2
             assert int(payload["ansatz_depth"]) >= 4
@@ -1285,6 +1297,7 @@ class TestAdaptEnergyStopGate:
             assert bool(by_depth[3]["eps_energy_gate_open"]) is True
             assert int(by_depth[3]["eps_energy_low_streak"]) == 1
             assert int(by_depth[4]["eps_energy_low_streak"]) >= 2
+            assert bool(by_depth[4]["eps_energy_termination_enabled"]) is True
 
             converged_energy = [ev[1] for ev in events if ev[0] == "hardcoded_adapt_converged_energy"]
             assert len(converged_energy) == 1
@@ -1864,6 +1877,235 @@ class TestHHPhase3Continuation:
             assert "lifetime_cost_mode" in row
             assert "remaining_evaluations_proxy" in row
 
+    def test_phase3_eps_energy_is_telemetry_only_without_drop_policy(self, monkeypatch: pytest.MonkeyPatch):
+        events: list[tuple[str, dict[str, object]]] = []
+        original_ai_log = _adapt_mod._ai_log
+
+        def _capture(event: str, **fields: object) -> None:
+            events.append((str(event), dict(fields)))
+
+        monkeypatch.setattr(_adapt_mod, "_ai_log", _capture)
+        try:
+            payload, _ = _run_hardcoded_adapt_vqe(
+                h_poly=self._hh_h(),
+                num_sites=2,
+                ordering="blocked",
+                problem="hh",
+                adapt_pool="paop_lf_std",
+                t=1.0,
+                u=2.0,
+                dv=0.0,
+                boundary="periodic",
+                omega0=1.0,
+                g_ep=0.5,
+                n_ph_max=1,
+                boson_encoding="binary",
+                max_depth=3,
+                eps_grad=-1.0,
+                eps_energy=1e9,
+                maxiter=20,
+                seed=17,
+                adapt_inner_optimizer="SPSA",
+                adapt_spsa_callback_every=10,
+                adapt_spsa_progress_every_s=999.0,
+                allow_repeats=True,
+                finite_angle_fallback=False,
+                finite_angle=0.1,
+                finite_angle_min_improvement=1e-12,
+                adapt_reopt_policy="windowed",
+                adapt_window_size=1,
+                adapt_window_topk=0,
+                adapt_continuation_mode="phase3_v1",
+                phase3_symmetry_mitigation_mode="off",
+                phase3_enable_rescue=False,
+                phase3_lifetime_cost_mode="phase3_v1",
+            )
+            assert payload["success"] is True
+            assert bool(payload["eps_energy_termination_enabled"]) is False
+            assert bool(payload["eps_grad_termination_enabled"]) is False
+            assert bool(payload["adapt_drop_policy_enabled"]) is True
+            assert payload["adapt_drop_floor_resolved"] == pytest.approx(5e-4)
+            assert int(payload["adapt_drop_patience_resolved"]) == 3
+            assert int(payload["adapt_drop_min_depth_resolved"]) == 12
+            assert payload["adapt_grad_floor_resolved"] == pytest.approx(2e-2)
+            assert payload["adapt_drop_policy_source"] == "auto_hh_staged"
+            assert payload["adapt_drop_floor_source"] == "auto_hh_staged"
+            assert payload["adapt_drop_patience_source"] == "auto_hh_staged"
+            assert payload["adapt_drop_min_depth_source"] == "auto_hh_staged"
+            assert payload["adapt_grad_floor_source"] == "auto_hh_staged"
+            assert str(payload["stop_reason"]) in {"max_depth", "pool_exhausted"}
+            assert str(payload["stop_reason"]) != "eps_energy"
+            assert all(bool(row["eps_energy_termination_enabled"]) is False for row in payload.get("history", []))
+            assert all(bool(row["eps_grad_termination_enabled"]) is False for row in payload.get("history", []))
+            assert any(int(row["eps_energy_low_streak"]) >= 2 for row in payload.get("history", []))
+
+            suppressed = [ev[1] for ev in events if ev[0] == "hardcoded_adapt_eps_energy_termination_suppressed"]
+            assert len(suppressed) >= 1
+            converged_energy = [ev for ev in events if ev[0] == "hardcoded_adapt_converged_energy"]
+            assert len(converged_energy) == 0
+        finally:
+            monkeypatch.setattr(_adapt_mod, "_ai_log", original_ai_log)
+
+    def test_phase3_low_gradient_no_longer_terminates(self, monkeypatch: pytest.MonkeyPatch):
+        events: list[tuple[str, dict[str, object]]] = []
+        original_ai_log = _adapt_mod._ai_log
+
+        def _capture(event: str, **fields: object) -> None:
+            events.append((str(event), dict(fields)))
+
+        monkeypatch.setattr(_adapt_mod, "_ai_log", _capture)
+        try:
+            payload, _ = _run_hardcoded_adapt_vqe(
+                h_poly=self._hh_h(),
+                num_sites=2,
+                ordering="blocked",
+                problem="hh",
+                adapt_pool="paop_lf_std",
+                t=1.0,
+                u=2.0,
+                dv=0.0,
+                boundary="periodic",
+                omega0=1.0,
+                g_ep=0.5,
+                n_ph_max=1,
+                boson_encoding="binary",
+                max_depth=3,
+                eps_grad=1e9,
+                eps_energy=1e-9,
+                maxiter=20,
+                seed=23,
+                adapt_inner_optimizer="SPSA",
+                adapt_spsa_callback_every=10,
+                adapt_spsa_progress_every_s=999.0,
+                allow_repeats=True,
+                finite_angle_fallback=False,
+                finite_angle=0.1,
+                finite_angle_min_improvement=1e-12,
+                adapt_reopt_policy="windowed",
+                adapt_window_size=1,
+                adapt_window_topk=0,
+                adapt_continuation_mode="phase3_v1",
+                phase3_symmetry_mitigation_mode="off",
+                phase3_enable_rescue=False,
+                phase3_lifetime_cost_mode="phase3_v1",
+            )
+            assert payload["success"] is True
+            assert bool(payload["eps_grad_termination_enabled"]) is False
+            assert str(payload["stop_reason"]) in {"max_depth", "pool_exhausted"}
+            assert str(payload["stop_reason"]) != "eps_grad"
+            assert any(bool(row["eps_grad_threshold_hit"]) is True for row in payload.get("history", []))
+
+            suppressed = [ev for ev in events if ev[0] == "hardcoded_adapt_eps_grad_termination_suppressed"]
+            assert len(suppressed) >= 1
+            converged_grad = [ev for ev in events if ev[0] == "hardcoded_adapt_converged_grad"]
+            assert len(converged_grad) == 0
+        finally:
+            monkeypatch.setattr(_adapt_mod, "_ai_log", original_ai_log)
+
+    def test_phase3_drop_plateau_preempts_eps_energy_hard_stop(self, monkeypatch: pytest.MonkeyPatch):
+        events: list[tuple[str, dict[str, object]]] = []
+        original_ai_log = _adapt_mod._ai_log
+
+        def _capture(event: str, **fields: object) -> None:
+            events.append((str(event), dict(fields)))
+
+        monkeypatch.setattr(_adapt_mod, "_ai_log", _capture)
+        try:
+            payload, _ = _run_hardcoded_adapt_vqe(
+                h_poly=self._hh_h(),
+                num_sites=2,
+                ordering="blocked",
+                problem="hh",
+                adapt_pool="paop_lf_std",
+                t=1.0,
+                u=2.0,
+                dv=0.0,
+                boundary="periodic",
+                omega0=1.0,
+                g_ep=0.5,
+                n_ph_max=1,
+                boson_encoding="binary",
+                max_depth=4,
+                eps_grad=-1.0,
+                eps_energy=1e9,
+                maxiter=20,
+                seed=19,
+                adapt_inner_optimizer="SPSA",
+                adapt_spsa_callback_every=10,
+                adapt_spsa_progress_every_s=999.0,
+                allow_repeats=True,
+                finite_angle_fallback=False,
+                finite_angle=0.1,
+                finite_angle_min_improvement=1e-12,
+                adapt_reopt_policy="windowed",
+                adapt_window_size=1,
+                adapt_window_topk=0,
+                adapt_continuation_mode="phase3_v1",
+                adapt_drop_floor=1e9,
+                adapt_drop_patience=1,
+                adapt_drop_min_depth=1,
+                adapt_grad_floor=-1.0,
+                phase3_symmetry_mitigation_mode="off",
+                phase3_enable_rescue=False,
+                phase3_lifetime_cost_mode="phase3_v1",
+            )
+            assert payload["success"] is True
+            assert bool(payload["eps_energy_termination_enabled"]) is False
+            assert payload["adapt_drop_floor_resolved"] == pytest.approx(1e9)
+            assert int(payload["adapt_drop_patience_resolved"]) == 1
+            assert int(payload["adapt_drop_min_depth_resolved"]) == 1
+            assert payload["adapt_drop_floor_source"] == "explicit"
+            assert payload["adapt_drop_patience_source"] == "explicit"
+            assert payload["adapt_drop_min_depth_source"] == "explicit"
+            assert str(payload["stop_reason"]) == "drop_plateau"
+            assert str(payload["stop_reason"]) != "eps_energy"
+            assert all(bool(row["eps_energy_termination_enabled"]) is False for row in payload.get("history", []))
+
+            residual_opened = [ev for ev in events if ev[0] == "hardcoded_adapt_phase1_residual_opened_on_plateau"]
+            assert len(residual_opened) >= 1
+            converged_drop = [ev for ev in events if ev[0] == "hardcoded_adapt_converged_drop_plateau"]
+            assert len(converged_drop) == 1
+            converged_energy = [ev for ev in events if ev[0] == "hardcoded_adapt_converged_energy"]
+            assert len(converged_energy) == 0
+        finally:
+            monkeypatch.setattr(_adapt_mod, "_ai_log", original_ai_log)
+
+    def test_hubbard_legacy_still_allows_eps_grad_stop(self):
+        h_poly = build_hubbard_hamiltonian(
+            dims=2, t=1.0, U=4.0, v=0.0,
+            repr_mode="JW", indexing="blocked", pbc=True,
+        )
+        payload, _ = _run_hardcoded_adapt_vqe(
+            h_poly=h_poly,
+            num_sites=2,
+            ordering="blocked",
+            problem="hubbard",
+            adapt_pool="uccsd",
+            t=1.0,
+            u=4.0,
+            dv=0.0,
+            boundary="periodic",
+            omega0=0.0,
+            g_ep=0.0,
+            n_ph_max=1,
+            boson_encoding="binary",
+            max_depth=4,
+            eps_grad=1e9,
+            eps_energy=1e-12,
+            maxiter=20,
+            seed=29,
+            allow_repeats=True,
+            finite_angle_fallback=False,
+            finite_angle=0.1,
+            finite_angle_min_improvement=1e-12,
+            adapt_continuation_mode="legacy",
+        )
+        assert payload["success"] is True
+        assert bool(payload["eps_grad_termination_enabled"]) is True
+        assert str(payload["stop_reason"]) == "eps_grad"
+        assert bool(payload["adapt_drop_policy_enabled"]) is False
+        assert payload["adapt_drop_policy_source"] == "default_off"
+
 
 class TestHHContinuationModeGatingNegative:
     def _hh_h(self):
@@ -2350,3 +2592,178 @@ class TestPeriodicFullRefitCadence:
         )
         assert idx == [2, 3]
         assert name == "windowed"
+
+
+class TestAdaptRefExactEnergyReuse:
+    @staticmethod
+    def _hh_nq_total() -> int:
+        return int(2 * 2 + 2 * boson_qubits_per_site(1, "binary"))
+
+    @classmethod
+    def _ref_payload(
+        cls,
+        *,
+        t: float = 1.0,
+        include_exact_energy: bool = True,
+        exact_energy: float = 0.15866790412572704,
+    ) -> dict[str, object]:
+        nq_total = cls._hh_nq_total()
+        payload: dict[str, object] = {
+            "settings": {
+                "L": 2,
+                "problem": "hh",
+                "ordering": "blocked",
+                "boundary": "open",
+                "t": float(t),
+                "u": 4.0,
+                "dv": 0.0,
+                "omega0": 1.0,
+                "g_ep": 0.5,
+                "n_ph_max": 1,
+                "boson_encoding": "binary",
+            },
+            "initial_state": {
+                "source": "adapt_vqe",
+                "amplitudes_qn_to_q0": {
+                    format(0, f"0{nq_total}b"): {"re": 1.0, "im": 0.0},
+                },
+            },
+            "adapt_vqe": {
+                "ansatz_depth": 2,
+            },
+        }
+        if include_exact_energy:
+            payload["ground_state"] = {
+                "exact_energy_filtered": float(exact_energy),
+            }
+        return payload
+
+    @classmethod
+    def _run_main_with_ref(
+        cls,
+        *,
+        monkeypatch: pytest.MonkeyPatch,
+        tmp_path: Path,
+        ref_payload: dict[str, object],
+        exact_impl,
+    ) -> tuple[dict[str, object], dict[str, float | None]]:
+        ref_json = tmp_path / "warm_ref.json"
+        out_json = tmp_path / "adapt_out.json"
+        ref_json.write_text(json.dumps(ref_payload), encoding="utf-8")
+
+        captured: dict[str, float | None] = {"exact_gs_override": None}
+        dim = 1 << cls._hh_nq_total()
+
+        def _fake_run_hardcoded_adapt_vqe(**kwargs):
+            captured["exact_gs_override"] = kwargs.get("exact_gs_override")
+            psi = np.zeros(dim, dtype=complex)
+            psi[0] = 1.0
+            return {
+                "success": True,
+                "method": "mock_adapt",
+                "energy": float(kwargs.get("exact_gs_override")),
+                "pool_type": str(kwargs.get("adapt_pool")),
+                "ansatz_depth": 1,
+                "num_parameters": 1,
+            }, psi
+
+        def _fake_simulate_trajectory(**kwargs):
+            return ([{"time": 0.0, "fidelity": 1.0}], [])
+
+        monkeypatch.setattr(_adapt_mod, "_exact_gs_energy_for_problem", exact_impl)
+        monkeypatch.setattr(_adapt_mod, "_run_hardcoded_adapt_vqe", _fake_run_hardcoded_adapt_vqe)
+        monkeypatch.setattr(_adapt_mod, "_simulate_trajectory", _fake_simulate_trajectory)
+        monkeypatch.setattr(
+            sys,
+            "argv",
+            [
+                "adapt_pipeline.py",
+                "--L", "2",
+                "--problem", "hh",
+                "--t", "1.0",
+                "--u", "4.0",
+                "--dv", "0.0",
+                "--omega0", "1.0",
+                "--g-ep", "0.5",
+                "--n-ph-max", "1",
+                "--boson-encoding", "binary",
+                "--boundary", "open",
+                "--ordering", "blocked",
+                "--adapt-pool", "paop_lf_std",
+                "--adapt-continuation-mode", "phase3_v1",
+                "--adapt-ref-json", str(ref_json),
+                "--skip-pdf",
+                "--output-json", str(out_json),
+            ],
+        )
+
+        _adapt_mod.main()
+        payload = json.loads(out_json.read_text(encoding="utf-8"))
+        return payload, captured
+
+    def test_main_reuses_exact_energy_from_metadata_compatible_ref(
+        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+    ):
+        ref_payload = self._ref_payload(include_exact_energy=True)
+
+        def _fail_exact(*args, **kwargs):
+            raise AssertionError("_exact_gs_energy_for_problem should not run when warm exact energy is reusable")
+
+        payload, captured = self._run_main_with_ref(
+            monkeypatch=monkeypatch,
+            tmp_path=tmp_path,
+            ref_payload=ref_payload,
+            exact_impl=_fail_exact,
+        )
+
+        assert payload["ground_state"]["exact_energy_source"] == "adapt_ref_json"
+        assert payload["ground_state"]["exact_energy"] == pytest.approx(0.15866790412572704)
+        assert captured["exact_gs_override"] == pytest.approx(0.15866790412572704)
+        assert bool(payload["adapt_ref_import"]["exact_energy_reused"]) is True
+        assert payload["adapt_ref_import"]["exact_energy_reuse_mismatches"] == []
+
+    def test_main_falls_back_when_ref_lacks_exact_energy(
+        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+    ):
+        sentinel = 0.777
+        ref_payload = self._ref_payload(include_exact_energy=False)
+
+        def _fake_exact(*args, **kwargs):
+            return float(sentinel)
+
+        payload, captured = self._run_main_with_ref(
+            monkeypatch=monkeypatch,
+            tmp_path=tmp_path,
+            ref_payload=ref_payload,
+            exact_impl=_fake_exact,
+        )
+
+        assert payload["ground_state"]["exact_energy_source"] == "computed"
+        assert payload["ground_state"]["exact_energy"] == pytest.approx(sentinel)
+        assert captured["exact_gs_override"] == pytest.approx(sentinel)
+        assert bool(payload["adapt_ref_import"]["exact_energy_reused"]) is False
+        assert payload["adapt_ref_import"]["exact_energy_reuse_mismatches"] == []
+
+    def test_main_falls_back_when_ref_metadata_mismatches(
+        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+    ):
+        sentinel = 0.666
+        ref_payload = self._ref_payload(include_exact_energy=True, t=0.75)
+
+        def _fake_exact(*args, **kwargs):
+            return float(sentinel)
+
+        payload, captured = self._run_main_with_ref(
+            monkeypatch=monkeypatch,
+            tmp_path=tmp_path,
+            ref_payload=ref_payload,
+            exact_impl=_fake_exact,
+        )
+
+        assert payload["ground_state"]["exact_energy_source"] == "computed"
+        assert payload["ground_state"]["exact_energy"] == pytest.approx(sentinel)
+        assert captured["exact_gs_override"] == pytest.approx(sentinel)
+        assert bool(payload["adapt_ref_import"]["exact_energy_reused"]) is False
+        mismatches = payload["adapt_ref_import"]["exact_energy_reuse_mismatches"]
+        assert isinstance(mismatches, list)
+        assert any(str(msg).startswith("t:") for msg in mismatches)

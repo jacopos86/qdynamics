@@ -1,0 +1,1624 @@
+#!/usr/bin/env python3
+"""Shared staged Hubbard-Holstein noiseless workflow orchestration.
+
+This module keeps the stage-chain logic out of the existing monolithic
+entrypoints. It reuses the production hardcoded primitives instead of
+re-implementing warm-start VQE, ADAPT, replay, or time dynamics.
+"""
+
+from __future__ import annotations
+
+import hashlib
+import json
+import math
+import sys
+from dataclasses import asdict, dataclass, field
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Any, Mapping, Sequence
+
+import numpy as np
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
+from docs.reports.pdf_utils import (
+    HAS_MATPLOTLIB,
+    current_command_string,
+    get_PdfPages,
+    get_plt,
+    render_command_page,
+    render_compact_table,
+    render_parameter_manifest,
+    render_text_page,
+    require_matplotlib,
+)
+from pipelines.hardcoded import adapt_pipeline as adapt_mod
+from pipelines.hardcoded import hh_vqe_from_adapt_family as replay_mod
+from pipelines.hardcoded import hubbard_pipeline as hc_pipeline
+from pipelines.hardcoded.handoff_state_bundle import (
+    HandoffStateBundleConfig,
+    write_handoff_state_bundle,
+)
+from src.quantum.drives_time_potential import (
+    build_gaussian_sinusoid_density_drive,
+    reference_method_name,
+)
+from src.quantum.hartree_fock_reference_state import hubbard_holstein_reference_state
+from src.quantum.hubbard_latex_python_pairs import (
+    boson_qubits_per_site,
+    build_hubbard_holstein_hamiltonian,
+)
+
+
+_ALLOWED_NOISELESS_METHODS = ("suzuki2", "cfqm4", "cfqm6", "piecewise_exact")
+
+
+@dataclass(frozen=True)
+class PhysicsConfig:
+    L: int
+    t: float
+    u: float
+    dv: float
+    omega0: float
+    g_ep: float
+    n_ph_max: int
+    boson_encoding: str
+    ordering: str
+    boundary: str
+    sector_n_up: int
+    sector_n_dn: int
+
+
+@dataclass(frozen=True)
+class WarmStartConfig:
+    ansatz_name: str
+    reps: int
+    restarts: int
+    maxiter: int
+    method: str
+    seed: int
+    progress_every_s: float
+    energy_backend: str
+    spsa_a: float
+    spsa_c: float
+    spsa_alpha: float
+    spsa_gamma: float
+    spsa_A: float
+    spsa_avg_last: int
+    spsa_eval_repeats: int
+    spsa_eval_agg: str
+
+
+@dataclass(frozen=True)
+class AdaptConfig:
+    pool: str | None
+    continuation_mode: str
+    max_depth: int
+    maxiter: int
+    eps_grad: float
+    eps_energy: float
+    seed: int
+    inner_optimizer: str
+    allow_repeats: bool
+    finite_angle_fallback: bool
+    finite_angle: float
+    finite_angle_min_improvement: float
+    disable_hh_seed: bool
+    reopt_policy: str
+    window_size: int
+    window_topk: int
+    full_refit_every: int
+    final_full_refit: bool
+    paop_r: int
+    paop_split_paulis: bool
+    paop_prune_eps: float
+    paop_normalization: str
+    spsa_a: float
+    spsa_c: float
+    spsa_alpha: float
+    spsa_gamma: float
+    spsa_A: float
+    spsa_avg_last: int
+    spsa_eval_repeats: int
+    spsa_eval_agg: str
+    spsa_callback_every: int
+    spsa_progress_every_s: float
+    phase1_lambda_F: float
+    phase1_lambda_compile: float
+    phase1_lambda_measure: float
+    phase1_lambda_leak: float
+    phase1_score_z_alpha: float
+    phase1_probe_max_positions: int
+    phase1_plateau_patience: int
+    phase1_trough_margin_ratio: float
+    phase1_prune_enabled: bool
+    phase1_prune_fraction: float
+    phase1_prune_max_candidates: int
+    phase1_prune_max_regression: float
+    phase3_motif_source_json: Path | None
+    phase3_symmetry_mitigation_mode: str
+    phase3_enable_rescue: bool
+    phase3_lifetime_cost_mode: str
+    phase3_runtime_split_mode: str
+
+
+@dataclass(frozen=True)
+class ReplayConfig:
+    generator_family: str
+    fallback_family: str
+    legacy_paop_key: str
+    replay_seed_policy: str
+    continuation_mode: str
+    reps: int
+    restarts: int
+    maxiter: int
+    method: str
+    seed: int
+    energy_backend: str
+    progress_every_s: float
+    wallclock_cap_s: int
+    paop_r: int
+    paop_split_paulis: bool
+    paop_prune_eps: float
+    paop_normalization: str
+    spsa_a: float
+    spsa_c: float
+    spsa_alpha: float
+    spsa_gamma: float
+    spsa_A: float
+    spsa_avg_last: int
+    spsa_eval_repeats: int
+    spsa_eval_agg: str
+    replay_freeze_fraction: float
+    replay_unfreeze_fraction: float
+    replay_full_fraction: float
+    replay_qn_spsa_refresh_every: int
+    replay_qn_spsa_refresh_mode: str
+    phase3_symmetry_mitigation_mode: str
+
+
+@dataclass(frozen=True)
+class DynamicsConfig:
+    methods: tuple[str, ...]
+    t_final: float
+    num_times: int
+    trotter_steps: int
+    exact_steps_multiplier: int
+    fidelity_subspace_energy_tol: float
+    cfqm_stage_exp: str
+    cfqm_coeff_drop_abs_tol: float
+    cfqm_normalize: bool
+    enable_drive: bool
+    drive_A: float
+    drive_omega: float
+    drive_tbar: float
+    drive_phi: float
+    drive_pattern: str
+    drive_custom_s: str | None
+    drive_include_identity: bool
+    drive_time_sampling: str
+    drive_t0: float
+
+
+@dataclass(frozen=True)
+class ArtifactConfig:
+    tag: str
+    output_json: Path
+    output_pdf: Path
+    handoff_json: Path
+    replay_output_json: Path
+    replay_output_csv: Path
+    replay_output_md: Path
+    replay_output_log: Path
+    skip_pdf: bool
+
+
+@dataclass(frozen=True)
+class GateConfig:
+    ecut_1: float
+    ecut_2: float
+
+
+@dataclass(frozen=True)
+class StagedHHConfig:
+    physics: PhysicsConfig
+    warm_start: WarmStartConfig
+    adapt: AdaptConfig
+    replay: ReplayConfig
+    dynamics: DynamicsConfig
+    artifacts: ArtifactConfig
+    gates: GateConfig
+    smoke_test_intentionally_weak: bool = False
+    default_provenance: dict[str, str] = field(default_factory=dict)
+
+
+@dataclass
+class StageExecutionResult:
+    h_poly: Any
+    hmat: np.ndarray
+    ordered_labels_exyz: list[str]
+    coeff_map_exyz: dict[str, complex]
+    nq_total: int
+    psi_hf: np.ndarray
+    psi_warm: np.ndarray
+    psi_adapt: np.ndarray
+    psi_final: np.ndarray
+    warm_payload: dict[str, Any]
+    adapt_payload: dict[str, Any]
+    replay_payload: dict[str, Any]
+
+
+"""
+Δ_rel(E, E_ref) = |E - E_ref| / max(|E_ref|, 1e-14)
+"""
+def _relative_error_abs(value: float, reference: float) -> float:
+    return float(abs(float(value) - float(reference)) / max(abs(float(reference)), 1e-14))
+
+
+def _now_utc() -> str:
+    return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def _jsonable(value: Any) -> Any:
+    if isinstance(value, Path):
+        return str(value)
+    if isinstance(value, dict):
+        return {str(k): _jsonable(v) for k, v in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [_jsonable(v) for v in value]
+    return value
+
+
+def _write_json(path: Path, payload: Mapping[str, Any]) -> None:
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(_jsonable(dict(payload)), indent=2, sort_keys=True), encoding="utf-8")
+
+
+def _bool_flag(raw: Any) -> bool:
+    if isinstance(raw, bool):
+        return bool(raw)
+    val = str(raw).strip().lower()
+    if val in {"1", "true", "yes", "on"}:
+        return True
+    if val in {"0", "false", "no", "off"}:
+        return False
+    raise ValueError(f"Could not interpret boolean flag value {raw!r}.")
+
+
+def _parse_noiseless_methods(raw: str | Sequence[str]) -> tuple[str, ...]:
+    if isinstance(raw, str):
+        parts = [x.strip().lower() for x in raw.split(",") if x.strip()]
+    else:
+        parts = [str(x).strip().lower() for x in raw if str(x).strip()]
+    out: list[str] = []
+    seen: set[str] = set()
+    for part in parts:
+        if part not in _ALLOWED_NOISELESS_METHODS:
+            raise ValueError(
+                f"Unsupported noiseless method '{part}'. Expected subset of {_ALLOWED_NOISELESS_METHODS}."
+            )
+        if part in seen:
+            continue
+        seen.add(part)
+        out.append(part)
+    if not out:
+        raise ValueError("At least one noiseless propagation method is required.")
+    return tuple(out)
+
+
+def _parse_drive_custom_weights(raw: str | None) -> list[float] | None:
+    if raw is None:
+        return None
+    text = str(raw).strip()
+    if text == "":
+        return None
+    if text.startswith("["):
+        vals = json.loads(text)
+    else:
+        vals = [float(x) for x in text.split(",") if x.strip()]
+    return [float(x) for x in vals]
+
+
+def _half_filled_particles(L: int) -> tuple[int, int]:
+    n_up, n_dn = hc_pipeline._half_filled_particles(int(L))
+    return int(n_up), int(n_dn)
+
+
+def _hh_nq_total(L: int, n_ph_max: int, boson_encoding: str) -> int:
+    qpb = int(boson_qubits_per_site(int(n_ph_max), str(boson_encoding)))
+    return int(2 * int(L) + int(L) * qpb)
+
+
+def _default_output_tag(
+    *,
+    L: int,
+    t: float,
+    u: float,
+    dv: float,
+    omega0: float,
+    g_ep: float,
+    n_ph_max: int,
+    ordering: str,
+    boundary: str,
+    sector_n_up: int,
+    sector_n_dn: int,
+    drive_enabled: bool,
+    drive_pattern: str,
+    drive_A: float,
+    drive_omega: float,
+    drive_tbar: float,
+    drive_phi: float,
+    drive_time_sampling: str,
+    noiseless_methods: str,
+    adapt_continuation_mode: str,
+) -> str:
+    drive_label = "drive" if bool(drive_enabled) else "static"
+    spec = {
+        "L": int(L),
+        "t": float(t),
+        "u": float(u),
+        "dv": float(dv),
+        "omega0": float(omega0),
+        "g_ep": float(g_ep),
+        "n_ph_max": int(n_ph_max),
+        "ordering": str(ordering),
+        "boundary": str(boundary),
+        "sector_n_up": int(sector_n_up),
+        "sector_n_dn": int(sector_n_dn),
+        "drive_enabled": bool(drive_enabled),
+        "drive_pattern": str(drive_pattern),
+        "drive_A": float(drive_A),
+        "drive_omega": float(drive_omega),
+        "drive_tbar": float(drive_tbar),
+        "drive_phi": float(drive_phi),
+        "drive_time_sampling": str(drive_time_sampling),
+        "noiseless_methods": str(noiseless_methods),
+        "adapt_continuation_mode": str(adapt_continuation_mode),
+    }
+    digest = hashlib.sha1(json.dumps(spec, sort_keys=True).encode("utf-8")).hexdigest()[:10]
+    return (
+        f"hh_staged_L{int(L)}_{drive_label}_"
+        f"t{float(t):g}_U{float(u):g}_dv{float(dv):g}_w{float(omega0):g}_g{float(g_ep):g}_nph{int(n_ph_max)}_{digest}"
+    )
+
+
+"""
+ws_reps(L) = L
+ws_restarts(L) = ceil(5L/3)
+ws_maxiter(L) = round(4000 L^2 / 9)
+adapt_max_depth(L) = 40L
+adapt_maxiter(L) = round(5000 L^2 / 9)
+final_reps(L) = L
+final_restarts(L) := ws_restarts(L)   [workflow inference]
+final_maxiter(L) := ws_maxiter(L)     [workflow inference]
+t_final(L) = 5L
+trotter_steps(L) = 64L
+num_times(L) = 1 + ceil(200L/3)
+exact_steps_multiplier(L) = ceil((L + 1)/2)
+"""
+def _scaled_defaults(L: int) -> dict[str, Any]:
+    L_int = int(L)
+    return {
+        "warm_reps": int(max(1, L_int)),
+        "warm_restarts": int(max(1, math.ceil((5.0 * L_int) / 3.0))),
+        "warm_maxiter": int(max(200, round((4000.0 * L_int * L_int) / 9.0))),
+        "adapt_max_depth": int(max(15, 40 * L_int)),
+        "adapt_maxiter": int(max(300, round((5000.0 * L_int * L_int) / 9.0))),
+        "adapt_eps_grad": 5e-7,
+        "adapt_eps_energy": 1e-9,
+        "final_reps": int(max(1, L_int)),
+        "final_restarts": int(max(1, math.ceil((5.0 * L_int) / 3.0))),
+        "final_maxiter": int(max(200, round((4000.0 * L_int * L_int) / 9.0))),
+        "t_final": float(5.0 * L_int),
+        "trotter_steps": int(64 * L_int),
+        "num_times": int(1 + math.ceil((200.0 * L_int) / 3.0)),
+        "exact_steps_multiplier": int(math.ceil((L_int + 1) / 2.0)),
+    }
+
+
+def _resolve_with_default(
+    *,
+    name: str,
+    raw: Any,
+    default: Any,
+    provenance: dict[str, str],
+    default_source: str,
+) -> Any:
+    if raw is None:
+        provenance[name] = str(default_source)
+        return default
+    provenance[name] = "cli"
+    return raw
+
+
+def _enforce_not_weaker(
+    *,
+    cfg_values: Mapping[str, Any],
+    baseline: Mapping[str, Any],
+    smoke_test_intentionally_weak: bool,
+) -> None:
+    if bool(smoke_test_intentionally_weak):
+        return
+    checks = {
+        "warm_reps": int(cfg_values["warm_reps"]) >= int(baseline["warm_reps"]),
+        "warm_restarts": int(cfg_values["warm_restarts"]) >= int(baseline["warm_restarts"]),
+        "warm_maxiter": int(cfg_values["warm_maxiter"]) >= int(baseline["warm_maxiter"]),
+        "adapt_max_depth": int(cfg_values["adapt_max_depth"]) >= int(baseline["adapt_max_depth"]),
+        "adapt_maxiter": int(cfg_values["adapt_maxiter"]) >= int(baseline["adapt_maxiter"]),
+        "final_reps": int(cfg_values["final_reps"]) >= int(baseline["final_reps"]),
+        "final_restarts": int(cfg_values["final_restarts"]) >= int(baseline["final_restarts"]),
+        "final_maxiter": int(cfg_values["final_maxiter"]) >= int(baseline["final_maxiter"]),
+        "trotter_steps": int(cfg_values["trotter_steps"]) >= int(baseline["trotter_steps"]),
+    }
+    failed = [key for key, ok in checks.items() if not bool(ok)]
+    if failed:
+        raise ValueError(
+            "Under-parameterized staged HH run rejected. "
+            f"Failed fields: {failed}. Baseline defaults: {dict(baseline)}. "
+            "Use --smoke-test-intentionally-weak only for explicit smoke tests."
+        )
+
+
+def resolve_staged_hh_config(args: Any) -> StagedHHConfig:
+    L = int(getattr(args, "L"))
+    defaults = _scaled_defaults(L)
+    provenance: dict[str, str] = {}
+
+    sector_n_up_raw = getattr(args, "sector_n_up", None)
+    sector_n_dn_raw = getattr(args, "sector_n_dn", None)
+    sector_n_up_default, sector_n_dn_default = _half_filled_particles(L)
+
+    sector_n_up = int(sector_n_up_default if sector_n_up_raw is None else sector_n_up_raw)
+    sector_n_dn = int(sector_n_dn_default if sector_n_dn_raw is None else sector_n_dn_raw)
+    if (int(sector_n_up), int(sector_n_dn)) != (int(sector_n_up_default), int(sector_n_dn_default)):
+        raise ValueError(
+            "hh_staged_noiseless currently supports only the half-filled sector across all stages. "
+            "Non-default --sector-n-up/--sector-n-dn overrides are not yet plumbed through warm-start and ADAPT."
+        )
+
+    tag = _resolve_with_default(
+        name="tag",
+        raw=getattr(args, "tag", None),
+        default=_default_output_tag(
+            L=L,
+            t=float(getattr(args, "t")),
+            u=float(getattr(args, "u")),
+            dv=float(getattr(args, "dv")),
+            omega0=float(getattr(args, "omega0")),
+            g_ep=float(getattr(args, "g_ep")),
+            n_ph_max=int(getattr(args, "n_ph_max")),
+            ordering=str(getattr(args, "ordering")),
+            boundary=str(getattr(args, "boundary")),
+            sector_n_up=int(sector_n_up),
+            sector_n_dn=int(sector_n_dn),
+            drive_enabled=bool(getattr(args, "enable_drive")),
+            drive_pattern=str(getattr(args, "drive_pattern")),
+            drive_A=float(getattr(args, "drive_A")),
+            drive_omega=float(getattr(args, "drive_omega")),
+            drive_tbar=float(getattr(args, "drive_tbar")),
+            drive_phi=float(getattr(args, "drive_phi")),
+            drive_time_sampling=str(getattr(args, "drive_time_sampling")),
+            noiseless_methods=str(getattr(args, "noiseless_methods")),
+            adapt_continuation_mode=str(getattr(args, "adapt_continuation_mode")),
+        ),
+        provenance=provenance,
+        default_source="workflow.tag.default",
+    )
+
+    output_json = Path(
+        _resolve_with_default(
+            name="output_json",
+            raw=getattr(args, "output_json", None),
+            default=REPO_ROOT / "artifacts" / "json" / f"{tag}.json",
+            provenance=provenance,
+            default_source="artifacts/json/<tag>.json",
+        )
+    )
+    output_pdf = Path(
+        _resolve_with_default(
+            name="output_pdf",
+            raw=getattr(args, "output_pdf", None),
+            default=REPO_ROOT / "artifacts" / "pdf" / f"{tag}.pdf",
+            provenance=provenance,
+            default_source="artifacts/pdf/<tag>.pdf",
+        )
+    )
+
+    handoff_json = REPO_ROOT / "artifacts" / "json" / f"{tag}_adapt_handoff.json"
+    replay_output_json = REPO_ROOT / "artifacts" / "json" / f"{tag}_replay.json"
+    replay_output_csv = REPO_ROOT / "artifacts" / "json" / f"{tag}_replay.csv"
+    replay_output_md = REPO_ROOT / "artifacts" / "useful" / f"L{L}" / f"{tag}_replay.md"
+    replay_output_log = REPO_ROOT / "artifacts" / "logs" / f"{tag}_replay.log"
+
+    cfg_values = {
+        "warm_reps": _resolve_with_default(
+            name="warm_reps",
+            raw=getattr(args, "warm_reps", None),
+            default=defaults["warm_reps"],
+            provenance=provenance,
+            default_source="run_guide.ws_reps(L)=L",
+        ),
+        "warm_restarts": _resolve_with_default(
+            name="warm_restarts",
+            raw=getattr(args, "warm_restarts", None),
+            default=defaults["warm_restarts"],
+            provenance=provenance,
+            default_source="run_guide.ws_restarts(L)=ceil(5L/3)",
+        ),
+        "warm_maxiter": _resolve_with_default(
+            name="warm_maxiter",
+            raw=getattr(args, "warm_maxiter", None),
+            default=defaults["warm_maxiter"],
+            provenance=provenance,
+            default_source="run_guide.ws_maxiter(L)=round(4000L^2/9)",
+        ),
+        "adapt_max_depth": _resolve_with_default(
+            name="adapt_max_depth",
+            raw=getattr(args, "adapt_max_depth", None),
+            default=defaults["adapt_max_depth"],
+            provenance=provenance,
+            default_source="run_guide.adapt_max_depth(L)=40L",
+        ),
+        "adapt_maxiter": _resolve_with_default(
+            name="adapt_maxiter",
+            raw=getattr(args, "adapt_maxiter", None),
+            default=defaults["adapt_maxiter"],
+            provenance=provenance,
+            default_source="run_guide.adapt_maxiter(L)=round(5000L^2/9)",
+        ),
+        "adapt_eps_grad": _resolve_with_default(
+            name="adapt_eps_grad",
+            raw=getattr(args, "adapt_eps_grad", None),
+            default=defaults["adapt_eps_grad"],
+            provenance=provenance,
+            default_source="run_guide.adapt_eps_grad=5e-7",
+        ),
+        "adapt_eps_energy": _resolve_with_default(
+            name="adapt_eps_energy",
+            raw=getattr(args, "adapt_eps_energy", None),
+            default=defaults["adapt_eps_energy"],
+            provenance=provenance,
+            default_source="run_guide.adapt_eps_energy=1e-9",
+        ),
+        "final_reps": _resolve_with_default(
+            name="final_reps",
+            raw=getattr(args, "final_reps", None),
+            default=defaults["final_reps"],
+            provenance=provenance,
+            default_source="run_guide.vqe_reps(L)=L",
+        ),
+        "final_restarts": _resolve_with_default(
+            name="final_restarts",
+            raw=getattr(args, "final_restarts", None),
+            default=defaults["final_restarts"],
+            provenance=provenance,
+            default_source="workflow.final_restarts := warm_restarts(L)",
+        ),
+        "final_maxiter": _resolve_with_default(
+            name="final_maxiter",
+            raw=getattr(args, "final_maxiter", None),
+            default=defaults["final_maxiter"],
+            provenance=provenance,
+            default_source="workflow.final_maxiter := warm_maxiter(L)",
+        ),
+        "t_final": _resolve_with_default(
+            name="t_final",
+            raw=getattr(args, "t_final", None),
+            default=defaults["t_final"],
+            provenance=provenance,
+            default_source="run_guide.t_final(L)=5L",
+        ),
+        "trotter_steps": _resolve_with_default(
+            name="trotter_steps",
+            raw=getattr(args, "trotter_steps", None),
+            default=defaults["trotter_steps"],
+            provenance=provenance,
+            default_source="run_guide.trotter_steps(L)=64L",
+        ),
+        "num_times": _resolve_with_default(
+            name="num_times",
+            raw=getattr(args, "num_times", None),
+            default=defaults["num_times"],
+            provenance=provenance,
+            default_source="run_guide.num_times(L)=1+ceil(200L/3)",
+        ),
+        "exact_steps_multiplier": _resolve_with_default(
+            name="exact_steps_multiplier",
+            raw=getattr(args, "exact_steps_multiplier", None),
+            default=defaults["exact_steps_multiplier"],
+            provenance=provenance,
+            default_source="run_guide.exact_steps_multiplier(L)=ceil((L+1)/2)",
+        ),
+    }
+    _enforce_not_weaker(
+        cfg_values=cfg_values,
+        baseline=defaults,
+        smoke_test_intentionally_weak=bool(getattr(args, "smoke_test_intentionally_weak", False)),
+    )
+
+    physics = PhysicsConfig(
+        L=L,
+        t=float(getattr(args, "t")),
+        u=float(getattr(args, "u")),
+        dv=float(getattr(args, "dv")),
+        omega0=float(getattr(args, "omega0")),
+        g_ep=float(getattr(args, "g_ep")),
+        n_ph_max=int(getattr(args, "n_ph_max")),
+        boson_encoding=str(getattr(args, "boson_encoding")),
+        ordering=str(getattr(args, "ordering")),
+        boundary=str(getattr(args, "boundary")),
+        sector_n_up=int(sector_n_up),
+        sector_n_dn=int(sector_n_dn),
+    )
+    warm_start = WarmStartConfig(
+        ansatz_name="hh_hva_ptw",
+        reps=int(cfg_values["warm_reps"]),
+        restarts=int(cfg_values["warm_restarts"]),
+        maxiter=int(cfg_values["warm_maxiter"]),
+        method=str(getattr(args, "warm_method")),
+        seed=int(getattr(args, "warm_seed")),
+        progress_every_s=float(getattr(args, "warm_progress_every_s")),
+        energy_backend=str(getattr(args, "vqe_energy_backend")),
+        spsa_a=float(getattr(args, "vqe_spsa_a")),
+        spsa_c=float(getattr(args, "vqe_spsa_c")),
+        spsa_alpha=float(getattr(args, "vqe_spsa_alpha")),
+        spsa_gamma=float(getattr(args, "vqe_spsa_gamma")),
+        spsa_A=float(getattr(args, "vqe_spsa_A")),
+        spsa_avg_last=int(getattr(args, "vqe_spsa_avg_last")),
+        spsa_eval_repeats=int(getattr(args, "vqe_spsa_eval_repeats")),
+        spsa_eval_agg=str(getattr(args, "vqe_spsa_eval_agg")),
+    )
+    adapt_mode = str(getattr(args, "adapt_continuation_mode"))
+    adapt = AdaptConfig(
+        pool=(None if getattr(args, "adapt_pool", None) in {None, "", "none"} else str(getattr(args, "adapt_pool"))),
+        continuation_mode=adapt_mode,
+        max_depth=int(cfg_values["adapt_max_depth"]),
+        maxiter=int(cfg_values["adapt_maxiter"]),
+        eps_grad=float(cfg_values["adapt_eps_grad"]),
+        eps_energy=float(cfg_values["adapt_eps_energy"]),
+        seed=int(getattr(args, "adapt_seed")),
+        inner_optimizer=str(getattr(args, "adapt_inner_optimizer")),
+        allow_repeats=bool(getattr(args, "adapt_allow_repeats")),
+        finite_angle_fallback=bool(getattr(args, "adapt_finite_angle_fallback")),
+        finite_angle=float(getattr(args, "adapt_finite_angle")),
+        finite_angle_min_improvement=float(getattr(args, "adapt_finite_angle_min_improvement")),
+        disable_hh_seed=bool(getattr(args, "adapt_disable_hh_seed")),
+        reopt_policy=str(getattr(args, "adapt_reopt_policy")),
+        window_size=int(getattr(args, "adapt_window_size")),
+        window_topk=int(getattr(args, "adapt_window_topk")),
+        full_refit_every=int(getattr(args, "adapt_full_refit_every")),
+        final_full_refit=bool(getattr(args, "adapt_final_full_refit")),
+        paop_r=int(getattr(args, "paop_r")),
+        paop_split_paulis=bool(getattr(args, "paop_split_paulis")),
+        paop_prune_eps=float(getattr(args, "paop_prune_eps")),
+        paop_normalization=str(getattr(args, "paop_normalization")),
+        spsa_a=float(getattr(args, "adapt_spsa_a")),
+        spsa_c=float(getattr(args, "adapt_spsa_c")),
+        spsa_alpha=float(getattr(args, "adapt_spsa_alpha")),
+        spsa_gamma=float(getattr(args, "adapt_spsa_gamma")),
+        spsa_A=float(getattr(args, "adapt_spsa_A")),
+        spsa_avg_last=int(getattr(args, "adapt_spsa_avg_last")),
+        spsa_eval_repeats=int(getattr(args, "adapt_spsa_eval_repeats")),
+        spsa_eval_agg=str(getattr(args, "adapt_spsa_eval_agg")),
+        spsa_callback_every=int(getattr(args, "adapt_spsa_callback_every")),
+        spsa_progress_every_s=float(getattr(args, "adapt_spsa_progress_every_s")),
+        phase1_lambda_F=float(getattr(args, "phase1_lambda_F")),
+        phase1_lambda_compile=float(getattr(args, "phase1_lambda_compile")),
+        phase1_lambda_measure=float(getattr(args, "phase1_lambda_measure")),
+        phase1_lambda_leak=float(getattr(args, "phase1_lambda_leak")),
+        phase1_score_z_alpha=float(getattr(args, "phase1_score_z_alpha")),
+        phase1_probe_max_positions=int(getattr(args, "phase1_probe_max_positions")),
+        phase1_plateau_patience=int(getattr(args, "phase1_plateau_patience")),
+        phase1_trough_margin_ratio=float(getattr(args, "phase1_trough_margin_ratio")),
+        phase1_prune_enabled=bool(getattr(args, "phase1_prune_enabled")),
+        phase1_prune_fraction=float(getattr(args, "phase1_prune_fraction")),
+        phase1_prune_max_candidates=int(getattr(args, "phase1_prune_max_candidates")),
+        phase1_prune_max_regression=float(getattr(args, "phase1_prune_max_regression")),
+        phase3_motif_source_json=(
+            None
+            if getattr(args, "phase3_motif_source_json", None) is None
+            else Path(getattr(args, "phase3_motif_source_json"))
+        ),
+        phase3_symmetry_mitigation_mode=str(getattr(args, "phase3_symmetry_mitigation_mode")),
+        phase3_enable_rescue=bool(getattr(args, "phase3_enable_rescue")),
+        phase3_lifetime_cost_mode=str(getattr(args, "phase3_lifetime_cost_mode")),
+        phase3_runtime_split_mode=str(getattr(args, "phase3_runtime_split_mode")),
+    )
+    replay_mode_raw = getattr(args, "replay_continuation_mode", None)
+    replay_mode = adapt_mode if replay_mode_raw in {None, "", "auto"} else str(replay_mode_raw)
+    provenance["replay_continuation_mode"] = (
+        "workflow.replay_mode := adapt_continuation_mode"
+        if replay_mode_raw in {None, "", "auto"}
+        else "cli"
+    )
+    replay = ReplayConfig(
+        generator_family="match_adapt",
+        fallback_family="full_meta",
+        legacy_paop_key=str(getattr(args, "legacy_paop_key")),
+        replay_seed_policy=str(getattr(args, "replay_seed_policy")),
+        continuation_mode=str(replay_mode),
+        reps=int(cfg_values["final_reps"]),
+        restarts=int(cfg_values["final_restarts"]),
+        maxiter=int(cfg_values["final_maxiter"]),
+        method=str(getattr(args, "final_method")),
+        seed=int(getattr(args, "final_seed")),
+        energy_backend=str(getattr(args, "vqe_energy_backend")),
+        progress_every_s=float(getattr(args, "final_progress_every_s")),
+        wallclock_cap_s=int(getattr(args, "replay_wallclock_cap_s")),
+        paop_r=int(getattr(args, "paop_r")),
+        paop_split_paulis=bool(getattr(args, "paop_split_paulis")),
+        paop_prune_eps=float(getattr(args, "paop_prune_eps")),
+        paop_normalization=str(getattr(args, "paop_normalization")),
+        spsa_a=float(getattr(args, "vqe_spsa_a")),
+        spsa_c=float(getattr(args, "vqe_spsa_c")),
+        spsa_alpha=float(getattr(args, "vqe_spsa_alpha")),
+        spsa_gamma=float(getattr(args, "vqe_spsa_gamma")),
+        spsa_A=float(getattr(args, "vqe_spsa_A")),
+        spsa_avg_last=int(getattr(args, "vqe_spsa_avg_last")),
+        spsa_eval_repeats=int(getattr(args, "vqe_spsa_eval_repeats")),
+        spsa_eval_agg=str(getattr(args, "vqe_spsa_eval_agg")),
+        replay_freeze_fraction=float(getattr(args, "replay_freeze_fraction")),
+        replay_unfreeze_fraction=float(getattr(args, "replay_unfreeze_fraction")),
+        replay_full_fraction=float(getattr(args, "replay_full_fraction")),
+        replay_qn_spsa_refresh_every=int(getattr(args, "replay_qn_spsa_refresh_every")),
+        replay_qn_spsa_refresh_mode=str(getattr(args, "replay_qn_spsa_refresh_mode")),
+        phase3_symmetry_mitigation_mode=str(getattr(args, "phase3_symmetry_mitigation_mode")),
+    )
+    dynamics = DynamicsConfig(
+        methods=_parse_noiseless_methods(getattr(args, "noiseless_methods")),
+        t_final=float(cfg_values["t_final"]),
+        num_times=int(cfg_values["num_times"]),
+        trotter_steps=int(cfg_values["trotter_steps"]),
+        exact_steps_multiplier=int(cfg_values["exact_steps_multiplier"]),
+        fidelity_subspace_energy_tol=float(getattr(args, "fidelity_subspace_energy_tol")),
+        cfqm_stage_exp=str(getattr(args, "cfqm_stage_exp")),
+        cfqm_coeff_drop_abs_tol=float(getattr(args, "cfqm_coeff_drop_abs_tol")),
+        cfqm_normalize=bool(getattr(args, "cfqm_normalize")),
+        enable_drive=bool(getattr(args, "enable_drive")),
+        drive_A=float(getattr(args, "drive_A")),
+        drive_omega=float(getattr(args, "drive_omega")),
+        drive_tbar=float(getattr(args, "drive_tbar")),
+        drive_phi=float(getattr(args, "drive_phi")),
+        drive_pattern=str(getattr(args, "drive_pattern")),
+        drive_custom_s=getattr(args, "drive_custom_s", None),
+        drive_include_identity=bool(getattr(args, "drive_include_identity")),
+        drive_time_sampling=str(getattr(args, "drive_time_sampling")),
+        drive_t0=float(getattr(args, "drive_t0")),
+    )
+    artifacts = ArtifactConfig(
+        tag=str(tag),
+        output_json=Path(output_json),
+        output_pdf=Path(output_pdf),
+        handoff_json=Path(handoff_json),
+        replay_output_json=Path(replay_output_json),
+        replay_output_csv=Path(replay_output_csv),
+        replay_output_md=Path(replay_output_md),
+        replay_output_log=Path(replay_output_log),
+        skip_pdf=bool(getattr(args, "skip_pdf", False)),
+    )
+    gates = GateConfig(
+        ecut_1=float(
+            _resolve_with_default(
+                name="ecut_1",
+                raw=getattr(args, "ecut_1", None),
+                default=1e-1,
+                provenance=provenance,
+                default_source="run_guide.ecut_1=1e-1",
+            )
+        ),
+        ecut_2=float(
+            _resolve_with_default(
+                name="ecut_2",
+                raw=getattr(args, "ecut_2", None),
+                default=1e-4,
+                provenance=provenance,
+                default_source="run_guide.ecut_2=1e-4",
+            )
+        ),
+    )
+    return StagedHHConfig(
+        physics=physics,
+        warm_start=warm_start,
+        adapt=adapt,
+        replay=replay,
+        dynamics=dynamics,
+        artifacts=artifacts,
+        gates=gates,
+        smoke_test_intentionally_weak=bool(getattr(args, "smoke_test_intentionally_weak", False)),
+        default_provenance=dict(provenance),
+    )
+
+
+def _build_hh_context(cfg: StagedHHConfig) -> tuple[Any, np.ndarray, list[str], dict[str, complex], np.ndarray]:
+    physics = cfg.physics
+    h_poly = build_hubbard_holstein_hamiltonian(
+        dims=int(physics.L),
+        J=float(physics.t),
+        U=float(physics.u),
+        omega0=float(physics.omega0),
+        g=float(physics.g_ep),
+        n_ph_max=int(physics.n_ph_max),
+        boson_encoding=str(physics.boson_encoding),
+        v_t=None,
+        v0=float(physics.dv),
+        t_eval=None,
+        include_zero_point=True,
+        repr_mode="JW",
+        indexing=str(physics.ordering),
+        pbc=(str(physics.boundary).strip().lower() == "periodic"),
+    )
+    ordered_labels_exyz, coeff_map_exyz = hc_pipeline._collect_hardcoded_terms_exyz(h_poly)
+    hmat = hc_pipeline._build_hamiltonian_matrix(coeff_map_exyz)
+    psi_hf = hc_pipeline._normalize_state(
+        np.asarray(
+            hubbard_holstein_reference_state(
+                dims=int(physics.L),
+                num_particles=(int(physics.sector_n_up), int(physics.sector_n_dn)),
+                n_ph_max=int(physics.n_ph_max),
+                boson_encoding=str(physics.boson_encoding),
+                indexing=str(physics.ordering),
+            ),
+            dtype=complex,
+        ).reshape(-1)
+    )
+    return h_poly, np.asarray(hmat, dtype=complex), list(ordered_labels_exyz), dict(coeff_map_exyz), psi_hf
+
+
+def _handoff_continuation_meta(adapt_payload: Mapping[str, Any]) -> dict[str, Any]:
+    continuation = adapt_payload.get("continuation", {})
+    if not isinstance(continuation, Mapping):
+        continuation = {}
+    return {
+        "continuation_mode": str(adapt_payload.get("continuation_mode", continuation.get("mode", "legacy"))),
+        "continuation_scaffold": (
+            dict(adapt_payload.get("scaffold_fingerprint_lite", {}))
+            if isinstance(adapt_payload.get("scaffold_fingerprint_lite", {}), Mapping)
+            else None
+        ),
+        "optimizer_memory": (
+            dict(continuation.get("optimizer_memory", {}))
+            if isinstance(continuation.get("optimizer_memory", {}), Mapping)
+            else None
+        ),
+        "selected_generator_metadata": (
+            [dict(x) for x in continuation.get("selected_generator_metadata", [])]
+            if isinstance(continuation.get("selected_generator_metadata", []), Sequence)
+            else None
+        ),
+        "generator_split_events": (
+            [dict(x) for x in continuation.get("generator_split_events", [])]
+            if isinstance(continuation.get("generator_split_events", []), Sequence)
+            else None
+        ),
+        "motif_library": (
+            dict(continuation.get("motif_library", {}))
+            if isinstance(continuation.get("motif_library", {}), Mapping)
+            else None
+        ),
+        "motif_usage": (
+            dict(continuation.get("motif_usage", {}))
+            if isinstance(continuation.get("motif_usage", {}), Mapping)
+            else None
+        ),
+        "symmetry_mitigation": (
+            dict(continuation.get("symmetry_mitigation", {}))
+            if isinstance(continuation.get("symmetry_mitigation", {}), Mapping)
+            else None
+        ),
+        "rescue_history": (
+            [dict(x) for x in continuation.get("rescue_history", [])]
+            if isinstance(continuation.get("rescue_history", []), Sequence)
+            else None
+        ),
+        "prune_summary": (
+            dict(adapt_payload.get("prune_summary", {}))
+            if isinstance(adapt_payload.get("prune_summary", {}), Mapping)
+            else None
+        ),
+        "pre_prune_scaffold": (
+            dict(adapt_payload.get("pre_prune_scaffold", {}))
+            if isinstance(adapt_payload.get("pre_prune_scaffold", {}), Mapping)
+            else None
+        ),
+    }
+
+
+def _write_adapt_handoff(cfg: StagedHHConfig, adapt_payload: Mapping[str, Any], psi_adapt: np.ndarray) -> None:
+    exact_energy = float(adapt_payload.get("exact_gs_energy", float("nan")))
+    energy = float(adapt_payload.get("energy", float("nan")))
+    continuation_meta = _handoff_continuation_meta(adapt_payload)
+    handoff_cfg = HandoffStateBundleConfig(
+        L=int(cfg.physics.L),
+        t=float(cfg.physics.t),
+        U=float(cfg.physics.u),
+        dv=float(cfg.physics.dv),
+        omega0=float(cfg.physics.omega0),
+        g_ep=float(cfg.physics.g_ep),
+        n_ph_max=int(cfg.physics.n_ph_max),
+        boson_encoding=str(cfg.physics.boson_encoding),
+        ordering=str(cfg.physics.ordering),
+        boundary=str(cfg.physics.boundary),
+        sector_n_up=int(cfg.physics.sector_n_up),
+        sector_n_dn=int(cfg.physics.sector_n_dn),
+    )
+    write_handoff_state_bundle(
+        path=cfg.artifacts.handoff_json,
+        psi_state=np.asarray(psi_adapt, dtype=complex).reshape(-1),
+        cfg=handoff_cfg,
+        source="adapt_vqe",
+        exact_energy=float(exact_energy),
+        energy=float(energy),
+        delta_E_abs=float(adapt_payload.get("abs_delta_e", abs(energy - exact_energy))),
+        relative_error_abs=float(_relative_error_abs(energy, exact_energy)),
+        meta={
+            "pipeline": "hh_staged_noiseless",
+            "workflow_tag": str(cfg.artifacts.tag),
+            "stage_chain": ["hf_reference", "warm_start_hva", "adapt_vqe", "matched_family_replay"],
+        },
+        adapt_operators=[str(x) for x in adapt_payload.get("operators", [])],
+        adapt_optimal_point=[float(x) for x in adapt_payload.get("optimal_point", [])],
+        adapt_pool_type=(None if adapt_payload.get("pool_type") is None else str(adapt_payload.get("pool_type"))),
+        handoff_state_kind="prepared_state",
+        continuation_mode=str(continuation_meta.get("continuation_mode", cfg.adapt.continuation_mode)),
+        continuation_scaffold=continuation_meta.get("continuation_scaffold"),
+        optimizer_memory=continuation_meta.get("optimizer_memory"),
+        selected_generator_metadata=continuation_meta.get("selected_generator_metadata"),
+        generator_split_events=continuation_meta.get("generator_split_events"),
+        motif_library=continuation_meta.get("motif_library"),
+        motif_usage=continuation_meta.get("motif_usage"),
+        symmetry_mitigation=continuation_meta.get("symmetry_mitigation"),
+        rescue_history=continuation_meta.get("rescue_history"),
+        prune_summary=continuation_meta.get("prune_summary"),
+        pre_prune_scaffold=continuation_meta.get("pre_prune_scaffold"),
+        replay_contract_hint={
+            "generator_family": str(cfg.replay.generator_family),
+            "fallback_family": str(cfg.replay.fallback_family),
+            "replay_seed_policy": str(cfg.replay.replay_seed_policy),
+            "replay_continuation_mode": str(cfg.replay.continuation_mode),
+        },
+    )
+
+
+def run_stage_pipeline(cfg: StagedHHConfig) -> StageExecutionResult:
+    h_poly, hmat, ordered_labels_exyz, coeff_map_exyz, psi_hf = _build_hh_context(cfg)
+
+    warm_payload, psi_warm = hc_pipeline._run_hardcoded_vqe(
+        num_sites=int(cfg.physics.L),
+        ordering=str(cfg.physics.ordering),
+        boundary=str(cfg.physics.boundary),
+        hopping_t=float(cfg.physics.t),
+        onsite_u=float(cfg.physics.u),
+        potential_dv=float(cfg.physics.dv),
+        h_poly=h_poly,
+        reps=int(cfg.warm_start.reps),
+        restarts=int(cfg.warm_start.restarts),
+        seed=int(cfg.warm_start.seed),
+        maxiter=int(cfg.warm_start.maxiter),
+        method=str(cfg.warm_start.method),
+        energy_backend=str(cfg.warm_start.energy_backend),
+        vqe_progress_every_s=float(cfg.warm_start.progress_every_s),
+        ansatz_name=str(cfg.warm_start.ansatz_name),
+        spsa_a=float(cfg.warm_start.spsa_a),
+        spsa_c=float(cfg.warm_start.spsa_c),
+        spsa_alpha=float(cfg.warm_start.spsa_alpha),
+        spsa_gamma=float(cfg.warm_start.spsa_gamma),
+        spsa_A=float(cfg.warm_start.spsa_A),
+        spsa_avg_last=int(cfg.warm_start.spsa_avg_last),
+        spsa_eval_repeats=int(cfg.warm_start.spsa_eval_repeats),
+        spsa_eval_agg=str(cfg.warm_start.spsa_eval_agg),
+        problem="hh",
+        omega0=float(cfg.physics.omega0),
+        g_ep=float(cfg.physics.g_ep),
+        n_ph_max=int(cfg.physics.n_ph_max),
+        boson_encoding=str(cfg.physics.boson_encoding),
+    )
+
+    adapt_payload, psi_adapt = adapt_mod._run_hardcoded_adapt_vqe(
+        h_poly=h_poly,
+        num_sites=int(cfg.physics.L),
+        ordering=str(cfg.physics.ordering),
+        problem="hh",
+        adapt_pool=cfg.adapt.pool,
+        t=float(cfg.physics.t),
+        u=float(cfg.physics.u),
+        dv=float(cfg.physics.dv),
+        boundary=str(cfg.physics.boundary),
+        omega0=float(cfg.physics.omega0),
+        g_ep=float(cfg.physics.g_ep),
+        n_ph_max=int(cfg.physics.n_ph_max),
+        boson_encoding=str(cfg.physics.boson_encoding),
+        max_depth=int(cfg.adapt.max_depth),
+        eps_grad=float(cfg.adapt.eps_grad),
+        eps_energy=float(cfg.adapt.eps_energy),
+        maxiter=int(cfg.adapt.maxiter),
+        seed=int(cfg.adapt.seed),
+        adapt_inner_optimizer=str(cfg.adapt.inner_optimizer),
+        adapt_spsa_a=float(cfg.adapt.spsa_a),
+        adapt_spsa_c=float(cfg.adapt.spsa_c),
+        adapt_spsa_alpha=float(cfg.adapt.spsa_alpha),
+        adapt_spsa_gamma=float(cfg.adapt.spsa_gamma),
+        adapt_spsa_A=float(cfg.adapt.spsa_A),
+        adapt_spsa_avg_last=int(cfg.adapt.spsa_avg_last),
+        adapt_spsa_eval_repeats=int(cfg.adapt.spsa_eval_repeats),
+        adapt_spsa_eval_agg=str(cfg.adapt.spsa_eval_agg),
+        adapt_spsa_callback_every=int(cfg.adapt.spsa_callback_every),
+        adapt_spsa_progress_every_s=float(cfg.adapt.spsa_progress_every_s),
+        allow_repeats=bool(cfg.adapt.allow_repeats),
+        finite_angle_fallback=bool(cfg.adapt.finite_angle_fallback),
+        finite_angle=float(cfg.adapt.finite_angle),
+        finite_angle_min_improvement=float(cfg.adapt.finite_angle_min_improvement),
+        paop_r=int(cfg.adapt.paop_r),
+        paop_split_paulis=bool(cfg.adapt.paop_split_paulis),
+        paop_prune_eps=float(cfg.adapt.paop_prune_eps),
+        paop_normalization=str(cfg.adapt.paop_normalization),
+        disable_hh_seed=bool(cfg.adapt.disable_hh_seed),
+        psi_ref_override=np.asarray(psi_warm, dtype=complex).reshape(-1),
+        adapt_reopt_policy=str(cfg.adapt.reopt_policy),
+        adapt_window_size=int(cfg.adapt.window_size),
+        adapt_window_topk=int(cfg.adapt.window_topk),
+        adapt_full_refit_every=int(cfg.adapt.full_refit_every),
+        adapt_final_full_refit=bool(cfg.adapt.final_full_refit),
+        adapt_continuation_mode=str(cfg.adapt.continuation_mode),
+        phase1_lambda_F=float(cfg.adapt.phase1_lambda_F),
+        phase1_lambda_compile=float(cfg.adapt.phase1_lambda_compile),
+        phase1_lambda_measure=float(cfg.adapt.phase1_lambda_measure),
+        phase1_lambda_leak=float(cfg.adapt.phase1_lambda_leak),
+        phase1_score_z_alpha=float(cfg.adapt.phase1_score_z_alpha),
+        phase1_probe_max_positions=int(cfg.adapt.phase1_probe_max_positions),
+        phase1_plateau_patience=int(cfg.adapt.phase1_plateau_patience),
+        phase1_trough_margin_ratio=float(cfg.adapt.phase1_trough_margin_ratio),
+        phase1_prune_enabled=bool(cfg.adapt.phase1_prune_enabled),
+        phase1_prune_fraction=float(cfg.adapt.phase1_prune_fraction),
+        phase1_prune_max_candidates=int(cfg.adapt.phase1_prune_max_candidates),
+        phase1_prune_max_regression=float(cfg.adapt.phase1_prune_max_regression),
+        phase3_motif_source_json=cfg.adapt.phase3_motif_source_json,
+        phase3_symmetry_mitigation_mode=str(cfg.adapt.phase3_symmetry_mitigation_mode),
+        phase3_enable_rescue=bool(cfg.adapt.phase3_enable_rescue),
+        phase3_lifetime_cost_mode=str(cfg.adapt.phase3_lifetime_cost_mode),
+        phase3_runtime_split_mode=str(cfg.adapt.phase3_runtime_split_mode),
+    )
+
+    _write_adapt_handoff(cfg, adapt_payload, np.asarray(psi_adapt, dtype=complex).reshape(-1))
+    replay_cfg = replay_mod.RunConfig(
+        adapt_input_json=Path(cfg.artifacts.handoff_json),
+        output_json=Path(cfg.artifacts.replay_output_json),
+        output_csv=Path(cfg.artifacts.replay_output_csv),
+        output_md=Path(cfg.artifacts.replay_output_md),
+        output_log=Path(cfg.artifacts.replay_output_log),
+        tag=f"{cfg.artifacts.tag}_replay",
+        generator_family=str(cfg.replay.generator_family),
+        fallback_family=str(cfg.replay.fallback_family),
+        legacy_paop_key=str(cfg.replay.legacy_paop_key),
+        replay_seed_policy=str(cfg.replay.replay_seed_policy),
+        replay_continuation_mode=str(cfg.replay.continuation_mode),
+        L=int(cfg.physics.L),
+        t=float(cfg.physics.t),
+        u=float(cfg.physics.u),
+        dv=float(cfg.physics.dv),
+        omega0=float(cfg.physics.omega0),
+        g_ep=float(cfg.physics.g_ep),
+        n_ph_max=int(cfg.physics.n_ph_max),
+        boson_encoding=str(cfg.physics.boson_encoding),
+        ordering=str(cfg.physics.ordering),
+        boundary=str(cfg.physics.boundary),
+        sector_n_up=int(cfg.physics.sector_n_up),
+        sector_n_dn=int(cfg.physics.sector_n_dn),
+        reps=int(cfg.replay.reps),
+        restarts=int(cfg.replay.restarts),
+        maxiter=int(cfg.replay.maxiter),
+        method=str(cfg.replay.method),
+        seed=int(cfg.replay.seed),
+        energy_backend=str(cfg.replay.energy_backend),
+        progress_every_s=float(cfg.replay.progress_every_s),
+        wallclock_cap_s=int(cfg.replay.wallclock_cap_s),
+        paop_r=int(cfg.replay.paop_r),
+        paop_split_paulis=bool(cfg.replay.paop_split_paulis),
+        paop_prune_eps=float(cfg.replay.paop_prune_eps),
+        paop_normalization=str(cfg.replay.paop_normalization),
+        spsa_a=float(cfg.replay.spsa_a),
+        spsa_c=float(cfg.replay.spsa_c),
+        spsa_alpha=float(cfg.replay.spsa_alpha),
+        spsa_gamma=float(cfg.replay.spsa_gamma),
+        spsa_A=float(cfg.replay.spsa_A),
+        spsa_avg_last=int(cfg.replay.spsa_avg_last),
+        spsa_eval_repeats=int(cfg.replay.spsa_eval_repeats),
+        spsa_eval_agg=str(cfg.replay.spsa_eval_agg),
+        replay_freeze_fraction=float(cfg.replay.replay_freeze_fraction),
+        replay_unfreeze_fraction=float(cfg.replay.replay_unfreeze_fraction),
+        replay_full_fraction=float(cfg.replay.replay_full_fraction),
+        replay_qn_spsa_refresh_every=int(cfg.replay.replay_qn_spsa_refresh_every),
+        replay_qn_spsa_refresh_mode=str(cfg.replay.replay_qn_spsa_refresh_mode),
+        phase3_symmetry_mitigation_mode=str(cfg.replay.phase3_symmetry_mitigation_mode),
+    )
+    replay_payload = replay_mod.run(replay_cfg)
+    nq_total = _hh_nq_total(cfg.physics.L, cfg.physics.n_ph_max, cfg.physics.boson_encoding)
+    best_state = replay_payload.get("best_state", {})
+    if not isinstance(best_state, Mapping):
+        raise ValueError("Replay payload missing best_state block.")
+    amplitudes = best_state.get("amplitudes_qn_to_q0", None)
+    if not isinstance(amplitudes, Mapping):
+        raise ValueError("Replay payload missing best_state.amplitudes_qn_to_q0.")
+    psi_final = hc_pipeline._state_from_amplitudes_qn_to_q0(amplitudes, int(nq_total))
+    psi_final = hc_pipeline._normalize_state(np.asarray(psi_final, dtype=complex).reshape(-1))
+
+    return StageExecutionResult(
+        h_poly=h_poly,
+        hmat=np.asarray(hmat, dtype=complex),
+        ordered_labels_exyz=list(ordered_labels_exyz),
+        coeff_map_exyz=dict(coeff_map_exyz),
+        nq_total=int(nq_total),
+        psi_hf=np.asarray(psi_hf, dtype=complex).reshape(-1),
+        psi_warm=np.asarray(psi_warm, dtype=complex).reshape(-1),
+        psi_adapt=np.asarray(psi_adapt, dtype=complex).reshape(-1),
+        psi_final=np.asarray(psi_final, dtype=complex).reshape(-1),
+        warm_payload=dict(warm_payload),
+        adapt_payload=dict(adapt_payload),
+        replay_payload=dict(replay_payload),
+    )
+
+
+def _build_drive_provider(
+    *,
+    cfg: StagedHHConfig,
+    nq_total: int,
+    ordered_labels_exyz: Sequence[str],
+) -> tuple[Any | None, dict[str, Any] | None, list[str], dict[str, Any] | None]:
+    if not bool(cfg.dynamics.enable_drive):
+        return None, None, list(ordered_labels_exyz), None
+    custom_weights = None
+    if str(cfg.dynamics.drive_pattern) == "custom":
+        custom_weights = _parse_drive_custom_weights(cfg.dynamics.drive_custom_s)
+        if custom_weights is None:
+            raise ValueError("--drive-custom-s is required when --drive-pattern custom.")
+    drive = build_gaussian_sinusoid_density_drive(
+        n_sites=int(cfg.physics.L),
+        nq_total=int(nq_total),
+        indexing=str(cfg.physics.ordering),
+        A=float(cfg.dynamics.drive_A),
+        omega=float(cfg.dynamics.drive_omega),
+        tbar=float(cfg.dynamics.drive_tbar),
+        phi=float(cfg.dynamics.drive_phi),
+        pattern_mode=str(cfg.dynamics.drive_pattern),
+        custom_weights=custom_weights,
+        include_identity=bool(cfg.dynamics.drive_include_identity),
+        coeff_tol=0.0,
+    )
+    drive_labels = set(drive.template.labels_exyz(include_identity=bool(drive.include_identity)))
+    ordered = list(ordered_labels_exyz)
+    missing = sorted(drive_labels.difference(ordered))
+    ordered.extend(missing)
+    profile = {
+        "A": float(cfg.dynamics.drive_A),
+        "omega": float(cfg.dynamics.drive_omega),
+        "tbar": float(cfg.dynamics.drive_tbar),
+        "phi": float(cfg.dynamics.drive_phi),
+        "pattern": str(cfg.dynamics.drive_pattern),
+        "custom_weights": custom_weights,
+        "include_identity": bool(cfg.dynamics.drive_include_identity),
+        "time_sampling": str(cfg.dynamics.drive_time_sampling),
+        "t0": float(cfg.dynamics.drive_t0),
+    }
+    meta = {
+        "reference_method": str(reference_method_name(str(cfg.dynamics.drive_time_sampling))),
+        "missing_drive_labels_added": int(len(missing)),
+        "drive_label_count": int(len(drive_labels)),
+    }
+    return drive.coeff_map_exyz, meta, ordered, profile
+
+
+def _run_noiseless_profile(
+    *,
+    cfg: StagedHHConfig,
+    psi_seed: np.ndarray,
+    hmat: np.ndarray,
+    ordered_labels_exyz: list[str],
+    coeff_map_exyz: dict[str, complex],
+    drive_enabled: bool,
+) -> dict[str, Any]:
+    drive_provider = None
+    drive_meta = None
+    drive_profile = None
+    ordered_for_run = list(ordered_labels_exyz)
+    if drive_enabled:
+        drive_provider, drive_meta, ordered_for_run, drive_profile = _build_drive_provider(
+            cfg=cfg,
+            nq_total=int(round(math.log2(int(np.asarray(psi_seed).size)))),
+            ordered_labels_exyz=ordered_labels_exyz,
+        )
+
+    method_payloads: dict[str, Any] = {}
+    reference_rows: list[dict[str, Any]] | None = None
+    psi_seed_arr = np.asarray(psi_seed, dtype=complex).reshape(-1)
+
+    for method in cfg.dynamics.methods:
+        rows, _ = hc_pipeline._simulate_trajectory(
+            num_sites=int(cfg.physics.L),
+            ordering=str(cfg.physics.ordering),
+            psi0_legacy_trot=np.asarray(psi_seed_arr, dtype=complex),
+            psi0_paop_trot=np.asarray(psi_seed_arr, dtype=complex),
+            psi0_hva_trot=np.asarray(psi_seed_arr, dtype=complex),
+            legacy_branch_label="replay",
+            psi0_exact_ref=np.asarray(psi_seed_arr, dtype=complex),
+            fidelity_subspace_basis_v0=np.asarray(psi_seed_arr, dtype=complex).reshape(-1, 1),
+            fidelity_subspace_energy_tol=float(cfg.dynamics.fidelity_subspace_energy_tol),
+            hmat=np.asarray(hmat, dtype=complex),
+            ordered_labels_exyz=list(ordered_for_run),
+            coeff_map_exyz=dict(coeff_map_exyz),
+            trotter_steps=int(cfg.dynamics.trotter_steps),
+            t_final=float(cfg.dynamics.t_final),
+            num_times=int(cfg.dynamics.num_times),
+            suzuki_order=2,
+            drive_coeff_provider_exyz=drive_provider,
+            drive_t0=float(cfg.dynamics.drive_t0 if drive_enabled else 0.0),
+            drive_time_sampling=str(cfg.dynamics.drive_time_sampling),
+            exact_steps_multiplier=(int(cfg.dynamics.exact_steps_multiplier) if drive_enabled else 1),
+            propagator=str(method),
+            cfqm_stage_exp=str(cfg.dynamics.cfqm_stage_exp),
+            cfqm_coeff_drop_abs_tol=float(cfg.dynamics.cfqm_coeff_drop_abs_tol),
+            cfqm_normalize=bool(cfg.dynamics.cfqm_normalize),
+        )
+        reference_rows = rows if reference_rows is None else reference_rows
+        final_row = rows[-1]
+        method_payloads[str(method)] = {
+            "propagator": str(method),
+            "trajectory": rows,
+            "final": {
+                "energy_total_trotter": float(final_row["energy_total_trotter"]),
+                "energy_total_exact": float(final_row["energy_total_exact"]),
+                "abs_energy_total_error": float(abs(float(final_row["energy_total_trotter"]) - float(final_row["energy_total_exact"]))),
+                "fidelity": float(final_row["fidelity"]),
+                "doublon_trotter": float(final_row["doublon_trotter"]),
+                "doublon_exact": float(final_row["doublon_exact"]),
+            },
+            "settings": {
+                "trotter_steps": int(cfg.dynamics.trotter_steps),
+                "num_times": int(cfg.dynamics.num_times),
+                "t_final": float(cfg.dynamics.t_final),
+                "cfqm_stage_exp": str(cfg.dynamics.cfqm_stage_exp),
+                "cfqm_coeff_drop_abs_tol": float(cfg.dynamics.cfqm_coeff_drop_abs_tol),
+                "cfqm_normalize": bool(cfg.dynamics.cfqm_normalize),
+            },
+        }
+
+    assert reference_rows is not None
+    return {
+        "drive_enabled": bool(drive_enabled),
+        "drive_profile": drive_profile,
+        "drive_meta": drive_meta,
+        "times": [float(row["time"]) for row in reference_rows],
+        "reference": {
+            "method": (
+                "eigendecomposition"
+                if not drive_enabled
+                else str(reference_method_name(str(cfg.dynamics.drive_time_sampling)))
+            ),
+            "energy_total_exact": [float(row["energy_total_exact"]) for row in reference_rows],
+            "doublon_exact": [float(row["doublon_exact"]) for row in reference_rows],
+        },
+        "methods": method_payloads,
+    }
+
+
+def run_noiseless_profiles(stage_result: StageExecutionResult, cfg: StagedHHConfig) -> dict[str, Any]:
+    profiles = {
+        "static": _run_noiseless_profile(
+            cfg=cfg,
+            psi_seed=stage_result.psi_final,
+            hmat=stage_result.hmat,
+            ordered_labels_exyz=stage_result.ordered_labels_exyz,
+            coeff_map_exyz=stage_result.coeff_map_exyz,
+            drive_enabled=False,
+        )
+    }
+    if bool(cfg.dynamics.enable_drive):
+        profiles["drive"] = _run_noiseless_profile(
+            cfg=cfg,
+            psi_seed=stage_result.psi_final,
+            hmat=stage_result.hmat,
+            ordered_labels_exyz=stage_result.ordered_labels_exyz,
+            coeff_map_exyz=stage_result.coeff_map_exyz,
+            drive_enabled=True,
+        )
+    return {"profiles": profiles}
+
+
+def _stage_delta(payload: Mapping[str, Any], *, energy_key: str, exact_key: str) -> float:
+    return float(abs(float(payload.get(energy_key, float("nan"))) - float(payload.get(exact_key, float("nan")))) )
+
+
+def _stage_summary(stage_result: StageExecutionResult, cfg: StagedHHConfig) -> dict[str, Any]:
+    warm_energy = float(stage_result.warm_payload.get("energy", float("nan")))
+    warm_exact = float(stage_result.warm_payload.get("exact_filtered_energy", float("nan")))
+    adapt_energy = float(stage_result.adapt_payload.get("energy", float("nan")))
+    adapt_exact = float(stage_result.adapt_payload.get("exact_gs_energy", float("nan")))
+    replay_vqe = stage_result.replay_payload.get("vqe", {})
+    replay_exact = stage_result.replay_payload.get("exact", {})
+    final_energy = float(replay_vqe.get("energy", float("nan")))
+    final_exact = float(replay_exact.get("E_exact_sector", float("nan")))
+    warm_delta = float(abs(warm_energy - warm_exact))
+    adapt_delta = float(abs(adapt_energy - adapt_exact))
+    final_delta = float(abs(final_energy - final_exact))
+    return {
+        "hf_reference": {
+            "state_kind": "reference_state",
+            "nq_total": int(stage_result.nq_total),
+            "sector_n_up": int(cfg.physics.sector_n_up),
+            "sector_n_dn": int(cfg.physics.sector_n_dn),
+        },
+        "warm_start": {
+            "ansatz": str(stage_result.warm_payload.get("ansatz", cfg.warm_start.ansatz_name)),
+            "energy": float(warm_energy),
+            "exact_energy": float(warm_exact),
+            "delta_abs": float(warm_delta),
+            "ecut_1": {"threshold": float(cfg.gates.ecut_1), "pass": bool(warm_delta <= float(cfg.gates.ecut_1))},
+            "optimizer_method": str(stage_result.warm_payload.get("optimizer_method", cfg.warm_start.method)),
+            "reps": int(cfg.warm_start.reps),
+            "restarts": int(cfg.warm_start.restarts),
+            "maxiter": int(cfg.warm_start.maxiter),
+            "message": str(stage_result.warm_payload.get("message", "")),
+        },
+        "adapt_vqe": {
+            "energy": float(adapt_energy),
+            "exact_energy": float(adapt_exact),
+            "delta_abs": float(adapt_delta),
+            "depth": int(stage_result.adapt_payload.get("ansatz_depth", 0)),
+            "pool_type": str(stage_result.adapt_payload.get("pool_type", cfg.adapt.pool or cfg.adapt.continuation_mode)),
+            "continuation_mode": str(stage_result.adapt_payload.get("continuation_mode", cfg.adapt.continuation_mode)),
+            "stop_reason": str(stage_result.adapt_payload.get("stop_reason", "")),
+            "handoff_json": str(cfg.artifacts.handoff_json),
+        },
+        "conventional_replay": {
+            "energy": float(final_energy),
+            "exact_energy": float(final_exact),
+            "delta_abs": float(final_delta),
+            "ecut_2": {"threshold": float(cfg.gates.ecut_2), "pass": bool(final_delta <= float(cfg.gates.ecut_2))},
+            "generator_family": dict(stage_result.replay_payload.get("generator_family", {})),
+            "seed_baseline": dict(stage_result.replay_payload.get("seed_baseline", {})),
+            "stop_reason": str(replay_vqe.get("stop_reason", replay_vqe.get("message", ""))),
+            "replay_continuation_mode": str(stage_result.replay_payload.get("replay_contract", {}).get("continuation_mode", cfg.replay.continuation_mode)),
+            "replay_output_json": str(cfg.artifacts.replay_output_json),
+        },
+    }
+
+
+def _compute_comparisons(payload: Mapping[str, Any]) -> dict[str, Any]:
+    out: dict[str, Any] = {
+        "noiseless_vs_exact": {},
+        "stage_gates": {},
+    }
+    stage_pipeline = payload.get("stage_pipeline", {})
+    if isinstance(stage_pipeline, Mapping):
+        warm = stage_pipeline.get("warm_start", {})
+        final = stage_pipeline.get("conventional_replay", {})
+        if isinstance(warm, Mapping):
+            out["stage_gates"]["ecut_1"] = dict(warm.get("ecut_1", {}))
+        if isinstance(final, Mapping):
+            out["stage_gates"]["ecut_2"] = dict(final.get("ecut_2", {}))
+
+    dynamics = payload.get("dynamics_noiseless", {})
+    if isinstance(dynamics, Mapping):
+        for profile_name, profile_payload in dynamics.get("profiles", {}).items():
+            if not isinstance(profile_payload, Mapping):
+                continue
+            method_cmp: dict[str, Any] = {}
+            for method_name, method_payload in profile_payload.get("methods", {}).items():
+                if not isinstance(method_payload, Mapping):
+                    continue
+                final = method_payload.get("final", {})
+                method_cmp[str(method_name)] = {
+                    "final_abs_energy_total_error": float(final.get("abs_energy_total_error", float("nan"))),
+                    "final_fidelity": float(final.get("fidelity", float("nan"))),
+                }
+            out["noiseless_vs_exact"][str(profile_name)] = method_cmp
+    return out
+
+
+def _payload_artifacts(cfg: StagedHHConfig) -> dict[str, Any]:
+    return {
+        "workflow": {
+            "output_json": str(cfg.artifacts.output_json),
+            "output_pdf": str(cfg.artifacts.output_pdf),
+        },
+        "intermediate": {
+            "adapt_handoff_json": str(cfg.artifacts.handoff_json),
+            "replay_output_json": str(cfg.artifacts.replay_output_json),
+            "replay_output_csv": str(cfg.artifacts.replay_output_csv),
+            "replay_output_md": str(cfg.artifacts.replay_output_md),
+            "replay_output_log": str(cfg.artifacts.replay_output_log),
+        },
+    }
+
+
+def assemble_payload(
+    *,
+    cfg: StagedHHConfig,
+    stage_result: StageExecutionResult,
+    dynamics_noiseless: Mapping[str, Any],
+    run_command: str,
+) -> dict[str, Any]:
+    payload = {
+        "generated_utc": _now_utc(),
+        "pipeline": "hh_staged_noiseless",
+        "workflow_contract": {
+            "stage_chain": [
+                "hf_reference",
+                "warm_start_hva",
+                "adapt_vqe",
+                "matched_family_replay",
+                "final_only_noiseless_dynamics",
+            ],
+            "conventional_vqe_definition": "non-ADAPT matched-family replay from ADAPT handoff",
+            "drive_default": "opt_in",
+        },
+        "settings": _jsonable(asdict(cfg)),
+        "default_provenance": dict(cfg.default_provenance),
+        "artifacts": _payload_artifacts(cfg),
+        "command": str(run_command),
+        "stage_pipeline": _stage_summary(stage_result, cfg),
+        "dynamics_noiseless": dict(dynamics_noiseless),
+    }
+    payload["comparisons"] = _compute_comparisons(payload)
+    return payload
+
+
+def _profile_plot_page(pdf: Any, profile_name: str, profile_payload: Mapping[str, Any]) -> None:
+    require_matplotlib()
+    plt = get_plt()
+    fig, axes = plt.subplots(2, 1, figsize=(11.0, 8.5), sharex=True)
+    times = [float(x) for x in profile_payload.get("times", [])]
+    methods = profile_payload.get("methods", {})
+    for method_name, method_payload in methods.items():
+        if not isinstance(method_payload, Mapping):
+            continue
+        rows = method_payload.get("trajectory", [])
+        if not rows:
+            continue
+        energy_err = [abs(float(r["energy_total_trotter"]) - float(r["energy_total_exact"])) for r in rows]
+        fidelity = [float(r["fidelity"]) for r in rows]
+        axes[0].plot(times, energy_err, label=str(method_name))
+        axes[1].plot(times, fidelity, label=str(method_name))
+    axes[0].set_title(f"{profile_name}: |E_method - E_exact|")
+    axes[0].set_ylabel("abs energy error")
+    axes[0].grid(True, alpha=0.3)
+    axes[1].set_title(f"{profile_name}: fidelity to exact")
+    axes[1].set_xlabel("time")
+    axes[1].set_ylabel("fidelity")
+    axes[1].set_ylim(0.0, 1.01)
+    axes[1].grid(True, alpha=0.3)
+    axes[0].legend(loc="best")
+    axes[1].legend(loc="best")
+    pdf.savefig(fig)
+    plt.close(fig)
+
+
+def write_staged_hh_pdf(payload: Mapping[str, Any], cfg: StagedHHConfig, run_command: str) -> None:
+    if bool(cfg.artifacts.skip_pdf):
+        return
+    require_matplotlib()
+    pdf_path = Path(cfg.artifacts.output_pdf)
+    pdf_path.parent.mkdir(parents=True, exist_ok=True)
+    PdfPages = get_PdfPages()
+    plt = get_plt()
+
+    stage_pipeline = payload.get("stage_pipeline", {})
+    warm = stage_pipeline.get("warm_start", {}) if isinstance(stage_pipeline, Mapping) else {}
+    adapt = stage_pipeline.get("adapt_vqe", {}) if isinstance(stage_pipeline, Mapping) else {}
+    replay = stage_pipeline.get("conventional_replay", {}) if isinstance(stage_pipeline, Mapping) else {}
+
+    with PdfPages(pdf_path) as pdf:
+        render_parameter_manifest(
+            pdf,
+            model="Hubbard-Holstein",
+            ansatz="warm: hh_hva_ptw; ADAPT: staged HH; final: matched-family replay",
+            drive_enabled=bool(cfg.dynamics.enable_drive),
+            t=float(cfg.physics.t),
+            U=float(cfg.physics.u),
+            dv=float(cfg.physics.dv),
+            extra={
+                "L": int(cfg.physics.L),
+                "omega0": float(cfg.physics.omega0),
+                "g_ep": float(cfg.physics.g_ep),
+                "n_ph_max": int(cfg.physics.n_ph_max),
+                "boundary": str(cfg.physics.boundary),
+                "ordering": str(cfg.physics.ordering),
+                "warm_reps": int(cfg.warm_start.reps),
+                "adapt_mode": str(cfg.adapt.continuation_mode),
+                "replay_mode": str(cfg.replay.continuation_mode),
+                "methods": ",".join(cfg.dynamics.methods),
+                "t_final": float(cfg.dynamics.t_final),
+                "trotter_steps": int(cfg.dynamics.trotter_steps),
+                "num_times": int(cfg.dynamics.num_times),
+            },
+            command=str(run_command),
+        )
+        summary_lines = [
+            "HH staged noiseless workflow summary",
+            "",
+            f"Warm-start: E={warm.get('energy')} exact={warm.get('exact_energy')} delta={warm.get('delta_abs')} ecut_1={warm.get('ecut_1')}",
+            f"ADAPT: depth={adapt.get('depth')} pool={adapt.get('pool_type')} delta={adapt.get('delta_abs')} stop={adapt.get('stop_reason')}",
+            f"Replay: E={replay.get('energy')} exact={replay.get('exact_energy')} delta={replay.get('delta_abs')} ecut_2={replay.get('ecut_2')}",
+            "",
+            "Artifacts",
+            f"- workflow_json: {cfg.artifacts.output_json}",
+            f"- workflow_pdf: {cfg.artifacts.output_pdf}",
+            f"- adapt_handoff_json: {cfg.artifacts.handoff_json}",
+            f"- replay_json: {cfg.artifacts.replay_output_json}",
+            f"- replay_csv: {cfg.artifacts.replay_output_csv}",
+            f"- replay_md: {cfg.artifacts.replay_output_md}",
+            f"- replay_log: {cfg.artifacts.replay_output_log}",
+        ]
+        render_text_page(pdf, summary_lines, fontsize=10, line_spacing=0.03)
+
+        fig, axes = plt.subplots(2, 1, figsize=(11.0, 8.5))
+        render_compact_table(
+            axes[0],
+            title="Stage metrics",
+            col_labels=["Stage", "Energy", "Exact", "|ΔE|", "Gate/stop"],
+            rows=[
+                ["Warm", f"{warm.get('energy', float('nan')):.8f}", f"{warm.get('exact_energy', float('nan')):.8f}", f"{warm.get('delta_abs', float('nan')):.3e}", str(warm.get('ecut_1', {}))],
+                ["ADAPT", f"{adapt.get('energy', float('nan')):.8f}", f"{adapt.get('exact_energy', float('nan')):.8f}", f"{adapt.get('delta_abs', float('nan')):.3e}", str(adapt.get('stop_reason', ''))],
+                ["Replay", f"{replay.get('energy', float('nan')):.8f}", f"{replay.get('exact_energy', float('nan')):.8f}", f"{replay.get('delta_abs', float('nan')):.3e}", str(replay.get('ecut_2', {}))],
+            ],
+            fontsize=8,
+        )
+        cmp_rows: list[list[str]] = []
+        for profile_name, profile_cmp in payload.get("comparisons", {}).get("noiseless_vs_exact", {}).items():
+            for method_name, rec in profile_cmp.items():
+                cmp_rows.append([
+                    str(profile_name),
+                    str(method_name),
+                    f"{float(rec.get('final_abs_energy_total_error', float('nan'))):.3e}",
+                    f"{float(rec.get('final_fidelity', float('nan'))):.6f}",
+                ])
+        if not cmp_rows:
+            cmp_rows = [["(none)", "(none)", "nan", "nan"]]
+        render_compact_table(
+            axes[1],
+            title="Noiseless dynamics vs exact",
+            col_labels=["Profile", "Method", "Final |ΔE|", "Final fidelity"],
+            rows=cmp_rows,
+            fontsize=8,
+        )
+        pdf.savefig(fig)
+        plt.close(fig)
+
+        for profile_name, profile_payload in payload.get("dynamics_noiseless", {}).get("profiles", {}).items():
+            if isinstance(profile_payload, Mapping):
+                _profile_plot_page(pdf, str(profile_name), profile_payload)
+
+        render_command_page(
+            pdf,
+            str(run_command),
+            script_name="pipelines/hardcoded/hh_staged_noiseless.py",
+            extra_header_lines=[
+                f"workflow_json: {cfg.artifacts.output_json}",
+                f"replay_json: {cfg.artifacts.replay_output_json}",
+            ],
+        )
+
+
+def run_staged_hh_noiseless(cfg: StagedHHConfig, *, run_command: str | None = None) -> dict[str, Any]:
+    run_command_str = current_command_string() if run_command is None else str(run_command)
+    cfg.artifacts.output_json.parent.mkdir(parents=True, exist_ok=True)
+    cfg.artifacts.output_pdf.parent.mkdir(parents=True, exist_ok=True)
+    cfg.artifacts.handoff_json.parent.mkdir(parents=True, exist_ok=True)
+    cfg.artifacts.replay_output_json.parent.mkdir(parents=True, exist_ok=True)
+    cfg.artifacts.replay_output_csv.parent.mkdir(parents=True, exist_ok=True)
+    cfg.artifacts.replay_output_md.parent.mkdir(parents=True, exist_ok=True)
+    cfg.artifacts.replay_output_log.parent.mkdir(parents=True, exist_ok=True)
+
+    stage_result = run_stage_pipeline(cfg)
+    dynamics_noiseless = run_noiseless_profiles(stage_result, cfg)
+    payload = assemble_payload(
+        cfg=cfg,
+        stage_result=stage_result,
+        dynamics_noiseless=dynamics_noiseless,
+        run_command=run_command_str,
+    )
+    _write_json(cfg.artifacts.output_json, payload)
+    if not bool(cfg.artifacts.skip_pdf):
+        write_staged_hh_pdf(payload, cfg, run_command_str)
+    return payload

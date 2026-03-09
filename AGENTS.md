@@ -258,9 +258,9 @@ the enlarged Hilbert space (phonon modes).
 
 | L | `--n-ph-max` | `--trotter-steps` | `--vqe-reps` | `--vqe-restarts` | `--vqe-maxiter` | optimizer |
 |---|---|---|---|---|---|---|
-| 2 | 1 | 64 | 2 | 3 | 800 | COBYLA |
-| 2 | 2 | 128 | 3 | 4 | 1500 | COBYLA |
-| 3 | 1 | 192 | 2 | 4 | 2400 | COBYLA |
+| 2 | 1 | 64 | 2 | 3 | 800 | SPSA |
+| 2 | 2 | 128 | 3 | 4 | 1500 | SPSA |
+| 3 | 1 | 192 | 2 | 4 | 2400 | SPSA |
 
 ### Rules
 

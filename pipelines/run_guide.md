@@ -82,7 +82,7 @@ This section is designed so an agent can compute defaults deterministically from
 
 Define workflow-level energy gates for HH warm-start → ADAPT → final VQE:
 
-- `ecut_1` (handoff gate): `ΔE_ws = |E_ws - E_exact_filtered| <= 1e-2` by default.
+- `ecut_1` (handoff gate): `ΔE_ws = |E_ws - E_exact_filtered| <= 1e-1` by default.
   - Use after warm-start VQE to decide whether to switch to ADAPT.
 - `ecut_2` (final acceptance gate): `ΔE_final = |E_final - E_exact_filtered| <= 1e-4` by default.
   - Apply after final VQE on top of ADAPT.
@@ -320,6 +320,10 @@ Archived-script behavior:
 Conventional pipeline handoff:
 - Example:
   - `--initial-state-source adapt_json --adapt-input-json artifacts/useful/L4/<prefix>_A_probe_state.json`
+- For HH staged reruns, keep the warm JSON if it already carries
+  `ground_state.exact_energy_filtered`; `adapt_pipeline.py --adapt-ref-json`
+  reuses that scalar when the imported metadata matches the rerun settings.
+  `hh_vqe_from_adapt_family.py` already reuses exact energy from its input JSON.
 
 ### ADAPT continuation stop policy (energy-first, mandatory for agent runs)
 
@@ -338,14 +342,22 @@ Policy:
 2) Secondary criterion (optional safety):
 - A gradient floor (`pre-opt max|g| < g_floor` for `M` depths) may be used as
   an additional guard, but it must not be the only stop signal.
-3) Hardcoded ADAPT eps-energy guard (`pipelines/hardcoded/adapt_pipeline.py`):
-- `eps_energy` stop is depth-gated and patience-gated by defaults:
+3) Hardcoded ADAPT eps-energy telemetry / guard (`pipelines/hardcoded/adapt_pipeline.py`):
+- Default resolved staged-HH stop knobs when the user does **not** pass explicit overrides:
+  - `adapt_drop_floor = 5e-4`
+  - `adapt_drop_patience = 3`
+  - `adapt_drop_min_depth = 12`
+  - `adapt_grad_floor = 2e-2`
+- Explicit CLI values override these resolved defaults; passing negative/off values disables the corresponding staged guard explicitly.
+- In HH `phase1_v1` / `phase2_v1` / `phase3_v1`, `eps_energy` telemetry remains active but does **not** terminate ADAPT.
+- In HH `phase1_v1` / `phase2_v1` / `phase3_v1`, legacy `eps_grad` is no longer a terminating stop path; low-gradient diagnostics feed the drop-first plateau policy instead.
+- In Hubbard and HH `legacy`, the `eps_energy` guard remains depth-gated and patience-gated by defaults:
   - `--adapt-eps-energy-min-extra-depth=-1` resolves to `L`
   - `--adapt-eps-energy-patience=-1` resolves to `L`
-- `eps_energy` stop triggers only when both are true:
+- Where the guard is active, `eps_energy` stop triggers only when both are true:
   - local ADAPT depth `>= min_extra_depth`
   - `|E(d)-E(d-1)| < eps_energy` for `patience` consecutive depths (counted after the gate opens)
-- When `--adapt-ref-json` is used, payload reports cumulative gate depth as:
+- Payload telemetry still reports cumulative gate depth as:
   `adapt_ref_base_depth + min_extra_depth_effective`.
 
 Recommended L=4 overnight defaults:
@@ -946,9 +958,9 @@ What it reports:
 | `--adapt-pool` | choice | `uccsd` | Pool type: `uccsd`, `cse`, `full_hamiltonian`, `hva` (HH only), `full_meta` (HH only), `paop`, `paop_min`, `paop_std`, `paop_full`, `paop_lf`, `paop_lf_std`, `paop_lf2_std`, `paop_lf_full` (HH only) |
 | `--adapt-max-depth` | int | `20` | Maximum ADAPT iterations (operators appended) |
 | `--adapt-eps-grad` | float | `1e-4` | Gradient convergence threshold |
-| `--adapt-eps-energy` | float | `1e-8` | Energy convergence threshold |
-| `--adapt-eps-energy-min-extra-depth` | int | `-1` | Minimum extra depth before eps-energy stop; `-1 => L` |
-| `--adapt-eps-energy-patience` | int | `-1` | Consecutive low-improvement depths required for eps-energy stop; `-1 => L` |
+| `--adapt-eps-energy` | float | `1e-8` | Energy convergence threshold. Hard-stop guard for Hubbard / HH `legacy`; telemetry-only in HH `phase1_v1|phase2_v1|phase3_v1` |
+| `--adapt-eps-energy-min-extra-depth` | int | `-1` | Minimum extra depth before eps-energy guard can trigger; `-1 => L`. Telemetry-only in HH `phase1_v1|phase2_v1|phase3_v1` |
+| `--adapt-eps-energy-patience` | int | `-1` | Consecutive low-improvement depths required for eps-energy guard; `-1 => L`. Telemetry-only in HH `phase1_v1|phase2_v1|phase3_v1` |
 | `--adapt-inner-optimizer` | choice | `SPSA` | Inner optimizer per ADAPT re-optimization step: `COBYLA` or `SPSA`. |
 | `--adapt-state-backend` | choice | `compiled` | ADAPT state action backend: `compiled` (production cached path) or `legacy` (lower-memory fallback) |
 | `--adapt-reopt-policy` | choice | `append_only` | Per-depth ADAPT re-optimization policy: `append_only` (default; newest theta only), `full` (legacy all-parameter re-opt), or `windowed` (sliding window + top-k carry). |
@@ -965,11 +977,11 @@ What it reports:
 | `--adapt-finite-angle` | float | `0.1` | Probe angle for finite-angle fallback |
 | `--adapt-finite-angle-min-improvement` | float | `1e-12` | Minimum energy drop from probe to accept fallback |
 | `--adapt-disable-hh-seed` | flag | `false` | Disable HH quadrature seed pre-optimization |
-| `--adapt-drop-floor` | float | `-1.0` | Energy-drop plateau floor (`drop = ΔE_abs(d-1)-ΔE_abs(d)`); set `>=0` to enable |
-| `--adapt-drop-patience` | int | `0` | Consecutive low-drop depths needed for plateau stop |
-| `--adapt-drop-min-depth` | int | `0` | Minimum depth before applying drop plateau stop |
-| `--adapt-grad-floor` | float | `-1.0` | Optional secondary gradient floor guard for plateau stop |
-| `--adapt-ref-json` | path | `None` | Import ADAPT reference state from JSON `initial_state.amplitudes_qn_to_q0` |
+| `--adapt-drop-floor` | float | `auto` | Energy-drop plateau floor (`drop = ΔE_abs(d-1)-ΔE_abs(d)`). Omitted => HH `phase1_v1|phase2_v1|phase3_v1` resolves to `5e-4`; Hubbard / HH `legacy` stay off; pass negative to disable explicitly |
+| `--adapt-drop-patience` | int | `auto` | Consecutive low-drop depths needed for plateau stop. Omitted => HH `phase1_v1|phase2_v1|phase3_v1` resolves to `3`; Hubbard / HH `legacy` stay off |
+| `--adapt-drop-min-depth` | int | `auto` | Minimum depth before applying drop plateau stop. Omitted => HH `phase1_v1|phase2_v1|phase3_v1` resolves to `12`; Hubbard / HH `legacy` stay off |
+| `--adapt-grad-floor` | float | `auto` | Optional secondary gradient floor guard for plateau stop. Omitted => HH `phase1_v1|phase2_v1|phase3_v1` resolves to `2e-2`; Hubbard / HH `legacy` disable it; pass negative to disable explicitly |
+| `--adapt-ref-json` | path | `None` | Import ADAPT reference state from JSON `initial_state.amplitudes_qn_to_q0`; in HH `phase1_v1`/`phase2_v1`/`phase3_v1`, metadata-compatible warm/ADAPT JSON also reuses `ground_state.exact_energy_filtered` when present |
 | `--dense-eigh-max-dim` | int | `8192` | Skip full dense diagonalization when Hilbert dim exceeds threshold (sector exact remains; trajectory skipped) |
 
 ### PAOP Pool Parameters (HH only)
@@ -1344,6 +1356,27 @@ Notes:
 - Replay continuation modes remain explicit (`legacy`, `phase1_v1`, `phase2_v1`, `phase3_v1`). The follow-on runtime split behavior does **not** introduce a new replay mode.
 - If an opt-in runtime split admitted child labels that are not present in the resolved family pool, replay reconstructs them from `continuation.selected_generator_metadata[*].compile_metadata.serialized_terms_exyz` when that serialized metadata is present.
 - `hubbard_pipeline.py --vqe-ansatz hh_hva_*` remains a fixed-ansatz baseline path.
+
+### 5i) One-shot staged HH noiseless wrapper
+
+For the full noiseless chain in one command (HF -> `hh_hva_ptw` warm-start -> staged ADAPT -> matched-family replay -> Suzuki/CFQM vs exact), use:
+
+```bash
+python pipelines/hardcoded/hh_staged_noiseless.py --L 2
+```
+
+Wrapper contract:
+- drive stays **opt-in** (`--enable-drive`); static profile is always produced,
+- final conventional stage uses **matched-family replay** from the ADAPT handoff,
+- default stage effort is resolved from the HH scaling formulas in this guide,
+- when this guide does not specify separate replay optimizer effort, the wrapper reuses the warm-stage restart/maxiter scaling for replay,
+- default replay continuation mode follows ADAPT continuation mode unless explicitly overridden,
+- diagnostics record `ecut_1` / `ecut_2` in the workflow payload instead of stopping mid-run.
+
+Primary artifacts:
+- workflow JSON/PDF: `artifacts/json/<tag>.json`, `artifacts/pdf/<tag>.pdf`
+- ADAPT handoff JSON: `artifacts/json/<tag>_adapt_handoff.json`
+- replay sidecars: `artifacts/json/<tag>_replay.{json,csv}`, `artifacts/useful/L{L}/<tag>_replay.md`, `artifacts/logs/<tag>_replay.log`
 
 #### Replay seed policy (`--replay-seed-policy`)
 

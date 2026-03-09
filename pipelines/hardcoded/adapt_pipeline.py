@@ -368,9 +368,113 @@ def _load_adapt_initial_state(
     meta = {
         "settings": raw.get("settings", {}),
         "adapt_vqe": raw.get("adapt_vqe", {}),
+        "ground_state": raw.get("ground_state", {}),
+        "vqe": raw.get("vqe", {}),
         "initial_state_source": initial_state.get("source"),
     }
     return psi, meta
+
+
+_HH_STAGED_CONTINUATION_MODES = frozenset({"phase1_v1", "phase2_v1", "phase3_v1"})
+
+
+def _extract_nested(payload: Mapping[str, Any], *keys: str) -> Any:
+    cur: Any = payload
+    for key in keys:
+        if not isinstance(cur, Mapping) or key not in cur:
+            return None
+        cur = cur[key]
+    return cur
+
+
+def _resolve_exact_energy_from_payload(payload: Mapping[str, Any]) -> float | None:
+    candidates = (
+        _extract_nested(payload, "ground_state", "exact_energy_filtered"),
+        _extract_nested(payload, "ground_state", "exact_energy"),
+        _extract_nested(payload, "adapt_vqe", "exact_gs_energy"),
+        _extract_nested(payload, "vqe", "exact_energy"),
+    )
+    for raw in candidates:
+        if raw is None:
+            continue
+        try:
+            value = float(raw)
+        except Exception:
+            continue
+        if np.isfinite(value):
+            return float(value)
+    return None
+
+
+def _validate_adapt_ref_metadata_for_exact_reuse(
+    *,
+    adapt_settings: Mapping[str, Any],
+    args: argparse.Namespace,
+    is_hh: bool,
+    float_tol: float = 1e-10,
+) -> list[str]:
+    if not isinstance(adapt_settings, Mapping):
+        return ["settings missing from adapt_ref_json"]
+
+    mismatches: list[str] = []
+
+    def _cmp_scalar(field: str, expected: Any, actual: Any) -> None:
+        if actual != expected:
+            mismatches.append(f"{field}: expected={expected!r} adapt_ref_json={actual!r}")
+
+    def _cmp_float(field: str, expected: float, actual_raw: Any) -> None:
+        try:
+            actual = float(actual_raw)
+        except Exception:
+            mismatches.append(f"{field}: expected={expected!r} adapt_ref_json={actual_raw!r}")
+            return
+        if abs(float(expected) - actual) > float(float_tol):
+            mismatches.append(f"{field}: expected={float(expected)!r} adapt_ref_json={actual!r}")
+
+    _cmp_scalar("L", int(args.L), adapt_settings.get("L"))
+    _cmp_scalar("problem", str(args.problem).strip().lower(), str(adapt_settings.get("problem", "")).strip().lower())
+    _cmp_scalar("ordering", str(args.ordering), adapt_settings.get("ordering"))
+    _cmp_scalar("boundary", str(args.boundary), adapt_settings.get("boundary"))
+    _cmp_float("t", float(args.t), adapt_settings.get("t"))
+    _cmp_float("u", float(args.u), adapt_settings.get("u"))
+    _cmp_float("dv", float(args.dv), adapt_settings.get("dv"))
+
+    if bool(is_hh):
+        _cmp_float("omega0", float(args.omega0), adapt_settings.get("omega0"))
+        _cmp_float("g_ep", float(args.g_ep), adapt_settings.get("g_ep"))
+        _cmp_scalar("n_ph_max", int(args.n_ph_max), adapt_settings.get("n_ph_max"))
+        _cmp_scalar("boson_encoding", str(args.boson_encoding), adapt_settings.get("boson_encoding"))
+
+    return mismatches
+
+
+def _resolve_exact_energy_override_from_adapt_ref(
+    *,
+    adapt_ref_meta: Mapping[str, Any] | None,
+    args: argparse.Namespace,
+    problem: str,
+    continuation_mode: str | None,
+) -> tuple[float | None, str, list[str]]:
+    if not isinstance(adapt_ref_meta, Mapping):
+        return None, "computed", []
+    if str(problem).strip().lower() != "hh":
+        return None, "computed", []
+    mode_key = str(continuation_mode if continuation_mode is not None else "legacy").strip().lower()
+    if mode_key not in _HH_STAGED_CONTINUATION_MODES:
+        return None, "computed", []
+
+    mismatches = _validate_adapt_ref_metadata_for_exact_reuse(
+        adapt_settings=adapt_ref_meta.get("settings", {}),
+        args=args,
+        is_hh=True,
+    )
+    if len(mismatches) > 0:
+        return None, "computed", mismatches
+
+    exact_energy = _resolve_exact_energy_from_payload(adapt_ref_meta)
+    if exact_energy is None:
+        return None, "computed", []
+    return float(exact_energy), "adapt_ref_json", []
 
 
 # ============================================================================
@@ -1178,6 +1282,104 @@ def _resolve_adapt_continuation_mode(*, problem: str, requested_mode: str | None
     return str(mode_raw)
 
 
+@dataclass(frozen=True)
+class ResolvedAdaptStopPolicy:
+    adapt_drop_floor: float
+    adapt_drop_patience: int
+    adapt_drop_min_depth: int
+    adapt_grad_floor: float
+    adapt_drop_floor_source: str
+    adapt_drop_patience_source: str
+    adapt_drop_min_depth_source: str
+    adapt_grad_floor_source: str
+    drop_policy_enabled: bool
+    drop_policy_source: str
+    eps_energy_termination_enabled: bool
+    eps_grad_termination_enabled: bool
+
+
+def _resolve_adapt_stop_policy(
+    *,
+    problem: str,
+    continuation_mode: str,
+    adapt_drop_floor: float | None,
+    adapt_drop_patience: int | None,
+    adapt_drop_min_depth: int | None,
+    adapt_grad_floor: float | None,
+) -> ResolvedAdaptStopPolicy:
+    staged_hh = bool(
+        str(problem).strip().lower() == "hh"
+        and str(continuation_mode).strip().lower() in _HH_STAGED_CONTINUATION_MODES
+    )
+
+    def _resolve_float(raw: float | None, *, staged_value: float, default_value: float) -> tuple[float, str]:
+        if raw is None:
+            if staged_hh:
+                return float(staged_value), "auto_hh_staged"
+            return float(default_value), "default_off"
+        return float(raw), "explicit"
+
+    def _resolve_int(raw: int | None, *, staged_value: int, default_value: int) -> tuple[int, str]:
+        if raw is None:
+            if staged_hh:
+                return int(staged_value), "auto_hh_staged"
+            return int(default_value), "default_off"
+        return int(raw), "explicit"
+
+    drop_floor_resolved, drop_floor_source = _resolve_float(
+        adapt_drop_floor,
+        staged_value=5e-4,
+        default_value=-1.0,
+    )
+    drop_patience_resolved, drop_patience_source = _resolve_int(
+        adapt_drop_patience,
+        staged_value=3,
+        default_value=0,
+    )
+    drop_min_depth_resolved, drop_min_depth_source = _resolve_int(
+        adapt_drop_min_depth,
+        staged_value=12,
+        default_value=0,
+    )
+    grad_floor_resolved, grad_floor_source = _resolve_float(
+        adapt_grad_floor,
+        staged_value=2e-2,
+        default_value=-1.0,
+    )
+    drop_policy_enabled = bool(drop_floor_resolved >= 0.0 and drop_patience_resolved > 0)
+    if staged_hh and all(src == "auto_hh_staged" for src in (
+        drop_floor_source,
+        drop_patience_source,
+        drop_min_depth_source,
+        grad_floor_source,
+    )):
+        drop_policy_source = "auto_hh_staged"
+    elif any(src == "explicit" for src in (
+        drop_floor_source,
+        drop_patience_source,
+        drop_min_depth_source,
+        grad_floor_source,
+    )):
+        drop_policy_source = "explicit"
+    else:
+        drop_policy_source = "default_off"
+
+    return ResolvedAdaptStopPolicy(
+        adapt_drop_floor=float(drop_floor_resolved),
+        adapt_drop_patience=int(drop_patience_resolved),
+        adapt_drop_min_depth=int(drop_min_depth_resolved),
+        adapt_grad_floor=float(grad_floor_resolved),
+        adapt_drop_floor_source=str(drop_floor_source),
+        adapt_drop_patience_source=str(drop_patience_source),
+        adapt_drop_min_depth_source=str(drop_min_depth_source),
+        adapt_grad_floor_source=str(grad_floor_source),
+        drop_policy_enabled=bool(drop_policy_enabled),
+        drop_policy_source=str(drop_policy_source),
+        eps_energy_termination_enabled=(not staged_hh),
+        eps_grad_termination_enabled=(not staged_hh),
+    )
+
+
 def _phase1_repeated_family_flat(
     *,
     history: list[dict[str, Any]],
@@ -1309,10 +1511,10 @@ def _run_hardcoded_adapt_vqe(
     finite_angle_fallback: bool,
     finite_angle: float,
     finite_angle_min_improvement: float,
-    adapt_drop_floor: float = -1.0,
-    adapt_drop_patience: int = 0,
-    adapt_drop_min_depth: int = 0,
-    adapt_grad_floor: float = -1.0,
+    adapt_drop_floor: float | None = None,
+    adapt_drop_patience: int | None = None,
+    adapt_drop_min_depth: int | None = None,
+    adapt_grad_floor: float | None = None,
     adapt_eps_energy_min_extra_depth: int = -1,
     adapt_eps_energy_patience: int = -1,
     adapt_ref_base_depth: int = 0,
@@ -1389,6 +1591,32 @@ def _run_hardcoded_adapt_vqe(
         raise ValueError("adapt_spsa_callback_every must be >= 1.")
     if float(adapt_spsa_progress_every_s) < 0.0:
         raise ValueError("adapt_spsa_progress_every_s must be >= 0.")
+    if int(adapt_eps_energy_min_extra_depth) < -1:
+        raise ValueError("adapt_eps_energy_min_extra_depth must be >= 0 or -1 (auto=L).")
+    if int(adapt_eps_energy_patience) < -1 or int(adapt_eps_energy_patience) == 0:
+        raise ValueError("adapt_eps_energy_patience must be >= 1 or -1 (auto=L).")
+    if int(adapt_ref_base_depth) < 0:
+        raise ValueError("adapt_ref_base_depth must be >= 0.")
+    problem_key = str(problem).strip().lower()
+    continuation_mode = _resolve_adapt_continuation_mode(
+        problem=str(problem_key),
+        requested_mode=adapt_continuation_mode,
+    )
+    stop_policy = _resolve_adapt_stop_policy(
+        problem=str(problem_key),
+        continuation_mode=str(continuation_mode),
+        adapt_drop_floor=adapt_drop_floor,
+        adapt_drop_patience=adapt_drop_patience,
+        adapt_drop_min_depth=adapt_drop_min_depth,
+        adapt_grad_floor=adapt_grad_floor,
+    )
+    adapt_drop_floor = float(stop_policy.adapt_drop_floor)
+    adapt_drop_patience = int(stop_policy.adapt_drop_patience)
+    adapt_drop_min_depth = int(stop_policy.adapt_drop_min_depth)
+    adapt_grad_floor = float(stop_policy.adapt_grad_floor)
+    drop_policy_enabled = bool(stop_policy.drop_policy_enabled)
+    eps_energy_termination_enabled = bool(stop_policy.eps_energy_termination_enabled)
+    eps_grad_termination_enabled = bool(stop_policy.eps_grad_termination_enabled)
     if float(adapt_drop_floor) >= 0.0 and int(adapt_drop_patience) < 1:
         raise ValueError("adapt_drop_patience must be >= 1 when adapt_drop_floor is enabled.")
     if float(adapt_drop_floor) >= 0.0 and int(adapt_drop_min_depth) < 1:
@@ -1397,12 +1625,6 @@ def _run_hardcoded_adapt_vqe(
         raise ValueError("adapt_drop_patience must be >= 0.")
     if int(adapt_drop_min_depth) < 0:
         raise ValueError("adapt_drop_min_depth must be >= 0.")
-    if int(adapt_eps_energy_min_extra_depth) < -1:
-        raise ValueError("adapt_eps_energy_min_extra_depth must be >= 0 or -1 (auto=L).")
-    if int(adapt_eps_energy_patience) < -1 or int(adapt_eps_energy_patience) == 0:
-        raise ValueError("adapt_eps_energy_patience must be >= 1 or -1 (auto=L).")
-    if int(adapt_ref_base_depth) < 0:
-        raise ValueError("adapt_ref_base_depth must be >= 0.")
     eps_energy_min_extra_depth_effective = (
         int(num_sites)
         if int(adapt_eps_energy_min_extra_depth) == -1
@@ -1417,11 +1639,6 @@ def _run_hardcoded_adapt_vqe(
         raise ValueError("resolved eps-energy patience must be >= 1.")
     if int(eps_energy_min_extra_depth_effective) < 0:
         raise ValueError("resolved eps-energy min extra depth must be >= 0.")
-    problem_key = str(problem).strip().lower()
-    continuation_mode = _resolve_adapt_continuation_mode(
-        problem=str(problem_key),
-        requested_mode=adapt_continuation_mode,
-    )
     phase3_symmetry_mitigation_mode_key = str(phase3_symmetry_mitigation_mode).strip().lower()
     if phase3_symmetry_mitigation_mode_key not in {"off", "verify_only", "postselect_diag_v1", "projector_renorm_v1"}:
         raise ValueError(
@@ -1448,8 +1665,6 @@ def _run_hardcoded_adapt_vqe(
         "callback_every": int(adapt_spsa_callback_every),
         "progress_every_s": float(adapt_spsa_progress_every_s),
     }
-    drop_policy_enabled = bool(float(adapt_drop_floor) >= 0.0 and int(adapt_drop_patience) > 0)
-
     t0 = time.perf_counter()
     hf_bits = "N/A"
     _ai_log(
@@ -1475,12 +1690,23 @@ def _run_hardcoded_adapt_vqe(
         adapt_drop_patience=(int(adapt_drop_patience) if drop_policy_enabled else None),
         adapt_drop_min_depth=(int(adapt_drop_min_depth) if drop_policy_enabled else None),
         adapt_grad_floor=(float(adapt_grad_floor) if float(adapt_grad_floor) >= 0.0 else None),
+        adapt_drop_floor_resolved=float(adapt_drop_floor),
+        adapt_drop_patience_resolved=int(adapt_drop_patience),
+        adapt_drop_min_depth_resolved=int(adapt_drop_min_depth),
+        adapt_grad_floor_resolved=float(adapt_grad_floor),
+        adapt_drop_floor_source=str(stop_policy.adapt_drop_floor_source),
+        adapt_drop_patience_source=str(stop_policy.adapt_drop_patience_source),
+        adapt_drop_min_depth_source=str(stop_policy.adapt_drop_min_depth_source),
+        adapt_grad_floor_source=str(stop_policy.adapt_grad_floor_source),
+        adapt_drop_policy_source=str(stop_policy.drop_policy_source),
         adapt_eps_energy_min_extra_depth=int(adapt_eps_energy_min_extra_depth),
         adapt_eps_energy_patience=int(adapt_eps_energy_patience),
         adapt_ref_base_depth=int(adapt_ref_base_depth),
         adapt_eps_energy_min_extra_depth_effective=int(eps_energy_min_extra_depth_effective),
         adapt_eps_energy_patience_effective=int(eps_energy_patience_effective),
         eps_energy_gate_cumulative_depth=int(adapt_ref_base_depth) + int(eps_energy_min_extra_depth_effective),
+        eps_energy_termination_enabled=bool(eps_energy_termination_enabled),
+        eps_grad_termination_enabled=bool(eps_grad_termination_enabled),
         adapt_reopt_policy=str(adapt_reopt_policy_key),
         adapt_window_size=int(adapt_window_size_val),
         adapt_window_topk=int(adapt_window_topk_val),
@@ -3085,16 +3311,29 @@ def _run_hardcoded_adapt_vqe(
                                 overlap_gain=float(rescue_record.get("overlap_gain", 0.0)),
                             )
                         else:
-                            stop_reason = "eps_grad"
+                            if bool(eps_grad_termination_enabled):
+                                stop_reason = "eps_grad"
+                                _ai_log(
+                                    "hardcoded_adapt_converged_grad",
+                                    max_grad=float(max_grad),
+                                    eps_grad=float(eps_grad),
+                                    fallback_attempted=True,
+                                    fallback_best_probe_delta_e=float(fallback_best_probe_delta_e),
+                                    finite_angle_min_improvement=float(finite_angle_min_improvement),
+                                )
+                                break
+                            selection_mode = "eps_grad_suppressed_continue"
                             _ai_log(
-                                "hardcoded_adapt_converged_grad",
+                                "hardcoded_adapt_eps_grad_termination_suppressed",
+                                depth=int(depth + 1),
                                 max_grad=float(max_grad),
                                 eps_grad=float(eps_grad),
                                 fallback_attempted=True,
                                 fallback_best_probe_delta_e=float(fallback_best_probe_delta_e),
                                 finite_angle_min_improvement=float(finite_angle_min_improvement),
+                                continuation_mode=str(continuation_mode),
+                                problem=str(problem_key),
                             )
-                            break
             else:
                 eps_grad_trough = bool(phase1_enabled and phase1_last_trough_detected and int(selected_position) != int(append_position))
                 if not bool(eps_grad_trough):
@@ -3141,9 +3380,20 @@ def _run_hardcoded_adapt_vqe(
                             overlap_gain=float(rescue_record.get("overlap_gain", 0.0)),
                         )
                     else:
-                        stop_reason = "eps_grad"
-                        _ai_log("hardcoded_adapt_converged_grad", max_grad=float(max_grad), eps_grad=float(eps_grad))
-                        break
+                        if bool(eps_grad_termination_enabled):
+                            stop_reason = "eps_grad"
+                            _ai_log("hardcoded_adapt_converged_grad", max_grad=float(max_grad), eps_grad=float(eps_grad))
+                            break
+                        selection_mode = "eps_grad_suppressed_continue"
+                        _ai_log(
+                            "hardcoded_adapt_eps_grad_termination_suppressed",
+                            depth=int(depth + 1),
+                            max_grad=float(max_grad),
+                            eps_grad=float(eps_grad),
+                            fallback_attempted=False,
+                            continuation_mode=str(continuation_mode),
+                            problem=str(problem_key),
+                        )
 
         # 4) Admit selected operator (append or insertion in continuation modes).
         selected_batch_records_for_history: list[dict[str, Any]] = []
@@ -3456,6 +3706,9 @@ def _run_hardcoded_adapt_vqe(
                 eps_energy_low_streak = 0
         else:
             eps_energy_low_streak = 0
+        eps_energy_termination_condition = bool(eps_energy_gate_open) and (
+            int(eps_energy_low_streak) >= int(eps_energy_patience_effective)
+        )
         drop_low_signal = None
         drop_low_grad = None
         if drop_policy_enabled and int(depth_local) >= int(adapt_drop_min_depth):
@@ -3535,6 +3788,15 @@ def _run_hardcoded_adapt_vqe(
             "optimizer_elapsed_s": float(optimizer_elapsed_s),
             "iter_elapsed_s": float(time.perf_counter() - iter_t0),
             "drop_policy_enabled": bool(drop_policy_enabled),
+            "drop_policy_source": str(stop_policy.drop_policy_source),
+            "adapt_drop_floor_resolved": float(adapt_drop_floor),
+            "adapt_drop_patience_resolved": int(adapt_drop_patience),
+            "adapt_drop_min_depth_resolved": int(adapt_drop_min_depth),
+            "adapt_grad_floor_resolved": float(adapt_grad_floor),
+            "adapt_drop_floor_source": str(stop_policy.adapt_drop_floor_source),
+            "adapt_drop_patience_source": str(stop_policy.adapt_drop_patience_source),
+            "adapt_drop_min_depth_source": str(stop_policy.adapt_drop_min_depth_source),
+            "adapt_grad_floor_source": str(stop_policy.adapt_grad_floor_source),
             "drop_low_signal": drop_low_signal,
             "drop_low_grad": drop_low_grad,
             "drop_plateau_hits": int(drop_plateau_hits),
@@ -3547,6 +3809,10 @@ def _run_hardcoded_adapt_vqe(
             "eps_energy_gate_open": bool(eps_energy_gate_open),
             "eps_energy_min_extra_depth_effective": int(eps_energy_min_extra_depth_effective),
             "eps_energy_patience_effective": int(eps_energy_patience_effective),
+            "eps_energy_termination_enabled": bool(eps_energy_termination_enabled),
+            "eps_energy_termination_condition": bool(eps_energy_termination_condition),
+            "eps_grad_termination_enabled": bool(eps_grad_termination_enabled),
+            "eps_grad_threshold_hit": bool(max_grad < float(eps_grad)),
             "reopt_policy_effective": str(reopt_policy_effective),
             "reopt_active_indices": [int(i) for i in reopt_active_indices],
             "reopt_active_count": int(len(reopt_active_indices)),
@@ -3766,6 +4032,10 @@ def _run_hardcoded_adapt_vqe(
             eps_energy_gate_open=bool(eps_energy_gate_open),
             eps_energy_min_extra_depth_effective=int(eps_energy_min_extra_depth_effective),
             eps_energy_patience_effective=int(eps_energy_patience_effective),
+            eps_energy_termination_enabled=bool(eps_energy_termination_enabled),
+            eps_energy_termination_condition=bool(eps_energy_termination_condition),
+            eps_grad_termination_enabled=bool(eps_grad_termination_enabled),
+            eps_grad_threshold_hit=bool(max_grad < float(eps_grad)),
             depth_cumulative=int(depth_cumulative),
             delta_abs_current=float(delta_abs_current),
             delta_abs_drop_from_prev=float(delta_abs_drop),
@@ -3818,10 +4088,24 @@ def _run_hardcoded_adapt_vqe(
             break
 
         # 6) Check energy convergence
-        if bool(eps_energy_gate_open) and int(eps_energy_low_streak) >= int(eps_energy_patience_effective):
-            stop_reason = "eps_energy"
+        if bool(eps_energy_termination_condition):
+            if bool(eps_energy_termination_enabled):
+                stop_reason = "eps_energy"
+                _ai_log(
+                    "hardcoded_adapt_converged_energy",
+                    depth=int(depth_local),
+                    depth_cumulative=int(depth_cumulative),
+                    delta_e=float(eps_energy_step_abs),
+                    eps_energy=float(eps_energy),
+                    eps_energy_low_streak=int(eps_energy_low_streak),
+                    eps_energy_patience=int(eps_energy_patience_effective),
+                    eps_energy_min_extra_depth=int(eps_energy_min_extra_depth_effective),
+                    adapt_ref_base_depth=int(adapt_ref_base_depth),
+                    eps_energy_gate_cumulative_depth=int(adapt_ref_base_depth) + int(eps_energy_min_extra_depth_effective),
+                )
+                break
             _ai_log(
-                "hardcoded_adapt_converged_energy",
+                "hardcoded_adapt_eps_energy_termination_suppressed",
                 depth=int(depth_local),
                 depth_cumulative=int(depth_cumulative),
                 delta_e=float(eps_energy_step_abs),
@@ -3831,8 +4115,9 @@ def _run_hardcoded_adapt_vqe(
                 eps_energy_min_extra_depth=int(eps_energy_min_extra_depth_effective),
                 adapt_ref_base_depth=int(adapt_ref_base_depth),
                 eps_energy_gate_cumulative_depth=int(adapt_ref_base_depth) + int(eps_energy_min_extra_depth_effective),
+                continuation_mode=str(continuation_mode),
+                problem=str(problem_key),
             )
-            break
         if bool(eps_energy_low_step) and (not bool(eps_energy_gate_open)):
             _ai_log(
                 "hardcoded_adapt_energy_convergence_gate_wait",
@@ -4430,12 +4715,23 @@ def _run_hardcoded_adapt_vqe(
         "adapt_drop_patience": (int(adapt_drop_patience) if drop_policy_enabled else None),
         "adapt_drop_min_depth": (int(adapt_drop_min_depth) if drop_policy_enabled else None),
         "adapt_grad_floor": (float(adapt_grad_floor) if float(adapt_grad_floor) >= 0.0 else None),
+        "adapt_drop_floor_resolved": float(adapt_drop_floor),
+        "adapt_drop_patience_resolved": int(adapt_drop_patience),
+        "adapt_drop_min_depth_resolved": int(adapt_drop_min_depth),
+        "adapt_grad_floor_resolved": float(adapt_grad_floor),
+        "adapt_drop_floor_source": str(stop_policy.adapt_drop_floor_source),
+        "adapt_drop_patience_source": str(stop_policy.adapt_drop_patience_source),
+        "adapt_drop_min_depth_source": str(stop_policy.adapt_drop_min_depth_source),
+        "adapt_grad_floor_source": str(stop_policy.adapt_grad_floor_source),
+        "adapt_drop_policy_source": str(stop_policy.drop_policy_source),
         "adapt_ref_base_depth": int(adapt_ref_base_depth),
         "adapt_eps_energy_min_extra_depth": int(adapt_eps_energy_min_extra_depth),
         "adapt_eps_energy_patience": int(adapt_eps_energy_patience),
         "eps_energy_min_extra_depth_effective": int(eps_energy_min_extra_depth_effective),
         "eps_energy_patience_effective": int(eps_energy_patience_effective),
         "eps_energy_gate_cumulative_depth": int(adapt_ref_base_depth) + int(eps_energy_min_extra_depth_effective),
+        "eps_energy_termination_enabled": bool(eps_energy_termination_enabled),
+        "eps_grad_termination_enabled": bool(eps_grad_termination_enabled),
         "eps_energy_low_streak_final": int(eps_energy_low_streak),
         "drop_plateau_hits_final": int(drop_plateau_hits),
         "adapt_gradient_parity_check": bool(adapt_gradient_parity_check),
@@ -4785,7 +5081,15 @@ def parse_args() -> argparse.Namespace:
     )
     p.add_argument("--adapt-max-depth", type=int, default=20)
     p.add_argument("--adapt-eps-grad", type=float, default=1e-4)
-    p.add_argument("--adapt-eps-energy", type=float, default=1e-8)
+    p.add_argument(
+        "--adapt-eps-energy",
+        type=float,
+        default=1e-8,
+        help=(
+            "Energy convergence threshold. Acts as a terminating guard for Hubbard and HH legacy runs; "
+            "in HH phase1_v1/phase2_v1/phase3_v1 it is telemetry-only."
+        ),
+    )
     p.add_argument(
         "--adapt-inner-optimizer",
         choices=["COBYLA", "SPSA"],
@@ -4928,34 +5232,48 @@ def parse_args() -> argparse.Namespace:
     p.add_argument(
         "--adapt-drop-floor",
         type=float,
-        default=-1.0,
-        help="Energy-drop floor for plateau stop policy; set >=0 to enable (drop = ΔE_abs(d-1)-ΔE_abs(d)).",
+        default=None,
+        help=(
+            "Energy-drop floor for plateau stop policy (drop = ΔE_abs(d-1)-ΔE_abs(d)). "
+            "If omitted, HH phase1_v1/phase2_v1/phase3_v1 resolves to 5e-4; Hubbard / HH legacy stay off. "
+            "Pass a negative value to disable explicitly."
+        ),
     )
     p.add_argument(
         "--adapt-drop-patience",
         type=int,
-        default=0,
-        help="Consecutive low-drop depth count required to trigger drop plateau stop.",
+        default=None,
+        help=(
+            "Consecutive low-drop depth count required to trigger drop plateau stop. "
+            "If omitted, HH phase1_v1/phase2_v1/phase3_v1 resolves to 3; Hubbard / HH legacy stay off."
+        ),
     )
     p.add_argument(
         "--adapt-drop-min-depth",
         type=int,
-        default=0,
-        help="Minimum ADAPT depth before evaluating the drop plateau stop policy.",
+        default=None,
+        help=(
+            "Minimum ADAPT depth before evaluating the drop plateau stop policy. "
+            "If omitted, HH phase1_v1/phase2_v1/phase3_v1 resolves to 12; Hubbard / HH legacy stay off."
+        ),
     )
     p.add_argument(
         "--adapt-grad-floor",
         type=float,
-        default=-1.0,
-        help="Optional secondary gradient floor for drop plateau stop; negative disables this guard.",
+        default=None,
+        help=(
+            "Optional secondary gradient floor for drop plateau stop. "
+            "If omitted, HH phase1_v1/phase2_v1/phase3_v1 resolves to 2e-2; Hubbard / HH legacy disable it. "
+            "Pass a negative value to disable explicitly."
+        ),
     )
     p.add_argument(
         "--adapt-eps-energy-min-extra-depth",
         type=int,
         default=-1,
         help=(
-            "Minimum extra ADAPT depth before eps-energy stop can trigger. "
-            "Use -1 to auto-set this to L."
+            "Minimum extra ADAPT depth before the eps-energy guard can trigger. "
+            "Use -1 to auto-set this to L. Telemetry-only in HH phase1_v1/phase2_v1/phase3_v1."
         ),
     )
     p.add_argument(
@@ -4963,15 +5281,19 @@ def parse_args() -> argparse.Namespace:
         type=int,
         default=-1,
         help=(
-            "Consecutive low-improvement depth count required for eps-energy stop. "
-            "Use -1 to auto-set this to L."
+            "Consecutive low-improvement depth count required for the eps-energy guard. "
+            "Use -1 to auto-set this to L. Telemetry-only in HH phase1_v1/phase2_v1/phase3_v1."
         ),
     )
     p.add_argument(
         "--adapt-ref-json",
         type=Path,
         default=None,
-        help="Import reference state from an ADAPT/VQE JSON initial_state.amplitudes_qn_to_q0.",
+        help=(
+            "Import reference state from an ADAPT/VQE JSON initial_state.amplitudes_qn_to_q0. "
+            "In HH phase1_v1/phase2_v1/phase3_v1 reruns, metadata-compatible warm/ADAPT JSON can also "
+            "reuse ground_state exact-energy fields."
+        ),
     )
     p.add_argument("--paop-r", type=int, default=1, help="Cloud radius R for paop_full/paop_lf_full pools.")
     p.add_argument(
@@ -5076,25 +5398,86 @@ def main() -> None:
             dense_eigh_max_dim=int(args.dense_eigh_max_dim),
         )
 
+    psi_ref_override_for_adapt: np.ndarray | None = None
+    adapt_ref_import: dict[str, Any] | None = None
+    adapt_ref_meta: Mapping[str, Any] | None = None
+    adapt_ref_base_depth = 0
+    if args.adapt_ref_json is not None:
+        psi_ref_override_for_adapt, adapt_ref_meta = _load_adapt_initial_state(
+            Path(args.adapt_ref_json),
+            int(nq_total),
+        )
+        adapt_ref_vqe = adapt_ref_meta.get("adapt_vqe", {})
+        if isinstance(adapt_ref_vqe, dict):
+            ref_depth_raw = adapt_ref_vqe.get("ansatz_depth")
+            try:
+                ref_depth_val = int(ref_depth_raw)
+                if ref_depth_val >= 0:
+                    adapt_ref_base_depth = int(ref_depth_val)
+            except (TypeError, ValueError):
+                adapt_ref_base_depth = 0
+        adapt_ref_import = {
+            "path": str(Path(args.adapt_ref_json)),
+            "initial_state_source": adapt_ref_meta.get("initial_state_source"),
+            "settings": adapt_ref_meta.get("settings", {}),
+            "adapt_vqe": adapt_ref_meta.get("adapt_vqe", {}),
+            "adapt_ref_base_depth": int(adapt_ref_base_depth),
+        }
+        _ai_log(
+            "hardcoded_adapt_ref_json_loaded",
+            path=str(Path(args.adapt_ref_json)),
+            initial_state_source=adapt_ref_meta.get("initial_state_source"),
+            adapt_ref_base_depth=int(adapt_ref_base_depth),
+        )
+
     # Sector-filtered exact ground state: ADAPT-VQE preserves particle number,
     # so compare against the GS within the same (n_alpha, n_beta) sector.
     # For HH: use fermion-only sector filtering (phonon qubits free).
     num_particles_main = half_filled_num_particles(int(args.L))
-    gs_energy_exact = _exact_gs_energy_for_problem(
-        h_poly,
+    gs_energy_exact, gs_energy_source, exact_energy_reuse_mismatches = _resolve_exact_energy_override_from_adapt_ref(
+        adapt_ref_meta=adapt_ref_meta,
+        args=args,
         problem=problem_key,
-        num_sites=int(args.L),
-        num_particles=num_particles_main,
-        indexing=str(args.ordering),
-        n_ph_max=int(args.n_ph_max),
-        boson_encoding=str(args.boson_encoding),
-        t=float(args.t),
-        u=float(args.u),
-        dv=float(args.dv),
-        omega0=float(args.omega0),
-        g_ep=float(args.g_ep),
-        boundary=str(args.boundary),
+        continuation_mode=str(args.adapt_continuation_mode),
     )
+    if gs_energy_exact is None:
+        gs_energy_exact = _exact_gs_energy_for_problem(
+            h_poly,
+            problem=problem_key,
+            num_sites=int(args.L),
+            num_particles=num_particles_main,
+            indexing=str(args.ordering),
+            n_ph_max=int(args.n_ph_max),
+            boson_encoding=str(args.boson_encoding),
+            t=float(args.t),
+            u=float(args.u),
+            dv=float(args.dv),
+            omega0=float(args.omega0),
+            g_ep=float(args.g_ep),
+            boundary=str(args.boundary),
+        )
+        gs_energy_source = "computed"
+    if adapt_ref_import is not None:
+        adapt_ref_import["exact_energy_reused"] = bool(gs_energy_source == "adapt_ref_json")
+        adapt_ref_import["exact_energy_reuse_mismatches"] = list(exact_energy_reuse_mismatches)
+        if gs_energy_source == "adapt_ref_json":
+            adapt_ref_import["reused_exact_energy"] = float(gs_energy_exact)
+            _ai_log(
+                "hardcoded_adapt_exact_energy_reused",
+                path=str(Path(args.adapt_ref_json)),
+                exact_energy=float(gs_energy_exact),
+            )
+        elif (
+            problem_key == "hh"
+            and str(args.adapt_continuation_mode).strip().lower() in _HH_STAGED_CONTINUATION_MODES
+        ):
+            _ai_log(
+                "hardcoded_adapt_exact_energy_reuse_skipped",
+                path=str(Path(args.adapt_ref_json)),
+                mismatch_count=int(len(exact_energy_reuse_mismatches)),
+                has_candidate=bool(_resolve_exact_energy_from_payload(adapt_ref_meta or {})),
+            )
+
     # Full-spectrum eigenvectors are optional (memory heavy for large HH spaces).
     psi_exact_ground: np.ndarray
     if hmat is not None:
@@ -5134,36 +5517,6 @@ def main() -> None:
         )
 
     # 2) Run ADAPT-VQE
-    psi_ref_override_for_adapt: np.ndarray | None = None
-    adapt_ref_import: dict[str, Any] | None = None
-    adapt_ref_base_depth = 0
-    if args.adapt_ref_json is not None:
-        psi_ref_override_for_adapt, adapt_ref_meta = _load_adapt_initial_state(
-            Path(args.adapt_ref_json),
-            int(nq_total),
-        )
-        adapt_ref_vqe = adapt_ref_meta.get("adapt_vqe", {})
-        if isinstance(adapt_ref_vqe, dict):
-            ref_depth_raw = adapt_ref_vqe.get("ansatz_depth")
-            try:
-                ref_depth_val = int(ref_depth_raw)
-                if ref_depth_val >= 0:
-                    adapt_ref_base_depth = int(ref_depth_val)
-            except (TypeError, ValueError):
-                adapt_ref_base_depth = 0
-        adapt_ref_import = {
-            "path": str(Path(args.adapt_ref_json)),
-            "initial_state_source": adapt_ref_meta.get("initial_state_source"),
-            "settings": adapt_ref_meta.get("settings", {}),
-            "adapt_vqe": adapt_ref_meta.get("adapt_vqe", {}),
-            "adapt_ref_base_depth": int(adapt_ref_base_depth),
-        }
-        _ai_log(
-            "hardcoded_adapt_ref_json_loaded",
-            path=str(Path(args.adapt_ref_json)),
-            initial_state_source=adapt_ref_meta.get("initial_state_source"),
-            adapt_ref_base_depth=int(adapt_ref_base_depth),
-        )
     adapt_payload: dict[str, Any]
     try:
         adapt_payload, psi_adapt = _run_hardcoded_adapt_vqe(
@@ -5207,10 +5560,10 @@ def main() -> None:
             finite_angle_fallback=bool(args.adapt_finite_angle_fallback),
             finite_angle=float(args.adapt_finite_angle),
             finite_angle_min_improvement=float(args.adapt_finite_angle_min_improvement),
-            adapt_drop_floor=float(args.adapt_drop_floor),
-            adapt_drop_patience=int(args.adapt_drop_patience),
-            adapt_drop_min_depth=int(args.adapt_drop_min_depth),
-            adapt_grad_floor=float(args.adapt_grad_floor),
+            adapt_drop_floor=(float(args.adapt_drop_floor) if args.adapt_drop_floor is not None else None),
+            adapt_drop_patience=(int(args.adapt_drop_patience) if args.adapt_drop_patience is not None else None),
+            adapt_drop_min_depth=(int(args.adapt_drop_min_depth) if args.adapt_drop_min_depth is not None else None),
+            adapt_grad_floor=(float(args.adapt_grad_floor) if args.adapt_grad_floor is not None else None),
             adapt_eps_energy_min_extra_depth=int(args.adapt_eps_energy_min_extra_depth),
             adapt_eps_energy_patience=int(args.adapt_eps_energy_patience),
             adapt_ref_base_depth=int(adapt_ref_base_depth),
@@ -5352,10 +5705,19 @@ def main() -> None:
             "adapt_finite_angle_fallback": bool(args.adapt_finite_angle_fallback),
             "adapt_finite_angle": float(args.adapt_finite_angle),
             "adapt_finite_angle_min_improvement": float(args.adapt_finite_angle_min_improvement),
-            "adapt_drop_floor": float(args.adapt_drop_floor),
-            "adapt_drop_patience": int(args.adapt_drop_patience),
-            "adapt_drop_min_depth": int(args.adapt_drop_min_depth),
-            "adapt_grad_floor": float(args.adapt_grad_floor),
+            "adapt_drop_floor": (float(args.adapt_drop_floor) if args.adapt_drop_floor is not None else None),
+            "adapt_drop_patience": (int(args.adapt_drop_patience) if args.adapt_drop_patience is not None else None),
+            "adapt_drop_min_depth": (int(args.adapt_drop_min_depth) if args.adapt_drop_min_depth is not None else None),
+            "adapt_grad_floor": (float(args.adapt_grad_floor) if args.adapt_grad_floor is not None else None),
+            "adapt_drop_floor_resolved": adapt_payload.get("adapt_drop_floor_resolved"),
+            "adapt_drop_patience_resolved": adapt_payload.get("adapt_drop_patience_resolved"),
+            "adapt_drop_min_depth_resolved": adapt_payload.get("adapt_drop_min_depth_resolved"),
+            "adapt_grad_floor_resolved": adapt_payload.get("adapt_grad_floor_resolved"),
+            "adapt_drop_floor_source": adapt_payload.get("adapt_drop_floor_source"),
+            "adapt_drop_patience_source": adapt_payload.get("adapt_drop_patience_source"),
+            "adapt_drop_min_depth_source": adapt_payload.get("adapt_drop_min_depth_source"),
+            "adapt_grad_floor_source": adapt_payload.get("adapt_grad_floor_source"),
+            "adapt_drop_policy_source": adapt_payload.get("adapt_drop_policy_source"),
             "adapt_eps_energy_min_extra_depth": int(args.adapt_eps_energy_min_extra_depth),
             "adapt_eps_energy_patience": int(args.adapt_eps_energy_patience),
             "adapt_ref_base_depth": int(adapt_ref_base_depth),
@@ -5411,6 +5773,7 @@ def main() -> None:
         },
         "ground_state": {
             "exact_energy": float(gs_energy_exact),
+            "exact_energy_source": str(gs_energy_source),
             "method": (EXACT_METHOD if hmat is not None else "sector_exact_only_no_dense_eigh"),
         },
         "adapt_vqe": adapt_payload,

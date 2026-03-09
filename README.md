@@ -26,8 +26,13 @@ Warm-start runs follow the active three-stage HH continuation contract:
    - Optional phase-3 follow-ons stay opt-in: `--phase3-runtime-split-mode shortlist_pauli_children_v1` is a shortlist-only continuation aid, and widened `--phase3-symmetry-mitigation-mode` choices remain phase-3 metadata/telemetry hooks on raw staged/hardcoded/replay paths.
 4. Replay conventional VQE from ADAPT with ADAPT-family matching (`--generator-family match_adapt`, fallback `full_meta`) via `pipelines/hardcoded/hh_vqe_from_adapt_family.py`.
 
+One-shot noiseless wrapper for this contract:
 
+```bash
+python pipelines/hardcoded/hh_staged_noiseless.py --L 2
+```
 
+This wrapper keeps drive opt-in, runs final matched-family replay (not fixed `hh_hva_*` replay), and compares final Suzuki/CFQM dynamics to exact.
 
 ## Repository map (minimal)
 

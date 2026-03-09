@@ -190,6 +190,69 @@ class TestAdaptRefSourceVQEPath:
         assert calls["internal_adapt_called"] is False
 
 
+class TestInternalHHAdaptTerminationSemantics:
+    def test_internal_hh_phase3_disables_eps_energy_hard_stop(
+        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+    ):
+        dim = _hh_state_dim(2, 1, "binary")
+
+        def _fake_run_hardcoded_vqe(**kwargs):
+            return {
+                "success": True,
+                "method": "mock_vqe",
+                "ansatz": "hh_hva_ptw",
+                "energy": -1.0,
+                "exact_filtered_energy": -1.1,
+                "num_particles": {"n_up": 1, "n_dn": 1},
+            }, _basis0(dim)
+
+        def _fake_simulate_trajectory(**kwargs):
+            return ([{"time": 0.0, "fidelity": 1.0}], [])
+
+        monkeypatch.setattr(hp, "_run_hardcoded_vqe", _fake_run_hardcoded_vqe)
+        monkeypatch.setattr(hp, "_simulate_trajectory", _fake_simulate_trajectory)
+
+        out_json = tmp_path / "hc_hh_internal_adapt_eps_energy_semantics.json"
+        monkeypatch.setattr(
+            sys,
+            "argv",
+            [
+                "hubbard_pipeline.py",
+                "--L", "2",
+                "--problem", "hh",
+                "--omega0", "1.0",
+                "--g-ep", "0.5",
+                "--n-ph-max", "1",
+                "--boson-encoding", "binary",
+                "--vqe-ansatz", "hh_hva_ptw",
+                "--adapt-pool", "paop_lf_std",
+                "--adapt-continuation-mode", "phase3_v1",
+                "--adapt-max-depth", "3",
+                "--adapt-eps-grad", "-1",
+                "--adapt-eps-energy", "1e9",
+                "--adapt-maxiter", "5",
+                "--skip-qpe",
+                "--skip-pdf",
+                "--output-json", str(out_json),
+            ],
+        )
+        hp.main()
+
+        payload = json.loads(out_json.read_text(encoding="utf-8"))
+        adapt_internal = payload.get("adapt_internal", {})
+        assert bool(adapt_internal.get("eps_energy_termination_enabled")) is False
+        assert bool(adapt_internal.get("eps_grad_termination_enabled")) is False
+        assert bool(adapt_internal.get("adapt_drop_policy_enabled")) is True
+        assert adapt_internal.get("adapt_drop_floor_resolved") == pytest.approx(5e-4)
+        assert int(adapt_internal.get("adapt_drop_patience_resolved")) == 3
+        assert int(adapt_internal.get("adapt_drop_min_depth_resolved")) == 12
+        assert adapt_internal.get("adapt_grad_floor_resolved") == pytest.approx(2e-2)
+        assert adapt_internal.get("adapt_drop_policy_source") == "auto_hh_staged"
+        assert str(adapt_internal.get("stop_reason")) in {"max_depth", "pool_exhausted"}
+        assert str(adapt_internal.get("stop_reason")) != "eps_energy"
+        assert str(adapt_internal.get("stop_reason")) != "eps_grad"
+
+
 # ────────────────────────────────────────────────────────────────────
 #  P2 — windowed reopt wrapper plumbing (hubbard_pipeline)
 # ────────────────────────────────────────────────────────────────────

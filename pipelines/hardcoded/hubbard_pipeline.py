@@ -2741,7 +2741,15 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--adapt-max-depth", type=int, default=30)
     parser.add_argument("--adapt-eps-grad", type=float, default=1e-5)
-    parser.add_argument("--adapt-eps-energy", type=float, default=1e-8)
+    parser.add_argument(
+        "--adapt-eps-energy",
+        type=float,
+        default=1e-8,
+        help=(
+            "Internal ADAPT energy convergence threshold. Acts as a terminating guard for Hubbard and HH legacy "
+            "runs; in HH phase1_v1/phase2_v1/phase3_v1 it is telemetry-only."
+        ),
+    )
     parser.add_argument("--adapt-maxiter", type=int, default=800)
     parser.add_argument("--adapt-seed", type=int, default=7)
     parser.set_defaults(adapt_allow_repeats=True)
@@ -3157,6 +3165,18 @@ def main() -> None:
             "abs_delta_e": adapt_internal_payload_raw.get("abs_delta_e"),
             "success": bool(adapt_internal_payload_raw.get("success", False)),
             "stop_reason": adapt_internal_payload_raw.get("stop_reason"),
+            "eps_energy_termination_enabled": adapt_internal_payload_raw.get("eps_energy_termination_enabled"),
+            "eps_grad_termination_enabled": adapt_internal_payload_raw.get("eps_grad_termination_enabled"),
+            "adapt_drop_policy_enabled": adapt_internal_payload_raw.get("adapt_drop_policy_enabled"),
+            "adapt_drop_floor_resolved": adapt_internal_payload_raw.get("adapt_drop_floor_resolved"),
+            "adapt_drop_patience_resolved": adapt_internal_payload_raw.get("adapt_drop_patience_resolved"),
+            "adapt_drop_min_depth_resolved": adapt_internal_payload_raw.get("adapt_drop_min_depth_resolved"),
+            "adapt_grad_floor_resolved": adapt_internal_payload_raw.get("adapt_grad_floor_resolved"),
+            "adapt_drop_floor_source": adapt_internal_payload_raw.get("adapt_drop_floor_source"),
+            "adapt_drop_patience_source": adapt_internal_payload_raw.get("adapt_drop_patience_source"),
+            "adapt_drop_min_depth_source": adapt_internal_payload_raw.get("adapt_drop_min_depth_source"),
+            "adapt_grad_floor_source": adapt_internal_payload_raw.get("adapt_grad_floor_source"),
+            "adapt_drop_policy_source": adapt_internal_payload_raw.get("adapt_drop_policy_source"),
             "elapsed_s": adapt_internal_payload_raw.get("elapsed_s"),
             "allow_repeats": adapt_internal_payload_raw.get("allow_repeats"),
         }

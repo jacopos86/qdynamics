@@ -1,0 +1,2 @@
+tag,family_requested,family_resolved,method,reps,delta_abs,relative_error_abs,gate_pass_1e2,runtime_s,stop_reason,output_json,output_log
+hh_adapt_family_20260309T004210Z,full_meta,full_meta,SPSA,3,0.04802606595379805,0.1960722163720342,False,186.73969258368015,interrupted_keyboard_returning_best_restart,L3_hh_smart_replay.json,L3_hh_smart_replay.log
