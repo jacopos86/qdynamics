@@ -114,6 +114,7 @@ graph TB
 ```
 
 ## Physics algorithm flow (VQE / ADAPT / pools)
+(slighlty outdated anzats for HH, state-prep of reference is HVA with hh_hva_ptw
 
 ```mermaid
 graph TB
