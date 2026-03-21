@@ -7,7 +7,11 @@
 *.swp
 Untitled*.base
 Untitled*.canvas
-artifacts/
+artifacts/json/adapt_hh_L2_ecut2_full_meta_phase3_heavy_powell_20260321T014500Z.json
+artifacts/json/adapt_hh_L3_full_meta_phase3_heavy_powell_20260320T231401Z.json
+artifacts/json/adapt_hh_L3_full_meta_phase3_heavy_powell_20260321T000723Z.json
+artifacts/json/adapt_hh_L3_pareto_lean_phase3_heavy_powell_20260321T014005Z.json
+artifacts/json/adapt_hh_L3_pareto_lean_phase3_powell.json
 .deps/
 .venv/
 .claude/
