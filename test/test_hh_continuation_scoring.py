@@ -19,8 +19,10 @@ from pipelines.hardcoded.hh_continuation_scoring import (
     SimpleScoreConfig,
     build_full_candidate_features,
     build_candidate_features,
+    compatibility_penalty,
     full_v2_score,
     lifetime_weight_components,
+    measurement_group_keys_for_term,
     remaining_evaluations_proxy,
     shortlist_records,
     trust_region_drop,
@@ -152,14 +154,38 @@ def test_measurement_cache_reuse_accounting() -> None:
     assert second.groups_reused == 2
     assert second.groups_new == 1
     summary = cache.summary()
-    assert str(summary["plan_version"]) == "phase1_grouped_label_reuse"
+    assert str(summary["plan_version"]) == "phase1_qwc_basis_cover_reuse"
+
+
+def test_measurement_cache_reuses_more_specific_seen_basis_keys() -> None:
+    cache = MeasurementCacheAudit(nominal_shots_per_group=10)
+    cache.commit(["xz"])
+    reused = cache.estimate(["ez"])
+    assert reused.groups_reused == 1
+    assert reused.groups_new == 0
+
+
+def test_measurement_group_keys_for_term_merges_qwc_compatible_labels() -> None:
+    poly = PauliPolynomial(
+        "JW",
+        [
+            PauliTerm(2, ps="xe", pc=1.0),
+            PauliTerm(2, ps="xz", pc=1.0),
+            PauliTerm(2, ps="ez", pc=1.0),
+        ],
+    )
+    term = type("_DummyAnsatzTerm", (), {"label": "macro", "polynomial": poly})()
+    assert measurement_group_keys_for_term(term) == ["xz"]
 
 
 def _term(label: str) -> object:
     return type(
         "_DummyAnsatzTerm",
         (),
-        {"label": str(label), "polynomial": PauliPolynomial("JW", [PauliTerm(1, ps=str(label), pc=1.0)])},
+        {
+            "label": str(label),
+            "polynomial": PauliPolynomial("JW", [PauliTerm(len(str(label)), ps=str(label), pc=1.0)]),
+        },
     )()
 
 
@@ -241,6 +267,88 @@ def test_build_full_candidate_features_clips_novelty_and_preserves_window() -> N
     assert 0.0 <= float(feat.novelty or 0.0) <= 1.0
     assert feat.refit_window_indices == [0]
     assert feat.full_v2_score is not None
+
+
+def test_phase1_compile_cost_oracle_penalizes_heavier_pauli_structure() -> None:
+    oracle = Phase1CompileCostOracle()
+    light_term = type(
+        "_DummyAnsatzTerm",
+        (),
+        {"label": "light", "polynomial": PauliPolynomial("JW", [PauliTerm(2, ps="xe", pc=1.0)])},
+    )()
+    heavy_term = type(
+        "_DummyAnsatzTerm",
+        (),
+        {"label": "heavy", "polynomial": PauliPolynomial("JW", [PauliTerm(2, ps="xx", pc=1.0)])},
+    )()
+    light = oracle.estimate(
+        candidate_term_count=1,
+        position_id=0,
+        append_position=0,
+        refit_active_count=1,
+        candidate_term=light_term,
+    )
+    heavy = oracle.estimate(
+        candidate_term_count=1,
+        position_id=0,
+        append_position=0,
+        refit_active_count=1,
+        candidate_term=heavy_term,
+    )
+    assert heavy.gate_proxy_total > light.gate_proxy_total
+    assert heavy.proxy_total > light.proxy_total
+
+
+def test_compatibility_penalty_uses_measurement_mismatch_signal() -> None:
+    cfg = FullScoreConfig(
+        compat_overlap_weight=0.0,
+        compat_comm_weight=0.0,
+        compat_curv_weight=0.0,
+        compat_sched_weight=0.0,
+        compat_measure_weight=1.0,
+    )
+    oracle = Phase1CompileCostOracle()
+    meas = MeasurementCacheAudit()
+
+    def _feat_and_record(label: str, term: object) -> dict[str, object]:
+        feat = build_candidate_features(
+            stage_name="core",
+            candidate_label=str(label),
+            candidate_family="core",
+            candidate_pool_index=0,
+            position_id=0,
+            append_position=0,
+            positions_considered=[0],
+            gradient_signed=0.5,
+            metric_proxy=0.5,
+            sigma_hat=0.0,
+            refit_window_indices=[0],
+            compile_cost=oracle.estimate(
+                candidate_term_count=1,
+                position_id=0,
+                append_position=0,
+                refit_active_count=1,
+                candidate_term=term,
+            ),
+            measurement_stats=meas.estimate(measurement_group_keys_for_term(term)),
+            leakage_penalty=0.0,
+            stage_gate_open=True,
+            leakage_gate_open=True,
+            trough_probe_triggered=False,
+            trough_detected=False,
+            cfg=SimpleScoreConfig(lambda_compile=0.0, lambda_measure=0.0),
+        )
+        return {"feature": feat, "candidate_term": term}
+
+    rec_xz = _feat_and_record("xz", _term("xz"))
+    rec_ez = _feat_and_record("ez", _term("ez"))
+    rec_yy = _feat_and_record("yy", _term("yy"))
+
+    close_penalty = compatibility_penalty(record_a=rec_xz, record_b=rec_ez, cfg=cfg)
+    far_penalty = compatibility_penalty(record_a=rec_xz, record_b=rec_yy, cfg=cfg)
+
+    assert close_penalty["measurement_mismatch"] < far_penalty["measurement_mismatch"]
+    assert close_penalty["total"] < far_penalty["total"]
 
 
 def test_shortlist_only_expensive_scoring_calls_oracles_for_shortlist() -> None:

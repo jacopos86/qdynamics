@@ -44,11 +44,12 @@ def build_symmetry_spec(
     family_id: str,
     mitigation_mode: str = "off",
 ) -> SymmetrySpec:
+    """Return baseline HH symmetry intent before operator-level auditing."""
     family_key = str(family_id).strip().lower()
     mitigation_mode_key = normalize_phase3_symmetry_mitigation_mode(mitigation_mode)
     if family_key in _LOW_RISK_FAMILIES:
         leakage_risk = 0.0
-    elif family_key in {"residual", "full_meta", "full_hamiltonian"}:
+    elif family_key in {"residual", "full_meta", "pareto_lean", "pareto_lean_l2", "full_hamiltonian"}:
         leakage_risk = 0.1
     else:
         leakage_risk = 0.2

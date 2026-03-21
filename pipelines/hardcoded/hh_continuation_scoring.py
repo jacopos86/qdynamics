@@ -63,6 +63,7 @@ class FullScoreConfig:
     compat_comm_weight: float = 0.2
     compat_curv_weight: float = 0.2
     compat_sched_weight: float = 0.2
+    compat_measure_weight: float = 0.2
     leakage_cap: float = 1e6
     lifetime_cost_mode: str = "off"
     remaining_evaluations_proxy_mode: str = "none"
@@ -73,8 +74,27 @@ class FullScoreConfig:
 
 class Phase1CompileCostOracle:
     """Built-in math expression:
-    D_proxy = n_new_pauli + n_rot + shift_span + active_count
+    D_proxy = gate_proxy + shift_span + active_count
     """
+
+    @staticmethod
+    def _pauli_weight(label_exyz: str) -> int:
+        return int(sum(1 for ch in str(label_exyz) if ch in {"x", "y", "z"}))
+
+    @staticmethod
+    def _pauli_xy_count(label_exyz: str) -> int:
+        return int(sum(1 for ch in str(label_exyz) if ch in {"x", "y"}))
+
+    @classmethod
+    def _cx_proxy_term(cls, label_exyz: str) -> int:
+        return int(2 * max(cls._pauli_weight(label_exyz) - 1, 0))
+
+    @classmethod
+    def _sq_proxy_term(cls, label_exyz: str) -> int:
+        weight = cls._pauli_weight(label_exyz)
+        if weight <= 0:
+            return 0
+        return int(2 * cls._pauli_xy_count(label_exyz) + 1)
 
     def estimate(
         self,
@@ -83,18 +103,38 @@ class Phase1CompileCostOracle:
         position_id: int,
         append_position: int,
         refit_active_count: int,
+        candidate_term: Any | None = None,
     ) -> CompileCostEstimate:
-        new_pauli_actions = float(max(1, int(candidate_term_count)))
-        new_rotation_steps = float(max(1, int(candidate_term_count)))
+        candidate_labels = _pauli_labels_from_term(candidate_term)
+        active_labels = [str(lbl) for lbl in candidate_labels if _pauli_weight_exyz(str(lbl)) > 0]
+        if active_labels:
+            new_pauli_actions = float(len(active_labels))
+            new_rotation_steps = float(len(active_labels))
+            cx_proxy_total = float(sum(self._cx_proxy_term(lbl) for lbl in active_labels))
+            sq_proxy_total = float(sum(self._sq_proxy_term(lbl) for lbl in active_labels))
+            gate_proxy_total = float(cx_proxy_total + 0.5 * sq_proxy_total)
+            max_pauli_weight = float(max(self._pauli_weight(lbl) for lbl in active_labels))
+        else:
+            fallback_count = float(max(1, int(candidate_term_count)))
+            new_pauli_actions = fallback_count
+            new_rotation_steps = fallback_count
+            cx_proxy_total = fallback_count
+            sq_proxy_total = fallback_count
+            gate_proxy_total = fallback_count
+            max_pauli_weight = 0.0
         position_shift_span = float(abs(int(append_position) - int(position_id)))
         refit_active = float(max(0, int(refit_active_count)))
-        total = float(new_pauli_actions + new_rotation_steps + position_shift_span + refit_active)
+        total = float(gate_proxy_total + position_shift_span + refit_active)
         return CompileCostEstimate(
             new_pauli_actions=new_pauli_actions,
             new_rotation_steps=new_rotation_steps,
             position_shift_span=position_shift_span,
             refit_active_count=refit_active,
             proxy_total=total,
+            cx_proxy_total=cx_proxy_total,
+            sq_proxy_total=sq_proxy_total,
+            gate_proxy_total=gate_proxy_total,
+            max_pauli_weight=max_pauli_weight,
         )
 
 
@@ -105,8 +145,8 @@ class MeasurementCacheAudit:
         self,
         nominal_shots_per_group: int = 1,
         *,
-        plan_version: str = "phase1_grouped_label_reuse",
-        grouping_mode: str = "grouped_label_reuse",
+        plan_version: str = "phase1_qwc_basis_cover_reuse",
+        grouping_mode: str = "qwc_basis_cover_reuse",
     ) -> None:
         self._seen_groups: set[str] = set()
         self._nominal_shots = int(max(1, nominal_shots_per_group))
@@ -114,11 +154,7 @@ class MeasurementCacheAudit:
         self._grouping_mode = str(grouping_mode)
 
     def plan_for(self, group_keys: Iterable[str]) -> MeasurementPlan:
-        keys = [str(k) for k in group_keys if str(k) != ""]
-        unique_keys: list[str] = []
-        for key in keys:
-            if key not in unique_keys:
-                unique_keys.append(key)
+        unique_keys = _compress_measurement_group_keys([str(k) for k in group_keys if str(k) != ""])
         return MeasurementPlan(
             plan_version=str(self._plan_version),
             group_keys=list(unique_keys),
@@ -132,8 +168,9 @@ class MeasurementCacheAudit:
 
         groups_total = int(len(unique_keys))
         groups_reused = 0
+        seen_keys = list(self._seen_groups)
         for key in unique_keys:
-            if key in self._seen_groups:
+            if any(_measurement_basis_key_covers(str(key), str(seen)) for seen in seen_keys):
                 groups_reused += 1
         groups_new = int(groups_total - groups_reused)
         shots_reused = float(groups_reused * self._nominal_shots)
@@ -149,10 +186,16 @@ class MeasurementCacheAudit:
         )
 
     def commit(self, group_keys: Iterable[str]) -> None:
-        for key in group_keys:
+        for key in _compress_measurement_group_keys(group_keys):
             key_s = str(key)
-            if key_s != "":
-                self._seen_groups.add(key_s)
+            if key_s == "":
+                continue
+            if any(_measurement_basis_key_covers(key_s, seen) for seen in self._seen_groups):
+                continue
+            covered = {seen for seen in self._seen_groups if _measurement_basis_key_covers(seen, key_s)}
+            if covered:
+                self._seen_groups -= covered
+            self._seen_groups.add(key_s)
 
     def summary(self) -> dict[str, float]:
         return {
@@ -165,6 +208,102 @@ class MeasurementCacheAudit:
 
 def _replace_feature(feat: CandidateFeatures, **updates: Any) -> CandidateFeatures:
     return CandidateFeatures(**{**feat.__dict__, **updates})
+
+
+def _pauli_weight_exyz(label_exyz: str) -> int:
+    return int(sum(1 for ch in str(label_exyz) if ch in {"x", "y", "z"}))
+
+
+def _measurement_basis_key_covers(required_key: str, seen_key: str) -> bool:
+    req = str(required_key)
+    seen = str(seen_key)
+    if len(req) != len(seen):
+        return False
+    return all((r == "e") or (r == s) for r, s in zip(req, seen))
+
+
+def _measurement_basis_key_merge(lhs_key: str, rhs_key: str) -> str | None:
+    lhs = str(lhs_key)
+    rhs = str(rhs_key)
+    if len(lhs) != len(rhs):
+        return None
+    merged: list[str] = []
+    for lhs_ch, rhs_ch in zip(lhs, rhs):
+        if lhs_ch == "e":
+            merged.append(rhs_ch)
+            continue
+        if rhs_ch in {"e", lhs_ch}:
+            merged.append(lhs_ch)
+            continue
+        return None
+    return "".join(merged)
+
+
+def _compress_measurement_group_keys(group_keys: Iterable[str]) -> list[str]:
+    ordered = sorted(
+        {str(key) for key in group_keys if str(key) != ""},
+        key=lambda key: (-_pauli_weight_exyz(str(key)), str(key)),
+    )
+    kept: list[str] = []
+    for key in ordered:
+        if any(_measurement_basis_key_covers(str(key), existing) for existing in kept):
+            continue
+        kept = [existing for existing in kept if not _measurement_basis_key_covers(existing, str(key))]
+        kept.append(str(key))
+    return kept
+
+
+def _measurement_group_keys_from_labels(labels: Sequence[str]) -> list[str]:
+    active_labels = sorted(
+        {str(lbl) for lbl in labels if _pauli_weight_exyz(str(lbl)) > 0},
+        key=lambda lbl: (-_pauli_weight_exyz(lbl), lbl),
+    )
+    groups: list[str] = []
+    for label in active_labels:
+        best_idx: int | None = None
+        best_key: str | None = None
+        best_delta: tuple[int, int] | None = None
+        for idx, group_key in enumerate(groups):
+            merged = _measurement_basis_key_merge(str(group_key), str(label))
+            if merged is None:
+                continue
+            delta = (_pauli_weight_exyz(merged) - _pauli_weight_exyz(str(group_key)), idx)
+            if best_delta is None or delta < best_delta:
+                best_delta = delta
+                best_idx = int(idx)
+                best_key = str(merged)
+        if best_idx is None or best_key is None:
+            groups.append(str(label))
+        else:
+            groups[best_idx] = str(best_key)
+    return _compress_measurement_group_keys(groups)
+
+
+def measurement_group_keys_for_term(term: Any) -> list[str]:
+    return _measurement_group_keys_from_labels(_pauli_labels_from_term(term))
+
+
+def _measurement_group_overlap_score(keys_a: Sequence[str], keys_b: Sequence[str]) -> float:
+    groups_a = _compress_measurement_group_keys(keys_a)
+    groups_b = _compress_measurement_group_keys(keys_b)
+    if not groups_a or not groups_b:
+        return 1.0
+
+    def _directional(required_groups: Sequence[str], seen_groups: Sequence[str]) -> float:
+        if not required_groups:
+            return 1.0
+        covered = 0
+        for req in required_groups:
+            if any(_measurement_basis_key_covers(str(req), str(seen)) for seen in seen_groups):
+                covered += 1
+        return float(covered / len(required_groups))
+
+    return float(
+        0.5 * (
+            _directional(groups_a, groups_b)
+            + _directional(groups_b, groups_a)
+        )
+    )
 
 
 def simple_v1_score(
@@ -687,7 +826,14 @@ def compatibility_penalty(
     term_a = record_a.get("candidate_term")
     term_b = record_b.get("candidate_term")
     if not isinstance(feat_a, CandidateFeatures) or not isinstance(feat_b, CandidateFeatures):
-        return {"support_overlap": 0.0, "noncommutation": 0.0, "cross_curvature": 0.0, "schedule": 0.0, "total": 0.0}
+        return {
+            "support_overlap": 0.0,
+            "noncommutation": 0.0,
+            "cross_curvature": 0.0,
+            "schedule": 0.0,
+            "measurement_mismatch": 0.0,
+            "total": 0.0,
+        }
 
     supp_a = _support_set(term_a)
     supp_b = _support_set(term_b)
@@ -728,17 +874,24 @@ def compatibility_penalty(
     win_b = set(int(i) for i in feat_b.refit_window_indices)
     union_w = len(win_a | win_b)
     schedule = 0.0 if union_w == 0 else float(len(win_a & win_b) / union_w)
+    measurement_overlap = _measurement_group_overlap_score(
+        measurement_group_keys_for_term(term_a),
+        measurement_group_keys_for_term(term_b),
+    )
+    measurement_mismatch = float(1.0 - measurement_overlap)
     total = (
         float(cfg.compat_overlap_weight) * float(support_overlap)
         + float(cfg.compat_comm_weight) * float(noncomm)
         + float(cfg.compat_curv_weight) * float(cross_curv)
         + float(cfg.compat_sched_weight) * float(schedule)
+        + float(cfg.compat_measure_weight) * float(measurement_mismatch)
     )
     return {
         "support_overlap": float(support_overlap),
         "noncommutation": float(noncomm),
         "cross_curvature": float(cross_curv),
         "schedule": float(schedule),
+        "measurement_mismatch": float(measurement_mismatch),
         "total": float(total),
     }
 
@@ -802,6 +955,7 @@ def greedy_batch_select(
             "noncommutation": 0.0,
             "cross_curvature": 0.0,
             "schedule": 0.0,
+            "measurement_mismatch": 0.0,
         }
         for existing in batch:
             breakdown = compat_oracle.penalty(rec, existing)
@@ -894,6 +1048,10 @@ def build_candidate_features(
             "new_rotation_steps": float(compile_cost.new_rotation_steps),
             "position_shift_span": float(compile_cost.position_shift_span),
             "refit_active_count": float(compile_cost.refit_active_count),
+            "cx_proxy_total": float(compile_cost.cx_proxy_total),
+            "sq_proxy_total": float(compile_cost.sq_proxy_total),
+            "gate_proxy_total": float(compile_cost.gate_proxy_total),
+            "max_pauli_weight": float(compile_cost.max_pauli_weight),
             "proxy_total": float(compile_cost.proxy_total),
         },
         measurement_cache_stats={
@@ -911,7 +1069,14 @@ def build_candidate_features(
         trough_detected=bool(trough_detected),
         simple_score=None,
         score_version=str(cfg.score_version),
-        depth_cost=float(compile_cost.new_rotation_steps + compile_cost.position_shift_span),
+        depth_cost=float(
+            (
+                float(compile_cost.gate_proxy_total)
+                if float(compile_cost.gate_proxy_total) > 0.0
+                else float(compile_cost.new_rotation_steps)
+            )
+            + float(compile_cost.position_shift_span)
+        ),
         new_group_cost=float(measurement_stats.groups_new),
         new_shot_cost=float(measurement_stats.shots_new),
         opt_dim_cost=float(len(refit_window_indices)),

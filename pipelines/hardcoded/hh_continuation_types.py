@@ -56,6 +56,10 @@ class CandidateFeatures:
     runtime_split_parent_label: str | None = None
     runtime_split_child_index: int | None = None
     runtime_split_child_count: int | None = None
+    runtime_split_chosen_representation: str = "parent"
+    runtime_split_child_indices: list[int] = field(default_factory=list)
+    runtime_split_child_labels: list[str] = field(default_factory=list)
+    runtime_split_child_generator_ids: list[str] = field(default_factory=list)
     generator_metadata: dict[str, Any] | None = None
     symmetry_spec: dict[str, Any] | None = None
     symmetry_mode: str = "none"
@@ -95,6 +99,10 @@ class CompileCostEstimate:
     position_shift_span: float
     refit_active_count: float
     proxy_total: float
+    cx_proxy_total: float = 0.0
+    sq_proxy_total: float = 0.0
+    gate_proxy_total: float = 0.0
+    max_pauli_weight: float = 0.0
 
 
 @dataclass(frozen=True)
@@ -280,6 +288,18 @@ class GeneratorSplitEvent:
     child_generator_ids: list[str]
     reason: str
     split_mode: str
+    probe_trigger: str | None = None
+    choice_reason: str | None = None
+    parent_score: float | None = None
+    child_scores: dict[str, float] = field(default_factory=dict)
+    admissible_child_subsets: list[list[str]] = field(default_factory=list)
+    chosen_representation: str = "parent"
+    chosen_child_ids: list[str] = field(default_factory=list)
+    split_margin: float | None = None
+    symmetry_gate_results: dict[str, Any] = field(default_factory=dict)
+    compiled_cost_parent: float | None = None
+    compiled_cost_children: float | None = None
+    insertion_positions: list[int] = field(default_factory=list)
 
 
 @dataclass(frozen=True)

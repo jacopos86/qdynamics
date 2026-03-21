@@ -2913,6 +2913,7 @@ def parse_args() -> argparse.Namespace:
         "--phase3-runtime-split-mode",
         choices=["off", "shortlist_pauli_children_v1"],
         default="off",
+        help="Opt-in shortlist-only macro splitting via serialized Pauli child atoms with symmetry-safe child-set admission.",
     )
     parser.add_argument("--paop-r", type=int, default=1)
     parser.add_argument("--paop-split-paulis", action="store_true")

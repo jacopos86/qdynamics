@@ -35,6 +35,10 @@ from docs.reports.pdf_utils import (
     require_matplotlib,
 )
 from pipelines.hardcoded import adapt_pipeline as adapt_mod
+from pipelines.hardcoded.hh_pareto_tracking import (
+    extract_staged_hh_pareto_rows,
+    write_pareto_tracking,
+)
 from pipelines.hardcoded import hh_vqe_from_adapt_family as replay_mod
 from pipelines.hardcoded import hubbard_pipeline as hc_pipeline
 from pipelines.hardcoded.handoff_state_bundle import (
@@ -1360,6 +1364,9 @@ def _stage_summary(stage_result: StageExecutionResult, cfg: StagedHHConfig) -> d
     adapt_exact = float(stage_result.adapt_payload.get("exact_gs_energy", float("nan")))
     replay_vqe = stage_result.replay_payload.get("vqe", {})
     replay_exact = stage_result.replay_payload.get("exact", {})
+    adapt_measurement = stage_result.adapt_payload.get("measurement_cache_summary", {})
+    adapt_compile = stage_result.adapt_payload.get("compile_cost_proxy_summary", {})
+    adapt_continuation = stage_result.adapt_payload.get("continuation", {})
     final_energy = float(replay_vqe.get("energy", float("nan")))
     final_exact = float(replay_exact.get("E_exact_sector", float("nan")))
     warm_delta = float(abs(warm_energy - warm_exact))
@@ -1392,6 +1399,17 @@ def _stage_summary(stage_result: StageExecutionResult, cfg: StagedHHConfig) -> d
             "pool_type": str(stage_result.adapt_payload.get("pool_type", cfg.adapt.pool or cfg.adapt.continuation_mode)),
             "continuation_mode": str(stage_result.adapt_payload.get("continuation_mode", cfg.adapt.continuation_mode)),
             "stop_reason": str(stage_result.adapt_payload.get("stop_reason", "")),
+            "measurement_cache_summary": (
+                dict(adapt_measurement) if isinstance(adapt_measurement, Mapping) else None
+            ),
+            "compile_cost_proxy_summary": (
+                dict(adapt_compile) if isinstance(adapt_compile, Mapping) else None
+            ),
+            "runtime_split_summary": (
+                dict(adapt_continuation.get("runtime_split_summary", {}))
+                if isinstance(adapt_continuation, Mapping)
+                else None
+            ),
             "handoff_json": str(cfg.artifacts.handoff_json),
         },
         "conventional_replay": {
@@ -1667,6 +1685,29 @@ def run_staged_hh_noiseless(cfg: StagedHHConfig, *, run_command: str | None = No
         dynamics_noiseless=dynamics_noiseless,
         run_command=run_command_str,
     )
+    pareto_rows = extract_staged_hh_pareto_rows(
+        run_tag=str(cfg.artifacts.tag),
+        physics=asdict(cfg.physics),
+        warm_payload=stage_result.warm_payload,
+        adapt_payload=stage_result.adapt_payload,
+        replay_payload=stage_result.replay_payload,
+    )
+    pareto_tracking = write_pareto_tracking(
+        rows=pareto_rows,
+        output_json_path=cfg.artifacts.output_json,
+        run_tag=str(cfg.artifacts.tag),
+    )
+    payload.setdefault("artifacts", {})
+    payload["artifacts"]["pareto"] = {
+        key: str(value) for key, value in pareto_tracking["paths"].items()
+    }
+    payload["pareto_tracking"] = {
+        "schema": str(pareto_tracking.get("schema", "")),
+        "objective_axes": list(pareto_tracking.get("objective_axes", [])),
+        "diagnostic_axes": list(pareto_tracking.get("diagnostic_axes", [])),
+        "current_run": dict(pareto_tracking.get("current_run", {})),
+        "rolling": dict(pareto_tracking.get("rolling", {})),
+    }
     _write_json(cfg.artifacts.output_json, payload)
     if not bool(cfg.artifacts.skip_pdf):
         write_staged_hh_pdf(payload, cfg, run_command_str)

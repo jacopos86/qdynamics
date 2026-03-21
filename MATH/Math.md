@@ -1304,7 +1304,7 @@ The implementation then optionally applies
 
 - pruning,
 - normalization (`none`, `fro`, `maxcoeff`),
-- split-into-single-Pauli children,
+- serialized runtime-split child atoms with shortlist-only symmetry-safe child-set admission,
 - signature deduplication.
 
 ## 10.4 ADAPT selection signal

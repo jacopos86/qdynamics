@@ -8,3 +8,6 @@
 Untitled*.base
 Untitled*.canvas
 artifacts/
+.deps/
+.venv/
+.claude/

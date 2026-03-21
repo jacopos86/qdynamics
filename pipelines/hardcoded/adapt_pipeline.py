@@ -105,6 +105,7 @@ from pipelines.hardcoded.hh_continuation_types import (
 )
 from pipelines.hardcoded.hh_continuation_generators import (
     build_pool_generator_registry,
+    build_runtime_split_child_sets,
     build_runtime_split_children,
     build_split_event,
     selected_generator_metadata_for_labels,
@@ -142,6 +143,7 @@ from pipelines.hardcoded.hh_continuation_scoring import (
     build_candidate_features,
     build_full_candidate_features,
     greedy_batch_select,
+    measurement_group_keys_for_term,
     shortlist_records,
 )
 from pipelines.hardcoded.hh_continuation_pruning import (
@@ -662,45 +664,20 @@ def _build_hva_pool(
     )
     pool: list[AnsatzTerm] = list(layerwise.base_terms)
 
-    # 2) Augment with fermionic UCCSD-style generators lifted to HH register.
-    # This keeps the electron-number-conserving structure while allowing the
-    # ADAPT search to explore a richer, HH-relevant operator manifold.
+    # 2) Augment with the same lifted HH UCCSD macro generators used by the
+    # warm-start path. Do not expose individual Pauli fragments here: they can
+    # break the fermion sector even when the parent macro generator preserves it.
     n_sites = int(num_sites)
-    boson_bits = n_sites * int(boson_qubits_per_site(int(n_ph_max), str(boson_encoding)))
-    hf_num_particles = half_filled_num_particles(n_sites)
-    uccsd_kwargs = {
-        "dims": n_sites,
-        "num_particles": hf_num_particles,
-        "include_singles": True,
-        "include_doubles": True,
-        "repr_mode": "JW",
-        "indexing": str(ordering),
-    }
-    if str(boundary).strip().lower() == "periodic":
-        try:
-            uccsd_kwargs["pbc"] = True
-            uccsd = HardcodedUCCSDAnsatz(**uccsd_kwargs)
-        except TypeError as exc:
-            if "pbc" not in str(exc):
-                raise
-            uccsd_kwargs.pop("pbc", None)
-            uccsd = HardcodedUCCSDAnsatz(**uccsd_kwargs)
-    else:
-        uccsd = HardcodedUCCSDAnsatz(**uccsd_kwargs)
-    for t_i in uccsd.base_terms:
-        for term_idx, term in enumerate(t_i.polynomial.return_polynomial()):
-            coeff = complex(term.p_coeff)
-            if abs(coeff) <= 1e-15:
-                continue
-            if abs(coeff.imag) > 1e-12:
-                raise ValueError(
-                    f"Non-negligible imaginary UCCSD coefficient for HH pool term {t_i.label}: {coeff}"
-                )
-            base = str(term.pw2strng())
-            padded = ("e" * boson_bits) + base
-            lifted = PauliPolynomial("JW")
-            lifted.add_term(PauliTerm(2 * n_sites + boson_bits, ps=padded, pc=float(coeff.real)))
-            pool.append(AnsatzTerm(label=f"{t_i.label}_{term_idx}", polynomial=lifted))
+    pool.extend(
+        _build_hh_uccsd_fermion_lifted_pool(
+            int(num_sites),
+            int(n_ph_max),
+            str(boson_encoding),
+            str(ordering),
+            str(boundary),
+            num_particles=tuple(half_filled_num_particles(n_sites)),
+        )
+    )
 
     return pool
 
@@ -927,6 +904,248 @@ def _build_hh_full_meta_pool(
     }
     # n_ph_max>=2 can create very large term signatures; use streaming digest
     # dedup to avoid high transient memory spikes from tuple materialization.
+    if int(n_ph_max) >= 2:
+        dedup_pool = _deduplicate_pool_terms_lightweight(merged)
+    else:
+        dedup_pool = _deduplicate_pool_terms(merged)
+    return dedup_pool, meta
+
+
+# ---------------------------------------------------------------------------
+# Pareto-lean pool: pruned subset of full_meta informed by motif analysis.
+# Retains only operator classes that contributed energy improvement in the
+# best-yet heavy scaffold run.  See artifacts/reports/hh_heavy_scaffold_best_yet_20260321.md
+# ---------------------------------------------------------------------------
+
+_PARETO_LEAN_PAOP_FULL_KEEP = {"paop_cloud_p", "paop_disp", "paop_hopdrag"}
+_PARETO_LEAN_PAOP_LF_KEEP = {"paop_dbl_p"}
+
+
+def _pareto_lean_paop_match(label: str, allowed: set[str]) -> bool:
+    """True if the PAOP label's family name is in *allowed*."""
+    colon_idx = label.find(":")
+    if colon_idx < 0:
+        return False
+    after_colon = label[colon_idx + 1:]
+    for family in allowed:
+        if after_colon.startswith(family + "("):
+            return True
+    return False
+
+
+def _build_hh_pareto_lean_pool(
+    *,
+    h_poly: Any,
+    num_sites: int,
+    t: float,
+    u: float,
+    omega0: float,
+    g_ep: float,
+    dv: float,
+    n_ph_max: int,
+    boson_encoding: str,
+    ordering: str,
+    boundary: str,
+    paop_r: int,
+    paop_split_paulis: bool,
+    paop_prune_eps: float,
+    paop_normalization: str,
+    num_particles: tuple[int, int],
+) -> tuple[list[AnsatzTerm], dict[str, int]]:
+    """Build the Pareto-lean HH pool: only classes that survived the heavy scaffold.
+
+    Kept classes:
+      - uccsd_sing, uccsd_dbl  (all lifted UCCSD)
+      - hh_termwise_quadrature (y-partner quadrature terms only, no unit terms)
+      - paop_cloud_p, paop_disp, paop_hopdrag  (from paop_full)
+      - paop_dbl_p  (from paop_lf_full)
+
+    Dropped classes:
+      - HVA layerwise macros  (hop_layer, onsite_layer, phonon_layer, eph_layer)
+      - hh_termwise_unit       (diagonal Ham terms, never selected)
+      - paop_cloud_x, paop_dbl, paop_lf_dbl_x, paop_lf_curdrag, paop_lf_hop2
+    """
+    # 1. Lifted UCCSD (all singles + doubles)
+    uccsd_lifted_pool = _build_hh_uccsd_fermion_lifted_pool(
+        int(num_sites),
+        int(n_ph_max),
+        str(boson_encoding),
+        str(ordering),
+        str(boundary),
+        num_particles=num_particles,
+    )
+
+    # 2. Termwise quadrature only (skip unit terms)
+    quadrature_pool: list[AnsatzTerm] = []
+    if abs(float(g_ep)) > 1e-15:
+        termwise_aug = _build_hh_termwise_augmented_pool(h_poly)
+        quadrature_pool = [
+            AnsatzTerm(label=f"hh_termwise_{term.label}", polynomial=term.polynomial)
+            for term in termwise_aug
+            if "quadrature" in term.label
+        ]
+
+    # 3. PAOP full, filtered to cloud_p + disp + hopdrag
+    paop_full_raw = _build_paop_pool(
+        int(num_sites),
+        int(n_ph_max),
+        str(boson_encoding),
+        str(ordering),
+        str(boundary),
+        "paop_full",
+        int(paop_r),
+        bool(paop_split_paulis),
+        float(paop_prune_eps),
+        str(paop_normalization),
+        num_particles,
+    )
+    paop_full_kept = [
+        t for t in paop_full_raw
+        if _pareto_lean_paop_match(t.label, _PARETO_LEAN_PAOP_FULL_KEEP)
+    ]
+
+    # 4. PAOP lf_full, filtered to dbl_p only
+    paop_lf_raw = _build_paop_pool(
+        int(num_sites),
+        int(n_ph_max),
+        str(boson_encoding),
+        str(ordering),
+        str(boundary),
+        "paop_lf_full",
+        int(paop_r),
+        bool(paop_split_paulis),
+        float(paop_prune_eps),
+        str(paop_normalization),
+        num_particles,
+    )
+    paop_lf_kept = [
+        t for t in paop_lf_raw
+        if _pareto_lean_paop_match(t.label, _PARETO_LEAN_PAOP_LF_KEEP)
+    ]
+
+    merged = (
+        list(uccsd_lifted_pool)
+        + list(quadrature_pool)
+        + list(paop_full_kept)
+        + list(paop_lf_kept)
+    )
+    meta = {
+        "raw_uccsd_lifted": int(len(uccsd_lifted_pool)),
+        "raw_hh_termwise_quadrature": int(len(quadrature_pool)),
+        "raw_paop_full_kept": int(len(paop_full_kept)),
+        "raw_paop_full_dropped": int(len(paop_full_raw) - len(paop_full_kept)),
+        "raw_paop_lf_kept": int(len(paop_lf_kept)),
+        "raw_paop_lf_dropped": int(len(paop_lf_raw) - len(paop_lf_kept)),
+        "raw_total": int(len(merged)),
+    }
+    if int(n_ph_max) >= 2:
+        dedup_pool = _deduplicate_pool_terms_lightweight(merged)
+    else:
+        dedup_pool = _deduplicate_pool_terms(merged)
+    return dedup_pool, meta
+
+
+# ---------------------------------------------------------------------------
+# Pareto-lean L2 pool: tighter pruning from L=2 n_ph_max=1 motif analysis.
+# Drops disp, uccsd_dbl, and unused dbl_p site-phonon pairings.
+# See artifacts/reports/hh_L2_ecut1_scaffold_motif_analysis.md
+# ---------------------------------------------------------------------------
+
+_PARETO_LEAN_L2_PAOP_FULL_KEEP = {"paop_cloud_p", "paop_hopdrag"}
+_PARETO_LEAN_L2_PAOP_LF_KEEP = {"paop_dbl_p"}
+
+# Only the site->phonon pairings that were actually selected at L=2.
+# site=0->phonon=1 and site=1->phonon=0 were used; the others were not.
+_PARETO_LEAN_L2_DPL_P_KEEP_SUFFIXES = {"site=0->phonon=1", "site=1->phonon=0"}
+
+
+def _build_hh_pareto_lean_l2_pool(
+    *,
+    h_poly: Any,
+    num_sites: int,
+    t: float,
+    u: float,
+    omega0: float,
+    g_ep: float,
+    dv: float,
+    n_ph_max: int,
+    boson_encoding: str,
+    ordering: str,
+    boundary: str,
+    paop_r: int,
+    paop_split_paulis: bool,
+    paop_prune_eps: float,
+    paop_normalization: str,
+    num_particles: tuple[int, int],
+) -> tuple[list[AnsatzTerm], dict[str, int]]:
+    """Build the L=2-specific Pareto-lean pool (11 operators).
+
+    Kept: quadrature(4), uccsd_sing(all), cloud_p(all), hopdrag(all),
+          dbl_p(site=0->ph=1, site=1->ph=0 only).
+    Dropped: uccsd_dbl, disp, dbl (bare), all x-type, curdrag, hop2,
+             HVA layers, unit terms, unused dbl_p variants.
+    """
+    # 1. UCCSD lifted — singles only
+    all_uccsd = _build_hh_uccsd_fermion_lifted_pool(
+        int(num_sites),
+        int(n_ph_max),
+        str(boson_encoding),
+        str(ordering),
+        str(boundary),
+        num_particles=num_particles,
+    )
+    uccsd_singles = [t for t in all_uccsd if "uccsd_sing" in t.label]
+
+    # 2. Quadrature only
+    quadrature_pool: list[AnsatzTerm] = []
+    if abs(float(g_ep)) > 1e-15:
+        termwise_aug = _build_hh_termwise_augmented_pool(h_poly)
+        quadrature_pool = [
+            AnsatzTerm(label=f"hh_termwise_{term.label}", polynomial=term.polynomial)
+            for term in termwise_aug
+            if "quadrature" in term.label
+        ]
+
+    # 3. PAOP full: cloud_p + hopdrag only (no disp)
+    paop_full_raw = _build_paop_pool(
+        int(num_sites), int(n_ph_max), str(boson_encoding), str(ordering),
+        str(boundary), "paop_full", int(paop_r), bool(paop_split_paulis),
+        float(paop_prune_eps), str(paop_normalization), num_particles,
+    )
+    paop_full_kept = [
+        t for t in paop_full_raw
+        if _pareto_lean_paop_match(t.label, _PARETO_LEAN_L2_PAOP_FULL_KEEP)
+    ]
+
+    # 4. PAOP lf_full: dbl_p, filtered to used site->phonon pairings
+    paop_lf_raw = _build_paop_pool(
+        int(num_sites), int(n_ph_max), str(boson_encoding), str(ordering),
+        str(boundary), "paop_lf_full", int(paop_r), bool(paop_split_paulis),
+        float(paop_prune_eps), str(paop_normalization), num_particles,
+    )
+    paop_lf_kept = []
+    for t in paop_lf_raw:
+        if not _pareto_lean_paop_match(t.label, _PARETO_LEAN_L2_PAOP_LF_KEEP):
+            continue
+        # Further filter to only the used site->phonon pairings
+        if any(suffix in t.label for suffix in _PARETO_LEAN_L2_DPL_P_KEEP_SUFFIXES):
+            paop_lf_kept.append(t)
+
+    merged = (
+        list(uccsd_singles)
+        + list(quadrature_pool)
+        + list(paop_full_kept)
+        + list(paop_lf_kept)
+    )
+    meta = {
+        "raw_uccsd_singles": int(len(uccsd_singles)),
+        "raw_hh_termwise_quadrature": int(len(quadrature_pool)),
+        "raw_paop_full_kept": int(len(paop_full_kept)),
+        "raw_paop_full_dropped": int(len(paop_full_raw) - len(paop_full_kept)),
+        "raw_paop_lf_kept": int(len(paop_lf_kept)),
+        "raw_paop_lf_dropped": int(len(paop_lf_raw) - len(paop_lf_kept)),
+        "raw_total": int(len(merged)),
+    }
     if int(n_ph_max) >= 2:
         dedup_pool = _deduplicate_pool_terms_lightweight(merged)
     else:
@@ -1544,6 +1763,7 @@ def _run_hardcoded_adapt_vqe(
     phase1_lambda_measure: float = 0.02,
     phase1_lambda_leak: float = 0.0,
     phase1_score_z_alpha: float = 0.0,
+    phase1_shortlist_size: int = 64,
     phase1_probe_max_positions: int = 6,
     phase1_plateau_patience: int = 2,
     phase1_trough_margin_ratio: float = 1.0,
@@ -1581,15 +1801,18 @@ def _run_hardcoded_adapt_vqe(
     adapt_window_topk_val = int(adapt_window_topk)
     adapt_full_refit_every_val = int(adapt_full_refit_every)
     adapt_final_full_refit_val = bool(adapt_final_full_refit)
+    phase1_shortlist_size_val = int(phase1_shortlist_size)
     if adapt_window_size_val < 1:
         raise ValueError("adapt_window_size must be >= 1.")
     if adapt_window_topk_val < 0:
         raise ValueError("adapt_window_topk must be >= 0.")
     if adapt_full_refit_every_val < 0:
         raise ValueError("adapt_full_refit_every must be >= 0.")
+    if phase1_shortlist_size_val < 1:
+        raise ValueError("phase1_shortlist_size must be >= 1.")
     adapt_inner_optimizer_key = str(adapt_inner_optimizer).strip().upper()
-    if adapt_inner_optimizer_key not in {"COBYLA", "SPSA"}:
-        raise ValueError("adapt_inner_optimizer must be one of {'COBYLA','SPSA'}.")
+    if adapt_inner_optimizer_key not in {"COBYLA", "POWELL", "SPSA"}:
+        raise ValueError("adapt_inner_optimizer must be one of {'COBYLA','POWELL','SPSA'}.")
     adapt_spsa_eval_agg_key = str(adapt_spsa_eval_agg).strip().lower()
     if adapt_spsa_eval_agg_key not in {"mean", "median"}:
         raise ValueError("adapt_spsa_eval_agg must be one of {'mean','median'}.")
@@ -1810,6 +2033,56 @@ def _run_hardcoded_adapt_vqe(
                 dedup_total=int(len(pool_full)),
             )
             return list(pool_full), "hardcoded_adapt_vqe_full_meta"
+        if key == "pareto_lean":
+            pool_lean, lean_sizes = _build_hh_pareto_lean_pool(
+                h_poly=h_poly,
+                num_sites=int(num_sites),
+                t=float(t),
+                u=float(u),
+                omega0=float(omega0),
+                g_ep=float(g_ep),
+                dv=float(dv),
+                n_ph_max=int(n_ph_max),
+                boson_encoding=str(boson_encoding),
+                ordering=str(ordering),
+                boundary=str(boundary),
+                paop_r=int(paop_r),
+                paop_split_paulis=bool(paop_split_paulis),
+                paop_prune_eps=float(paop_prune_eps),
+                paop_normalization=str(paop_normalization),
+                num_particles=num_particles,
+            )
+            _ai_log(
+                "hardcoded_adapt_pareto_lean_pool_built",
+                **lean_sizes,
+                dedup_total=int(len(pool_lean)),
+            )
+            return list(pool_lean), "hardcoded_adapt_vqe_pareto_lean"
+        if key == "pareto_lean_l2":
+            pool_lean_l2, lean_l2_sizes = _build_hh_pareto_lean_l2_pool(
+                h_poly=h_poly,
+                num_sites=int(num_sites),
+                t=float(t),
+                u=float(u),
+                omega0=float(omega0),
+                g_ep=float(g_ep),
+                dv=float(dv),
+                n_ph_max=int(n_ph_max),
+                boson_encoding=str(boson_encoding),
+                ordering=str(ordering),
+                boundary=str(boundary),
+                paop_r=int(paop_r),
+                paop_split_paulis=bool(paop_split_paulis),
+                paop_prune_eps=float(paop_prune_eps),
+                paop_normalization=str(paop_normalization),
+                num_particles=num_particles,
+            )
+            _ai_log(
+                "hardcoded_adapt_pareto_lean_l2_pool_built",
+                **lean_l2_sizes,
+                dedup_total=int(len(pool_lean_l2)),
+            )
+            return list(pool_lean_l2), "hardcoded_adapt_vqe_pareto_lean_l2"
         if key == "uccsd_paop_lf_full":
             uccsd_lifted_pool = _build_hh_uccsd_fermion_lifted_pool(
                 int(num_sites),
@@ -1879,7 +2152,7 @@ def _run_hardcoded_adapt_vqe(
             return _build_full_hamiltonian_pool(h_poly, normalize_coeff=True), "hardcoded_adapt_vqe_full_hamiltonian_hh"
         raise ValueError(
             "For problem='hh', supported ADAPT pools are: "
-            "hva, full_meta, uccsd_paop_lf_full, paop, paop_min, paop_std, paop_full, "
+            "hva, full_meta, pareto_lean, pareto_lean_l2, uccsd_paop_lf_full, paop, paop_min, paop_std, paop_full, "
             "paop_lf, paop_lf_std, paop_lf2_std, paop_lf_full, full_hamiltonian"
         )
 
@@ -1887,28 +2160,38 @@ def _run_hardcoded_adapt_vqe(
     pool_family_ids: list[str] = []
     phase1_core_limit = 0
     phase1_residual_indices: set[int] = set()
+    phase1_depth0_full_meta_override = False
     if continuation_mode in {"phase1_v1", "phase2_v1", "phase3_v1"} and problem_key == "hh":
-        if pool_key_input == "full_meta":
-            raise ValueError(
-                "HH continuation does not allow --adapt-pool full_meta at depth 0. "
-                "Use a narrow core pool (default paop_lf_std) or run with --adapt-continuation-mode legacy."
+        if pool_key_input in ("full_meta", "pareto_lean", "pareto_lean_l2"):
+            phase1_depth0_full_meta_override = True
+            pool, _pool_method = _build_hh_pool_by_key(str(pool_key_input))
+            phase1_core_limit = int(len(pool))
+            phase1_residual_indices = set()
+            pool_stage_family = ["core"] * int(len(pool))
+            pool_family_ids = [str(pool_key_input)] * int(len(pool))
+            _ai_log(
+                "hardcoded_adapt_phase1_depth0_full_meta_override",
+                continuation_mode=str(continuation_mode),
+                pool_key=str(pool_key_input),
+                pool_size=int(len(pool)),
             )
-        core_key = str(pool_key_input if pool_key_input is not None else "paop_lf_std")
-        core_pool, _core_method = _build_hh_pool_by_key(core_key)
-        residual_pool, _residual_method = _build_hh_pool_by_key("full_meta")
-        seen_sig = {_polynomial_signature(op.polynomial) for op in core_pool}
-        residual_unique: list[AnsatzTerm] = []
-        for op in residual_pool:
-            sig = _polynomial_signature(op.polynomial)
-            if sig in seen_sig:
-                continue
-            seen_sig.add(sig)
-            residual_unique.append(op)
-        pool = list(core_pool) + list(residual_unique)
-        phase1_core_limit = int(len(core_pool))
-        phase1_residual_indices = set(range(int(phase1_core_limit), int(len(pool))))
-        pool_stage_family = (["core"] * int(phase1_core_limit)) + (["residual"] * int(len(residual_unique)))
-        pool_family_ids = ([str(core_key)] * int(phase1_core_limit)) + (["full_meta"] * int(len(residual_unique)))
+        else:
+            core_key = str(pool_key_input if pool_key_input is not None else "paop_lf_std")
+            core_pool, _core_method = _build_hh_pool_by_key(core_key)
+            residual_pool, _residual_method = _build_hh_pool_by_key("full_meta")
+            seen_sig = {_polynomial_signature(op.polynomial) for op in core_pool}
+            residual_unique: list[AnsatzTerm] = []
+            for op in residual_pool:
+                sig = _polynomial_signature(op.polynomial)
+                if sig in seen_sig:
+                    continue
+                seen_sig.add(sig)
+                residual_unique.append(op)
+            pool = list(core_pool) + list(residual_unique)
+            phase1_core_limit = int(len(core_pool))
+            phase1_residual_indices = set(range(int(phase1_core_limit), int(len(pool))))
+            pool_stage_family = (["core"] * int(phase1_core_limit)) + (["residual"] * int(len(residual_unique)))
+            pool_family_ids = ([str(core_key)] * int(phase1_core_limit)) + (["full_meta"] * int(len(residual_unique)))
         method_name = f"hardcoded_adapt_vqe_{str(continuation_mode)}_hh"
         pool_key = str(continuation_mode)
     else:
@@ -1946,6 +2229,72 @@ def _run_hardcoded_adapt_vqe(
         pool_stage_family = [str(pool_key)] * int(len(pool))
         pool_family_ids = [str(pool_key)] * int(len(pool))
 
+    qpb = int(boson_qubits_per_site(int(n_ph_max), str(boson_encoding))) if problem_key == "hh" else 1
+    pool_symmetry_specs: list[dict[str, Any] | None] = [None] * int(len(pool))
+    pool_generator_registry: dict[str, dict[str, Any]] = {}
+    if problem_key == "hh" and len(pool) > 0:
+        base_pool_symmetry_specs = [
+            dict(
+                build_symmetry_spec(
+                    family_id=str(pool_family_ids[idx] if idx < len(pool_family_ids) else "unknown"),
+                    mitigation_mode=str(phase3_symmetry_mitigation_mode_key),
+                ).__dict__
+            )
+            for idx in range(len(pool))
+        ]
+        raw_pool_generator_registry = build_pool_generator_registry(
+            terms=pool,
+            family_ids=pool_family_ids,
+            num_sites=int(num_sites),
+            ordering=str(ordering),
+            qpb=int(max(1, qpb)),
+            symmetry_specs=base_pool_symmetry_specs,
+            split_policy=("deliberate_split" if bool(paop_split_paulis) else "preserve"),
+        )
+        filtered_pool: list[AnsatzTerm] = []
+        filtered_stage_family: list[str] = []
+        filtered_family_ids: list[str] = []
+        filtered_specs: list[dict[str, Any] | None] = []
+        filtered_registry: dict[str, dict[str, Any]] = {}
+        removed_labels: list[str] = []
+        removed_family_ids: list[str] = []
+        for idx, term in enumerate(pool):
+            label = str(term.label)
+            meta = raw_pool_generator_registry.get(label)
+            spec = (
+                meta.get("symmetry_spec")
+                if isinstance(meta, Mapping)
+                else base_pool_symmetry_specs[idx]
+            )
+            if isinstance(spec, Mapping) and bool(spec.get("hard_guard", False)):
+                removed_labels.append(label)
+                removed_family_ids.append(str(pool_family_ids[idx] if idx < len(pool_family_ids) else "unknown"))
+                continue
+            filtered_pool.append(term)
+            filtered_stage_family.append(str(pool_stage_family[idx] if idx < len(pool_stage_family) else pool_key))
+            filtered_family_ids.append(str(pool_family_ids[idx] if idx < len(pool_family_ids) else pool_key))
+            filtered_specs.append(dict(spec) if isinstance(spec, Mapping) else None)
+            if isinstance(meta, Mapping):
+                filtered_registry[label] = dict(meta)
+        if removed_labels:
+            _ai_log(
+                "hardcoded_adapt_hh_pool_symmetry_filtered",
+                removed_count=int(len(removed_labels)),
+                kept_count=int(len(filtered_pool)),
+                removed_labels_sample=[str(x) for x in removed_labels[:12]],
+                removed_families_sample=[str(x) for x in removed_family_ids[:12]],
+            )
+        pool = filtered_pool
+        pool_stage_family = filtered_stage_family
+        pool_family_ids = filtered_family_ids
+        pool_symmetry_specs = filtered_specs
+        pool_generator_registry = filtered_registry
+        if continuation_mode in {"phase1_v1", "phase2_v1", "phase3_v1"}:
+            phase1_core_limit = int(sum(1 for stage in pool_stage_family if str(stage) == "core"))
+            phase1_residual_indices = {
+                int(idx) for idx, stage in enumerate(pool_stage_family) if str(stage) == "residual"
+            }
+
     if len(pool) == 0:
         raise ValueError(f"ADAPT pool '{pool_key}' produced no operators for problem='{problem_key}'.")
     _ai_log(
@@ -1953,6 +2302,7 @@ def _run_hardcoded_adapt_vqe(
         pool_type=str(pool_key),
         pool_size=int(len(pool)),
         continuation_mode=str(continuation_mode),
+        phase1_depth0_full_meta_override=bool(phase1_depth0_full_meta_override),
         phase1_core_size=(
             int(phase1_core_limit)
             if continuation_mode in {"phase1_v1", "phase2_v1", "phase3_v1"} and problem_key == "hh"
@@ -1968,15 +2318,17 @@ def _run_hardcoded_adapt_vqe(
     phase1_enabled = bool(continuation_mode in {"phase1_v1", "phase2_v1", "phase3_v1"} and problem_key == "hh")
     phase2_enabled = bool(continuation_mode in {"phase2_v1", "phase3_v1"} and problem_key == "hh")
     phase3_enabled = bool(continuation_mode == "phase3_v1" and problem_key == "hh")
-    qpb = int(boson_qubits_per_site(int(n_ph_max), str(boson_encoding))) if problem_key == "hh" else 1
-    pool_symmetry_specs: list[dict[str, Any] | None] = [None] * int(len(pool))
-    pool_generator_registry: dict[str, dict[str, Any]] = {}
     phase3_split_events: list[dict[str, Any]] = []
     phase3_input_motif_library: dict[str, Any] | None = None
     phase3_runtime_split_summary: dict[str, Any] = {
         "mode": (str(phase3_runtime_split_mode_key) if phase3_enabled else "off"),
         "probed_parent_count": 0,
         "evaluated_child_count": 0,
+        "rejected_child_count_symmetry": 0,
+        "admissible_child_set_count": 0,
+        "probe_parent_win_count": 0,
+        "probe_child_set_count": 0,
+        "selected_child_set_count": 0,
         "selected_child_count": 0,
         "selected_child_labels": [],
     }
@@ -1991,7 +2343,7 @@ def _run_hardcoded_adapt_vqe(
     }
     phase3_rescue_history: list[dict[str, Any]] = []
     phase3_exact_reference_state: np.ndarray | None = None
-    if phase3_enabled:
+    if phase3_enabled and not pool_generator_registry:
         pool_symmetry_specs = [
             dict(
                 build_symmetry_spec(
@@ -2010,25 +2362,25 @@ def _run_hardcoded_adapt_vqe(
             symmetry_specs=pool_symmetry_specs,
             split_policy=("deliberate_split" if bool(paop_split_paulis) else "preserve"),
         )
-        if phase3_motif_source_json is not None:
-            phase3_input_motif_library = load_motif_library_from_json(Path(phase3_motif_source_json))
-            if phase3_input_motif_library is not None:
-                phase3_motif_usage["enabled"] = True
-                phase3_motif_usage["source_tag"] = str(phase3_input_motif_library.get("source_tag", "payload"))
-        if bool(phase3_enable_rescue):
-            phase3_exact_reference_state = _exact_reference_state_for_hh(
-                num_sites=int(num_sites),
-                num_particles=num_particles,
-                indexing=str(ordering),
-                n_ph_max=int(n_ph_max),
-                boson_encoding=str(boson_encoding),
-                t=float(t),
-                u=float(u),
-                dv=float(dv),
-                omega0=float(omega0),
-                g_ep=float(g_ep),
-                boundary=str(boundary),
-            )
+    if phase3_enabled and phase3_motif_source_json is not None:
+        phase3_input_motif_library = load_motif_library_from_json(Path(phase3_motif_source_json))
+        if phase3_input_motif_library is not None:
+            phase3_motif_usage["enabled"] = True
+            phase3_motif_usage["source_tag"] = str(phase3_input_motif_library.get("source_tag", "payload"))
+    if phase3_enabled and bool(phase3_enable_rescue):
+        phase3_exact_reference_state = _exact_reference_state_for_hh(
+            num_sites=int(num_sites),
+            num_particles=num_particles,
+            indexing=str(ordering),
+            n_ph_max=int(n_ph_max),
+            boson_encoding=str(boson_encoding),
+            t=float(t),
+            u=float(u),
+            dv=float(dv),
+            omega0=float(omega0),
+            g_ep=float(g_ep),
+            boundary=str(boundary),
+        )
         _ai_log(
             "hardcoded_adapt_phase3_registry_ready",
             pool_size=int(len(pool)),
@@ -2086,8 +2438,15 @@ def _run_hardcoded_adapt_vqe(
     stop_reason = "max_depth"
 
     scipy_minimize = None
-    if adapt_inner_optimizer_key == "COBYLA":
+    if adapt_inner_optimizer_key in {"COBYLA", "POWELL"}:
         from scipy.optimize import minimize as scipy_minimize
+
+    def _scipy_inner_options(maxiter_value: int) -> dict[str, Any]:
+        if adapt_inner_optimizer_key == "COBYLA":
+            return {"maxiter": int(maxiter_value), "rhobeg": 0.3}
+        if adapt_inner_optimizer_key == "POWELL":
+            return {"maxiter": int(maxiter_value), "xtol": 1e-4, "ftol": 1e-8}
+        raise ValueError(f"Unsupported SciPy ADAPT inner optimizer: {adapt_inner_optimizer_key}")
 
     # Pool availability tracking (for no-repeat mode)
     available_indices = (
@@ -2245,16 +2604,17 @@ def _run_hardcoded_adapt_vqe(
                         x,
                         h_compiled=h_compiled,
                     )
-                if adapt_inner_optimizer_key == "COBYLA":
+                if adapt_inner_optimizer_key in {"COBYLA", "POWELL"}:
                     seed_cobyla_nfev_so_far += 1
                     if seed_energy_val < seed_cobyla_best_fun:
                         seed_cobyla_best_fun = float(seed_energy_val)
                     now = time.perf_counter()
                     if (now - seed_cobyla_last_hb_t) >= float(adapt_spsa_progress_every_s):
                         _ai_log(
-                            "hardcoded_adapt_cobyla_heartbeat",
+                            "hardcoded_adapt_scipy_heartbeat",
                             stage="hh_seed_preopt",
                             depth=0,
+                            opt_method=str(adapt_inner_optimizer_key),
                             nfev_opt_so_far=int(seed_cobyla_nfev_so_far),
                             best_fun=float(seed_cobyla_best_fun),
                             delta_abs_best=(
@@ -2315,12 +2675,14 @@ def _run_hardcoded_adapt_vqe(
                 seed_message = str(seed_result.message)
             else:
                 if scipy_minimize is None:
-                    raise RuntimeError("SciPy minimize is unavailable for COBYLA ADAPT inner optimizer.")
+                    raise RuntimeError(
+                        f"SciPy minimize is unavailable for {adapt_inner_optimizer_key} ADAPT inner optimizer."
+                    )
                 seed_result = scipy_minimize(
                     _seed_obj,
                     theta_seed0,
-                    method="COBYLA",
-                    options={"maxiter": int(seed_maxiter), "rhobeg": 0.3},
+                    method=str(adapt_inner_optimizer_key),
+                    options=_scipy_inner_options(int(seed_maxiter)),
                 )
                 seed_theta = np.asarray(seed_result.x, dtype=float)
                 seed_energy = float(seed_result.fun)
@@ -2621,7 +2983,7 @@ def _run_hardcoded_adapt_vqe(
             stage_name = str(phase1_stage.stage_name)
             append_position = int(theta.size)
             available_sorted = sorted(list(available_indices), key=lambda i: -float(grad_magnitudes[i]))
-            shortlist = available_sorted[: min(len(available_sorted), 64)]
+            shortlist = available_sorted[: min(len(available_sorted), int(phase1_shortlist_size_val))]
             current_active_window_for_probe, _probe_window_name = _resolve_reopt_active_indices(
                 policy=str(adapt_reopt_policy_key),
                 n=int(max(1, append_position)),
@@ -2661,8 +3023,11 @@ def _run_hardcoded_adapt_vqe(
                             position_id=int(pos),
                             append_position=int(append_position),
                             refit_active_count=int(len(active_window_guess)),
+                            candidate_term=pool[int(idx)],
                         )
-                        meas_stats = phase1_measure_cache.estimate([str(pool[int(idx)].label)])
+                        meas_stats = phase1_measure_cache.estimate(
+                            measurement_group_keys_for_term(pool[int(idx)])
+                        )
                         is_residual_candidate = bool(int(idx) in phase1_residual_indices)
                         stage_gate_open = (
                             (stage_name == "residual")
@@ -2868,6 +3233,10 @@ def _run_hardcoded_adapt_vqe(
                         runtime_split_parent_label_value: str | None = None,
                         runtime_split_child_index_value: int | None = None,
                         runtime_split_child_count_value: int | None = None,
+                        runtime_split_chosen_representation_value: str = "parent",
+                        runtime_split_child_indices_value: Sequence[int] | None = None,
+                        runtime_split_child_labels_value: Sequence[str] | None = None,
+                        runtime_split_child_generator_ids_value: Sequence[str] | None = None,
                     ) -> dict[str, Any]:
                         compiled_candidate = phase2_compiled_term_cache.get(str(candidate_label))
                         if compiled_candidate is None:
@@ -2890,8 +3259,11 @@ def _run_hardcoded_adapt_vqe(
                             position_id=int(feat_base.position_id),
                             append_position=int(feat_base.append_position),
                             refit_active_count=int(len(feat_base.refit_window_indices)),
+                            candidate_term=candidate_term,
                         )
-                        measurement_stats_candidate = phase1_measure_cache.estimate([str(candidate_label)])
+                        measurement_stats_candidate = phase1_measure_cache.estimate(
+                            measurement_group_keys_for_term(candidate_term)
+                        )
                         feat_candidate_base = build_candidate_features(
                             stage_name=str(feat_base.stage_name),
                             candidate_label=str(candidate_label),
@@ -2958,6 +3330,24 @@ def _run_hardcoded_adapt_vqe(
                                         if runtime_split_child_count_value is not None
                                         else None
                                     ),
+                                    "runtime_split_chosen_representation": str(
+                                        runtime_split_chosen_representation_value
+                                    ),
+                                    "runtime_split_child_indices": (
+                                        [int(x) for x in runtime_split_child_indices_value]
+                                        if runtime_split_child_indices_value is not None
+                                        else []
+                                    ),
+                                    "runtime_split_child_labels": (
+                                        [str(x) for x in runtime_split_child_labels_value]
+                                        if runtime_split_child_labels_value is not None
+                                        else []
+                                    ),
+                                    "runtime_split_child_generator_ids": (
+                                        [str(x) for x in runtime_split_child_generator_ids_value]
+                                        if runtime_split_child_generator_ids_value is not None
+                                        else []
+                                    ),
                                 }
                             )
                         active_memory = phase2_memory_adapter.select_active(
@@ -2990,14 +3380,13 @@ def _run_hardcoded_adapt_vqe(
                             "candidate_term": candidate_term,
                         }
 
-                    candidate_variants = [
-                        _full_record_for_candidate(
-                            candidate_term=rec["candidate_term"],
-                            candidate_label=parent_label,
-                            generator_metadata=parent_generator_meta,
-                            symmetry_spec_candidate=parent_symmetry_spec,
-                        )
-                    ]
+                    parent_record = _full_record_for_candidate(
+                        candidate_term=rec["candidate_term"],
+                        candidate_label=parent_label,
+                        generator_metadata=parent_generator_meta,
+                        symmetry_spec_candidate=parent_symmetry_spec,
+                    )
+                    candidate_variants = [parent_record]
                     if (
                         phase3_enabled
                         and str(phase3_runtime_split_mode_key) == "shortlist_pauli_children_v1"
@@ -3019,10 +3408,18 @@ def _run_hardcoded_adapt_vqe(
                             phase3_runtime_split_summary["probed_parent_count"] = int(
                                 phase3_runtime_split_summary.get("probed_parent_count", 0)
                             ) + 1
+                        split_child_records: list[dict[str, Any]] = []
+                        split_child_record_by_generator_id: dict[str, dict[str, Any]] = {}
+                        split_child_scores: dict[str, float] = {}
                         for child in split_children:
                             child_label = str(child.get("child_label"))
                             child_poly = child.get("child_polynomial")
                             child_meta = child.get("child_generator_metadata")
+                            child_symmetry_gate = (
+                                dict(child.get("symmetry_gate", {}))
+                                if isinstance(child.get("symmetry_gate"), Mapping)
+                                else {}
+                            )
                             if not isinstance(child_poly, PauliPolynomial):
                                 continue
                             if not isinstance(child_meta, Mapping):
@@ -3031,31 +3428,225 @@ def _run_hardcoded_adapt_vqe(
                             phase3_runtime_split_summary["evaluated_child_count"] = int(
                                 phase3_runtime_split_summary.get("evaluated_child_count", 0)
                             ) + 1
-                            candidate_variants.append(
-                                _full_record_for_candidate(
-                                    candidate_term=AnsatzTerm(
-                                        label=str(child_label),
-                                        polynomial=child_poly,
-                                    ),
-                                    candidate_label=str(child_label),
-                                    generator_metadata=dict(child_meta),
-                                    symmetry_spec_candidate=(
-                                        dict(child_meta.get("symmetry_spec", {}))
-                                        if isinstance(child_meta.get("symmetry_spec"), Mapping)
-                                        else parent_symmetry_spec
-                                    ),
-                                    runtime_split_mode_value=str(phase3_runtime_split_mode_key),
-                                    runtime_split_parent_label_value=str(parent_label),
-                                    runtime_split_child_index_value=(
-                                        int(child.get("child_index"))
-                                        if child.get("child_index") is not None
-                                        else None
-                                    ),
-                                    runtime_split_child_count_value=(
-                                        int(child.get("child_count"))
-                                        if child.get("child_count") is not None
-                                        else None
-                                    ),
+                            if not bool(child_symmetry_gate.get("passed", True)):
+                                phase3_runtime_split_summary["rejected_child_count_symmetry"] = int(
+                                    phase3_runtime_split_summary.get("rejected_child_count_symmetry", 0)
+                                ) + 1
+                            child_record = _full_record_for_candidate(
+                                candidate_term=AnsatzTerm(
+                                    label=str(child_label),
+                                    polynomial=child_poly,
+                                ),
+                                candidate_label=str(child_label),
+                                generator_metadata=dict(child_meta),
+                                symmetry_spec_candidate=(
+                                    dict(child_meta.get("symmetry_spec", {}))
+                                    if isinstance(child_meta.get("symmetry_spec"), Mapping)
+                                    else parent_symmetry_spec
+                                ),
+                                runtime_split_mode_value=str(phase3_runtime_split_mode_key),
+                                runtime_split_parent_label_value=str(parent_label),
+                                runtime_split_child_index_value=(
+                                    int(child.get("child_index"))
+                                    if child.get("child_index") is not None
+                                    else None
+                                ),
+                                runtime_split_child_count_value=(
+                                    int(child.get("child_count"))
+                                    if child.get("child_count") is not None
+                                    else None
+                                ),
+                                runtime_split_chosen_representation_value="child_atom",
+                                runtime_split_child_indices_value=(
+                                    [int(child.get("child_index"))]
+                                    if child.get("child_index") is not None
+                                    else []
+                                ),
+                                runtime_split_child_labels_value=[str(child_label)],
+                                runtime_split_child_generator_ids_value=(
+                                    [str(child_meta.get("generator_id"))]
+                                    if child_meta.get("generator_id") is not None
+                                    else []
+                                ),
+                            )
+                            split_child_records.append(dict(child_record))
+                            split_child_scores[str(child_label)] = float(
+                                child_record.get("full_v2_score", float("-inf"))
+                            )
+                            if child_meta.get("generator_id") is not None:
+                                split_child_record_by_generator_id[str(child_meta.get("generator_id"))] = dict(child_record)
+                        split_candidate_record: dict[str, Any] | None = None
+                        admissible_child_subsets: list[list[str]] = []
+                        best_split_choice_reason = "no_admissible_child_set"
+                        best_split_gate_results: dict[str, Any] = {}
+                        best_split_child_ids: list[str] = []
+                        child_set_candidates = build_runtime_split_child_sets(
+                            parent_label=str(parent_label),
+                            family_id=str(feat_base.candidate_family),
+                            num_sites=int(num_sites),
+                            ordering=str(ordering),
+                            qpb=int(max(1, qpb)),
+                            split_mode=str(phase3_runtime_split_mode_key),
+                            children=split_children,
+                            parent_generator_metadata=parent_generator_meta,
+                            symmetry_spec=parent_symmetry_spec,
+                            max_subset_size=3,
+                        )
+                        phase3_runtime_split_summary["admissible_child_set_count"] = int(
+                            phase3_runtime_split_summary.get("admissible_child_set_count", 0)
+                        ) + int(len(child_set_candidates))
+                        if child_set_candidates and split_child_records:
+                            compat_oracle_split = CompatibilityPenaltyOracle(
+                                cfg=phase2_score_cfg,
+                                psi_state=np.asarray(psi_current, dtype=complex),
+                                compiled_cache=phase2_compiled_term_cache,
+                                pauli_action_cache=pauli_action_cache,
+                            )
+                            best_split_proxy = float("-inf")
+                            best_split_payload: dict[str, Any] | None = None
+                            for child_set in child_set_candidates:
+                                child_set_ids = [str(x) for x in child_set.get("child_generator_ids", [])]
+                                child_set_records = [
+                                    dict(split_child_record_by_generator_id[str(child_id)])
+                                    for child_id in child_set_ids
+                                    if str(child_id) in split_child_record_by_generator_id
+                                ]
+                                if len(child_set_records) != len(child_set_ids):
+                                    continue
+                                admissible_child_subsets.append(
+                                    [str(x) for x in child_set.get("child_labels", [])]
+                                )
+                                penalty_total = 0.0
+                                for left_idx in range(len(child_set_records)):
+                                    for right_idx in range(left_idx + 1, len(child_set_records)):
+                                        penalty_total += float(
+                                            compat_oracle_split.penalty(
+                                                child_set_records[left_idx],
+                                                child_set_records[right_idx],
+                                            ).get("total", 0.0)
+                                        )
+                                proxy_score = float(
+                                    sum(
+                                        float(rec_child.get("full_v2_score", float("-inf")))
+                                        for rec_child in child_set_records
+                                    )
+                                    - penalty_total
+                                )
+                                if proxy_score > best_split_proxy:
+                                    best_split_proxy = float(proxy_score)
+                                    best_split_payload = dict(child_set)
+                            if best_split_payload is not None:
+                                split_label = str(best_split_payload.get("candidate_label"))
+                                split_poly = best_split_payload.get("candidate_polynomial")
+                                split_meta = best_split_payload.get("candidate_generator_metadata")
+                                if isinstance(split_poly, PauliPolynomial) and isinstance(split_meta, Mapping):
+                                    pool_generator_registry[str(split_label)] = dict(split_meta)
+                                    best_split_gate_results = (
+                                        dict(best_split_payload.get("symmetry_gate", {}))
+                                        if isinstance(best_split_payload.get("symmetry_gate"), Mapping)
+                                        else {}
+                                    )
+                                    best_split_child_ids = [
+                                        str(x) for x in best_split_payload.get("child_generator_ids", [])
+                                    ]
+                                    split_candidate_record = _full_record_for_candidate(
+                                        candidate_term=AnsatzTerm(
+                                            label=str(split_label),
+                                            polynomial=split_poly,
+                                        ),
+                                        candidate_label=str(split_label),
+                                        generator_metadata=dict(split_meta),
+                                        symmetry_spec_candidate=(
+                                            dict(split_meta.get("symmetry_spec", {}))
+                                            if isinstance(split_meta.get("symmetry_spec"), Mapping)
+                                            else parent_symmetry_spec
+                                        ),
+                                        runtime_split_mode_value=str(phase3_runtime_split_mode_key),
+                                        runtime_split_parent_label_value=str(parent_label),
+                                        runtime_split_child_count_value=int(len(split_children)),
+                                        runtime_split_chosen_representation_value="child_set",
+                                        runtime_split_child_indices_value=[
+                                            int(x) for x in best_split_payload.get("child_indices", [])
+                                        ],
+                                        runtime_split_child_labels_value=[
+                                            str(x) for x in best_split_payload.get("child_labels", [])
+                                        ],
+                                        runtime_split_child_generator_ids_value=list(best_split_child_ids),
+                                    )
+                                    candidate_variants.append(dict(split_candidate_record))
+                                    parent_score = float(parent_record.get("full_v2_score", float("-inf")))
+                                    split_score = float(split_candidate_record.get("full_v2_score", float("-inf")))
+                                    split_wins = bool(split_score > parent_score)
+                                    if split_wins:
+                                        phase3_runtime_split_summary["probe_child_set_count"] = int(
+                                            phase3_runtime_split_summary.get("probe_child_set_count", 0)
+                                        ) + 1
+                                        best_split_choice_reason = "child_set_actual_score_better"
+                                    else:
+                                        phase3_runtime_split_summary["probe_parent_win_count"] = int(
+                                            phase3_runtime_split_summary.get("probe_parent_win_count", 0)
+                                        ) + 1
+                                        best_split_choice_reason = "parent_actual_score_better"
+                                    phase3_split_events.append(
+                                        build_split_event(
+                                            parent_generator_id=str(parent_generator_meta.get("generator_id")),
+                                            child_generator_ids=list(best_split_child_ids),
+                                            reason=f"depth{int(depth + 1)}_shortlist_probe",
+                                            split_mode=str(phase3_runtime_split_mode_key),
+                                            probe_trigger="phase2_shortlist",
+                                            choice_reason=str(best_split_choice_reason),
+                                            parent_score=float(parent_score),
+                                            child_scores=dict(split_child_scores),
+                                            admissible_child_subsets=list(admissible_child_subsets),
+                                            chosen_representation=("child_set" if split_wins else "parent"),
+                                            chosen_child_ids=(list(best_split_child_ids) if split_wins else []),
+                                            split_margin=float(split_score - parent_score),
+                                            symmetry_gate_results=dict(best_split_gate_results),
+                                            compiled_cost_parent=float(
+                                                parent_record.get("feature").compiled_position_cost_proxy.get("proxy_total", 0.0)
+                                            )
+                                            if isinstance(parent_record.get("feature"), CandidateFeatures)
+                                            else None,
+                                            compiled_cost_children=float(
+                                                split_candidate_record.get("feature").compiled_position_cost_proxy.get("proxy_total", 0.0)
+                                            )
+                                            if isinstance(split_candidate_record.get("feature"), CandidateFeatures)
+                                            else None,
+                                            insertion_positions=[int(feat_base.position_id)],
+                                        )
+                                    )
+                        elif split_children:
+                            phase3_runtime_split_summary["probe_parent_win_count"] = int(
+                                phase3_runtime_split_summary.get("probe_parent_win_count", 0)
+                            ) + 1
+                            phase3_split_events.append(
+                                build_split_event(
+                                    parent_generator_id=str(parent_generator_meta.get("generator_id")),
+                                    child_generator_ids=[
+                                        str(meta.get("generator_id"))
+                                        for meta in (
+                                            child.get("child_generator_metadata")
+                                            for child in split_children
+                                            if isinstance(child.get("child_generator_metadata"), Mapping)
+                                        )
+                                        if meta.get("generator_id") is not None
+                                    ],
+                                    reason=f"depth{int(depth + 1)}_shortlist_probe",
+                                    split_mode=str(phase3_runtime_split_mode_key),
+                                    probe_trigger="phase2_shortlist",
+                                    choice_reason="no_admissible_child_set",
+                                    parent_score=float(parent_record.get("full_v2_score", float("-inf"))),
+                                    child_scores=dict(split_child_scores),
+                                    admissible_child_subsets=[],
+                                    chosen_representation="parent",
+                                    chosen_child_ids=[],
+                                    symmetry_gate_results={"admissible_child_set_count": 0},
+                                    compiled_cost_parent=float(
+                                        parent_record.get("feature").compiled_position_cost_proxy.get("proxy_total", 0.0)
+                                    )
+                                    if isinstance(parent_record.get("feature"), CandidateFeatures)
+                                    else None,
+                                    insertion_positions=[int(feat_base.position_id)],
                                 )
                             )
                     candidate_variants = sorted(candidate_variants, key=_phase2_record_sort_key)
@@ -3406,6 +3997,7 @@ def _run_hardcoded_adapt_vqe(
         selected_batch_labels: list[str] = []
         selected_batch_positions: list[int] = []
         selected_batch_indices: list[int] = []
+        selected_batch_measurement_keys: list[str] = []
         if phase1_enabled and phase2_enabled and len(phase2_selected_records) > 0:
             original_positions_seen: list[int] = []
             for rec in phase2_selected_records:
@@ -3435,22 +4027,55 @@ def _run_hardcoded_adapt_vqe(
                     phase3_enabled
                     and str(feat_rec.runtime_split_mode) != "off"
                     and feat_rec.parent_generator_id is not None
-                    and feat_rec.generator_id is not None
                 ):
+                    selected_child_generator_ids = [str(x) for x in feat_rec.runtime_split_child_generator_ids]
                     phase3_split_events.append(
                         build_split_event(
                             parent_generator_id=str(feat_rec.parent_generator_id),
-                            child_generator_ids=[str(feat_rec.generator_id)],
+                            child_generator_ids=(
+                                list(selected_child_generator_ids)
+                                if selected_child_generator_ids
+                                else ([str(feat_rec.generator_id)] if feat_rec.generator_id is not None else [])
+                            ),
                             reason=f"depth{int(depth + 1)}_selected",
                             split_mode=str(feat_rec.runtime_split_mode),
+                            choice_reason="selected_for_admission",
+                            chosen_representation=str(feat_rec.runtime_split_chosen_representation),
+                            chosen_child_ids=list(selected_child_generator_ids),
+                            symmetry_gate_results=(
+                                dict(feat_rec.generator_metadata.get("compile_metadata", {}).get("runtime_split", {}).get("symmetry_gate", {}))
+                                if isinstance(feat_rec.generator_metadata, Mapping)
+                                and isinstance(feat_rec.generator_metadata.get("compile_metadata"), Mapping)
+                                and isinstance(
+                                    feat_rec.generator_metadata.get("compile_metadata", {}).get("runtime_split"),
+                                    Mapping,
+                                )
+                                else {}
+                            ),
+                            insertion_positions=[int(pos_eff)],
                         )
                     )
+                    if str(feat_rec.runtime_split_chosen_representation) == "child_set":
+                        phase3_runtime_split_summary["selected_child_set_count"] = int(
+                            phase3_runtime_split_summary.get("selected_child_set_count", 0)
+                        ) + 1
                     phase3_runtime_split_summary["selected_child_count"] = int(
                         phase3_runtime_split_summary.get("selected_child_count", 0)
-                    ) + 1
+                    ) + int(
+                        max(
+                            1,
+                            len(selected_child_generator_ids)
+                            if selected_child_generator_ids
+                            else len(feat_rec.runtime_split_child_labels),
+                        )
+                    )
                     phase3_runtime_split_summary["selected_child_labels"] = [
                         *list(phase3_runtime_split_summary.get("selected_child_labels", [])),
-                        str(admitted_term.label),
+                        *(
+                            [str(x) for x in feat_rec.runtime_split_child_labels]
+                            if feat_rec.runtime_split_child_labels
+                            else [str(admitted_term.label)]
+                        ),
                     ]
                 original_positions_seen.append(int(pos_orig))
                 selection_counts[idx_sel] += 1
@@ -3460,6 +4085,7 @@ def _run_hardcoded_adapt_vqe(
                 selected_batch_labels.append(str(admitted_term.label))
                 selected_batch_positions.append(int(pos_orig))
                 selected_batch_indices.append(int(idx_sel))
+                selected_batch_measurement_keys.extend(measurement_group_keys_for_term(admitted_term))
             if selected_batch_indices:
                 best_idx = int(selected_batch_indices[0])
                 selected_position = int(selected_batch_positions[0])
@@ -3485,6 +4111,7 @@ def _run_hardcoded_adapt_vqe(
             selected_batch_labels.append(str(pool[int(best_idx)].label))
             selected_batch_positions.append(int(selected_position))
             selected_batch_indices.append(int(best_idx))
+            selected_batch_measurement_keys.extend(measurement_group_keys_for_term(pool[int(best_idx)]))
         else:
             selected_ops.append(pool[best_idx])
             theta = np.append(theta, float(init_theta))
@@ -3494,6 +4121,7 @@ def _run_hardcoded_adapt_vqe(
             selected_batch_labels.append(str(pool[int(best_idx)].label))
             selected_batch_positions.append(int(selected_position))
             selected_batch_indices.append(int(best_idx))
+            selected_batch_measurement_keys.extend(measurement_group_keys_for_term(pool[int(best_idx)]))
         if adapt_state_backend_key == "compiled":
             selected_executor = _build_compiled_executor(selected_ops)
         else:
@@ -3525,16 +4153,17 @@ def _run_hardcoded_adapt_vqe(
                     x,
                     h_compiled=h_compiled,
                 )
-            if adapt_inner_optimizer_key == "COBYLA":
+            if adapt_inner_optimizer_key in {"COBYLA", "POWELL"}:
                 cobyla_nfev_so_far += 1
                 if energy_obj_val < cobyla_best_fun:
                     cobyla_best_fun = float(energy_obj_val)
                 now = time.perf_counter()
                 if (now - cobyla_last_hb_t) >= float(adapt_spsa_progress_every_s):
                     _ai_log(
-                        "hardcoded_adapt_cobyla_heartbeat",
+                        "hardcoded_adapt_scipy_heartbeat",
                         stage="depth_opt",
                         depth=int(depth + 1),
+                        opt_method=str(adapt_inner_optimizer_key),
                         nfev_opt_so_far=int(cobyla_nfev_so_far),
                         best_fun=float(cobyla_best_fun),
                         delta_abs_best=(
@@ -3650,12 +4279,14 @@ def _run_hardcoded_adapt_vqe(
                 )
         else:
             if scipy_minimize is None:
-                raise RuntimeError("SciPy minimize is unavailable for COBYLA ADAPT inner optimizer.")
+                raise RuntimeError(
+                    f"SciPy minimize is unavailable for {adapt_inner_optimizer_key} ADAPT inner optimizer."
+                )
             result = scipy_minimize(
                 _obj_opt,
                 opt_x0,
-                method="COBYLA",
-                options={"maxiter": int(maxiter), "rhobeg": 0.3},
+                method=str(adapt_inner_optimizer_key),
+                options=_scipy_inner_options(int(maxiter)),
             )
             # Reconstruct full theta from reduced optimizer result
             if len(reopt_active_indices) == n_theta:
@@ -3994,6 +4625,26 @@ def _run_hardcoded_adapt_vqe(
                             and phase1_feature_selected.get("runtime_split_child_count") is not None
                             else None
                         ),
+                        "runtime_split_chosen_representation": (
+                            str(phase1_feature_selected.get("runtime_split_chosen_representation", "parent"))
+                            if isinstance(phase1_feature_selected, dict)
+                            else "parent"
+                        ),
+                        "runtime_split_child_indices": (
+                            [int(x) for x in phase1_feature_selected.get("runtime_split_child_indices", [])]
+                            if isinstance(phase1_feature_selected, dict)
+                            else []
+                        ),
+                        "runtime_split_child_labels": (
+                            [str(x) for x in phase1_feature_selected.get("runtime_split_child_labels", [])]
+                            if isinstance(phase1_feature_selected, dict)
+                            else []
+                        ),
+                        "runtime_split_child_generator_ids": (
+                            [str(x) for x in phase1_feature_selected.get("runtime_split_child_generator_ids", [])]
+                            if isinstance(phase1_feature_selected, dict)
+                            else []
+                        ),
                         "lifetime_cost_mode": (
                             str(phase1_feature_selected.get("lifetime_cost_mode"))
                             if isinstance(phase1_feature_selected, dict)
@@ -4025,7 +4676,11 @@ def _run_hardcoded_adapt_vqe(
                     phase1_features_history.append(dict(rec))
             elif isinstance(phase1_feature_selected, dict):
                 phase1_features_history.append(dict(phase1_feature_selected))
-            phase1_measure_cache.commit([str(x) for x in selected_batch_labels] if selected_batch_labels else [str(pool[best_idx].label)])
+            phase1_measure_cache.commit(
+                selected_batch_measurement_keys
+                if selected_batch_measurement_keys
+                else measurement_group_keys_for_term(pool[int(best_idx)])
+            )
 
         _ai_log(
             "hardcoded_adapt_iter_done",
@@ -4210,15 +4865,16 @@ def _run_hardcoded_adapt_vqe(
                     energy_obj_val = _adapt_energy_fn(
                         h_poly, psi_ref, selected_ops, x, h_compiled=h_compiled,
                     )
-                if adapt_inner_optimizer_key == "COBYLA":
+                if adapt_inner_optimizer_key in {"COBYLA", "POWELL"}:
                     cobyla_nfev_so_far += 1
                     if energy_obj_val < cobyla_best_fun:
                         cobyla_best_fun = float(energy_obj_val)
                     now = time.perf_counter()
                     if (now - cobyla_last_hb_t) >= float(adapt_spsa_progress_every_s):
                         _ai_log(
-                            "hardcoded_adapt_cobyla_heartbeat",
+                            "hardcoded_adapt_scipy_heartbeat",
                             stage="final_full_refit",
+                            opt_method=str(adapt_inner_optimizer_key),
                             nfev_opt_so_far=int(cobyla_nfev_so_far),
                             best_fun=float(cobyla_best_fun),
                             elapsed_opt_s=float(now - final_opt_t0),
@@ -4256,12 +4912,14 @@ def _run_hardcoded_adapt_vqe(
                 )
             else:
                 if scipy_minimize is None:
-                    raise RuntimeError("SciPy minimize is unavailable for COBYLA final full refit.")
+                    raise RuntimeError(
+                        f"SciPy minimize is unavailable for {adapt_inner_optimizer_key} final full refit."
+                    )
                 final_result = scipy_minimize(
                     _obj_final,
                     final_x0,
-                    method="COBYLA",
-                    options={"maxiter": int(maxiter), "rhobeg": 0.3},
+                    method=str(adapt_inner_optimizer_key),
+                    options=_scipy_inner_options(int(maxiter)),
                 )
 
             final_energy = float(final_result.fun)
@@ -4645,6 +5303,7 @@ def _run_hardcoded_adapt_vqe(
             else str(phase1_score_cfg.score_version)
         ),
         "stage_controller": {
+            "shortlist_size": int(phase1_shortlist_size_val),
             "plateau_patience": int(phase1_stage_cfg.plateau_patience),
             "probe_margin_ratio": float(phase1_stage_cfg.probe_margin_ratio),
             "max_probe_positions": int(phase1_stage_cfg.max_probe_positions),
@@ -4704,6 +5363,7 @@ def _run_hardcoded_adapt_vqe(
         "operators": [str(op.label) for op in selected_ops],
         "pool_size": int(len(pool)),
         "pool_type": str(pool_key),
+        "phase1_depth0_full_meta_override": bool(phase1_depth0_full_meta_override),
         "stop_reason": str(stop_reason),
         "nfev_total": int(nfev_total),
         "adapt_inner_optimizer": str(adapt_inner_optimizer_key),
@@ -4773,6 +5433,10 @@ def _run_hardcoded_adapt_vqe(
                     "components": [
                         "new_pauli_actions",
                         "new_rotation_steps",
+                        "cx_proxy_total",
+                        "sq_proxy_total",
+                        "gate_proxy_total",
+                        "max_pauli_weight",
                         "position_shift_span",
                         "refit_active_count",
                     ],
@@ -5145,6 +5809,8 @@ def parse_args() -> argparse.Namespace:
             "full_hamiltonian",
             "hva",
             "full_meta",
+            "pareto_lean",
+            "pareto_lean_l2",
             "uccsd_paop_lf_full",
             "paop",
             "paop_min",
@@ -5158,7 +5824,8 @@ def parse_args() -> argparse.Namespace:
         default=None,
         help=(
             "ADAPT pool family. If omitted, runtime resolves problem-aware defaults: "
-            "hubbard->uccsd, hh+legacy->full_meta, hh+phase1_v1/phase2_v1/phase3_v1->paop_lf_std core + residual full_meta."
+            "hubbard->uccsd, hh+legacy->full_meta, hh+phase1_v1/phase2_v1/phase3_v1->paop_lf_std core + residual full_meta. "
+            "HH also supports opt-in scaffold-derived preset pareto_lean."
         ),
     )
     p.add_argument(
@@ -5180,7 +5847,7 @@ def parse_args() -> argparse.Namespace:
     )
     p.add_argument(
         "--adapt-inner-optimizer",
-        choices=["COBYLA", "SPSA"],
+        choices=["COBYLA", "POWELL", "SPSA"],
         default="SPSA",
         help="Inner re-optimizer for HH seed pre-opt and per-depth ADAPT re-optimization.",
     )
@@ -5224,6 +5891,12 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--phase1-lambda-measure", type=float, default=0.02)
     p.add_argument("--phase1-lambda-leak", type=float, default=0.0)
     p.add_argument("--phase1-score-z-alpha", type=float, default=0.0)
+    p.add_argument(
+        "--phase1-shortlist-size",
+        type=int,
+        default=64,
+        help="Maximum candidate count admitted into phase-1 probing before phase-2 full scoring.",
+    )
     p.add_argument("--phase1-probe-max-positions", type=int, default=6)
     p.add_argument("--phase1-plateau-patience", type=int, default=2)
     p.add_argument("--phase1-trough-margin-ratio", type=float, default=1.0)
@@ -5233,6 +5906,57 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--phase1-prune-fraction", type=float, default=0.25)
     p.add_argument("--phase1-prune-max-candidates", type=int, default=6)
     p.add_argument("--phase1-prune-max-regression", type=float, default=1e-8)
+    p.add_argument(
+        "--phase2-shortlist-fraction",
+        type=float,
+        default=0.2,
+        help="Fraction of phase-1 records admitted into phase-2 full scoring before shortlist-size capping.",
+    )
+    p.add_argument(
+        "--phase2-shortlist-size",
+        type=int,
+        default=12,
+        help="Maximum phase-2 shortlist size after cheap screening.",
+    )
+    p.add_argument(
+        "--phase2-lambda-H",
+        type=float,
+        default=1e-6,
+        help="Phase-2 full-score weight for the curvature/H proxy term.",
+    )
+    p.add_argument(
+        "--phase2-rho",
+        type=float,
+        default=0.25,
+        help="Phase-2 diversity penalty weight used during shortlist/batch scoring.",
+    )
+    p.add_argument(
+        "--phase2-gamma-N",
+        type=float,
+        default=1.0,
+        help="Phase-2 novelty multiplier used in the full_v2 score.",
+    )
+    p.set_defaults(phase2_enable_batching=True)
+    p.add_argument("--phase2-enable-batching", dest="phase2_enable_batching", action="store_true")
+    p.add_argument("--phase2-no-batching", dest="phase2_enable_batching", action="store_false")
+    p.add_argument(
+        "--phase2-batch-target-size",
+        type=int,
+        default=2,
+        help="Target number of near-degenerate candidates admitted into a phase-2 batch selection step.",
+    )
+    p.add_argument(
+        "--phase2-batch-size-cap",
+        type=int,
+        default=3,
+        help="Hard cap on candidates admitted into a phase-2 batch selection step.",
+    )
+    p.add_argument(
+        "--phase2-batch-near-degenerate-ratio",
+        type=float,
+        default=0.9,
+        help="Relative full-score threshold for near-degenerate candidates eligible for phase-2 batching.",
+    )
     p.add_argument(
         "--phase3-motif-source-json",
         type=Path,
@@ -5258,7 +5982,7 @@ def parse_args() -> argparse.Namespace:
         "--phase3-runtime-split-mode",
         choices=["off", "shortlist_pauli_children_v1"],
         default="off",
-        help="Opt-in shortlist-only macro splitting. When enabled, shortlisted macro generators may be replaced by single-term children at phase2/phase3 scoring time.",
+        help="Opt-in shortlist-only macro splitting. When enabled, shortlisted macro generators are probed through serialized Pauli child atoms, but only symmetry-safe child-set candidates compete for admission at phase2/phase3 scoring time.",
     )
     p.add_argument("--adapt-maxiter", type=int, default=300, help="Inner optimizer maxiter per re-optimization")
     p.add_argument("--adapt-spsa-a", type=float, default=0.2)
@@ -5668,6 +6392,7 @@ def main() -> None:
             phase1_lambda_measure=float(args.phase1_lambda_measure),
             phase1_lambda_leak=float(args.phase1_lambda_leak),
             phase1_score_z_alpha=float(args.phase1_score_z_alpha),
+            phase1_shortlist_size=int(args.phase1_shortlist_size),
             phase1_probe_max_positions=int(args.phase1_probe_max_positions),
             phase1_plateau_patience=int(args.phase1_plateau_patience),
             phase1_trough_margin_ratio=float(args.phase1_trough_margin_ratio),
@@ -5675,6 +6400,15 @@ def main() -> None:
             phase1_prune_fraction=float(args.phase1_prune_fraction),
             phase1_prune_max_candidates=int(args.phase1_prune_max_candidates),
             phase1_prune_max_regression=float(args.phase1_prune_max_regression),
+            phase2_shortlist_fraction=float(args.phase2_shortlist_fraction),
+            phase2_shortlist_size=int(args.phase2_shortlist_size),
+            phase2_lambda_H=float(args.phase2_lambda_H),
+            phase2_rho=float(args.phase2_rho),
+            phase2_gamma_N=float(args.phase2_gamma_N),
+            phase2_enable_batching=bool(args.phase2_enable_batching),
+            phase2_batch_target_size=int(args.phase2_batch_target_size),
+            phase2_batch_size_cap=int(args.phase2_batch_size_cap),
+            phase2_batch_near_degenerate_ratio=float(args.phase2_batch_near_degenerate_ratio),
             phase3_motif_source_json=(Path(args.phase3_motif_source_json) if args.phase3_motif_source_json is not None else None),
             phase3_symmetry_mitigation_mode=str(args.phase3_symmetry_mitigation_mode),
             phase3_enable_rescue=bool(args.phase3_enable_rescue),
@@ -5821,6 +6555,7 @@ def main() -> None:
             "phase1_lambda_measure": float(args.phase1_lambda_measure),
             "phase1_lambda_leak": float(args.phase1_lambda_leak),
             "phase1_score_z_alpha": float(args.phase1_score_z_alpha),
+            "phase1_shortlist_size": int(args.phase1_shortlist_size),
             "phase1_probe_max_positions": int(args.phase1_probe_max_positions),
             "phase1_plateau_patience": int(args.phase1_plateau_patience),
             "phase1_trough_margin_ratio": float(args.phase1_trough_margin_ratio),
@@ -5828,6 +6563,15 @@ def main() -> None:
             "phase1_prune_fraction": float(args.phase1_prune_fraction),
             "phase1_prune_max_candidates": int(args.phase1_prune_max_candidates),
             "phase1_prune_max_regression": float(args.phase1_prune_max_regression),
+            "phase2_shortlist_fraction": float(args.phase2_shortlist_fraction),
+            "phase2_shortlist_size": int(args.phase2_shortlist_size),
+            "phase2_lambda_H": float(args.phase2_lambda_H),
+            "phase2_rho": float(args.phase2_rho),
+            "phase2_gamma_N": float(args.phase2_gamma_N),
+            "phase2_enable_batching": bool(args.phase2_enable_batching),
+            "phase2_batch_target_size": int(args.phase2_batch_target_size),
+            "phase2_batch_size_cap": int(args.phase2_batch_size_cap),
+            "phase2_batch_near_degenerate_ratio": float(args.phase2_batch_near_degenerate_ratio),
             "phase3_motif_source_json": (
                 str(args.phase3_motif_source_json)
                 if args.phase3_motif_source_json is not None

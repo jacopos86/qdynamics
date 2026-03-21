@@ -63,6 +63,12 @@ def test_nondefault_sector_override_rejected_cleanly() -> None:
         resolve_staged_hh_config(args)
 
 
+def test_resolve_preserves_explicit_pareto_lean_pool() -> None:
+    args = parse_args(["--L", "2", "--adapt-pool", "pareto_lean", "--skip-pdf"])
+    cfg = resolve_staged_hh_config(args)
+    assert str(cfg.adapt.pool) == "pareto_lean"
+
+
 def test_underparameterized_override_rejected_without_smoke_flag() -> None:
     args = parse_args([
         "--L",
@@ -126,10 +132,44 @@ def test_workflow_runs_matched_family_replay_and_static_plus_drive_profiles(
             "stop_reason": "eps_grad",
             "operators": ["op_1", "op_2"],
             "optimal_point": [0.1, 0.2],
+            "measurement_cache_summary": {
+                "groups_known": 3.0,
+                "plan_version": "phase1_qwc_basis_cover_reuse",
+            },
+            "compile_cost_proxy_summary": {
+                "version": "phase3_v1_proxy",
+                "components": ["gate_proxy_total", "cx_proxy_total"],
+            },
             "continuation": {
                 "optimizer_memory": {"cached": True},
                 "selected_generator_metadata": [{"generator_id": "g1"}],
+                "runtime_split_summary": {
+                    "mode": "shortlist_pauli_children_v1",
+                    "selected_child_count": 1,
+                },
             },
+            "history": [
+                {
+                    "depth": 1,
+                    "depth_cumulative": 1,
+                    "batch_size": 1,
+                    "candidate_family": "phase1_v1",
+                    "selection_mode": "append",
+                    "energy_after_opt": -1.03,
+                    "delta_abs_current": 0.01,
+                    "delta_abs_drop_from_prev": 0.01,
+                    "measurement_cache_stats": {
+                        "groups_new": 1,
+                        "shots_new": 1000.0,
+                        "reuse_count_cost": 1.0,
+                    },
+                    "compile_cost_proxy": {
+                        "gate_proxy_total": 4.0,
+                        "cx_proxy_total": 2.0,
+                        "sq_proxy_total": 4.0,
+                    },
+                }
+            ],
         }, np.array(psi_adapt, copy=True)
 
     def _fake_write_handoff_state_bundle(**kwargs):
@@ -193,6 +233,8 @@ def test_workflow_runs_matched_family_replay_and_static_plus_drive_profiles(
         [
             "--L",
             "2",
+            "--adapt-pool",
+            "pareto_lean",
             "--skip-pdf",
             "--enable-drive",
             "--output-json",
@@ -210,11 +252,15 @@ def test_workflow_runs_matched_family_replay_and_static_plus_drive_profiles(
     handoff_kwargs = calls["handoff_kwargs"]
 
     assert warm_kwargs["ansatz_name"] == "hh_hva_ptw"
+    assert str(adapt_kwargs["adapt_pool"]) == "pareto_lean"
     assert np.allclose(adapt_kwargs["psi_ref_override"], psi_warm)
     assert handoff_kwargs["handoff_state_kind"] == "prepared_state"
     assert replay_cfg.generator_family == "match_adapt"
     assert replay_cfg.replay_continuation_mode == "phase1_v1"
     assert payload["stage_pipeline"]["conventional_replay"]["generator_family"]["requested"] == "match_adapt"
+    assert payload["stage_pipeline"]["adapt_vqe"]["measurement_cache_summary"]["groups_known"] == pytest.approx(3.0)
+    assert payload["stage_pipeline"]["adapt_vqe"]["compile_cost_proxy_summary"]["version"] == "phase3_v1_proxy"
+    assert payload["stage_pipeline"]["adapt_vqe"]["runtime_split_summary"]["selected_child_count"] == 1
     assert set(payload["dynamics_noiseless"]["profiles"].keys()) == {"static", "drive"}
     static_profile = payload["dynamics_noiseless"]["profiles"]["static"]
     static_rows = static_profile["methods"]["suzuki2"]["trajectory"]
@@ -225,5 +271,9 @@ def test_workflow_runs_matched_family_replay_and_static_plus_drive_profiles(
     assert payload["comparisons"]["noiseless_vs_reference"]["static"]["suzuki2"]["final_fidelity"] == pytest.approx(0.99)
     assert "noiseless_vs_exact" not in payload["comparisons"]
     assert payload["workflow_contract"]["noiseless_energy_metric"].startswith("|E_method(t) - E_exact_sector_replay|")
+    assert payload["pareto_tracking"]["current_run"]["frontier_count"] == 1
+    assert payload["pareto_tracking"]["rolling"]["ledger_row_count"] == 3
+    assert Path(payload["artifacts"]["pareto"]["run_rows_json"]).exists()
+    assert Path(payload["artifacts"]["pareto"]["rolling_frontier_json"]).exists()
     assert calls["propagators"] == ["suzuki2", "cfqm4", "suzuki2", "cfqm4"]
     assert Path(cfg.artifacts.output_json).exists()

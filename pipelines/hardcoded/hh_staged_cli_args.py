@@ -61,7 +61,7 @@ def add_staged_hh_base_args(p: argparse.ArgumentParser) -> argparse.ArgumentPars
     p.add_argument("--adapt-eps-grad", type=float, default=None)
     p.add_argument("--adapt-eps-energy", type=float, default=None)
     p.add_argument("--adapt-seed", type=int, default=11)
-    p.add_argument("--adapt-inner-optimizer", choices=["COBYLA", "SPSA"], default="SPSA")
+    p.add_argument("--adapt-inner-optimizer", choices=["COBYLA", "POWELL", "SPSA"], default="SPSA")
     p.set_defaults(adapt_allow_repeats=True)
     p.add_argument("--adapt-allow-repeats", dest="adapt_allow_repeats", action="store_true")
     p.add_argument("--adapt-no-repeats", dest="adapt_allow_repeats", action="store_false")
@@ -132,6 +132,7 @@ def add_staged_hh_base_args(p: argparse.ArgumentParser) -> argparse.ArgumentPars
         "--phase3-runtime-split-mode",
         choices=["off", "shortlist_pauli_children_v1"],
         default="off",
+        help="Opt-in shortlist-only macro splitting via serialized Pauli child atoms with symmetry-safe child-set admission.",
     )
 
     # Final matched-family replay

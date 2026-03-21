@@ -150,11 +150,12 @@ graph TB
 ### ADAPT Pool Summary (plaintext fallback)
 
 - `hubbard` pools: `uccsd`, `cse`, `full_hamiltonian`.
-- `hh` pools: `hva`, `full_hamiltonian`, `paop_min`, `paop_std`, `paop_full`, `paop_lf` (`paop_lf_std` alias), `paop_lf2_std`, `paop_lf_full`.
+- `hh` pools: `hva`, `full_meta`, `pareto_lean`, `full_hamiltonian`, `paop_min`, `paop_std`, `paop_full`, `paop_lf` (`paop_lf_std` alias), `paop_lf2_std`, `paop_lf_full`.
 - HH staged continuation default for new agent work: `phase1_v1` / `phase2_v1` / `phase3_v1` start from the narrow HH core and runtime-resolve depth-0 HH ADAPT to `paop_lf_std`.
 - HH built-in combined preset: `uccsd_paop_lf_full` = `uccsd_lifted + paop_lf_full` (deduplicated) via one CLI value.
 - HH full-meta preset: `full_meta` = `uccsd_lifted + hva + paop_full + paop_lf_full` (deduplicated) via one CLI value; keep it as a compatibility/broad-pool preset and replay fallback, not the default depth-0 staged HH pool.
-- Opt-in runtime split (`--phase3-runtime-split-mode shortlist_pauli_children_v1`) probes shortlisted macro generators as serialized child terms for continuation/replay provenance; it does **not** change the default HH pool curriculum or create a new replay mode.
+- HH scaffold-derived preset: `pareto_lean` = `uccsd_lifted + hh_termwise_quadrature + paop_cloud_p + paop_disp + paop_hopdrag + paop_lf_dbl_p` (family-pruned from the best-yet heavy scaffold report); keep it opt-in, not the default staged HH core.
+- Opt-in runtime split (`--phase3-runtime-split-mode shortlist_pauli_children_v1`) probes shortlisted macro generators through serialized Pauli child atoms and admits only symmetry-safe child-set candidates for continuation/replay provenance; it does **not** change the default HH pool curriculum or create a new replay mode.
 - `paop_min`: displacement-focused PAOP operators.
 - `paop_std`: displacement plus dressed-hopping (`hopdrag`) operators.
 - `paop_full`: `paop_std` plus doublon dressing and extended cloud operators.

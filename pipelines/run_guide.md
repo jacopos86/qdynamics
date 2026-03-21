@@ -143,7 +143,7 @@ CLI note:
 - Legacy nearest subset remains `--adapt-pool uccsd_paop_lf_full` (`uccsd_lifted + paop_lf_full`).
 
 Opt-in phase-3 follow-ons (keep defaults off unless explicitly requested):
-- `--phase3-runtime-split-mode shortlist_pauli_children_v1` is an optional continuation aid for HH staged ADAPT/hardcoded paths: shortlisted macro generators may be probed as single-term children, with parent/child provenance exported in continuation metadata.
+- `--phase3-runtime-split-mode shortlist_pauli_children_v1` is an optional continuation aid for HH staged ADAPT/hardcoded paths: shortlisted macro generators are probed through serialized Pauli child atoms, but only symmetry-safe child-set candidates are eligible for admission, with parent/child provenance exported in continuation metadata.
 - `--phase3-symmetry-mitigation-mode {off,verify_only,postselect_diag_v1,projector_renorm_v1}` is an optional phase-3 continuation hook. On raw ADAPT / hardcoded / replay paths it is a metadata-and-telemetry surface; active counts-based symmetry mitigation is enforced only in the oracle-backed noise runners.
 - These follow-ons do **not** change the canonical HH contract above: narrow-core first, no depth-0 `full_meta` for new agent-directed runs, and matched-family replay via `--generator-family match_adapt` with `full_meta` fallback.
 
@@ -838,7 +838,7 @@ Typical starting values:
 | `--adapt-max-depth` | int | `30` | Max ADAPT depth for internal PAOP branch construction. |
 | `--adapt-eps-grad` | float | `1e-5` | ADAPT gradient stopping threshold for internal PAOP branch run. |
 | `--adapt-eps-energy` | float | `1e-8` | ADAPT energy-improvement stopping threshold for internal PAOP branch run. |
-| `--adapt-inner-optimizer` | choice | `SPSA` | Inner optimizer per ADAPT re-optimization step: `COBYLA` or `SPSA`. |
+| `--adapt-inner-optimizer` | choice | `SPSA` | Inner optimizer per ADAPT re-optimization step: `COBYLA`, `POWELL`, or `SPSA`. |
 | `--adapt-maxiter` | int | `800` | Inner optimizer maxiter per ADAPT re-optimization step. |
 | `--adapt-seed` | int | `7` | RNG seed for internal ADAPT branch run. |
 | `--adapt-allow-repeats` / `--adapt-no-repeats` | flag pair | repeats on | Allow/disallow operator repeats in internal ADAPT. |
@@ -957,13 +957,13 @@ What it reports:
 
 | Flag | Type | Default | Description |
 |------|------|---------|-------------|
-| `--adapt-pool` | choice | `uccsd` | Pool type: `uccsd`, `cse`, `full_hamiltonian`, `hva` (HH only), `full_meta` (HH only), `paop`, `paop_min`, `paop_std`, `paop_full`, `paop_lf`, `paop_lf_std`, `paop_lf2_std`, `paop_lf_full` (HH only) |
+| `--adapt-pool` | choice | `uccsd` | Pool type: `uccsd`, `cse`, `full_hamiltonian`, `hva` (HH only), `full_meta` (HH only), `pareto_lean` (HH only), `paop`, `paop_min`, `paop_std`, `paop_full`, `paop_lf`, `paop_lf_std`, `paop_lf2_std`, `paop_lf_full` (HH only) |
 | `--adapt-max-depth` | int | `20` | Maximum ADAPT iterations (operators appended) |
 | `--adapt-eps-grad` | float | `1e-4` | Gradient convergence threshold |
 | `--adapt-eps-energy` | float | `1e-8` | Energy convergence threshold. Hard-stop guard for Hubbard / HH `legacy`; telemetry-only in HH `phase1_v1|phase2_v1|phase3_v1` |
 | `--adapt-eps-energy-min-extra-depth` | int | `-1` | Minimum extra depth before eps-energy guard can trigger; `-1 => L`. Telemetry-only in HH `phase1_v1|phase2_v1|phase3_v1` |
 | `--adapt-eps-energy-patience` | int | `-1` | Consecutive low-improvement depths required for eps-energy guard; `-1 => L`. Telemetry-only in HH `phase1_v1|phase2_v1|phase3_v1` |
-| `--adapt-inner-optimizer` | choice | `SPSA` | Inner optimizer per ADAPT re-optimization step: `COBYLA` or `SPSA`. |
+| `--adapt-inner-optimizer` | choice | `SPSA` | Inner optimizer per ADAPT re-optimization step: `COBYLA`, `POWELL`, or `SPSA`. |
 | `--adapt-state-backend` | choice | `compiled` | ADAPT state action backend: `compiled` (production cached path) or `legacy` (lower-memory fallback) |
 | `--adapt-reopt-policy` | choice | `append_only` | Per-depth ADAPT re-optimization policy: `append_only` (default; newest theta only), `full` (legacy all-parameter re-opt), or `windowed` (sliding window + top-k carry). |
 | `--adapt-window-size` | int | `3` | Window width W for `windowed` policy (newest W parameters always active). |
@@ -972,8 +972,19 @@ What it reports:
 | `--adapt-final-full-refit` | str | `true` | Run a post-loop full-prefix refit before export (windowed only); `true`/`false`. |
 | `--adapt-maxiter` | int | `300` | Inner optimizer maxiter per re-optimization |
 | `--adapt-seed` | int | `7` | Random seed |
+| `--phase1-shortlist-size` | int | `64` | Hard cap on candidate count admitted into phase-1 probe scoring before phase-2 full scoring. Increase this for wider ADAPT scaffold search. |
+| `--phase1-probe-max-positions` | int | `6` | Maximum insertion positions probed when staged ADAPT decides whether to append or insert into the scaffold. Increase this to probe more of the existing scaffold. |
+| `--phase2-shortlist-fraction` | float | `0.2` | Fraction of phase-1 candidates forwarded into phase-2 full scoring before applying the phase-2 size cap. |
+| `--phase2-shortlist-size` | int | `12` | Maximum candidate count in the phase-2 full-score shortlist. |
+| `--phase2-lambda-H` | float | `1e-6` | Phase-2 full-score weight for the curvature/H proxy term. |
+| `--phase2-rho` | float | `0.25` | Phase-2 diversity penalty weight used during shortlist/batch scoring. |
+| `--phase2-gamma-N` | float | `1.0` | Phase-2 novelty multiplier in the `full_v2` score. |
+| `--phase2-enable-batching` / `--phase2-no-batching` | flag pair | batching on | Enable or disable near-degenerate batch admission during phase-2 selection. |
+| `--phase2-batch-target-size` | int | `2` | Target number of candidates admitted into a phase-2 batch step. |
+| `--phase2-batch-size-cap` | int | `3` | Hard cap on candidates admitted into a phase-2 batch step. |
+| `--phase2-batch-near-degenerate-ratio` | float | `0.9` | Relative-score threshold for candidates treated as near-degenerate in phase-2 batching. |
 | `--phase3-symmetry-mitigation-mode` | choice | `off` | Phase-3 continuation symmetry hook: `off`, `verify_only`, `postselect_diag_v1`, `projector_renorm_v1`. On ADAPT/hardcoded paths active estimator behavior is enforced only in oracle-backed noise runners. |
-| `--phase3-runtime-split-mode` | choice | `off` | HH continuation add-on: `off` or `shortlist_pauli_children_v1`. Shortlist-only macro splitting for staged continuation/replay metadata; not a default pool-expansion policy. |
+| `--phase3-runtime-split-mode` | choice | `off` | HH continuation add-on: `off` or `shortlist_pauli_children_v1`. Shortlist-only macro splitting via serialized Pauli child atoms, with admission restricted to symmetry-safe child sets; not a default pool-expansion policy. |
 | `--adapt-allow-repeats` / `--adapt-no-repeats` | flag | `allow` | Allow selecting the same pool operator more than once |
 | `--adapt-finite-angle-fallback` / `--adapt-no-finite-angle-fallback` | flag | `enabled` | Scan ±theta probes when gradients are below threshold |
 | `--adapt-finite-angle` | float | `0.1` | Probe angle for finite-angle fallback |
@@ -1000,14 +1011,15 @@ What it reports:
 | Problem | Available pools |
 |---------|----------------|
 | `hubbard` | `uccsd`, `cse`, `full_hamiltonian` |
-| `hh` | `hva`, `full_meta`, `full_hamiltonian`, `paop`, `paop_min`, `paop_std`, `paop_full`, `paop_lf`, `paop_lf_std`, `paop_lf2_std`, `paop_lf_full` |
+| `hh` | `hva`, `full_meta`, `pareto_lean`, `full_hamiltonian`, `paop`, `paop_min`, `paop_std`, `paop_full`, `paop_lf`, `paop_lf_std`, `paop_lf2_std`, `paop_lf_full` |
 
 **Pool details:**
 - `uccsd` — UCCSD single + double excitation generators (same as VQE pipeline)
 - `cse` — Term-wise Hubbard ansatz terms (Hamiltonian-variational style)
 - `full_hamiltonian` — One generator per non-identity Hamiltonian Pauli term
-- `hva` (HH) — HH layerwise generators + UCCSD lifted to HH register + termwise-augmented (merged, deduplicated)
-- `full_meta` (HH) — deduplicated union `uccsd_lifted + hva + paop_full + paop_lf_full`
+- `hva` (HH) — HH layerwise generators + sector-preserving lifted UCCSD macros + termwise-augmented content; no per-Pauli UCCSD atom fragments
+- `full_meta` (HH) — deduplicated union `uccsd_lifted + hva + paop_full + paop_lf_full`, with the HH preserving-generator contract enforced at operator level
+- `pareto_lean` (HH) — scaffold-derived family-pruned subset of `full_meta`: keep lifted `uccsd_sing`, lifted `uccsd_dbl`, `hh_termwise_quadrature`, `paop_cloud_p`, `paop_disp`, `paop_hopdrag`, and `paop_lf_dbl_p`; drop HVA layer macros, `hh_termwise_unit`, `paop_dbl`, `paop_cloud_x`, `paop_lf_dbl_x`, `paop_lf_curdrag`, and `paop_lf_hop2`
 - `paop_min` — Displacement-only polaron operators (local conditional displacement)
 - `paop_std` — Displacement + dressed hopping
 - `paop_full` — All polaron operators (displacement + doublon dressing + dressed hopping + extended cloud)
@@ -1063,7 +1075,7 @@ Defaults:
 - `--t 1.0 --u 4.0 --dv 0.0`
 - `--boundary open --ordering blocked`
 - `--problem hubbard` (use `--problem hh` for Hubbard-Holstein)
-- `--adapt-pool uccsd` (`uccsd|cse|full_hamiltonian|hva|full_meta|paop|paop_min|paop_std|paop_full|paop_lf|paop_lf_std|paop_lf2_std|paop_lf_full`)
+- `--adapt-pool uccsd` (`uccsd|cse|full_hamiltonian|hva|full_meta|pareto_lean|paop|paop_min|paop_std|paop_full|paop_lf|paop_lf_std|paop_lf2_std|paop_lf_full`)
 - `--adapt-max-depth 20 --adapt-eps-grad 1e-4 --adapt-eps-energy 1e-8`
 - `--adapt-state-backend compiled` (`compiled|legacy`)
 - `--adapt-maxiter 300 --adapt-seed 7`
@@ -1289,6 +1301,44 @@ python pipelines/hardcoded/adapt_pipeline.py \
   --initial-state-source adapt_vqe --skip-pdf \
   --output-json artifacts/json/adapt_L2_hh_paop_std.json
 ```
+
+Heavy ADAPT-only HH scaffold search, explicit broad-pool override:
+
+- `AGENTS target`: new HH staged ADAPT should start narrow-core and open `full_meta` only as residual enrichment after plateau.
+- `Current code behavior`: `phase3_v1` supports a direct `--adapt-pool full_meta` run.
+- Use the following only when you intentionally want a broad-from-depth-0 search over dressed HH generators and wide insertion probing.
+
+```bash
+python pipelines/hardcoded/adapt_pipeline.py \
+  --L 3 --problem hh --t 1.0 --u 4.0 --dv 0.0 \
+  --omega0 1.0 --g-ep 0.5 --n-ph-max 1 \
+  --boundary open --ordering blocked \
+  --adapt-continuation-mode phase3_v1 \
+  --adapt-pool full_meta \
+  --adapt-inner-optimizer SPSA \
+  --adapt-max-depth 160 --adapt-maxiter 12000 \
+  --adapt-eps-grad 5e-7 --adapt-eps-energy 1e-9 \
+  --adapt-reopt-policy windowed \
+  --adapt-window-size 999999 --adapt-window-topk 999999 \
+  --adapt-full-refit-every 8 --adapt-final-full-refit true \
+  --phase1-shortlist-size 256 \
+  --phase1-probe-max-positions 999999 \
+  --phase2-shortlist-fraction 1.0 \
+  --phase2-shortlist-size 128 \
+  --phase2-enable-batching \
+  --phase2-batch-target-size 8 \
+  --phase2-batch-size-cap 16 \
+  --phase2-batch-near-degenerate-ratio 0.98 \
+  --phase3-runtime-split-mode shortlist_pauli_children_v1 \
+  --phase3-lifetime-cost-mode phase3_v1 \
+  --initial-state-source adapt_vqe --skip-pdf \
+  --output-json artifacts/json/adapt_hh_L3_full_meta_phase3_heavy.json
+```
+
+Notes:
+- `full_meta` includes dressed HH operators (`uccsd_lifted + hva + paop_full + paop_lf_full`, deduplicated).
+- In staged ADAPT, operator insertion is implemented by `_splice_candidate_at_position(...)`; raising `--phase1-probe-max-positions` widens the insertion search over the current scaffold.
+- Raising `--phase1-shortlist-size` and the `phase2-*` knobs widens the beam-like candidate evaluation; omitted flags keep the current narrower defaults.
 
 ### 5f) Run hardcoded pipeline with Hubbard-Holstein + drive + Trotter dynamics
 
@@ -1794,7 +1844,7 @@ JSON now includes an `adapt` block with:
 
 Noisy ADAPT now supports an inner optimizer selector:
 
-- `--adapt-inner-optimizer {COBYLA,SPSA}` (default `SPSA`)
+- `--adapt-inner-optimizer {COBYLA,POWELL,SPSA}` (default `SPSA`)
 - SPSA knobs:
   - `--adapt-spsa-a`, `--adapt-spsa-c`, `--adapt-spsa-alpha`, `--adapt-spsa-gamma`, `--adapt-spsa-A`
   - `--adapt-spsa-avg-last`, `--adapt-spsa-eval-repeats`, `--adapt-spsa-eval-agg`

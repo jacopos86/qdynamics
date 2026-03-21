@@ -10,11 +10,16 @@ if str(REPO_ROOT) not in sys.path:
 from pipelines.hardcoded.hh_continuation_generators import (
     build_generator_metadata,
     build_pool_generator_registry,
+    build_runtime_split_child_sets,
     build_runtime_split_children,
     build_split_event,
 )
 from pipelines.hardcoded.hh_continuation_symmetry import build_symmetry_spec
-from src.quantum.pauli_polynomial_class import PauliPolynomial
+from src.quantum.pauli_polynomial_class import (
+    PauliPolynomial,
+    fermion_minus_operator,
+    fermion_plus_operator,
+)
 from src.quantum.pauli_words import PauliTerm
 
 
@@ -29,6 +34,20 @@ def _macro_poly() -> PauliPolynomial:
             PauliTerm(6, ps="eyeexy", pc=1.0),
             PauliTerm(6, ps="eyeeyx", pc=-1.0),
         ],
+    )
+
+
+def _number_preserving_macro_poly() -> PauliPolynomial:
+    return (-1j) * (
+        fermion_plus_operator("JW", 4, 1) * fermion_minus_operator("JW", 4, 0)
+        - fermion_plus_operator("JW", 4, 0) * fermion_minus_operator("JW", 4, 1)
+    )
+
+
+def _mixed_macro_poly() -> PauliPolynomial:
+    return _number_preserving_macro_poly() + PauliPolynomial(
+        "JW",
+        [PauliTerm(4, ps="zeee", pc=0.25)],
     )
 
 
@@ -72,6 +91,32 @@ def test_pool_registry_carries_symmetry_metadata() -> None:
     assert meta["family_id"] == "paop_lf_std"
     assert meta["is_macro_generator"] is True
     assert meta["symmetry_spec"]["mitigation_eligible"] is True
+    assert meta["symmetry_spec"]["particle_number_mode"] == "preserving"
+    assert meta["compile_metadata"]["symmetry_gate"]["passed"] is True
+    assert "operator_symmetry_checked" in meta["symmetry_spec"]["tags"]
+
+
+def test_build_generator_metadata_hard_guards_base_terms_that_break_required_symmetry() -> None:
+    sym = build_symmetry_spec(family_id="uccsd", mitigation_mode="verify_only")
+    bad_term = _number_preserving_macro_poly().return_polynomial()[0]
+    bad_poly = PauliPolynomial("JW", [bad_term])
+    meta = build_generator_metadata(
+        label="bad_base_term",
+        polynomial=bad_poly,
+        family_id="uccsd",
+        num_sites=2,
+        ordering="blocked",
+        qpb=1,
+        symmetry_spec=sym.__dict__,
+    )
+    assert meta.symmetry_spec is not None
+    assert meta.symmetry_spec["particle_number_mode"] == "violating"
+    assert meta.symmetry_spec["spin_sector_mode"] == "violating"
+    assert meta.symmetry_spec["hard_guard"] is True
+    assert "operator_symmetry_checked" in meta.symmetry_spec["tags"]
+    assert "operator_symmetry_rejected" in meta.symmetry_spec["tags"]
+    assert meta.compile_metadata["symmetry_intent"]["particle_number_mode"] == "preserving"
+    assert meta.compile_metadata["symmetry_gate"]["passed"] is False
 
 
 def test_deliberate_split_marks_child_metadata() -> None:
@@ -102,12 +147,12 @@ def test_build_split_event_keeps_parent_child_provenance() -> None:
     assert event["reason"] == "compiled_depth_cap"
 
 
-def test_build_runtime_split_children_emits_serialized_single_term_children() -> None:
-    sym = build_symmetry_spec(family_id="paop_lf_std", mitigation_mode="verify_only")
+def test_build_runtime_split_children_marks_atomic_terms_that_break_required_symmetry() -> None:
+    sym = build_symmetry_spec(family_id="uccsd", mitigation_mode="verify_only")
     parent_meta = build_generator_metadata(
         label="macro",
-        polynomial=_macro_poly(),
-        family_id="paop_lf_std",
+        polynomial=_number_preserving_macro_poly(),
+        family_id="uccsd",
         num_sites=2,
         ordering="blocked",
         qpb=1,
@@ -115,8 +160,8 @@ def test_build_runtime_split_children_emits_serialized_single_term_children() ->
     )
     children = build_runtime_split_children(
         parent_label="macro",
-        polynomial=_macro_poly(),
-        family_id="paop_lf_std",
+        polynomial=_number_preserving_macro_poly(),
+        family_id="uccsd",
         num_sites=2,
         ordering="blocked",
         qpb=1,
@@ -137,4 +182,83 @@ def test_build_runtime_split_children_emits_serialized_single_term_children() ->
         assert compile_meta["runtime_split"]["parent_label"] == "macro"
         assert compile_meta["runtime_split"]["child_index"] == idx
         assert compile_meta["runtime_split"]["child_count"] == 2
+        assert compile_meta["runtime_split"]["representation"] == "child_atom"
+        assert compile_meta["runtime_split"]["symmetry_gate"]["passed"] is False
+        assert meta["symmetry_spec"]["particle_number_mode"] == "violating"
+        assert meta["symmetry_spec"]["hard_guard"] is True
         assert len(compile_meta["serialized_terms_exyz"]) == 1
+
+
+def test_build_runtime_split_child_sets_only_returns_symmetry_safe_combinations() -> None:
+    sym = build_symmetry_spec(family_id="uccsd", mitigation_mode="verify_only")
+    parent_meta = build_generator_metadata(
+        label="macro",
+        polynomial=_mixed_macro_poly(),
+        family_id="uccsd",
+        num_sites=2,
+        ordering="blocked",
+        qpb=1,
+        symmetry_spec=sym.__dict__,
+    )
+    children = build_runtime_split_children(
+        parent_label="macro",
+        polynomial=_mixed_macro_poly(),
+        family_id="uccsd",
+        num_sites=2,
+        ordering="blocked",
+        qpb=1,
+        split_mode="shortlist_pauli_children_v1",
+        parent_generator_metadata=parent_meta.__dict__,
+        symmetry_spec=sym.__dict__,
+    )
+    child_sets = build_runtime_split_child_sets(
+        parent_label="macro",
+        family_id="uccsd",
+        num_sites=2,
+        ordering="blocked",
+        qpb=1,
+        split_mode="shortlist_pauli_children_v1",
+        children=children,
+        parent_generator_metadata=parent_meta.__dict__,
+        symmetry_spec=sym.__dict__,
+        max_subset_size=3,
+    )
+    labels = {row["candidate_label"] for row in child_sets}
+    assert labels == {"macro::child_set[0]", "macro::child_set[1,2]"}
+    by_label = {row["candidate_label"]: row for row in child_sets}
+    pair_meta = by_label["macro::child_set[1,2]"]["candidate_generator_metadata"]["compile_metadata"]
+    singleton_meta = by_label["macro::child_set[0]"]["candidate_generator_metadata"]["compile_metadata"]
+    assert pair_meta["runtime_split"]["representation"] == "child_set"
+    assert pair_meta["runtime_split"]["child_indices"] == [1, 2]
+    assert pair_meta["runtime_split"]["symmetry_gate"]["passed"] is True
+    assert singleton_meta["runtime_split"]["child_indices"] == [0]
+    assert by_label["macro::child_set[1,2]"]["candidate_generator_metadata"]["symmetry_spec"]["particle_number_mode"] == "preserving"
+    assert len(pair_meta["serialized_terms_exyz"]) == 2
+
+
+def test_build_split_event_records_probe_choice_details() -> None:
+    event = build_split_event(
+        parent_generator_id="gen:parent",
+        child_generator_ids=["gen:c1", "gen:c2"],
+        reason="depth4_shortlist_probe",
+        split_mode="shortlist_pauli_children_v1",
+        probe_trigger="phase2_shortlist",
+        choice_reason="parent_actual_score_better",
+        parent_score=1.25,
+        child_scores={"c1": 0.8, "c2": 0.7},
+        admissible_child_subsets=[["c1", "c2"]],
+        chosen_representation="parent",
+        chosen_child_ids=[],
+        split_margin=-0.1,
+        symmetry_gate_results={"passed": True},
+        compiled_cost_parent=2.0,
+        compiled_cost_children=2.4,
+        insertion_positions=[3],
+    )
+    assert event["probe_trigger"] == "phase2_shortlist"
+    assert event["choice_reason"] == "parent_actual_score_better"
+    assert event["child_scores"] == {"c1": 0.8, "c2": 0.7}
+    assert event["admissible_child_subsets"] == [["c1", "c2"]]
+    assert event["chosen_representation"] == "parent"
+    assert event["compiled_cost_parent"] == 2.0
+    assert event["insertion_positions"] == [3]

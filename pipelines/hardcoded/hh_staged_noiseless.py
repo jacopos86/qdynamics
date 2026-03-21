@@ -40,6 +40,10 @@ def main(argv: list[str] | None = None) -> None:
         print(f"workflow_pdf={payload['artifacts']['workflow']['output_pdf']}")
     print(f"adapt_handoff_json={payload['artifacts']['intermediate']['adapt_handoff_json']}")
     print(f"replay_json={payload['artifacts']['intermediate']['replay_output_json']}")
+    if "pareto" in payload.get("artifacts", {}):
+        print(f"pareto_rows_json={payload['artifacts']['pareto']['run_rows_json']}")
+        print(f"pareto_frontier_json={payload['artifacts']['pareto']['run_frontier_json']}")
+        print(f"pareto_rolling_frontier_json={payload['artifacts']['pareto']['rolling_frontier_json']}")
 
 
 if __name__ == "__main__":

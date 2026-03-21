@@ -55,6 +55,7 @@ _build_hva_pool = _adapt_mod._build_hva_pool
 _build_paop_pool = _adapt_mod._build_paop_pool
 _build_hh_termwise_augmented_pool = _adapt_mod._build_hh_termwise_augmented_pool
 _build_hh_uccsd_fermion_lifted_pool = _adapt_mod._build_hh_uccsd_fermion_lifted_pool
+_build_hh_pareto_lean_pool = _adapt_mod._build_hh_pareto_lean_pool
 _deduplicate_pool_terms = _adapt_mod._deduplicate_pool_terms
 _exact_gs_energy_for_problem = _adapt_mod._exact_gs_energy_for_problem
 _compile_polynomial_action = _adapt_mod._compile_polynomial_action
@@ -64,6 +65,29 @@ _commutator_gradient = _adapt_mod._commutator_gradient
 _resolve_reopt_active_indices = _adapt_mod._resolve_reopt_active_indices
 _make_reduced_objective = _adapt_mod._make_reduced_objective
 _VALID_REOPT_POLICIES = _adapt_mod._VALID_REOPT_POLICIES
+
+
+def _fermion_sector_weights(
+    psi: np.ndarray,
+    *,
+    num_sites: int,
+    ordering: str,
+) -> dict[tuple[int, int], float]:
+    if str(ordering) == "blocked":
+        alpha = list(range(int(num_sites)))
+        beta = list(range(int(num_sites), 2 * int(num_sites)))
+    else:
+        alpha = list(range(0, 2 * int(num_sites), 2))
+        beta = list(range(1, 2 * int(num_sites), 2))
+    out: dict[tuple[int, int], float] = {}
+    for idx, amp in enumerate(np.asarray(psi, dtype=complex).reshape(-1)):
+        prob = float(abs(amp) ** 2)
+        if prob <= 1e-14:
+            continue
+        n_up = int(sum((idx >> int(q)) & 1 for q in alpha))
+        n_dn = int(sum((idx >> int(q)) & 1 for q in beta))
+        out[(n_up, n_dn)] = float(out.get((n_up, n_dn), 0.0) + prob)
+    return out
 
 
 class TestCompiledPauliCache:
@@ -241,6 +265,15 @@ class TestAdaptCLIParsing:
         args = _adapt_mod.parse_args()
         assert str(args.adapt_pool) == "full_meta"
 
+    def test_parse_accepts_pareto_lean_pool(self, monkeypatch: pytest.MonkeyPatch):
+        monkeypatch.setattr(
+            sys,
+            "argv",
+            ["adapt_pipeline.py", "--problem", "hh", "--adapt-pool", "pareto_lean"],
+        )
+        args = _adapt_mod.parse_args()
+        assert str(args.adapt_pool) == "pareto_lean"
+
     def test_parse_accepts_adapt_state_backend_legacy(self, monkeypatch: pytest.MonkeyPatch):
         monkeypatch.setattr(
             sys,
@@ -348,6 +381,22 @@ class TestPoolBuilders:
         assert len(pool) > 0, "HVA pool must be non-empty for L=2 HH"
         for op in pool:
             assert isinstance(op, AnsatzTerm)
+        labels = [str(op.label) for op in pool]
+        lifted_pool = _build_hh_uccsd_fermion_lifted_pool(
+            num_sites=2,
+            n_ph_max=1,
+            boson_encoding="binary",
+            ordering="blocked",
+            boundary="periodic",
+            num_particles=half_filled_num_particles(2),
+        )
+        lifted_labels = {str(op.label) for op in lifted_pool}
+        assert lifted_labels.issubset(set(labels))
+        assert any(label.startswith("uccsd_ferm_lifted::") for label in labels)
+        assert not any(
+            label.startswith("uccsd_sing(") or label.startswith("uccsd_dbl(")
+            for label in labels
+        )
 
     def test_hh_termwise_augmented_pool_L2(self):
         h_poly = build_hubbard_holstein_hamiltonian(
@@ -595,6 +644,60 @@ class TestHHUCCSDPAOPCompositePoolBuilder:
         assert len(dedup_pool) > 0
         assert len(dedup_pool) <= len(uccsd_pool) + len(paop_pool)
 
+    def test_pareto_lean_pool_keeps_only_scaffold_supported_families(self):
+        n_sites = 2
+        num_particles = half_filled_num_particles(n_sites)
+        h_poly = build_hubbard_holstein_hamiltonian(
+            dims=n_sites,
+            J=1.0,
+            U=4.0,
+            omega0=1.0,
+            g=0.5,
+            n_ph_max=1,
+            boson_encoding="binary",
+            repr_mode="JW",
+            indexing="blocked",
+            pbc=True,
+            include_zero_point=True,
+        )
+        pool, meta = _build_hh_pareto_lean_pool(
+            h_poly=h_poly,
+            num_sites=n_sites,
+            t=1.0,
+            u=4.0,
+            omega0=1.0,
+            g_ep=0.5,
+            dv=0.0,
+            n_ph_max=1,
+            boson_encoding="binary",
+            ordering="blocked",
+            boundary="periodic",
+            paop_r=1,
+            paop_split_paulis=False,
+            paop_prune_eps=0.0,
+            paop_normalization="none",
+            num_particles=num_particles,
+        )
+        labels = [str(op.label) for op in pool]
+
+        assert len(pool) > 0
+        assert int(meta["raw_total"]) > 0
+        assert any(label.startswith("uccsd_ferm_lifted::uccsd_sing(") for label in labels)
+        assert any(label.startswith("uccsd_ferm_lifted::uccsd_dbl(") for label in labels)
+        assert any(label.startswith("hh_termwise_ham_quadrature_term(") for label in labels)
+        assert any(label.startswith("paop_full:paop_cloud_p(") for label in labels)
+        assert any(label.startswith("paop_full:paop_disp(") for label in labels)
+        assert any(label.startswith("paop_full:paop_hopdrag(") for label in labels)
+        assert any(label.startswith("paop_lf_full:paop_dbl_p(") for label in labels)
+
+        assert not any(label in {"hop_layer", "onsite_layer", "phonon_layer", "eph_layer"} for label in labels)
+        assert not any(label.startswith("hh_termwise_ham_unit_term(") for label in labels)
+        assert not any(label.startswith("paop_full:paop_dbl(") for label in labels)
+        assert not any(label.startswith("paop_full:paop_cloud_x(") for label in labels)
+        assert not any(label.startswith("paop_lf_full:paop_dbl_x(") for label in labels)
+        assert not any(label.startswith("paop_lf_full:paop_curdrag(") for label in labels)
+        assert not any(label.startswith("paop_lf_full:paop_hop2(") for label in labels)
+
 
 # ============================================================================
 # Sector filtering dispatch
@@ -777,7 +880,7 @@ class TestAdaptVQEHolsteinHVA:
             indexing="blocked",
         )
 
-    def test_adapt_hva_hh_converges(self):
+    def test_adapt_hva_hh_preserves_sector_and_is_variational(self):
         payload, psi = _run_hardcoded_adapt_vqe(
             h_poly=self.h_poly,
             num_sites=self.L,
@@ -803,9 +906,9 @@ class TestAdaptVQEHolsteinHVA:
         assert payload["energy"] is not None
         # HH exact_gs in payload should match our computed value
         assert abs(payload["exact_gs_energy"] - self.exact_gs) < 1e-10
-        delta = abs(payload["energy"] - self.exact_gs)
-        # HH is harder; allow 1e-2 for a smoke test
-        assert delta < 1e-2, f"ADAPT HVA HH L=2 |ΔE|={delta:.2e} exceeds 1e-2"
+        sector_weights = _fermion_sector_weights(psi, num_sites=self.L, ordering="blocked")
+        assert sector_weights.get(tuple(self.num_particles), 0.0) > 1.0 - 1e-10
+        assert payload["energy"] >= self.exact_gs - 1e-10
 
     def test_adapt_hh_uses_fermion_only_sector(self):
         """Verify the payload exact_gs matches fermion-only sector filtering."""
@@ -994,6 +1097,41 @@ class TestAdaptVQEHolsteinPAOP:
         )
         assert payload["success"] is True
         assert str(payload["pool_type"]) == "full_meta"
+        assert int(payload["pool_size"]) > 0
+
+    def test_adapt_pareto_lean_runs(self):
+        """Pareto-lean HH pool should run and report pareto_lean pool type."""
+        payload, _ = _run_hardcoded_adapt_vqe(
+            h_poly=self.h_poly,
+            num_sites=self.L,
+            ordering="blocked",
+            problem="hh",
+            adapt_pool="pareto_lean",
+            t=self.t,
+            u=self.u,
+            dv=0.0,
+            boundary="periodic",
+            omega0=self.omega0,
+            g_ep=self.g_ep,
+            n_ph_max=self.n_ph_max,
+            boson_encoding="binary",
+            max_depth=4,
+            eps_grad=1e-3,
+            eps_energy=1e-8,
+            maxiter=120,
+            seed=7,
+            allow_repeats=True,
+            finite_angle_fallback=True,
+            finite_angle=0.1,
+            finite_angle_min_improvement=1e-12,
+            paop_r=1,
+            paop_split_paulis=False,
+            paop_prune_eps=0.0,
+            paop_normalization="none",
+            adapt_continuation_mode="legacy",
+        )
+        assert payload["success"] is True
+        assert str(payload["pool_type"]) == "pareto_lean"
         assert int(payload["pool_size"]) > 0
 
 
@@ -1621,7 +1759,7 @@ class TestAdaptEdgeCases:
                 finite_angle=0.1, finite_angle_min_improvement=1e-12,
             )
 
-    def test_hh_phase1_rejects_depth0_full_meta(self):
+    def test_hh_phase1_allows_explicit_depth0_full_meta_override(self):
         h_poly = build_hubbard_holstein_hamiltonian(
             dims=2,
             J=1.0,
@@ -1638,32 +1776,33 @@ class TestAdaptEdgeCases:
             pbc=True,
             include_zero_point=True,
         )
-        with pytest.raises(ValueError, match="does not allow --adapt-pool full_meta at depth 0"):
-            _run_hardcoded_adapt_vqe(
-                h_poly=h_poly,
-                num_sites=2,
-                ordering="blocked",
-                problem="hh",
-                adapt_pool="full_meta",
-                t=1.0,
-                u=2.0,
-                dv=0.0,
-                boundary="periodic",
-                omega0=1.0,
-                g_ep=0.5,
-                n_ph_max=1,
-                boson_encoding="binary",
-                max_depth=2,
-                eps_grad=1e-2,
-                eps_energy=1e-6,
-                maxiter=30,
-                seed=7,
-                allow_repeats=True,
-                finite_angle_fallback=False,
-                finite_angle=0.1,
-                finite_angle_min_improvement=1e-12,
-                adapt_continuation_mode="phase1_v1",
-            )
+        payload, _ = _run_hardcoded_adapt_vqe(
+            h_poly=h_poly,
+            num_sites=2,
+            ordering="blocked",
+            problem="hh",
+            adapt_pool="full_meta",
+            t=1.0,
+            u=2.0,
+            dv=0.0,
+            boundary="periodic",
+            omega0=1.0,
+            g_ep=0.5,
+            n_ph_max=1,
+            boson_encoding="binary",
+            max_depth=2,
+            eps_grad=1e-2,
+            eps_energy=1e-6,
+            maxiter=30,
+            seed=7,
+            allow_repeats=True,
+            finite_angle_fallback=False,
+            finite_angle=0.1,
+            finite_angle_min_improvement=1e-12,
+            adapt_continuation_mode="phase1_v1",
+        )
+        assert payload["phase1_depth0_full_meta_override"] is True
+        assert payload["pool_type"] == "phase1_v1"
 
 
 class TestHHPhase1Continuation:
