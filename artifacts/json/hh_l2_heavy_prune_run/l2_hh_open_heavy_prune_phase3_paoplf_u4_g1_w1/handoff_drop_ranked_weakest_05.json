@@ -1,0 +1,2920 @@
+{
+  "generated_utc": "2026-03-14T12:06:41Z",
+  "settings": {
+    "L": 2,
+    "problem": "hh",
+    "t": 1.0,
+    "u": 4.0,
+    "dv": 0.0,
+    "omega0": 1.0,
+    "g_ep": 1.0,
+    "n_ph_max": 2,
+    "boson_encoding": "binary",
+    "ordering": "blocked",
+    "boundary": "open",
+    "sector_n_up": 1,
+    "sector_n_dn": 1,
+    "adapt_pool": "paop_lf_std"
+  },
+  "adapt_vqe": {
+    "energy": 0.13057320849572335,
+    "abs_delta_e": 0.020362816586760757,
+    "relative_error_abs": 0.18476312654419297,
+    "operators": [
+      "hh_termwise_ham_quadrature_term(eyeezeee)",
+      "hh_termwise_ham_quadrature_term(eyeeeeze)",
+      "hh_termwise_ham_quadrature_term(zyeezeee)",
+      "hh_termwise_ham_quadrature_term(zyeeeeze)",
+      "hh_termwise_ham_quadrature_term(eezyeeez)",
+      "hh_termwise_ham_quadrature_term(eezyezee)",
+      "hh_termwise_ham_quadrature_term(eeeyeeez)",
+      "hh_termwise_ham_quadrature_term(eeeyezee)",
+      "hh_termwise_ham_unit_term(zzeeeeee)",
+      "hh_termwise_ham_unit_term(eeeeezee)",
+      "uccsd_dbl(ab:0,2->1,3)_0",
+      "uccsd_dbl(ab:0,2->1,3)_0",
+      "hh_termwise_ham_unit_term(eeeeezee)",
+      "hh_termwise_ham_unit_term(eeeeezee)",
+      "hh_termwise_ham_unit_term(eeeeezee)",
+      "hh_termwise_ham_unit_term(eeeeezee)",
+      "hh_termwise_ham_unit_term(eeeeezee)",
+      "hh_termwise_ham_unit_term(eeeeezee)",
+      "hh_termwise_ham_unit_term(eeeeezee)",
+      "hh_termwise_ham_unit_term(eeeeezee)",
+      "hh_termwise_ham_unit_term(eeeeezee)"
+    ],
+    "optimal_point": [
+      0.05172704537285824,
+      -0.049179098896640995,
+      0.1412031076826096,
+      0.042609331691030754,
+      0.10803062473270597,
+      -0.002613890231799837,
+      -0.027769894657512513,
+      0.08873143115981989,
+      -0.2651963649396502,
+      -0.1,
+      0.20318834123951002,
+      0.12479327995009412,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+    ],
+    "ansatz_depth": 21,
+    "num_parameters": 21,
+    "pool_type": "paop_lf_std",
+    "prune_summary": {
+      "enabled": false,
+      "executed": false,
+      "rolled_back": false,
+      "accepted_count": 0,
+      "candidate_count": 0,
+      "decisions": [],
+      "energy_before": 0.13057320849572335,
+      "energy_after_prune": 0.13057320849572335,
+      "energy_after_post_refit": 0.13057320849572335,
+      "post_refit_executed": false
+    }
+  },
+  "ground_state": {
+    "exact_energy": 0.11021039190896259,
+    "exact_energy_filtered": 0.11021039190896259,
+    "filtered_sector": {
+      "n_up": 1,
+      "n_dn": 1
+    },
+    "method": "staged_handoff_bundle"
+  },
+  "initial_state": {
+    "source": "adapt_vqe",
+    "nq_total": 8,
+    "amplitudes_qn_to_q0": {
+      "00000101": {
+        "re": 0.12540615749158,
+        "im": -0.24366148969441093
+      },
+      "00000110": {
+        "re": 0.3034329826729668,
+        "im": -0.5584867314890275
+      },
+      "00001001": {
+        "re": 0.3375762771471241,
+        "im": -0.5668861684398091
+      },
+      "00001010": {
+        "re": 0.13812006378670214,
+        "im": -0.22999349625472698
+      },
+      "00010101": {
+        "re": -0.03703952564768105,
+        "im": 0.031173095079006008
+      },
+      "00010110": {
+        "re": 0.0029716933426254854,
+        "im": 0.002309153835210392
+      },
+      "00011001": {
+        "re": 0.017066330954059863,
+        "im": 0.006760029539621315
+      },
+      "00011010": {
+        "re": 0.01748667440325841,
+        "im": -0.04600651437342494
+      },
+      "00100101": {
+        "re": 0.001757919518087275,
+        "im": 0.0041842487133460825
+      },
+      "00100110": {
+        "re": -0.004558133546754978,
+        "im": 0.011249479906505681
+      },
+      "00101001": {
+        "re": 0.002813667416938168,
+        "im": -0.004696940785665349
+      },
+      "00101010": {
+        "re": -0.0012877691997051125,
+        "im": -0.0015454312405647108
+      },
+      "00110101": {
+        "re": 0.008753017281999603,
+        "im": 0.010858162459473684
+      },
+      "00110110": {
+        "re": -0.0002223991937375145,
+        "im": -0.0010623969391058941
+      },
+      "00111001": {
+        "re": 0.0006915917875935805,
+        "im": 0.00022203548887540358
+      },
+      "00111010": {
+        "re": -0.013116257189333012,
+        "im": -0.005744113440716362
+      },
+      "01000101": {
+        "re": 0.039374843157910434,
+        "im": -0.045665458786084606
+      },
+      "01000110": {
+        "re": 0.006401332622616405,
+        "im": -0.0023365939234258675
+      },
+      "01001001": {
+        "re": 0.013342678687351499,
+        "im": 0.0032407973102936928
+      },
+      "01001010": {
+        "re": -0.01153015208933827,
+        "im": 0.04919270811943761
+      },
+      "01010101": {
+        "re": -0.01359293002114405,
+        "im": 0.008525348876802528
+      },
+      "01010110": {
+        "re": 0.008222434905730719,
+        "im": 0.014984178190855136
+      },
+      "01011001": {
+        "re": -0.0063427390855359395,
+        "im": -0.008535790936934984
+      },
+      "01011010": {
+        "re": -0.0019683872832286253,
+        "im": 0.015423704562407305
+      },
+      "01100101": {
+        "re": -0.0024196133413217,
+        "im": -0.00042299215258909464
+      },
+      "01100110": {
+        "re": -0.0035966369967900306,
+        "im": 0.002631494230250145
+      },
+      "01101001": {
+        "re": 0.0037846406759307603,
+        "im": -0.0015438241857717624
+      },
+      "01101010": {
+        "re": 0.001071656071128226,
+        "im": 0.002483609209771022
+      },
+      "01110101": {
+        "re": 0.0025204181507904717,
+        "im": -0.00036835231138616237
+      },
+      "01110110": {
+        "re": 0.0006692718682271479,
+        "im": 4.174338361901056e-05
+      },
+      "01111001": {
+        "re": -0.00025445817548358285,
+        "im": -0.00038686971468783097
+      },
+      "01111010": {
+        "re": 0.006945480850047309,
+        "im": -0.0007597814699147236
+      },
+      "10000101": {
+        "re": 0.005019273141577596,
+        "im": -0.0032880006943599794
+      },
+      "10000110": {
+        "re": 0.010511031105278259,
+        "im": 0.005974903294827124
+      },
+      "10001001": {
+        "re": -0.009615093548454821,
+        "im": -0.0036847434124403044
+      },
+      "10001010": {
+        "re": 0.00411185507769929,
+        "im": -0.004426600373363766
+      },
+      "10010101": {
+        "re": 0.003739537490200886,
+        "im": -0.00018385703933296535
+      },
+      "10010110": {
+        "re": -0.0035744616769449924,
+        "im": 0.0035610999378311026
+      },
+      "10011001": {
+        "re": 0.003678558483065239,
+        "im": -0.0034072549780316845
+      },
+      "10011010": {
+        "re": -0.0022597206531428144,
+        "im": -0.006331098304818558
+      },
+      "10100101": {
+        "re": -0.00018156943614968472,
+        "im": -0.0013624240507109531
+      },
+      "10100110": {
+        "re": 0.0017630093961586398,
+        "im": -0.0007445365983732562
+      },
+      "10101001": {
+        "re": -0.0019537913859872277,
+        "im": 0.00015935591236811841
+      },
+      "10101010": {
+        "re": -0.00043222900011555834,
+        "im": 0.00044135115283948465
+      },
+      "10110101": {
+        "re": 0.0020496199517219538,
+        "im": -0.0002084726159932632
+      },
+      "10110110": {
+        "re": -0.00010577731766669862,
+        "im": 0.00024644495627345974
+      },
+      "10111001": {
+        "re": -9.032013716671954e-05,
+        "im": -0.00020284602004184735
+      },
+      "10111010": {
+        "re": 0.00021263752858853777,
+        "im": 0.0003521561853769975
+      },
+      "11000101": {
+        "re": -0.0006862654001140155,
+        "im": -0.00268227389501429
+      },
+      "11000110": {
+        "re": -0.0008857652353156686,
+        "im": 0.0004267204276440475
+      },
+      "11001001": {
+        "re": 0.0010367904155605054,
+        "im": -0.00047596287250953773
+      },
+      "11001010": {
+        "re": -0.00026199448941786316,
+        "im": 0.00323131688279738
+      },
+      "11010101": {
+        "re": -0.0011767630857753828,
+        "im": 0.0006969778782170114
+      },
+      "11010110": {
+        "re": 0.0005727254473739733,
+        "im": 0.0010714377788960635
+      },
+      "11011001": {
+        "re": -0.0002724230738466988,
+        "im": -0.0012139074269542196
+      },
+      "11011010": {
+        "re": 0.0006336116696467328,
+        "im": 0.0012954832943153545
+      },
+      "11100101": {
+        "re": -0.00028018667540554223,
+        "im": -9.439406747859889e-05
+      },
+      "11100110": {
+        "re": -0.0003078615145221046,
+        "im": 0.00019511183706971382
+      },
+      "11101001": {
+        "re": 0.0003367251256528096,
+        "im": -0.00017174445813351288
+      },
+      "11101010": {
+        "re": 0.00012751282473394475,
+        "im": 0.0002408218555276896
+      },
+      "11110101": {
+        "re": 0.0002329418698302517,
+        "im": -0.00033217903629583623
+      },
+      "11110110": {
+        "re": 6.189951112969362e-05,
+        "im": 1.0079855166177743e-06
+      },
+      "11111001": {
+        "re": -2.0763617755166158e-05,
+        "im": -3.446661369952211e-05
+      },
+      "11111010": {
+        "re": 0.0006131566277570608,
+        "im": -0.00019875235200217766
+      }
+    },
+    "amplitude_cutoff": 1e-14,
+    "norm": 1.0,
+    "handoff_state_kind": "prepared_state"
+  },
+  "exact": {
+    "E_exact_sector": 0.11021039190896259
+  },
+  "continuation": {
+    "mode": "phase3_v1",
+    "scaffold": {
+      "selected_operator_labels": [
+        "hh_termwise_ham_quadrature_term(eyeezeee)",
+        "hh_termwise_ham_quadrature_term(eyeeeeze)",
+        "hh_termwise_ham_quadrature_term(zyeezeee)",
+        "hh_termwise_ham_quadrature_term(zyeeeeze)",
+        "hh_termwise_ham_quadrature_term(eezyeeez)",
+        "hh_termwise_ham_quadrature_term(eezyezee)",
+        "hh_termwise_ham_quadrature_term(eeeyeeez)",
+        "hh_termwise_ham_quadrature_term(eeeyezee)",
+        "hh_termwise_ham_unit_term(zzeeeeee)",
+        "hh_termwise_ham_unit_term(eeeeezee)",
+        "uccsd_dbl(ab:0,2->1,3)_0",
+        "uccsd_dbl(ab:0,2->1,3)_0",
+        "hh_termwise_ham_unit_term(eeeeezee)",
+        "hh_termwise_ham_unit_term(eeeeezee)",
+        "hh_termwise_ham_unit_term(eeeeezee)",
+        "hh_termwise_ham_unit_term(eeeeezee)",
+        "hh_termwise_ham_unit_term(eeeeezee)",
+        "hh_termwise_ham_unit_term(eeeeezee)",
+        "hh_termwise_ham_unit_term(eeeeezee)",
+        "hh_termwise_ham_unit_term(eeeeezee)",
+        "hh_termwise_ham_unit_term(eeeeezee)",
+        "hh_termwise_ham_unit_term(eeeeezee)"
+      ],
+      "selected_generator_ids": [
+        "gen:b51e355794342636",
+        "gen:446beddf91698bac",
+        "gen:7fe7c66fd4a652ff",
+        "gen:ae2b06830230d254",
+        "gen:908be61ce067e8f7",
+        "gen:c4bfac3a46eabb82",
+        "gen:b3304712309bf55c",
+        "gen:2e44dfde6ed136c5",
+        "gen:493ee581a918e62c",
+        "gen:9a6cc3a5c32ae261",
+        "gen:4a9f9b478c2aecd1",
+        "gen:4a9f9b478c2aecd1",
+        "gen:9a6cc3a5c32ae261",
+        "gen:9a6cc3a5c32ae261",
+        "gen:9a6cc3a5c32ae261",
+        "gen:9a6cc3a5c32ae261",
+        "gen:9a6cc3a5c32ae261",
+        "gen:9a6cc3a5c32ae261",
+        "gen:9a6cc3a5c32ae261",
+        "gen:9a6cc3a5c32ae261",
+        "gen:9a6cc3a5c32ae261",
+        "gen:9a6cc3a5c32ae261"
+      ],
+      "num_parameters": 22,
+      "generator_family": "phase3_v1",
+      "continuation_mode": "phase3_v1",
+      "compiled_pauli_cache_size": 300,
+      "measurement_plan_version": "phase1_grouped_label_reuse",
+      "post_prune": false,
+      "split_event_count": 0,
+      "motif_record_ids": [
+        "motif:5a13fb32a1d4b76c",
+        "motif:35d4d3fb47cb127c",
+        "motif:2119f56bc14fb65c",
+        "motif:6421636d364286ee",
+        "motif:aafe395d87425619",
+        "motif:2c801c21936b7bc2",
+        "motif:7be0518c6bb7e27e",
+        "motif:043c021883068a76",
+        "motif:b82a3d8136b9abe5",
+        "motif:83c7b9ea359cebab",
+        "motif:424f94b9214672ca",
+        "motif:3140fb489a0ace91",
+        "motif:54a6116cabc027b5",
+        "motif:ba20a31dd1f96ed4",
+        "motif:1448fe4b3774a653",
+        "motif:a641c37c60713d99",
+        "motif:4ef450600ccb3044",
+        "motif:d5fd7ee2c0d830d8",
+        "motif:b2726dd21942f164",
+        "motif:d12e7eb2f3009f7b",
+        "motif:ff63e8aae5c42431",
+        "motif:529fd336de7be955"
+      ]
+    },
+    "optimizer_memory": {
+      "version": "phase2_spsa_diag_memory_v1",
+      "optimizer": "SPSA",
+      "parameter_count": 22,
+      "available": true,
+      "reason": "preconditioner_disabled",
+      "source": "adapt.depth14.merge",
+      "reused": true,
+      "history_tail": [
+        {
+          "iter": 569,
+          "ak": 0.004344076856541331,
+          "ck": 0.05269066273477995,
+          "y_plus": 0.1516687410150529,
+          "y_minus": 0.15086398714616334,
+          "grad_norm": 0.02159953541454715,
+          "best_fun": 0.14953293522465821,
+          "nfev_so_far": 1139,
+          "preconditioner_mean": 1.0,
+          "refresh_triggered": false
+        },
+        {
+          "iter": 570,
+          "ak": 0.004339566456108793,
+          "ck": 0.0526813189482509,
+          "y_plus": 0.15244751631292017,
+          "y_minus": 0.15353929725490867,
+          "grad_norm": 0.029308518581649443,
+          "best_fun": 0.14953293522465821,
+          "nfev_so_far": 1141,
+          "preconditioner_mean": 1.0,
+          "refresh_triggered": false
+        },
+        {
+          "iter": 571,
+          "ak": 0.004335068496535248,
+          "ck": 0.05267199319257791,
+          "y_plus": 0.15185767790653418,
+          "y_minus": 0.15252251199221975,
+          "grad_norm": 0.01785042341699233,
+          "best_fun": 0.14953293522465821,
+          "nfev_so_far": 1143,
+          "preconditioner_mean": 1.0,
+          "refresh_triggered": false
+        },
+        {
+          "iter": 572,
+          "ak": 0.004330582922181178,
+          "ck": 0.052662685401480155,
+          "y_plus": 0.1538201379408145,
+          "y_minus": 0.15379377162507055,
+          "grad_norm": 0.0007080459538029855,
+          "best_fun": 0.14953293522465821,
+          "nfev_so_far": 1145,
+          "preconditioner_mean": 1.0,
+          "refresh_triggered": false
+        },
+        {
+          "iter": 573,
+          "ak": 0.004326109677750949,
+          "ck": 0.05265339550903574,
+          "y_plus": 0.15351398104593356,
+          "y_minus": 0.15247674431554764,
+          "grad_norm": 0.027859062788297473,
+          "best_fun": 0.14953293522465821,
+          "nfev_so_far": 1147,
+          "preconditioner_mean": 1.0,
+          "refresh_triggered": false
+        },
+        {
+          "iter": 574,
+          "ak": 0.0043216487082900915,
+          "ck": 0.052644123449679225,
+          "y_plus": 0.15323607725478772,
+          "y_minus": 0.15274131765406443,
+          "grad_norm": 0.013291051148871101,
+          "best_fun": 0.14953293522465821,
+          "nfev_so_far": 1149,
+          "preconditioner_mean": 1.0,
+          "refresh_triggered": false
+        },
+        {
+          "iter": 575,
+          "ak": 0.004317199959182623,
+          "ck": 0.052634869158199024,
+          "y_plus": 0.1523484773993378,
+          "y_minus": 0.15344877825920858,
+          "grad_norm": 0.029563299455407713,
+          "best_fun": 0.14953293522465821,
+          "nfev_so_far": 1151,
+          "preconditioner_mean": 1.0,
+          "refresh_triggered": false
+        },
+        {
+          "iter": 576,
+          "ak": 0.004312763376148386,
+          "ck": 0.052625632569734924,
+          "y_plus": 0.14956453161722205,
+          "y_minus": 0.14953111462024296,
+          "grad_norm": 0.0008980180956302606,
+          "best_fun": 0.14953111462024296,
+          "nfev_so_far": 1153,
+          "preconditioner_mean": 1.0,
+          "refresh_triggered": false
+        },
+        {
+          "iter": 577,
+          "ak": 0.004308338905240413,
+          "ck": 0.052616413619775544,
+          "y_plus": 0.15579121449515307,
+          "y_minus": 0.15505701661080962,
+          "grad_norm": 0.01973362557561124,
+          "best_fun": 0.14953111462024296,
+          "nfev_so_far": 1155,
+          "preconditioner_mean": 1.0,
+          "refresh_triggered": false
+        },
+        {
+          "iter": 578,
+          "ak": 0.004303926492842323,
+          "ck": 0.0526072122441559,
+          "y_plus": 0.1545238550080637,
+          "y_minus": 0.15307875187869446,
+          "grad_norm": 0.03884798979837243,
+          "best_fun": 0.14953111462024296,
+          "nfev_so_far": 1157,
+          "preconditioner_mean": 1.0,
+          "refresh_triggered": false
+        },
+        {
+          "iter": 579,
+          "ak": 0.004299526085665732,
+          "ck": 0.05259802837905492,
+          "y_plus": 0.15245044801898575,
+          "y_minus": 0.15191103676667542,
+          "grad_norm": 0.014503256723168252,
+          "best_fun": 0.14953111462024296,
+          "nfev_so_far": 1159,
+          "preconditioner_mean": 1.0,
+          "refresh_triggered": false
+        },
+        {
+          "iter": 580,
+          "ak": 0.004295137630747696,
+          "ck": 0.05258886196099301,
+          "y_plus": 0.15165839266958914,
+          "y_minus": 0.15087414929031392,
+          "grad_norm": 0.021089781786777614,
+          "best_fun": 0.14953111462024296,
+          "nfev_so_far": 1161,
+          "preconditioner_mean": 1.0,
+          "refresh_triggered": false
+        },
+        {
+          "iter": 581,
+          "ak": 0.004290761075448177,
+          "ck": 0.05257971292682966,
+          "y_plus": 0.15166080396396403,
+          "y_minus": 0.15086049536117993,
+          "grad_norm": 0.021525550771191317,
+          "best_fun": 0.14953111462024296,
+          "nfev_so_far": 1163,
+          "preconditioner_mean": 1.0,
+          "refresh_triggered": false
+        },
+        {
+          "iter": 582,
+          "ak": 0.00428639636744753,
+          "ck": 0.052570581213761056,
+          "y_plus": 0.15275021816988194,
+          "y_minus": 0.15320112306042086,
+          "grad_norm": 0.01212989844924103,
+          "best_fun": 0.14953111462024296,
+          "nfev_so_far": 1165,
+          "preconditioner_mean": 1.0,
+          "refresh_triggered": false
+        },
+        {
+          "iter": 583,
+          "ak": 0.004282043454744018,
+          "ck": 0.05256146675931768,
+          "y_plus": 0.1510924372750959,
+          "y_minus": 0.15143982811648404,
+          "grad_norm": 0.009346863198946797,
+          "best_fun": 0.14953111462024296,
+          "nfev_so_far": 1167,
+          "preconditioner_mean": 1.0,
+          "refresh_triggered": false
+        },
+        {
+          "iter": 584,
+          "ak": 0.004277702285651344,
+          "ck": 0.05255236950136199,
+          "y_plus": 0.15556173157271433,
+          "y_minus": 0.15525085098468855,
+          "grad_norm": 0.008365969946477618,
+          "best_fun": 0.14953111462024296,
+          "nfev_so_far": 1169,
+          "preconditioner_mean": 1.0,
+          "refresh_triggered": false
+        },
+        {
+          "iter": 585,
+          "ak": 0.004273372808796218,
+          "ck": 0.05254328937808606,
+          "y_plus": 0.15140951376733675,
+          "y_minus": 0.15111064585798317,
+          "grad_norm": 0.008044091943398451,
+          "best_fun": 0.14953111462024296,
+          "nfev_so_far": 1171,
+          "preconditioner_mean": 1.0,
+          "refresh_triggered": false
+        },
+        {
+          "iter": 586,
+          "ak": 0.00426905497311593,
+          "ck": 0.052534226328009324,
+          "y_plus": 0.15343406991161704,
+          "y_minus": 0.15232062154875464,
+          "grad_norm": 0.02997386438948225,
+          "best_fun": 0.14953111462024296,
+          "nfev_so_far": 1173,
+          "preconditioner_mean": 1.0,
+          "refresh_triggered": false
+        },
+        {
+          "iter": 587,
+          "ak": 0.004264748727855964,
+          "ck": 0.05252518028997623,
+          "y_plus": 0.1534265826085523,
+          "y_minus": 0.15232480580665403,
+          "grad_norm": 0.029664775777075048,
+          "best_fun": 0.14953111462024296,
+          "nfev_so_far": 1175,
+          "preconditioner_mean": 1.0,
+          "refresh_triggered": false
+        },
+        {
+          "iter": 588,
+          "ak": 0.004260454022567619,
+          "ck": 0.052516151203154,
+          "y_plus": 0.1495617999106262,
+          "y_minus": 0.14952839938032617,
+          "grad_norm": 0.0008994467770124262,
+          "best_fun": 0.14952839938032617,
+          "nfev_so_far": 1177,
+          "preconditioner_mean": 1.0,
+          "refresh_triggered": false
+        },
+        {
+          "iter": 589,
+          "ak": 0.00425617080710566,
+          "ck": 0.05250713900703038,
+          "y_plus": 0.15272948887059656,
+          "y_minus": 0.15321738644403235,
+          "grad_norm": 0.013140905759680148,
+          "best_fun": 0.14952839938032617,
+          "nfev_so_far": 1179,
+          "preconditioner_mean": 1.0,
+          "refresh_triggered": false
+        },
+        {
+          "iter": 590,
+          "ak": 0.004251899031625993,
+          "ck": 0.05249814364141141,
+          "y_plus": 0.15244689748030948,
+          "y_minus": 0.153483259559775,
+          "grad_norm": 0.02791788826516102,
+          "best_fun": 0.14952839938032617,
+          "nfev_so_far": 1181,
+          "preconditioner_mean": 1.0,
+          "refresh_triggered": false
+        },
+        {
+          "iter": 591,
+          "ak": 0.004247638646583353,
+          "ck": 0.0524891650464192,
+          "y_plus": 0.1534388734288187,
+          "y_minus": 0.15231780399561523,
+          "grad_norm": 0.030204930777545897,
+          "best_fun": 0.14952839938032617,
+          "nfev_so_far": 1183,
+          "preconditioner_mean": 1.0,
+          "refresh_triggered": false
+        },
+        {
+          "iter": 592,
+          "ak": 0.004243389602729023,
+          "ck": 0.05248020316248976,
+          "y_plus": 0.1555474354681268,
+          "y_minus": 0.1552338181930895,
+          "grad_norm": 0.008451221165798217,
+          "best_fun": 0.14952839938032617,
+          "nfev_so_far": 1185,
+          "preconditioner_mean": 1.0,
+          "refresh_triggered": false
+        },
+        {
+          "iter": 593,
+          "ak": 0.004239151851108572,
+          "ck": 0.052471257930370815,
+          "y_plus": 0.1582205369180035,
+          "y_minus": 0.1581392643735967,
+          "grad_norm": 0.0021904703466643356,
+          "best_fun": 0.14952839938032617,
+          "nfev_so_far": 1187,
+          "preconditioner_mean": 1.0,
+          "refresh_triggered": false
+        },
+        {
+          "iter": 594,
+          "ak": 0.004234925343059603,
+          "ck": 0.052462329291119644,
+          "y_plus": 0.15388568917521164,
+          "y_minus": 0.15403999247791902,
+          "grad_norm": 0.0041595145765797705,
+          "best_fun": 0.14952839938032617,
+          "nfev_so_far": 1189,
+          "preconditioner_mean": 1.0,
+          "refresh_triggered": false
+        },
+        {
+          "iter": 595,
+          "ak": 0.004230710030209542,
+          "ck": 0.05245341718610097,
+          "y_plus": 0.15608586631254706,
+          "y_minus": 0.1566877952974931,
+          "grad_norm": 0.01622880223562878,
+          "best_fun": 0.14952839938032617,
+          "nfev_so_far": 1191,
+          "preconditioner_mean": 1.0,
+          "refresh_triggered": false
+        },
+        {
+          "iter": 596,
+          "ak": 0.004226505864473426,
+          "ck": 0.05244452155698482,
+          "y_plus": 0.15089695815624932,
+          "y_minus": 0.15161422209286063,
+          "grad_norm": 0.01934166537976044,
+          "best_fun": 0.14952839938032617,
+          "nfev_so_far": 1193,
+          "preconditioner_mean": 1.0,
+          "refresh_triggered": false
+        },
+        {
+          "iter": 597,
+          "ak": 0.004222312798051732,
+          "ck": 0.05243564234574443,
+          "y_plus": 0.15450199026541586,
+          "y_minus": 0.15540249983108734,
+          "grad_norm": 0.024287160104231313,
+          "best_fun": 0.14952839938032617,
+          "nfev_so_far": 1195,
+          "preconditioner_mean": 1.0,
+          "refresh_triggered": false
+        },
+        {
+          "iter": 598,
+          "ak": 0.0042181307834282065,
+          "ck": 0.05242677949465417,
+          "y_plus": 0.151092940976562,
+          "y_minus": 0.15141625703424427,
+          "grad_norm": 0.008721457966989667,
+          "best_fun": 0.14952839938032617,
+          "nfev_so_far": 1197,
+          "preconditioner_mean": 1.0,
+          "refresh_triggered": false
+        },
+        {
+          "iter": 599,
+          "ak": 0.004213959773367731,
+          "ck": 0.052417932946287465,
+          "y_plus": 0.15084773348718747,
+          "y_minus": 0.15163934164695056,
+          "grad_norm": 0.021357251854424,
+          "best_fun": 0.14952839938032617,
+          "nfev_so_far": 1199,
+          "preconditioner_mean": 1.0,
+          "refresh_triggered": false
+        },
+        {
+          "iter": 600,
+          "ak": 0.004209799720914193,
+          "ck": 0.052409102643514796,
+          "y_plus": 0.1511158593038352,
+          "y_minus": 0.1513976757472559,
+          "grad_norm": 0.007604568982915626,
+          "best_fun": 0.14952839938032617,
+          "nfev_so_far": 1201,
+          "preconditioner_mean": 1.0,
+          "refresh_triggered": false
+        }
+      ],
+      "refresh_points": [],
+      "remap_events": [
+        {
+          "op": "insert",
+          "position_id": 8,
+          "count": 1
+        },
+        {
+          "op": "merge_active",
+          "active_indices": [
+            8
+          ]
+        },
+        {
+          "op": "insert",
+          "position_id": 9,
+          "count": 1
+        },
+        {
+          "op": "merge_active",
+          "active_indices": [
+            9
+          ]
+        },
+        {
+          "op": "insert",
+          "position_id": 10,
+          "count": 1
+        },
+        {
+          "op": "merge_active",
+          "active_indices": [
+            10
+          ]
+        },
+        {
+          "op": "insert",
+          "position_id": 11,
+          "count": 1
+        },
+        {
+          "op": "merge_active",
+          "active_indices": [
+            11
+          ]
+        },
+        {
+          "op": "insert",
+          "position_id": 12,
+          "count": 1
+        },
+        {
+          "op": "merge_active",
+          "active_indices": [
+            12
+          ]
+        },
+        {
+          "op": "insert",
+          "position_id": 13,
+          "count": 1
+        },
+        {
+          "op": "merge_active",
+          "active_indices": [
+            13
+          ]
+        },
+        {
+          "op": "insert",
+          "position_id": 14,
+          "count": 1
+        },
+        {
+          "op": "merge_active",
+          "active_indices": [
+            14
+          ]
+        },
+        {
+          "op": "insert",
+          "position_id": 15,
+          "count": 1
+        },
+        {
+          "op": "merge_active",
+          "active_indices": [
+            15
+          ]
+        },
+        {
+          "op": "insert",
+          "position_id": 16,
+          "count": 1
+        },
+        {
+          "op": "merge_active",
+          "active_indices": [
+            16
+          ]
+        },
+        {
+          "op": "insert",
+          "position_id": 17,
+          "count": 1
+        },
+        {
+          "op": "merge_active",
+          "active_indices": [
+            17
+          ]
+        },
+        {
+          "op": "insert",
+          "position_id": 18,
+          "count": 1
+        },
+        {
+          "op": "merge_active",
+          "active_indices": [
+            18
+          ]
+        },
+        {
+          "op": "insert",
+          "position_id": 19,
+          "count": 1
+        },
+        {
+          "op": "merge_active",
+          "active_indices": [
+            19
+          ]
+        },
+        {
+          "op": "insert",
+          "position_id": 20,
+          "count": 1
+        },
+        {
+          "op": "merge_active",
+          "active_indices": [
+            20
+          ]
+        },
+        {
+          "op": "insert",
+          "position_id": 21,
+          "count": 1
+        },
+        {
+          "op": "merge_active",
+          "active_indices": [
+            21
+          ]
+        }
+      ],
+      "preconditioner_diag": [
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "grad_sq_ema": [
+        4.0754871675215505e-05,
+        4.0754871675215505e-05,
+        4.0754871675215505e-05,
+        4.0754871675215505e-05,
+        4.0754871675215505e-05,
+        4.0754871675215505e-05,
+        4.0754871675215505e-05,
+        4.0754871675215505e-05,
+        4.168975444872346e-05,
+        1.49664909221634e-25,
+        0.0001642805818250144,
+        4.1275597865752315e-05,
+        2.0033363887806934e-26,
+        2.0033363887806934e-26,
+        2.0033363887806934e-26,
+        2.0033363887806934e-26,
+        2.0033363887806934e-26,
+        2.0033363887806934e-26,
+        2.0033363887806934e-26,
+        2.0033363887806934e-26,
+        2.0033363887806934e-26,
+        2.0033363887806934e-26
+      ]
+    },
+    "selected_generator_metadata": [
+      {
+        "generator_id": "gen:b51e355794342636",
+        "family_id": "paop_lf_std",
+        "template_id": "paop_lf_std|atomic|terms1|sites0|bos1|ferm1",
+        "candidate_label": "hh_termwise_ham_quadrature_term(eyeezeee)",
+        "support_qubits": [
+          3,
+          6
+        ],
+        "support_sites": [
+          1
+        ],
+        "support_site_offsets": [
+          0
+        ],
+        "is_macro_generator": false,
+        "split_policy": "preserve",
+        "parent_generator_id": null,
+        "symmetry_spec": {
+          "spec_version": "phase3_symmetry_v1",
+          "particle_number_mode": "preserving",
+          "spin_sector_mode": "preserving",
+          "phonon_number_mode": "not_conserved",
+          "leakage_risk": 0.0,
+          "mitigation_eligible": false,
+          "grouping_eligible": true,
+          "hard_guard": false,
+          "tags": [
+            "fermion_number",
+            "spin_sector"
+          ]
+        },
+        "compile_metadata": {
+          "num_polynomial_terms": 1,
+          "signature_size": 1,
+          "has_boson_support": true,
+          "has_fermion_support": true,
+          "support_size": 2,
+          "serialized_terms_exyz": [
+            {
+              "pauli_exyz": "eyeezeee",
+              "coeff_re": 0.25,
+              "coeff_im": 0.0,
+              "nq": 8
+            }
+          ]
+        }
+      },
+      {
+        "generator_id": "gen:446beddf91698bac",
+        "family_id": "paop_lf_std",
+        "template_id": "paop_lf_std|atomic|terms1|sites0|bos1|ferm1",
+        "candidate_label": "hh_termwise_ham_quadrature_term(eyeeeeze)",
+        "support_qubits": [
+          1,
+          6
+        ],
+        "support_sites": [
+          1
+        ],
+        "support_site_offsets": [
+          0
+        ],
+        "is_macro_generator": false,
+        "split_policy": "preserve",
+        "parent_generator_id": null,
+        "symmetry_spec": {
+          "spec_version": "phase3_symmetry_v1",
+          "particle_number_mode": "preserving",
+          "spin_sector_mode": "preserving",
+          "phonon_number_mode": "not_conserved",
+          "leakage_risk": 0.0,
+          "mitigation_eligible": false,
+          "grouping_eligible": true,
+          "hard_guard": false,
+          "tags": [
+            "fermion_number",
+            "spin_sector"
+          ]
+        },
+        "compile_metadata": {
+          "num_polynomial_terms": 1,
+          "signature_size": 1,
+          "has_boson_support": true,
+          "has_fermion_support": true,
+          "support_size": 2,
+          "serialized_terms_exyz": [
+            {
+              "pauli_exyz": "eyeeeeze",
+              "coeff_re": 0.25,
+              "coeff_im": 0.0,
+              "nq": 8
+            }
+          ]
+        }
+      },
+      {
+        "generator_id": "gen:7fe7c66fd4a652ff",
+        "family_id": "paop_lf_std",
+        "template_id": "paop_lf_std|atomic|terms1|sites0|bos1|ferm1",
+        "candidate_label": "hh_termwise_ham_quadrature_term(zyeezeee)",
+        "support_qubits": [
+          3,
+          6,
+          7
+        ],
+        "support_sites": [
+          1
+        ],
+        "support_site_offsets": [
+          0
+        ],
+        "is_macro_generator": false,
+        "split_policy": "preserve",
+        "parent_generator_id": null,
+        "symmetry_spec": {
+          "spec_version": "phase3_symmetry_v1",
+          "particle_number_mode": "preserving",
+          "spin_sector_mode": "preserving",
+          "phonon_number_mode": "not_conserved",
+          "leakage_risk": 0.0,
+          "mitigation_eligible": false,
+          "grouping_eligible": true,
+          "hard_guard": false,
+          "tags": [
+            "fermion_number",
+            "spin_sector"
+          ]
+        },
+        "compile_metadata": {
+          "num_polynomial_terms": 1,
+          "signature_size": 1,
+          "has_boson_support": true,
+          "has_fermion_support": true,
+          "support_size": 3,
+          "serialized_terms_exyz": [
+            {
+              "pauli_exyz": "zyeezeee",
+              "coeff_re": 0.25,
+              "coeff_im": 0.0,
+              "nq": 8
+            }
+          ]
+        }
+      },
+      {
+        "generator_id": "gen:ae2b06830230d254",
+        "family_id": "paop_lf_std",
+        "template_id": "paop_lf_std|atomic|terms1|sites0|bos1|ferm1",
+        "candidate_label": "hh_termwise_ham_quadrature_term(zyeeeeze)",
+        "support_qubits": [
+          1,
+          6,
+          7
+        ],
+        "support_sites": [
+          1
+        ],
+        "support_site_offsets": [
+          0
+        ],
+        "is_macro_generator": false,
+        "split_policy": "preserve",
+        "parent_generator_id": null,
+        "symmetry_spec": {
+          "spec_version": "phase3_symmetry_v1",
+          "particle_number_mode": "preserving",
+          "spin_sector_mode": "preserving",
+          "phonon_number_mode": "not_conserved",
+          "leakage_risk": 0.0,
+          "mitigation_eligible": false,
+          "grouping_eligible": true,
+          "hard_guard": false,
+          "tags": [
+            "fermion_number",
+            "spin_sector"
+          ]
+        },
+        "compile_metadata": {
+          "num_polynomial_terms": 1,
+          "signature_size": 1,
+          "has_boson_support": true,
+          "has_fermion_support": true,
+          "support_size": 3,
+          "serialized_terms_exyz": [
+            {
+              "pauli_exyz": "zyeeeeze",
+              "coeff_re": 0.25,
+              "coeff_im": 0.0,
+              "nq": 8
+            }
+          ]
+        }
+      },
+      {
+        "generator_id": "gen:908be61ce067e8f7",
+        "family_id": "paop_lf_std",
+        "template_id": "paop_lf_std|atomic|terms1|sites0|bos1|ferm1",
+        "candidate_label": "hh_termwise_ham_quadrature_term(eezyeeez)",
+        "support_qubits": [
+          0,
+          4,
+          5
+        ],
+        "support_sites": [
+          0
+        ],
+        "support_site_offsets": [
+          0
+        ],
+        "is_macro_generator": false,
+        "split_policy": "preserve",
+        "parent_generator_id": null,
+        "symmetry_spec": {
+          "spec_version": "phase3_symmetry_v1",
+          "particle_number_mode": "preserving",
+          "spin_sector_mode": "preserving",
+          "phonon_number_mode": "not_conserved",
+          "leakage_risk": 0.0,
+          "mitigation_eligible": false,
+          "grouping_eligible": true,
+          "hard_guard": false,
+          "tags": [
+            "fermion_number",
+            "spin_sector"
+          ]
+        },
+        "compile_metadata": {
+          "num_polynomial_terms": 1,
+          "signature_size": 1,
+          "has_boson_support": true,
+          "has_fermion_support": true,
+          "support_size": 3,
+          "serialized_terms_exyz": [
+            {
+              "pauli_exyz": "eezyeeez",
+              "coeff_re": 0.25,
+              "coeff_im": 0.0,
+              "nq": 8
+            }
+          ]
+        }
+      },
+      {
+        "generator_id": "gen:c4bfac3a46eabb82",
+        "family_id": "paop_lf_std",
+        "template_id": "paop_lf_std|atomic|terms1|sites0|bos1|ferm1",
+        "candidate_label": "hh_termwise_ham_quadrature_term(eezyezee)",
+        "support_qubits": [
+          2,
+          4,
+          5
+        ],
+        "support_sites": [
+          0
+        ],
+        "support_site_offsets": [
+          0
+        ],
+        "is_macro_generator": false,
+        "split_policy": "preserve",
+        "parent_generator_id": null,
+        "symmetry_spec": {
+          "spec_version": "phase3_symmetry_v1",
+          "particle_number_mode": "preserving",
+          "spin_sector_mode": "preserving",
+          "phonon_number_mode": "not_conserved",
+          "leakage_risk": 0.0,
+          "mitigation_eligible": false,
+          "grouping_eligible": true,
+          "hard_guard": false,
+          "tags": [
+            "fermion_number",
+            "spin_sector"
+          ]
+        },
+        "compile_metadata": {
+          "num_polynomial_terms": 1,
+          "signature_size": 1,
+          "has_boson_support": true,
+          "has_fermion_support": true,
+          "support_size": 3,
+          "serialized_terms_exyz": [
+            {
+              "pauli_exyz": "eezyezee",
+              "coeff_re": 0.25,
+              "coeff_im": 0.0,
+              "nq": 8
+            }
+          ]
+        }
+      },
+      {
+        "generator_id": "gen:b3304712309bf55c",
+        "family_id": "paop_lf_std",
+        "template_id": "paop_lf_std|atomic|terms1|sites0|bos1|ferm1",
+        "candidate_label": "hh_termwise_ham_quadrature_term(eeeyeeez)",
+        "support_qubits": [
+          0,
+          4
+        ],
+        "support_sites": [
+          0
+        ],
+        "support_site_offsets": [
+          0
+        ],
+        "is_macro_generator": false,
+        "split_policy": "preserve",
+        "parent_generator_id": null,
+        "symmetry_spec": {
+          "spec_version": "phase3_symmetry_v1",
+          "particle_number_mode": "preserving",
+          "spin_sector_mode": "preserving",
+          "phonon_number_mode": "not_conserved",
+          "leakage_risk": 0.0,
+          "mitigation_eligible": false,
+          "grouping_eligible": true,
+          "hard_guard": false,
+          "tags": [
+            "fermion_number",
+            "spin_sector"
+          ]
+        },
+        "compile_metadata": {
+          "num_polynomial_terms": 1,
+          "signature_size": 1,
+          "has_boson_support": true,
+          "has_fermion_support": true,
+          "support_size": 2,
+          "serialized_terms_exyz": [
+            {
+              "pauli_exyz": "eeeyeeez",
+              "coeff_re": 0.25,
+              "coeff_im": 0.0,
+              "nq": 8
+            }
+          ]
+        }
+      },
+      {
+        "generator_id": "gen:2e44dfde6ed136c5",
+        "family_id": "paop_lf_std",
+        "template_id": "paop_lf_std|atomic|terms1|sites0|bos1|ferm1",
+        "candidate_label": "hh_termwise_ham_quadrature_term(eeeyezee)",
+        "support_qubits": [
+          2,
+          4
+        ],
+        "support_sites": [
+          0
+        ],
+        "support_site_offsets": [
+          0
+        ],
+        "is_macro_generator": false,
+        "split_policy": "preserve",
+        "parent_generator_id": null,
+        "symmetry_spec": {
+          "spec_version": "phase3_symmetry_v1",
+          "particle_number_mode": "preserving",
+          "spin_sector_mode": "preserving",
+          "phonon_number_mode": "not_conserved",
+          "leakage_risk": 0.0,
+          "mitigation_eligible": false,
+          "grouping_eligible": true,
+          "hard_guard": false,
+          "tags": [
+            "fermion_number",
+            "spin_sector"
+          ]
+        },
+        "compile_metadata": {
+          "num_polynomial_terms": 1,
+          "signature_size": 1,
+          "has_boson_support": true,
+          "has_fermion_support": true,
+          "support_size": 2,
+          "serialized_terms_exyz": [
+            {
+              "pauli_exyz": "eeeyezee",
+              "coeff_re": 0.25,
+              "coeff_im": 0.0,
+              "nq": 8
+            }
+          ]
+        }
+      },
+      {
+        "generator_id": "gen:493ee581a918e62c",
+        "family_id": "paop_lf_std",
+        "template_id": "paop_lf_std|atomic|terms1|sites0|bos1|ferm0",
+        "candidate_label": "hh_termwise_ham_unit_term(zzeeeeee)",
+        "support_qubits": [
+          6,
+          7
+        ],
+        "support_sites": [
+          1
+        ],
+        "support_site_offsets": [
+          0
+        ],
+        "is_macro_generator": false,
+        "split_policy": "preserve",
+        "parent_generator_id": null,
+        "symmetry_spec": {
+          "spec_version": "phase3_symmetry_v1",
+          "particle_number_mode": "preserving",
+          "spin_sector_mode": "preserving",
+          "phonon_number_mode": "not_conserved",
+          "leakage_risk": 0.0,
+          "mitigation_eligible": false,
+          "grouping_eligible": true,
+          "hard_guard": false,
+          "tags": [
+            "fermion_number",
+            "spin_sector"
+          ]
+        },
+        "compile_metadata": {
+          "num_polynomial_terms": 1,
+          "signature_size": 1,
+          "has_boson_support": true,
+          "has_fermion_support": false,
+          "support_size": 2,
+          "serialized_terms_exyz": [
+            {
+              "pauli_exyz": "zzeeeeee",
+              "coeff_re": 1.0,
+              "coeff_im": 0.0,
+              "nq": 8
+            }
+          ]
+        }
+      },
+      {
+        "generator_id": "gen:9a6cc3a5c32ae261",
+        "family_id": "paop_lf_std",
+        "template_id": "paop_lf_std|atomic|terms1|sites0|bos0|ferm1",
+        "candidate_label": "hh_termwise_ham_unit_term(eeeeezee)",
+        "support_qubits": [
+          2
+        ],
+        "support_sites": [
+          0
+        ],
+        "support_site_offsets": [
+          0
+        ],
+        "is_macro_generator": false,
+        "split_policy": "preserve",
+        "parent_generator_id": null,
+        "symmetry_spec": {
+          "spec_version": "phase3_symmetry_v1",
+          "particle_number_mode": "preserving",
+          "spin_sector_mode": "preserving",
+          "phonon_number_mode": "not_conserved",
+          "leakage_risk": 0.0,
+          "mitigation_eligible": false,
+          "grouping_eligible": true,
+          "hard_guard": false,
+          "tags": [
+            "fermion_number",
+            "spin_sector"
+          ]
+        },
+        "compile_metadata": {
+          "num_polynomial_terms": 1,
+          "signature_size": 1,
+          "has_boson_support": false,
+          "has_fermion_support": true,
+          "support_size": 1,
+          "serialized_terms_exyz": [
+            {
+              "pauli_exyz": "eeeeezee",
+              "coeff_re": 1.0,
+              "coeff_im": 0.0,
+              "nq": 8
+            }
+          ]
+        }
+      },
+      {
+        "generator_id": "gen:4a9f9b478c2aecd1",
+        "family_id": "paop_lf_std",
+        "template_id": "paop_lf_std|atomic|terms1|sites0,1|bos0|ferm1",
+        "candidate_label": "uccsd_dbl(ab:0,2->1,3)_0",
+        "support_qubits": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "support_sites": [
+          0,
+          1
+        ],
+        "support_site_offsets": [
+          0,
+          1
+        ],
+        "is_macro_generator": false,
+        "split_policy": "preserve",
+        "parent_generator_id": null,
+        "symmetry_spec": {
+          "spec_version": "phase3_symmetry_v1",
+          "particle_number_mode": "preserving",
+          "spin_sector_mode": "preserving",
+          "phonon_number_mode": "not_conserved",
+          "leakage_risk": 0.0,
+          "mitigation_eligible": false,
+          "grouping_eligible": true,
+          "hard_guard": false,
+          "tags": [
+            "fermion_number",
+            "spin_sector"
+          ]
+        },
+        "compile_metadata": {
+          "num_polynomial_terms": 1,
+          "signature_size": 1,
+          "has_boson_support": false,
+          "has_fermion_support": true,
+          "support_size": 4,
+          "serialized_terms_exyz": [
+            {
+              "pauli_exyz": "eeeexxyx",
+              "coeff_re": 0.125,
+              "coeff_im": 0.0,
+              "nq": 8
+            }
+          ]
+        }
+      },
+      {
+        "generator_id": "gen:4a9f9b478c2aecd1",
+        "family_id": "paop_lf_std",
+        "template_id": "paop_lf_std|atomic|terms1|sites0,1|bos0|ferm1",
+        "candidate_label": "uccsd_dbl(ab:0,2->1,3)_0",
+        "support_qubits": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "support_sites": [
+          0,
+          1
+        ],
+        "support_site_offsets": [
+          0,
+          1
+        ],
+        "is_macro_generator": false,
+        "split_policy": "preserve",
+        "parent_generator_id": null,
+        "symmetry_spec": {
+          "spec_version": "phase3_symmetry_v1",
+          "particle_number_mode": "preserving",
+          "spin_sector_mode": "preserving",
+          "phonon_number_mode": "not_conserved",
+          "leakage_risk": 0.0,
+          "mitigation_eligible": false,
+          "grouping_eligible": true,
+          "hard_guard": false,
+          "tags": [
+            "fermion_number",
+            "spin_sector"
+          ]
+        },
+        "compile_metadata": {
+          "num_polynomial_terms": 1,
+          "signature_size": 1,
+          "has_boson_support": false,
+          "has_fermion_support": true,
+          "support_size": 4,
+          "serialized_terms_exyz": [
+            {
+              "pauli_exyz": "eeeexxyx",
+              "coeff_re": 0.125,
+              "coeff_im": 0.0,
+              "nq": 8
+            }
+          ]
+        }
+      },
+      {
+        "generator_id": "gen:9a6cc3a5c32ae261",
+        "family_id": "paop_lf_std",
+        "template_id": "paop_lf_std|atomic|terms1|sites0|bos0|ferm1",
+        "candidate_label": "hh_termwise_ham_unit_term(eeeeezee)",
+        "support_qubits": [
+          2
+        ],
+        "support_sites": [
+          0
+        ],
+        "support_site_offsets": [
+          0
+        ],
+        "is_macro_generator": false,
+        "split_policy": "preserve",
+        "parent_generator_id": null,
+        "symmetry_spec": {
+          "spec_version": "phase3_symmetry_v1",
+          "particle_number_mode": "preserving",
+          "spin_sector_mode": "preserving",
+          "phonon_number_mode": "not_conserved",
+          "leakage_risk": 0.0,
+          "mitigation_eligible": false,
+          "grouping_eligible": true,
+          "hard_guard": false,
+          "tags": [
+            "fermion_number",
+            "spin_sector"
+          ]
+        },
+        "compile_metadata": {
+          "num_polynomial_terms": 1,
+          "signature_size": 1,
+          "has_boson_support": false,
+          "has_fermion_support": true,
+          "support_size": 1,
+          "serialized_terms_exyz": [
+            {
+              "pauli_exyz": "eeeeezee",
+              "coeff_re": 1.0,
+              "coeff_im": 0.0,
+              "nq": 8
+            }
+          ]
+        }
+      },
+      {
+        "generator_id": "gen:9a6cc3a5c32ae261",
+        "family_id": "paop_lf_std",
+        "template_id": "paop_lf_std|atomic|terms1|sites0|bos0|ferm1",
+        "candidate_label": "hh_termwise_ham_unit_term(eeeeezee)",
+        "support_qubits": [
+          2
+        ],
+        "support_sites": [
+          0
+        ],
+        "support_site_offsets": [
+          0
+        ],
+        "is_macro_generator": false,
+        "split_policy": "preserve",
+        "parent_generator_id": null,
+        "symmetry_spec": {
+          "spec_version": "phase3_symmetry_v1",
+          "particle_number_mode": "preserving",
+          "spin_sector_mode": "preserving",
+          "phonon_number_mode": "not_conserved",
+          "leakage_risk": 0.0,
+          "mitigation_eligible": false,
+          "grouping_eligible": true,
+          "hard_guard": false,
+          "tags": [
+            "fermion_number",
+            "spin_sector"
+          ]
+        },
+        "compile_metadata": {
+          "num_polynomial_terms": 1,
+          "signature_size": 1,
+          "has_boson_support": false,
+          "has_fermion_support": true,
+          "support_size": 1,
+          "serialized_terms_exyz": [
+            {
+              "pauli_exyz": "eeeeezee",
+              "coeff_re": 1.0,
+              "coeff_im": 0.0,
+              "nq": 8
+            }
+          ]
+        }
+      },
+      {
+        "generator_id": "gen:9a6cc3a5c32ae261",
+        "family_id": "paop_lf_std",
+        "template_id": "paop_lf_std|atomic|terms1|sites0|bos0|ferm1",
+        "candidate_label": "hh_termwise_ham_unit_term(eeeeezee)",
+        "support_qubits": [
+          2
+        ],
+        "support_sites": [
+          0
+        ],
+        "support_site_offsets": [
+          0
+        ],
+        "is_macro_generator": false,
+        "split_policy": "preserve",
+        "parent_generator_id": null,
+        "symmetry_spec": {
+          "spec_version": "phase3_symmetry_v1",
+          "particle_number_mode": "preserving",
+          "spin_sector_mode": "preserving",
+          "phonon_number_mode": "not_conserved",
+          "leakage_risk": 0.0,
+          "mitigation_eligible": false,
+          "grouping_eligible": true,
+          "hard_guard": false,
+          "tags": [
+            "fermion_number",
+            "spin_sector"
+          ]
+        },
+        "compile_metadata": {
+          "num_polynomial_terms": 1,
+          "signature_size": 1,
+          "has_boson_support": false,
+          "has_fermion_support": true,
+          "support_size": 1,
+          "serialized_terms_exyz": [
+            {
+              "pauli_exyz": "eeeeezee",
+              "coeff_re": 1.0,
+              "coeff_im": 0.0,
+              "nq": 8
+            }
+          ]
+        }
+      },
+      {
+        "generator_id": "gen:9a6cc3a5c32ae261",
+        "family_id": "paop_lf_std",
+        "template_id": "paop_lf_std|atomic|terms1|sites0|bos0|ferm1",
+        "candidate_label": "hh_termwise_ham_unit_term(eeeeezee)",
+        "support_qubits": [
+          2
+        ],
+        "support_sites": [
+          0
+        ],
+        "support_site_offsets": [
+          0
+        ],
+        "is_macro_generator": false,
+        "split_policy": "preserve",
+        "parent_generator_id": null,
+        "symmetry_spec": {
+          "spec_version": "phase3_symmetry_v1",
+          "particle_number_mode": "preserving",
+          "spin_sector_mode": "preserving",
+          "phonon_number_mode": "not_conserved",
+          "leakage_risk": 0.0,
+          "mitigation_eligible": false,
+          "grouping_eligible": true,
+          "hard_guard": false,
+          "tags": [
+            "fermion_number",
+            "spin_sector"
+          ]
+        },
+        "compile_metadata": {
+          "num_polynomial_terms": 1,
+          "signature_size": 1,
+          "has_boson_support": false,
+          "has_fermion_support": true,
+          "support_size": 1,
+          "serialized_terms_exyz": [
+            {
+              "pauli_exyz": "eeeeezee",
+              "coeff_re": 1.0,
+              "coeff_im": 0.0,
+              "nq": 8
+            }
+          ]
+        }
+      },
+      {
+        "generator_id": "gen:9a6cc3a5c32ae261",
+        "family_id": "paop_lf_std",
+        "template_id": "paop_lf_std|atomic|terms1|sites0|bos0|ferm1",
+        "candidate_label": "hh_termwise_ham_unit_term(eeeeezee)",
+        "support_qubits": [
+          2
+        ],
+        "support_sites": [
+          0
+        ],
+        "support_site_offsets": [
+          0
+        ],
+        "is_macro_generator": false,
+        "split_policy": "preserve",
+        "parent_generator_id": null,
+        "symmetry_spec": {
+          "spec_version": "phase3_symmetry_v1",
+          "particle_number_mode": "preserving",
+          "spin_sector_mode": "preserving",
+          "phonon_number_mode": "not_conserved",
+          "leakage_risk": 0.0,
+          "mitigation_eligible": false,
+          "grouping_eligible": true,
+          "hard_guard": false,
+          "tags": [
+            "fermion_number",
+            "spin_sector"
+          ]
+        },
+        "compile_metadata": {
+          "num_polynomial_terms": 1,
+          "signature_size": 1,
+          "has_boson_support": false,
+          "has_fermion_support": true,
+          "support_size": 1,
+          "serialized_terms_exyz": [
+            {
+              "pauli_exyz": "eeeeezee",
+              "coeff_re": 1.0,
+              "coeff_im": 0.0,
+              "nq": 8
+            }
+          ]
+        }
+      },
+      {
+        "generator_id": "gen:9a6cc3a5c32ae261",
+        "family_id": "paop_lf_std",
+        "template_id": "paop_lf_std|atomic|terms1|sites0|bos0|ferm1",
+        "candidate_label": "hh_termwise_ham_unit_term(eeeeezee)",
+        "support_qubits": [
+          2
+        ],
+        "support_sites": [
+          0
+        ],
+        "support_site_offsets": [
+          0
+        ],
+        "is_macro_generator": false,
+        "split_policy": "preserve",
+        "parent_generator_id": null,
+        "symmetry_spec": {
+          "spec_version": "phase3_symmetry_v1",
+          "particle_number_mode": "preserving",
+          "spin_sector_mode": "preserving",
+          "phonon_number_mode": "not_conserved",
+          "leakage_risk": 0.0,
+          "mitigation_eligible": false,
+          "grouping_eligible": true,
+          "hard_guard": false,
+          "tags": [
+            "fermion_number",
+            "spin_sector"
+          ]
+        },
+        "compile_metadata": {
+          "num_polynomial_terms": 1,
+          "signature_size": 1,
+          "has_boson_support": false,
+          "has_fermion_support": true,
+          "support_size": 1,
+          "serialized_terms_exyz": [
+            {
+              "pauli_exyz": "eeeeezee",
+              "coeff_re": 1.0,
+              "coeff_im": 0.0,
+              "nq": 8
+            }
+          ]
+        }
+      },
+      {
+        "generator_id": "gen:9a6cc3a5c32ae261",
+        "family_id": "paop_lf_std",
+        "template_id": "paop_lf_std|atomic|terms1|sites0|bos0|ferm1",
+        "candidate_label": "hh_termwise_ham_unit_term(eeeeezee)",
+        "support_qubits": [
+          2
+        ],
+        "support_sites": [
+          0
+        ],
+        "support_site_offsets": [
+          0
+        ],
+        "is_macro_generator": false,
+        "split_policy": "preserve",
+        "parent_generator_id": null,
+        "symmetry_spec": {
+          "spec_version": "phase3_symmetry_v1",
+          "particle_number_mode": "preserving",
+          "spin_sector_mode": "preserving",
+          "phonon_number_mode": "not_conserved",
+          "leakage_risk": 0.0,
+          "mitigation_eligible": false,
+          "grouping_eligible": true,
+          "hard_guard": false,
+          "tags": [
+            "fermion_number",
+            "spin_sector"
+          ]
+        },
+        "compile_metadata": {
+          "num_polynomial_terms": 1,
+          "signature_size": 1,
+          "has_boson_support": false,
+          "has_fermion_support": true,
+          "support_size": 1,
+          "serialized_terms_exyz": [
+            {
+              "pauli_exyz": "eeeeezee",
+              "coeff_re": 1.0,
+              "coeff_im": 0.0,
+              "nq": 8
+            }
+          ]
+        }
+      },
+      {
+        "generator_id": "gen:9a6cc3a5c32ae261",
+        "family_id": "paop_lf_std",
+        "template_id": "paop_lf_std|atomic|terms1|sites0|bos0|ferm1",
+        "candidate_label": "hh_termwise_ham_unit_term(eeeeezee)",
+        "support_qubits": [
+          2
+        ],
+        "support_sites": [
+          0
+        ],
+        "support_site_offsets": [
+          0
+        ],
+        "is_macro_generator": false,
+        "split_policy": "preserve",
+        "parent_generator_id": null,
+        "symmetry_spec": {
+          "spec_version": "phase3_symmetry_v1",
+          "particle_number_mode": "preserving",
+          "spin_sector_mode": "preserving",
+          "phonon_number_mode": "not_conserved",
+          "leakage_risk": 0.0,
+          "mitigation_eligible": false,
+          "grouping_eligible": true,
+          "hard_guard": false,
+          "tags": [
+            "fermion_number",
+            "spin_sector"
+          ]
+        },
+        "compile_metadata": {
+          "num_polynomial_terms": 1,
+          "signature_size": 1,
+          "has_boson_support": false,
+          "has_fermion_support": true,
+          "support_size": 1,
+          "serialized_terms_exyz": [
+            {
+              "pauli_exyz": "eeeeezee",
+              "coeff_re": 1.0,
+              "coeff_im": 0.0,
+              "nq": 8
+            }
+          ]
+        }
+      },
+      {
+        "generator_id": "gen:9a6cc3a5c32ae261",
+        "family_id": "paop_lf_std",
+        "template_id": "paop_lf_std|atomic|terms1|sites0|bos0|ferm1",
+        "candidate_label": "hh_termwise_ham_unit_term(eeeeezee)",
+        "support_qubits": [
+          2
+        ],
+        "support_sites": [
+          0
+        ],
+        "support_site_offsets": [
+          0
+        ],
+        "is_macro_generator": false,
+        "split_policy": "preserve",
+        "parent_generator_id": null,
+        "symmetry_spec": {
+          "spec_version": "phase3_symmetry_v1",
+          "particle_number_mode": "preserving",
+          "spin_sector_mode": "preserving",
+          "phonon_number_mode": "not_conserved",
+          "leakage_risk": 0.0,
+          "mitigation_eligible": false,
+          "grouping_eligible": true,
+          "hard_guard": false,
+          "tags": [
+            "fermion_number",
+            "spin_sector"
+          ]
+        },
+        "compile_metadata": {
+          "num_polynomial_terms": 1,
+          "signature_size": 1,
+          "has_boson_support": false,
+          "has_fermion_support": true,
+          "support_size": 1,
+          "serialized_terms_exyz": [
+            {
+              "pauli_exyz": "eeeeezee",
+              "coeff_re": 1.0,
+              "coeff_im": 0.0,
+              "nq": 8
+            }
+          ]
+        }
+      }
+    ],
+    "generator_split_events": [],
+    "motif_library": {
+      "library_version": "phase3_motif_library_v1",
+      "source_tag": "phase3_v1_L2",
+      "source_num_sites": 2,
+      "ordering": "blocked",
+      "boson_encoding": "binary",
+      "source_tags": [
+        "phase3_v1_L2"
+      ],
+      "records": [
+        {
+          "motif_id": "motif:5a13fb32a1d4b76c",
+          "family_id": "paop_lf_std",
+          "template_id": "paop_lf_std|atomic|terms1|sites0|bos1|ferm1",
+          "source_num_sites": 2,
+          "relative_order": 0,
+          "support_site_offsets": [
+            0
+          ],
+          "mean_theta": 0.05172704537285824,
+          "mean_abs_theta": 0.05172704537285824,
+          "sign_hint": 1,
+          "generator_ids": [
+            "gen:b51e355794342636"
+          ],
+          "symmetry_spec": {
+            "spec_version": "phase3_symmetry_v1",
+            "particle_number_mode": "preserving",
+            "spin_sector_mode": "preserving",
+            "phonon_number_mode": "not_conserved",
+            "leakage_risk": 0.0,
+            "mitigation_eligible": false,
+            "grouping_eligible": true,
+            "hard_guard": false,
+            "tags": [
+              "fermion_number",
+              "spin_sector"
+            ]
+          },
+          "boundary_behavior": "right_edge",
+          "source_tags": [
+            "phase3_v1_L2"
+          ]
+        },
+        {
+          "motif_id": "motif:35d4d3fb47cb127c",
+          "family_id": "paop_lf_std",
+          "template_id": "paop_lf_std|atomic|terms1|sites0|bos1|ferm1",
+          "source_num_sites": 2,
+          "relative_order": 1,
+          "support_site_offsets": [
+            0
+          ],
+          "mean_theta": -0.049179098896640995,
+          "mean_abs_theta": 0.049179098896640995,
+          "sign_hint": -1,
+          "generator_ids": [
+            "gen:446beddf91698bac"
+          ],
+          "symmetry_spec": {
+            "spec_version": "phase3_symmetry_v1",
+            "particle_number_mode": "preserving",
+            "spin_sector_mode": "preserving",
+            "phonon_number_mode": "not_conserved",
+            "leakage_risk": 0.0,
+            "mitigation_eligible": false,
+            "grouping_eligible": true,
+            "hard_guard": false,
+            "tags": [
+              "fermion_number",
+              "spin_sector"
+            ]
+          },
+          "boundary_behavior": "right_edge",
+          "source_tags": [
+            "phase3_v1_L2"
+          ]
+        },
+        {
+          "motif_id": "motif:2119f56bc14fb65c",
+          "family_id": "paop_lf_std",
+          "template_id": "paop_lf_std|atomic|terms1|sites0|bos1|ferm1",
+          "source_num_sites": 2,
+          "relative_order": 2,
+          "support_site_offsets": [
+            0
+          ],
+          "mean_theta": 0.1412031076826096,
+          "mean_abs_theta": 0.1412031076826096,
+          "sign_hint": 1,
+          "generator_ids": [
+            "gen:7fe7c66fd4a652ff"
+          ],
+          "symmetry_spec": {
+            "spec_version": "phase3_symmetry_v1",
+            "particle_number_mode": "preserving",
+            "spin_sector_mode": "preserving",
+            "phonon_number_mode": "not_conserved",
+            "leakage_risk": 0.0,
+            "mitigation_eligible": false,
+            "grouping_eligible": true,
+            "hard_guard": false,
+            "tags": [
+              "fermion_number",
+              "spin_sector"
+            ]
+          },
+          "boundary_behavior": "right_edge",
+          "source_tags": [
+            "phase3_v1_L2"
+          ]
+        },
+        {
+          "motif_id": "motif:6421636d364286ee",
+          "family_id": "paop_lf_std",
+          "template_id": "paop_lf_std|atomic|terms1|sites0|bos1|ferm1",
+          "source_num_sites": 2,
+          "relative_order": 3,
+          "support_site_offsets": [
+            0
+          ],
+          "mean_theta": 0.042609331691030754,
+          "mean_abs_theta": 0.042609331691030754,
+          "sign_hint": 1,
+          "generator_ids": [
+            "gen:ae2b06830230d254"
+          ],
+          "symmetry_spec": {
+            "spec_version": "phase3_symmetry_v1",
+            "particle_number_mode": "preserving",
+            "spin_sector_mode": "preserving",
+            "phonon_number_mode": "not_conserved",
+            "leakage_risk": 0.0,
+            "mitigation_eligible": false,
+            "grouping_eligible": true,
+            "hard_guard": false,
+            "tags": [
+              "fermion_number",
+              "spin_sector"
+            ]
+          },
+          "boundary_behavior": "right_edge",
+          "source_tags": [
+            "phase3_v1_L2"
+          ]
+        },
+        {
+          "motif_id": "motif:aafe395d87425619",
+          "family_id": "paop_lf_std",
+          "template_id": "paop_lf_std|atomic|terms1|sites0|bos1|ferm1",
+          "source_num_sites": 2,
+          "relative_order": 4,
+          "support_site_offsets": [
+            0
+          ],
+          "mean_theta": 0.10803062473270597,
+          "mean_abs_theta": 0.10803062473270597,
+          "sign_hint": 1,
+          "generator_ids": [
+            "gen:908be61ce067e8f7"
+          ],
+          "symmetry_spec": {
+            "spec_version": "phase3_symmetry_v1",
+            "particle_number_mode": "preserving",
+            "spin_sector_mode": "preserving",
+            "phonon_number_mode": "not_conserved",
+            "leakage_risk": 0.0,
+            "mitigation_eligible": false,
+            "grouping_eligible": true,
+            "hard_guard": false,
+            "tags": [
+              "fermion_number",
+              "spin_sector"
+            ]
+          },
+          "boundary_behavior": "left_edge",
+          "source_tags": [
+            "phase3_v1_L2"
+          ]
+        },
+        {
+          "motif_id": "motif:2c801c21936b7bc2",
+          "family_id": "paop_lf_std",
+          "template_id": "paop_lf_std|atomic|terms1|sites0|bos1|ferm1",
+          "source_num_sites": 2,
+          "relative_order": 5,
+          "support_site_offsets": [
+            0
+          ],
+          "mean_theta": -0.002613890231799837,
+          "mean_abs_theta": 0.002613890231799837,
+          "sign_hint": -1,
+          "generator_ids": [
+            "gen:c4bfac3a46eabb82"
+          ],
+          "symmetry_spec": {
+            "spec_version": "phase3_symmetry_v1",
+            "particle_number_mode": "preserving",
+            "spin_sector_mode": "preserving",
+            "phonon_number_mode": "not_conserved",
+            "leakage_risk": 0.0,
+            "mitigation_eligible": false,
+            "grouping_eligible": true,
+            "hard_guard": false,
+            "tags": [
+              "fermion_number",
+              "spin_sector"
+            ]
+          },
+          "boundary_behavior": "left_edge",
+          "source_tags": [
+            "phase3_v1_L2"
+          ]
+        },
+        {
+          "motif_id": "motif:7be0518c6bb7e27e",
+          "family_id": "paop_lf_std",
+          "template_id": "paop_lf_std|atomic|terms1|sites0|bos1|ferm1",
+          "source_num_sites": 2,
+          "relative_order": 6,
+          "support_site_offsets": [
+            0
+          ],
+          "mean_theta": -0.027769894657512513,
+          "mean_abs_theta": 0.027769894657512513,
+          "sign_hint": -1,
+          "generator_ids": [
+            "gen:b3304712309bf55c"
+          ],
+          "symmetry_spec": {
+            "spec_version": "phase3_symmetry_v1",
+            "particle_number_mode": "preserving",
+            "spin_sector_mode": "preserving",
+            "phonon_number_mode": "not_conserved",
+            "leakage_risk": 0.0,
+            "mitigation_eligible": false,
+            "grouping_eligible": true,
+            "hard_guard": false,
+            "tags": [
+              "fermion_number",
+              "spin_sector"
+            ]
+          },
+          "boundary_behavior": "left_edge",
+          "source_tags": [
+            "phase3_v1_L2"
+          ]
+        },
+        {
+          "motif_id": "motif:043c021883068a76",
+          "family_id": "paop_lf_std",
+          "template_id": "paop_lf_std|atomic|terms1|sites0|bos1|ferm1",
+          "source_num_sites": 2,
+          "relative_order": 7,
+          "support_site_offsets": [
+            0
+          ],
+          "mean_theta": 0.08873143115981989,
+          "mean_abs_theta": 0.08873143115981989,
+          "sign_hint": 1,
+          "generator_ids": [
+            "gen:2e44dfde6ed136c5"
+          ],
+          "symmetry_spec": {
+            "spec_version": "phase3_symmetry_v1",
+            "particle_number_mode": "preserving",
+            "spin_sector_mode": "preserving",
+            "phonon_number_mode": "not_conserved",
+            "leakage_risk": 0.0,
+            "mitigation_eligible": false,
+            "grouping_eligible": true,
+            "hard_guard": false,
+            "tags": [
+              "fermion_number",
+              "spin_sector"
+            ]
+          },
+          "boundary_behavior": "left_edge",
+          "source_tags": [
+            "phase3_v1_L2"
+          ]
+        },
+        {
+          "motif_id": "motif:b82a3d8136b9abe5",
+          "family_id": "paop_lf_std",
+          "template_id": "paop_lf_std|atomic|terms1|sites0|bos1|ferm0",
+          "source_num_sites": 2,
+          "relative_order": 8,
+          "support_site_offsets": [
+            0
+          ],
+          "mean_theta": -0.2651963649396502,
+          "mean_abs_theta": 0.2651963649396502,
+          "sign_hint": -1,
+          "generator_ids": [
+            "gen:493ee581a918e62c"
+          ],
+          "symmetry_spec": {
+            "spec_version": "phase3_symmetry_v1",
+            "particle_number_mode": "preserving",
+            "spin_sector_mode": "preserving",
+            "phonon_number_mode": "not_conserved",
+            "leakage_risk": 0.0,
+            "mitigation_eligible": false,
+            "grouping_eligible": true,
+            "hard_guard": false,
+            "tags": [
+              "fermion_number",
+              "spin_sector"
+            ]
+          },
+          "boundary_behavior": "right_edge",
+          "source_tags": [
+            "phase3_v1_L2"
+          ]
+        },
+        {
+          "motif_id": "motif:83c7b9ea359cebab",
+          "family_id": "paop_lf_std",
+          "template_id": "paop_lf_std|atomic|terms1|sites0|bos0|ferm1",
+          "source_num_sites": 2,
+          "relative_order": 9,
+          "support_site_offsets": [
+            0
+          ],
+          "mean_theta": -0.1,
+          "mean_abs_theta": 0.1,
+          "sign_hint": -1,
+          "generator_ids": [
+            "gen:9a6cc3a5c32ae261"
+          ],
+          "symmetry_spec": {
+            "spec_version": "phase3_symmetry_v1",
+            "particle_number_mode": "preserving",
+            "spin_sector_mode": "preserving",
+            "phonon_number_mode": "not_conserved",
+            "leakage_risk": 0.0,
+            "mitigation_eligible": false,
+            "grouping_eligible": true,
+            "hard_guard": false,
+            "tags": [
+              "fermion_number",
+              "spin_sector"
+            ]
+          },
+          "boundary_behavior": "left_edge",
+          "source_tags": [
+            "phase3_v1_L2"
+          ]
+        },
+        {
+          "motif_id": "motif:424f94b9214672ca",
+          "family_id": "paop_lf_std",
+          "template_id": "paop_lf_std|atomic|terms1|sites0,1|bos0|ferm1",
+          "source_num_sites": 2,
+          "relative_order": 10,
+          "support_site_offsets": [
+            0,
+            1
+          ],
+          "mean_theta": 0.20318834123951002,
+          "mean_abs_theta": 0.20318834123951002,
+          "sign_hint": 1,
+          "generator_ids": [
+            "gen:4a9f9b478c2aecd1"
+          ],
+          "symmetry_spec": {
+            "spec_version": "phase3_symmetry_v1",
+            "particle_number_mode": "preserving",
+            "spin_sector_mode": "preserving",
+            "phonon_number_mode": "not_conserved",
+            "leakage_risk": 0.0,
+            "mitigation_eligible": false,
+            "grouping_eligible": true,
+            "hard_guard": false,
+            "tags": [
+              "fermion_number",
+              "spin_sector"
+            ]
+          },
+          "boundary_behavior": "both_edges",
+          "source_tags": [
+            "phase3_v1_L2"
+          ]
+        },
+        {
+          "motif_id": "motif:3140fb489a0ace91",
+          "family_id": "paop_lf_std",
+          "template_id": "paop_lf_std|atomic|terms1|sites0,1|bos0|ferm1",
+          "source_num_sites": 2,
+          "relative_order": 11,
+          "support_site_offsets": [
+            0,
+            1
+          ],
+          "mean_theta": 0.12479327995009412,
+          "mean_abs_theta": 0.12479327995009412,
+          "sign_hint": 1,
+          "generator_ids": [
+            "gen:4a9f9b478c2aecd1"
+          ],
+          "symmetry_spec": {
+            "spec_version": "phase3_symmetry_v1",
+            "particle_number_mode": "preserving",
+            "spin_sector_mode": "preserving",
+            "phonon_number_mode": "not_conserved",
+            "leakage_risk": 0.0,
+            "mitigation_eligible": false,
+            "grouping_eligible": true,
+            "hard_guard": false,
+            "tags": [
+              "fermion_number",
+              "spin_sector"
+            ]
+          },
+          "boundary_behavior": "both_edges",
+          "source_tags": [
+            "phase3_v1_L2"
+          ]
+        },
+        {
+          "motif_id": "motif:54a6116cabc027b5",
+          "family_id": "paop_lf_std",
+          "template_id": "paop_lf_std|atomic|terms1|sites0|bos0|ferm1",
+          "source_num_sites": 2,
+          "relative_order": 12,
+          "support_site_offsets": [
+            0
+          ],
+          "mean_theta": 0.0,
+          "mean_abs_theta": 0.0,
+          "sign_hint": 0,
+          "generator_ids": [
+            "gen:9a6cc3a5c32ae261"
+          ],
+          "symmetry_spec": {
+            "spec_version": "phase3_symmetry_v1",
+            "particle_number_mode": "preserving",
+            "spin_sector_mode": "preserving",
+            "phonon_number_mode": "not_conserved",
+            "leakage_risk": 0.0,
+            "mitigation_eligible": false,
+            "grouping_eligible": true,
+            "hard_guard": false,
+            "tags": [
+              "fermion_number",
+              "spin_sector"
+            ]
+          },
+          "boundary_behavior": "left_edge",
+          "source_tags": [
+            "phase3_v1_L2"
+          ]
+        },
+        {
+          "motif_id": "motif:ba20a31dd1f96ed4",
+          "family_id": "paop_lf_std",
+          "template_id": "paop_lf_std|atomic|terms1|sites0|bos0|ferm1",
+          "source_num_sites": 2,
+          "relative_order": 13,
+          "support_site_offsets": [
+            0
+          ],
+          "mean_theta": 0.0,
+          "mean_abs_theta": 0.0,
+          "sign_hint": 0,
+          "generator_ids": [
+            "gen:9a6cc3a5c32ae261"
+          ],
+          "symmetry_spec": {
+            "spec_version": "phase3_symmetry_v1",
+            "particle_number_mode": "preserving",
+            "spin_sector_mode": "preserving",
+            "phonon_number_mode": "not_conserved",
+            "leakage_risk": 0.0,
+            "mitigation_eligible": false,
+            "grouping_eligible": true,
+            "hard_guard": false,
+            "tags": [
+              "fermion_number",
+              "spin_sector"
+            ]
+          },
+          "boundary_behavior": "left_edge",
+          "source_tags": [
+            "phase3_v1_L2"
+          ]
+        },
+        {
+          "motif_id": "motif:1448fe4b3774a653",
+          "family_id": "paop_lf_std",
+          "template_id": "paop_lf_std|atomic|terms1|sites0|bos0|ferm1",
+          "source_num_sites": 2,
+          "relative_order": 14,
+          "support_site_offsets": [
+            0
+          ],
+          "mean_theta": 0.0,
+          "mean_abs_theta": 0.0,
+          "sign_hint": 0,
+          "generator_ids": [
+            "gen:9a6cc3a5c32ae261"
+          ],
+          "symmetry_spec": {
+            "spec_version": "phase3_symmetry_v1",
+            "particle_number_mode": "preserving",
+            "spin_sector_mode": "preserving",
+            "phonon_number_mode": "not_conserved",
+            "leakage_risk": 0.0,
+            "mitigation_eligible": false,
+            "grouping_eligible": true,
+            "hard_guard": false,
+            "tags": [
+              "fermion_number",
+              "spin_sector"
+            ]
+          },
+          "boundary_behavior": "left_edge",
+          "source_tags": [
+            "phase3_v1_L2"
+          ]
+        },
+        {
+          "motif_id": "motif:a641c37c60713d99",
+          "family_id": "paop_lf_std",
+          "template_id": "paop_lf_std|atomic|terms1|sites0|bos0|ferm1",
+          "source_num_sites": 2,
+          "relative_order": 15,
+          "support_site_offsets": [
+            0
+          ],
+          "mean_theta": 0.0,
+          "mean_abs_theta": 0.0,
+          "sign_hint": 0,
+          "generator_ids": [
+            "gen:9a6cc3a5c32ae261"
+          ],
+          "symmetry_spec": {
+            "spec_version": "phase3_symmetry_v1",
+            "particle_number_mode": "preserving",
+            "spin_sector_mode": "preserving",
+            "phonon_number_mode": "not_conserved",
+            "leakage_risk": 0.0,
+            "mitigation_eligible": false,
+            "grouping_eligible": true,
+            "hard_guard": false,
+            "tags": [
+              "fermion_number",
+              "spin_sector"
+            ]
+          },
+          "boundary_behavior": "left_edge",
+          "source_tags": [
+            "phase3_v1_L2"
+          ]
+        },
+        {
+          "motif_id": "motif:4ef450600ccb3044",
+          "family_id": "paop_lf_std",
+          "template_id": "paop_lf_std|atomic|terms1|sites0|bos0|ferm1",
+          "source_num_sites": 2,
+          "relative_order": 16,
+          "support_site_offsets": [
+            0
+          ],
+          "mean_theta": 0.0,
+          "mean_abs_theta": 0.0,
+          "sign_hint": 0,
+          "generator_ids": [
+            "gen:9a6cc3a5c32ae261"
+          ],
+          "symmetry_spec": {
+            "spec_version": "phase3_symmetry_v1",
+            "particle_number_mode": "preserving",
+            "spin_sector_mode": "preserving",
+            "phonon_number_mode": "not_conserved",
+            "leakage_risk": 0.0,
+            "mitigation_eligible": false,
+            "grouping_eligible": true,
+            "hard_guard": false,
+            "tags": [
+              "fermion_number",
+              "spin_sector"
+            ]
+          },
+          "boundary_behavior": "left_edge",
+          "source_tags": [
+            "phase3_v1_L2"
+          ]
+        },
+        {
+          "motif_id": "motif:d5fd7ee2c0d830d8",
+          "family_id": "paop_lf_std",
+          "template_id": "paop_lf_std|atomic|terms1|sites0|bos0|ferm1",
+          "source_num_sites": 2,
+          "relative_order": 17,
+          "support_site_offsets": [
+            0
+          ],
+          "mean_theta": 0.0,
+          "mean_abs_theta": 0.0,
+          "sign_hint": 0,
+          "generator_ids": [
+            "gen:9a6cc3a5c32ae261"
+          ],
+          "symmetry_spec": {
+            "spec_version": "phase3_symmetry_v1",
+            "particle_number_mode": "preserving",
+            "spin_sector_mode": "preserving",
+            "phonon_number_mode": "not_conserved",
+            "leakage_risk": 0.0,
+            "mitigation_eligible": false,
+            "grouping_eligible": true,
+            "hard_guard": false,
+            "tags": [
+              "fermion_number",
+              "spin_sector"
+            ]
+          },
+          "boundary_behavior": "left_edge",
+          "source_tags": [
+            "phase3_v1_L2"
+          ]
+        },
+        {
+          "motif_id": "motif:b2726dd21942f164",
+          "family_id": "paop_lf_std",
+          "template_id": "paop_lf_std|atomic|terms1|sites0|bos0|ferm1",
+          "source_num_sites": 2,
+          "relative_order": 18,
+          "support_site_offsets": [
+            0
+          ],
+          "mean_theta": 0.0,
+          "mean_abs_theta": 0.0,
+          "sign_hint": 0,
+          "generator_ids": [
+            "gen:9a6cc3a5c32ae261"
+          ],
+          "symmetry_spec": {
+            "spec_version": "phase3_symmetry_v1",
+            "particle_number_mode": "preserving",
+            "spin_sector_mode": "preserving",
+            "phonon_number_mode": "not_conserved",
+            "leakage_risk": 0.0,
+            "mitigation_eligible": false,
+            "grouping_eligible": true,
+            "hard_guard": false,
+            "tags": [
+              "fermion_number",
+              "spin_sector"
+            ]
+          },
+          "boundary_behavior": "left_edge",
+          "source_tags": [
+            "phase3_v1_L2"
+          ]
+        },
+        {
+          "motif_id": "motif:d12e7eb2f3009f7b",
+          "family_id": "paop_lf_std",
+          "template_id": "paop_lf_std|atomic|terms1|sites0|bos0|ferm1",
+          "source_num_sites": 2,
+          "relative_order": 19,
+          "support_site_offsets": [
+            0
+          ],
+          "mean_theta": 0.0,
+          "mean_abs_theta": 0.0,
+          "sign_hint": 0,
+          "generator_ids": [
+            "gen:9a6cc3a5c32ae261"
+          ],
+          "symmetry_spec": {
+            "spec_version": "phase3_symmetry_v1",
+            "particle_number_mode": "preserving",
+            "spin_sector_mode": "preserving",
+            "phonon_number_mode": "not_conserved",
+            "leakage_risk": 0.0,
+            "mitigation_eligible": false,
+            "grouping_eligible": true,
+            "hard_guard": false,
+            "tags": [
+              "fermion_number",
+              "spin_sector"
+            ]
+          },
+          "boundary_behavior": "left_edge",
+          "source_tags": [
+            "phase3_v1_L2"
+          ]
+        },
+        {
+          "motif_id": "motif:ff63e8aae5c42431",
+          "family_id": "paop_lf_std",
+          "template_id": "paop_lf_std|atomic|terms1|sites0|bos0|ferm1",
+          "source_num_sites": 2,
+          "relative_order": 20,
+          "support_site_offsets": [
+            0
+          ],
+          "mean_theta": 0.0,
+          "mean_abs_theta": 0.0,
+          "sign_hint": 0,
+          "generator_ids": [
+            "gen:9a6cc3a5c32ae261"
+          ],
+          "symmetry_spec": {
+            "spec_version": "phase3_symmetry_v1",
+            "particle_number_mode": "preserving",
+            "spin_sector_mode": "preserving",
+            "phonon_number_mode": "not_conserved",
+            "leakage_risk": 0.0,
+            "mitigation_eligible": false,
+            "grouping_eligible": true,
+            "hard_guard": false,
+            "tags": [
+              "fermion_number",
+              "spin_sector"
+            ]
+          },
+          "boundary_behavior": "left_edge",
+          "source_tags": [
+            "phase3_v1_L2"
+          ]
+        },
+        {
+          "motif_id": "motif:529fd336de7be955",
+          "family_id": "paop_lf_std",
+          "template_id": "paop_lf_std|atomic|terms1|sites0|bos0|ferm1",
+          "source_num_sites": 2,
+          "relative_order": 21,
+          "support_site_offsets": [
+            0
+          ],
+          "mean_theta": 0.0,
+          "mean_abs_theta": 0.0,
+          "sign_hint": 0,
+          "generator_ids": [
+            "gen:9a6cc3a5c32ae261"
+          ],
+          "symmetry_spec": {
+            "spec_version": "phase3_symmetry_v1",
+            "particle_number_mode": "preserving",
+            "spin_sector_mode": "preserving",
+            "phonon_number_mode": "not_conserved",
+            "leakage_risk": 0.0,
+            "mitigation_eligible": false,
+            "grouping_eligible": true,
+            "hard_guard": false,
+            "tags": [
+              "fermion_number",
+              "spin_sector"
+            ]
+          },
+          "boundary_behavior": "left_edge",
+          "source_tags": [
+            "phase3_v1_L2"
+          ]
+        }
+      ]
+    },
+    "motif_usage": {
+      "enabled": false,
+      "source_json": null,
+      "source_tag": null,
+      "seeded_labels": [],
+      "seeded_generator_ids": [],
+      "seeded_motif_ids": [],
+      "selected_match_count": 0
+    },
+    "symmetry_mitigation": {
+      "mode": "off",
+      "executed": false,
+      "active": false,
+      "passed": true,
+      "high_risk_count": 0,
+      "max_leakage_risk": 0.0
+    },
+    "rescue_history": [],
+    "replay_contract": {
+      "contract_version": 2,
+      "generator_family": {
+        "requested": "match_adapt",
+        "resolved": "paop_lf_std",
+        "resolution_source": "continuation.selected_generator_metadata.family_id",
+        "fallback_family": "full_meta",
+        "fallback_used": false
+      },
+      "seed_policy_requested": "auto",
+      "seed_policy_resolved": "residual_only",
+      "handoff_state_kind": "prepared_state",
+      "provenance_source": "explicit",
+      "continuation_mode": "phase3_v1",
+      "contract_seed_hint": "built-in_staged_writer",
+      "adapt_depth": 21,
+      "derived_num_parameters": 21
+    },
+    "replay_contract_hint": {
+      "generator_family": "match_adapt",
+      "fallback_family": "full_meta",
+      "replay_seed_policy": "auto",
+      "replay_continuation_mode": "phase3_v1"
+    }
+  },
+  "meta": {
+    "pipeline": "hh_staged_noiseless",
+    "workflow_tag": "l2_hh_open_heavy_prune_phase3_paoplf_u4_g1_w1",
+    "stage_chain": [
+      "hf_reference",
+      "warm_start_hva",
+      "adapt_vqe",
+      "matched_family_replay"
+    ],
+    "heavy_prune_ablation": {
+      "ablation_id": "drop_ranked_weakest_05",
+      "ablation_kind": "single_operator_drop",
+      "description": "Drop the rank-5 weakest accepted operator by audit removal-penalty ranking.",
+      "keep_operator_indices": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        18,
+        19,
+        20,
+        21
+      ],
+      "removed_operator_indices": [
+        17
+      ],
+      "removed_label": "hh_termwise_ham_unit_term(eeeeezee)",
+      "ranking_entries": [
+        {
+          "unit_index": 10,
+          "unit_label": "accept10:hh_termwise_ham_unit_term(eeeeezee)",
+          "base_label": "hh_termwise_ham_unit_term(eeeeezee)",
+          "final_order_index": 17,
+          "insertion_position": 17,
+          "removal_penalty": 0.0,
+          "delta_energy_from_previous": 0.0,
+          "energy_gain_per_2q": null,
+          "energy_gain_per_depth": 0.0,
+          "unit_logical_2q_count": 0,
+          "unit_logical_depth": 1
+        }
+      ]
+    }
+  }
+}

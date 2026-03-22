@@ -1,0 +1,340 @@
+{
+  "generated_utc": "2026-03-13T23:45:31Z",
+  "settings": {
+    "L": 2,
+    "problem": "hh",
+    "t": 1.0,
+    "u": 4.0,
+    "dv": 0.0,
+    "omega0": 1.0,
+    "g_ep": 0.5,
+    "n_ph_max": 1,
+    "boson_encoding": "binary",
+    "ordering": "blocked",
+    "boundary": "periodic",
+    "sector_n_up": 1,
+    "sector_n_dn": 1,
+    "adapt_pool": "paop_lf_std"
+  },
+  "adapt_vqe": {
+    "energy": 0.16523485530546456,
+    "abs_delta_e": 0.006566951179738156,
+    "relative_error_abs": 0.041388024981628226,
+    "operators": [
+      "hh_termwise_ham_quadrature_term(yezeee)",
+      "hh_termwise_ham_quadrature_term(yeeeze)",
+      "hh_termwise_ham_quadrature_term(eyeeez)",
+      "hh_termwise_ham_quadrature_term(eyezee)",
+      "hh_termwise_ham_unit_term(eeezez)",
+      "hh_termwise_ham_unit_term(eeezez)",
+      "paop_lf_std:paop_disp(site=1)",
+      "paop_lf_std:paop_disp(site=1)",
+      "paop_lf_std:paop_disp(site=1)",
+      "paop_lf_std:paop_disp(site=1)",
+      "paop_lf_std:paop_disp(site=1)",
+      "paop_lf_std:paop_disp(site=1)",
+      "paop_lf_std:paop_disp(site=1)",
+      "paop_lf_std:paop_disp(site=1)",
+      "paop_lf_std:paop_disp(site=1)",
+      "paop_lf_std:paop_disp(site=1)"
+    ],
+    "optimal_point": [
+      0.09939747948753416,
+      0.11086518842555465,
+      0.16238923755222195,
+      0.1993141892857436,
+      -0.12909770279698718,
+      0.16563790435905734,
+      -0.07866828323163057,
+      0.04681774481238687,
+      -0.02267345203874297,
+      -0.050972699753829225,
+      0.08193185431598504,
+      -0.05557619281954029,
+      0.08008368101255912,
+      0.023627527894479937,
+      0.0844427954879423,
+      -0.13299528523259546
+    ],
+    "ansatz_depth": 16,
+    "num_parameters": 16,
+    "pool_type": "paop_lf_std",
+    "pre_prune_scaffold": {
+      "operators": [
+        "hh_termwise_ham_quadrature_term(yezeee)",
+        "hh_termwise_ham_quadrature_term(yeeeze)",
+        "hh_termwise_ham_quadrature_term(eyeeez)",
+        "hh_termwise_ham_quadrature_term(eyezee)",
+        "hh_termwise_ham_unit_term(eeezez)",
+        "hh_termwise_ham_unit_term(eeezez)",
+        "paop_lf_std:paop_disp(site=1)",
+        "paop_lf_std:paop_disp(site=1)",
+        "paop_lf_std:paop_disp(site=1)",
+        "paop_lf_std:paop_disp(site=1)",
+        "paop_lf_std:paop_disp(site=1)",
+        "paop_lf_std:paop_disp(site=1)",
+        "paop_lf_std:paop_disp(site=1)",
+        "paop_lf_std:paop_disp(site=1)",
+        "paop_lf_std:paop_disp(site=1)",
+        "paop_lf_std:paop_disp(site=1)",
+        "paop_lf_std:paop_disp(site=1)",
+        "paop_lf_std:paop_disp(site=1)"
+      ],
+      "optimal_point": [
+        0.09939747948753416,
+        0.11086518842555465,
+        0.16238923755222195,
+        0.1993141892857436,
+        -0.12909770279698718,
+        0.16563790435905734,
+        -0.07866828323163057,
+        -0.027828032091921133,
+        0.04681774481238687,
+        -0.02267345203874297,
+        -0.050972699753829225,
+        0.08193185431598504,
+        -0.05557619281954029,
+        0.08008368101255912,
+        0.023627527894479937,
+        0.0844427954879423,
+        -0.13299528523259546,
+        0.0
+      ],
+      "energy": 0.16565130195237504
+    },
+    "prune_summary": {
+      "enabled": true,
+      "executed": true,
+      "rolled_back": false,
+      "accepted_count": 2,
+      "candidate_count": 5,
+      "decisions": [
+        {
+          "index": 17,
+          "label": "paop_lf_std:paop_disp(site=1)",
+          "accepted": true,
+          "energy_before": 0.16565130195237504,
+          "energy_after": 0.16565130195237504,
+          "regression": 0.0,
+          "reason": "accepted"
+        },
+        {
+          "index": 8,
+          "label": "paop_lf_std:paop_disp(site=1)",
+          "accepted": false,
+          "energy_before": 0.16565130195237504,
+          "energy_after": 0.1665999586052242,
+          "regression": 0.0009486566528491558,
+          "reason": "regression_exceeded"
+        },
+        {
+          "index": 13,
+          "label": "paop_lf_std:paop_disp(site=1)",
+          "accepted": false,
+          "energy_before": 0.16565130195237504,
+          "energy_after": 0.16651794997501038,
+          "regression": 0.0008666480226353357,
+          "reason": "regression_exceeded"
+        },
+        {
+          "index": 6,
+          "label": "paop_lf_std:paop_disp(site=1)",
+          "accepted": false,
+          "energy_before": 0.16565130195237504,
+          "energy_after": 0.1664657539011873,
+          "regression": 0.0008144519488122726,
+          "reason": "regression_exceeded"
+        },
+        {
+          "index": 7,
+          "label": "paop_lf_std:paop_disp(site=1)",
+          "accepted": true,
+          "energy_before": 0.16565130195237504,
+          "energy_after": 0.16523485530546456,
+          "regression": -0.0004164466469104844,
+          "reason": "accepted"
+        }
+      ],
+      "energy_before": 0.16565130195237504,
+      "energy_after_prune": 0.16523485530546456,
+      "energy_after_post_refit": 0.16523485530546456,
+      "post_refit_executed": true,
+      "marginal_proxy_benefit": [
+        0.037603934239255066,
+        0.03827543306495605,
+        0.0038886740155866513,
+        0.004084506092767527,
+        0.004020685685068035,
+        0.003958828982220834,
+        0.0038988467249144584,
+        0.003840654982751556,
+        0.003784174762416974,
+        0.0037293316499181777,
+        0.003676055483490775,
+        0.003624280054145834,
+        0.0035739428311715865,
+        0.0037172540176372165,
+        Infinity,
+        Infinity,
+        Infinity,
+        Infinity
+      ]
+    }
+  },
+  "ground_state": {
+    "exact_energy": 0.1586679041257264,
+    "exact_energy_filtered": 0.1586679041257264,
+    "filtered_sector": {
+      "n_up": 1,
+      "n_dn": 1
+    },
+    "method": "staged_handoff_bundle"
+  },
+  "initial_state": {
+    "source": "adapt_vqe",
+    "nq_total": 6,
+    "amplitudes_qn_to_q0": {
+      "000101": {
+        "re": 0.24215293194071522,
+        "im": 0.07180245513270045
+      },
+      "000110": {
+        "re": 0.6215994030790093,
+        "im": 0.14316054283775861
+      },
+      "001001": {
+        "re": 0.6540060061940384,
+        "im": 0.17921227521461522
+      },
+      "001010": {
+        "re": 0.25413036843497105,
+        "im": 0.054118123430911935
+      },
+      "010101": {
+        "re": -0.02169302466016688,
+        "im": -0.005427888910117682
+      },
+      "010110": {
+        "re": 0.00019451886677123264,
+        "im": -0.007060726613000409
+      },
+      "011001": {
+        "re": 0.0001556053516061082,
+        "im": 0.006931147666837995
+      },
+      "011010": {
+        "re": 0.024225180226784302,
+        "im": 0.0022510298716409516
+      },
+      "100101": {
+        "re": 0.018552933757629342,
+        "im": 0.00620155427659632
+      },
+      "100110": {
+        "re": 2.7932519266506146e-05,
+        "im": -0.0015613268396949373
+      },
+      "101001": {
+        "re": 0.00010209561333309611,
+        "im": 0.0015496350726895065
+      },
+      "101010": {
+        "re": -0.019054309837212687,
+        "im": -0.005174496309472384
+      },
+      "110101": {
+        "re": -0.001665359508626067,
+        "im": -0.00044625273222672897
+      },
+      "110110": {
+        "re": -1.6840715552121195e-05,
+        "im": 3.4882756861768548e-06
+      },
+      "111001": {
+        "re": -1.334920500814673e-05,
+        "im": 4.8590984646095835e-06
+      },
+      "111010": {
+        "re": -0.0018261946239691922,
+        "im": -0.00030208126567561546
+      }
+    },
+    "amplitude_cutoff": 1e-14,
+    "norm": 1.0,
+    "handoff_state_kind": "prepared_state"
+  },
+  "exact": {
+    "E_exact_sector": 0.1586679041257264
+  },
+  "continuation": {
+    "mode": "phase1_v1",
+    "scaffold": {
+      "selected_operator_labels": [
+        "hh_termwise_ham_quadrature_term(yezeee)",
+        "hh_termwise_ham_quadrature_term(yeeeze)",
+        "hh_termwise_ham_quadrature_term(eyeeez)",
+        "hh_termwise_ham_quadrature_term(eyezee)",
+        "hh_termwise_ham_unit_term(eeezez)",
+        "hh_termwise_ham_unit_term(eeezez)",
+        "paop_lf_std:paop_disp(site=1)",
+        "paop_lf_std:paop_disp(site=1)",
+        "paop_lf_std:paop_disp(site=1)",
+        "paop_lf_std:paop_disp(site=1)",
+        "paop_lf_std:paop_disp(site=1)",
+        "paop_lf_std:paop_disp(site=1)",
+        "paop_lf_std:paop_disp(site=1)",
+        "paop_lf_std:paop_disp(site=1)",
+        "paop_lf_std:paop_disp(site=1)",
+        "paop_lf_std:paop_disp(site=1)"
+      ],
+      "selected_generator_ids": [],
+      "num_parameters": 16,
+      "generator_family": "phase1_v1",
+      "continuation_mode": "phase1_v1",
+      "compiled_pauli_cache_size": 72,
+      "measurement_plan_version": "phase1_grouped_label_reuse",
+      "post_prune": true,
+      "split_event_count": 0,
+      "motif_record_ids": []
+    },
+    "optimizer_memory": {},
+    "selected_generator_metadata": [],
+    "generator_split_events": [],
+    "motif_library": {},
+    "motif_usage": {},
+    "symmetry_mitigation": {},
+    "rescue_history": [],
+    "replay_contract": {
+      "contract_version": 2,
+      "generator_family": {
+        "requested": "match_adapt",
+        "resolved": "paop_lf_std",
+        "resolution_source": "cfg.adapt.pool",
+        "fallback_family": "full_meta",
+        "fallback_used": false
+      },
+      "seed_policy_requested": "auto",
+      "seed_policy_resolved": "residual_only",
+      "handoff_state_kind": "prepared_state",
+      "provenance_source": "explicit",
+      "continuation_mode": "phase1_v1",
+      "contract_seed_hint": "built-in_staged_writer"
+    },
+    "replay_contract_hint": {
+      "generator_family": "match_adapt",
+      "fallback_family": "full_meta",
+      "replay_seed_policy": "auto",
+      "replay_continuation_mode": "phase1_v1"
+    }
+  },
+  "meta": {
+    "pipeline": "hh_staged_noiseless",
+    "workflow_tag": "l2_hh_static_hvawarm_paoplf_phase1v1_fullreopt_samewarm",
+    "stage_chain": [
+      "hf_reference",
+      "warm_start_hva",
+      "adapt_vqe",
+      "matched_family_replay"
+    ]
+  }
+}

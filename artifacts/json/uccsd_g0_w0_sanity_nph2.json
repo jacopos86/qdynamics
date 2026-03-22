@@ -1,0 +1,41 @@
+{
+  "physics": {
+    "L": 2,
+    "t": 1.0,
+    "u": 4.0,
+    "dv": 0.0,
+    "omega0": 0.0,
+    "g_ep": 0.0,
+    "n_ph_max": 2,
+    "boundary": "open",
+    "ordering": "blocked"
+  },
+  "family": "uccsd_ferm_lifted",
+  "exact_energy": -0.8284271247461902,
+  "records": [
+    {
+      "method": "Powell",
+      "energy": -0.4999999872008458,
+      "delta_abs": 0.32842713754534436,
+      "success": true,
+      "nfev": 174,
+      "nit": 5,
+      "best_restart": 0,
+      "runtime_s": 2.129388707689941,
+      "num_parameters": 3,
+      "pool_size": 3
+    },
+    {
+      "method": "SPSA",
+      "energy": -0.48677801253682984,
+      "delta_abs": 0.34164911220936034,
+      "success": true,
+      "nfev": 3001,
+      "nit": 1500,
+      "best_restart": 0,
+      "runtime_s": 45.44066158309579,
+      "num_parameters": 3,
+      "pool_size": 3
+    }
+  ]
+}

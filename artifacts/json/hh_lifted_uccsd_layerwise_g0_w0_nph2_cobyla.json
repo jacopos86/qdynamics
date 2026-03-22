@@ -1,0 +1,41 @@
+{
+  "scope": {
+    "local_only": true,
+    "noise_enabled": false,
+    "run_kind": "hh_lifted_uccsd_layerwise_equivalent"
+  },
+  "physics": {
+    "L": 2,
+    "t": 1.0,
+    "u": 4.0,
+    "dv": 0.0,
+    "omega0": 0.0,
+    "g_ep": 0.0,
+    "n_ph_max": 2,
+    "boundary": "open",
+    "ordering": "blocked"
+  },
+  "ansatz_family": "hh_lifted_uccsd_layerwise",
+  "num_parameters": 4,
+  "group_sizes": [
+    2,
+    1
+  ],
+  "exact_energy": -0.8284271247461902,
+  "record": {
+    "method": "COBYLA",
+    "energy": -0.8284270573767958,
+    "delta_abs": 6.736939439644374e-08,
+    "success": true,
+    "nfev": 54,
+    "nit": 0,
+    "best_restart": 0,
+    "runtime_s": 2.2349055418744683,
+    "theta": [
+      1.5063362356527554,
+      0.4066823729717525,
+      -0.68812257468359,
+      -0.23552605212822744
+    ]
+  }
+}

@@ -72,6 +72,11 @@ class CandidateFeatures:
     lifetime_cost_mode: str = "off"
     lifetime_weight_components: dict[str, float] = field(default_factory=dict)
     placeholder_hooks: dict[str, bool] = field(default_factory=dict)
+    compile_cost_source: str = "proxy"
+    compile_cost_total: float = 0.0
+    compile_gate_open: bool = True
+    compile_failure_reason: str | None = None
+    compiled_position_cost_backend: dict[str, Any] | None = None
 
 
 @dataclass(frozen=True)
@@ -103,6 +108,33 @@ class CompileCostEstimate:
     sq_proxy_total: float = 0.0
     gate_proxy_total: float = 0.0
     max_pauli_weight: float = 0.0
+    source_mode: str = "proxy"
+    penalty_total: float | None = None
+    depth_surrogate: float | None = None
+    compile_gate_open: bool = True
+    failure_reason: str | None = None
+    selected_backend_name: str | None = None
+    selected_resolution_kind: str | None = None
+    aggregation_mode: str = "proxy"
+    target_backend_names: list[str] = field(default_factory=list)
+    successful_target_count: int = 0
+    failed_target_count: int = 0
+    raw_delta_compiled_count_2q: float | None = None
+    delta_compiled_count_2q: float | None = None
+    raw_delta_compiled_depth: float | None = None
+    delta_compiled_depth: float | None = None
+    raw_delta_compiled_size: float | None = None
+    delta_compiled_size: float | None = None
+    delta_compiled_cx_count: float | None = None
+    delta_compiled_ecr_count: float | None = None
+    base_compiled_count_2q: float | None = None
+    base_compiled_depth: float | None = None
+    base_compiled_size: float | None = None
+    trial_compiled_count_2q: float | None = None
+    trial_compiled_depth: float | None = None
+    trial_compiled_size: float | None = None
+    proxy_baseline: dict[str, float] | None = None
+    selected_backend_row: dict[str, Any] | None = None
 
 
 @dataclass(frozen=True)
@@ -117,6 +149,9 @@ class ScaffoldFingerprintLite:
     post_prune: bool
     split_event_count: int = 0
     motif_record_ids: list[str] = field(default_factory=list)
+    compile_cost_mode: str = "proxy"
+    backend_target_names: list[str] = field(default_factory=list)
+    backend_reduction_mode: str = "none"
 
 
 @dataclass(frozen=True)

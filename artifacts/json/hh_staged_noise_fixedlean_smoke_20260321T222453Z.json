@@ -1,0 +1,513 @@
+{
+  "artifacts": {
+    "import_source_json": "artifacts/json/adapt_hh_L2_ecut1_pareto_lean_l2_phase3_powell_rerun_with_ansatz_input_20260321T214822Z.json",
+    "intermediate": {
+      "adapt_handoff_json": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/artifacts/json/hh_staged_noise_fixedlean_smoke_20260321T222453Z_adapt_handoff.json",
+      "replay_output_csv": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/artifacts/json/hh_staged_noise_fixedlean_smoke_20260321T222453Z_replay.csv",
+      "replay_output_json": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/artifacts/json/hh_staged_noise_fixedlean_smoke_20260321T222453Z_replay.json",
+      "replay_output_log": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/artifacts/logs/hh_staged_noise_fixedlean_smoke_20260321T222453Z_replay.log",
+      "replay_output_md": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/artifacts/useful/L2/hh_staged_noise_fixedlean_smoke_20260321T222453Z_replay.md"
+    },
+    "workflow": {
+      "output_json": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/artifacts/json/hh_staged_noise_fixedlean_smoke_20260321T222453Z.json",
+      "output_pdf": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/artifacts/pdf/hh_staged_noise_fixedlean_smoke_20260321T222453Z.pdf"
+    }
+  },
+  "command": "/opt/anaconda3/bin/python pipelines/hardcoded/hh_staged_noise.py --L 2 --t 1.0 --u 4.0 --dv 0.0 --omega0 1.0 --g-ep 0.5 --n-ph-max 1 --boson-encoding binary --ordering blocked --boundary open --sector-n-up 1 --sector-n-dn 1 --include-fixed-lean-noisy-replay --fixed-final-state-json artifacts/json/adapt_hh_L2_ecut1_pareto_lean_l2_phase3_powell_rerun_with_ansatz_input_20260321T214822Z.json --audit-noise-modes ideal --use-fake-backend --backend-name FakeGuadalupeV2 --shots 1024 --oracle-repeats 2 --oracle-aggregate mean --final-method SPSA --final-maxiter 5 --smoke-test-intentionally-weak --tag hh_staged_noise_fixedlean_smoke_20260321T222453Z --skip-pdf",
+  "comparisons": {},
+  "dynamics_benchmarks": {
+    "rows": []
+  },
+  "dynamics_noiseless": {
+    "profiles": {}
+  },
+  "dynamics_noisy": {
+    "profiles": {}
+  },
+  "fixed_lean_scaffold_noisy_replay": {
+    "artifact_json": "artifacts/json/adapt_hh_L2_ecut1_pareto_lean_l2_phase3_powell_rerun_with_ansatz_input_20260321T214822Z.json",
+    "available": false,
+    "pool_type": "phase3_v1",
+    "reason": "fixed_lean_replay_requires_pareto_lean_l2_source",
+    "source_kind": "direct_adapt_artifact",
+    "structure_locked": false,
+    "success": false
+  },
+  "full_circuit_import_audit": {
+    "modes": {}
+  },
+  "generated_utc": "2026-03-21T22:24:57Z",
+  "import_source": {
+    "default_subject": false,
+    "mode": "imported_artifact",
+    "requested_json": "artifacts/json/adapt_hh_L2_ecut1_pareto_lean_l2_phase3_powell_rerun_with_ansatz_input_20260321T214822Z.json",
+    "resolved_json": "artifacts/json/adapt_hh_L2_ecut1_pareto_lean_l2_phase3_powell_rerun_with_ansatz_input_20260321T214822Z.json",
+    "source_kind": "direct_payload"
+  },
+  "imported_prepared_state_audit": {
+    "modes": {
+      "ideal": {
+        "audit_source": {
+          "artifact_json": "artifacts/json/adapt_hh_L2_ecut1_pareto_lean_l2_phase3_powell_rerun_with_ansatz_input_20260321T214822Z.json",
+          "includes_ansatz_stateprep_noise": false,
+          "kind": "imported_prepared_state",
+          "source_kind": "direct_adapt_artifact"
+        },
+        "backend_info": {
+          "backend_name": "statevector_simulator",
+          "details": {
+            "mitigation": {
+              "dd_sequence": null,
+              "local_readout_strategy": null,
+              "mode": "none",
+              "zne_scales": []
+            },
+            "shots": null,
+            "symmetry_mitigation": {
+              "applied_mode": "off",
+              "eligible": false,
+              "estimator_form": "none",
+              "executed": false,
+              "fallback_reason": "",
+              "requested_mode": "off",
+              "retained_fraction_mean": null,
+              "retained_fraction_samples": [],
+              "sector_probability_mean": null,
+              "sector_probability_samples": [],
+              "sector_values": {
+                "sector_n_dn": 1,
+                "sector_n_up": 1
+              }
+            }
+          },
+          "estimator_kind": "qiskit.primitives.StatevectorEstimator",
+          "noise_mode": "ideal",
+          "using_fake_backend": false
+        },
+        "delta_uncertainty": {
+          "doublon": {
+            "max_abs_delta": 0.0,
+            "max_abs_delta_over_stderr": NaN,
+            "mean_abs_delta_over_stderr": NaN
+          },
+          "energy_static": {
+            "max_abs_delta": 0.0,
+            "max_abs_delta_over_stderr": NaN,
+            "mean_abs_delta_over_stderr": NaN
+          },
+          "energy_total": {
+            "max_abs_delta": 0.0,
+            "max_abs_delta_over_stderr": NaN,
+            "mean_abs_delta_over_stderr": NaN
+          },
+          "n_dn_site0": {
+            "max_abs_delta": 0.0,
+            "max_abs_delta_over_stderr": NaN,
+            "mean_abs_delta_over_stderr": NaN
+          },
+          "n_up_site0": {
+            "max_abs_delta": 0.0,
+            "max_abs_delta_over_stderr": NaN,
+            "mean_abs_delta_over_stderr": NaN
+          },
+          "staggered": {
+            "max_abs_delta": 0.0,
+            "max_abs_delta_over_stderr": NaN,
+            "mean_abs_delta_over_stderr": NaN
+          }
+        },
+        "drive_enabled": false,
+        "drive_meta": null,
+        "extra_meta": {
+          "exact_energy": 0.15866790412572634,
+          "saved_artifact_energy": 0.15872408236037028
+        },
+        "final_observables": {
+          "doublon": {
+            "delta_mean": 0.0,
+            "delta_stderr": 0.0,
+            "ideal_mean": 0.07613194535856461,
+            "ideal_std": 0.0,
+            "ideal_stderr": 0.0,
+            "ideal_stdev": 0.0,
+            "noisy_mean": 0.07613194535856461,
+            "noisy_std": 0.0,
+            "noisy_stderr": 0.0,
+            "noisy_stdev": 0.0
+          },
+          "energy_static": {
+            "delta_mean": 0.0,
+            "delta_stderr": 0.0,
+            "ideal_mean": 0.1587240823603689,
+            "ideal_std": 0.0,
+            "ideal_stderr": 0.0,
+            "ideal_stdev": 0.0,
+            "noisy_mean": 0.1587240823603689,
+            "noisy_std": 0.0,
+            "noisy_stderr": 0.0,
+            "noisy_stdev": 0.0
+          },
+          "energy_total": {
+            "delta_mean": 0.0,
+            "delta_stderr": 0.0,
+            "ideal_mean": 0.1587240823603689,
+            "ideal_std": 0.0,
+            "ideal_stderr": 0.0,
+            "ideal_stdev": 0.0,
+            "noisy_mean": 0.1587240823603689,
+            "noisy_std": 0.0,
+            "noisy_stderr": 0.0,
+            "noisy_stdev": 0.0
+          },
+          "n_dn_site0": {
+            "delta_mean": 0.0,
+            "delta_stderr": 0.0,
+            "ideal_mean": 0.5000000099839111,
+            "ideal_std": 0.0,
+            "ideal_stderr": 0.0,
+            "ideal_stdev": 0.0,
+            "noisy_mean": 0.5000000099839111,
+            "noisy_std": 0.0,
+            "noisy_stderr": 0.0,
+            "noisy_stdev": 0.0
+          },
+          "n_up_site0": {
+            "delta_mean": 0.0,
+            "delta_stderr": 0.0,
+            "ideal_mean": 0.4999999897732191,
+            "ideal_std": 0.0,
+            "ideal_stderr": 0.0,
+            "ideal_stdev": 0.0,
+            "noisy_mean": 0.4999999897732191,
+            "noisy_std": 0.0,
+            "noisy_stderr": 0.0,
+            "noisy_stdev": 0.0
+          },
+          "staggered": {
+            "delta_mean": 0.0,
+            "delta_stderr": 0.0,
+            "ideal_mean": -2.4286969542758785e-10,
+            "ideal_std": 0.0,
+            "ideal_stderr": 0.0,
+            "ideal_stdev": 0.0,
+            "noisy_mean": -2.4286969542758785e-10,
+            "noisy_std": 0.0,
+            "noisy_stderr": 0.0,
+            "noisy_stdev": 0.0
+          }
+        },
+        "noise_config": {
+          "mitigation": {
+            "dd_sequence": null,
+            "local_readout_strategy": null,
+            "mode": "none",
+            "zne_scales": []
+          },
+          "noise_mode": "ideal",
+          "oracle_aggregate": "mean",
+          "oracle_repeats": 2,
+          "shots": 1024,
+          "symmetry_mitigation": {
+            "mode": "off",
+            "num_sites": 2,
+            "ordering": "blocked",
+            "sector_n_dn": 1,
+            "sector_n_up": 1
+          }
+        },
+        "noise_mode": "ideal",
+        "success": true,
+        "time": 0.0
+      }
+    }
+  },
+  "noisy_final_audit": {
+    "profiles": {}
+  },
+  "pipeline": "hh_staged_noise",
+  "settings": {
+    "adapt": {
+      "allow_repeats": true,
+      "continuation_mode": "phase1_v1",
+      "disable_hh_seed": false,
+      "eps_energy": 1e-09,
+      "eps_grad": 5e-07,
+      "final_full_refit": true,
+      "finite_angle": 0.1,
+      "finite_angle_fallback": true,
+      "finite_angle_min_improvement": 1e-12,
+      "full_refit_every": 0,
+      "inner_optimizer": "SPSA",
+      "max_depth": 80,
+      "maxiter": 2222,
+      "paop_normalization": "none",
+      "paop_prune_eps": 0.0,
+      "paop_r": 1,
+      "paop_split_paulis": false,
+      "phase1_lambda_F": 1.0,
+      "phase1_lambda_compile": 0.05,
+      "phase1_lambda_leak": 0.0,
+      "phase1_lambda_measure": 0.02,
+      "phase1_plateau_patience": 2,
+      "phase1_probe_max_positions": 6,
+      "phase1_prune_enabled": true,
+      "phase1_prune_fraction": 0.25,
+      "phase1_prune_max_candidates": 6,
+      "phase1_prune_max_regression": 1e-08,
+      "phase1_score_z_alpha": 0.0,
+      "phase1_trough_margin_ratio": 1.0,
+      "phase3_enable_rescue": false,
+      "phase3_lifetime_cost_mode": "phase3_v1",
+      "phase3_motif_source_json": null,
+      "phase3_runtime_split_mode": "off",
+      "phase3_symmetry_mitigation_mode": "off",
+      "pool": null,
+      "reopt_policy": "append_only",
+      "seed": 11,
+      "spsa_A": 10.0,
+      "spsa_a": 0.2,
+      "spsa_alpha": 0.602,
+      "spsa_avg_last": 0,
+      "spsa_c": 0.1,
+      "spsa_callback_every": 5,
+      "spsa_eval_agg": "mean",
+      "spsa_eval_repeats": 1,
+      "spsa_gamma": 0.101,
+      "spsa_progress_every_s": 60.0,
+      "window_size": 3,
+      "window_topk": 0
+    },
+    "artifacts": {
+      "handoff_json": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/artifacts/json/hh_staged_noise_fixedlean_smoke_20260321T222453Z_adapt_handoff.json",
+      "output_json": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/artifacts/json/hh_staged_noise_fixedlean_smoke_20260321T222453Z.json",
+      "output_pdf": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/artifacts/pdf/hh_staged_noise_fixedlean_smoke_20260321T222453Z.pdf",
+      "replay_output_csv": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/artifacts/json/hh_staged_noise_fixedlean_smoke_20260321T222453Z_replay.csv",
+      "replay_output_json": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/artifacts/json/hh_staged_noise_fixedlean_smoke_20260321T222453Z_replay.json",
+      "replay_output_log": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/artifacts/logs/hh_staged_noise_fixedlean_smoke_20260321T222453Z_replay.log",
+      "replay_output_md": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/artifacts/useful/L2/hh_staged_noise_fixedlean_smoke_20260321T222453Z_replay.md",
+      "skip_pdf": true,
+      "tag": "hh_staged_noise_fixedlean_smoke_20260321T222453Z"
+    },
+    "default_provenance": {
+      "adapt_eps_energy": "run_guide.adapt_eps_energy=1e-9",
+      "adapt_eps_grad": "run_guide.adapt_eps_grad=5e-7",
+      "adapt_max_depth": "run_guide.adapt_max_depth(L)=40L",
+      "adapt_maxiter": "run_guide.adapt_maxiter(L)=round(5000L^2/9)",
+      "ecut_1": "run_guide.ecut_1=1e-1",
+      "ecut_2": "run_guide.ecut_2=1e-4",
+      "exact_steps_multiplier": "run_guide.exact_steps_multiplier(L)=ceil((L+1)/2)",
+      "final_maxiter": "cli",
+      "final_reps": "run_guide.vqe_reps(L)=L",
+      "final_restarts": "workflow.final_restarts := warm_restarts(L)",
+      "num_times": "run_guide.num_times(L)=1+ceil(200L/3)",
+      "output_json": "artifacts/json/<tag>.json",
+      "output_pdf": "artifacts/pdf/<tag>.pdf",
+      "replay_continuation_mode": "workflow.replay_mode := adapt_continuation_mode",
+      "t_final": "run_guide.t_final(L)=5L",
+      "tag": "cli",
+      "trotter_steps": "run_guide.trotter_steps(L)=64L",
+      "warm_maxiter": "run_guide.ws_maxiter(L)=round(4000L^2/9)",
+      "warm_reps": "run_guide.ws_reps(L)=L",
+      "warm_restarts": "run_guide.ws_restarts(L)=ceil(5L/3)"
+    },
+    "dynamics": {
+      "cfqm_coeff_drop_abs_tol": 0.0,
+      "cfqm_normalize": false,
+      "cfqm_stage_exp": "expm_multiply_sparse",
+      "drive_A": 0.6,
+      "drive_custom_s": null,
+      "drive_include_identity": false,
+      "drive_omega": 2.0,
+      "drive_pattern": "staggered",
+      "drive_phi": 0.0,
+      "drive_t0": 0.0,
+      "drive_tbar": 2.5,
+      "drive_time_sampling": "midpoint",
+      "enable_drive": false,
+      "exact_steps_multiplier": 2,
+      "fidelity_subspace_energy_tol": 1e-09,
+      "methods": [
+        "suzuki2",
+        "cfqm4"
+      ],
+      "num_times": 135,
+      "t_final": 10.0,
+      "trotter_steps": 128
+    },
+    "fixed_lean_noisy_replay": {
+      "enabled": true,
+      "maxiter": 5,
+      "method": "SPSA",
+      "mitigation_config": {
+        "dd_sequence": null,
+        "local_readout_strategy": "mthree",
+        "mode": "readout",
+        "zne_scales": []
+      },
+      "noise_mode": "backend_scheduled",
+      "reps": 1,
+      "seed": 19,
+      "spsa_A": 10.0,
+      "spsa_a": 0.2,
+      "spsa_alpha": 0.602,
+      "spsa_avg_last": 0,
+      "spsa_c": 0.1,
+      "spsa_eval_agg": "mean",
+      "spsa_eval_repeats": 1,
+      "spsa_gamma": 0.101,
+      "symmetry_mitigation_config": {
+        "mode": "off",
+        "num_sites": null,
+        "ordering": "blocked",
+        "sector_n_dn": null,
+        "sector_n_up": null
+      },
+      "wallclock_cap_s": 43200
+    },
+    "gates": {
+      "ecut_1": 0.1,
+      "ecut_2": 0.0001
+    },
+    "noise": {
+      "allow_aer_fallback": true,
+      "audit_modes": [
+        "ideal"
+      ],
+      "backend_name": "FakeGuadalupeV2",
+      "benchmark_active_coeff_tol": 1e-12,
+      "include_final_audit": false,
+      "include_full_circuit_audit": false,
+      "local_readout_strategy": "mthree",
+      "methods": [
+        "cfqm4",
+        "suzuki2"
+      ],
+      "mitigation_config": {
+        "dd_sequence": null,
+        "local_readout_strategy": null,
+        "mode": "none",
+        "zne_scales": []
+      },
+      "modes": [
+        "ideal",
+        "shots",
+        "aer_noise"
+      ],
+      "noisy_mode_timeout_s": 1200,
+      "omp_shm_workaround": true,
+      "oracle_aggregate": "mean",
+      "oracle_repeats": 2,
+      "seed": 7,
+      "shots": 1024,
+      "symmetry_mitigation_config": {
+        "mode": "off",
+        "num_sites": 2,
+        "ordering": "blocked",
+        "sector_n_dn": 1,
+        "sector_n_up": 1
+      },
+      "use_fake_backend": true
+    },
+    "physics": {
+      "L": 2,
+      "boson_encoding": "binary",
+      "boundary": "open",
+      "dv": 0.0,
+      "g_ep": 0.5,
+      "n_ph_max": 1,
+      "omega0": 1.0,
+      "ordering": "blocked",
+      "sector_n_dn": 1,
+      "sector_n_up": 1,
+      "t": 1.0,
+      "u": 4.0
+    },
+    "replay": {
+      "continuation_mode": "phase1_v1",
+      "energy_backend": "one_apply_compiled",
+      "fallback_family": "full_meta",
+      "generator_family": "match_adapt",
+      "legacy_paop_key": "paop_lf_std",
+      "maxiter": 5,
+      "method": "SPSA",
+      "paop_normalization": "none",
+      "paop_prune_eps": 0.0,
+      "paop_r": 1,
+      "paop_split_paulis": false,
+      "phase3_symmetry_mitigation_mode": "off",
+      "progress_every_s": 60.0,
+      "replay_freeze_fraction": 0.2,
+      "replay_full_fraction": 0.5,
+      "replay_qn_spsa_refresh_every": 5,
+      "replay_qn_spsa_refresh_mode": "diag_rms_grad",
+      "replay_seed_policy": "auto",
+      "replay_unfreeze_fraction": 0.3,
+      "reps": 2,
+      "restarts": 4,
+      "seed": 19,
+      "spsa_A": 10.0,
+      "spsa_a": 0.2,
+      "spsa_alpha": 0.602,
+      "spsa_avg_last": 0,
+      "spsa_c": 0.1,
+      "spsa_eval_agg": "mean",
+      "spsa_eval_repeats": 1,
+      "spsa_gamma": 0.101,
+      "wallclock_cap_s": 43200
+    },
+    "smoke_test_intentionally_weak": true,
+    "warm_start": {
+      "ansatz_name": "hh_hva_ptw",
+      "energy_backend": "one_apply_compiled",
+      "maxiter": 1778,
+      "method": "SPSA",
+      "progress_every_s": 60.0,
+      "reps": 2,
+      "restarts": 4,
+      "seed": 7,
+      "spsa_A": 10.0,
+      "spsa_a": 0.2,
+      "spsa_alpha": 0.602,
+      "spsa_avg_last": 0,
+      "spsa_c": 0.1,
+      "spsa_eval_agg": "mean",
+      "spsa_eval_repeats": 1,
+      "spsa_gamma": 0.101
+    }
+  },
+  "summary": {
+    "adapt_delta_abs": NaN,
+    "failure_samples": [
+      "fixed_lean_scaffold_noisy_replay:fixed_lean_replay_requires_pareto_lean_l2_source"
+    ],
+    "final_delta_abs": NaN,
+    "fixed_lean_scaffold_best_noisy_minus_ideal": NaN,
+    "fixed_lean_scaffold_noisy_replay_completed": 0,
+    "fixed_lean_scaffold_noisy_replay_total": 1,
+    "full_circuit_import_audit_completed": 0,
+    "full_circuit_import_audit_total": 0,
+    "imported_prepared_state_audit_completed": 1,
+    "imported_prepared_state_audit_total": 1,
+    "noisy_method_modes_completed": 0,
+    "noisy_method_modes_total": 0,
+    "warm_delta_abs": NaN
+  },
+  "workflow_contract": {
+    "default_subject_policy": "new full_circuit_import mode defaults to imported lean pareto_lean_l2 artifact only; repo-wide staged-noise defaults unchanged",
+    "fixed_lean_scaffold_noisy_replay_contract": {
+      "matched_family_replay": false,
+      "mitigation": "readout/mthree",
+      "noise_mode": "backend_scheduled",
+      "optimizer": "SPSA",
+      "reps": 1,
+      "structure_locked": true
+    },
+    "imported_routes": {
+      "fixed_lean_scaffold_noisy_replay": true,
+      "full_circuit_audit": false,
+      "prepared_state_audit": true
+    },
+    "noise_extension": "imported_adapt_circuit_audit",
+    "stage_chain": []
+  }
+}

@@ -1,0 +1,141 @@
+{
+  "backend_name": "l2_generic_seeded6",
+  "backend_version": null,
+  "basis_gates": [
+    "id",
+    "rz",
+    "sx",
+    "x",
+    "cx",
+    "measure",
+    "delay",
+    "reset"
+  ],
+  "calibration_time_utc": null,
+  "coupling_map": [
+    [
+      0,
+      1
+    ],
+    [
+      1,
+      0
+    ]
+  ],
+  "dt": 2.2222222222222221e-10,
+  "median_1q_error": 9.456505629363185e-05,
+  "median_2q_error": 0.0028771845929416256,
+  "median_T1": 0.00014251513282976294,
+  "median_T2": 0.00015986900429404004,
+  "median_readout_error": 0.0014042829164407206,
+  "per_gate": [
+    {
+      "duration_s": 3.0192e-08,
+      "error": 9.821228418382766e-05,
+      "gate_name": "id",
+      "qubits": [
+        0
+      ]
+    },
+    {
+      "duration_s": 5.3946000000000005e-08,
+      "error": 9.467934952843722e-05,
+      "gate_name": "id",
+      "qubits": [
+        1
+      ]
+    },
+    {
+      "duration_s": 0.0,
+      "error": 0.0,
+      "gate_name": "rz",
+      "qubits": [
+        0
+      ]
+    },
+    {
+      "duration_s": 0.0,
+      "error": 0.0,
+      "gate_name": "rz",
+      "qubits": [
+        1
+      ]
+    },
+    {
+      "duration_s": 3.9072e-08,
+      "error": 9.278425612100774e-05,
+      "gate_name": "sx",
+      "qubits": [
+        0
+      ]
+    },
+    {
+      "duration_s": 3.7518e-08,
+      "error": 9.445076305882647e-05,
+      "gate_name": "sx",
+      "qubits": [
+        1
+      ]
+    },
+    {
+      "duration_s": 4.5066e-08,
+      "error": 9.553497352074493e-05,
+      "gate_name": "x",
+      "qubits": [
+        0
+      ]
+    },
+    {
+      "duration_s": 5.9718e-08,
+      "error": 9.792661919213753e-05,
+      "gate_name": "x",
+      "qubits": [
+        1
+      ]
+    },
+    {
+      "duration_s": 5.90076e-07,
+      "error": 0.0049449111369326065,
+      "gate_name": "cx",
+      "qubits": [
+        0,
+        1
+      ]
+    },
+    {
+      "duration_s": 2.5641e-07,
+      "error": 0.0008094580489506444,
+      "gate_name": "cx",
+      "qubits": [
+        1,
+        0
+      ]
+    }
+  ],
+  "per_qubit": [
+    {
+      "T1_s": 0.0001625095466604667,
+      "T2_s": 0.00018972138009695755,
+      "frequency": 5387842845.122597,
+      "measure_duration_s": 1.1901420000000001e-06,
+      "physical_qubit": 0,
+      "readout_error": 0.00022927061972730304,
+      "readout_p01": null,
+      "readout_p10": null
+    },
+    {
+      "T1_s": 0.0001225207189990592,
+      "T2_s": 0.00013001662849112256,
+      "frequency": 5436776722.698131,
+      "measure_duration_s": 7.28604e-07,
+      "physical_qubit": 1,
+      "readout_error": 0.002579295213154138,
+      "readout_p01": null,
+      "readout_p10": null
+    }
+  ],
+  "processor_family": null,
+  "retrieved_at_utc": "2026-03-10T23:51:15Z",
+  "snapshot_hash": "csnap_f59a0ca840c863ef",
+  "source_kind": "generic_seeded"
+}

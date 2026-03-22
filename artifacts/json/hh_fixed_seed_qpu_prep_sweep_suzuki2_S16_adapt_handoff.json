@@ -1,0 +1,150 @@
+{
+  "generated_utc": "2026-03-14T19:40:43Z",
+  "settings": {
+    "L": 2,
+    "problem": "hh",
+    "t": 1.0,
+    "u": 4.0,
+    "dv": 0.0,
+    "omega0": 1.0,
+    "g_ep": 0.5,
+    "n_ph_max": 2,
+    "boson_encoding": "binary",
+    "ordering": "blocked",
+    "boundary": "open",
+    "sector_n_up": 1,
+    "sector_n_dn": 1
+  },
+  "adapt_vqe": {
+    "energy": 0.1638685153117961,
+    "abs_delta_e": 0.0054247617849460805,
+    "relative_error_abs": 0.03423777627198661
+  },
+  "ground_state": {
+    "exact_energy": 0.15844375352685003,
+    "exact_energy_filtered": 0.15844375352685003,
+    "filtered_sector": {
+      "n_up": 1,
+      "n_dn": 1
+    },
+    "method": "staged_handoff_bundle"
+  },
+  "initial_state": {
+    "source": "fixed_final_state_json",
+    "nq_total": 8,
+    "amplitudes_qn_to_q0": {
+      "00000101": {
+        "re": 0.2883875122411082,
+        "im": 0.0
+      },
+      "00000110": {
+        "re": 0.6523181126151597,
+        "im": 0.0
+      },
+      "00001001": {
+        "re": 0.6384270023709724,
+        "im": 0.0
+      },
+      "00001010": {
+        "re": 0.28548119460755844,
+        "im": 0.0
+      },
+      "00010101": {
+        "re": -0.029320382157084834,
+        "im": 0.0
+      },
+      "00010110": {
+        "re": 0.0012631797068115088,
+        "im": 0.0
+      },
+      "00011001": {
+        "re": -0.0018353195308183762,
+        "im": 0.0
+      },
+      "00011010": {
+        "re": 0.02767403880637209,
+        "im": 0.0
+      },
+      "00100101": {
+        "re": 0.0011405115702704345,
+        "im": 0.0
+      },
+      "00101010": {
+        "re": 0.0010663719877593834,
+        "im": 0.0
+      },
+      "00110101": {
+        "re": 9.325360525411687e-06,
+        "im": 0.0
+      },
+      "00111010": {
+        "re": -8.717429165356738e-06,
+        "im": 0.0
+      },
+      "01000101": {
+        "re": 0.01730812088171392,
+        "im": 0.0
+      },
+      "01000110": {
+        "re": -0.006180325370110688,
+        "im": 0.0
+      },
+      "01001001": {
+        "re": -0.013416917236559312,
+        "im": 0.0
+      },
+      "01001010": {
+        "re": -0.008413653959053672,
+        "im": 0.0
+      },
+      "01010101": {
+        "re": -0.0017390881231366577,
+        "im": 0.0
+      },
+      "01010110": {
+        "re": -2.10981096124558e-05,
+        "im": 0.0
+      },
+      "01011001": {
+        "re": 2.924142106328798e-05,
+        "im": 0.0
+      },
+      "01011010": {
+        "re": -0.0007947646611353949,
+        "im": 0.0
+      },
+      "01100101": {
+        "re": 6.74932453454327e-05,
+        "im": 0.0
+      },
+      "01101010": {
+        "re": -3.046148767033175e-05,
+        "im": 0.0
+      },
+      "01110101": {
+        "re": 5.518301694935057e-07,
+        "im": 0.0
+      },
+      "01111010": {
+        "re": 2.48989762803857e-07,
+        "im": 0.0
+      }
+    },
+    "amplitude_cutoff": 1e-14,
+    "norm": 1.0,
+    "handoff_state_kind": "prepared_state"
+  },
+  "exact": {
+    "E_exact_sector": 0.15844375352685003
+  },
+  "meta": {
+    "pipeline": "hh_staged_noiseless",
+    "workflow_tag": "hh_fixed_seed_qpu_prep_sweep_suzuki2_S16",
+    "stage_chain": [
+      "hf_reference",
+      "fixed_final_state_import",
+      "final_only_noiseless_dynamics"
+    ],
+    "fixed_final_state_json": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_2/artifacts/json/l2_hh_open_direct_adapt_phase3_paoplf_u4_g05_nph2.json"
+  }
+}

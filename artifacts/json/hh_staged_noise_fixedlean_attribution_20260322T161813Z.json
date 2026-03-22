@@ -1,0 +1,1109 @@
+{
+  "artifacts": {
+    "import_source_json": "artifacts/json/adapt_hh_L2_ecut1_pareto_lean_l2_phase3_powell_rerun_with_ansatz_input_20260321T214822Z.json",
+    "intermediate": {
+      "adapt_handoff_json": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/artifacts/json/hh_staged_noise_fixedlean_attribution_20260322T161813Z_adapt_handoff.json",
+      "replay_output_csv": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/artifacts/json/hh_staged_noise_fixedlean_attribution_20260322T161813Z_replay.csv",
+      "replay_output_json": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/artifacts/json/hh_staged_noise_fixedlean_attribution_20260322T161813Z_replay.json",
+      "replay_output_log": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/artifacts/logs/hh_staged_noise_fixedlean_attribution_20260322T161813Z_replay.log",
+      "replay_output_md": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/artifacts/useful/L2/hh_staged_noise_fixedlean_attribution_20260322T161813Z_replay.md"
+    },
+    "workflow": {
+      "output_json": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/artifacts/json/hh_staged_noise_fixedlean_attribution_20260322T161813Z.json",
+      "output_pdf": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/artifacts/pdf/hh_staged_noise_fixedlean_attribution_20260322T161813Z.pdf"
+    }
+  },
+  "command": "/opt/anaconda3/bin/python pipelines/hardcoded/hh_staged_noise.py --L 2 --t 1.0 --u 4.0 --dv 0.0 --omega0 1.0 --g-ep 0.5 --n-ph-max 1 --boson-encoding binary --ordering blocked --boundary open --sector-n-up 1 --sector-n-dn 1 --include-fixed-lean-noise-attribution --fixed-final-state-json artifacts/json/adapt_hh_L2_ecut1_pareto_lean_l2_phase3_powell_rerun_with_ansatz_input_20260321T214822Z.json --use-fake-backend --backend-name FakeGuadalupeV2 --shots 4096 --oracle-repeats 8 --oracle-aggregate mean --tag hh_staged_noise_fixedlean_attribution_20260322T161813Z --skip-pdf",
+  "comparisons": {},
+  "dynamics_benchmarks": {
+    "rows": []
+  },
+  "dynamics_noiseless": {
+    "profiles": {}
+  },
+  "dynamics_noisy": {
+    "profiles": {}
+  },
+  "fixed_lean_noise_attribution": {
+    "ansatz_input_state_kind": "reference_state",
+    "ansatz_input_state_source": "hf",
+    "artifact_json": "artifacts/json/adapt_hh_L2_ecut1_pareto_lean_l2_phase3_powell_rerun_with_ansatz_input_20260321T214822Z.json",
+    "available": true,
+    "elapsed_s": 23.6007777499035,
+    "ideal_reference": {
+      "aggregate": "mean",
+      "mean": 0.15872408236036795,
+      "n_samples": 8,
+      "raw_values": [
+        0.15872408236036795,
+        0.15872408236036795,
+        0.15872408236036795,
+        0.15872408236036795,
+        0.15872408236036795,
+        0.15872408236036795,
+        0.15872408236036795,
+        0.15872408236036795
+      ],
+      "std": 0.0,
+      "stderr": 0.0,
+      "stdev": 0.0
+    },
+    "matched_family_replay": false,
+    "noise_config": {
+      "mitigation": {
+        "dd_sequence": null,
+        "local_readout_strategy": null,
+        "mode": "none",
+        "zne_scales": []
+      },
+      "noise_mode": "backend_scheduled",
+      "oracle_aggregate": "mean",
+      "oracle_repeats": 8,
+      "shots": 4096,
+      "symmetry_mitigation": {
+        "mode": "off",
+        "num_sites": null,
+        "ordering": "blocked",
+        "sector_n_dn": null,
+        "sector_n_up": null
+      }
+    },
+    "parameter_optimization": false,
+    "parameterization": {
+      "logical_parameter_count": 14,
+      "mode": "per_pauli_term_v1",
+      "runtime_parameter_count": 25,
+      "theta_source": "imported_artifact_runtime_theta"
+    },
+    "pool_type": "pareto_lean_l2",
+    "reference_state_embedded": true,
+    "route": "fixed_lean_noise_attribution",
+    "shared_compile": {
+      "backend_name": "FakeGuadalupeV2",
+      "compiled_num_qubits": 16,
+      "layout_physical_qubits": [
+        0,
+        10,
+        1,
+        6,
+        7,
+        4
+      ],
+      "requested_slices": [
+        "readout_only",
+        "gate_stateprep_only",
+        "full"
+      ],
+      "shared_transpile": true,
+      "transpile_optimization_level": 1,
+      "transpile_seed": 7,
+      "using_fake_backend": true
+    },
+    "slice_comparisons": {
+      "component_additivity_residual": -0.21532987271775705,
+      "full_minus_gate_stateprep_only": 0.0135345458984375,
+      "full_minus_readout_only": 1.3785247802734375
+    },
+    "slices": {
+      "full": {
+        "backend_info": {
+          "backend_name": "FakeGuadalupeV2",
+          "details": {
+            "aer_failed": false,
+            "attribution_slice": "full",
+            "compiled_mode": "backend_scheduled",
+            "compiled_num_qubits": 16,
+            "components": {
+              "gate_stateprep": true,
+              "readout": true
+            },
+            "execution_target_kind": "fake_backend.run",
+            "fallback_used": false,
+            "layout_physical_qubits": [
+              0,
+              10,
+              1,
+              6,
+              7,
+              4
+            ],
+            "mitigation": {
+              "dd_sequence": null,
+              "local_readout_strategy": null,
+              "mode": "none",
+              "zne_scales": []
+            },
+            "readout_mitigation": {
+              "active_physical_qubits": [
+                1,
+                7
+              ],
+              "applied": false,
+              "mode": "none",
+              "strategy": null,
+              "term_details": {
+                "active_logical_qubits": [
+                  2,
+                  4
+                ],
+                "active_physical_qubits": [
+                  1,
+                  7
+                ],
+                "compiled_depth": 109,
+                "compiled_size": 180,
+                "pauli_weight": 2
+              }
+            },
+            "shared_compile_reused": true,
+            "shots": 4096,
+            "symmetry_mitigation": {
+              "mode": "off",
+              "num_sites": null,
+              "ordering": "blocked",
+              "sector_n_dn": null,
+              "sector_n_up": null
+            },
+            "transpile_optimization_level": 1,
+            "transpile_seed": 7
+          },
+          "estimator_kind": "fake_backend.run(counts)",
+          "noise_mode": "backend_scheduled",
+          "using_fake_backend": true
+        },
+        "components": {
+          "gate_stateprep": true,
+          "readout": true
+        },
+        "delta_mean": 1.607389198889632,
+        "delta_stderr": 0.018510924622769123,
+        "error": null,
+        "ideal_mean": 0.15872408236036795,
+        "ideal_std": 0.0,
+        "ideal_stderr": 0.0,
+        "ideal_stdev": 0.0,
+        "noisy_mean": 1.76611328125,
+        "noisy_std": 0.05235680130717233,
+        "noisy_stderr": 0.018510924622769123,
+        "noisy_stdev": 0.05235680130717233,
+        "reason": null,
+        "slice": "full",
+        "success": true
+      },
+      "gate_stateprep_only": {
+        "backend_info": {
+          "backend_name": "FakeGuadalupeV2",
+          "details": {
+            "aer_failed": false,
+            "attribution_slice": "gate_stateprep_only",
+            "compiled_mode": "backend_scheduled",
+            "compiled_num_qubits": 16,
+            "components": {
+              "gate_stateprep": true,
+              "readout": false
+            },
+            "execution_target_kind": "AerSimulator",
+            "fallback_used": false,
+            "layout_physical_qubits": [
+              0,
+              10,
+              1,
+              6,
+              7,
+              4
+            ],
+            "mitigation": {
+              "dd_sequence": null,
+              "local_readout_strategy": null,
+              "mode": "none",
+              "zne_scales": []
+            },
+            "noise_model_basis_gates": [
+              "cx",
+              "delay",
+              "id",
+              "measure",
+              "reset",
+              "rz",
+              "sx",
+              "x"
+            ],
+            "readout_mitigation": {
+              "active_physical_qubits": [
+                1,
+                7
+              ],
+              "applied": false,
+              "mode": "none",
+              "strategy": null,
+              "term_details": {
+                "active_logical_qubits": [
+                  2,
+                  4
+                ],
+                "active_physical_qubits": [
+                  1,
+                  7
+                ],
+                "compiled_depth": 109,
+                "compiled_size": 180,
+                "pauli_weight": 2
+              }
+            },
+            "shared_compile_reused": true,
+            "shots": 4096,
+            "symmetry_mitigation": {
+              "mode": "off",
+              "num_sites": null,
+              "ordering": "blocked",
+              "sector_n_dn": null,
+              "sector_n_up": null
+            },
+            "transpile_optimization_level": 1,
+            "transpile_seed": 7
+          },
+          "estimator_kind": "fake_backend.run(counts)",
+          "noise_mode": "backend_scheduled",
+          "using_fake_backend": true
+        },
+        "components": {
+          "gate_stateprep": true,
+          "readout": false
+        },
+        "delta_mean": 1.5938546529911946,
+        "delta_stderr": 0.017785640304748947,
+        "error": null,
+        "ideal_mean": 0.15872408236036795,
+        "ideal_std": 0.0,
+        "ideal_stderr": 0.0,
+        "ideal_stdev": 0.0,
+        "noisy_mean": 1.7525787353515625,
+        "noisy_std": 0.05030538746893102,
+        "noisy_stderr": 0.017785640304748947,
+        "noisy_stdev": 0.05030538746893102,
+        "reason": null,
+        "slice": "gate_stateprep_only",
+        "success": true
+      },
+      "readout_only": {
+        "backend_info": {
+          "backend_name": "FakeGuadalupeV2",
+          "details": {
+            "aer_failed": false,
+            "attribution_slice": "readout_only",
+            "compiled_mode": "backend_scheduled",
+            "compiled_num_qubits": 16,
+            "components": {
+              "gate_stateprep": false,
+              "readout": true
+            },
+            "execution_target_kind": "AerSimulator",
+            "fallback_used": false,
+            "layout_physical_qubits": [
+              0,
+              10,
+              1,
+              6,
+              7,
+              4
+            ],
+            "mitigation": {
+              "dd_sequence": null,
+              "local_readout_strategy": null,
+              "mode": "none",
+              "zne_scales": []
+            },
+            "noise_model_basis_gates": [
+              "cx",
+              "delay",
+              "id",
+              "measure",
+              "reset",
+              "rz",
+              "sx",
+              "x"
+            ],
+            "readout_mitigation": {
+              "active_physical_qubits": [
+                1,
+                7
+              ],
+              "applied": false,
+              "mode": "none",
+              "strategy": null,
+              "term_details": {
+                "active_logical_qubits": [
+                  2,
+                  4
+                ],
+                "active_physical_qubits": [
+                  1,
+                  7
+                ],
+                "compiled_depth": 109,
+                "compiled_size": 180,
+                "pauli_weight": 2
+              }
+            },
+            "shared_compile_reused": true,
+            "shots": 4096,
+            "symmetry_mitigation": {
+              "mode": "off",
+              "num_sites": null,
+              "ordering": "blocked",
+              "sector_n_dn": null,
+              "sector_n_up": null
+            },
+            "transpile_optimization_level": 1,
+            "transpile_seed": 7
+          },
+          "estimator_kind": "fake_backend.run(counts)",
+          "noise_mode": "backend_scheduled",
+          "using_fake_backend": true
+        },
+        "components": {
+          "gate_stateprep": false,
+          "readout": true
+        },
+        "delta_mean": 0.22886441861619455,
+        "delta_stderr": 0.013887063361887986,
+        "error": null,
+        "ideal_mean": 0.15872408236036795,
+        "ideal_std": 0.0,
+        "ideal_stderr": 0.0,
+        "ideal_stdev": 0.0,
+        "noisy_mean": 0.3875885009765625,
+        "noisy_std": 0.039278546695833,
+        "noisy_stderr": 0.013887063361887986,
+        "noisy_stdev": 0.039278546695833,
+        "reason": null,
+        "slice": "readout_only",
+        "success": true
+      }
+    },
+    "source_kind": "direct_adapt_artifact",
+    "structure_locked": true,
+    "success": true
+  },
+  "fixed_lean_scaffold_noisy_replay": {},
+  "full_circuit_import_audit": {
+    "modes": {}
+  },
+  "generated_utc": "2026-03-22T16:19:16Z",
+  "import_source": {
+    "default_subject": false,
+    "mode": "imported_artifact",
+    "requested_json": "artifacts/json/adapt_hh_L2_ecut1_pareto_lean_l2_phase3_powell_rerun_with_ansatz_input_20260321T214822Z.json",
+    "resolved_json": "artifacts/json/adapt_hh_L2_ecut1_pareto_lean_l2_phase3_powell_rerun_with_ansatz_input_20260321T214822Z.json",
+    "source_kind": "direct_payload"
+  },
+  "imported_prepared_state_audit": {
+    "modes": {
+      "backend_scheduled": {
+        "audit_source": {
+          "artifact_json": "artifacts/json/adapt_hh_L2_ecut1_pareto_lean_l2_phase3_powell_rerun_with_ansatz_input_20260321T214822Z.json",
+          "includes_ansatz_stateprep_noise": false,
+          "kind": "imported_prepared_state",
+          "source_kind": "direct_adapt_artifact"
+        },
+        "backend_info": {
+          "backend_name": "FakeGuadalupeV2",
+          "details": {
+            "aer_failed": false,
+            "compiled_mode": "backend_scheduled",
+            "compiled_num_qubits": 16,
+            "fallback_used": false,
+            "layout_physical_qubits": [
+              4,
+              1,
+              7,
+              0,
+              2,
+              6
+            ],
+            "mitigation": {
+              "dd_sequence": null,
+              "local_readout_strategy": null,
+              "mode": "none",
+              "zne_scales": []
+            },
+            "readout_mitigation": {
+              "active_physical_qubits": [
+                0
+              ],
+              "applied": false,
+              "mode": "none",
+              "strategy": null,
+              "term_details": {
+                "active_logical_qubits": [
+                  3
+                ],
+                "active_physical_qubits": [
+                  0
+                ],
+                "compiled_depth": 260,
+                "compiled_size": 299,
+                "pauli_weight": 1
+              }
+            },
+            "shots": 4096,
+            "symmetry_mitigation": {
+              "applied_mode": "off",
+              "eligible": false,
+              "estimator_form": "none",
+              "executed": false,
+              "fallback_reason": "",
+              "requested_mode": "off",
+              "retained_fraction_mean": null,
+              "retained_fraction_samples": [],
+              "sector_probability_mean": null,
+              "sector_probability_samples": [],
+              "sector_values": {
+                "sector_n_dn": 1,
+                "sector_n_up": 1
+              }
+            },
+            "transpile_optimization_level": 1,
+            "transpile_seed": 7
+          },
+          "estimator_kind": "fake_backend.run(counts)",
+          "noise_mode": "backend_scheduled",
+          "using_fake_backend": true
+        },
+        "delta_uncertainty": {
+          "doublon": {
+            "max_abs_delta": 0.09928309370393539,
+            "max_abs_delta_over_stderr": 50.121278886974544,
+            "mean_abs_delta_over_stderr": 50.121278886974544
+          },
+          "energy_static": {
+            "max_abs_delta": 1.7414529195927562,
+            "max_abs_delta_over_stderr": 123.58288347966507,
+            "mean_abs_delta_over_stderr": 123.58288347966507
+          },
+          "energy_total": {
+            "max_abs_delta": 1.7414529195927562,
+            "max_abs_delta_over_stderr": 123.58288347966507,
+            "mean_abs_delta_over_stderr": 123.58288347966507
+          },
+          "n_dn_site0": {
+            "max_abs_delta": 0.07028199240578614,
+            "max_abs_delta_over_stderr": 19.968365813345645,
+            "mean_abs_delta_over_stderr": 19.968365813345645
+          },
+          "n_up_site0": {
+            "max_abs_delta": 0.025939931179469078,
+            "max_abs_delta_over_stderr": 9.102794581603437,
+            "mean_abs_delta_over_stderr": 9.102794581603437
+          },
+          "staggered": {
+            "max_abs_delta": 0.019607544188182197,
+            "max_abs_delta_over_stderr": 7.471814346775861,
+            "mean_abs_delta_over_stderr": 7.471814346775861
+          }
+        },
+        "drive_enabled": false,
+        "drive_meta": null,
+        "extra_meta": {
+          "exact_energy": 0.15866790412572634,
+          "saved_artifact_energy": 0.15872408236037028
+        },
+        "final_observables": {
+          "doublon": {
+            "delta_mean": 0.09928309370393539,
+            "delta_stderr": 0.001980857151067966,
+            "ideal_mean": 0.07613194535856461,
+            "ideal_std": 0.0,
+            "ideal_stderr": 0.0,
+            "ideal_stdev": 0.0,
+            "noisy_mean": 0.1754150390625,
+            "noisy_std": 0.005602710096328097,
+            "noisy_stderr": 0.001980857151067966,
+            "noisy_stdev": 0.005602710096328097
+          },
+          "energy_static": {
+            "delta_mean": 1.7414529195927562,
+            "delta_stderr": 0.014091376334323056,
+            "ideal_mean": 0.1587240823603689,
+            "ideal_std": 0.0,
+            "ideal_stderr": 0.0,
+            "ideal_stdev": 0.0,
+            "noisy_mean": 1.900177001953125,
+            "noisy_std": 0.03985643104900587,
+            "noisy_stderr": 0.014091376334323056,
+            "noisy_stdev": 0.03985643104900587
+          },
+          "energy_total": {
+            "delta_mean": 1.7414529195927562,
+            "delta_stderr": 0.014091376334323056,
+            "ideal_mean": 0.1587240823603689,
+            "ideal_std": 0.0,
+            "ideal_stderr": 0.0,
+            "ideal_stdev": 0.0,
+            "noisy_mean": 1.900177001953125,
+            "noisy_std": 0.03985643104900587,
+            "noisy_stderr": 0.014091376334323056,
+            "noisy_stdev": 0.03985643104900587
+          },
+          "n_dn_site0": {
+            "delta_mean": -0.07028199240578614,
+            "delta_stderr": 0.0035196667099725264,
+            "ideal_mean": 0.5000000099839111,
+            "ideal_std": 0.0,
+            "ideal_stderr": 0.0,
+            "ideal_stdev": 0.0,
+            "noisy_mean": 0.429718017578125,
+            "noisy_std": 0.009955120792552476,
+            "noisy_stderr": 0.0035196667099725264,
+            "noisy_stdev": 0.009955120792552476
+          },
+          "n_up_site0": {
+            "delta_mean": -0.025939931179469078,
+            "delta_stderr": 0.0028496667640828845,
+            "ideal_mean": 0.4999999897732191,
+            "ideal_std": 0.0,
+            "ideal_stderr": 0.0,
+            "ideal_stdev": 0.0,
+            "noisy_mean": 0.47406005859375,
+            "noisy_std": 0.008060074772019733,
+            "noisy_stderr": 0.0028496667640828845,
+            "noisy_stdev": 0.008060074772019733
+          },
+          "staggered": {
+            "delta_mean": 0.019607544188182197,
+            "delta_stderr": 0.0026242012017660727,
+            "ideal_mean": -2.4286969542758785e-10,
+            "ideal_std": 0.0,
+            "ideal_stderr": 0.0,
+            "ideal_stdev": 0.0,
+            "noisy_mean": 0.0196075439453125,
+            "noisy_std": 0.0074223618598667105,
+            "noisy_stderr": 0.0026242012017660727,
+            "noisy_stdev": 0.0074223618598667105
+          }
+        },
+        "noise_config": {
+          "mitigation": {
+            "dd_sequence": null,
+            "local_readout_strategy": null,
+            "mode": "none",
+            "zne_scales": []
+          },
+          "noise_mode": "backend_scheduled",
+          "oracle_aggregate": "mean",
+          "oracle_repeats": 8,
+          "shots": 4096,
+          "symmetry_mitigation": {
+            "mode": "off",
+            "num_sites": 2,
+            "ordering": "blocked",
+            "sector_n_dn": 1,
+            "sector_n_up": 1
+          }
+        },
+        "noise_mode": "backend_scheduled",
+        "success": true,
+        "time": 0.0
+      },
+      "ideal": {
+        "audit_source": {
+          "artifact_json": "artifacts/json/adapt_hh_L2_ecut1_pareto_lean_l2_phase3_powell_rerun_with_ansatz_input_20260321T214822Z.json",
+          "includes_ansatz_stateprep_noise": false,
+          "kind": "imported_prepared_state",
+          "source_kind": "direct_adapt_artifact"
+        },
+        "backend_info": {
+          "backend_name": "statevector_simulator",
+          "details": {
+            "mitigation": {
+              "dd_sequence": null,
+              "local_readout_strategy": null,
+              "mode": "none",
+              "zne_scales": []
+            },
+            "shots": null,
+            "symmetry_mitigation": {
+              "applied_mode": "off",
+              "eligible": false,
+              "estimator_form": "none",
+              "executed": false,
+              "fallback_reason": "",
+              "requested_mode": "off",
+              "retained_fraction_mean": null,
+              "retained_fraction_samples": [],
+              "sector_probability_mean": null,
+              "sector_probability_samples": [],
+              "sector_values": {
+                "sector_n_dn": 1,
+                "sector_n_up": 1
+              }
+            }
+          },
+          "estimator_kind": "qiskit.primitives.StatevectorEstimator",
+          "noise_mode": "ideal",
+          "using_fake_backend": false
+        },
+        "delta_uncertainty": {
+          "doublon": {
+            "max_abs_delta": 0.0,
+            "max_abs_delta_over_stderr": NaN,
+            "mean_abs_delta_over_stderr": NaN
+          },
+          "energy_static": {
+            "max_abs_delta": 0.0,
+            "max_abs_delta_over_stderr": NaN,
+            "mean_abs_delta_over_stderr": NaN
+          },
+          "energy_total": {
+            "max_abs_delta": 0.0,
+            "max_abs_delta_over_stderr": NaN,
+            "mean_abs_delta_over_stderr": NaN
+          },
+          "n_dn_site0": {
+            "max_abs_delta": 0.0,
+            "max_abs_delta_over_stderr": NaN,
+            "mean_abs_delta_over_stderr": NaN
+          },
+          "n_up_site0": {
+            "max_abs_delta": 0.0,
+            "max_abs_delta_over_stderr": NaN,
+            "mean_abs_delta_over_stderr": NaN
+          },
+          "staggered": {
+            "max_abs_delta": 0.0,
+            "max_abs_delta_over_stderr": NaN,
+            "mean_abs_delta_over_stderr": NaN
+          }
+        },
+        "drive_enabled": false,
+        "drive_meta": null,
+        "extra_meta": {
+          "exact_energy": 0.15866790412572634,
+          "saved_artifact_energy": 0.15872408236037028
+        },
+        "final_observables": {
+          "doublon": {
+            "delta_mean": 0.0,
+            "delta_stderr": 0.0,
+            "ideal_mean": 0.07613194535856461,
+            "ideal_std": 0.0,
+            "ideal_stderr": 0.0,
+            "ideal_stdev": 0.0,
+            "noisy_mean": 0.07613194535856461,
+            "noisy_std": 0.0,
+            "noisy_stderr": 0.0,
+            "noisy_stdev": 0.0
+          },
+          "energy_static": {
+            "delta_mean": 0.0,
+            "delta_stderr": 0.0,
+            "ideal_mean": 0.1587240823603689,
+            "ideal_std": 0.0,
+            "ideal_stderr": 0.0,
+            "ideal_stdev": 0.0,
+            "noisy_mean": 0.1587240823603689,
+            "noisy_std": 0.0,
+            "noisy_stderr": 0.0,
+            "noisy_stdev": 0.0
+          },
+          "energy_total": {
+            "delta_mean": 0.0,
+            "delta_stderr": 0.0,
+            "ideal_mean": 0.1587240823603689,
+            "ideal_std": 0.0,
+            "ideal_stderr": 0.0,
+            "ideal_stdev": 0.0,
+            "noisy_mean": 0.1587240823603689,
+            "noisy_std": 0.0,
+            "noisy_stderr": 0.0,
+            "noisy_stdev": 0.0
+          },
+          "n_dn_site0": {
+            "delta_mean": 0.0,
+            "delta_stderr": 0.0,
+            "ideal_mean": 0.5000000099839111,
+            "ideal_std": 0.0,
+            "ideal_stderr": 0.0,
+            "ideal_stdev": 0.0,
+            "noisy_mean": 0.5000000099839111,
+            "noisy_std": 0.0,
+            "noisy_stderr": 0.0,
+            "noisy_stdev": 0.0
+          },
+          "n_up_site0": {
+            "delta_mean": 0.0,
+            "delta_stderr": 0.0,
+            "ideal_mean": 0.4999999897732191,
+            "ideal_std": 0.0,
+            "ideal_stderr": 0.0,
+            "ideal_stdev": 0.0,
+            "noisy_mean": 0.4999999897732191,
+            "noisy_std": 0.0,
+            "noisy_stderr": 0.0,
+            "noisy_stdev": 0.0
+          },
+          "staggered": {
+            "delta_mean": 0.0,
+            "delta_stderr": 0.0,
+            "ideal_mean": -2.4286969542758785e-10,
+            "ideal_std": 0.0,
+            "ideal_stderr": 0.0,
+            "ideal_stdev": 0.0,
+            "noisy_mean": -2.4286969542758785e-10,
+            "noisy_std": 0.0,
+            "noisy_stderr": 0.0,
+            "noisy_stdev": 0.0
+          }
+        },
+        "noise_config": {
+          "mitigation": {
+            "dd_sequence": null,
+            "local_readout_strategy": null,
+            "mode": "none",
+            "zne_scales": []
+          },
+          "noise_mode": "ideal",
+          "oracle_aggregate": "mean",
+          "oracle_repeats": 8,
+          "shots": 4096,
+          "symmetry_mitigation": {
+            "mode": "off",
+            "num_sites": 2,
+            "ordering": "blocked",
+            "sector_n_dn": 1,
+            "sector_n_up": 1
+          }
+        },
+        "noise_mode": "ideal",
+        "success": true,
+        "time": 0.0
+      }
+    }
+  },
+  "noisy_final_audit": {
+    "profiles": {}
+  },
+  "pipeline": "hh_staged_noise",
+  "settings": {
+    "adapt": {
+      "allow_repeats": true,
+      "continuation_mode": "phase1_v1",
+      "disable_hh_seed": false,
+      "eps_energy": 1e-09,
+      "eps_grad": 5e-07,
+      "final_full_refit": true,
+      "finite_angle": 0.1,
+      "finite_angle_fallback": true,
+      "finite_angle_min_improvement": 1e-12,
+      "full_refit_every": 0,
+      "inner_optimizer": "SPSA",
+      "max_depth": 80,
+      "maxiter": 2222,
+      "paop_normalization": "none",
+      "paop_prune_eps": 0.0,
+      "paop_r": 1,
+      "paop_split_paulis": false,
+      "phase1_lambda_F": 1.0,
+      "phase1_lambda_compile": 0.05,
+      "phase1_lambda_leak": 0.0,
+      "phase1_lambda_measure": 0.02,
+      "phase1_plateau_patience": 2,
+      "phase1_probe_max_positions": 6,
+      "phase1_prune_enabled": true,
+      "phase1_prune_fraction": 0.25,
+      "phase1_prune_max_candidates": 6,
+      "phase1_prune_max_regression": 1e-08,
+      "phase1_score_z_alpha": 0.0,
+      "phase1_trough_margin_ratio": 1.0,
+      "phase3_enable_rescue": false,
+      "phase3_lifetime_cost_mode": "phase3_v1",
+      "phase3_motif_source_json": null,
+      "phase3_runtime_split_mode": "off",
+      "phase3_symmetry_mitigation_mode": "off",
+      "pool": null,
+      "reopt_policy": "append_only",
+      "seed": 11,
+      "spsa_A": 10.0,
+      "spsa_a": 0.2,
+      "spsa_alpha": 0.602,
+      "spsa_avg_last": 0,
+      "spsa_c": 0.1,
+      "spsa_callback_every": 5,
+      "spsa_eval_agg": "mean",
+      "spsa_eval_repeats": 1,
+      "spsa_gamma": 0.101,
+      "spsa_progress_every_s": 60.0,
+      "window_size": 3,
+      "window_topk": 0
+    },
+    "artifacts": {
+      "handoff_json": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/artifacts/json/hh_staged_noise_fixedlean_attribution_20260322T161813Z_adapt_handoff.json",
+      "output_json": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/artifacts/json/hh_staged_noise_fixedlean_attribution_20260322T161813Z.json",
+      "output_pdf": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/artifacts/pdf/hh_staged_noise_fixedlean_attribution_20260322T161813Z.pdf",
+      "replay_output_csv": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/artifacts/json/hh_staged_noise_fixedlean_attribution_20260322T161813Z_replay.csv",
+      "replay_output_json": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/artifacts/json/hh_staged_noise_fixedlean_attribution_20260322T161813Z_replay.json",
+      "replay_output_log": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/artifacts/logs/hh_staged_noise_fixedlean_attribution_20260322T161813Z_replay.log",
+      "replay_output_md": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/artifacts/useful/L2/hh_staged_noise_fixedlean_attribution_20260322T161813Z_replay.md",
+      "skip_pdf": true,
+      "tag": "hh_staged_noise_fixedlean_attribution_20260322T161813Z"
+    },
+    "default_provenance": {
+      "adapt_eps_energy": "run_guide.adapt_eps_energy=1e-9",
+      "adapt_eps_grad": "run_guide.adapt_eps_grad=5e-7",
+      "adapt_max_depth": "run_guide.adapt_max_depth(L)=40L",
+      "adapt_maxiter": "run_guide.adapt_maxiter(L)=round(5000L^2/9)",
+      "ecut_1": "run_guide.ecut_1=1e-1",
+      "ecut_2": "run_guide.ecut_2=1e-4",
+      "exact_steps_multiplier": "run_guide.exact_steps_multiplier(L)=ceil((L+1)/2)",
+      "final_maxiter": "workflow.final_maxiter := warm_maxiter(L)",
+      "final_reps": "run_guide.vqe_reps(L)=L",
+      "final_restarts": "workflow.final_restarts := warm_restarts(L)",
+      "num_times": "run_guide.num_times(L)=1+ceil(200L/3)",
+      "output_json": "artifacts/json/<tag>.json",
+      "output_pdf": "artifacts/pdf/<tag>.pdf",
+      "replay_continuation_mode": "workflow.replay_mode := adapt_continuation_mode",
+      "t_final": "run_guide.t_final(L)=5L",
+      "tag": "cli",
+      "trotter_steps": "run_guide.trotter_steps(L)=64L",
+      "warm_maxiter": "run_guide.ws_maxiter(L)=round(4000L^2/9)",
+      "warm_reps": "run_guide.ws_reps(L)=L",
+      "warm_restarts": "run_guide.ws_restarts(L)=ceil(5L/3)"
+    },
+    "dynamics": {
+      "cfqm_coeff_drop_abs_tol": 0.0,
+      "cfqm_normalize": false,
+      "cfqm_stage_exp": "expm_multiply_sparse",
+      "drive_A": 0.6,
+      "drive_custom_s": null,
+      "drive_include_identity": false,
+      "drive_omega": 2.0,
+      "drive_pattern": "staggered",
+      "drive_phi": 0.0,
+      "drive_t0": 0.0,
+      "drive_tbar": 2.5,
+      "drive_time_sampling": "midpoint",
+      "enable_drive": false,
+      "exact_steps_multiplier": 2,
+      "fidelity_subspace_energy_tol": 1e-09,
+      "methods": [
+        "suzuki2",
+        "cfqm4"
+      ],
+      "num_times": 135,
+      "t_final": 10.0,
+      "trotter_steps": 128
+    },
+    "fixed_lean_noise_attribution": {
+      "enabled": true,
+      "mitigation_config": {
+        "dd_sequence": null,
+        "local_readout_strategy": null,
+        "mode": "none",
+        "zne_scales": []
+      },
+      "noise_mode": "backend_scheduled",
+      "slices": [
+        "readout_only",
+        "gate_stateprep_only",
+        "full"
+      ],
+      "symmetry_mitigation_config": {
+        "mode": "off",
+        "num_sites": null,
+        "ordering": "blocked",
+        "sector_n_dn": null,
+        "sector_n_up": null
+      }
+    },
+    "fixed_lean_noisy_replay": {
+      "enabled": false,
+      "maxiter": 1778,
+      "method": "SPSA",
+      "mitigation_config": {
+        "dd_sequence": null,
+        "local_readout_strategy": "mthree",
+        "mode": "readout",
+        "zne_scales": []
+      },
+      "noise_mode": "backend_scheduled",
+      "reps": 1,
+      "seed": 19,
+      "spsa_A": 10.0,
+      "spsa_a": 0.2,
+      "spsa_alpha": 0.602,
+      "spsa_avg_last": 0,
+      "spsa_c": 0.1,
+      "spsa_eval_agg": "mean",
+      "spsa_eval_repeats": 1,
+      "spsa_gamma": 0.101,
+      "symmetry_mitigation_config": {
+        "mode": "off",
+        "num_sites": null,
+        "ordering": "blocked",
+        "sector_n_dn": null,
+        "sector_n_up": null
+      },
+      "wallclock_cap_s": 43200
+    },
+    "gates": {
+      "ecut_1": 0.1,
+      "ecut_2": 0.0001
+    },
+    "noise": {
+      "allow_aer_fallback": true,
+      "audit_modes": [
+        "ideal",
+        "backend_scheduled"
+      ],
+      "backend_name": "FakeGuadalupeV2",
+      "benchmark_active_coeff_tol": 1e-12,
+      "include_final_audit": false,
+      "include_full_circuit_audit": false,
+      "local_readout_strategy": "mthree",
+      "methods": [
+        "cfqm4",
+        "suzuki2"
+      ],
+      "mitigation_config": {
+        "dd_sequence": null,
+        "local_readout_strategy": null,
+        "mode": "none",
+        "zne_scales": []
+      },
+      "modes": [
+        "ideal",
+        "shots",
+        "aer_noise"
+      ],
+      "noisy_mode_timeout_s": 1200,
+      "omp_shm_workaround": true,
+      "oracle_aggregate": "mean",
+      "oracle_repeats": 8,
+      "seed": 7,
+      "shots": 4096,
+      "symmetry_mitigation_config": {
+        "mode": "off",
+        "num_sites": 2,
+        "ordering": "blocked",
+        "sector_n_dn": 1,
+        "sector_n_up": 1
+      },
+      "use_fake_backend": true
+    },
+    "physics": {
+      "L": 2,
+      "boson_encoding": "binary",
+      "boundary": "open",
+      "dv": 0.0,
+      "g_ep": 0.5,
+      "n_ph_max": 1,
+      "omega0": 1.0,
+      "ordering": "blocked",
+      "sector_n_dn": 1,
+      "sector_n_up": 1,
+      "t": 1.0,
+      "u": 4.0
+    },
+    "replay": {
+      "continuation_mode": "phase1_v1",
+      "energy_backend": "one_apply_compiled",
+      "fallback_family": "full_meta",
+      "generator_family": "match_adapt",
+      "legacy_paop_key": "paop_lf_std",
+      "maxiter": 1778,
+      "method": "SPSA",
+      "paop_normalization": "none",
+      "paop_prune_eps": 0.0,
+      "paop_r": 1,
+      "paop_split_paulis": false,
+      "phase3_symmetry_mitigation_mode": "off",
+      "progress_every_s": 60.0,
+      "replay_freeze_fraction": 0.2,
+      "replay_full_fraction": 0.5,
+      "replay_qn_spsa_refresh_every": 5,
+      "replay_qn_spsa_refresh_mode": "diag_rms_grad",
+      "replay_seed_policy": "auto",
+      "replay_unfreeze_fraction": 0.3,
+      "reps": 2,
+      "restarts": 4,
+      "seed": 19,
+      "spsa_A": 10.0,
+      "spsa_a": 0.2,
+      "spsa_alpha": 0.602,
+      "spsa_avg_last": 0,
+      "spsa_c": 0.1,
+      "spsa_eval_agg": "mean",
+      "spsa_eval_repeats": 1,
+      "spsa_gamma": 0.101,
+      "wallclock_cap_s": 43200
+    },
+    "smoke_test_intentionally_weak": false,
+    "warm_start": {
+      "ansatz_name": "hh_hva_ptw",
+      "energy_backend": "one_apply_compiled",
+      "maxiter": 1778,
+      "method": "SPSA",
+      "progress_every_s": 60.0,
+      "reps": 2,
+      "restarts": 4,
+      "seed": 7,
+      "spsa_A": 10.0,
+      "spsa_a": 0.2,
+      "spsa_alpha": 0.602,
+      "spsa_avg_last": 0,
+      "spsa_c": 0.1,
+      "spsa_eval_agg": "mean",
+      "spsa_eval_repeats": 1,
+      "spsa_gamma": 0.101
+    }
+  },
+  "summary": {
+    "adapt_delta_abs": NaN,
+    "failure_samples": [],
+    "final_delta_abs": NaN,
+    "fixed_lean_noise_attribution_completed": 1,
+    "fixed_lean_noise_attribution_full_minus_ideal": 1.607389198889632,
+    "fixed_lean_noise_attribution_gate_stateprep_only_minus_ideal": 1.5938546529911946,
+    "fixed_lean_noise_attribution_readout_only_minus_ideal": 0.22886441861619455,
+    "fixed_lean_noise_attribution_slices_completed": 3,
+    "fixed_lean_noise_attribution_slices_total": 3,
+    "fixed_lean_noise_attribution_total": 1,
+    "fixed_lean_scaffold_best_noisy_minus_ideal": NaN,
+    "fixed_lean_scaffold_noisy_replay_completed": 0,
+    "fixed_lean_scaffold_noisy_replay_total": 0,
+    "full_circuit_import_audit_completed": 0,
+    "full_circuit_import_audit_total": 0,
+    "imported_prepared_state_audit_completed": 2,
+    "imported_prepared_state_audit_total": 2,
+    "noisy_method_modes_completed": 0,
+    "noisy_method_modes_total": 0,
+    "warm_delta_abs": NaN
+  },
+  "workflow_contract": {
+    "default_subject_policy": "new full_circuit_import mode defaults to imported lean pareto_lean_l2 artifact only; repo-wide staged-noise defaults unchanged",
+    "fixed_lean_noise_attribution_contract": {
+      "circuit_source": "imported_artifact_runtime_theta",
+      "matched_family_replay": false,
+      "mitigation": "none",
+      "noise_mode": "backend_scheduled",
+      "parameter_optimization": false,
+      "shared_transpile": true,
+      "slices": [
+        "readout_only",
+        "gate_stateprep_only",
+        "full"
+      ],
+      "structure_locked": true,
+      "symmetry": "off"
+    },
+    "fixed_lean_scaffold_noisy_replay_contract": {},
+    "imported_routes": {
+      "fixed_lean_noise_attribution": true,
+      "fixed_lean_scaffold_noisy_replay": false,
+      "full_circuit_audit": false,
+      "prepared_state_audit": true
+    },
+    "noise_extension": "imported_adapt_circuit_audit",
+    "stage_chain": []
+  }
+}

@@ -1,0 +1,32 @@
+{
+  "generated_utc": "2026-03-21T18:29:05Z",
+  "source_adapt_json": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/artifacts/json/adapt_hh_L2_ecut1_pareto_lean_l2_phase3_powell_rerun_currentcode_20260321T171615Z.json",
+  "prepared_handoff_json": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/artifacts/json/adapt_hh_L2_ecut1_pareto_lean_l2_phase3_powell_rerun_currentcode_20260321T171615Z.prepared_handoff.json",
+  "notes": {
+    "scope": "imported prepared-state local fake-backend noisy dynamics sweep",
+    "state_prep_noise_included": false,
+    "state_prep_noise_note": "This sweep starts from the ADAPT-prepared statevector saved in the lean rerun artifact; it does not model the ADAPT preparation circuit itself.",
+    "contract_choice": "No user reply to AGENTS/code mismatch question; preserved the lean artifact dynamics settings directly via lower-level imported-state sweep (t_final=20, num_times=201, trotter_steps=64).",
+    "mitigation_code_note": "Current local readout/ZNE/DD mitigation surfaces appear non-operative in code inspection; this sweep exercises the implemented symmetry-mitigation path plus unmitigated baselines.",
+    "doc_surface_note": "run_guide.md references staged-noise import/local-readout flags not exposed on current hh_staged_noise.py CLI."
+  },
+  "prepared_state_check": {
+    "prepared_energy_from_saved_state": 0.1587240823603711,
+    "target_energy": 0.15872408236037028,
+    "abs_diff": 8.326672684688674e-16,
+    "ground_state_energy": 0.15866790412572634,
+    "abs_delta_e": 5.6178234643933234e-05
+  },
+  "runner": {
+    "backend_name": "FakeGuadalupeV2",
+    "use_fake_backend": true,
+    "method": "suzuki2",
+    "shots": 2048,
+    "oracle_repeats": 4,
+    "oracle_aggregate": "mean",
+    "t_final": 20.0,
+    "num_times": 201,
+    "trotter_steps": 64
+  },
+  "results": {}
+}

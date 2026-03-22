@@ -1,0 +1,282 @@
+{
+  "generated_utc": "2026-03-15T15:27:10.067345Z",
+  "budget": {
+    "max_depth_per_stage": 400,
+    "replay_delta_abs_max": 0.001
+  },
+  "total_runs": 9,
+  "passing_runs": 0,
+  "best_tag": null,
+  "runs": [
+    {
+      "tag": "corr_g0p5_sw_splitpauli_b2_d2_f1_r1",
+      "kind": "splitpauli_strongwarm",
+      "adapt_max_depth": 2,
+      "beam_live_branches": 2,
+      "split_mode": "shortlist_pauli_children_v1",
+      "paop_split_paulis": true,
+      "paop_prune_eps": 0.0,
+      "final_reps": 1,
+      "status": "completed",
+      "final_json": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_2/artifacts/json/corr_g0p5_sw_splitpauli_b2_d2_f1_r1.json",
+      "warm": {
+        "delta_abs": 0.0026968384754519903,
+        "depth": 277,
+        "cx_count": 312
+      },
+      "adapt": {
+        "delta_abs": 0.0007055236867894998,
+        "depth": 1007,
+        "cx_count": 263
+      },
+      "replay": {
+        "delta_abs": 0.0007055236746109639,
+        "depth": 983,
+        "cx_count": 263
+      },
+      "passes_energy": true,
+      "passes_depth_budget": false,
+      "passes_all": false
+    },
+    {
+      "tag": "corr_g0p5_sw_splitpauli_p1e3_b2_d2_f1_r1",
+      "kind": "splitpauli_prune1e3_strongwarm",
+      "adapt_max_depth": 2,
+      "beam_live_branches": 2,
+      "split_mode": "shortlist_pauli_children_v1",
+      "paop_split_paulis": true,
+      "paop_prune_eps": 0.001,
+      "final_reps": 1,
+      "status": "completed",
+      "final_json": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_2/artifacts/json/corr_g0p5_sw_splitpauli_p1e3_b2_d2_f1_r1.json",
+      "warm": {
+        "delta_abs": 0.0026968384754519903,
+        "depth": 277,
+        "cx_count": 312
+      },
+      "adapt": {
+        "delta_abs": 0.0007055236867894998,
+        "depth": 1007,
+        "cx_count": 263
+      },
+      "replay": {
+        "delta_abs": 0.0007055236746109639,
+        "depth": 983,
+        "cx_count": 263
+      },
+      "passes_energy": true,
+      "passes_depth_budget": false,
+      "passes_all": false
+    },
+    {
+      "tag": "corr_g0p5_sw_splitpauli_b2_d4_f1_r1",
+      "kind": "splitpauli_strongwarm",
+      "adapt_max_depth": 4,
+      "beam_live_branches": 2,
+      "split_mode": "shortlist_pauli_children_v1",
+      "paop_split_paulis": true,
+      "paop_prune_eps": 0.0,
+      "final_reps": 1,
+      "status": "completed",
+      "final_json": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_2/artifacts/json/corr_g0p5_sw_splitpauli_b2_d4_f1_r1.json",
+      "warm": {
+        "delta_abs": 0.0026968384754519903,
+        "depth": 277,
+        "cx_count": 312
+      },
+      "adapt": {
+        "delta_abs": 0.0004102389437728171,
+        "depth": 1020,
+        "cx_count": 271
+      },
+      "replay": {
+        "delta_abs": 0.0004102002589948528,
+        "depth": 995,
+        "cx_count": 263
+      },
+      "passes_energy": true,
+      "passes_depth_budget": false,
+      "passes_all": false
+    },
+    {
+      "tag": "corr_g0p5_sw_splitpauli_p1e3_b2_d4_f1_r1",
+      "kind": "splitpauli_prune1e3_strongwarm",
+      "adapt_max_depth": 4,
+      "beam_live_branches": 2,
+      "split_mode": "shortlist_pauli_children_v1",
+      "paop_split_paulis": true,
+      "paop_prune_eps": 0.001,
+      "final_reps": 1,
+      "status": "completed",
+      "final_json": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_2/artifacts/json/corr_g0p5_sw_splitpauli_p1e3_b2_d4_f1_r1.json",
+      "warm": {
+        "delta_abs": 0.0026968384754519903,
+        "depth": 277,
+        "cx_count": 312
+      },
+      "adapt": {
+        "delta_abs": 0.0004102389437728171,
+        "depth": 1020,
+        "cx_count": 271
+      },
+      "replay": {
+        "delta_abs": 0.0004102002589948528,
+        "depth": 995,
+        "cx_count": 263
+      },
+      "passes_energy": true,
+      "passes_depth_budget": false,
+      "passes_all": false
+    },
+    {
+      "tag": "corr_g0p5_sw_b2_d4_f1_r1",
+      "kind": "baseline_strongwarm",
+      "adapt_max_depth": 4,
+      "beam_live_branches": 2,
+      "split_mode": "shortlist_pauli_children_v1",
+      "paop_split_paulis": false,
+      "paop_prune_eps": 0.0,
+      "final_reps": 1,
+      "status": "completed",
+      "final_json": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_2/artifacts/json/corr_g0p5_sw_b2_d4_f1_r1.json",
+      "warm": {
+        "delta_abs": 0.0026968384754519903,
+        "depth": 277,
+        "cx_count": 312
+      },
+      "adapt": {
+        "delta_abs": 0.0004026217528602938,
+        "depth": 1024,
+        "cx_count": 275
+      },
+      "replay": {
+        "delta_abs": 0.0004024736950196395,
+        "depth": 999,
+        "cx_count": 275
+      },
+      "passes_energy": true,
+      "passes_depth_budget": false,
+      "passes_all": false
+    },
+    {
+      "tag": "corr_g0p5_sw_b2_d6_f1_r1",
+      "kind": "baseline_strongwarm",
+      "adapt_max_depth": 6,
+      "beam_live_branches": 2,
+      "split_mode": "shortlist_pauli_children_v1",
+      "paop_split_paulis": false,
+      "paop_prune_eps": 0.0,
+      "final_reps": 1,
+      "status": "completed",
+      "final_json": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_2/artifacts/json/corr_g0p5_sw_b2_d6_f1_r1.json",
+      "warm": {
+        "delta_abs": 0.0026968384754519903,
+        "depth": 277,
+        "cx_count": 312
+      },
+      "adapt": {
+        "delta_abs": 0.00026717892259953135,
+        "depth": 1030,
+        "cx_count": 283
+      },
+      "replay": {
+        "delta_abs": 0.00026717308355359015,
+        "depth": 1009,
+        "cx_count": 283
+      },
+      "passes_energy": true,
+      "passes_depth_budget": false,
+      "passes_all": false
+    },
+    {
+      "tag": "corr_g0p5_sw_splitpauli_b2_d3_f1_r1",
+      "kind": "splitpauli_strongwarm",
+      "adapt_max_depth": 3,
+      "beam_live_branches": 2,
+      "split_mode": "shortlist_pauli_children_v1",
+      "paop_split_paulis": true,
+      "paop_prune_eps": 0.0,
+      "final_reps": 1,
+      "status": "completed",
+      "final_json": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_2/artifacts/json/corr_g0p5_sw_splitpauli_b2_d3_f1_r1.json",
+      "warm": {
+        "delta_abs": 0.0026968384754519903,
+        "depth": 277,
+        "cx_count": 312
+      },
+      "adapt": {
+        "delta_abs": 0.0005053607352216161,
+        "depth": 1015,
+        "cx_count": 269
+      },
+      "replay": {
+        "delta_abs": 0.0005052312576658557,
+        "depth": 1014,
+        "cx_count": 269
+      },
+      "passes_energy": true,
+      "passes_depth_budget": false,
+      "passes_all": false
+    },
+    {
+      "tag": "corr_g0p5_sw_splitpauli_p1e3_b2_d3_f1_r1",
+      "kind": "splitpauli_prune1e3_strongwarm",
+      "adapt_max_depth": 3,
+      "beam_live_branches": 2,
+      "split_mode": "shortlist_pauli_children_v1",
+      "paop_split_paulis": true,
+      "paop_prune_eps": 0.001,
+      "final_reps": 1,
+      "status": "completed",
+      "final_json": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_2/artifacts/json/corr_g0p5_sw_splitpauli_p1e3_b2_d3_f1_r1.json",
+      "warm": {
+        "delta_abs": 0.0026968384754519903,
+        "depth": 277,
+        "cx_count": 312
+      },
+      "adapt": {
+        "delta_abs": 0.0005053607352216161,
+        "depth": 1015,
+        "cx_count": 269
+      },
+      "replay": {
+        "delta_abs": 0.0005052312576658557,
+        "depth": 1014,
+        "cx_count": 269
+      },
+      "passes_energy": true,
+      "passes_depth_budget": false,
+      "passes_all": false
+    },
+    {
+      "tag": "corr_g0p5_sw_b2_d5_f1_r1",
+      "kind": "baseline_strongwarm",
+      "adapt_max_depth": 5,
+      "beam_live_branches": 2,
+      "split_mode": "shortlist_pauli_children_v1",
+      "paop_split_paulis": false,
+      "paop_prune_eps": 0.0,
+      "final_reps": 1,
+      "status": "completed",
+      "final_json": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_2/artifacts/json/corr_g0p5_sw_b2_d5_f1_r1.json",
+      "warm": {
+        "delta_abs": 0.0026968384754519903,
+        "depth": 277,
+        "cx_count": 312
+      },
+      "adapt": {
+        "delta_abs": 0.0003077035855972299,
+        "depth": 1027,
+        "cx_count": 277
+      },
+      "replay": {
+        "delta_abs": 0.00030768273628864473,
+        "depth": 1016,
+        "cx_count": 277
+      },
+      "passes_energy": true,
+      "passes_depth_budget": false,
+      "passes_all": false
+    }
+  ]
+}

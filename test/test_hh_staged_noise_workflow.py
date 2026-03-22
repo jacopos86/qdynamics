@@ -49,10 +49,11 @@ def test_resolve_noise_defaults_and_retagged_artifacts() -> None:
 
     assert cfg.noise.methods == ("cfqm4", "suzuki2")
     assert cfg.noise.modes == ("ideal", "shots", "aer_noise")
+    assert cfg.noise.audit_modes == ("ideal", "shots", "aer_noise")
     assert int(cfg.noise.shots) == 2048
     assert int(cfg.noise.oracle_repeats) == 4
     assert str(cfg.noise.oracle_aggregate) == "mean"
-    assert cfg.noise.mitigation_config == {"mode": "none", "zne_scales": [], "dd_sequence": None}
+    assert cfg.noise.mitigation_config == {"mode": "none", "zne_scales": [], "dd_sequence": None, "local_readout_strategy": None}
     assert cfg.noise.symmetry_mitigation_config == {
         "mode": "off",
         "num_sites": 2,
@@ -61,6 +62,9 @@ def test_resolve_noise_defaults_and_retagged_artifacts() -> None:
         "sector_n_dn": 1,
     }
     assert bool(cfg.noise.include_final_audit) is False
+    assert bool(cfg.noise.include_full_circuit_audit) is False
+    assert bool(cfg.fixed_lean_replay.enabled) is False
+    assert str(cfg.source.mode) == "fresh_stage"
     assert str(cfg.staged.artifacts.tag).startswith("hh_staged_noise_")
     assert Path(cfg.staged.artifacts.output_json).name == f"{cfg.staged.artifacts.tag}.json"
     assert Path(cfg.staged.artifacts.replay_output_json).name == f"{cfg.staged.artifacts.tag}_replay.json"
@@ -73,6 +77,120 @@ def test_explicit_noise_tag_is_preserved() -> None:
 
     assert str(cfg.staged.artifacts.tag) == "custom_noise_tag"
     assert Path(cfg.staged.artifacts.output_json).name == "custom_noise_tag.json"
+
+
+def test_resolve_imported_full_circuit_defaults_to_lean_subject(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    source_json = tmp_path / "lean.json"
+    source_json.write_text("{\"adapt_vqe\": {\"operators\": []}, \"ground_state\": {}, \"settings\": {}}", encoding="utf-8")
+    monkeypatch.setattr(noise_wf, "_default_full_circuit_import_json", lambda: (source_json, True))
+
+    cfg = noise_wf.resolve_staged_hh_noise_config(
+        parse_args(["--L", "2", "--skip-pdf", "--include-full-circuit-audit"])
+    )
+
+    assert str(cfg.source.mode) == "imported_artifact"
+    assert cfg.source.resolved_json == source_json
+    assert bool(cfg.source.default_subject) is True
+    assert cfg.noise.audit_modes == ("ideal", "backend_scheduled")
+    assert cfg.noise.backend_name == "FakeGuadalupeV2"
+    assert bool(cfg.noise.use_fake_backend) is True
+
+
+def test_resolve_fixed_lean_noisy_replay_defaults_to_imported_subject(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    source_json = tmp_path / "lean.json"
+    source_json.write_text("{\"adapt_vqe\": {\"operators\": []}, \"ground_state\": {}, \"settings\": {}}", encoding="utf-8")
+    monkeypatch.setattr(noise_wf, "_default_full_circuit_import_json", lambda: (source_json, True))
+
+    cfg = noise_wf.resolve_staged_hh_noise_config(
+        parse_args(
+            [
+                "--L",
+                "2",
+                "--skip-pdf",
+                "--include-fixed-lean-noisy-replay",
+                "--final-method",
+                "SPSA",
+            ]
+        )
+    )
+
+    assert str(cfg.source.mode) == "imported_artifact"
+    assert cfg.source.resolved_json == source_json
+    assert bool(cfg.fixed_lean_replay.enabled) is True
+    assert int(cfg.fixed_lean_replay.reps) == 1
+    assert str(cfg.fixed_lean_replay.method) == "SPSA"
+    assert str(cfg.fixed_lean_replay.noise_mode) == "backend_scheduled"
+    assert cfg.fixed_lean_replay.mitigation_config == {
+        "mode": "readout",
+        "zne_scales": [],
+        "dd_sequence": None,
+        "local_readout_strategy": "mthree",
+    }
+
+
+def test_resolve_fixed_lean_noisy_replay_accepts_powell(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    source_json = tmp_path / "lean.json"
+    source_json.write_text("{\"adapt_vqe\": {\"operators\": []}, \"ground_state\": {}, \"settings\": {}}", encoding="utf-8")
+    monkeypatch.setattr(noise_wf, "_default_full_circuit_import_json", lambda: (source_json, True))
+
+    cfg = noise_wf.resolve_staged_hh_noise_config(
+        parse_args(
+            [
+                "--L",
+                "2",
+                "--skip-pdf",
+                "--include-fixed-lean-noisy-replay",
+                "--final-method",
+                "Powell",
+            ]
+        )
+    )
+
+    assert bool(cfg.fixed_lean_replay.enabled) is True
+    assert str(cfg.fixed_lean_replay.method) == "Powell"
+    assert str(cfg.fixed_lean_replay.noise_mode) == "backend_scheduled"
+
+
+def test_resolve_fixed_lean_noise_attribution_defaults_to_imported_subject(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    source_json = tmp_path / "lean.json"
+    source_json.write_text("{\"adapt_vqe\": {\"operators\": []}, \"ground_state\": {}, \"settings\": {}}", encoding="utf-8")
+    monkeypatch.setattr(noise_wf, "_default_full_circuit_import_json", lambda: (source_json, True))
+
+    cfg = noise_wf.resolve_staged_hh_noise_config(
+        parse_args(
+            [
+                "--L",
+                "2",
+                "--skip-pdf",
+                "--include-fixed-lean-noise-attribution",
+            ]
+        )
+    )
+
+    assert str(cfg.source.mode) == "imported_artifact"
+    assert cfg.source.resolved_json == source_json
+    assert bool(cfg.fixed_lean_attribution.enabled) is True
+    assert cfg.fixed_lean_attribution.slices == (
+        "readout_only",
+        "gate_stateprep_only",
+        "full",
+    )
+    assert str(cfg.fixed_lean_attribution.noise_mode) == "backend_scheduled"
+    assert cfg.fixed_lean_attribution.mitigation_config["mode"] == "none"
+    assert cfg.noise.backend_name == "FakeGuadalupeV2"
+    assert bool(cfg.noise.use_fake_backend) is True
 
 
 def test_run_noisy_profiles_uses_final_state_and_optional_audit(
@@ -298,6 +416,217 @@ def test_run_staged_hh_noise_merges_base_payload_and_writes(
     assert bool(writes["pdf_called"]) is True
 
 
+def test_run_staged_hh_noise_import_mode_skips_stage_pipeline(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    source_json = tmp_path / "lean.json"
+    source_json.write_text("{\"adapt_vqe\": {\"operators\": []}, \"ground_state\": {}, \"settings\": {}}", encoding="utf-8")
+    cfg = noise_wf.resolve_staged_hh_noise_config(
+        parse_args(
+            [
+                "--L",
+                "2",
+                "--skip-pdf",
+                "--include-full-circuit-audit",
+                "--fixed-final-state-json",
+                str(source_json),
+                "--output-json",
+                str(tmp_path / "import_noise.json"),
+                "--output-pdf",
+                str(tmp_path / "import_noise.pdf"),
+            ]
+        )
+    )
+
+    monkeypatch.setattr(
+        noise_wf.base_wf,
+        "run_stage_pipeline",
+        lambda staged_cfg: (_ for _ in ()).throw(AssertionError("stage pipeline should not run in import mode")),
+    )
+    monkeypatch.setattr(
+        noise_wf,
+        "_run_imported_prepared_state_audit_mode",
+        lambda source_cfg, noise_cfg, mode: {"success": True, "kind": "prepared", "mode": mode},
+    )
+    monkeypatch.setattr(
+        noise_wf,
+        "_run_imported_full_circuit_audit_mode",
+        lambda source_cfg, noise_cfg, mode: {"success": True, "kind": "full", "mode": mode},
+    )
+    monkeypatch.setattr(
+        noise_wf,
+        "_run_fixed_lean_noisy_replay_mode",
+        lambda source_cfg, noise_cfg, fixed_cfg: {"success": True, "route": "fixed_lean_scaffold_noisy_replay"},
+    )
+    monkeypatch.setattr(
+        noise_wf,
+        "_run_fixed_lean_noise_attribution_mode",
+        lambda source_cfg, noise_cfg, attribution_cfg: {"success": True, "route": "fixed_lean_noise_attribution"},
+    )
+    writes: dict[str, object] = {}
+    monkeypatch.setattr(noise_wf.base_wf, "_write_json", lambda path, payload: writes.update(path=Path(path), payload=payload))
+    monkeypatch.setattr(noise_wf, "write_staged_hh_noise_pdf", lambda payload, cfg_arg, run_command: writes.setdefault("pdf", True))
+
+    payload = noise_wf.run_staged_hh_noise(cfg, run_command="python pipelines/hardcoded/hh_staged_noise.py --include-full-circuit-audit")
+
+    assert payload["workflow_contract"]["noise_extension"] == "imported_adapt_circuit_audit"
+    assert payload["import_source"]["mode"] == "imported_artifact"
+    assert payload["imported_prepared_state_audit"]["modes"]["ideal"]["success"] is True
+    assert payload["full_circuit_import_audit"]["modes"]["backend_scheduled"]["success"] is True
+    assert payload["fixed_lean_scaffold_noisy_replay"] == {}
+    assert payload["fixed_lean_noise_attribution"] == {}
+    assert writes["path"] == cfg.staged.artifacts.output_json
+    assert bool(writes["pdf"]) is True
+
+
+def test_run_staged_hh_noise_import_mode_runs_fixed_lean_noisy_replay(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    source_json = tmp_path / "lean.json"
+    source_json.write_text("{\"adapt_vqe\": {\"operators\": []}, \"ground_state\": {}, \"settings\": {}}", encoding="utf-8")
+    cfg = noise_wf.resolve_staged_hh_noise_config(
+        parse_args(
+            [
+                "--L",
+                "2",
+                "--skip-pdf",
+                "--include-fixed-lean-noisy-replay",
+                "--fixed-final-state-json",
+                str(source_json),
+                "--final-method",
+                "SPSA",
+                "--output-json",
+                str(tmp_path / "import_noise.json"),
+                "--output-pdf",
+                str(tmp_path / "import_noise.pdf"),
+            ]
+        )
+    )
+
+    monkeypatch.setattr(
+        noise_wf.base_wf,
+        "run_stage_pipeline",
+        lambda staged_cfg: (_ for _ in ()).throw(AssertionError("stage pipeline should not run in import mode")),
+    )
+    monkeypatch.setattr(
+        noise_wf,
+        "_run_imported_prepared_state_audit_mode",
+        lambda source_cfg, noise_cfg, mode: {"success": True, "kind": "prepared", "mode": mode},
+    )
+    monkeypatch.setattr(
+        noise_wf,
+        "_run_imported_full_circuit_audit_mode",
+        lambda source_cfg, noise_cfg, mode: {"success": True, "kind": "full", "mode": mode},
+    )
+    monkeypatch.setattr(
+        noise_wf,
+        "_run_fixed_lean_noisy_replay_mode",
+        lambda source_cfg, noise_cfg, fixed_cfg: {
+            "success": True,
+            "route": "fixed_lean_scaffold_noisy_replay",
+            "energies": {"best_noisy_minus_ideal": 0.123},
+        },
+    )
+    monkeypatch.setattr(
+        noise_wf,
+        "_run_fixed_lean_noise_attribution_mode",
+        lambda source_cfg, noise_cfg, attribution_cfg: {
+            "success": True,
+            "route": "fixed_lean_noise_attribution",
+            "slices": {
+                "readout_only": {"success": True, "delta_mean": 0.2},
+                "gate_stateprep_only": {"success": True, "delta_mean": 1.1},
+                "full": {"success": True, "delta_mean": 1.3},
+            },
+        },
+    )
+    writes: dict[str, object] = {}
+    monkeypatch.setattr(noise_wf.base_wf, "_write_json", lambda path, payload: writes.update(path=Path(path), payload=payload))
+    monkeypatch.setattr(noise_wf, "write_staged_hh_noise_pdf", lambda payload, cfg_arg, run_command: writes.setdefault("pdf", True))
+
+    payload = noise_wf.run_staged_hh_noise(cfg, run_command="python pipelines/hardcoded/hh_staged_noise.py --include-fixed-lean-noisy-replay")
+
+    assert payload["workflow_contract"]["imported_routes"]["fixed_lean_scaffold_noisy_replay"] is True
+    assert payload["workflow_contract"]["imported_routes"]["fixed_lean_noise_attribution"] is False
+    assert payload["settings"]["fixed_lean_noisy_replay"]["enabled"] is True
+    assert payload["settings"]["fixed_lean_noise_attribution"]["enabled"] is False
+    assert payload["fixed_lean_scaffold_noisy_replay"]["success"] is True
+    assert payload["summary"]["fixed_lean_scaffold_noisy_replay_completed"] == 1
+    assert writes["path"] == cfg.staged.artifacts.output_json
+
+
+def test_run_staged_hh_noise_import_mode_runs_fixed_lean_noise_attribution(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    source_json = tmp_path / "lean.json"
+    source_json.write_text("{\"adapt_vqe\": {\"operators\": []}, \"ground_state\": {}, \"settings\": {}}", encoding="utf-8")
+    cfg = noise_wf.resolve_staged_hh_noise_config(
+        parse_args(
+            [
+                "--L",
+                "2",
+                "--skip-pdf",
+                "--include-fixed-lean-noise-attribution",
+                "--fixed-final-state-json",
+                str(source_json),
+                "--output-json",
+                str(tmp_path / "import_attr.json"),
+                "--output-pdf",
+                str(tmp_path / "import_attr.pdf"),
+            ]
+        )
+    )
+
+    monkeypatch.setattr(
+        noise_wf.base_wf,
+        "run_stage_pipeline",
+        lambda staged_cfg: (_ for _ in ()).throw(AssertionError("stage pipeline should not run in import mode")),
+    )
+    monkeypatch.setattr(
+        noise_wf,
+        "_run_imported_prepared_state_audit_mode",
+        lambda source_cfg, noise_cfg, mode: {"success": True, "kind": "prepared", "mode": mode},
+    )
+    monkeypatch.setattr(
+        noise_wf,
+        "_run_imported_full_circuit_audit_mode",
+        lambda source_cfg, noise_cfg, mode: {"success": True, "kind": "full", "mode": mode},
+    )
+    monkeypatch.setattr(
+        noise_wf,
+        "_run_fixed_lean_noisy_replay_mode",
+        lambda source_cfg, noise_cfg, fixed_cfg: {},
+    )
+    monkeypatch.setattr(
+        noise_wf,
+        "_run_fixed_lean_noise_attribution_mode",
+        lambda source_cfg, noise_cfg, attribution_cfg: {
+            "success": True,
+            "route": "fixed_lean_noise_attribution",
+            "slices": {
+                "readout_only": {"success": True, "delta_mean": 0.2},
+                "gate_stateprep_only": {"success": True, "delta_mean": 1.1},
+                "full": {"success": True, "delta_mean": 1.3},
+            },
+        },
+    )
+    writes: dict[str, object] = {}
+    monkeypatch.setattr(noise_wf.base_wf, "_write_json", lambda path, payload: writes.update(path=Path(path), payload=payload))
+    monkeypatch.setattr(noise_wf, "write_staged_hh_noise_pdf", lambda payload, cfg_arg, run_command: writes.setdefault("pdf", True))
+
+    payload = noise_wf.run_staged_hh_noise(cfg, run_command="python pipelines/hardcoded/hh_staged_noise.py --include-fixed-lean-noise-attribution")
+
+    assert payload["workflow_contract"]["imported_routes"]["fixed_lean_noise_attribution"] is True
+    assert payload["settings"]["fixed_lean_noise_attribution"]["enabled"] is True
+    assert payload["fixed_lean_noise_attribution"]["success"] is True
+    assert payload["summary"]["fixed_lean_noise_attribution_completed"] == 1
+    assert payload["summary"]["fixed_lean_noise_attribution_slices_completed"] == 3
+    assert writes["path"] == cfg.staged.artifacts.output_json
+
+
 def test_noise_cli_main_print_contract(monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:
     fake_cfg = SimpleNamespace(staged=SimpleNamespace(artifacts=SimpleNamespace(skip_pdf=True)))
     fake_payload = {
@@ -320,4 +649,31 @@ def test_noise_cli_main_print_contract(monkeypatch: pytest.MonkeyPatch, capsys: 
         "workflow_json=artifacts/json/hh_staged_noise.json",
         "adapt_handoff_json=artifacts/json/hh_staged_noise_adapt_handoff.json",
         "replay_json=artifacts/json/hh_staged_noise_replay.json",
+    ]
+
+
+def test_noise_cli_main_print_contract_import_mode(monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:
+    fake_cfg = SimpleNamespace(staged=SimpleNamespace(artifacts=SimpleNamespace(skip_pdf=True)))
+    fake_payload = {
+        "artifacts": {
+            "workflow": {"output_json": "artifacts/json/hh_staged_noise.json", "output_pdf": "artifacts/pdf/hh_staged_noise.pdf"},
+            "import_source_json": "artifacts/json/adapt_hh_L2.json",
+            "intermediate": {
+                "adapt_handoff_json": "artifacts/json/hh_staged_noise_adapt_handoff.json",
+                "replay_output_json": "artifacts/json/hh_staged_noise_replay.json",
+            },
+        },
+        "import_source": {"mode": "imported_artifact"},
+    }
+
+    monkeypatch.setattr(noise_cli, "resolve_staged_hh_noise_config", lambda args: fake_cfg)
+    monkeypatch.setattr(noise_cli, "run_staged_hh_noise", lambda cfg: fake_payload)
+
+    noise_cli.main(["--skip-pdf"])
+    lines = capsys.readouterr().out.strip().splitlines()
+
+    assert lines == [
+        "workflow_json=artifacts/json/hh_staged_noise.json",
+        "import_source_json=artifacts/json/adapt_hh_L2.json",
+        "adapt_handoff_json=artifacts/json/hh_staged_noise_adapt_handoff.json",
     ]

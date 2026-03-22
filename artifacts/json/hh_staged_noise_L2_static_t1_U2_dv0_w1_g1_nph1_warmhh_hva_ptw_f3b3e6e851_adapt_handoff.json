@@ -1,0 +1,58 @@
+{
+  "generated_utc": "2026-03-16T04:43:48Z",
+  "settings": {
+    "L": 2,
+    "problem": "hh",
+    "t": 1.0,
+    "u": 2.0,
+    "dv": 0.0,
+    "omega0": 1.0,
+    "g_ep": 1.0,
+    "n_ph_max": 1,
+    "boson_encoding": "binary",
+    "ordering": "blocked",
+    "boundary": "open",
+    "sector_n_up": 1,
+    "sector_n_dn": 1
+  },
+  "adapt_vqe": {
+    "energy": -1.015,
+    "abs_delta_e": 0.0050000000000001155,
+    "relative_error_abs": 0.004901960784313838
+  },
+  "ground_state": {
+    "exact_energy": -1.02,
+    "exact_energy_filtered": -1.02,
+    "filtered_sector": {
+      "n_up": 1,
+      "n_dn": 1
+    },
+    "method": "staged_handoff_bundle"
+  },
+  "initial_state": {
+    "source": "fixed_final_state_json",
+    "nq_total": 6,
+    "amplitudes_qn_to_q0": {
+      "000101": {
+        "re": 1.0,
+        "im": 0.0
+      }
+    },
+    "amplitude_cutoff": 1e-14,
+    "norm": 1.0,
+    "handoff_state_kind": "prepared_state"
+  },
+  "exact": {
+    "E_exact_sector": -1.02
+  },
+  "meta": {
+    "pipeline": "hh_staged_noiseless",
+    "workflow_tag": "hh_staged_noise_L2_static_t1_U2_dv0_w1_g1_nph1_warmhh_hva_ptw_f3b3e6e851",
+    "stage_chain": [
+      "hf_reference",
+      "fixed_final_state_import",
+      "final_only_noiseless_dynamics"
+    ],
+    "fixed_final_state_json": "/private/var/folders/z3/nyfjj9zs3bz_llqhyfvl___w0000gn/T/pytest-of-jakestrobel/pytest-363/test_run_staged_hh_noise_reuse0/staged_workflow.json"
+  }
+}

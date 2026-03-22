@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import replace
 from pathlib import Path
 import sys
 
@@ -11,10 +12,12 @@ if str(REPO_ROOT) not in sys.path:
 
 from pipelines.hardcoded.hh_vqe_from_adapt_family import (
     RunConfig,
+    _build_pool_for_family,
     _resolve_family,
     _resolve_family_from_metadata,
     parse_args,
 )
+from src.quantum.hubbard_latex_python_pairs import build_hubbard_holstein_hamiltonian
 
 
 def _mk_cfg(tmp_path: Path, *, generator_family: str = "match_adapt", fallback_family: str = "full_meta") -> RunConfig:
@@ -94,9 +97,40 @@ def test_parse_accepts_phase3_replay_continuation_mode() -> None:
     assert str(args.replay_continuation_mode) == "phase3_v1"
 
 
+def _hh_h_poly(*, L: int = 2, n_ph_max: int = 1):
+    return build_hubbard_holstein_hamiltonian(
+        dims=L,
+        J=1.0,
+        U=4.0,
+        omega0=1.0,
+        g=0.5,
+        n_ph_max=n_ph_max,
+        boson_encoding="binary",
+        v_t=None,
+        v0=0.0,
+        t_eval=None,
+        repr_mode="JW",
+        indexing="blocked",
+        pbc=False,
+        include_zero_point=True,
+    )
+
+
 def test_resolve_family_prefers_adapt_vqe_pool_type() -> None:
     fam, src = _resolve_family_from_metadata({"adapt_vqe": {"pool_type": "full_meta"}})
     assert fam == "full_meta"
+    assert src == "adapt_vqe.pool_type"
+
+
+def test_resolve_family_prefers_pareto_lean_pool_type() -> None:
+    fam, src = _resolve_family_from_metadata({"adapt_vqe": {"pool_type": "pareto_lean"}})
+    assert fam == "pareto_lean"
+    assert src == "adapt_vqe.pool_type"
+
+
+def test_resolve_family_prefers_pareto_lean_l2_pool_type() -> None:
+    fam, src = _resolve_family_from_metadata({"adapt_vqe": {"pool_type": "pareto_lean_l2"}})
+    assert fam == "pareto_lean_l2"
     assert src == "adapt_vqe.pool_type"
 
 
@@ -119,3 +153,32 @@ def test_resolve_family_match_adapt_falls_back_when_missing(tmp_path: Path) -> N
     assert info["resolved"] == "full_meta"
     assert bool(info["fallback_used"]) is True
     assert info["resolution_source"] == "fallback_family"
+
+
+def test_resolve_family_honors_explicit_cli_pareto_lean_l2(tmp_path: Path) -> None:
+    cfg = _mk_cfg(tmp_path, generator_family="pareto_lean_l2", fallback_family="full_meta")
+    info = _resolve_family(cfg, {})
+    assert info["requested"] == "pareto_lean_l2"
+    assert info["resolved"] == "pareto_lean_l2"
+    assert bool(info["fallback_used"]) is False
+    assert info["resolution_source"] == "cli.generator_family"
+
+
+def test_build_pool_for_family_supports_pareto_lean_l2(tmp_path: Path) -> None:
+    cfg = _mk_cfg(tmp_path, generator_family="pareto_lean_l2")
+    pool, meta = _build_pool_for_family(cfg, family="pareto_lean_l2", h_poly=_hh_h_poly())
+    assert len(pool) > 0
+    assert meta["family"] == "pareto_lean_l2"
+    assert int(meta["dedup_total"]) == len(pool)
+
+
+def test_build_pool_for_family_pareto_lean_l2_rejects_non_l2(tmp_path: Path) -> None:
+    cfg = replace(_mk_cfg(tmp_path, generator_family="pareto_lean_l2"), L=3, sector_n_up=2, sector_n_dn=1)
+    with pytest.raises(ValueError, match="only valid for L=2"):
+        _build_pool_for_family(cfg, family="pareto_lean_l2", h_poly=_hh_h_poly(L=3))
+
+
+def test_build_pool_for_family_pareto_lean_l2_rejects_nphmax_not_1(tmp_path: Path) -> None:
+    cfg = replace(_mk_cfg(tmp_path, generator_family="pareto_lean_l2"), n_ph_max=2)
+    with pytest.raises(ValueError, match="only valid for n_ph_max=1"):
+        _build_pool_for_family(cfg, family="pareto_lean_l2", h_poly=_hh_h_poly(n_ph_max=2))

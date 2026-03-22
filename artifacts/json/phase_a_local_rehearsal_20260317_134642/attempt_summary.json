@@ -1,0 +1,58 @@
+{
+  "status": "not_completed",
+  "summary": "Local hardware-modeled Phase A measured-geometry bring-up was attempted on a certified L=2 HH seed and 7-qubit IBM-style patch surface, but did not complete on a practical wall-clock for this slice.",
+  "seed_json": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/artifacts/json/phase_a_local_rehearsal_20260317_134642/seed_ref_basis_uccsd_otimes_paop_lf_std.json",
+  "attempts": [
+    {
+      "mode": "full_smoke",
+      "backend_surface": "frozen_snapshot_json / FakePerth-like 7q patch",
+      "noise_mode": "backend_scheduled",
+      "shots": 128,
+      "t_final": 0.1,
+      "num_times": 3,
+      "result": "aborted",
+      "reason": "did_not_complete_on_practical_wall_clock"
+    },
+    {
+      "mode": "full_smoke",
+      "backend_surface": "fake_snapshot / FakeLagosV2 7q patch",
+      "noise_mode": "backend_scheduled",
+      "shots": 32,
+      "t_final": 0.05,
+      "num_times": 2,
+      "result": "aborted",
+      "reason": "did_not_complete_on_practical_wall_clock"
+    },
+    {
+      "mode": "single_estimate",
+      "backend_surface": "fake_snapshot / FakeLagosV2 7q patch",
+      "noise_mode": "backend_scheduled",
+      "shots": 16,
+      "result": "aborted",
+      "reason": "did_not_complete_on_practical_wall_clock"
+    }
+  ],
+  "measured_geometry_plan": {
+    "num_qubits": 6,
+    "term_count": 1,
+    "hamiltonian_pauli_term_count": 17,
+    "observable_term_counts": {
+      "energy": 17,
+      "h2": 91
+    },
+    "per_estimate": {
+      "overlap_transition_requests": 6,
+      "pauli_transition_requests": 51,
+      "transition_requests_total": 57,
+      "ancilla_circuit_evaluations_total": 114,
+      "observable_request_count": 2
+    },
+    "nominal_trajectory_totals_for_t_final_0p05_num_times_2": {
+      "estimate_calls": 6,
+      "transition_requests_total": 342,
+      "ancilla_circuit_evaluations_total": 684,
+      "observable_request_count": 12
+    }
+  },
+  "next_recommendation": "Optimize the measured local-system bring-up before retrying full local rehearsal: reduce or defer variance/H^2 measurement, cache component-transpiled circuits more aggressively, or start with a smaller certified family/surface."
+}

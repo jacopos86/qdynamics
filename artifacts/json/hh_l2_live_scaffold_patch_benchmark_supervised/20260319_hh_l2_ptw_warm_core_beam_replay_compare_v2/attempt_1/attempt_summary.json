@@ -1,0 +1,41 @@
+{
+  "attempt_index": 1,
+  "started_utc": "2026-03-21T14:39:10Z",
+  "finished_utc": "2026-03-21T15:32:43Z",
+  "returncode": 0,
+  "succeeded": true,
+  "command": [
+    "/opt/anaconda3/bin/python",
+    "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/pipelines/exact_bench/hh_l2_live_scaffold_patch_benchmark.py",
+    "--benchmark-profile",
+    "ptw_warm_core_pool_beam_compare",
+    "--core-pool",
+    "paop_lf_std",
+    "--core-pool-variant",
+    "uccsd_otimes_paop_lf_std",
+    "--enable-replay",
+    "--parallel-workers",
+    "4",
+    "--patch-panel-size",
+    "3",
+    "--tag",
+    "20260319_hh_l2_ptw_warm_core_beam_replay_compare_v2__attempt1",
+    "--output-json",
+    "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/artifacts/json/hh_l2_live_scaffold_patch_benchmark_supervised/20260319_hh_l2_ptw_warm_core_beam_replay_compare_v2/attempt_1/20260319_hh_l2_ptw_warm_core_beam_replay_compare_v2__attempt1.json",
+    "--output-csv",
+    "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/artifacts/json/hh_l2_live_scaffold_patch_benchmark_supervised/20260319_hh_l2_ptw_warm_core_beam_replay_compare_v2/attempt_1/20260319_hh_l2_ptw_warm_core_beam_replay_compare_v2__attempt1.csv"
+  ],
+  "stdout_log": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/artifacts/json/hh_l2_live_scaffold_patch_benchmark_supervised/20260319_hh_l2_ptw_warm_core_beam_replay_compare_v2/attempt_1/benchmark.stdout.log",
+  "output_json": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/artifacts/json/hh_l2_live_scaffold_patch_benchmark_supervised/20260319_hh_l2_ptw_warm_core_beam_replay_compare_v2/attempt_1/20260319_hh_l2_ptw_warm_core_beam_replay_compare_v2__attempt1.json",
+  "output_csv": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/artifacts/json/hh_l2_live_scaffold_patch_benchmark_supervised/20260319_hh_l2_ptw_warm_core_beam_replay_compare_v2/attempt_1/20260319_hh_l2_ptw_warm_core_beam_replay_compare_v2__attempt1.csv",
+  "outputs_present": {
+    "json": true,
+    "csv": true
+  },
+  "stdout_tail": [
+    "benchmark_json=/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/artifacts/json/hh_l2_live_scaffold_patch_benchmark_supervised/20260319_hh_l2_ptw_warm_core_beam_replay_compare_v2/attempt_1/20260319_hh_l2_ptw_warm_core_beam_replay_compare_v2__attempt1.json",
+    "benchmark_csv=/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/artifacts/json/hh_l2_live_scaffold_patch_benchmark_supervised/20260319_hh_l2_ptw_warm_core_beam_replay_compare_v2/attempt_1/20260319_hh_l2_ptw_warm_core_beam_replay_compare_v2__attempt1.csv",
+    "patch_panel_backend=FakeGuadalupeV2",
+    "patch_panel_size=3"
+  ]
+}

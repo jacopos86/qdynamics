@@ -1,0 +1,36 @@
+# HH VQE Replay From ADAPT Family
+
+- generated_utc: 2026-03-17T19:59:24Z
+- tag: 20260317_hh_l2_g0p5_nph2_hva_prep_bridgefixed4_replay_fgv2_v3_replay
+- adapt_input_json: /Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/artifacts/json/20260317_hh_l2_g0p5_nph2_hva_prep_bridgefixed4_replay_fgv2_v3_adapt_handoff.json
+
+## Family
+- requested: match_adapt
+- resolved: paop_lf_std
+- resolution_source: continuation.selected_generator_metadata.family_id
+- fallback_used: False
+- warning: None
+
+## Metrics
+- E_exact_sector: -0.2712135777366955
+- E_best: 0.17783024616208806
+- abs_delta_e: 0.4490438238987836
+- relative_error_abs: 1.6556834198571446
+- replay_adapt_depth: 16
+- replay_reps: 3
+- replay_npar: 48 (= adapt_depth * reps)
+- seed_policy_requested: auto
+- seed_policy_resolved: residual_only
+- handoff_state_kind: prepared_state
+- provenance_source: contract
+- replay_contract_version: 2
+- gate_pass_1e2: False
+- nfev: 1779
+- nit: 889
+- runtime_s: 1884.2709079999477
+- stop_reason: converged
+
+## Artifacts
+- output_json: /Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/artifacts/json/20260317_hh_l2_g0p5_nph2_hva_prep_bridgefixed4_replay_fgv2_v3_replay.json
+- output_csv: /Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/artifacts/json/20260317_hh_l2_g0p5_nph2_hva_prep_bridgefixed4_replay_fgv2_v3_replay.csv
+- output_log: /Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/artifacts/logs/20260317_hh_l2_g0p5_nph2_hva_prep_bridgefixed4_replay_fgv2_v3_replay.log

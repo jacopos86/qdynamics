@@ -1,0 +1,2 @@
+tag,family_requested,family_resolved,method,reps,delta_abs,relative_error_abs,gate_pass_1e2,runtime_s,stop_reason,output_json,output_log
+hh_staged_circuit_L2_reasonable_L2_replay,match_adapt,paop_lf_std,SPSA,2,0.010179694369802983,0.06415723725534768,False,81.87194941658527,converged,/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_2/artifacts/json/hh_staged_circuit_L2_reasonable_L2_replay.json,/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_2/artifacts/logs/hh_staged_circuit_L2_reasonable_L2_replay.log

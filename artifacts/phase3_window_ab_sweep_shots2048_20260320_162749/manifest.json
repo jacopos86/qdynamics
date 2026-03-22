@@ -1,0 +1,54 @@
+{
+  "experiment_dir": "artifacts/phase3_window_ab_sweep_shots2048_20260320_162749",
+  "g_grid": [
+    0.25,
+    0.5,
+    0.75,
+    1.0,
+    1.25,
+    1.5
+  ],
+  "seeds": [
+    7,
+    11,
+    17,
+    19,
+    23,
+    29,
+    31,
+    37
+  ],
+  "configs": [
+    {
+      "name": "append_only",
+      "args": [
+        "--adapt-reopt-policy",
+        "append_only"
+      ]
+    },
+    {
+      "name": "windowed_w4",
+      "args": [
+        "--adapt-reopt-policy",
+        "windowed",
+        "--adapt-window-size",
+        "4",
+        "--adapt-window-topk",
+        "0"
+      ]
+    }
+  ],
+  "phase3_measurement_shots_per_group": 2048,
+  "params": {
+    "L": 2,
+    "t": 1.0,
+    "u": 4.0,
+    "dv": 0.0,
+    "omega0": 1.0,
+    "n_ph_max": 1,
+    "adapt_pool": "paop_lf_std",
+    "adapt_inner_optimizer": "SPSA",
+    "adapt_maxiter": 800,
+    "adapt_max_depth": 12
+  }
+}

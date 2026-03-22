@@ -159,6 +159,8 @@ Pool curriculum transition note:
 CLI note:
 - `--adapt-pool full_meta` remains a supported HH pool token in current code; do
   not treat it as the canonical depth-0 target for new agent work.
+- `--adapt-pool pareto_lean_l2` is an intentionally narrow preset and is only
+  valid for `L=2` with `n_ph_max=1`.
 - Canonical continuation default for new HH staged runs is `--adapt-continuation-mode phase3_v1`.
   (`phase1_v1` and `phase2_v1` are opt-in legacy/experimental follow-ons.)
 - Legacy nearest subset remains `--adapt-pool uccsd_paop_lf_full` (`uccsd_lifted + paop_lf_full`).
@@ -173,6 +175,11 @@ CLI note:
 Opt-in phase-3 follow-ons (keep defaults off unless explicitly requested):
 - `--phase3-runtime-split-mode shortlist_pauli_children_v1` is an optional continuation aid for HH staged ADAPT/hardcoded paths: shortlisted macro generators may be probed as single-term children, with parent/child provenance exported in continuation metadata.
 - `--phase3-symmetry-mitigation-mode {off,verify_only,postselect_diag_v1,projector_renorm_v1}` is an optional phase-3 continuation hook. On raw ADAPT / hardcoded / replay paths it is a metadata-and-telemetry surface; active counts-based symmetry mitigation is enforced only in the oracle-backed noise runners.
+- Export/replay parameter contract for these paths:
+  - `operators` / `ansatz_depth` stay logical-generator-side.
+  - `optimal_point` / `num_parameters` are runtime per-Pauli rotation values/counts.
+  - `logical_optimal_point` / `logical_num_parameters` preserve one-theta-per-generator reporting.
+  - `parameterization` stores the logical-to-runtime block map required for replay, handoff, and circuit-cost reconstruction.
 - These follow-ons do **not** change the canonical HH contract above: narrow-core first, no depth-0 `full_meta` for new agent-directed runs, and opt-in matched-family replay via `--generator-family match_adapt` with `full_meta` fallback.
 
 ### Symbols
@@ -1023,6 +1030,11 @@ What it reports:
 | `--adapt-seed` | int | `7` | Random seed |
 | `--phase3-symmetry-mitigation-mode` | choice | `off` | Phase-3 continuation symmetry hook: `off`, `verify_only`, `postselect_diag_v1`, `projector_renorm_v1`. On ADAPT/hardcoded paths active estimator behavior is enforced only in oracle-backed noise runners. |
 | `--phase3-runtime-split-mode` | choice | `off` | HH continuation add-on: `off` or `shortlist_pauli_children_v1`. Shortlist-only macro splitting for staged continuation/replay metadata; not a default pool-expansion policy. |
+| `--phase3-backend-cost-mode` | choice | `proxy` | Backend-aware Phase 3 cost mode: `proxy`, `transpile_single_v1`, or `transpile_shortlist_v1`. Keeps ADAPT logical while swapping compile-burden scoring to transpilation-derived executable burden. |
+| `--phase3-backend-name` | str | `None` | Explicit backend target for `transpile_single_v1` (for example `ibm_boston` or `ibm_miami`). |
+| `--phase3-backend-shortlist` | str | `None` | Comma-separated backend shortlist for `transpile_shortlist_v1`. |
+| `--phase3-backend-transpile-seed` | int | `7` | Qiskit transpiler seed used by the backend-conditioned compile oracle. |
+| `--phase3-backend-optimization-level` | int | `1` | Qiskit transpiler optimization level used by the backend-conditioned compile oracle. |
 | `--adapt-allow-repeats` / `--adapt-no-repeats` | flag | `allow` | Allow selecting the same pool operator more than once |
 | `--adapt-finite-angle-fallback` / `--adapt-no-finite-angle-fallback` | flag | `enabled` | Scan ±theta probes when gradients are below threshold |
 | `--adapt-finite-angle` | float | `0.1` | Probe angle for finite-angle fallback |
@@ -1065,6 +1077,63 @@ What it reports:
 - `paop_lf` — alias for `paop_lf_std`
 - `paop_lf2_std` — `paop_lf_std` plus LF second-order even channel `hop2 = K_{ij}(P_i-P_j)^2` (phonon-identity terms dropped)
 - `paop_lf_full` — LF full pool (`paop_lf2_std` + extended cloud + doublon-conditioned phonon translation `D_i p_j` / `D_i x_j`), while legacy `paop_full` remains unchanged
+
+### Backend-aware HH Phase 3 ADAPT (v1 transpilation burden)
+
+Use this mode when the real goal is an eventual IBM backend run and the ADAPT
+search itself should be conditioned on executable burden rather than the legacy
+logical proxy alone.
+
+Contract:
+- search manifold stays logical / operator-pool based,
+- Phase 3 shortlist / beam machinery stays on,
+- transpilation enters only as an inner hardware oracle for branch scoring,
+- v1 burden uses transpilation structure only (2Q count / depth / size style),
+- no warm-start / replay path is required for this workflow.
+
+Single-backend HH run:
+
+```bash
+python pipelines/hardcoded/hh_adapt_backend_single.py \
+  --backend-name ibm_boston \
+  --L 2 --problem hh \
+  --adapt-pool pareto_lean_l2 \
+  --adapt-continuation-mode phase3_v1 \
+  --adapt-reopt-policy windowed \
+  --adapt-window-size 999999 \
+  --adapt-window-topk 999999 \
+  --adapt-full-refit-every 8 \
+  --adapt-final-full-refit true
+```
+
+Backend-shortlist batch runner (separate heavy run per backend, then compare):
+
+```bash
+python pipelines/hardcoded/hh_adapt_backend_shortlist.py \
+  --backend-shortlist ibm_boston,ibm_miami \
+  --L 2 --problem hh \
+  --adapt-pool pareto_lean_l2 \
+  --adapt-continuation-mode phase3_v1 \
+  --adapt-reopt-policy windowed \
+  --adapt-window-size 999999 \
+  --adapt-window-topk 999999 \
+  --adapt-full-refit-every 8 \
+  --adapt-final-full-refit true
+```
+
+Behavior / honesty contract:
+- `hh_adapt_backend_single.py` forces `problem=hh`, `adapt_continuation_mode=phase3_v1`,
+  and `phase3_backend_cost_mode=transpile_single_v1`.
+- `hh_adapt_backend_shortlist.py` runs one fixed-backend search per requested
+  backend and writes a JSON/CSV comparison summary; it may also emit one proxy
+  baseline row for side-by-side comparison.
+- backend resolution is target-first:
+  - try the requested live backend name first when IBM Runtime access is available,
+  - otherwise fall back to offline fake stand-ins through the same backend-target
+    abstraction,
+  - payloads report which target actually resolved.
+- payloads keep `compile_cost_proxy_summary` as baseline telemetry and add
+  `backend_compile_cost_summary` for the backend-conditioned scaffold result.
 
 ### Sector filtering (ADAPT)
 
@@ -1369,7 +1438,9 @@ python pipelines/hardcoded/hh_vqe_from_adapt_family.py \
 Notes:
 - The replay runner resolves family from ADAPT metadata (`adapt_vqe.pool_type`, then `settings.adapt_pool`, then legacy checkpoint hints). If unresolved, it uses fallback `full_meta`.
 - Replay uses ADAPT-selected generators from `adapt_vqe.operators` as the base block, repeated by `--reps`.
-- ADAPT replay input requires both `adapt_vqe.operators` and `adapt_vqe.optimal_point` with equal non-zero length.
+- ADAPT replay input requires non-empty `adapt_vqe.operators` and `adapt_vqe.optimal_point`.
+  - Legacy payloads use equal lengths (`optimal_point` is logical-generator-sized).
+  - New per-Pauli payloads use runtime-sized `optimal_point`; interpret it via `adapt_vqe.parameterization`, with `logical_*` fields carrying the logical scaffold counts.
 - This is the canonical ADAPT-family replay path: keep `--generator-family match_adapt` as the default and treat `full_meta` as fallback compatibility, not as a reason to broaden the default HH run contract.
 - Replay continuation modes remain explicit (`legacy`, `phase1_v1`, `phase2_v1`, `phase3_v1`). For canonical new HH runs, replay defaults to `phase3_v1` unless explicitly overridden. The follow-on runtime split behavior does **not** introduce a new replay mode.
 - If an opt-in runtime split admitted child labels that are not present in the resolved family pool, replay reconstructs them from `continuation.selected_generator_metadata[*].compile_metadata.serialized_terms_exyz` when that serialized metadata is present.
@@ -1425,46 +1496,166 @@ Primary artifacts:
 - ADAPT handoff JSON: `artifacts/json/<tag>_adapt_handoff.json`
 - replay sidecars (only when `--run-replay`): `artifacts/json/<tag>_replay.{json,csv}`, `artifacts/useful/L{L}/<tag>_replay.md`, `artifacts/logs/<tag>_replay.log`
 
-#### Reuse an existing staged HH run for local fake-backend noise
+#### Reuse an imported lean ADAPT artifact for local fake-backend audits
 
-To take an already-good staged HH prepared state and run the local noisy
-final-only dynamics extension, use:
+If the goal is QPU-viability screening for the current lean HH circuit, the
+new `full_circuit_import` audit mode defaults to the imported lean
+`pareto_lean_l2` phase3 artifact. This default applies **only** to the new
+imported audit mode; repo-wide staged-noise defaults remain unchanged.
+
+Recommended full-circuit audit command:
 
 ```bash
 python pipelines/hardcoded/hh_staged_noise.py \
-  --fixed-final-state-json artifacts/json/<tag>.json \
-  --use-fake-backend --backend-name FakeManilaV2 \
-  --noise-modes backend_scheduled \
-  --noisy-methods cfqm4 \
-  --shots 4096 --oracle-repeats 8 --oracle-aggregate mean \
-  --symmetry-mitigation-mode postselect_diag_v1
+  --include-full-circuit-audit \
+  --fixed-final-state-json artifacts/json/adapt_hh_L2_ecut1_pareto_lean_l2_phase3_powell_rerun_currentcode_20260321T171615Z.json \
+  --audit-noise-modes ideal,backend_scheduled \
+  --use-fake-backend --backend-name FakeGuadalupeV2 \
+  --mitigation readout --local-readout-strategy mthree \
+  --shots 4096 --oracle-repeats 8 --oracle-aggregate mean
 ```
 
-Reuse contract:
-- `--fixed-final-state-json` may point either to:
-  - a direct handoff-style bundle with top-level `initial_state`, or
+Convenience default:
+- if `--include-full-circuit-audit` is set and `--fixed-final-state-json` is
+  omitted, the runner defaults to the latest
+  `adapt_hh_L2_ecut1_pareto_lean_l2_phase3_powell_rerun_currentcode_*.json`
+  artifact; if none exists, it falls back to the historical lean artifact.
+
+Import / audit contract:
+- `--fixed-final-state-json` may point to:
+  - a direct ADAPT artifact (preferred for `full_circuit_import`),
+  - a handoff-style bundle with top-level `initial_state`, or
   - a top-level `hh_staged_*.json` workflow payload; the runner will auto-follow
-    its saved `artifacts.intermediate.adapt_handoff_json` sidecar.
-- local fake-backend compiled-circuit modes are `backend_basic`,
-  `backend_scheduled`, and `patch_snapshot`;
-  `backend_scheduled` is the standard “compile to a fake backend noisy circuit”
-  path.
-- local fake-backend mitigation now has two distinct families:
-  - symmetry filtering:
-    `--symmetry-mitigation-mode {off,verify_only,postselect_diag_v1,projector_renorm_v1}`
-  - local readout mitigation:
-    `--mitigation readout --local-readout-strategy {tensor,correlated}`
-- local readout mitigation is counts-side Aer execution (no Runtime / QPU
-  tokens). `tensor` uses the frozen/fake snapshot per-qubit readout
-  probabilities; `correlated` fits a full assignment matrix from simulated local
-  calibration circuits on the same locked fake-backend layout.
-- runtime-only items remain:
-  `--mitigation zne`, `--mitigation dd`, and runtime twirling flags.
-- v1 readout scope is intended for small final prepared-state / audit surfaces;
-  correlated local readout is heavier than tensor mode.
-- output artifacts follow the staged-noise tag:
-  `artifacts/json/<noise_tag>.json`, `artifacts/pdf/<noise_tag>.pdf`, plus fresh
-  `*_adapt_handoff.json` / `*_replay.json` sidecars for the imported run.
+    its saved `artifacts.intermediate.adapt_handoff_json` sidecar when needed.
+- imported audits are reported separately:
+  - `imported_prepared_state_audit`: starts from the saved prepared state when
+    present and is useful for cheaper measurement-focused diagnostics.
+  - `full_circuit_import_audit`: reconstructs the imported lean ADAPT circuit
+    and measures its actual compiled fake-backend path.
+- `full_circuit_import_audit` is available only when the imported payload carries
+  reconstructible `ansatz_input_state` provenance.
+- newly regenerated direct ADAPT artifacts and newly regenerated staged handoff
+  sidecars persist that top-level `ansatz_input_state` block.
+- older direct artifacts / handoffs / workflow sidecars without
+  `ansatz_input_state` are marked unavailable instead of being backfilled.
+- prepared-state import remains separate and continues to use top-level
+  `initial_state` when present.
+- the imported-audit default subject is the lean `pareto_lean_l2`
+  phase3/beam-style artifact only; this does **not** change the repo-wide
+  staged-noise default path.
+
+Mitigation / honesty contract:
+- local compiled-circuit fake-backend mode is `backend_scheduled`; in imported
+  full-circuit mode it defaults to `FakeGuadalupeV2` when `--backend-name` is
+  omitted.
+- the current local full-energy mitigation tier is:
+  `--mitigation readout --local-readout-strategy mthree`
+- `mthree` calibration/correction is applied to counts before expectation-value
+  reduction.
+- active symmetry mitigation remains a diagonal/counts-compatible diagnostic
+  only; do not treat it as a general full-energy mitigation path for rotated
+  Hamiltonian measurement groups.
+- `verify_only` is the no-op baseline.
+- `--mitigation zne` and `--mitigation dd` remain separate/runtime-oriented
+  options and are not part of the imported full-circuit default.
+- `qiskit-aer` must be installed; otherwise fake-backend noise claims are not
+  valid.
+
+Artifacts:
+- workflow JSON/PDF: `artifacts/json/<noise_tag>.json`,
+  `artifacts/pdf/<noise_tag>.pdf`
+- imported source echo: `artifacts.import_source_json`
+- imported audit blocks: `imported_prepared_state_audit`,
+  `full_circuit_import_audit`
+
+Imported compile scout (`local fake-backend transpile only`):
+- use `pipelines/hardcoded/adapt_circuit_cost.py` when the question is
+  "which local fake backend compiles this imported lean circuit cheapest?"
+- preferred usage:
+
+```bash
+python pipelines/hardcoded/adapt_circuit_cost.py \
+  --artifact-json artifacts/json/adapt_hh_L2_ecut1_pareto_lean_l2_phase3_powell_rerun_with_ansatz_input_<timestamp>.json \
+  --backend-name ibm_boston \
+  --seed-transpiler 7 --optimization-level 1 \
+  --sweep-backends
+```
+
+- behavior contract:
+  - compile scope is local/offline only,
+  - `--backend-name` is resolved only through local fake-provider backends,
+  - no IBM Runtime lookup is performed,
+  - if the requested backend is not locally resolvable or otherwise unusable,
+    the tool records that honestly and falls back to a local fake-backend sweep,
+  - when `--artifact-json` is omitted, the tool defaults to the latest lean
+    `pareto_lean_l2` phase3 artifact using the same imported-artifact policy as
+    the staged-noise import path.
+- selection rule among successful candidates:
+  1. minimum compiled 2-qubit count,
+  2. then minimum compiled depth,
+  3. then minimum compiled size,
+  4. then backend name for deterministic tie-breaking.
+- output contract:
+  - JSON artifact: `<source>_compile_scout.json` unless `--output-json` is set,
+  - stdout lines include `compile_scout_json=...`, `selected_backend=...`, and
+    `requested_backend_supported_locally=...` when a backend was explicitly requested.
+
+Fixed lean noisy replay (`conventional VQE on locked imported scaffold`):
+- use this when the goal is to avoid ADAPT / phase-3 discrete search under noise
+  and optimize only continuous parameters on the already-selected lean scaffold.
+- enable it with:
+
+```bash
+python pipelines/hardcoded/hh_staged_noise.py \
+  --include-fixed-lean-noisy-replay \
+  --fixed-final-state-json artifacts/json/adapt_hh_L2_ecut1_pareto_lean_l2_phase3_powell_rerun_with_ansatz_input_<timestamp>.json \
+  --use-fake-backend --backend-name FakeGuadalupeV2 \
+  --shots 4096 --oracle-repeats 8 --oracle-aggregate mean \
+  --final-method Powell
+```
+
+- route contract:
+  - imported-artifact only,
+  - locked imported lean `pareto_lean_l2` scaffold/order/parameterization,
+  - `reps=1` for this route only,
+  - optimizer currently supports `SPSA` and `Powell`,
+  - noise mode is fixed to `backend_scheduled`,
+  - mitigation is fixed to local readout `mthree`,
+  - symmetry mitigation is forced `off`,
+  - this is **not** `full_circuit_import_audit`,
+  - this is **not** generic matched-family replay from `hh_vqe_from_adapt_family.py`.
+- workflow JSON reports this separately as `fixed_lean_scaffold_noisy_replay`.
+- older imports without reconstructible `ansatz_input_state` remain unavailable
+  here too; do not backfill them.
+
+Fixed lean noise attribution (`gate/state-prep vs readout on locked imported scaffold`):
+- use this when the goal is to quantify whether the fixed lean circuit is mainly
+  limited by gate/state-preparation noise or by readout noise.
+- enable it with:
+
+```bash
+python pipelines/hardcoded/hh_staged_noise.py \
+  --include-fixed-lean-noise-attribution \
+  --fixed-final-state-json artifacts/json/adapt_hh_L2_ecut1_pareto_lean_l2_phase3_powell_rerun_with_ansatz_input_<timestamp>.json \
+  --use-fake-backend --backend-name FakeGuadalupeV2 \
+  --shots 4096 --oracle-repeats 8 --oracle-aggregate mean
+```
+
+- route contract:
+  - imported-artifact only,
+  - locked imported lean `pareto_lean_l2` circuit and runtime parameters,
+  - shared transpile / layout / scheduling across all attribution slices,
+  - noise mode fixed to `backend_scheduled`,
+  - slices are `readout_only`, `gate_stateprep_only`, and `full`,
+  - mitigation is forced `none`,
+  - symmetry mitigation is forced `off`,
+  - this is a raw error-budget diagnostic, not a mitigation route.
+- workflow JSON reports this separately as `fixed_lean_noise_attribution`.
+- compare `slices.full` against `slices.readout_only` and
+  `slices.gate_stateprep_only` to determine whether the dominant loss is gate
+  noise or readout noise.
+- older imports without reconstructible `ansatz_input_state` remain unavailable
+  here too; do not backfill them.
 
 ### 5j) Combined staged HH circuit PDF (`L=2,3`)
 
@@ -1816,6 +2007,8 @@ Active symmetry mitigation (oracle-backed, opt-in):
 - `postselect_diag_v1` and `projector_renorm_v1` are currently limited to diagonal/counts-compatible observable paths inside `noise_oracle_runtime.py`.
 - Unsupported observables, unavailable counts-compatible paths, or zero retained target-sector probability fall back explicitly to `verify_only`; this is recorded in diagnostics instead of being treated as silent success.
 - In `--noise-mode runtime`, the ideal-reference leg is downgraded to `verify_only` when counts-based active symmetry mitigation is unavailable.
+- In imported compiled-circuit fake-backend audits (`backend_scheduled`), the first full-energy mitigation tier is local readout mitigation via `--mitigation readout --local-readout-strategy mthree`.
+- For those compiled-circuit audits, active symmetry mitigation remains diagnostic-only; do not report it as a general full-energy mitigation path for rotated-basis Hamiltonian groups.
 - JSON/backend diagnostics include applied mode, fallback reason, retained-fraction / sector-probability summaries, and estimator form.
 
 ### 11g) Hardware-facing reproducibility checklist

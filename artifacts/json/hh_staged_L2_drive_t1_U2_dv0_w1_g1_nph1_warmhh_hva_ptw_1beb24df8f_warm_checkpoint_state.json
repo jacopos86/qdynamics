@@ -1,0 +1,61 @@
+{
+  "generated_utc": "2026-03-14T19:40:15Z",
+  "settings": {
+    "L": 2,
+    "problem": "hh",
+    "t": 1.0,
+    "u": 2.0,
+    "dv": 0.0,
+    "omega0": 1.0,
+    "g_ep": 1.0,
+    "n_ph_max": 1,
+    "boson_encoding": "binary",
+    "ordering": "blocked",
+    "boundary": "open",
+    "sector_n_up": 1,
+    "sector_n_dn": 1
+  },
+  "adapt_vqe": {
+    "energy": -1.0,
+    "abs_delta_e": 0.020000000000000018,
+    "relative_error_abs": 0.01960784313725492
+  },
+  "ground_state": {
+    "exact_energy": -1.02,
+    "exact_energy_filtered": -1.02,
+    "filtered_sector": {
+      "n_up": 1,
+      "n_dn": 1
+    },
+    "method": "staged_handoff_bundle"
+  },
+  "initial_state": {
+    "source": "warm_vqe",
+    "nq_total": 6,
+    "amplitudes_qn_to_q0": {
+      "000001": {
+        "re": 1.0,
+        "im": 0.0
+      }
+    },
+    "amplitude_cutoff": 1e-14,
+    "norm": 1.0,
+    "handoff_state_kind": "prepared_state"
+  },
+  "exact": {
+    "E_exact_sector": -1.02
+  },
+  "meta": {
+    "pipeline": "hh_staged_noiseless",
+    "workflow_tag": "hh_staged_L2_drive_t1_U2_dv0_w1_g1_nph1_warmhh_hva_ptw_1beb24df8f",
+    "stage": "warm_start_hva",
+    "checkpoint_role": "warm_checkpoint",
+    "warm_ansatz": "hh_hva_ptw",
+    "optimizer_method": "SPSA",
+    "warm_stop_energy": null,
+    "warm_stop_delta_abs": null,
+    "cutoff_triggered": false,
+    "cutoff_reason": null,
+    "delta_abs": 0.020000000000000018
+  }
+}

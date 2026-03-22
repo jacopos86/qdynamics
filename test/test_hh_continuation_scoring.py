@@ -28,6 +28,7 @@ from pipelines.hardcoded.hh_continuation_scoring import (
     trust_region_drop,
 )
 from pipelines.hardcoded.hh_continuation_generators import build_generator_metadata
+from pipelines.hardcoded.hh_continuation_types import CompileCostEstimate
 from pipelines.hardcoded.hh_continuation_symmetry import build_symmetry_spec
 from src.quantum.pauli_polynomial_class import PauliPolynomial
 from src.quantum.pauli_words import PauliTerm
@@ -112,6 +113,109 @@ def test_stage_gate_blocks_score() -> None:
         cfg=cfg,
     )
     assert feat.simple_score == float("-inf")
+
+
+def test_backend_compile_cost_replaces_proxy_term_in_simple_score() -> None:
+    cfg = SimpleScoreConfig(lambda_F=0.0, lambda_compile=1.0, lambda_measure=0.0, lambda_leak=0.0, z_alpha=0.0)
+    meas = MeasurementCacheAudit()
+    cost = CompileCostEstimate(
+        new_pauli_actions=3.0,
+        new_rotation_steps=2.0,
+        position_shift_span=1.0,
+        refit_active_count=4.0,
+        proxy_total=99.0,
+        cx_proxy_total=11.0,
+        sq_proxy_total=22.0,
+        gate_proxy_total=33.0,
+        max_pauli_weight=2.0,
+        source_mode="backend_transpile_v1",
+        penalty_total=7.5,
+        depth_surrogate=5.0,
+        compile_gate_open=True,
+        selected_backend_name="FakeNighthawk",
+        proxy_baseline={
+            "new_pauli_actions": 3.0,
+            "new_rotation_steps": 2.0,
+            "position_shift_span": 1.0,
+            "refit_active_count": 4.0,
+            "proxy_total": 99.0,
+            "cx_proxy_total": 11.0,
+            "sq_proxy_total": 22.0,
+            "gate_proxy_total": 33.0,
+            "max_pauli_weight": 2.0,
+        },
+        selected_backend_row={"transpile_backend": "FakeNighthawk", "compiled_count_2q": 18},
+    )
+    feat = build_candidate_features(
+        stage_name="core",
+        candidate_label="backend",
+        candidate_family="core",
+        candidate_pool_index=0,
+        position_id=1,
+        append_position=1,
+        positions_considered=[1],
+        gradient_signed=0.0,
+        metric_proxy=0.0,
+        sigma_hat=0.0,
+        refit_window_indices=[0, 1],
+        compile_cost=cost,
+        measurement_stats=meas.estimate(["x"]),
+        leakage_penalty=0.0,
+        stage_gate_open=True,
+        leakage_gate_open=True,
+        trough_probe_triggered=False,
+        trough_detected=False,
+        cfg=cfg,
+    )
+    assert feat.compile_cost_source == "backend_transpile_v1"
+    assert float(feat.compile_cost_total) == pytest.approx(7.5)
+    assert float(feat.simple_score or 0.0) == pytest.approx(-7.5)
+    assert feat.compiled_position_cost_proxy["proxy_total"] == pytest.approx(99.0)
+    assert feat.compiled_position_cost_backend is not None
+    assert feat.compiled_position_cost_backend["selected_backend_name"] == "FakeNighthawk"
+
+
+def test_backend_compile_gate_closed_blocks_simple_and_full_scores() -> None:
+    cfg = SimpleScoreConfig()
+    full_cfg = FullScoreConfig()
+    meas = MeasurementCacheAudit()
+    cost = CompileCostEstimate(
+        new_pauli_actions=0.0,
+        new_rotation_steps=0.0,
+        position_shift_span=0.0,
+        refit_active_count=1.0,
+        proxy_total=1.0,
+        source_mode="backend_transpile_v1",
+        penalty_total=float("inf"),
+        depth_surrogate=float("inf"),
+        compile_gate_open=False,
+        failure_reason="all_targets_failed",
+    )
+    feat = build_candidate_features(
+        stage_name="core",
+        candidate_label="blocked",
+        candidate_family="core",
+        candidate_pool_index=0,
+        position_id=0,
+        append_position=0,
+        positions_considered=[0],
+        gradient_signed=1.0,
+        metric_proxy=1.0,
+        sigma_hat=0.0,
+        refit_window_indices=[0],
+        compile_cost=cost,
+        measurement_stats=meas.estimate(["x"]),
+        leakage_penalty=0.0,
+        stage_gate_open=True,
+        leakage_gate_open=True,
+        trough_probe_triggered=False,
+        trough_detected=False,
+        cfg=cfg,
+    )
+    assert feat.simple_score == float("-inf")
+    score, fallback = full_v2_score(feat, full_cfg)
+    assert score == float("-inf")
+    assert fallback == "compile_gate_closed"
 
 
 def test_simple_v1_uses_g_abs_not_g_lcb_for_ranking() -> None:

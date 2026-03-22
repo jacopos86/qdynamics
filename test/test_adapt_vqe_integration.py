@@ -47,6 +47,8 @@ _adapt_mod = importlib.util.module_from_spec(_spec)
 sys.modules["hardcoded_adapt_pipeline"] = _adapt_mod
 _spec.loader.exec_module(_adapt_mod)
 
+from pipelines.hardcoded.hh_continuation_types import CompileCostEstimate
+
 _run_hardcoded_adapt_vqe = _adapt_mod._run_hardcoded_adapt_vqe
 _build_uccsd_pool = _adapt_mod._build_uccsd_pool
 _build_cse_pool = _adapt_mod._build_cse_pool
@@ -56,6 +58,7 @@ _build_paop_pool = _adapt_mod._build_paop_pool
 _build_hh_termwise_augmented_pool = _adapt_mod._build_hh_termwise_augmented_pool
 _build_hh_uccsd_fermion_lifted_pool = _adapt_mod._build_hh_uccsd_fermion_lifted_pool
 _build_hh_pareto_lean_pool = _adapt_mod._build_hh_pareto_lean_pool
+_build_hh_pareto_lean_l2_pool = _adapt_mod._build_hh_pareto_lean_l2_pool
 _deduplicate_pool_terms = _adapt_mod._deduplicate_pool_terms
 _exact_gs_energy_for_problem = _adapt_mod._exact_gs_energy_for_problem
 _compile_polynomial_action = _adapt_mod._compile_polynomial_action
@@ -273,6 +276,15 @@ class TestAdaptCLIParsing:
         )
         args = _adapt_mod.parse_args()
         assert str(args.adapt_pool) == "pareto_lean"
+
+    def test_parse_accepts_pareto_lean_l2_pool(self, monkeypatch: pytest.MonkeyPatch):
+        monkeypatch.setattr(
+            sys,
+            "argv",
+            ["adapt_pipeline.py", "--problem", "hh", "--adapt-pool", "pareto_lean_l2"],
+        )
+        args = _adapt_mod.parse_args()
+        assert str(args.adapt_pool) == "pareto_lean_l2"
 
     def test_parse_accepts_adapt_state_backend_legacy(self, monkeypatch: pytest.MonkeyPatch):
         monkeypatch.setattr(
@@ -697,6 +709,111 @@ class TestHHUCCSDPAOPCompositePoolBuilder:
         assert not any(label.startswith("paop_lf_full:paop_dbl_x(") for label in labels)
         assert not any(label.startswith("paop_lf_full:paop_curdrag(") for label in labels)
         assert not any(label.startswith("paop_lf_full:paop_hop2(") for label in labels)
+
+    def test_pareto_lean_l2_pool_is_nonempty_for_l2_nph1(self):
+        n_sites = 2
+        num_particles = half_filled_num_particles(n_sites)
+        h_poly = build_hubbard_holstein_hamiltonian(
+            dims=n_sites,
+            J=1.0,
+            U=4.0,
+            omega0=1.0,
+            g=0.5,
+            n_ph_max=1,
+            boson_encoding="binary",
+            repr_mode="JW",
+            indexing="blocked",
+            pbc=False,
+            include_zero_point=True,
+        )
+        pool, meta = _build_hh_pareto_lean_l2_pool(
+            h_poly=h_poly,
+            num_sites=n_sites,
+            t=1.0,
+            u=4.0,
+            omega0=1.0,
+            g_ep=0.5,
+            dv=0.0,
+            n_ph_max=1,
+            boson_encoding="binary",
+            ordering="blocked",
+            boundary="open",
+            paop_r=1,
+            paop_split_paulis=False,
+            paop_prune_eps=0.0,
+            paop_normalization="none",
+            num_particles=num_particles,
+        )
+        assert len(pool) > 0
+        assert int(meta["raw_total"]) > 0
+
+    def test_pareto_lean_l2_pool_rejects_non_l2(self):
+        h_poly = build_hubbard_holstein_hamiltonian(
+            dims=3,
+            J=1.0,
+            U=4.0,
+            omega0=1.0,
+            g=0.5,
+            n_ph_max=1,
+            boson_encoding="binary",
+            repr_mode="JW",
+            indexing="blocked",
+            pbc=False,
+            include_zero_point=True,
+        )
+        with pytest.raises(ValueError, match="only valid for L=2"):
+            _build_hh_pareto_lean_l2_pool(
+                h_poly=h_poly,
+                num_sites=3,
+                t=1.0,
+                u=4.0,
+                omega0=1.0,
+                g_ep=0.5,
+                dv=0.0,
+                n_ph_max=1,
+                boson_encoding="binary",
+                ordering="blocked",
+                boundary="open",
+                paop_r=1,
+                paop_split_paulis=False,
+                paop_prune_eps=0.0,
+                paop_normalization="none",
+                num_particles=half_filled_num_particles(3),
+            )
+
+    def test_pareto_lean_l2_pool_rejects_nphmax_not_1(self):
+        h_poly = build_hubbard_holstein_hamiltonian(
+            dims=2,
+            J=1.0,
+            U=4.0,
+            omega0=1.0,
+            g=0.5,
+            n_ph_max=2,
+            boson_encoding="binary",
+            repr_mode="JW",
+            indexing="blocked",
+            pbc=False,
+            include_zero_point=True,
+        )
+        with pytest.raises(ValueError, match="only valid for n_ph_max=1"):
+            _build_hh_pareto_lean_l2_pool(
+                h_poly=h_poly,
+                num_sites=2,
+                t=1.0,
+                u=4.0,
+                omega0=1.0,
+                g_ep=0.5,
+                dv=0.0,
+                n_ph_max=2,
+                boson_encoding="binary",
+                ordering="blocked",
+                boundary="open",
+                paop_r=1,
+                paop_split_paulis=False,
+                paop_prune_eps=0.0,
+                paop_normalization="none",
+                num_particles=half_filled_num_particles(2),
+            )
 
 
 # ============================================================================
@@ -1514,8 +1631,13 @@ class TestAdaptReoptPolicyAppendOnly:
             # More directly: re-run with full policy and confirm the
             # prefix DOES change there (see full_legacy test below).
             final_theta = np.array(payload["optimal_point"], dtype=float)
+            logical_theta = np.array(payload["logical_optimal_point"], dtype=float)
             depth = int(payload["ansatz_depth"])
-            assert final_theta.size == depth
+            assert int(payload["logical_num_parameters"]) == depth
+            assert logical_theta.size == depth
+            assert final_theta.size >= depth
+            assert int(payload["num_parameters"]) == int(final_theta.size)
+            assert payload.get("parameterization", {}).get("mode") == "per_pauli_term_v1"
         finally:
             monkeypatch.setattr(_adapt_mod, "_ai_log", original_ai_log)
 
@@ -2015,6 +2137,206 @@ class TestHHPhase3Continuation:
             assert "symmetry_mode" in row
             assert "lifetime_cost_mode" in row
             assert "remaining_evaluations_proxy" in row
+
+    def test_phase3_backend_cost_mode_rejects_non_hh_problem(self):
+        h_poly = build_hubbard_hamiltonian(
+            dims=2,
+            t=1.0,
+            U=4.0,
+            v=0.0,
+            repr_mode="JW",
+            indexing="blocked",
+            pbc=True,
+        )
+        with pytest.raises(ValueError, match="phase3_backend_cost_mode is only valid for problem='hh'"):
+            _run_hardcoded_adapt_vqe(
+                h_poly=h_poly,
+                num_sites=2,
+                ordering="blocked",
+                problem="hubbard",
+                adapt_pool="uccsd",
+                t=1.0,
+                u=4.0,
+                dv=0.0,
+                boundary="periodic",
+                omega0=1.0,
+                g_ep=0.5,
+                n_ph_max=1,
+                boson_encoding="binary",
+                max_depth=1,
+                eps_grad=1e-3,
+                eps_energy=1e-8,
+                maxiter=5,
+                seed=7,
+                allow_repeats=True,
+                finite_angle_fallback=False,
+                finite_angle=0.1,
+                finite_angle_min_improvement=1e-12,
+                adapt_reopt_policy="windowed",
+                adapt_window_size=1,
+                adapt_window_topk=0,
+                adapt_continuation_mode="phase3_v1",
+                phase3_backend_cost_mode="transpile_single_v1",
+                phase3_backend_name="ibm_boston",
+            )
+
+    def test_phase3_backend_cost_mode_emits_backend_compile_summary(self, monkeypatch: pytest.MonkeyPatch):
+        class _StubBackendCompileOracle:
+            def __init__(self, *, config, num_qubits, ref_state):
+                self.config = config
+                self.num_qubits = num_qubits
+                self.ref_state = ref_state
+                self.targets = ("FakeNighthawk",)
+                self.resolution_audit = [
+                    {
+                        "requested_name": "ibm_boston",
+                        "resolved_name": "FakeNighthawk",
+                        "success": True,
+                        "resolution_kind": "fake_exact",
+                        "using_fake_backend": True,
+                    }
+                ]
+
+            def snapshot_base(self, ops):
+                return {"ops": [str(op.label) for op in ops]}
+
+            def estimate_insertion(self, snapshot, *, candidate_term, position_id, proxy_baseline=None):
+                return CompileCostEstimate(
+                    new_pauli_actions=(0.0 if proxy_baseline is None else float(proxy_baseline.new_pauli_actions)),
+                    new_rotation_steps=(0.0 if proxy_baseline is None else float(proxy_baseline.new_rotation_steps)),
+                    position_shift_span=(0.0 if proxy_baseline is None else float(proxy_baseline.position_shift_span)),
+                    refit_active_count=(0.0 if proxy_baseline is None else float(proxy_baseline.refit_active_count)),
+                    proxy_total=(0.0 if proxy_baseline is None else float(proxy_baseline.proxy_total)),
+                    cx_proxy_total=(0.0 if proxy_baseline is None else float(proxy_baseline.cx_proxy_total)),
+                    sq_proxy_total=(0.0 if proxy_baseline is None else float(proxy_baseline.sq_proxy_total)),
+                    gate_proxy_total=(0.0 if proxy_baseline is None else float(proxy_baseline.gate_proxy_total)),
+                    max_pauli_weight=(0.0 if proxy_baseline is None else float(proxy_baseline.max_pauli_weight)),
+                    source_mode="backend_transpile_v1",
+                    penalty_total=4.5,
+                    depth_surrogate=4.5,
+                    compile_gate_open=True,
+                    failure_reason=None,
+                    selected_backend_name="FakeNighthawk",
+                    selected_resolution_kind="fake_exact",
+                    aggregation_mode="single_backend",
+                    target_backend_names=["FakeNighthawk"],
+                    successful_target_count=1,
+                    failed_target_count=0,
+                    raw_delta_compiled_count_2q=2.0,
+                    delta_compiled_count_2q=2.0,
+                    raw_delta_compiled_depth=3.0,
+                    delta_compiled_depth=3.0,
+                    raw_delta_compiled_size=5.0,
+                    delta_compiled_size=5.0,
+                    delta_compiled_cx_count=2.0,
+                    delta_compiled_ecr_count=0.0,
+                    base_compiled_count_2q=10.0,
+                    base_compiled_depth=12.0,
+                    base_compiled_size=20.0,
+                    trial_compiled_count_2q=12.0,
+                    trial_compiled_depth=15.0,
+                    trial_compiled_size=25.0,
+                    proxy_baseline=(
+                        None
+                        if proxy_baseline is None
+                        else {
+                            "new_pauli_actions": float(proxy_baseline.new_pauli_actions),
+                            "new_rotation_steps": float(proxy_baseline.new_rotation_steps),
+                            "position_shift_span": float(proxy_baseline.position_shift_span),
+                            "refit_active_count": float(proxy_baseline.refit_active_count),
+                            "proxy_total": float(proxy_baseline.proxy_total),
+                            "cx_proxy_total": float(proxy_baseline.cx_proxy_total),
+                            "sq_proxy_total": float(proxy_baseline.sq_proxy_total),
+                            "gate_proxy_total": float(proxy_baseline.gate_proxy_total),
+                            "max_pauli_weight": float(proxy_baseline.max_pauli_weight),
+                        }
+                    ),
+                    selected_backend_row={
+                        "transpile_backend": "FakeNighthawk",
+                        "resolution_kind": "fake_exact",
+                        "compiled_count_2q": 12,
+                        "compiled_depth": 15,
+                        "compiled_size": 25,
+                    },
+                )
+
+            def final_scaffold_summary(self, ops):
+                return {
+                    "rows": [
+                        {
+                            "transpile_backend": "FakeNighthawk",
+                            "resolution_kind": "fake_exact",
+                            "transpile_status": "ok",
+                            "compiled_count_2q": 18,
+                            "compiled_depth": 21,
+                            "compiled_size": 33,
+                            "compiled_op_counts": {"swap": 1, "cx": 18},
+                            "absolute_burden_score_v1": 20.43,
+                        }
+                    ],
+                    "selected_backend": {
+                        "transpile_backend": "FakeNighthawk",
+                        "resolution_kind": "fake_exact",
+                        "transpile_status": "ok",
+                        "compiled_count_2q": 18,
+                        "compiled_depth": 21,
+                        "compiled_size": 33,
+                        "compiled_op_counts": {"swap": 1, "cx": 18},
+                        "absolute_burden_score_v1": 20.43,
+                    },
+                }
+
+            def cache_summary(self):
+                return {"row_hits": 2, "row_misses": 1, "compile_failures": 0, "cache_entries": 3}
+
+        monkeypatch.setattr(_adapt_mod, "BackendCompileOracle", _StubBackendCompileOracle)
+
+        payload, _ = _run_hardcoded_adapt_vqe(
+            h_poly=self._hh_h(),
+            num_sites=2,
+            ordering="blocked",
+            problem="hh",
+            adapt_pool="paop_lf_std",
+            t=1.0,
+            u=2.0,
+            dv=0.0,
+            boundary="periodic",
+            omega0=1.0,
+            g_ep=0.5,
+            n_ph_max=1,
+            boson_encoding="binary",
+            max_depth=2,
+            eps_grad=1e-3,
+            eps_energy=1e-8,
+            maxiter=20,
+            seed=7,
+            allow_repeats=True,
+            finite_angle_fallback=False,
+            finite_angle=0.1,
+            finite_angle_min_improvement=1e-12,
+            adapt_reopt_policy="windowed",
+            adapt_window_size=1,
+            adapt_window_topk=0,
+            adapt_continuation_mode="phase3_v1",
+            phase3_symmetry_mitigation_mode="verify_only",
+            phase3_enable_rescue=False,
+            phase3_lifetime_cost_mode="phase3_v1",
+            phase3_backend_cost_mode="transpile_single_v1",
+            phase3_backend_name="ibm_boston",
+        )
+
+        assert payload["compile_cost_mode"] == "transpile_single_v1"
+        assert payload["backend_compile_cost_summary"]["selected_backend"]["transpile_backend"] == "FakeNighthawk"
+        assert payload["continuation"]["backend_compile_cost_summary"]["cache_summary"]["cache_entries"] == 3
+        assert payload["scaffold_fingerprint_lite"]["compile_cost_mode"] == "transpile_single_v1"
+        assert payload["scaffold_fingerprint_lite"]["backend_target_names"] == ["FakeNighthawk"]
+        assert any(row["compile_cost_mode"] == "transpile_single_v1" for row in payload["history"])
+        assert any(row["compile_cost_source"] == "backend_transpile_v1" for row in payload["history"])
+        assert any(
+            isinstance(row.get("compile_cost_backend"), dict)
+            and row["compile_cost_backend"].get("selected_backend_name") == "FakeNighthawk"
+            for row in payload["history"]
+        )
 
     def test_phase3_eps_energy_is_telemetry_only_without_drop_policy(self, monkeypatch: pytest.MonkeyPatch):
         events: list[tuple[str, dict[str, object]]] = []
@@ -2860,6 +3182,10 @@ class TestAdaptRefExactEnergyReuse:
         assert captured["exact_gs_override"] == pytest.approx(0.15866790412572704)
         assert bool(payload["adapt_ref_import"]["exact_energy_reused"]) is True
         assert payload["adapt_ref_import"]["exact_energy_reuse_mismatches"] == []
+        assert bool(payload["adapt_ref_import"]["ansatz_input_state_persisted"]) is True
+        assert payload["adapt_ref_import"]["initial_state_handoff_state_kind"] is None
+        assert payload["ansatz_input_state"]["source"] == "adapt_vqe"
+        assert payload["ansatz_input_state"]["nq_total"] == self._hh_nq_total()
 
     def test_main_falls_back_when_ref_lacks_exact_energy(
         self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path

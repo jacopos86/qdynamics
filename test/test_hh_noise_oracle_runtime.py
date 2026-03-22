@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from types import SimpleNamespace
+
 import numpy as np
 import pytest
 
@@ -12,6 +14,7 @@ from pipelines.exact_bench.noise_oracle_runtime import (
     OracleConfig,
     _ansatz_to_circuit,
     _pauli_poly_to_sparse_pauli_op,
+    compile_circuit_for_local_backend,
     normalize_ideal_reference_symmetry_mitigation,
     normalize_symmetry_mitigation_config,
 )
@@ -109,7 +112,240 @@ def test_oracle_mitigation_config_is_normalized_and_recorded() -> None:
         assert mit["mode"] == "zne"
         assert mit["zne_scales"] == [1.0, 2.0, 3.0]
         assert mit["dd_sequence"] == "XY4"
+        assert mit["local_readout_strategy"] is None
         assert dict(oracle.backend_info.details.get("mitigation", {})) == mit
+
+
+def test_backend_scheduled_rejects_active_symmetry_with_readout() -> None:
+    with pytest.raises(ValueError, match="readout mitigation is not combinable"):
+        ExpectationOracle(
+            OracleConfig(
+                noise_mode="backend_scheduled",
+                shots=128,
+                seed=7,
+                backend_name="FakeGuadalupeV2",
+                use_fake_backend=True,
+                mitigation={"mode": "readout", "local_readout_strategy": "mthree"},
+                symmetry_mitigation={
+                    "mode": "postselect_diag_v1",
+                    "num_sites": 1,
+                    "ordering": "blocked",
+                    "sector_n_up": 1,
+                    "sector_n_dn": 0,
+                },
+            )
+        )
+
+
+def test_backend_scheduled_deterministic_with_fixed_seed_and_fake_backend() -> None:
+    pytest.importorskip("mthree")
+    qc = QuantumCircuit(1)
+    qc.x(0)
+    obs = SparsePauliOp.from_list([("Z", 1.0)])
+    cfg = OracleConfig(
+        noise_mode="backend_scheduled",
+        shots=256,
+        seed=111,
+        oracle_repeats=4,
+        oracle_aggregate="mean",
+        backend_name="FakeGuadalupeV2",
+        use_fake_backend=True,
+    )
+
+    with ExpectationOracle(cfg) as oracle_a:
+        est_a = oracle_a.evaluate(qc, obs)
+    with ExpectationOracle(cfg) as oracle_b:
+        est_b = oracle_b.evaluate(qc, obs)
+
+    assert est_a.mean == pytest.approx(est_b.mean, abs=1e-12)
+    assert est_a.stderr == pytest.approx(est_b.stderr, abs=1e-12)
+
+
+def test_backend_scheduled_mthree_readout_records_details() -> None:
+    pytest.importorskip("mthree")
+    qc = QuantumCircuit(1)
+    qc.x(0)
+    obs = SparsePauliOp.from_list([("Z", 1.0)])
+    with ExpectationOracle(
+        OracleConfig(
+            noise_mode="backend_scheduled",
+            shots=128,
+            seed=7,
+            oracle_repeats=2,
+            backend_name="FakeGuadalupeV2",
+            use_fake_backend=True,
+            mitigation={"mode": "readout", "local_readout_strategy": "mthree"},
+        )
+    ) as oracle:
+        est = oracle.evaluate(qc, obs)
+        details = dict(oracle.backend_info.details.get("readout_mitigation", {}))
+
+    assert np.isfinite(est.mean)
+    assert details.get("mode") == "readout"
+    assert details.get("strategy") == "mthree"
+    assert details.get("applied") is True
+    assert int(details.get("calibration_cache_size", 0)) >= 1
+
+
+def test_backend_scheduled_attribution_reuses_single_compile(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(nor, "_load_fake_backend", lambda name: (object(), str(name or "FakeGuadalupeV2")))
+    qc = QuantumCircuit(1)
+    obs = SparsePauliOp.from_list([("Z", 1.0)])
+    with ExpectationOracle(
+        OracleConfig(
+            noise_mode="backend_scheduled",
+            shots=64,
+            seed=7,
+            oracle_repeats=2,
+            backend_name="FakeGuadalupeV2",
+            use_fake_backend=True,
+        )
+    ) as oracle:
+        calls = {"base": 0, "eval": []}
+        compiled = QuantumCircuit(1)
+        readout_target = object()
+        gate_target = object()
+
+        def _fake_base(circuit: QuantumCircuit) -> dict[str, object]:
+            calls["base"] += 1
+            return {"compiled": compiled, "logical_to_physical": (0,)}
+
+        def _fake_target(slice_name: str) -> tuple[object, dict[str, object]]:
+            components = {
+                "readout_only": {"gate_stateprep": False, "readout": True},
+                "gate_stateprep_only": {"gate_stateprep": True, "readout": False},
+                "full": {"gate_stateprep": True, "readout": True},
+            }
+            target = {"readout_only": readout_target, "gate_stateprep_only": gate_target, "full": object()}[slice_name]
+            return target, {
+                "components": dict(components[slice_name]),
+                "execution_target_kind": "stub",
+                "attribution_slice": str(slice_name),
+                "shared_compile_reused": True,
+            }
+
+        def _fake_eval(
+            compiled_base: QuantumCircuit,
+            logical_to_physical: tuple[int, ...],
+            observable: SparsePauliOp,
+            *,
+            execution_target: object | None = None,
+            attribution_slice: str | None = None,
+            target_details: dict[str, object] | None = None,
+        ) -> tuple[nor.OracleEstimate, dict[str, object]]:
+            calls["eval"].append(
+                {
+                    "compiled_base": compiled_base,
+                    "logical_to_physical": tuple(logical_to_physical),
+                    "execution_target": execution_target,
+                    "attribution_slice": attribution_slice,
+                    "target_details": dict(target_details or {}),
+                }
+            )
+            return (
+                nor.OracleEstimate(
+                    mean=0.25,
+                    std=0.0,
+                    stdev=0.0,
+                    stderr=0.01,
+                    n_samples=2,
+                    raw_values=[0.25, 0.25],
+                    aggregate="mean",
+                ),
+                {
+                    "readout_mitigation": {"mode": "none", "applied": False},
+                    "attribution_slice": attribution_slice,
+                    "shared_compile_reused": True,
+                    **dict(target_details or {}),
+                },
+            )
+
+        monkeypatch.setattr(oracle, "_get_backend_scheduled_base", _fake_base)
+        monkeypatch.setattr(oracle, "_get_backend_scheduled_attribution_target", _fake_target)
+        monkeypatch.setattr(oracle, "_evaluate_backend_scheduled_with_target", _fake_eval)
+
+        payload = oracle.evaluate_backend_scheduled_attribution(qc, obs)
+
+    assert calls["base"] == 1
+    assert len(calls["eval"]) == 3
+    assert payload["shared_compile"]["requested_slices"] == [
+        "readout_only",
+        "gate_stateprep_only",
+        "full",
+    ]
+    assert calls["eval"][0]["compiled_base"] is compiled
+    assert calls["eval"][1]["compiled_base"] is compiled
+    assert calls["eval"][2]["compiled_base"] is compiled
+    assert calls["eval"][0]["execution_target"] is readout_target
+    assert calls["eval"][1]["execution_target"] is gate_target
+    assert calls["eval"][2]["execution_target"] is None
+    assert payload["slices"]["readout_only"]["components"]["readout"] is True
+    assert payload["slices"]["gate_stateprep_only"]["components"]["gate_stateprep"] is True
+    assert payload["slices"]["full"]["backend_info"]["details"]["shared_compile_reused"] is True
+
+
+def test_compile_circuit_for_local_backend_returns_mapping(monkeypatch: pytest.MonkeyPatch) -> None:
+    qc = QuantumCircuit(2)
+    compiled = SimpleNamespace(
+        num_qubits=3,
+        layout=SimpleNamespace(final_index_layout=lambda: [5, 4, 3]),
+    )
+    monkeypatch.setattr(
+        nor,
+        "_compile_circuit_for_backend_shared",
+        lambda circuit, backend, *, seed_transpiler, optimization_level=1: {
+            "compiled": compiled,
+            "logical_to_physical": (5, 4),
+            "compiled_num_qubits": 3,
+        },
+    )
+
+    out = compile_circuit_for_local_backend(qc, object(), seed_transpiler=17, optimization_level=2)
+
+    assert out["compiled"] is compiled
+    assert out["logical_to_physical"] == (5, 4)
+    assert out["compiled_num_qubits"] == 3
+
+
+def test_backend_scheduled_base_uses_shared_compile_helper(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(nor, "_load_fake_backend", lambda name: (object(), str(name or "FakeGuadalupeV2")))
+    calls: list[dict[str, object]] = []
+
+    def _fake_compile(circuit: QuantumCircuit, backend: object, *, seed_transpiler: int, optimization_level: int = 1) -> dict[str, object]:
+        calls.append(
+            {
+                "circuit": circuit,
+                "backend": backend,
+                "seed_transpiler": seed_transpiler,
+                "optimization_level": optimization_level,
+            }
+        )
+        return {
+            "compiled": QuantumCircuit(1),
+            "logical_to_physical": (2,),
+            "compiled_num_qubits": 5,
+        }
+
+    monkeypatch.setattr(nor, "compile_circuit_for_local_backend", _fake_compile)
+    qc = QuantumCircuit(1)
+    with ExpectationOracle(
+        OracleConfig(
+            noise_mode="backend_scheduled",
+            shots=64,
+            seed=13,
+            oracle_repeats=2,
+            backend_name="FakeGuadalupeV2",
+            use_fake_backend=True,
+        )
+    ) as oracle:
+        first = oracle._get_backend_scheduled_base(qc)
+        second = oracle._get_backend_scheduled_base(qc)
+
+    assert len(calls) == 1
+    assert first is second
+    assert calls[0]["seed_transpiler"] == 13
+    assert calls[0]["optimization_level"] == 1
+    assert first["logical_to_physical"] == (2,)
 
 
 def test_symmetry_mitigation_config_is_normalized() -> None:

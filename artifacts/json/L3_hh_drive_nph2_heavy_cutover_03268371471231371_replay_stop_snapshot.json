@@ -1,0 +1,33 @@
+{
+  "generated_utc": "2026-03-13T15:50:11Z",
+  "tag": "L3_hh_drive_nph2_heavy_cutover_03268371471231371",
+  "stage": "replay_interrupted_before_partial_checkpoint",
+  "reason": "user_requested_stop",
+  "session_id": 67430,
+  "replay_runtime_interrupt_safe": false,
+  "preserved_state": {
+    "warm_checkpoint_json": "artifacts/json/L3_hh_drive_nph2_heavy_cutover_03268371471231371_warm_checkpoint_state.json",
+    "warm_cutover_json": "artifacts/json/L3_hh_drive_nph2_heavy_cutover_03268371471231371_warm_cutover_state.json",
+    "adapt_handoff_json": "artifacts/json/L3_hh_drive_nph2_heavy_cutover_03268371471231371_adapt_handoff.json",
+    "replay_log": "artifacts/logs/L3_hh_drive_nph2_heavy_cutover_03268371471231371_replay.log",
+    "workflow_log": "artifacts/logs/L3_hh_drive_nph2_heavy_cutover_03268371471231371.log"
+  },
+  "best_known_status": {
+    "exact_filtered_energy": 0.24459389081574123,
+    "warm_checkpoint_energy": 0.3288443997462213,
+    "adapt_energy": 0.31723164219261407,
+    "adapt_abs_delta_e": 0.07263775137687284,
+    "adapt_depth": 166,
+    "adapt_stop_reason": "max_depth",
+    "replay_seed_energy": 0.31723164219261407,
+    "replay_seed_abs_delta_e": 0.07263775137687284,
+    "replay_family_requested": "match_adapt",
+    "replay_family_initial_resolved": "paop_lf_std",
+    "replay_family_effective_resolved": "full_meta",
+    "replay_fallback_used": true,
+    "replay_terms": 166,
+    "replay_num_parameters": 664,
+    "last_replay_log_utc": "2026-03-12T19:03:11Z"
+  },
+  "resume_note": "Resume replay from artifacts/json/L3_hh_drive_nph2_heavy_cutover_03268371471231371_adapt_handoff.json using the patched hh_vqe_from_adapt_family full_meta fallback."
+}

@@ -1,0 +1,1238 @@
+{
+  "artifacts": {
+    "intermediate": {
+      "adapt_handoff_json": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_2/artifacts/json/corr_g0p5_sw_b2_d5_f1_r1_adapt_handoff.json",
+      "replay_output_csv": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_2/artifacts/json/corr_g0p5_sw_b2_d5_f1_r1_replay.csv",
+      "replay_output_json": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_2/artifacts/json/corr_g0p5_sw_b2_d5_f1_r1_replay.json",
+      "replay_output_log": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_2/artifacts/logs/corr_g0p5_sw_b2_d5_f1_r1_replay.log",
+      "replay_output_md": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_2/artifacts/useful/L2/corr_g0p5_sw_b2_d5_f1_r1_replay.md",
+      "warm_checkpoint_json": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_2/artifacts/json/corr_g0p5_sw_b2_d5_f1_r1_warm_checkpoint_state.json",
+      "warm_cutover_json": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_2/artifacts/json/corr_g0p5_sw_b2_d5_f1_r1_warm_cutover_state.json",
+      "workflow_log": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_2/artifacts/logs/corr_g0p5_sw_b2_d5_f1_r1.log"
+    },
+    "workflow": {
+      "output_json": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_2/artifacts/json/corr_g0p5_sw_b2_d5_f1_r1.json",
+      "output_pdf": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_2/artifacts/pdf/corr_g0p5_sw_b2_d5_f1_r1.pdf"
+    }
+  },
+  "circuit_metrics": {
+    "dynamics": {
+      "suzuki2": {
+        "metadata": {
+          "cfqm_stage_exp": "expm_multiply_sparse",
+          "circuitization": {
+            "cfqm_stage_exp": "expm_multiply_sparse",
+            "reason": null,
+            "supported": true
+          },
+          "drive_enabled": false,
+          "drive_profile": null,
+          "macro_step_time": 0.1,
+          "proxy_macro": {
+            "cx_proxy_total": 144,
+            "depth_proxy_total": 66,
+            "pauli_rot_count_total": 66,
+            "sq_proxy_total": 194,
+            "term_exp_count_total": 66
+          },
+          "proxy_total": {
+            "cx_proxy_total": 144,
+            "depth_proxy_total": 66,
+            "pauli_rot_count_total": 66,
+            "sq_proxy_total": 194,
+            "term_exp_count_total": 66
+          },
+          "repeat_count": 1,
+          "t_final": 0.1,
+          "trajectory_circuit_metrics": {
+            "dynamics_only": {
+              "expanded_once": {
+                "count_1q": 115,
+                "count_2q": 116,
+                "count_measure": 0,
+                "count_ops": {
+                  "cx": 92,
+                  "h": 48,
+                  "rxx": 4,
+                  "ryy": 4,
+                  "rz": 39,
+                  "rzx": 8,
+                  "rzz": 8,
+                  "sx": 14,
+                  "sxdg": 14
+                },
+                "cx_count": 92,
+                "depth": 92,
+                "num_parameters": 0,
+                "num_qubits": 8,
+                "size": 231
+              },
+              "raw": {
+                "count_1q": 0,
+                "count_2q": 0,
+                "count_measure": 0,
+                "count_ops": {
+                  "PauliEvolution": 1
+                },
+                "cx_count": 0,
+                "depth": 1,
+                "num_parameters": 0,
+                "num_qubits": 8,
+                "size": 1
+              },
+              "target": {
+                "backend_name": "GenericBackendV2",
+                "backend_num_qubits": 8,
+                "backend_source": "qiskit.providers.fake_provider",
+                "basis_gates": [
+                  "rz",
+                  "sx",
+                  "x",
+                  "cx"
+                ],
+                "optimization_level": 1,
+                "seed_transpiler": 7,
+                "use_fake_backend": true
+              },
+              "transpiled": {
+                "count_1q": 161,
+                "count_2q": 112,
+                "count_measure": 0,
+                "count_ops": {
+                  "cx": 112,
+                  "rz": 119,
+                  "sx": 42
+                },
+                "cx_count": 112,
+                "depth": 99,
+                "num_parameters": 0,
+                "num_qubits": 8,
+                "size": 273
+              }
+            },
+            "macro_step": {
+              "expanded_once": {
+                "count_1q": 153,
+                "count_2q": 147,
+                "count_measure": 0,
+                "count_ops": {
+                  "cx": 122,
+                  "h": 60,
+                  "initialize": 1,
+                  "rxx": 4,
+                  "ryy": 5,
+                  "rz": 49,
+                  "rzx": 8,
+                  "rzz": 8,
+                  "sx": 22,
+                  "sxdg": 22
+                },
+                "cx_count": 122,
+                "depth": 129,
+                "num_parameters": 0,
+                "num_qubits": 8,
+                "size": 301
+              },
+              "raw": {
+                "count_1q": 0,
+                "count_2q": 0,
+                "count_measure": 0,
+                "count_ops": {
+                  "PauliEvolution": 12,
+                  "initialize": 1
+                },
+                "cx_count": 0,
+                "depth": 13,
+                "num_parameters": 0,
+                "num_qubits": 8,
+                "size": 13
+              },
+              "target": {
+                "backend_name": "GenericBackendV2",
+                "backend_num_qubits": 8,
+                "backend_source": "qiskit.providers.fake_provider",
+                "basis_gates": [
+                  "rz",
+                  "sx",
+                  "x",
+                  "cx"
+                ],
+                "optimization_level": 1,
+                "seed_transpiler": 7,
+                "use_fake_backend": true
+              },
+              "transpiled": {
+                "count_1q": 970,
+                "count_2q": 389,
+                "count_measure": 0,
+                "count_ops": {
+                  "cx": 389,
+                  "reset": 8,
+                  "rz": 546,
+                  "sx": 410,
+                  "x": 6
+                },
+                "cx_count": 389,
+                "depth": 1115,
+                "num_parameters": 0,
+                "num_qubits": 8,
+                "size": 1359
+              }
+            },
+            "prep_plus_dynamics": {
+              "expanded_once": {
+                "count_1q": 153,
+                "count_2q": 147,
+                "count_measure": 0,
+                "count_ops": {
+                  "cx": 122,
+                  "h": 60,
+                  "initialize": 1,
+                  "rxx": 4,
+                  "ryy": 5,
+                  "rz": 49,
+                  "rzx": 8,
+                  "rzz": 8,
+                  "sx": 22,
+                  "sxdg": 22
+                },
+                "cx_count": 122,
+                "depth": 129,
+                "num_parameters": 0,
+                "num_qubits": 8,
+                "size": 301
+              },
+              "raw": {
+                "count_1q": 0,
+                "count_2q": 0,
+                "count_measure": 0,
+                "count_ops": {
+                  "PauliEvolution": 12,
+                  "initialize": 1
+                },
+                "cx_count": 0,
+                "depth": 13,
+                "num_parameters": 0,
+                "num_qubits": 8,
+                "size": 13
+              },
+              "target": {
+                "backend_name": "GenericBackendV2",
+                "backend_num_qubits": 8,
+                "backend_source": "qiskit.providers.fake_provider",
+                "basis_gates": [
+                  "rz",
+                  "sx",
+                  "x",
+                  "cx"
+                ],
+                "optimization_level": 1,
+                "seed_transpiler": 7,
+                "use_fake_backend": true
+              },
+              "transpiled": {
+                "count_1q": 970,
+                "count_2q": 389,
+                "count_measure": 0,
+                "count_ops": {
+                  "cx": 389,
+                  "reset": 8,
+                  "rz": 546,
+                  "sx": 410,
+                  "x": 6
+                },
+                "cx_count": 389,
+                "depth": 1115,
+                "num_parameters": 0,
+                "num_qubits": 8,
+                "size": 1359
+              }
+            }
+          },
+          "transpile_target": {
+            "backend_name": "GenericBackendV2",
+            "basis_gates": [
+              "rz",
+              "sx",
+              "x",
+              "cx"
+            ],
+            "optimization_level": 1,
+            "seed_transpiler": 7,
+            "use_fake_backend": true
+          }
+        },
+        "notes": [
+          "Circuit shows one representative macro-step only; repeat_count gives the full unrolled count.",
+          "Expanded view decomposes only the PauliEvolutionGate layers, not the full repeated trajectory."
+        ],
+        "title": "L=2 SUZUKI2 dynamics macro-step"
+      }
+    },
+    "stages": {
+      "adapt_vqe": {
+        "metadata": {
+          "continuation_mode": "phase3_v1",
+          "depth": 11,
+          "energy": 0.15875145711244892,
+          "exact_energy": 0.1584437535268517,
+          "pool_type": "phase3_v1",
+          "stop_reason": "max_depth",
+          "transpile_metrics": {
+            "expanded_once": {
+              "count_1q": 38,
+              "count_2q": 31,
+              "count_measure": 0,
+              "count_ops": {
+                "cx": 30,
+                "h": 12,
+                "initialize": 1,
+                "ryy": 1,
+                "rz": 10,
+                "sx": 8,
+                "sxdg": 8
+              },
+              "cx_count": 30,
+              "depth": 37,
+              "num_parameters": 0,
+              "num_qubits": 8,
+              "size": 70
+            },
+            "raw": {
+              "count_1q": 0,
+              "count_2q": 0,
+              "count_measure": 0,
+              "count_ops": {
+                "PauliEvolution": 11,
+                "initialize": 1
+              },
+              "cx_count": 0,
+              "depth": 12,
+              "num_parameters": 0,
+              "num_qubits": 8,
+              "size": 12
+            },
+            "target": {
+              "backend_name": "GenericBackendV2",
+              "backend_num_qubits": 8,
+              "backend_source": "qiskit.providers.fake_provider",
+              "basis_gates": [
+                "rz",
+                "sx",
+                "x",
+                "cx"
+              ],
+              "optimization_level": 1,
+              "seed_transpiler": 7,
+              "use_fake_backend": true
+            },
+            "transpiled": {
+              "count_1q": 823,
+              "count_2q": 277,
+              "count_measure": 0,
+              "count_ops": {
+                "cx": 277,
+                "reset": 8,
+                "rz": 433,
+                "sx": 372,
+                "x": 10
+              },
+              "cx_count": 277,
+              "depth": 1027,
+              "num_parameters": 0,
+              "num_qubits": 8,
+              "size": 1100
+            }
+          }
+        },
+        "notes": [
+          "Circuit uses the actual selected ADAPT generators and optimized theta values.",
+          "Reference state is the warm-stage output handed to ADAPT."
+        ],
+        "title": "L=2 ADAPT-VQE"
+      },
+      "conventional_replay": {
+        "metadata": {
+          "energy": 0.15875143626314034,
+          "exact_energy": 0.1584437535268517,
+          "family_info": {
+            "fallback_family": "full_meta",
+            "fallback_used": false,
+            "requested": "match_adapt",
+            "resolution_source": "continuation.selected_generator_metadata.family_id",
+            "resolved": "paop_lf_std",
+            "warning": null
+          },
+          "reps": 1,
+          "seed_policy": "residual_only",
+          "stop_reason": "converged",
+          "transpile_metrics": {
+            "expanded_once": {
+              "count_1q": 38,
+              "count_2q": 31,
+              "count_measure": 0,
+              "count_ops": {
+                "cx": 30,
+                "h": 12,
+                "initialize": 1,
+                "ryy": 1,
+                "rz": 10,
+                "sx": 8,
+                "sxdg": 8
+              },
+              "cx_count": 30,
+              "depth": 37,
+              "num_parameters": 0,
+              "num_qubits": 8,
+              "size": 70
+            },
+            "raw": {
+              "count_1q": 0,
+              "count_2q": 0,
+              "count_measure": 0,
+              "count_ops": {
+                "PauliEvolution": 11,
+                "initialize": 1
+              },
+              "cx_count": 0,
+              "depth": 12,
+              "num_parameters": 0,
+              "num_qubits": 8,
+              "size": 12
+            },
+            "target": {
+              "backend_name": "GenericBackendV2",
+              "backend_num_qubits": 8,
+              "backend_source": "qiskit.providers.fake_provider",
+              "basis_gates": [
+                "rz",
+                "sx",
+                "x",
+                "cx"
+              ],
+              "optimization_level": 1,
+              "seed_transpiler": 7,
+              "use_fake_backend": true
+            },
+            "transpiled": {
+              "count_1q": 810,
+              "count_2q": 277,
+              "count_measure": 0,
+              "count_ops": {
+                "cx": 277,
+                "reset": 8,
+                "rz": 428,
+                "sx": 368,
+                "x": 6
+              },
+              "cx_count": 277,
+              "depth": 1016,
+              "num_parameters": 0,
+              "num_qubits": 8,
+              "size": 1087
+            }
+          }
+        },
+        "notes": [
+          "Replay circuit uses the matched ADAPT-family ansatz with the final optimized replay theta values.",
+          "This is the conventional non-ADAPT VQE stage in the staged HH workflow."
+        ],
+        "title": "L=2 matched-family replay"
+      },
+      "warm_start": {
+        "metadata": {
+          "ansatz": "hh_hva_ptw",
+          "delta_abs": 0.0026968384754519903,
+          "energy": 0.16114059200230368,
+          "exact_energy": 0.1584437535268517,
+          "reps": 3,
+          "transpile_metrics": {
+            "expanded_once": {
+              "count_1q": 332,
+              "count_2q": 324,
+              "count_measure": 0,
+              "count_ops": {
+                "cx": 264,
+                "h": 144,
+                "rxx": 12,
+                "ryy": 6,
+                "rz": 114,
+                "rzx": 24,
+                "rzz": 18,
+                "sx": 36,
+                "sxdg": 36,
+                "x": 2
+              },
+              "cx_count": 264,
+              "depth": 255,
+              "num_parameters": 0,
+              "num_qubits": 8,
+              "size": 656
+            },
+            "raw": {
+              "count_1q": 2,
+              "count_2q": 0,
+              "count_measure": 0,
+              "count_ops": {
+                "PauliEvolution": 24,
+                "x": 2
+              },
+              "cx_count": 0,
+              "depth": 25,
+              "num_parameters": 0,
+              "num_qubits": 8,
+              "size": 26
+            },
+            "target": {
+              "backend_name": "GenericBackendV2",
+              "backend_num_qubits": 8,
+              "backend_source": "qiskit.providers.fake_provider",
+              "basis_gates": [
+                "rz",
+                "sx",
+                "x",
+                "cx"
+              ],
+              "optimization_level": 1,
+              "seed_transpiler": 7,
+              "use_fake_backend": true
+            },
+            "transpiled": {
+              "count_1q": 416,
+              "count_2q": 312,
+              "count_measure": 0,
+              "count_ops": {
+                "cx": 312,
+                "rz": 320,
+                "sx": 96
+              },
+              "cx_count": 312,
+              "depth": 277,
+              "num_parameters": 0,
+              "num_qubits": 8,
+              "size": 728
+            }
+          }
+        },
+        "notes": [
+          "Representative view keeps PauliEvolutionGate blocks intact.",
+          "Expanded view applies one circuit-definition decomposition pass."
+        ],
+        "title": "L=2 warm HH-HVA"
+      }
+    },
+    "transpile_target": {
+      "backend_name": "GenericBackendV2",
+      "basis_gates": [
+        "rz",
+        "sx",
+        "x",
+        "cx"
+      ],
+      "optimization_level": 1,
+      "seed_transpiler": 7,
+      "use_fake_backend": true
+    }
+  },
+  "command": "/opt/anaconda3/bin/python pipelines/hardcoded/hh_staged_noiseless.py --L 2 --n-ph-max 2 --boundary open --ordering blocked --t 1.0 --u 4.0 --dv 0.0 --omega0 1.0 --g-ep 0.5 --warm-ansatz hh_hva_ptw --warm-method Powell --warm-reps 3 --warm-restarts 4 --warm-maxiter 1778 --adapt-pool paop_lf_std --adapt-continuation-mode phase3_v1 --adapt-maxiter 2222 --adapt-eps-grad 5e-7 --adapt-eps-energy 1e-9 --adapt-inner-optimizer Powell --adapt-beam-live-branches 2 --adapt-beam-children-per-parent 2 --adapt-beam-terminated-keep 2 --phase3-runtime-split-mode shortlist_pauli_children_v1 --final-method Powell --final-reps 1 --final-restarts 4 --final-maxiter 1778 --replay-continuation-mode phase3_v1 --noiseless-methods suzuki2 --t-final 0.1 --num-times 2 --trotter-steps 1 --exact-steps-multiplier 1 --circuit-backend-name GenericBackendV2 --circuit-use-fake-backend --circuit-transpile-optimization-level 1 --ecut-1 3e-3 --ecut-2 1e-3 --skip-pdf --smoke-test-intentionally-weak --adapt-max-depth 5 --tag corr_g0p5_sw_b2_d5_f1_r1",
+  "comparisons": {
+    "noiseless_vs_ground_state": {
+      "static": {
+        "suzuki2": {
+          "final_abs_energy_error": 0.0003680403236033247,
+          "ground_state_reference_energy": 0.1584437535268517
+        }
+      }
+    },
+    "noiseless_vs_reference": {
+      "static": {
+        "suzuki2": {
+          "final_abs_energy_total_error": 6.0357587314180394e-05,
+          "final_fidelity": 0.9999924962592946
+        }
+      }
+    },
+    "stage_gates": {
+      "ecut_1": {
+        "pass": true,
+        "threshold": 0.003
+      },
+      "ecut_2": {
+        "pass": true,
+        "threshold": 0.001
+      }
+    }
+  },
+  "default_provenance": {
+    "adapt_eps_energy": "cli",
+    "adapt_eps_grad": "cli",
+    "adapt_max_depth": "cli",
+    "adapt_maxiter": "cli",
+    "ecut_1": "cli",
+    "ecut_2": "cli",
+    "exact_steps_multiplier": "cli",
+    "final_maxiter": "cli",
+    "final_reps": "cli",
+    "final_restarts": "cli",
+    "num_times": "cli",
+    "output_json": "artifacts/json/<tag>.json",
+    "output_pdf": "artifacts/pdf/<tag>.pdf",
+    "replay_continuation_mode": "cli",
+    "seed_refine_maxiter": "workflow.seed_refine_maxiter := final_maxiter(L)",
+    "seed_refine_optimizer": "workflow.seed_refine_optimizer.default=SPSA",
+    "seed_refine_reps": "workflow.seed_refine_reps := final_reps(L)",
+    "state_export_dir": "artifacts/json",
+    "state_export_prefix": "workflow.state_export_prefix := tag",
+    "t_final": "cli",
+    "tag": "cli",
+    "trotter_steps": "cli",
+    "warm_ansatz": "cli",
+    "warm_maxiter": "cli",
+    "warm_reps": "cli",
+    "warm_restarts": "cli"
+  },
+  "dynamics_noiseless": {
+    "profiles": {
+      "static": {
+        "drive_enabled": false,
+        "drive_meta": null,
+        "drive_profile": null,
+        "ground_state_reference": {
+          "energy": 0.1584437535268517,
+          "kind": "filtered_sector_ground_state_static",
+          "source": "stage_pipeline.conventional_replay.exact_energy"
+        },
+        "methods": {
+          "suzuki2": {
+            "final": {
+              "abs_energy_error_vs_ground_state": 0.0003680403236033247,
+              "abs_energy_total_error": 6.0357587314180394e-05,
+              "abs_energy_total_error_vs_reference": 6.0357587314180394e-05,
+              "doublon_exact": 0.15141890343293757,
+              "doublon_trotter": 0.15196080816766044,
+              "energy_total_exact": 0.15875143626314084,
+              "energy_total_trotter": 0.15881179385045502,
+              "fidelity": 0.9999924962592946
+            },
+            "propagator": "suzuki2",
+            "settings": {
+              "cfqm_coeff_drop_abs_tol": 0.0,
+              "cfqm_normalize": false,
+              "cfqm_stage_exp": "expm_multiply_sparse",
+              "num_times": 2,
+              "t_final": 0.1,
+              "trotter_steps": 1
+            },
+            "trajectory": [
+              {
+                "abs_energy_error_vs_ground_state": 0.00030768273628914433,
+                "doublon_avg_exact": 0.07556002589453957,
+                "doublon_avg_exact_ansatz": 0.07556002589453957,
+                "doublon_avg_exact_hva": 0.07556002589453957,
+                "doublon_avg_exact_paop": 0.07556002589453957,
+                "doublon_avg_trotter": 0.07556002589453958,
+                "doublon_avg_trotter_hva": 0.07556002589453958,
+                "doublon_avg_trotter_paop": 0.07556002589453958,
+                "doublon_exact": 0.15112005178907914,
+                "doublon_exact_ansatz": 0.15112005178907914,
+                "doublon_exact_hva": 0.15112005178907914,
+                "doublon_exact_paop": 0.15112005178907914,
+                "doublon_trotter": 0.15112005178907917,
+                "doublon_trotter_hva": 0.15112005178907917,
+                "doublon_trotter_paop": 0.15112005178907917,
+                "energy_static_exact": 0.15875143626314078,
+                "energy_static_exact_ansatz": 0.15875143626314078,
+                "energy_static_exact_hva": 0.15875143626314078,
+                "energy_static_exact_paop": 0.15875143626314078,
+                "energy_static_trotter": 0.15875143626314084,
+                "energy_static_trotter_hva": 0.15875143626314084,
+                "energy_static_trotter_paop": 0.15875143626314084,
+                "energy_total_exact": 0.15875143626314078,
+                "energy_total_exact_ansatz": 0.15875143626314078,
+                "energy_total_exact_hva": 0.15875143626314078,
+                "energy_total_exact_paop": 0.15875143626314078,
+                "energy_total_trotter": 0.15875143626314084,
+                "energy_total_trotter_hva": 0.15875143626314084,
+                "energy_total_trotter_paop": 0.15875143626314084,
+                "fidelity": 1.0,
+                "fidelity_hva_trotter": 1.0,
+                "fidelity_paop_trotter": 1.0,
+                "legacy_branch_label": "replay",
+                "n_dn_site0_exact": 0.5003929086818014,
+                "n_dn_site0_exact_ansatz": 0.5003929086818014,
+                "n_dn_site0_exact_hva": 0.5003929086818014,
+                "n_dn_site0_exact_paop": 0.5003929086818014,
+                "n_dn_site0_trotter": 0.5003929086818016,
+                "n_dn_site0_trotter_hva": 0.5003929086818016,
+                "n_dn_site0_trotter_paop": 0.5003929086818016,
+                "n_dn_site_exact": [
+                  0.5003929086818014,
+                  0.4996070913181987
+                ],
+                "n_dn_site_exact_ansatz": [
+                  0.5003929086818014,
+                  0.4996070913181987
+                ],
+                "n_dn_site_exact_hva": [
+                  0.5003929086818014,
+                  0.4996070913181987
+                ],
+                "n_dn_site_exact_paop": [
+                  0.5003929086818014,
+                  0.4996070913181987
+                ],
+                "n_dn_site_trotter": [
+                  0.5003929086818016,
+                  0.49960709131819864
+                ],
+                "n_dn_site_trotter_hva": [
+                  0.5003929086818016,
+                  0.49960709131819864
+                ],
+                "n_dn_site_trotter_paop": [
+                  0.5003929086818016,
+                  0.49960709131819864
+                ],
+                "n_site_exact": [
+                  1.000761988430582,
+                  0.9992380115694184
+                ],
+                "n_site_exact_ansatz": [
+                  1.000761988430582,
+                  0.9992380115694184
+                ],
+                "n_site_exact_hva": [
+                  1.000761988430582,
+                  0.9992380115694184
+                ],
+                "n_site_exact_paop": [
+                  1.000761988430582,
+                  0.9992380115694184
+                ],
+                "n_site_trotter": [
+                  1.0007619884305823,
+                  0.9992380115694184
+                ],
+                "n_site_trotter_hva": [
+                  1.0007619884305823,
+                  0.9992380115694184
+                ],
+                "n_site_trotter_paop": [
+                  1.0007619884305823,
+                  0.9992380115694184
+                ],
+                "n_up_site0_exact": 0.5003690797487805,
+                "n_up_site0_exact_ansatz": 0.5003690797487805,
+                "n_up_site0_exact_hva": 0.5003690797487805,
+                "n_up_site0_exact_paop": 0.5003690797487805,
+                "n_up_site0_trotter": 0.5003690797487806,
+                "n_up_site0_trotter_hva": 0.5003690797487806,
+                "n_up_site0_trotter_paop": 0.5003690797487806,
+                "n_up_site_exact": [
+                  0.5003690797487805,
+                  0.49963092025121963
+                ],
+                "n_up_site_exact_ansatz": [
+                  0.5003690797487805,
+                  0.49963092025121963
+                ],
+                "n_up_site_exact_hva": [
+                  0.5003690797487805,
+                  0.49963092025121963
+                ],
+                "n_up_site_exact_paop": [
+                  0.5003690797487805,
+                  0.49963092025121963
+                ],
+                "n_up_site_trotter": [
+                  0.5003690797487806,
+                  0.4996309202512197
+                ],
+                "n_up_site_trotter_hva": [
+                  0.5003690797487806,
+                  0.4996309202512197
+                ],
+                "n_up_site_trotter_paop": [
+                  0.5003690797487806,
+                  0.4996309202512197
+                ],
+                "norm_before_renorm": 1.0,
+                "staggered_exact": 0.0007619884305818392,
+                "staggered_exact_ansatz": 0.0007619884305818392,
+                "staggered_exact_hva": 0.0007619884305818392,
+                "staggered_exact_paop": 0.0007619884305818392,
+                "staggered_trotter": 0.0007619884305819502,
+                "staggered_trotter_hva": 0.0007619884305819502,
+                "staggered_trotter_paop": 0.0007619884305819502,
+                "time": 0.0
+              },
+              {
+                "abs_energy_error_vs_ground_state": 0.0003680403236033247,
+                "doublon_avg_exact": 0.07570945171646878,
+                "doublon_avg_exact_ansatz": 0.07570945171646878,
+                "doublon_avg_exact_hva": 0.07570945171646878,
+                "doublon_avg_exact_paop": 0.07570945171646878,
+                "doublon_avg_trotter": 0.07598040408383022,
+                "doublon_avg_trotter_hva": 0.07598040408383022,
+                "doublon_avg_trotter_paop": 0.07598040408383022,
+                "doublon_exact": 0.15141890343293757,
+                "doublon_exact_ansatz": 0.15141890343293757,
+                "doublon_exact_hva": 0.15141890343293757,
+                "doublon_exact_paop": 0.15141890343293757,
+                "doublon_trotter": 0.15196080816766044,
+                "doublon_trotter_hva": 0.15196080816766044,
+                "doublon_trotter_paop": 0.15196080816766044,
+                "energy_static_exact": 0.15875143626314084,
+                "energy_static_exact_ansatz": 0.15875143626314084,
+                "energy_static_exact_hva": 0.15875143626314084,
+                "energy_static_exact_paop": 0.15875143626314084,
+                "energy_static_trotter": 0.15881179385045502,
+                "energy_static_trotter_hva": 0.15881179385045502,
+                "energy_static_trotter_paop": 0.15881179385045502,
+                "energy_total_exact": 0.15875143626314084,
+                "energy_total_exact_ansatz": 0.15875143626314084,
+                "energy_total_exact_hva": 0.15875143626314084,
+                "energy_total_exact_paop": 0.15875143626314084,
+                "energy_total_trotter": 0.15881179385045502,
+                "energy_total_trotter_hva": 0.15881179385045502,
+                "energy_total_trotter_paop": 0.15881179385045502,
+                "fidelity": 0.9999924962592946,
+                "fidelity_hva_trotter": 0.9999924962592946,
+                "fidelity_paop_trotter": 0.9999924962592946,
+                "legacy_branch_label": "replay",
+                "n_dn_site0_exact": 0.500374073938744,
+                "n_dn_site0_exact_ansatz": 0.500374073938744,
+                "n_dn_site0_exact_hva": 0.500374073938744,
+                "n_dn_site0_exact_paop": 0.500374073938744,
+                "n_dn_site0_trotter": 0.5003748120932665,
+                "n_dn_site0_trotter_hva": 0.5003748120932665,
+                "n_dn_site0_trotter_paop": 0.5003748120932665,
+                "n_dn_site_exact": [
+                  0.500374073938744,
+                  0.4996259260612561
+                ],
+                "n_dn_site_exact_ansatz": [
+                  0.500374073938744,
+                  0.4996259260612561
+                ],
+                "n_dn_site_exact_hva": [
+                  0.500374073938744,
+                  0.4996259260612561
+                ],
+                "n_dn_site_exact_paop": [
+                  0.500374073938744,
+                  0.4996259260612561
+                ],
+                "n_dn_site_trotter": [
+                  0.5003748120932665,
+                  0.4996251879067335
+                ],
+                "n_dn_site_trotter_hva": [
+                  0.5003748120932665,
+                  0.4996251879067335
+                ],
+                "n_dn_site_trotter_paop": [
+                  0.5003748120932665,
+                  0.4996251879067335
+                ],
+                "n_site_exact": [
+                  1.0007256011321584,
+                  0.9992743988678421
+                ],
+                "n_site_exact_ansatz": [
+                  1.0007256011321584,
+                  0.9992743988678421
+                ],
+                "n_site_exact_hva": [
+                  1.0007256011321584,
+                  0.9992743988678421
+                ],
+                "n_site_exact_paop": [
+                  1.0007256011321584,
+                  0.9992743988678421
+                ],
+                "n_site_trotter": [
+                  1.0007269277908848,
+                  0.9992730722091154
+                ],
+                "n_site_trotter_hva": [
+                  1.0007269277908848,
+                  0.9992730722091154
+                ],
+                "n_site_trotter_paop": [
+                  1.0007269277908848,
+                  0.9992730722091154
+                ],
+                "n_up_site0_exact": 0.5003515271934142,
+                "n_up_site0_exact_ansatz": 0.5003515271934142,
+                "n_up_site0_exact_hva": 0.5003515271934142,
+                "n_up_site0_exact_paop": 0.5003515271934142,
+                "n_up_site0_trotter": 0.5003521156976182,
+                "n_up_site0_trotter_hva": 0.5003521156976182,
+                "n_up_site0_trotter_paop": 0.5003521156976182,
+                "n_up_site_exact": [
+                  0.5003515271934142,
+                  0.49964847280658603
+                ],
+                "n_up_site_exact_ansatz": [
+                  0.5003515271934142,
+                  0.49964847280658603
+                ],
+                "n_up_site_exact_hva": [
+                  0.5003515271934142,
+                  0.49964847280658603
+                ],
+                "n_up_site_exact_paop": [
+                  0.5003515271934142,
+                  0.49964847280658603
+                ],
+                "n_up_site_trotter": [
+                  0.5003521156976182,
+                  0.4996478843023819
+                ],
+                "n_up_site_trotter_hva": [
+                  0.5003521156976182,
+                  0.4996478843023819
+                ],
+                "n_up_site_trotter_paop": [
+                  0.5003521156976182,
+                  0.4996478843023819
+                ],
+                "norm_before_renorm": 0.9999999999999999,
+                "staggered_exact": 0.0007256011321581379,
+                "staggered_exact_ansatz": 0.0007256011321581379,
+                "staggered_exact_hva": 0.0007256011321581379,
+                "staggered_exact_paop": 0.0007256011321581379,
+                "staggered_trotter": 0.0007269277908846794,
+                "staggered_trotter_hva": 0.0007269277908846794,
+                "staggered_trotter_paop": 0.0007269277908846794,
+                "time": 0.1
+              }
+            ]
+          }
+        },
+        "reference": {
+          "doublon_exact": [
+            0.15112005178907914,
+            0.15141890343293757
+          ],
+          "energy_total_exact": [
+            0.15875143626314078,
+            0.15875143626314084
+          ],
+          "initial_state": "psi_final",
+          "kind": "seeded_exact_reference",
+          "method": "eigendecomposition"
+        },
+        "times": [
+          0.0,
+          0.1
+        ]
+      }
+    }
+  },
+  "generated_utc": "2026-03-15T15:14:50Z",
+  "pipeline": "hh_staged_noiseless",
+  "settings": {
+    "adapt": {
+      "allow_repeats": true,
+      "beam_children_per_parent": 2,
+      "beam_live_branches": 2,
+      "beam_terminated_keep": 2,
+      "continuation_mode": "phase3_v1",
+      "disable_hh_seed": false,
+      "drop_floor": null,
+      "drop_min_depth": null,
+      "drop_patience": null,
+      "eps_energy": 1e-09,
+      "eps_grad": 5e-07,
+      "final_full_refit": true,
+      "finite_angle": 0.1,
+      "finite_angle_fallback": true,
+      "finite_angle_min_improvement": 1e-12,
+      "full_refit_every": 0,
+      "grad_floor": null,
+      "inner_optimizer": "Powell",
+      "max_depth": 5,
+      "maxiter": 2222,
+      "paop_normalization": "none",
+      "paop_prune_eps": 0.0,
+      "paop_r": 1,
+      "paop_split_paulis": false,
+      "phase1_lambda_F": 1.0,
+      "phase1_lambda_compile": 0.05,
+      "phase1_lambda_leak": 0.0,
+      "phase1_lambda_measure": 0.02,
+      "phase1_plateau_patience": 2,
+      "phase1_probe_max_positions": 6,
+      "phase1_prune_enabled": true,
+      "phase1_prune_fraction": 0.25,
+      "phase1_prune_max_candidates": 6,
+      "phase1_prune_max_regression": 1e-08,
+      "phase1_score_z_alpha": 0.0,
+      "phase1_trough_margin_ratio": 1.0,
+      "phase3_enable_rescue": false,
+      "phase3_lifetime_cost_mode": "phase3_v1",
+      "phase3_motif_source_json": null,
+      "phase3_runtime_split_mode": "shortlist_pauli_children_v1",
+      "phase3_symmetry_mitigation_mode": "off",
+      "pool": "paop_lf_std",
+      "reopt_policy": "append_only",
+      "seed": 11,
+      "spsa_A": 10.0,
+      "spsa_a": 0.2,
+      "spsa_alpha": 0.602,
+      "spsa_avg_last": 0,
+      "spsa_c": 0.1,
+      "spsa_callback_every": 5,
+      "spsa_eval_agg": "mean",
+      "spsa_eval_repeats": 1,
+      "spsa_gamma": 0.101,
+      "spsa_progress_every_s": 60.0,
+      "window_size": 3,
+      "window_topk": 0
+    },
+    "artifacts": {
+      "handoff_json": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_2/artifacts/json/corr_g0p5_sw_b2_d5_f1_r1_adapt_handoff.json",
+      "output_json": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_2/artifacts/json/corr_g0p5_sw_b2_d5_f1_r1.json",
+      "output_pdf": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_2/artifacts/pdf/corr_g0p5_sw_b2_d5_f1_r1.pdf",
+      "replay_output_csv": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_2/artifacts/json/corr_g0p5_sw_b2_d5_f1_r1_replay.csv",
+      "replay_output_json": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_2/artifacts/json/corr_g0p5_sw_b2_d5_f1_r1_replay.json",
+      "replay_output_log": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_2/artifacts/logs/corr_g0p5_sw_b2_d5_f1_r1_replay.log",
+      "replay_output_md": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_2/artifacts/useful/L2/corr_g0p5_sw_b2_d5_f1_r1_replay.md",
+      "skip_pdf": true,
+      "tag": "corr_g0p5_sw_b2_d5_f1_r1",
+      "warm_checkpoint_json": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_2/artifacts/json/corr_g0p5_sw_b2_d5_f1_r1_warm_checkpoint_state.json",
+      "warm_cutover_json": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_2/artifacts/json/corr_g0p5_sw_b2_d5_f1_r1_warm_cutover_state.json",
+      "workflow_log": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_2/artifacts/logs/corr_g0p5_sw_b2_d5_f1_r1.log"
+    },
+    "circuit_metrics": {
+      "backend_name": "GenericBackendV2",
+      "optimization_level": 1,
+      "seed_transpiler": 7,
+      "use_fake_backend": true
+    },
+    "default_provenance": {
+      "adapt_eps_energy": "cli",
+      "adapt_eps_grad": "cli",
+      "adapt_max_depth": "cli",
+      "adapt_maxiter": "cli",
+      "ecut_1": "cli",
+      "ecut_2": "cli",
+      "exact_steps_multiplier": "cli",
+      "final_maxiter": "cli",
+      "final_reps": "cli",
+      "final_restarts": "cli",
+      "num_times": "cli",
+      "output_json": "artifacts/json/<tag>.json",
+      "output_pdf": "artifacts/pdf/<tag>.pdf",
+      "replay_continuation_mode": "cli",
+      "seed_refine_maxiter": "workflow.seed_refine_maxiter := final_maxiter(L)",
+      "seed_refine_optimizer": "workflow.seed_refine_optimizer.default=SPSA",
+      "seed_refine_reps": "workflow.seed_refine_reps := final_reps(L)",
+      "state_export_dir": "artifacts/json",
+      "state_export_prefix": "workflow.state_export_prefix := tag",
+      "t_final": "cli",
+      "tag": "cli",
+      "trotter_steps": "cli",
+      "warm_ansatz": "cli",
+      "warm_maxiter": "cli",
+      "warm_reps": "cli",
+      "warm_restarts": "cli"
+    },
+    "dynamics": {
+      "cfqm_coeff_drop_abs_tol": 0.0,
+      "cfqm_normalize": false,
+      "cfqm_stage_exp": "expm_multiply_sparse",
+      "drive_A": 0.6,
+      "drive_custom_s": null,
+      "drive_include_identity": false,
+      "drive_omega": 2.0,
+      "drive_pattern": "staggered",
+      "drive_phi": 0.0,
+      "drive_t0": 0.0,
+      "drive_tbar": 2.5,
+      "drive_time_sampling": "midpoint",
+      "enable_drive": false,
+      "exact_steps_multiplier": 1,
+      "fidelity_subspace_energy_tol": 1e-09,
+      "methods": [
+        "suzuki2"
+      ],
+      "num_times": 2,
+      "t_final": 0.1,
+      "trotter_steps": 1
+    },
+    "external_noise_handle": null,
+    "fixed_final_state": null,
+    "gates": {
+      "ecut_1": 0.003,
+      "ecut_2": 0.001
+    },
+    "physics": {
+      "L": 2,
+      "boson_encoding": "binary",
+      "boundary": "open",
+      "dv": 0.0,
+      "g_ep": 0.5,
+      "n_ph_max": 2,
+      "omega0": 1.0,
+      "ordering": "blocked",
+      "sector_n_dn": 1,
+      "sector_n_up": 1,
+      "t": 1.0,
+      "u": 4.0
+    },
+    "replay": {
+      "continuation_mode": "phase3_v1",
+      "energy_backend": "one_apply_compiled",
+      "fallback_family": "full_meta",
+      "generator_family": "match_adapt",
+      "legacy_paop_key": "paop_lf_std",
+      "maxiter": 1778,
+      "method": "Powell",
+      "paop_normalization": "none",
+      "paop_prune_eps": 0.0,
+      "paop_r": 1,
+      "paop_split_paulis": false,
+      "phase3_symmetry_mitigation_mode": "off",
+      "progress_every_s": 60.0,
+      "replay_freeze_fraction": 0.2,
+      "replay_full_fraction": 0.5,
+      "replay_qn_spsa_refresh_every": 5,
+      "replay_qn_spsa_refresh_mode": "diag_rms_grad",
+      "replay_seed_policy": "auto",
+      "replay_unfreeze_fraction": 0.3,
+      "reps": 1,
+      "restarts": 4,
+      "seed": 19,
+      "spsa_A": 10.0,
+      "spsa_a": 0.2,
+      "spsa_alpha": 0.602,
+      "spsa_avg_last": 0,
+      "spsa_c": 0.1,
+      "spsa_eval_agg": "mean",
+      "spsa_eval_repeats": 1,
+      "spsa_gamma": 0.101,
+      "wallclock_cap_s": 43200
+    },
+    "seed_refine": {
+      "family": null,
+      "maxiter": 1778,
+      "optimizer": "SPSA",
+      "reps": 2
+    },
+    "smoke_test_intentionally_weak": true,
+    "warm_checkpoint": {
+      "handoff_from_warm_checkpoint": null,
+      "resume_from_warm_checkpoint": null,
+      "state_export_dir": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_2/artifacts/json",
+      "state_export_prefix": "corr_g0p5_sw_b2_d5_f1_r1",
+      "stop_delta_abs": null,
+      "stop_energy": null
+    },
+    "warm_start": {
+      "ansatz_name": "hh_hva_ptw",
+      "energy_backend": "one_apply_compiled",
+      "maxiter": 1778,
+      "method": "Powell",
+      "progress_every_s": 60.0,
+      "reps": 3,
+      "restarts": 4,
+      "seed": 7,
+      "spsa_A": 10.0,
+      "spsa_a": 0.2,
+      "spsa_alpha": 0.602,
+      "spsa_avg_last": 0,
+      "spsa_c": 0.1,
+      "spsa_eval_agg": "mean",
+      "spsa_eval_repeats": 1,
+      "spsa_gamma": 0.101
+    }
+  },
+  "stage_pipeline": {
+    "adapt_vqe": {
+      "adapt_ref_json": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_2/artifacts/json/corr_g0p5_sw_b2_d5_f1_r1_warm_cutover_state.json",
+      "continuation_mode": "phase3_v1",
+      "delta_abs": 0.0003077035855972299,
+      "depth": 11,
+      "energy": 0.15875145711244892,
+      "exact_energy": 0.1584437535268517,
+      "handoff_json": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_2/artifacts/json/corr_g0p5_sw_b2_d5_f1_r1_adapt_handoff.json",
+      "initial_state_source": "adapt_ref_json",
+      "pool_type": "phase3_v1",
+      "skip_reason": null,
+      "skipped": false,
+      "stop_reason": "max_depth"
+    },
+    "conventional_replay": {
+      "delta_abs": 0.00030768273628864473,
+      "ecut_2": {
+        "pass": true,
+        "threshold": 0.001
+      },
+      "energy": 0.15875143626314034,
+      "exact_energy": 0.1584437535268517,
+      "generator_family": {
+        "fallback_family": "full_meta",
+        "fallback_used": false,
+        "requested": "match_adapt",
+        "resolution_source": "continuation.selected_generator_metadata.family_id",
+        "resolved": "paop_lf_std",
+        "warning": null
+      },
+      "replay_continuation_mode": "phase3_v1",
+      "replay_output_json": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_2/artifacts/json/corr_g0p5_sw_b2_d5_f1_r1_replay.json",
+      "seed_baseline": {
+        "abs_delta_e": 0.00030770358559817357,
+        "energy": 0.15875145711244987,
+        "relative_error_abs": 0.0019420367086041457,
+        "theta_policy": "residual_only"
+      },
+      "skip_reason": null,
+      "skipped": false,
+      "stop_reason": "converged"
+    },
+    "hf_reference": {
+      "nq_total": 8,
+      "sector_n_dn": 1,
+      "sector_n_up": 1,
+      "state_kind": "reference_state"
+    },
+    "warm_start": {
+      "ansatz": "hh_hva_ptw",
+      "checkpoint_json_latest": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_2/artifacts/json/corr_g0p5_sw_b2_d5_f1_r1_warm_checkpoint_state.json",
+      "checkpoint_json_used": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_2/artifacts/json/corr_g0p5_sw_b2_d5_f1_r1_warm_cutover_state.json",
+      "cutoff_reason": null,
+      "cutoff_triggered": false,
+      "delta_abs": 0.0026968384754519903,
+      "ecut_1": {
+        "pass": true,
+        "threshold": 0.003
+      },
+      "energy": 0.16114059200230368,
+      "exact_energy": 0.1584437535268517,
+      "maxiter": 1778,
+      "message": "Optimization terminated successfully.",
+      "optimizer_method": "Powell",
+      "reps": 3,
+      "restarts": 4,
+      "resumed_from_checkpoint": false,
+      "skip_reason": null,
+      "skipped": false
+    }
+  },
+  "workflow_contract": {
+    "conventional_vqe_definition": "non-ADAPT matched-family replay from ADAPT handoff",
+    "drive_default": "opt_in",
+    "noiseless_energy_metric": "|E_method(t) - E_exact_sector_replay| with replay exact sector energy as baseline",
+    "noiseless_fidelity_metric": "fidelity(method(t), exact-propagated psi_final)",
+    "stage_chain": [
+      "hf_reference",
+      "warm_start_hva",
+      "adapt_vqe",
+      "matched_family_replay",
+      "final_only_noiseless_dynamics"
+    ]
+  }
+}

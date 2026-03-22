@@ -1,0 +1,4 @@
+ansatz_label,reps,num_parameters,max_transpiled_count_2q,max_transpiled_depth,final_transpiled_count_2q,final_transpiled_depth,final_fidelity,min_fidelity,max_abs_energy_total_error,final_abs_energy_total_error,budget_pass
+local_y_xx-zz_reps1,1,22,20,28,20,25,0.9708893024530812,0.9708893024530812,0.12051718176700696,0.12051718176700696,True
+local_y_xx-zz_reps2,2,44,40,45,40,43,0.9932489956810361,0.9932489956810361,0.00791309767900239,0.00791309767900239,True
+local_y_xx-zz_reps3,3,66,60,63,60,60,0.999208681685985,0.9988588896373958,0.0033612245473959718,0.0033612245473959718,True

@@ -10,6 +10,9 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
+from src.quantum.ansatz_parameterization import build_parameter_layout, serialize_layout
+from src.quantum.vqe_latex_python_pairs import AnsatzTerm, PauliPolynomial, PauliTerm
+
 import pipelines.hardcoded.hh_staged_workflow as wf
 from pipelines.hardcoded.hh_staged_noiseless import parse_args
 from pipelines.hardcoded.hh_staged_workflow import resolve_staged_hh_config
@@ -101,6 +104,23 @@ def test_workflow_runs_matched_family_replay_and_static_plus_drive_profiles(
     psi_warm = _basis(dim, 1)
     psi_adapt = _basis(dim, 2)
     psi_final = _basis(dim, 3)
+    runtime_layout = serialize_layout(
+        build_parameter_layout(
+            [
+                AnsatzTerm(
+                    label="op_1",
+                    polynomial=PauliPolynomial(
+                        "JW",
+                        [PauliTerm(6, ps="xeeeee", pc=1.0), PauliTerm(6, ps="zeeeee", pc=0.5)],
+                    ),
+                ),
+                AnsatzTerm(
+                    label="op_2",
+                    polynomial=PauliPolynomial("JW", [PauliTerm(6, ps="eyeeee", pc=1.0)]),
+                ),
+            ]
+        )
+    )
     calls: dict[str, object] = {}
 
     monkeypatch.setattr(wf, "build_hubbard_holstein_hamiltonian", lambda **kwargs: object())
@@ -127,11 +147,15 @@ def test_workflow_runs_matched_family_replay_and_static_plus_drive_profiles(
             "exact_gs_energy": -1.04,
             "abs_delta_e": 0.01,
             "ansatz_depth": 2,
+            "num_parameters": 3,
+            "logical_num_parameters": 2,
             "pool_type": "phase1_v1",
             "continuation_mode": str(kwargs["adapt_continuation_mode"]),
             "stop_reason": "eps_grad",
             "operators": ["op_1", "op_2"],
-            "optimal_point": [0.1, 0.2],
+            "optimal_point": [0.1, 0.15, 0.2],
+            "logical_optimal_point": [0.125, 0.2],
+            "parameterization": runtime_layout,
             "measurement_cache_summary": {
                 "groups_known": 3.0,
                 "plan_version": "phase1_qwc_basis_cover_reuse",
@@ -255,10 +279,19 @@ def test_workflow_runs_matched_family_replay_and_static_plus_drive_profiles(
     assert str(adapt_kwargs["adapt_pool"]) == "pareto_lean"
     assert np.allclose(adapt_kwargs["psi_ref_override"], psi_warm)
     assert handoff_kwargs["handoff_state_kind"] == "prepared_state"
+    assert np.allclose(handoff_kwargs["ansatz_input_state"], psi_warm)
+    assert handoff_kwargs["ansatz_input_state_source"] == "warm_start_hva"
+    assert handoff_kwargs["ansatz_input_state_handoff_state_kind"] == "prepared_state"
+    assert handoff_kwargs["adapt_optimal_point"] == [0.1, 0.15, 0.2]
+    assert handoff_kwargs["adapt_logical_optimal_point"] == [0.125, 0.2]
+    assert handoff_kwargs["adapt_logical_num_parameters"] == 2
+    assert handoff_kwargs["adapt_parameterization"]["mode"] == "per_pauli_term_v1"
     assert replay_cfg.generator_family == "match_adapt"
     assert replay_cfg.replay_continuation_mode == "phase1_v1"
     assert payload["stage_pipeline"]["conventional_replay"]["generator_family"]["requested"] == "match_adapt"
     assert payload["stage_pipeline"]["adapt_vqe"]["measurement_cache_summary"]["groups_known"] == pytest.approx(3.0)
+    assert payload["stage_pipeline"]["adapt_vqe"]["num_parameters"] == 3
+    assert payload["stage_pipeline"]["adapt_vqe"]["logical_num_parameters"] == 2
     assert payload["stage_pipeline"]["adapt_vqe"]["compile_cost_proxy_summary"]["version"] == "phase3_v1_proxy"
     assert payload["stage_pipeline"]["adapt_vqe"]["runtime_split_summary"]["selected_child_count"] == 1
     assert set(payload["dynamics_noiseless"]["profiles"].keys()) == {"static", "drive"}

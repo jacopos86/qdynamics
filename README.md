@@ -201,7 +201,14 @@ graph TB
   - These treat one logical `(F_a, M_μ)` pair as separate fermion/motif parameters during execution and replay.
   - They are additive opt-in surfaces and do not change the staged `phase3_v1` default path.
 - HH full-meta preset: `full_meta` = `uccsd_lifted + hva + paop_full + paop_lf_full` (deduplicated) via one CLI value; keep it as a compatibility/broad-pool preset and replay fallback, not the default depth-0 staged HH pool.
+- HH lean replay/export presets: `pareto_lean` and `pareto_lean_l2`.
+  - `pareto_lean_l2` is intentionally narrow: valid only for `L=2` and `n_ph_max=1`.
 - Opt-in runtime split (`--phase3-runtime-split-mode shortlist_pauli_children_v1`) probes shortlisted macro generators as serialized child terms for continuation/replay provenance; it does **not** change the default HH pool curriculum or create a new replay mode.
+- ADAPT/replay parameter contract:
+  - `operators` / `ansatz_depth` remain the logical generator scaffold.
+  - `optimal_point` / `num_parameters` are the runtime per-Pauli rotation vector/count.
+  - `logical_optimal_point` / `logical_num_parameters` preserve one-value-per-generator reporting.
+  - `parameterization` stores the logical-to-runtime block map used by replay and cost reconstruction.
 - `paop_min`: displacement-focused PAOP operators.
 - `paop_std`: displacement plus dressed-hopping (`hopdrag`) operators.
 - `paop_full`: `paop_std` plus doublon dressing and extended cloud operators.
@@ -292,6 +299,8 @@ python pipelines/hardcoded/adapt_pipeline.py \
   --initial-state-source adapt_vqe --skip-pdf \
   --output-json artifacts/json/adapt_L2_hh_paop_std.json
 ```
+
+Runtime note: ADAPT execution now applies one variational parameter per active Pauli term inside each selected generator. Exported JSON therefore distinguishes logical scaffold size (`ansatz_depth`, `logical_*`) from runtime rotation count (`num_parameters`, `optimal_point`).
 
 Cross-check suite (exact benchmark; auto-scaled by L/problem defaults):
 

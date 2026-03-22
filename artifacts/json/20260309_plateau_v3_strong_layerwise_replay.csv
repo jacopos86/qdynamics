@@ -1,0 +1,2 @@
+tag,family_requested,family_resolved,method,reps,delta_abs,relative_error_abs,gate_pass_1e2,runtime_s,stop_reason,output_json,output_log
+20260309_plateau_v3_strong_layerwise_replay,match_adapt,paop_lf_std,SPSA,2,0.2837240138007979,8.89967251876572,False,104.98888083361089,converged,/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_2/artifacts/json/20260309_plateau_v3_strong_layerwise_replay.json,/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_2/artifacts/logs/20260309_plateau_v3_strong_layerwise_replay.log

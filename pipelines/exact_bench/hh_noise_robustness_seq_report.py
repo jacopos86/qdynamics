@@ -23,7 +23,7 @@ import sys
 import time
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
+from typing import Any, Mapping, Sequence
 
 import numpy as np
 
@@ -72,7 +72,9 @@ from src.quantum.hubbard_latex_python_pairs import (
 from src.quantum.operator_pools import make_pool as make_paop_pool
 from src.quantum.pauli_polynomial_class import PauliPolynomial
 from src.quantum.qubitization_module import PauliTerm
+from src.quantum.spsa_optimizer import spsa_minimize
 from src.quantum.time_propagation.cfqm_schemes import get_cfqm_scheme
+from src.quantum.ansatz_parameterization import project_runtime_theta_block_mean
 from src.quantum.vqe_latex_python_pairs import (
     AnsatzTerm,
     HardcodedUCCSDAnsatz,
@@ -100,6 +102,7 @@ from pipelines.exact_bench.statevector_kernels import (
     prepare_state_for_ansatz as _prepare_state_for_ansatz,
 )
 from pipelines.exact_bench.noise_oracle_runtime import (
+    BACKEND_SCHEDULED_ATTRIBUTION_SLICES,
     ExpectationOracle,
     OracleConfig,
     _append_reference_state,
@@ -108,6 +111,11 @@ from pipelines.exact_bench.noise_oracle_runtime import (
     normalize_ideal_reference_symmetry_mitigation,
     normalize_mitigation_config,
     normalize_symmetry_mitigation_config,
+)
+from pipelines.hardcoded.adapt_circuit_cost import (
+    _build_ansatz_circuit,
+    _load_adapt_result,
+    reconstruct_imported_adapt_circuit,
 )
 from pipelines.hardcoded import hubbard_pipeline as hc_pipeline
 
@@ -235,6 +243,206 @@ def _build_hh_hamiltonian(args: argparse.Namespace) -> Any:
         pbc=(str(args.boundary).strip().lower() == "periodic"),
         include_zero_point=True,
     )
+
+
+def _import_amplitudes_qn_to_q0_to_statevector(
+    amps_payload: dict[str, Any],
+    *,
+    nq: int,
+) -> np.ndarray:
+    state = np.zeros(int(1 << int(nq)), dtype=complex)
+    for bitstr_raw, coeff_raw in amps_payload.items():
+        coeff_map = dict(coeff_raw) if isinstance(coeff_raw, dict) else {}
+        amp = complex(float(coeff_map.get("re", 0.0)), float(coeff_map.get("im", 0.0)))
+        state[int(str(bitstr_raw), 2)] = amp
+    return _normalize_state(state)
+
+
+def _classify_imported_payload(raw_payload: dict[str, Any]) -> str:
+    if not isinstance(raw_payload, dict):
+        return "unknown"
+    adapt_vqe = raw_payload.get("adapt_vqe", {})
+    if isinstance(raw_payload.get("ground_state"), dict):
+        return "direct_adapt_artifact"
+    if isinstance(adapt_vqe, dict) and isinstance(adapt_vqe.get("continuation"), dict):
+        return "direct_adapt_artifact"
+    if isinstance(raw_payload.get("continuation"), dict) or isinstance(raw_payload.get("meta"), dict):
+        return "handoff_bundle"
+    return "unknown"
+
+
+def _load_imported_artifact_context(artifact_json: str | Path) -> dict[str, Any]:
+    path = Path(artifact_json)
+    raw_payload = _load_adapt_result(path)
+    bundle = reconstruct_imported_adapt_circuit(raw_payload)
+    payload = bundle["payload"]
+    settings = dict(bundle["settings"])
+    ordered_labels_exyz, static_coeff_map_exyz = _collect_hardcoded_terms_exyz(bundle["h_poly"])
+    prepared_state = None
+    init = payload.get("initial_state", {}) if isinstance(payload, dict) else {}
+    if isinstance(init, dict) and isinstance(init.get("amplitudes_qn_to_q0"), dict):
+        nq = int(init.get("nq_total", bundle["num_qubits"]))
+        prepared_state = _import_amplitudes_qn_to_q0_to_statevector(
+            dict(init["amplitudes_qn_to_q0"]),
+            nq=int(nq),
+        )
+    exact_energy = None
+    adapt_vqe = payload.get("adapt_vqe", {}) if isinstance(payload, dict) else {}
+    if isinstance(adapt_vqe, dict):
+        exact_energy = adapt_vqe.get("exact_gs_energy", None)
+    if exact_energy is None and isinstance(payload.get("exact", {}), dict):
+        exact_energy = payload["exact"].get("E_exact_sector", None)
+    return {
+        "path": path,
+        "source_kind": _classify_imported_payload(dict(raw_payload) if isinstance(raw_payload, dict) else {}),
+        "payload": payload,
+        "settings": settings,
+        "ordered_labels_exyz": list(ordered_labels_exyz),
+        "static_coeff_map_exyz": dict(static_coeff_map_exyz),
+        "prepared_state": prepared_state,
+        "ansatz_input_state": bundle.get("ansatz_input_state", None),
+        "ansatz_input_state_meta": dict(bundle.get("ansatz_input_state_meta", {})),
+        "circuit": bundle["circuit"],
+        "layout": bundle["layout"],
+        "theta_runtime": bundle["theta_runtime"],
+        "num_qubits": int(bundle["num_qubits"]),
+        "saved_energy": (
+            None if not isinstance(adapt_vqe, dict) else adapt_vqe.get("energy", None)
+        ),
+        "exact_energy": exact_energy,
+    }
+
+
+def _imported_pool_type(ctx: Mapping[str, Any]) -> str | None:
+    payload = ctx.get("payload", {}) if isinstance(ctx, Mapping) else {}
+    adapt_vqe = payload.get("adapt_vqe", {}) if isinstance(payload, Mapping) else {}
+    settings = ctx.get("settings", {}) if isinstance(ctx, Mapping) else {}
+    if isinstance(settings, Mapping) and settings.get("adapt_pool", None) is not None:
+        value = str(settings.get("adapt_pool")).strip().lower()
+        return value or None
+    if isinstance(adapt_vqe, Mapping) and adapt_vqe.get("pool_type", None) is not None:
+        value = str(adapt_vqe.get("pool_type")).strip().lower()
+        return value or None
+    return None
+
+
+def _resolve_locked_imported_lean_context(
+    artifact_json: str | Path,
+    *,
+    nonlean_reason: str,
+) -> tuple[dict[str, Any] | None, dict[str, Any], str | None, dict[str, Any] | None]:
+    ctx = _load_imported_artifact_context(artifact_json)
+    ansatz_input_state_meta = dict(ctx.get("ansatz_input_state_meta", {}))
+    if not bool(ansatz_input_state_meta.get("available", False)):
+        return (
+            None,
+            ansatz_input_state_meta,
+            None,
+            {
+                "success": False,
+                "available": False,
+                "reason": str(
+                    ansatz_input_state_meta.get("reason", "missing_ansatz_input_state_provenance")
+                ),
+                "source_kind": str(ctx.get("source_kind", "unknown")),
+                "artifact_json": str(ctx["path"]),
+                "structure_locked": False,
+            },
+        )
+    pool_type = _imported_pool_type(ctx)
+    if str(pool_type) != "pareto_lean_l2":
+        return (
+            None,
+            ansatz_input_state_meta,
+            pool_type,
+            {
+                "success": False,
+                "available": False,
+                "reason": str(nonlean_reason),
+                "source_kind": str(ctx.get("source_kind", "unknown")),
+                "artifact_json": str(ctx["path"]),
+                "pool_type": pool_type,
+                "structure_locked": False,
+            },
+        )
+    return ctx, ansatz_input_state_meta, str(pool_type), None
+
+
+def _bounded_append(history: list[dict[str, Any]], row: dict[str, Any], *, limit: int = 400) -> None:
+    history.append(dict(row))
+    if len(history) > int(limit):
+        del history[:-int(limit)]
+
+
+def _evaluate_locked_imported_circuit_energy(
+    *,
+    circuit: QuantumCircuit,
+    ordered_labels_exyz: Sequence[str],
+    static_coeff_map_exyz: Mapping[str, complex],
+    shots: int,
+    seed: int,
+    oracle_repeats: int,
+    oracle_aggregate: str,
+    mitigation_config: Mapping[str, Any],
+    symmetry_mitigation_config: Mapping[str, Any],
+    backend_name: str | None,
+    use_fake_backend: bool,
+    allow_aer_fallback: bool,
+    omp_shm_workaround: bool,
+) -> dict[str, Any]:
+    qop = build_time_dependent_sparse_qop(
+        ordered_labels_exyz=list(ordered_labels_exyz),
+        static_coeff_map_exyz=dict(static_coeff_map_exyz),
+        drive_coeff_map_exyz=None,
+    )
+    noisy_cfg = OracleConfig(
+        noise_mode="backend_scheduled",
+        shots=int(shots),
+        seed=int(seed),
+        oracle_repeats=int(oracle_repeats),
+        oracle_aggregate=str(oracle_aggregate),
+        backend_name=(None if backend_name is None else str(backend_name)),
+        use_fake_backend=bool(use_fake_backend),
+        allow_aer_fallback=bool(allow_aer_fallback),
+        aer_fallback_mode="sampler_shots",
+        omp_shm_workaround=bool(omp_shm_workaround),
+        mitigation=dict(normalize_mitigation_config(mitigation_config)),
+        symmetry_mitigation=dict(normalize_symmetry_mitigation_config(symmetry_mitigation_config)),
+    )
+    ideal_cfg = OracleConfig(
+        noise_mode="ideal",
+        shots=int(shots),
+        seed=int(seed),
+        oracle_repeats=int(oracle_repeats),
+        oracle_aggregate=str(oracle_aggregate),
+        backend_name=None,
+        use_fake_backend=False,
+        mitigation={"mode": "none", "zne_scales": [], "dd_sequence": None, "local_readout_strategy": None},
+        symmetry_mitigation={"mode": "off"},
+    )
+    with ExpectationOracle(noisy_cfg) as noisy_oracle, ExpectationOracle(ideal_cfg) as ideal_oracle:
+        noisy = noisy_oracle.evaluate(circuit, qop)
+        ideal = ideal_oracle.evaluate(circuit, qop)
+        backend_info = {
+            "noise_mode": str(noisy_oracle.backend_info.noise_mode),
+            "estimator_kind": str(noisy_oracle.backend_info.estimator_kind),
+            "backend_name": noisy_oracle.backend_info.backend_name,
+            "using_fake_backend": bool(noisy_oracle.backend_info.using_fake_backend),
+            "details": dict(noisy_oracle.backend_info.details),
+        }
+    return {
+        "noisy_mean": float(noisy.mean),
+        "noisy_std": float(noisy.std),
+        "noisy_stdev": float(noisy.stdev),
+        "noisy_stderr": float(noisy.stderr),
+        "ideal_mean": float(ideal.mean),
+        "ideal_std": float(ideal.std),
+        "ideal_stdev": float(ideal.stdev),
+        "ideal_stderr": float(ideal.stderr),
+        "delta_mean": float(noisy.mean - ideal.mean),
+        "delta_stderr": float(_combine_stderr(noisy.stderr, ideal.stderr)),
+        "backend_info": backend_info,
+    }
 
 
 def _build_reference_state(args: argparse.Namespace, num_particles: tuple[int, int]) -> np.ndarray:
@@ -1513,11 +1721,11 @@ def _run_noisy_method_trajectory(
     }
 
 
-def _run_noisy_final_state_audit(
+def _run_static_observable_audit_core(
     *,
     L: int,
     ordering: str,
-    psi_seed: np.ndarray,
+    initial_circuit: QuantumCircuit,
     ordered_labels_exyz: list[str],
     static_coeff_map_exyz: dict[str, complex],
     drive_profile: dict[str, Any] | None,
@@ -1532,17 +1740,16 @@ def _run_noisy_final_state_audit(
     use_fake_backend: bool,
     allow_aer_fallback: bool,
     omp_shm_workaround: bool,
+    audit_source: dict[str, Any] | None = None,
+    extra_meta: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    nq = int(round(math.log2(int(np.asarray(psi_seed).size))))
+    nq = int(initial_circuit.num_qubits)
     drive_provider_exyz, drive_meta = _drive_provider_from_profile(
         profile=drive_profile,
         num_sites=int(L),
         nq_total=int(nq),
         ordering=str(ordering),
     )
-
-    initial_circuit = QuantumCircuit(int(nq))
-    _append_reference_state(initial_circuit, np.asarray(psi_seed, dtype=complex))
 
     static_qop = build_time_dependent_sparse_qop(
         ordered_labels_exyz=ordered_labels_exyz,
@@ -1571,6 +1778,11 @@ def _run_noisy_final_state_audit(
         symmetry_mitigation_config,
         noise_mode=str(noise_mode),
     )
+    noisy_mitigation_config = (
+        {"mode": "none", "zne_scales": [], "dd_sequence": None, "local_readout_strategy": None}
+        if str(noise_mode).strip().lower() == "ideal"
+        else dict(normalize_mitigation_config(mitigation_config))
+    )
 
     noisy_cfg = OracleConfig(
         noise_mode=str(noise_mode),
@@ -1583,7 +1795,7 @@ def _run_noisy_final_state_audit(
         allow_aer_fallback=bool(allow_aer_fallback),
         aer_fallback_mode="sampler_shots",
         omp_shm_workaround=bool(omp_shm_workaround),
-        mitigation=dict(mitigation_config),
+        mitigation=dict(noisy_mitigation_config),
         symmetry_mitigation=dict(symmetry_mitigation_config),
     )
     ideal_cfg = OracleConfig(
@@ -1594,7 +1806,7 @@ def _run_noisy_final_state_audit(
         oracle_aggregate=str(oracle_aggregate),
         backend_name=None,
         use_fake_backend=False,
-        mitigation={"mode": "none", "zne_scales": [], "dd_sequence": None},
+        mitigation={"mode": "none", "zne_scales": [], "dd_sequence": None, "local_readout_strategy": None},
         symmetry_mitigation=dict(ideal_symmetry_mitigation_config),
     )
 
@@ -1654,12 +1866,713 @@ def _run_noisy_final_state_audit(
             "shots": int(shots),
             "oracle_repeats": int(oracle_repeats),
             "oracle_aggregate": str(oracle_aggregate),
-            "mitigation": dict(mitigation_config),
+            "mitigation": dict(noisy_mitigation_config),
             "symmetry_mitigation": dict(symmetry_mitigation_config),
         },
         "final_observables": obs_map,
         "delta_uncertainty": delta_unc,
+        "audit_source": (dict(audit_source) if isinstance(audit_source, dict) else {}),
+        "extra_meta": (dict(extra_meta) if isinstance(extra_meta, dict) else {}),
         **backend_details,
+    }
+
+
+def _run_noisy_final_state_audit(
+    *,
+    L: int,
+    ordering: str,
+    psi_seed: np.ndarray,
+    ordered_labels_exyz: list[str],
+    static_coeff_map_exyz: dict[str, complex],
+    drive_profile: dict[str, Any] | None,
+    noise_mode: str,
+    shots: int,
+    seed: int,
+    oracle_repeats: int,
+    oracle_aggregate: str,
+    mitigation_config: dict[str, Any],
+    symmetry_mitigation_config: dict[str, Any],
+    backend_name: str | None,
+    use_fake_backend: bool,
+    allow_aer_fallback: bool,
+    omp_shm_workaround: bool,
+) -> dict[str, Any]:
+    nq = int(round(math.log2(int(np.asarray(psi_seed).size))))
+    initial_circuit = QuantumCircuit(int(nq))
+    _append_reference_state(initial_circuit, np.asarray(psi_seed, dtype=complex))
+    return _run_static_observable_audit_core(
+        L=int(L),
+        ordering=str(ordering),
+        initial_circuit=initial_circuit,
+        ordered_labels_exyz=list(ordered_labels_exyz),
+        static_coeff_map_exyz=dict(static_coeff_map_exyz),
+        drive_profile=drive_profile,
+        noise_mode=str(noise_mode),
+        shots=int(shots),
+        seed=int(seed),
+        oracle_repeats=int(oracle_repeats),
+        oracle_aggregate=str(oracle_aggregate),
+        mitigation_config=dict(mitigation_config),
+        symmetry_mitigation_config=dict(symmetry_mitigation_config),
+        backend_name=backend_name,
+        use_fake_backend=bool(use_fake_backend),
+        allow_aer_fallback=bool(allow_aer_fallback),
+        omp_shm_workaround=bool(omp_shm_workaround),
+        audit_source={
+            "kind": "replay_prepared_state",
+            "includes_ansatz_stateprep_noise": False,
+        },
+    )
+
+
+def _run_imported_prepared_state_audit(
+    *,
+    artifact_json: str,
+    noise_mode: str,
+    shots: int,
+    seed: int,
+    oracle_repeats: int,
+    oracle_aggregate: str,
+    mitigation_config: dict[str, Any],
+    symmetry_mitigation_config: dict[str, Any],
+    backend_name: str | None,
+    use_fake_backend: bool,
+    allow_aer_fallback: bool,
+    omp_shm_workaround: bool,
+) -> dict[str, Any]:
+    ctx = _load_imported_artifact_context(artifact_json)
+    prepared_state = ctx.get("prepared_state", None)
+    if prepared_state is None:
+        return {
+            "success": False,
+            "available": False,
+            "reason": "initial_state_missing",
+            "source_kind": str(ctx.get("source_kind", "unknown")),
+            "artifact_json": str(ctx["path"]),
+        }
+    initial_circuit = QuantumCircuit(int(ctx["num_qubits"]))
+    _append_reference_state(initial_circuit, np.asarray(prepared_state, dtype=complex).reshape(-1))
+    return _run_static_observable_audit_core(
+        L=int(ctx["settings"].get("L", 2)),
+        ordering=str(ctx["settings"].get("ordering", "blocked")),
+        initial_circuit=initial_circuit,
+        ordered_labels_exyz=list(ctx["ordered_labels_exyz"]),
+        static_coeff_map_exyz=dict(ctx["static_coeff_map_exyz"]),
+        drive_profile=None,
+        noise_mode=str(noise_mode),
+        shots=int(shots),
+        seed=int(seed),
+        oracle_repeats=int(oracle_repeats),
+        oracle_aggregate=str(oracle_aggregate),
+        mitigation_config=dict(mitigation_config),
+        symmetry_mitigation_config=dict(symmetry_mitigation_config),
+        backend_name=backend_name,
+        use_fake_backend=bool(use_fake_backend),
+        allow_aer_fallback=bool(allow_aer_fallback),
+        omp_shm_workaround=bool(omp_shm_workaround),
+        audit_source={
+            "kind": "imported_prepared_state",
+            "includes_ansatz_stateprep_noise": False,
+            "source_kind": str(ctx.get("source_kind", "unknown")),
+            "artifact_json": str(ctx["path"]),
+        },
+        extra_meta={
+            "saved_artifact_energy": ctx.get("saved_energy", None),
+            "exact_energy": ctx.get("exact_energy", None),
+        },
+    )
+
+
+def _run_imported_full_circuit_audit(
+    *,
+    artifact_json: str,
+    noise_mode: str,
+    shots: int,
+    seed: int,
+    oracle_repeats: int,
+    oracle_aggregate: str,
+    mitigation_config: dict[str, Any],
+    symmetry_mitigation_config: dict[str, Any],
+    backend_name: str | None,
+    use_fake_backend: bool,
+    allow_aer_fallback: bool,
+    omp_shm_workaround: bool,
+) -> dict[str, Any]:
+    ctx = _load_imported_artifact_context(artifact_json)
+    ansatz_input_state_meta = dict(ctx.get("ansatz_input_state_meta", {}))
+    if not bool(ansatz_input_state_meta.get("available", False)):
+        return {
+            "success": False,
+            "available": False,
+            "reason": str(ansatz_input_state_meta.get("reason", "missing_ansatz_input_state_provenance")),
+            "source_kind": str(ctx.get("source_kind", "unknown")),
+            "artifact_json": str(ctx["path"]),
+            "reference_state_embedded": False,
+            "ansatz_input_state_source": ansatz_input_state_meta.get("source", None),
+            "ansatz_input_state_kind": ansatz_input_state_meta.get("handoff_state_kind", None),
+            "error": ansatz_input_state_meta.get("error", None),
+        }
+    payload = _run_static_observable_audit_core(
+        L=int(ctx["settings"].get("L", 2)),
+        ordering=str(ctx["settings"].get("ordering", "blocked")),
+        initial_circuit=ctx["circuit"],
+        ordered_labels_exyz=list(ctx["ordered_labels_exyz"]),
+        static_coeff_map_exyz=dict(ctx["static_coeff_map_exyz"]),
+        drive_profile=None,
+        noise_mode=str(noise_mode),
+        shots=int(shots),
+        seed=int(seed),
+        oracle_repeats=int(oracle_repeats),
+        oracle_aggregate=str(oracle_aggregate),
+        mitigation_config=dict(mitigation_config),
+        symmetry_mitigation_config=dict(symmetry_mitigation_config),
+        backend_name=backend_name,
+        use_fake_backend=bool(use_fake_backend),
+        allow_aer_fallback=bool(allow_aer_fallback),
+        omp_shm_workaround=bool(omp_shm_workaround),
+        audit_source={
+            "kind": "full_circuit_import",
+            "includes_ansatz_stateprep_noise": True,
+            "source_kind": str(ctx.get("source_kind", "unknown")),
+            "artifact_json": str(ctx["path"]),
+            "reference_state_embedded": True,
+            "ansatz_input_state_source": ansatz_input_state_meta.get("source", None),
+            "ansatz_input_state_kind": ansatz_input_state_meta.get("handoff_state_kind", None),
+        },
+        extra_meta={
+            "saved_artifact_energy": ctx.get("saved_energy", None),
+            "exact_energy": ctx.get("exact_energy", None),
+            "logical_parameter_count": int(ctx["layout"].logical_parameter_count),
+            "runtime_parameter_count": int(ctx["layout"].runtime_parameter_count),
+        },
+    )
+    energy_static = payload.get("final_observables", {}).get("energy_static", {})
+    if isinstance(energy_static, dict):
+        payload["full_circuit_reference"] = {
+            "saved_artifact_energy": ctx.get("saved_energy", None),
+            "ideal_circuit_energy": energy_static.get("ideal_mean", None),
+            "ideal_circuit_minus_saved_artifact": (
+                None
+                if ctx.get("saved_energy", None) is None or energy_static.get("ideal_mean", None) is None
+                else float(energy_static["ideal_mean"]) - float(ctx["saved_energy"])
+            ),
+        }
+    return payload
+
+
+def _run_imported_fixed_lean_noisy_replay(
+    *,
+    artifact_json: str,
+    shots: int,
+    seed: int,
+    oracle_repeats: int,
+    oracle_aggregate: str,
+    backend_name: str | None,
+    use_fake_backend: bool,
+    allow_aer_fallback: bool,
+    omp_shm_workaround: bool,
+    optimizer_method: str,
+    optimizer_seed: int,
+    optimizer_maxiter: int,
+    optimizer_wallclock_cap_s: int,
+    spsa_a: float,
+    spsa_c: float,
+    spsa_alpha: float,
+    spsa_gamma: float,
+    spsa_A: float,
+    spsa_avg_last: int,
+    spsa_eval_repeats: int,
+    spsa_eval_agg: str,
+    mitigation_config: dict[str, Any],
+    symmetry_mitigation_config: dict[str, Any],
+) -> dict[str, Any]:
+    ctx, ansatz_input_state_meta, pool_type, error_payload = _resolve_locked_imported_lean_context(
+        artifact_json,
+        nonlean_reason="fixed_lean_replay_requires_pareto_lean_l2_source",
+    )
+    if error_payload is not None or ctx is None:
+        return dict(error_payload or {})
+
+    mitigation_cfg = dict(normalize_mitigation_config(mitigation_config))
+    symmetry_cfg = dict(normalize_symmetry_mitigation_config(symmetry_mitigation_config))
+    if str(mitigation_cfg.get("mode", "none")) != "readout":
+        return {
+            "success": False,
+            "available": False,
+            "reason": "fixed_lean_replay_requires_readout_mitigation",
+            "artifact_json": str(ctx["path"]),
+        }
+    strategy = str(mitigation_cfg.get("local_readout_strategy") or "mthree")
+    if strategy != "mthree":
+        return {
+            "success": False,
+            "available": False,
+            "reason": "fixed_lean_replay_requires_mthree",
+            "artifact_json": str(ctx["path"]),
+        }
+    mitigation_cfg["local_readout_strategy"] = "mthree"
+    if str(symmetry_cfg.get("mode", "off")) != "off":
+        return {
+            "success": False,
+            "available": False,
+            "reason": "fixed_lean_replay_requires_symmetry_off",
+            "artifact_json": str(ctx["path"]),
+        }
+    optimizer_method_key = str(optimizer_method).strip().lower()
+    if optimizer_method_key not in {"spsa", "powell"}:
+        return {
+            "success": False,
+            "available": False,
+            "reason": "fixed_lean_replay_requires_spsa_or_powell",
+            "artifact_json": str(ctx["path"]),
+            "optimizer_method": str(optimizer_method),
+        }
+
+    layout = ctx["layout"]
+    nq = int(ctx["num_qubits"])
+    theta0 = np.asarray(ctx["theta_runtime"], dtype=float).reshape(-1)
+    ref_state = np.asarray(ctx["ansatz_input_state"], dtype=complex).reshape(-1)
+    ordered_labels_exyz = list(ctx["ordered_labels_exyz"])
+    static_coeff_map_exyz = dict(ctx["static_coeff_map_exyz"])
+    qop = build_time_dependent_sparse_qop(
+        ordered_labels_exyz=ordered_labels_exyz,
+        static_coeff_map_exyz=static_coeff_map_exyz,
+        drive_coeff_map_exyz=None,
+    )
+
+    noisy_cfg = OracleConfig(
+        noise_mode="backend_scheduled",
+        shots=int(shots),
+        seed=int(seed),
+        oracle_repeats=int(oracle_repeats),
+        oracle_aggregate=str(oracle_aggregate),
+        backend_name=(None if backend_name is None else str(backend_name)),
+        use_fake_backend=bool(use_fake_backend),
+        allow_aer_fallback=bool(allow_aer_fallback),
+        aer_fallback_mode="sampler_shots",
+        omp_shm_workaround=bool(omp_shm_workaround),
+        mitigation=dict(mitigation_cfg),
+        symmetry_mitigation=dict(symmetry_cfg),
+    )
+
+    class _WallclockStop(RuntimeError):
+        pass
+
+    t0 = time.perf_counter()
+    objective_history_tail: list[dict[str, Any]] = []
+    objective_calls_total = 0
+    best_eval: dict[str, Any] | None = None
+    wallclock_hit = False
+    optimizer_exception: Exception | None = None
+    res = None
+
+    with ExpectationOracle(noisy_cfg) as noisy_oracle:
+        def _objective(theta: np.ndarray) -> float:
+            nonlocal objective_calls_total, best_eval, wallclock_hit
+            elapsed_s = float(time.perf_counter() - t0)
+            if elapsed_s >= float(optimizer_wallclock_cap_s) and objective_calls_total > 0:
+                wallclock_hit = True
+                raise _WallclockStop("fixed lean noisy replay wallclock cap reached")
+            theta_arr = np.asarray(theta, dtype=float).reshape(-1)
+            qc = _build_ansatz_circuit(layout, theta_arr, int(nq), ref_state=ref_state)
+            est = noisy_oracle.evaluate(qc, qop)
+            objective_calls_total += 1
+            row = {
+                "call_index": int(objective_calls_total),
+                "elapsed_s": float(time.perf_counter() - t0),
+                "energy_noisy_mean": float(est.mean),
+                "energy_noisy_stderr": float(est.stderr),
+                "theta_runtime": [float(x) for x in theta_arr.tolist()],
+            }
+            _bounded_append(objective_history_tail, row)
+            if (
+                best_eval is None
+                or float(est.mean) < float(best_eval["energy_noisy_mean"])
+                or (
+                    float(est.mean) == float(best_eval["energy_noisy_mean"])
+                    and float(est.stderr) < float(best_eval["energy_noisy_stderr"])
+                )
+            ):
+                best_eval = {
+                    "energy_noisy_mean": float(est.mean),
+                    "energy_noisy_stderr": float(est.stderr),
+                    "theta_runtime": np.asarray(theta_arr, dtype=float),
+                    "call_index": int(objective_calls_total),
+                }
+            return float(est.mean)
+
+        try:
+            if optimizer_method_key == "spsa":
+                res = spsa_minimize(
+                    fun=_objective,
+                    x0=theta0,
+                    maxiter=int(optimizer_maxiter),
+                    seed=int(optimizer_seed),
+                    a=float(spsa_a),
+                    c=float(spsa_c),
+                    alpha=float(spsa_alpha),
+                    gamma=float(spsa_gamma),
+                    A=float(spsa_A),
+                    bounds=None,
+                    project="none",
+                    eval_repeats=int(spsa_eval_repeats),
+                    eval_agg=str(spsa_eval_agg),
+                    avg_last=int(spsa_avg_last),
+                )
+            else:
+                try:
+                    from scipy.optimize import minimize as scipy_minimize  # type: ignore
+                except Exception as exc:
+                    raise RuntimeError("SciPy minimize is unavailable for Powell fixed lean noisy replay.") from exc
+                res = scipy_minimize(
+                    _objective,
+                    theta0,
+                    method="Powell",
+                    options={"maxiter": int(optimizer_maxiter)},
+                )
+        except _WallclockStop:
+            wallclock_hit = True
+        except Exception as exc:
+            optimizer_exception = exc
+
+        backend_info = {
+            "noise_mode": str(noisy_oracle.backend_info.noise_mode),
+            "estimator_kind": str(noisy_oracle.backend_info.estimator_kind),
+            "backend_name": noisy_oracle.backend_info.backend_name,
+            "using_fake_backend": bool(noisy_oracle.backend_info.using_fake_backend),
+            "details": dict(noisy_oracle.backend_info.details),
+        }
+
+    if optimizer_exception is not None:
+        return {
+            "success": False,
+            "available": False,
+            "reason": "optimizer_exception",
+            "error": f"{type(optimizer_exception).__name__}: {optimizer_exception}",
+            "artifact_json": str(ctx["path"]),
+            "structure_locked": True,
+            "pool_type": str(pool_type),
+        }
+    if wallclock_hit and best_eval is None:
+        return {
+            "success": False,
+            "available": False,
+            "reason": "wallclock_cap_before_first_eval",
+            "artifact_json": str(ctx["path"]),
+            "structure_locked": True,
+            "pool_type": str(pool_type),
+        }
+
+    theta_best = (
+        np.asarray(best_eval["theta_runtime"], dtype=float)
+        if wallclock_hit and best_eval is not None
+        else np.asarray(res.x if res is not None else theta0, dtype=float).reshape(-1)
+    )
+    stop_reason = "wallclock_cap" if wallclock_hit else "optimizer_complete"
+    optimizer_success = bool(wallclock_hit or (res is not None and bool(res.success)))
+    optimizer_message = "best-so-far returned at wallclock cap"
+    optimizer_nfev = int(objective_calls_total)
+    optimizer_nit = 0 if res is None else int(res.nit)
+    if res is not None:
+        optimizer_message = str(res.message)
+        optimizer_nfev = int(res.nfev)
+
+    initial_circuit = _build_ansatz_circuit(layout, theta0, int(nq), ref_state=ref_state)
+    best_circuit = _build_ansatz_circuit(layout, theta_best, int(nq), ref_state=ref_state)
+    initial_eval = _evaluate_locked_imported_circuit_energy(
+        circuit=initial_circuit,
+        ordered_labels_exyz=ordered_labels_exyz,
+        static_coeff_map_exyz=static_coeff_map_exyz,
+        shots=int(shots),
+        seed=int(seed),
+        oracle_repeats=int(oracle_repeats),
+        oracle_aggregate=str(oracle_aggregate),
+        mitigation_config=mitigation_cfg,
+        symmetry_mitigation_config=symmetry_cfg,
+        backend_name=backend_name,
+        use_fake_backend=bool(use_fake_backend),
+        allow_aer_fallback=bool(allow_aer_fallback),
+        omp_shm_workaround=bool(omp_shm_workaround),
+    )
+    best_eval_final = _evaluate_locked_imported_circuit_energy(
+        circuit=best_circuit,
+        ordered_labels_exyz=ordered_labels_exyz,
+        static_coeff_map_exyz=static_coeff_map_exyz,
+        shots=int(shots),
+        seed=int(seed),
+        oracle_repeats=int(oracle_repeats),
+        oracle_aggregate=str(oracle_aggregate),
+        mitigation_config=mitigation_cfg,
+        symmetry_mitigation_config=symmetry_cfg,
+        backend_name=backend_name,
+        use_fake_backend=bool(use_fake_backend),
+        allow_aer_fallback=bool(allow_aer_fallback),
+        omp_shm_workaround=bool(omp_shm_workaround),
+    )
+
+    theta0_logical = np.asarray(project_runtime_theta_block_mean(theta0, layout), dtype=float)
+    theta_best_logical = np.asarray(project_runtime_theta_block_mean(theta_best, layout), dtype=float)
+    return {
+        "success": bool(optimizer_success),
+        "available": True,
+        "route": "fixed_lean_scaffold_noisy_replay",
+        "artifact_json": str(ctx["path"]),
+        "source_kind": str(ctx.get("source_kind", "unknown")),
+        "pool_type": str(pool_type),
+        "structure_locked": True,
+        "matched_family_replay": False,
+        "full_circuit_import_audit": False,
+        "reps": 1,
+        "reference_state_embedded": True,
+        "ansatz_input_state_source": ansatz_input_state_meta.get("source", None),
+        "ansatz_input_state_kind": ansatz_input_state_meta.get("handoff_state_kind", None),
+        "parameterization": {
+            "mode": "per_pauli_term_v1",
+            "logical_parameter_count": int(layout.logical_parameter_count),
+            "runtime_parameter_count": int(layout.runtime_parameter_count),
+        },
+        "optimizer": {
+            "method": ("SPSA" if optimizer_method_key == "spsa" else "Powell"),
+            "seed": int(optimizer_seed),
+            "maxiter": int(optimizer_maxiter),
+            "wallclock_cap_s": int(optimizer_wallclock_cap_s),
+            "stop_reason": str(stop_reason),
+            "iterations_completed": int(optimizer_nit),
+            "objective_calls_total": int(optimizer_nfev),
+            "message": str(optimizer_message),
+        },
+        "noise_config": {
+            "noise_mode": "backend_scheduled",
+            "shots": int(shots),
+            "oracle_repeats": int(oracle_repeats),
+            "oracle_aggregate": str(oracle_aggregate),
+            "mitigation": dict(mitigation_cfg),
+            "symmetry_mitigation": dict(symmetry_cfg),
+        },
+        "theta": {
+            "initial_runtime": [float(x) for x in theta0.tolist()],
+            "best_runtime": [float(x) for x in theta_best.tolist()],
+            "initial_logical": [float(x) for x in theta0_logical.tolist()],
+            "best_logical": [float(x) for x in theta_best_logical.tolist()],
+        },
+        "energies": {
+            "saved_artifact_energy": ctx.get("saved_energy", None),
+            "initial_noisy_mean": float(initial_eval["noisy_mean"]),
+            "initial_noisy_stderr": float(initial_eval["noisy_stderr"]),
+            "initial_ideal_mean": float(initial_eval["ideal_mean"]),
+            "initial_ideal_stderr": float(initial_eval["ideal_stderr"]),
+            "best_noisy_mean": float(best_eval_final["noisy_mean"]),
+            "best_noisy_stderr": float(best_eval_final["noisy_stderr"]),
+            "best_ideal_mean": float(best_eval_final["ideal_mean"]),
+            "best_ideal_stderr": float(best_eval_final["ideal_stderr"]),
+            "best_noisy_minus_ideal": float(best_eval_final["delta_mean"]),
+            "best_noisy_minus_ideal_stderr": float(best_eval_final["delta_stderr"]),
+            "best_ideal_minus_saved_artifact": (
+                None
+                if ctx.get("saved_energy", None) is None
+                else float(best_eval_final["ideal_mean"]) - float(ctx["saved_energy"])
+            ),
+        },
+        "objective_history_tail": list(objective_history_tail),
+        "backend_info": dict(best_eval_final.get("backend_info", backend_info)),
+        "elapsed_s": float(time.perf_counter() - t0),
+    }
+
+
+def _run_imported_fixed_lean_noise_attribution(
+    *,
+    artifact_json: str,
+    shots: int,
+    seed: int,
+    oracle_repeats: int,
+    oracle_aggregate: str,
+    backend_name: str | None,
+    use_fake_backend: bool,
+    allow_aer_fallback: bool,
+    omp_shm_workaround: bool,
+    mitigation_config: dict[str, Any],
+    symmetry_mitigation_config: dict[str, Any],
+    slices: Sequence[str] = BACKEND_SCHEDULED_ATTRIBUTION_SLICES,
+) -> dict[str, Any]:
+    ctx, ansatz_input_state_meta, pool_type, error_payload = _resolve_locked_imported_lean_context(
+        artifact_json,
+        nonlean_reason="fixed_lean_attribution_requires_pareto_lean_l2_source",
+    )
+    if error_payload is not None or ctx is None:
+        return dict(error_payload or {})
+
+    mitigation_cfg = dict(normalize_mitigation_config(mitigation_config))
+    symmetry_cfg = dict(normalize_symmetry_mitigation_config(symmetry_mitigation_config))
+    if str(mitigation_cfg.get("mode", "none")) != "none":
+        return {
+            "success": False,
+            "available": False,
+            "reason": "fixed_lean_attribution_requires_mitigation_none",
+            "artifact_json": str(ctx["path"]),
+        }
+    if str(symmetry_cfg.get("mode", "off")) != "off":
+        return {
+            "success": False,
+            "available": False,
+            "reason": "fixed_lean_attribution_requires_symmetry_off",
+            "artifact_json": str(ctx["path"]),
+        }
+
+    requested_slices = tuple(str(x).strip().lower() for x in slices)
+    qop = build_time_dependent_sparse_qop(
+        ordered_labels_exyz=list(ctx["ordered_labels_exyz"]),
+        static_coeff_map_exyz=dict(ctx["static_coeff_map_exyz"]),
+        drive_coeff_map_exyz=None,
+    )
+    noisy_cfg = OracleConfig(
+        noise_mode="backend_scheduled",
+        shots=int(shots),
+        seed=int(seed),
+        oracle_repeats=int(oracle_repeats),
+        oracle_aggregate=str(oracle_aggregate),
+        backend_name=(None if backend_name is None else str(backend_name)),
+        use_fake_backend=bool(use_fake_backend),
+        allow_aer_fallback=bool(allow_aer_fallback),
+        aer_fallback_mode="sampler_shots",
+        omp_shm_workaround=bool(omp_shm_workaround),
+        mitigation={"mode": "none", "zne_scales": [], "dd_sequence": None, "local_readout_strategy": None},
+        symmetry_mitigation={"mode": "off"},
+    )
+    ideal_cfg = OracleConfig(
+        noise_mode="ideal",
+        shots=int(shots),
+        seed=int(seed),
+        oracle_repeats=int(oracle_repeats),
+        oracle_aggregate=str(oracle_aggregate),
+        backend_name=None,
+        use_fake_backend=False,
+        mitigation={"mode": "none", "zne_scales": [], "dd_sequence": None, "local_readout_strategy": None},
+        symmetry_mitigation={"mode": "off"},
+    )
+
+    t0 = time.perf_counter()
+    with ExpectationOracle(noisy_cfg) as noisy_oracle, ExpectationOracle(ideal_cfg) as ideal_oracle:
+        ideal_est = ideal_oracle.evaluate(ctx["circuit"], qop)
+        attribution = noisy_oracle.evaluate_backend_scheduled_attribution(
+            ctx["circuit"],
+            qop,
+            slices=requested_slices,
+        )
+
+    ideal_reference = {
+        "mean": float(ideal_est.mean),
+        "std": float(ideal_est.std),
+        "stdev": float(ideal_est.stdev),
+        "stderr": float(ideal_est.stderr),
+        "n_samples": int(ideal_est.n_samples),
+        "raw_values": [float(x) for x in ideal_est.raw_values],
+        "aggregate": str(ideal_est.aggregate),
+    }
+    slice_payloads: dict[str, Any] = {}
+    successful_slices: list[str] = []
+    for slice_name in requested_slices:
+        rec = attribution.get("slices", {}).get(str(slice_name), {})
+        if not isinstance(rec, Mapping):
+            slice_payloads[str(slice_name)] = {
+                "success": False,
+                "slice": str(slice_name),
+                "components": {},
+                "noisy_mean": None,
+                "noisy_std": None,
+                "noisy_stdev": None,
+                "noisy_stderr": None,
+                "ideal_mean": float(ideal_est.mean),
+                "ideal_std": float(ideal_est.std),
+                "ideal_stdev": float(ideal_est.stdev),
+                "ideal_stderr": float(ideal_est.stderr),
+                "delta_mean": None,
+                "delta_stderr": None,
+                "backend_info": None,
+                "reason": "missing_slice_payload",
+                "error": None,
+            }
+            continue
+        est = rec.get("estimate", None)
+        success = bool(rec.get("success", False) and est is not None)
+        if success:
+            successful_slices.append(str(slice_name))
+        noisy_mean = None if est is None else float(est.mean)
+        noisy_std = None if est is None else float(est.std)
+        noisy_stdev = None if est is None else float(est.stdev)
+        noisy_stderr = None if est is None else float(est.stderr)
+        delta_mean = None if est is None else float(est.mean - ideal_est.mean)
+        delta_stderr = None if est is None else float(_combine_stderr(est.stderr, ideal_est.stderr))
+        slice_payloads[str(slice_name)] = {
+            "success": bool(success),
+            "slice": str(slice_name),
+            "components": dict(rec.get("components", {})) if isinstance(rec.get("components", {}), Mapping) else {},
+            "noisy_mean": noisy_mean,
+            "noisy_std": noisy_std,
+            "noisy_stdev": noisy_stdev,
+            "noisy_stderr": noisy_stderr,
+            "ideal_mean": float(ideal_est.mean),
+            "ideal_std": float(ideal_est.std),
+            "ideal_stdev": float(ideal_est.stdev),
+            "ideal_stderr": float(ideal_est.stderr),
+            "delta_mean": delta_mean,
+            "delta_stderr": delta_stderr,
+            "backend_info": dict(rec.get("backend_info", {})) if isinstance(rec.get("backend_info", {}), Mapping) else None,
+            "reason": rec.get("reason", None),
+            "error": rec.get("error", None),
+        }
+
+    full_delta = slice_payloads.get("full", {}).get("delta_mean", None)
+    readout_delta = slice_payloads.get("readout_only", {}).get("delta_mean", None)
+    gate_delta = slice_payloads.get("gate_stateprep_only", {}).get("delta_mean", None)
+    full_noisy = slice_payloads.get("full", {}).get("noisy_mean", None)
+    readout_noisy = slice_payloads.get("readout_only", {}).get("noisy_mean", None)
+    gate_noisy = slice_payloads.get("gate_stateprep_only", {}).get("noisy_mean", None)
+
+    def _maybe_diff(a: Any, b: Any) -> float | None:
+        if a is None or b is None:
+            return None
+        return float(a) - float(b)
+
+    return {
+        "success": bool(len(successful_slices) == len(requested_slices)),
+        "available": True,
+        "route": "fixed_lean_noise_attribution",
+        "artifact_json": str(ctx["path"]),
+        "source_kind": str(ctx.get("source_kind", "unknown")),
+        "pool_type": str(pool_type),
+        "structure_locked": True,
+        "matched_family_replay": False,
+        "parameter_optimization": False,
+        "reference_state_embedded": True,
+        "ansatz_input_state_source": ansatz_input_state_meta.get("source", None),
+        "ansatz_input_state_kind": ansatz_input_state_meta.get("handoff_state_kind", None),
+        "parameterization": {
+            "mode": "per_pauli_term_v1",
+            "logical_parameter_count": int(ctx["layout"].logical_parameter_count),
+            "runtime_parameter_count": int(ctx["layout"].runtime_parameter_count),
+            "theta_source": "imported_artifact_runtime_theta",
+        },
+        "noise_config": {
+            "noise_mode": "backend_scheduled",
+            "shots": int(shots),
+            "oracle_repeats": int(oracle_repeats),
+            "oracle_aggregate": str(oracle_aggregate),
+            "mitigation": dict(mitigation_cfg),
+            "symmetry_mitigation": dict(symmetry_cfg),
+        },
+        "shared_compile": dict(attribution.get("shared_compile", {})),
+        "ideal_reference": ideal_reference,
+        "slices": slice_payloads,
+        "slice_comparisons": {
+            "full_minus_readout_only": _maybe_diff(full_noisy, readout_noisy),
+            "full_minus_gate_stateprep_only": _maybe_diff(full_noisy, gate_noisy),
+            "component_additivity_residual": (
+                None
+                if full_delta is None or readout_delta is None or gate_delta is None
+                else float(full_delta) - float(readout_delta) - float(gate_delta)
+            ),
+        },
+        "elapsed_s": float(time.perf_counter() - t0),
     }
 
 
@@ -1729,6 +2642,38 @@ def _noisy_audit_worker_entry(queue: Any, kwargs: dict[str, Any]) -> None:
         queue.put({"ok": False, "error": f"{type(exc).__name__}: {exc}"})
 
 
+def _imported_prepared_state_audit_worker_entry(queue: Any, kwargs: dict[str, Any]) -> None:
+    try:
+        payload = _run_imported_prepared_state_audit(**kwargs)
+        queue.put({"ok": True, "payload": payload})
+    except Exception as exc:  # pragma: no cover - subprocess fault path
+        queue.put({"ok": False, "error": f"{type(exc).__name__}: {exc}"})
+
+
+def _imported_full_circuit_audit_worker_entry(queue: Any, kwargs: dict[str, Any]) -> None:
+    try:
+        payload = _run_imported_full_circuit_audit(**kwargs)
+        queue.put({"ok": True, "payload": payload})
+    except Exception as exc:  # pragma: no cover - subprocess fault path
+        queue.put({"ok": False, "error": f"{type(exc).__name__}: {exc}"})
+
+
+def _imported_fixed_lean_noisy_replay_worker_entry(queue: Any, kwargs: dict[str, Any]) -> None:
+    try:
+        payload = _run_imported_fixed_lean_noisy_replay(**kwargs)
+        queue.put({"ok": True, "payload": payload})
+    except Exception as exc:  # pragma: no cover - subprocess fault path
+        queue.put({"ok": False, "error": f"{type(exc).__name__}: {exc}"})
+
+
+def _imported_fixed_lean_noise_attribution_worker_entry(queue: Any, kwargs: dict[str, Any]) -> None:
+    try:
+        payload = _run_imported_fixed_lean_noise_attribution(**kwargs)
+        queue.put({"ok": True, "payload": payload})
+    except Exception as exc:  # pragma: no cover - subprocess fault path
+        queue.put({"ok": False, "error": f"{type(exc).__name__}: {exc}"})
+
+
 def _run_noisy_audit_mode_isolated(
     *,
     kwargs: dict[str, Any],
@@ -1766,6 +2711,190 @@ def _run_noisy_audit_mode_isolated(
             "exitcode": int(proc.exitcode or 0),
         }
 
+    msg = queue.get()
+    if not bool(msg.get("ok", False)):
+        return {
+            "success": False,
+            "env_blocked": True,
+            "reason": "worker_exception",
+            "error": str(msg.get("error", "unknown")),
+            "exitcode": int(proc.exitcode or 0),
+        }
+    return dict(msg.get("payload", {}))
+
+
+def _run_imported_prepared_state_audit_mode_isolated(
+    *,
+    kwargs: dict[str, Any],
+    timeout_s: int,
+) -> dict[str, Any]:
+    ctx = mp.get_context("spawn")
+    queue = ctx.Queue()
+    proc = ctx.Process(target=_imported_prepared_state_audit_worker_entry, args=(queue, kwargs), daemon=False)
+    proc.start()
+    proc.join(timeout=float(timeout_s))
+    if proc.is_alive():
+        proc.terminate()
+        proc.join(5.0)
+        return {
+            "success": False,
+            "env_blocked": True,
+            "reason": f"timeout_after_{int(timeout_s)}s",
+            "exitcode": proc.exitcode,
+        }
+    if int(proc.exitcode or 0) != 0:
+        return {
+            "success": False,
+            "env_blocked": True,
+            "reason": "subprocess_nonzero_exit",
+            "exitcode": int(proc.exitcode or 0),
+        }
+    if queue.empty():
+        return {
+            "success": False,
+            "env_blocked": True,
+            "reason": "subprocess_completed_without_payload",
+            "exitcode": int(proc.exitcode or 0),
+        }
+    msg = queue.get()
+    if not bool(msg.get("ok", False)):
+        return {
+            "success": False,
+            "env_blocked": True,
+            "reason": "worker_exception",
+            "error": str(msg.get("error", "unknown")),
+            "exitcode": int(proc.exitcode or 0),
+        }
+    return dict(msg.get("payload", {}))
+
+
+def _run_imported_full_circuit_audit_mode_isolated(
+    *,
+    kwargs: dict[str, Any],
+    timeout_s: int,
+) -> dict[str, Any]:
+    ctx = mp.get_context("spawn")
+    queue = ctx.Queue()
+    proc = ctx.Process(target=_imported_full_circuit_audit_worker_entry, args=(queue, kwargs), daemon=False)
+    proc.start()
+    proc.join(timeout=float(timeout_s))
+    if proc.is_alive():
+        proc.terminate()
+        proc.join(5.0)
+        return {
+            "success": False,
+            "env_blocked": True,
+            "reason": f"timeout_after_{int(timeout_s)}s",
+            "exitcode": proc.exitcode,
+        }
+    if int(proc.exitcode or 0) != 0:
+        return {
+            "success": False,
+            "env_blocked": True,
+            "reason": "subprocess_nonzero_exit",
+            "exitcode": int(proc.exitcode or 0),
+        }
+    if queue.empty():
+        return {
+            "success": False,
+            "env_blocked": True,
+            "reason": "subprocess_completed_without_payload",
+            "exitcode": int(proc.exitcode or 0),
+        }
+    msg = queue.get()
+    if not bool(msg.get("ok", False)):
+        return {
+            "success": False,
+            "env_blocked": True,
+            "reason": "worker_exception",
+            "error": str(msg.get("error", "unknown")),
+            "exitcode": int(proc.exitcode or 0),
+        }
+    return dict(msg.get("payload", {}))
+
+
+def _run_imported_fixed_lean_noisy_replay_mode_isolated(
+    *,
+    kwargs: dict[str, Any],
+    timeout_s: int,
+) -> dict[str, Any]:
+    ctx = mp.get_context("spawn")
+    queue = ctx.Queue()
+    proc = ctx.Process(target=_imported_fixed_lean_noisy_replay_worker_entry, args=(queue, kwargs), daemon=False)
+    proc.start()
+    proc.join(timeout=float(timeout_s))
+    if proc.is_alive():
+        proc.terminate()
+        proc.join(5.0)
+        return {
+            "success": False,
+            "env_blocked": True,
+            "reason": f"timeout_after_{int(timeout_s)}s",
+            "exitcode": proc.exitcode,
+        }
+    if int(proc.exitcode or 0) != 0:
+        return {
+            "success": False,
+            "env_blocked": True,
+            "reason": "subprocess_nonzero_exit",
+            "exitcode": int(proc.exitcode or 0),
+        }
+    if queue.empty():
+        return {
+            "success": False,
+            "env_blocked": True,
+            "reason": "subprocess_completed_without_payload",
+            "exitcode": int(proc.exitcode or 0),
+        }
+    msg = queue.get()
+    if not bool(msg.get("ok", False)):
+        return {
+            "success": False,
+            "env_blocked": True,
+            "reason": "worker_exception",
+            "error": str(msg.get("error", "unknown")),
+            "exitcode": int(proc.exitcode or 0),
+        }
+    return dict(msg.get("payload", {}))
+
+
+def _run_imported_fixed_lean_noise_attribution_mode_isolated(
+    *,
+    kwargs: dict[str, Any],
+    timeout_s: int,
+) -> dict[str, Any]:
+    ctx = mp.get_context("spawn")
+    queue = ctx.Queue()
+    proc = ctx.Process(
+        target=_imported_fixed_lean_noise_attribution_worker_entry,
+        args=(queue, kwargs),
+        daemon=False,
+    )
+    proc.start()
+    proc.join(timeout=float(timeout_s))
+    if proc.is_alive():
+        proc.terminate()
+        proc.join(5.0)
+        return {
+            "success": False,
+            "env_blocked": True,
+            "reason": f"timeout_after_{int(timeout_s)}s",
+            "exitcode": proc.exitcode,
+        }
+    if int(proc.exitcode or 0) != 0:
+        return {
+            "success": False,
+            "env_blocked": True,
+            "reason": "subprocess_nonzero_exit",
+            "exitcode": int(proc.exitcode or 0),
+        }
+    if queue.empty():
+        return {
+            "success": False,
+            "env_blocked": True,
+            "reason": "subprocess_completed_without_payload",
+            "exitcode": int(proc.exitcode or 0),
+        }
     msg = queue.get()
     if not bool(msg.get("ok", False)):
         return {

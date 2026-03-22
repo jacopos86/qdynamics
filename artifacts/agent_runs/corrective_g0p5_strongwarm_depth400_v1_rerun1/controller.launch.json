@@ -1,0 +1,8 @@
+{
+  "status": "running",
+  "pid": 6601,
+  "started_utc": "2026-03-15T15:09:39.436464Z",
+  "controller": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_2/artifacts/agent_runs/corrective_g0p5_strongwarm_depth400_v1_rerun1/controller.py",
+  "manifest": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_2/artifacts/agent_runs/corrective_g0p5_strongwarm_depth400_v1_rerun1/manifest.json",
+  "log": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_2/artifacts/agent_runs/corrective_g0p5_strongwarm_depth400_v1_rerun1/controller.stdout.log"
+}

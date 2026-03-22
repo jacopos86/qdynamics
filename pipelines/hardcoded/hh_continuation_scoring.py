@@ -314,8 +314,10 @@ def simple_v1_score(
         return float("-inf")
     if not bool(feat.leakage_gate_open):
         return float("-inf")
+    if not bool(feat.compile_gate_open):
+        return float("-inf")
 
-    compile_proxy = float(feat.compiled_position_cost_proxy.get("proxy_total", 0.0))
+    compile_proxy = float(feat.compile_cost_total)
     groups_new = float(feat.measurement_cache_stats.get("groups_new", 0.0))
     shots_new = float(feat.measurement_cache_stats.get("shots_new", 0.0))
     reuse_count_cost = float(feat.measurement_cache_stats.get("reuse_count_cost", 0.0))
@@ -402,6 +404,8 @@ def full_v2_score(
 ) -> tuple[float, str]:
     if (not bool(feat.stage_gate_open)) or (not bool(feat.leakage_gate_open)):
         return float("-inf"), "blocked_stage_or_leakage_gate"
+    if not bool(feat.compile_gate_open):
+        return float("-inf"), "compile_gate_closed"
     if float(feat.leakage_penalty) > float(cfg.leakage_cap):
         return float("-inf"), "leakage_cap"
 
@@ -1025,6 +1029,38 @@ def build_candidate_features(
         max_depth=max_depth,
         mode=str(remaining_evaluations_proxy_mode),
     )
+    proxy_cost = (
+        dict(compile_cost.proxy_baseline)
+        if isinstance(compile_cost.proxy_baseline, Mapping)
+        else {
+            "new_pauli_actions": float(compile_cost.new_pauli_actions),
+            "new_rotation_steps": float(compile_cost.new_rotation_steps),
+            "position_shift_span": float(compile_cost.position_shift_span),
+            "refit_active_count": float(compile_cost.refit_active_count),
+            "cx_proxy_total": float(compile_cost.cx_proxy_total),
+            "sq_proxy_total": float(compile_cost.sq_proxy_total),
+            "gate_proxy_total": float(compile_cost.gate_proxy_total),
+            "max_pauli_weight": float(compile_cost.max_pauli_weight),
+            "proxy_total": float(compile_cost.proxy_total),
+        }
+    )
+    compile_cost_total = (
+        float(compile_cost.penalty_total)
+        if compile_cost.penalty_total is not None
+        else float(compile_cost.proxy_total)
+    )
+    depth_cost_value = (
+        float(compile_cost.depth_surrogate)
+        if compile_cost.depth_surrogate is not None
+        else float(
+            (
+                float(proxy_cost.get("gate_proxy_total", 0.0))
+                if float(proxy_cost.get("gate_proxy_total", 0.0)) > 0.0
+                else float(proxy_cost.get("new_rotation_steps", 0.0))
+            )
+            + float(proxy_cost.get("position_shift_span", 0.0))
+        )
+    )
     feat = CandidateFeatures(
         stage_name=str(stage_name),
         candidate_label=str(candidate_label),
@@ -1043,17 +1079,7 @@ def build_candidate_features(
         curvature_mode="lambda_F_metric_proxy_only",
         novelty_mode="none",
         refit_window_indices=[int(i) for i in refit_window_indices],
-        compiled_position_cost_proxy={
-            "new_pauli_actions": float(compile_cost.new_pauli_actions),
-            "new_rotation_steps": float(compile_cost.new_rotation_steps),
-            "position_shift_span": float(compile_cost.position_shift_span),
-            "refit_active_count": float(compile_cost.refit_active_count),
-            "cx_proxy_total": float(compile_cost.cx_proxy_total),
-            "sq_proxy_total": float(compile_cost.sq_proxy_total),
-            "gate_proxy_total": float(compile_cost.gate_proxy_total),
-            "max_pauli_weight": float(compile_cost.max_pauli_weight),
-            "proxy_total": float(compile_cost.proxy_total),
-        },
+        compiled_position_cost_proxy={str(k): float(v) for k, v in proxy_cost.items()},
         measurement_cache_stats={
             "groups_total": float(measurement_stats.groups_total),
             "groups_reused": float(measurement_stats.groups_reused),
@@ -1069,14 +1095,7 @@ def build_candidate_features(
         trough_detected=bool(trough_detected),
         simple_score=None,
         score_version=str(cfg.score_version),
-        depth_cost=float(
-            (
-                float(compile_cost.gate_proxy_total)
-                if float(compile_cost.gate_proxy_total) > 0.0
-                else float(compile_cost.new_rotation_steps)
-            )
-            + float(compile_cost.position_shift_span)
-        ),
+        depth_cost=float(depth_cost_value),
         new_group_cost=float(measurement_stats.groups_new),
         new_shot_cost=float(measurement_stats.shots_new),
         opt_dim_cost=float(len(refit_window_indices)),
@@ -1117,7 +1136,40 @@ def build_candidate_features(
             "qn_spsa_refresh": False,
             "motif_metadata": False,
             "symmetry_metadata": bool(isinstance(symmetry_spec, Mapping)),
+            "backend_compile_oracle": bool(str(compile_cost.source_mode) != "proxy"),
         },
+        compile_cost_source=str(compile_cost.source_mode),
+        compile_cost_total=float(compile_cost_total),
+        compile_gate_open=bool(compile_cost.compile_gate_open),
+        compile_failure_reason=(
+            None if compile_cost.failure_reason is None else str(compile_cost.failure_reason)
+        ),
+        compiled_position_cost_backend=(
+            None
+            if str(compile_cost.source_mode) == "proxy"
+            else {
+                "selected_backend_name": compile_cost.selected_backend_name,
+                "selected_resolution_kind": compile_cost.selected_resolution_kind,
+                "aggregation_mode": str(compile_cost.aggregation_mode),
+                "target_backend_names": [str(x) for x in compile_cost.target_backend_names],
+                "successful_target_count": int(compile_cost.successful_target_count),
+                "failed_target_count": int(compile_cost.failed_target_count),
+                "raw_delta_compiled_count_2q": compile_cost.raw_delta_compiled_count_2q,
+                "delta_compiled_count_2q": compile_cost.delta_compiled_count_2q,
+                "raw_delta_compiled_depth": compile_cost.raw_delta_compiled_depth,
+                "delta_compiled_depth": compile_cost.delta_compiled_depth,
+                "raw_delta_compiled_size": compile_cost.raw_delta_compiled_size,
+                "delta_compiled_size": compile_cost.delta_compiled_size,
+                "delta_compiled_cx_count": compile_cost.delta_compiled_cx_count,
+                "delta_compiled_ecr_count": compile_cost.delta_compiled_ecr_count,
+                "base_compiled_count_2q": compile_cost.base_compiled_count_2q,
+                "base_compiled_depth": compile_cost.base_compiled_depth,
+                "base_compiled_size": compile_cost.base_compiled_size,
+                "trial_compiled_count_2q": compile_cost.trial_compiled_count_2q,
+                "trial_compiled_depth": compile_cost.trial_compiled_depth,
+                "trial_compiled_size": compile_cost.trial_compiled_size,
+            }
+        ),
     )
     score = simple_v1_score(feat, cfg)
     return _replace_feature(feat, simple_score=float(score))

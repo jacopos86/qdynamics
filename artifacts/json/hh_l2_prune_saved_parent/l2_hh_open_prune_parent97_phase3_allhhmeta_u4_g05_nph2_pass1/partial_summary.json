@@ -1,0 +1,69 @@
+{
+  "generated_utc": "2026-03-15T02:15:58Z",
+  "pipeline": "hh_l2_prune_saved_parent_partial",
+  "status": "stopped_early_partial_results",
+  "run_root": "artifacts/json/hh_l2_prune_saved_parent/l2_hh_open_prune_parent97_phase3_allhhmeta_u4_g05_nph2_pass1",
+  "completed_replay_count": 6,
+  "completed_replays": [
+    {
+      "ablation_id": "accepted_prefix_50",
+      "energy": 0.15945132098705164,
+      "abs_delta_e": 0.0010075674601999485,
+      "num_parameters": 96,
+      "runtime_s": 1929.5876817917451,
+      "stop_reason": "converged",
+      "family_resolved": "all_hh_meta_v1",
+      "replay_json": "artifacts/json/hh_l2_prune_saved_parent/l2_hh_open_prune_parent97_phase3_allhhmeta_u4_g05_nph2_pass1/l2_hh_open_prune_parent97_phase3_allhhmeta_u4_g05_nph2_pass1/replay_accepted_prefix_50.json"
+    },
+    {
+      "ablation_id": "accepted_prefix_75",
+      "energy": 0.15945132098705164,
+      "abs_delta_e": 0.0010075674601999485,
+      "num_parameters": 144,
+      "runtime_s": 2700.7266535414383,
+      "stop_reason": "converged",
+      "family_resolved": "all_hh_meta_v1",
+      "replay_json": "artifacts/json/hh_l2_prune_saved_parent/l2_hh_open_prune_parent97_phase3_allhhmeta_u4_g05_nph2_pass1/l2_hh_open_prune_parent97_phase3_allhhmeta_u4_g05_nph2_pass1/replay_accepted_prefix_75.json"
+    },
+    {
+      "ablation_id": "drop_ranked_weakest_02",
+      "energy": 0.15945132098705164,
+      "abs_delta_e": 0.0010075674601999485,
+      "num_parameters": 192,
+      "runtime_s": 3665.4069885415956,
+      "stop_reason": "converged",
+      "family_resolved": "all_hh_meta_v1",
+      "replay_json": "artifacts/json/hh_l2_prune_saved_parent/l2_hh_open_prune_parent97_phase3_allhhmeta_u4_g05_nph2_pass1/l2_hh_open_prune_parent97_phase3_allhhmeta_u4_g05_nph2_pass1/replay_drop_ranked_weakest_02.json"
+    },
+    {
+      "ablation_id": "drop_ranked_weakest_03",
+      "energy": 0.15945132098705164,
+      "abs_delta_e": 0.0010075674601999485,
+      "num_parameters": 192,
+      "runtime_s": 3648.079392042011,
+      "stop_reason": "converged",
+      "family_resolved": "all_hh_meta_v1",
+      "replay_json": "artifacts/json/hh_l2_prune_saved_parent/l2_hh_open_prune_parent97_phase3_allhhmeta_u4_g05_nph2_pass1/l2_hh_open_prune_parent97_phase3_allhhmeta_u4_g05_nph2_pass1/replay_drop_ranked_weakest_03.json"
+    },
+    {
+      "ablation_id": "drop_weakest_accepted",
+      "energy": 0.15945132098705164,
+      "abs_delta_e": 0.0010075674601999485,
+      "num_parameters": 192,
+      "runtime_s": 3673.649597625248,
+      "stop_reason": "converged",
+      "family_resolved": "all_hh_meta_v1",
+      "replay_json": "artifacts/json/hh_l2_prune_saved_parent/l2_hh_open_prune_parent97_phase3_allhhmeta_u4_g05_nph2_pass1/l2_hh_open_prune_parent97_phase3_allhhmeta_u4_g05_nph2_pass1/replay_drop_weakest_accepted.json"
+    },
+    {
+      "ablation_id": "full_baseline",
+      "energy": 0.15945132098705164,
+      "abs_delta_e": 0.0010075674601999485,
+      "num_parameters": 194,
+      "runtime_s": 3794.2674839999527,
+      "stop_reason": "converged",
+      "family_resolved": "all_hh_meta_v1",
+      "replay_json": "artifacts/json/hh_l2_prune_saved_parent/l2_hh_open_prune_parent97_phase3_allhhmeta_u4_g05_nph2_pass1/l2_hh_open_prune_parent97_phase3_allhhmeta_u4_g05_nph2_pass1/replay_full_replay_baseline.json"
+    }
+  ]
+}

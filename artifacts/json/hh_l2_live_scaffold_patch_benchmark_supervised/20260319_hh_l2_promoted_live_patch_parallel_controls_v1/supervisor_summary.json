@@ -1,0 +1,56 @@
+{
+  "generated_utc": "2026-03-19T18:39:05Z",
+  "base_tag": "20260319_hh_l2_promoted_live_patch_parallel_controls_v1",
+  "stable_output_json": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/artifacts/json/hh_l2_live_scaffold_patch_benchmark__20260319_hh_l2_promoted_live_patch_parallel_controls_v1.json",
+  "stable_output_csv": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/artifacts/json/hh_l2_live_scaffold_patch_benchmark__20260319_hh_l2_promoted_live_patch_parallel_controls_v1.csv",
+  "max_attempts": 3,
+  "cooldown_s": 5.0,
+  "benchmark_args": [
+    "--parallel-workers",
+    "4"
+  ],
+  "attempts": [
+    {
+      "attempt_index": 1,
+      "started_utc": "2026-03-19T17:40:08Z",
+      "finished_utc": "2026-03-19T18:39:05Z",
+      "returncode": 1,
+      "succeeded": false,
+      "command": [
+        "/opt/anaconda3/bin/python",
+        "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/pipelines/exact_bench/hh_l2_live_scaffold_patch_benchmark.py",
+        "--parallel-workers",
+        "4",
+        "--tag",
+        "20260319_hh_l2_promoted_live_patch_parallel_controls_v1__attempt1",
+        "--output-json",
+        "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/artifacts/json/hh_l2_live_scaffold_patch_benchmark_supervised/20260319_hh_l2_promoted_live_patch_parallel_controls_v1/attempt_1/20260319_hh_l2_promoted_live_patch_parallel_controls_v1__attempt1.json",
+        "--output-csv",
+        "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/artifacts/json/hh_l2_live_scaffold_patch_benchmark_supervised/20260319_hh_l2_promoted_live_patch_parallel_controls_v1/attempt_1/20260319_hh_l2_promoted_live_patch_parallel_controls_v1__attempt1.csv"
+      ],
+      "stdout_log": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/artifacts/json/hh_l2_live_scaffold_patch_benchmark_supervised/20260319_hh_l2_promoted_live_patch_parallel_controls_v1/attempt_1/benchmark.stdout.log",
+      "output_json": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/artifacts/json/hh_l2_live_scaffold_patch_benchmark_supervised/20260319_hh_l2_promoted_live_patch_parallel_controls_v1/attempt_1/20260319_hh_l2_promoted_live_patch_parallel_controls_v1__attempt1.json",
+      "output_csv": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/artifacts/json/hh_l2_live_scaffold_patch_benchmark_supervised/20260319_hh_l2_promoted_live_patch_parallel_controls_v1/attempt_1/20260319_hh_l2_promoted_live_patch_parallel_controls_v1__attempt1.csv",
+      "outputs_present": {
+        "json": false,
+        "csv": false
+      },
+      "stdout_tail": [
+        "Traceback (most recent call last):",
+        "  File \"/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/pipelines/exact_bench/hh_l2_live_scaffold_patch_benchmark.py\", line 1175, in <module>",
+        "    main()",
+        "  File \"/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/pipelines/exact_bench/hh_l2_live_scaffold_patch_benchmark.py\", line 1167, in main",
+        "    payload = run_hh_l2_live_scaffold_patch_benchmark(cfg)",
+        "  File \"/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/pipelines/exact_bench/hh_l2_live_scaffold_patch_benchmark.py\", line 993, in run_hh_l2_live_scaffold_patch_benchmark",
+        "    artifact = _build_fixed_patch_artifact(",
+        "  File \"/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/pipelines/exact_bench/hh_l2_live_scaffold_patch_benchmark.py\", line 709, in _build_fixed_patch_artifact",
+        "    nab._assert_patch_replay_matches_expected(",
+        "  File \"/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/pipelines/exact_bench/noise_aer_builders.py\", line 1287, in _assert_patch_replay_matches_expected",
+        "    raise RuntimeError(",
+        "RuntimeError: patch_snapshot replay changed the frozen layout hash; refusing to silently choose a different patch/layout."
+      ]
+    }
+  ],
+  "success": false,
+  "successful_attempt_index": null
+}

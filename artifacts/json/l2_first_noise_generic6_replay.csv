@@ -1,0 +1,2 @@
+tag,family_requested,family_resolved,method,reps,delta_abs,relative_error_abs,gate_pass_1e2,runtime_s,stop_reason,output_json,output_log
+l2_first_noise_generic6_replay,match_adapt,paop_lf_std,SPSA,2,0.01816165765892619,0.04662177635144367,False,173.50998420733958,converged,/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_2/artifacts/json/l2_first_noise_generic6_replay.json,/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_2/artifacts/logs/l2_first_noise_generic6_replay.log

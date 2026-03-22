@@ -17,7 +17,12 @@ from typing import Any, Mapping, Sequence
 
 import numpy as np
 
-from qiskit import QuantumCircuit, transpile
+from qiskit import ClassicalRegister, QuantumCircuit, transpile
+from pipelines.qiskit_backend_tools import (
+    compile_circuit_for_backend as _compile_circuit_for_backend_shared,
+    list_local_fake_backend_names as _list_local_fake_backend_names_shared,
+    load_local_fake_backend as _load_local_fake_backend_shared,
+)
 from qiskit.circuit.library import PauliEvolutionGate
 from qiskit.quantum_info import SparsePauliOp, Statevector
 from qiskit.synthesis import SuzukiTrotter
@@ -25,7 +30,7 @@ from qiskit.synthesis import SuzukiTrotter
 
 @dataclass(frozen=True)
 class OracleConfig:
-    noise_mode: str = "ideal"  # ideal | shots | aer_noise | runtime
+    noise_mode: str = "ideal"  # ideal | shots | aer_noise | runtime | backend_scheduled
     shots: int = 2048
     seed: int = 7
     oracle_repeats: int = 1
@@ -46,6 +51,7 @@ class MitigationConfig:
     mode: str = "none"  # none | readout | zne | dd
     zne_scales: tuple[float, ...] = ()
     dd_sequence: str | None = None
+    local_readout_strategy: str | None = None
 
 
 @dataclass(frozen=True)
@@ -70,6 +76,7 @@ class SymmetryMitigationConfig:
 
 _MITIGATION_MODES = {"none", "readout", "zne", "dd"}
 _SYMMETRY_MITIGATION_MODES = {"off", "verify_only", "postselect_diag_v1", "projector_renorm_v1"}
+_LOCAL_READOUT_STRATEGIES = {"mthree"}
 
 
 def _parse_zne_scales(raw: Any) -> list[float]:
@@ -96,6 +103,7 @@ def normalize_mitigation_config(mitigation: Any) -> dict[str, Any]:
     mode = "none"
     zne_scales: list[float] = []
     dd_sequence: str | None = None
+    local_readout_strategy: str | None = None
 
     if mitigation is None:
         pass
@@ -103,6 +111,11 @@ def normalize_mitigation_config(mitigation: Any) -> dict[str, Any]:
         mode = str(mitigation.mode).strip().lower() or "none"
         zne_scales = _parse_zne_scales(list(mitigation.zne_scales))
         dd_sequence = None if mitigation.dd_sequence is None else str(mitigation.dd_sequence)
+        local_readout_strategy = (
+            None
+            if mitigation.local_readout_strategy is None
+            else str(mitigation.local_readout_strategy).strip().lower() or None
+        )
     elif isinstance(mitigation, str):
         mode = str(mitigation).strip().lower() or "none"
     elif isinstance(mitigation, Mapping):
@@ -111,6 +124,13 @@ def normalize_mitigation_config(mitigation: Any) -> dict[str, Any]:
         zne_scales = _parse_zne_scales(zne_raw)
         dd_raw = mitigation.get("dd_sequence", mitigation.get("ddSequence", None))
         dd_sequence = None if dd_raw is None else str(dd_raw)
+        local_raw = mitigation.get(
+            "local_readout_strategy",
+            mitigation.get("localReadoutStrategy", mitigation.get("strategy", None)),
+        )
+        local_readout_strategy = (
+            None if local_raw is None else str(local_raw).strip().lower() or None
+        )
     else:
         raise ValueError(
             "Unsupported mitigation config type; expected str, dict, MitigationConfig, or None."
@@ -120,11 +140,19 @@ def normalize_mitigation_config(mitigation: Any) -> dict[str, Any]:
         raise ValueError(
             f"Unsupported mitigation mode {mode!r}; expected one of {sorted(_MITIGATION_MODES)}."
         )
+    if mode != "readout":
+        local_readout_strategy = None
+    if local_readout_strategy is not None and local_readout_strategy not in _LOCAL_READOUT_STRATEGIES:
+        raise ValueError(
+            "Unsupported local readout strategy "
+            f"{local_readout_strategy!r}; expected one of {sorted(_LOCAL_READOUT_STRATEGIES)}."
+        )
 
     return {
         "mode": str(mode),
         "zne_scales": [float(x) for x in zne_scales],
         "dd_sequence": dd_sequence,
+        "local_readout_strategy": local_readout_strategy,
     }
 
 
@@ -327,24 +355,35 @@ def _ansatz_to_circuit(
 
 
 def _load_fake_backend(name: str | None) -> tuple[Any, str]:
+    class_name = str(name).strip() if name is not None else "FakeManilaV2"
     try:
-        from qiskit_ibm_runtime import fake_provider
+        return _load_local_fake_backend_shared(class_name)
     except Exception as exc:
+        raise RuntimeError(str(exc)) from exc
+
+
+def list_local_fake_backend_names() -> tuple[str, ...]:
+    names = _list_local_fake_backend_names_shared()
+    if not names:
         raise RuntimeError(
             "Unable to import qiskit_ibm_runtime.fake_provider; install qiskit-ibm-runtime."
-        ) from exc
-
-    class_name = str(name).strip() if name is not None else "FakeManilaV2"
-    if class_name and not class_name.startswith("Fake"):
-        class_name = f"Fake{class_name.replace('-', '_').replace(' ', '').title().replace('_', '')}V2"
-    backend_cls = getattr(fake_provider, class_name, None)
-    if backend_cls is None:
-        available = sorted([x for x in dir(fake_provider) if x.startswith("Fake") and x.endswith("V2")])
-        sample = ", ".join(available[:8])
-        raise ValueError(
-            f"Unknown fake backend '{class_name}'. Available examples: {sample}"
         )
-    return backend_cls(), class_name
+    return tuple(names)
+
+
+def compile_circuit_for_local_backend(
+    circuit: QuantumCircuit,
+    backend: Any,
+    *,
+    seed_transpiler: int,
+    optimization_level: int = 1,
+) -> dict[str, Any]:
+    return _compile_circuit_for_backend_shared(
+        circuit,
+        backend,
+        seed_transpiler=int(seed_transpiler),
+        optimization_level=int(optimization_level),
+    )
 
 
 def _resolve_noise_backend(cfg: OracleConfig) -> tuple[Any, str, bool]:
@@ -382,6 +421,11 @@ _OMP_SHM_MARKERS = (
     "OMP: System error",
 )
 _AER_PREFLIGHT_OK_CACHE: set[tuple[str, int, int | None, bool, bool]] = set()
+BACKEND_SCHEDULED_ATTRIBUTION_SLICES: tuple[str, ...] = (
+    "readout_only",
+    "gate_stateprep_only",
+    "full",
+)
 
 
 def _tail_text(text: str, max_chars: int = 2400) -> str:
@@ -885,6 +929,135 @@ def _sample_measurement_counts(
     raise RuntimeError(f"Counts-based symmetry mitigation is unavailable for noise_mode={mode!r}.")
 
 
+def _logical_to_physical_qubits(compiled: QuantumCircuit, logical_qubits: int) -> tuple[int, ...]:
+    layout = getattr(compiled, "layout", None)
+    if layout is None or not hasattr(layout, "final_index_layout"):
+        return tuple(range(int(logical_qubits)))
+    try:
+        mapped = list(layout.final_index_layout())
+    except Exception:
+        mapped = []
+    if len(mapped) < int(logical_qubits):
+        return tuple(range(int(logical_qubits)))
+    return tuple(int(mapped[idx]) for idx in range(int(logical_qubits)))
+
+
+def _active_logical_qubits_for_label(pauli_label_ixyz: str) -> tuple[int, ...]:
+    label = str(pauli_label_ixyz).upper()
+    n = int(len(label))
+    return tuple(q for q in range(n) if label[n - 1 - q] != "I")
+
+
+def _active_pauli_weight(pauli_label_ixyz: str) -> int:
+    return int(sum(1 for ch in str(pauli_label_ixyz).upper() if ch != "I"))
+
+
+def _parity_expectation_from_active_counts(counts: Mapping[str, int], num_bits: int) -> float:
+    k = int(num_bits)
+    if k <= 0:
+        return 1.0
+    shots = int(sum(int(v) for v in counts.values()))
+    if shots <= 0:
+        raise RuntimeError("Sampler returned zero total shots.")
+    acc = 0.0
+    for bitstr_raw, ct in counts.items():
+        bitstr = str(bitstr_raw).replace(" ", "")
+        if len(bitstr) < k:
+            bitstr = bitstr.zfill(k)
+        ones = sum(1 for ch in bitstr[-k:] if ch == "1")
+        parity = -1.0 if (ones % 2) else 1.0
+        acc += float(parity) * float(ct)
+    return float(acc / float(shots))
+
+
+def _parity_expectation_from_quasi(quasi: Mapping[str, float], num_bits: int) -> float:
+    k = int(num_bits)
+    if k <= 0:
+        return 1.0
+    total = 0.0
+    for bitstr_raw, prob in quasi.items():
+        bitstr = str(bitstr_raw).replace(" ", "")
+        if len(bitstr) < k:
+            bitstr = bitstr.zfill(k)
+        ones = sum(1 for ch in bitstr[-k:] if ch == "1")
+        parity = -1.0 if (ones % 2) else 1.0
+        total += float(parity) * float(prob)
+    return float(total)
+
+
+def _negative_quasi_mass(quasi: Mapping[str, Any]) -> float:
+    total = 0.0
+    for value in quasi.values():
+        val = float(np.real(value))
+        if val < 0.0:
+            total += float(-val)
+    return float(total)
+
+
+def _resolve_mthree() -> Any:
+    try:
+        import mthree  # type: ignore
+    except Exception as exc:  # pragma: no cover - import error path
+        raise RuntimeError(
+            "readout mitigation strategy 'mthree' requires the optional dependency `mthree`."
+        ) from exc
+    return mthree
+
+
+def _copy_noise_model_components(
+    source_model: Any,
+    *,
+    include_quantum: bool,
+    include_readout: bool,
+) -> Any:
+    from qiskit_aer.noise import NoiseModel
+
+    basis_gates = list(getattr(source_model, "basis_gates", []) or [])
+    model = NoiseModel(basis_gates=(basis_gates or None))
+
+    if include_quantum:
+        for inst_name, error in getattr(source_model, "_default_quantum_errors", {}).items():
+            model.add_all_qubit_quantum_error(error, str(inst_name))
+        for inst_name, qubit_map in getattr(source_model, "_local_quantum_errors", {}).items():
+            if not isinstance(qubit_map, Mapping):
+                continue
+            for qubits, error in qubit_map.items():
+                model.add_quantum_error(error, str(inst_name), [int(q) for q in tuple(qubits)])
+
+    if include_readout:
+        default_readout = getattr(source_model, "_default_readout_error", None)
+        if default_readout is not None:
+            model.add_all_qubit_readout_error(default_readout)
+        for qubits, error in getattr(source_model, "_local_readout_errors", {}).items():
+            model.add_readout_error(error, [int(q) for q in tuple(qubits)])
+
+    return model
+
+
+def _apply_mthree_readout_correction(
+    *,
+    mitigator: Any,
+    counts: Mapping[str, int],
+    active_physical_qubits: Sequence[int],
+) -> tuple[dict[str, float], dict[str, Any]]:
+    raw = mitigator.apply_correction(
+        dict(counts),
+        qubits=[int(q) for q in active_physical_qubits],
+        details=True,
+        return_mitigation_overhead=True,
+    )
+    if isinstance(raw, tuple):
+        quasi, details = raw
+    else:
+        quasi, details = raw, {}
+    quasi_map = {str(k): float(np.real(v)) for k, v in dict(quasi).items()}
+    out_details = dict(details) if isinstance(details, Mapping) else {}
+    out_details["mitigation_overhead"] = float(getattr(quasi, "mitigation_overhead", float("nan")))
+    out_details["shots"] = int(getattr(quasi, "shots", int(sum(int(v) for v in counts.values()))))
+    out_details["negative_mass"] = _negative_quasi_mass(quasi_map)
+    return quasi_map, out_details
+
+
 def _postselected_counts_and_fraction(
     counts: Mapping[str, int],
     *,
@@ -993,6 +1166,13 @@ class ExpectationOracle:
                 getattr(config, "symmetry_mitigation", "off")
             ),
         )
+        self._backend_target = None
+        self._compiled_base_cache: dict[int, dict[str, Any]] = {}
+        self._backend_scheduled_attribution_targets: dict[str, dict[str, Any]] = {}
+        self._backend_scheduled_noise_model = None
+        self._mthree_module = None
+        self._mthree_mitigator = None
+        self._mthree_calibrated_qubits: set[tuple[int, ...]] = set()
         if self.config.oracle_aggregate not in {"mean", "median"}:
             raise ValueError(
                 f"Unsupported oracle_aggregate={self.config.oracle_aggregate}; use mean or median."
@@ -1001,6 +1181,39 @@ class ExpectationOracle:
             raise ValueError(
                 f"Unsupported aer_fallback_mode={self.config.aer_fallback_mode}; use sampler_shots."
             )
+        mitigation_cfg = normalize_mitigation_config(getattr(self.config, "mitigation", "none"))
+        symmetry_cfg = normalize_symmetry_mitigation_config(
+            getattr(self.config, "symmetry_mitigation", "off")
+        )
+        if self.config.noise_mode == "backend_scheduled":
+            if not bool(self.config.use_fake_backend):
+                raise ValueError("backend_scheduled requires use_fake_backend=True.")
+            if str(mitigation_cfg.get("mode", "none")) not in {"none", "readout"}:
+                raise ValueError(
+                    "backend_scheduled currently supports only mitigation modes 'none' or 'readout'."
+                )
+            if str(mitigation_cfg.get("mode", "none")) == "readout":
+                if str(symmetry_cfg.get("mode", "off")) not in {"off", "verify_only"}:
+                    raise ValueError(
+                        "readout mitigation is not combinable with active symmetry mitigation in backend_scheduled mode."
+                    )
+                strategy = str(mitigation_cfg.get("local_readout_strategy") or "mthree")
+                if strategy not in _LOCAL_READOUT_STRATEGIES:
+                    raise ValueError(
+                        f"Unsupported backend_scheduled readout strategy {strategy!r}; "
+                        f"expected one of {sorted(_LOCAL_READOUT_STRATEGIES)}."
+                    )
+                mitigation_cfg["local_readout_strategy"] = str(strategy)
+                self.config = OracleConfig(
+                    **{**self.config.__dict__, "mitigation": dict(mitigation_cfg)}
+                )
+                self._mthree_module = _resolve_mthree()
+            try:
+                import qiskit_aer  # noqa: F401
+            except Exception as exc:  # pragma: no cover - import error path
+                raise RuntimeError(
+                    "backend_scheduled requires qiskit-aer so fake backends execute with a noise model."
+                ) from exc
 
         self._sampler_fallback = None
         self._fallback_reason = ""
@@ -1013,14 +1226,33 @@ class ExpectationOracle:
             using_fake_backend=bool(self.config.use_fake_backend),
             details={},
         )
-
-        try:
-            self._estimator, self._session, self.backend_info = _build_estimator(self.config)
-        except Exception as exc:
-            if self._can_fallback_from_error(exc):
-                self._activate_sampler_fallback(reason=str(exc), aer_failed=True)
-            else:
-                raise
+        if self.config.noise_mode == "backend_scheduled":
+            backend_obj, backend_name, using_fake = _resolve_noise_backend(self.config)
+            self._backend_target = backend_obj
+            self.backend_info = NoiseBackendInfo(
+                noise_mode=str(self.config.noise_mode),
+                estimator_kind="fake_backend.run(counts)",
+                backend_name=str(backend_name),
+                using_fake_backend=bool(using_fake),
+                details={
+                    "shots": int(self.config.shots),
+                    "compiled_mode": "backend_scheduled",
+                    "transpile_optimization_level": 1,
+                    "transpile_seed": int(self.config.seed),
+                    "mitigation": dict(mitigation_cfg),
+                    "symmetry_mitigation": dict(symmetry_cfg),
+                    "aer_failed": False,
+                    "fallback_used": False,
+                },
+            )
+        else:
+            try:
+                self._estimator, self._session, self.backend_info = _build_estimator(self.config)
+            except Exception as exc:
+                if self._can_fallback_from_error(exc):
+                    self._activate_sampler_fallback(reason=str(exc), aer_failed=True)
+                else:
+                    raise
         self._closed = False
 
     def close(self) -> None:
@@ -1049,6 +1281,17 @@ class ExpectationOracle:
             using_fake_backend=bool(self.backend_info.using_fake_backend),
             details=details,
         )
+
+    def _snapshot_backend_info(self, **detail_updates: Any) -> dict[str, Any]:
+        details = dict(getattr(self.backend_info, "details", {}))
+        details.update(detail_updates)
+        return {
+            "noise_mode": str(self.backend_info.noise_mode),
+            "estimator_kind": str(self.backend_info.estimator_kind),
+            "backend_name": self.backend_info.backend_name,
+            "using_fake_backend": bool(self.backend_info.using_fake_backend),
+            "details": details,
+        }
 
     def _set_symmetry_mitigation_details(self, details_map: Mapping[str, Any]) -> None:
         self._update_backend_details(symmetry_mitigation=dict(details_map))
@@ -1079,6 +1322,11 @@ class ExpectationOracle:
             "estimator_form": "none",
         }
         if requested_mode in {"off", "verify_only"}:
+            self._set_symmetry_mitigation_details(details)
+            return None
+        if str(self.config.noise_mode) == "backend_scheduled":
+            details["applied_mode"] = "verify_only"
+            details["fallback_reason"] = "backend_scheduled_symmetry_not_supported"
             self._set_symmetry_mitigation_details(details)
             return None
         if not _observable_is_diagonal(observable):
@@ -1172,6 +1420,345 @@ class ExpectationOracle:
             aggregate=self.config.oracle_aggregate,
         )
 
+    def _get_backend_scheduled_base(self, circuit: QuantumCircuit) -> dict[str, Any]:
+        cache_key = int(id(circuit))
+        cached = self._compiled_base_cache.get(cache_key, None)
+        if cached is not None:
+            return cached
+        if self._backend_target is None:
+            raise RuntimeError("backend_scheduled backend target is unavailable.")
+        cached = compile_circuit_for_local_backend(
+            circuit,
+            self._backend_target,
+            seed_transpiler=int(self.config.seed),
+            optimization_level=1,
+        )
+        self._compiled_base_cache[cache_key] = cached
+        self._update_backend_details(
+            layout_physical_qubits=[int(x) for x in cached["logical_to_physical"]],
+            compiled_num_qubits=int(cached["compiled_num_qubits"]),
+        )
+        return cached
+
+    def _ensure_mthree_calibration(self, active_physical_qubits: Sequence[int]) -> None:
+        qubits = tuple(int(q) for q in active_physical_qubits)
+        if qubits in self._mthree_calibrated_qubits:
+            return
+        if self._backend_target is None:
+            raise RuntimeError("backend_scheduled backend target is unavailable.")
+        if self._mthree_mitigator is None:
+            if self._mthree_module is None:
+                self._mthree_module = _resolve_mthree()
+            self._mthree_mitigator = self._mthree_module.M3Mitigation(self._backend_target)
+        self._mthree_mitigator.cals_from_system(
+            qubits=list(qubits),
+            shots=int(self.config.shots),
+            async_cal=False,
+        )
+        self._mthree_calibrated_qubits.add(qubits)
+
+    def _get_backend_scheduled_full_noise_model(self) -> Any:
+        if self._backend_scheduled_noise_model is None:
+            if self._backend_target is None:
+                raise RuntimeError("backend_scheduled backend target is unavailable.")
+            from qiskit_aer.noise import NoiseModel
+
+            self._backend_scheduled_noise_model = NoiseModel.from_backend(self._backend_target)
+        return self._backend_scheduled_noise_model
+
+    def _get_backend_scheduled_attribution_target(
+        self,
+        slice_name: str,
+    ) -> tuple[Any, dict[str, Any]]:
+        key = str(slice_name).strip().lower()
+        if key not in BACKEND_SCHEDULED_ATTRIBUTION_SLICES:
+            raise ValueError(
+                f"Unsupported backend_scheduled attribution slice {slice_name!r}; "
+                f"expected one of {list(BACKEND_SCHEDULED_ATTRIBUTION_SLICES)}."
+            )
+        cached = self._backend_scheduled_attribution_targets.get(key, None)
+        if cached is not None:
+            return cached["target"], dict(cached["details"])
+        if self._backend_target is None:
+            raise RuntimeError("backend_scheduled backend target is unavailable.")
+
+        if key == "full":
+            target = self._backend_target
+            details = {
+                "attribution_slice": "full",
+                "shared_compile_reused": True,
+                "execution_target_kind": "fake_backend.run",
+                "components": {
+                    "gate_stateprep": True,
+                    "readout": True,
+                },
+            }
+        else:
+            from qiskit_aer import AerSimulator
+
+            full_model = self._get_backend_scheduled_full_noise_model()
+            if key == "readout_only":
+                model = _copy_noise_model_components(
+                    full_model,
+                    include_quantum=False,
+                    include_readout=True,
+                )
+                components = {"gate_stateprep": False, "readout": True}
+            else:
+                model = _copy_noise_model_components(
+                    full_model,
+                    include_quantum=True,
+                    include_readout=False,
+                )
+                components = {"gate_stateprep": True, "readout": False}
+            target = AerSimulator(
+                noise_model=model,
+                seed_simulator=int(self.config.seed),
+            )
+            details = {
+                "attribution_slice": str(key),
+                "shared_compile_reused": True,
+                "execution_target_kind": "AerSimulator",
+                "noise_model_basis_gates": list(getattr(model, "basis_gates", []) or []),
+                "components": dict(components),
+            }
+        self._backend_scheduled_attribution_targets[key] = {
+            "target": target,
+            "details": dict(details),
+        }
+        return target, dict(details)
+
+    def _backend_scheduled_term_counts(
+        self,
+        compiled_base: QuantumCircuit,
+        logical_to_physical: Sequence[int],
+        pauli_label_ixyz: str,
+        *,
+        repeat_idx: int,
+        execution_target: Any | None = None,
+    ) -> tuple[dict[str, int], tuple[int, ...], dict[str, Any]]:
+        target = self._backend_target if execution_target is None else execution_target
+        if target is None:
+            raise RuntimeError("backend_scheduled backend target is unavailable.")
+        label = str(pauli_label_ixyz).upper()
+        active_logical = _active_logical_qubits_for_label(label)
+        active_physical = tuple(int(logical_to_physical[q]) for q in active_logical)
+        qc = compiled_base.copy()
+        if active_physical:
+            creg = ClassicalRegister(len(active_physical), "m")
+            qc.add_register(creg)
+            for q in active_logical:
+                op = label[int(len(label)) - 1 - int(q)]
+                phys = int(logical_to_physical[int(q)])
+                if op == "X":
+                    qc.h(phys)
+                elif op == "Y":
+                    qc.sdg(phys)
+                    qc.h(phys)
+                elif op in {"I", "Z"}:
+                    pass
+                else:
+                    raise ValueError(f"Unsupported Pauli op '{op}' in '{label}'")
+            for idx, phys in enumerate(active_physical):
+                qc.measure(int(phys), creg[int(idx)])
+        result = target.run(
+            qc,
+            shots=int(self.config.shots),
+            seed_simulator=int(self.config.seed) + int(repeat_idx),
+        ).result()
+        counts = result.get_counts()
+        if isinstance(counts, list):
+            counts = counts[0]
+        details = {
+            "active_logical_qubits": [int(x) for x in active_logical],
+            "active_physical_qubits": [int(x) for x in active_physical],
+            "compiled_depth": int(qc.depth() or 0),
+            "compiled_size": int(qc.size()),
+            "pauli_weight": int(_active_pauli_weight(label)),
+        }
+        return dict(counts), active_physical, details
+
+    def _evaluate_backend_scheduled_with_target(
+        self,
+        compiled_base: QuantumCircuit,
+        logical_to_physical: Sequence[int],
+        observable: SparsePauliOp,
+        *,
+        execution_target: Any | None = None,
+        attribution_slice: str | None = None,
+        target_details: Mapping[str, Any] | None = None,
+    ) -> tuple[OracleEstimate, dict[str, Any]]:
+        mitigation_cfg = normalize_mitigation_config(getattr(self.config, "mitigation", "none"))
+        mitigation_mode = str(mitigation_cfg.get("mode", "none"))
+        vals: list[float] = []
+        last_readout_details: dict[str, Any] = {
+            "mode": str(mitigation_mode),
+            "strategy": mitigation_cfg.get("local_readout_strategy", None),
+            "applied": False,
+        }
+        for rep in range(max(1, int(self.config.oracle_repeats))):
+            total = 0.0 + 0.0j
+            for label, coeff in observable.to_list():
+                coeff_c = complex(coeff)
+                label_s = str(label).upper()
+                if all(ch == "I" for ch in label_s):
+                    total += coeff_c
+                    continue
+                counts, active_physical, term_details = self._backend_scheduled_term_counts(
+                    compiled_base,
+                    logical_to_physical,
+                    label_s,
+                    repeat_idx=int(rep),
+                    execution_target=execution_target,
+                )
+                if mitigation_mode == "readout":
+                    self._ensure_mthree_calibration(active_physical)
+                    quasi, mitigation_details = _apply_mthree_readout_correction(
+                        mitigator=self._mthree_mitigator,
+                        counts=counts,
+                        active_physical_qubits=active_physical,
+                    )
+                    exp_lbl = _parity_expectation_from_quasi(quasi, len(active_physical))
+                    last_readout_details = {
+                        "mode": "readout",
+                        "strategy": str(mitigation_cfg.get("local_readout_strategy", "mthree")),
+                        "applied": True,
+                        "active_physical_qubits": [int(x) for x in active_physical],
+                        "term_details": dict(term_details),
+                        "solver_method": str(mitigation_details.get("method", "")),
+                        "solver_time_s": float(mitigation_details.get("time", float("nan"))),
+                        "dimension": int(mitigation_details.get("dimension", 0)),
+                        "mitigation_overhead": float(
+                            mitigation_details.get("mitigation_overhead", float("nan"))
+                        ),
+                        "negative_mass": float(mitigation_details.get("negative_mass", 0.0)),
+                        "shots": int(mitigation_details.get("shots", int(self.config.shots))),
+                        "calibration_cache_size": int(len(self._mthree_calibrated_qubits)),
+                    }
+                else:
+                    exp_lbl = _parity_expectation_from_active_counts(counts, len(active_physical))
+                    last_readout_details = {
+                        "mode": mitigation_mode,
+                        "strategy": mitigation_cfg.get("local_readout_strategy", None),
+                        "applied": False,
+                        "active_physical_qubits": [int(x) for x in active_physical],
+                        "term_details": dict(term_details),
+                    }
+                total += coeff_c * complex(float(exp_lbl), 0.0)
+            vals.append(float(np.real(total)))
+        arr = np.asarray(vals, dtype=float)
+        stdev = float(np.std(arr, ddof=1)) if arr.size > 1 else 0.0
+        stderr = float(stdev / np.sqrt(float(arr.size))) if arr.size > 0 else float("nan")
+        agg = float(np.median(arr)) if self.config.oracle_aggregate == "median" else float(np.mean(arr))
+        details = {
+            "readout_mitigation": dict(last_readout_details),
+        }
+        if attribution_slice is not None:
+            details["attribution_slice"] = str(attribution_slice)
+            details["shared_compile_reused"] = True
+        if target_details is not None:
+            details.update(dict(target_details))
+        return (
+            OracleEstimate(
+                mean=agg,
+                std=stdev,
+                stdev=stdev,
+                stderr=stderr,
+                n_samples=int(arr.size),
+                raw_values=[float(x) for x in arr.tolist()],
+                aggregate=self.config.oracle_aggregate,
+            ),
+            details,
+        )
+
+    def _evaluate_backend_scheduled(self, circuit: QuantumCircuit, observable: SparsePauliOp) -> OracleEstimate:
+        base = self._get_backend_scheduled_base(circuit)
+        estimate, details = self._evaluate_backend_scheduled_with_target(
+            base["compiled"],
+            base["logical_to_physical"],
+            observable,
+        )
+        self._update_backend_details(**details)
+        return estimate
+
+    def evaluate_backend_scheduled_attribution(
+        self,
+        circuit: QuantumCircuit,
+        observable: SparsePauliOp,
+        *,
+        slices: Sequence[str] = BACKEND_SCHEDULED_ATTRIBUTION_SLICES,
+    ) -> dict[str, Any]:
+        if self._closed:
+            raise RuntimeError("ExpectationOracle is closed.")
+        if str(self.config.noise_mode) != "backend_scheduled":
+            raise ValueError("backend_scheduled attribution requires noise_mode='backend_scheduled'.")
+        if not bool(self.config.use_fake_backend):
+            raise ValueError("backend_scheduled attribution requires use_fake_backend=True.")
+        mitigation_cfg = normalize_mitigation_config(getattr(self.config, "mitigation", "none"))
+        symmetry_cfg = normalize_symmetry_mitigation_config(
+            getattr(self.config, "symmetry_mitigation", "off")
+        )
+        if str(mitigation_cfg.get("mode", "none")) != "none":
+            raise ValueError("backend_scheduled attribution requires mitigation mode 'none'.")
+        if str(symmetry_cfg.get("mode", "off")) != "off":
+            raise ValueError("backend_scheduled attribution requires symmetry mitigation 'off'.")
+
+        requested_slices = tuple(str(x).strip().lower() for x in slices)
+        for slice_name in requested_slices:
+            if slice_name not in BACKEND_SCHEDULED_ATTRIBUTION_SLICES:
+                raise ValueError(
+                    f"Unsupported backend_scheduled attribution slice {slice_name!r}; "
+                    f"expected one of {list(BACKEND_SCHEDULED_ATTRIBUTION_SLICES)}."
+                )
+
+        base = self._get_backend_scheduled_base(circuit)
+        compiled_base = base["compiled"]
+        logical_to_physical = base["logical_to_physical"]
+        shared_compile = {
+            "shared_transpile": True,
+            "backend_name": self.backend_info.backend_name,
+            "using_fake_backend": bool(self.backend_info.using_fake_backend),
+            "transpile_optimization_level": int(
+                self.backend_info.details.get("transpile_optimization_level", 1)
+            ),
+            "transpile_seed": int(self.backend_info.details.get("transpile_seed", int(self.config.seed))),
+            "compiled_num_qubits": int(compiled_base.num_qubits),
+            "layout_physical_qubits": [int(x) for x in logical_to_physical],
+            "requested_slices": [str(x) for x in requested_slices],
+        }
+        payload: dict[str, Any] = {"shared_compile": shared_compile, "slices": {}}
+        for slice_name in requested_slices:
+            target, target_details = self._get_backend_scheduled_attribution_target(slice_name)
+            try:
+                estimate, details = self._evaluate_backend_scheduled_with_target(
+                    compiled_base,
+                    logical_to_physical,
+                    observable,
+                    execution_target=(None if slice_name == "full" else target),
+                    attribution_slice=str(slice_name),
+                    target_details=target_details,
+                )
+                payload["slices"][str(slice_name)] = {
+                    "success": True,
+                    "slice": str(slice_name),
+                    "components": dict(target_details.get("components", {})),
+                    "estimate": estimate,
+                    "backend_info": self._snapshot_backend_info(**details),
+                    "reason": None,
+                    "error": None,
+                }
+            except Exception as exc:
+                payload["slices"][str(slice_name)] = {
+                    "success": False,
+                    "slice": str(slice_name),
+                    "components": dict(target_details.get("components", {})),
+                    "estimate": None,
+                    "backend_info": self._snapshot_backend_info(**dict(target_details)),
+                    "reason": "slice_exception",
+                    "error": f"{type(exc).__name__}: {exc}",
+                }
+        return payload
+
     def _fallback_allowed_for_mode(self) -> bool:
         return (
             str(self.config.noise_mode) in {"shots", "aer_noise"}
@@ -1224,6 +1811,8 @@ class ExpectationOracle:
         symmetry_est = self._maybe_evaluate_symmetry_mitigated(circuit, observable)
         if symmetry_est is not None:
             return symmetry_est
+        if str(self.config.noise_mode) == "backend_scheduled":
+            return self._evaluate_backend_scheduled(circuit, observable)
 
         vals: list[float] = []
         repeats = max(1, int(self.config.oracle_repeats))

@@ -1,0 +1,3938 @@
+{
+  "generated_utc": "2026-03-19T17:53:57Z",
+  "settings": {
+    "L": 2,
+    "problem": "hh",
+    "t": 1.0,
+    "u": 4.0,
+    "dv": 0.0,
+    "omega0": 1.0,
+    "g_ep": 0.5,
+    "n_ph_max": 2,
+    "boson_encoding": "binary",
+    "ordering": "blocked",
+    "boundary": "open",
+    "sector_n_up": 1,
+    "sector_n_dn": 1
+  },
+  "adapt_vqe": {
+    "energy": 0.17969115560116114,
+    "abs_delta_e": 0.021247402074309446,
+    "relative_error_abs": 0.13410059785480036,
+    "operators": [
+      "hh_termwise_ham_quadrature_term(eyeezeee)",
+      "hh_termwise_ham_quadrature_term(eyeeeeze)",
+      "hh_termwise_ham_quadrature_term(zyeezeee)",
+      "hh_termwise_ham_quadrature_term(zyeeeeze)",
+      "hh_termwise_ham_quadrature_term(eezyeeez)",
+      "hh_termwise_ham_quadrature_term(eezyezee)",
+      "hh_termwise_ham_quadrature_term(eeeyeeez)",
+      "hh_termwise_ham_quadrature_term(eeeyezee)",
+      "uccsd_otimes_paop::uccsd_ferm_lifted::uccsd_sing(beta:2->3)::paop_lf_std::p(site=1)",
+      "uccsd_otimes_paop::uccsd_ferm_lifted::uccsd_sing(beta:2->3)::paop_lf_std::p(site=1)",
+      "uccsd_otimes_paop::uccsd_ferm_lifted::uccsd_sing(beta:2->3)::paop_lf_std::p(site=1)",
+      "uccsd_otimes_paop::uccsd_ferm_lifted::uccsd_sing(beta:2->3)::paop_lf_std::p(site=1)",
+      "uccsd_otimes_paop::uccsd_ferm_lifted::uccsd_sing(beta:2->3)::paop_lf_std::p(site=1)",
+      "uccsd_otimes_paop::uccsd_ferm_lifted::uccsd_sing(beta:2->3)::paop_lf_std::p(site=1)",
+      "uccsd_otimes_paop::uccsd_ferm_lifted::uccsd_sing(beta:2->3)::paop_lf_std::p(site=1)",
+      "uccsd_otimes_paop::uccsd_ferm_lifted::uccsd_sing(beta:2->3)::paop_lf_std::p(site=1)",
+      "uccsd_otimes_paop::uccsd_ferm_lifted::uccsd_sing(beta:2->3)::paop_lf_std::p(site=1)",
+      "uccsd_otimes_paop::uccsd_ferm_lifted::uccsd_sing(beta:2->3)::paop_lf_std::p(site=1)"
+    ],
+    "optimal_point": [
+      -0.12280122584599368,
+      0.2692467658067922,
+      -0.19209815562990493,
+      -0.14680276423458777,
+      -0.2560537718307204,
+      0.18476017596820465,
+      -0.06882812165292337,
+      0.25248144934945893,
+      0.19966361262585344,
+      -0.05348535292593367,
+      0.04738636466526002,
+      -0.0976771871232385,
+      -0.14842306904681765,
+      0.06682196964751545,
+      0.025025473724697045,
+      0.037961891486156536,
+      -0.028280944293180094,
+      -0.06396696961524649
+    ],
+    "ansatz_depth": 18,
+    "num_parameters": 18,
+    "pre_prune_scaffold": {
+      "operators": [
+        "hh_termwise_ham_quadrature_term(eyeezeee)",
+        "hh_termwise_ham_quadrature_term(eyeeeeze)",
+        "hh_termwise_ham_quadrature_term(zyeezeee)",
+        "hh_termwise_ham_quadrature_term(zyeeeeze)",
+        "hh_termwise_ham_quadrature_term(eezyeeez)",
+        "hh_termwise_ham_quadrature_term(eezyezee)",
+        "hh_termwise_ham_quadrature_term(eeeyeeez)",
+        "hh_termwise_ham_quadrature_term(eeeyezee)",
+        "uccsd_otimes_paop::uccsd_ferm_lifted::uccsd_sing(beta:2->3)::paop_lf_std::p(site=1)",
+        "uccsd_otimes_paop::uccsd_ferm_lifted::uccsd_sing(beta:2->3)::paop_lf_std::p(site=1)",
+        "uccsd_otimes_paop::uccsd_ferm_lifted::uccsd_sing(beta:2->3)::paop_lf_std::p(site=1)",
+        "uccsd_otimes_paop::uccsd_ferm_lifted::uccsd_sing(beta:2->3)::paop_lf_std::p(site=1)",
+        "uccsd_otimes_paop::uccsd_ferm_lifted::uccsd_sing(beta:2->3)::paop_lf_std::p(site=1)",
+        "uccsd_otimes_paop::uccsd_ferm_lifted::uccsd_sing(beta:2->3)::paop_lf_std::p(site=1)",
+        "uccsd_otimes_paop::uccsd_ferm_lifted::uccsd_sing(beta:2->3)::paop_lf_std::p(site=1)",
+        "uccsd_otimes_paop::uccsd_ferm_lifted::uccsd_sing(beta:2->3)::paop_lf_std::p(site=1)",
+        "uccsd_otimes_paop::uccsd_ferm_lifted::uccsd_sing(beta:2->3)::paop_lf_std::p(site=1)",
+        "uccsd_otimes_paop::uccsd_ferm_lifted::uccsd_sing(beta:2->3)::paop_lf_std::p(site=1)",
+        "uccsd_otimes_paop::uccsd_ferm_lifted::uccsd_sing(beta:2->3)::paop_lf_std::p(site=1)",
+        "uccsd_otimes_paop::uccsd_ferm_lifted::uccsd_sing(beta:2->3)::paop_lf_std::p(site=1)",
+        "uccsd_otimes_paop::uccsd_ferm_lifted::uccsd_sing(beta:2->3)::paop_lf_std::p(site=1)",
+        "uccsd_otimes_paop::uccsd_ferm_lifted::uccsd_sing(beta:2->3)::paop_lf_std::p(site=1)"
+      ],
+      "optimal_point": [
+        -0.11338285451944627,
+        0.08083368663481247,
+        -0.1366029348870873,
+        -0.013168126149925068,
+        -0.15393919622677582,
+        0.15238416066909713,
+        -0.15724952548965873,
+        0.18154480699642622,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "energy": 0.18099088933879953
+    },
+    "prune_summary": {
+      "enabled": true,
+      "executed": true,
+      "rolled_back": false,
+      "accepted_count": 4,
+      "candidate_count": 6,
+      "decisions": [
+        {
+          "index": 8,
+          "label": "uccsd_otimes_paop::uccsd_ferm_lifted::uccsd_sing(beta:2->3)::paop_lf_std::p(site=1)",
+          "accepted": true,
+          "energy_before": 0.18099088933879953,
+          "energy_after": 0.18099088933879953,
+          "regression": 0.0,
+          "reason": "accepted"
+        },
+        {
+          "index": 8,
+          "label": "uccsd_otimes_paop::uccsd_ferm_lifted::uccsd_sing(beta:2->3)::paop_lf_std::p(site=1)",
+          "accepted": true,
+          "energy_before": 0.18099088933879953,
+          "energy_after": 0.18099088933879953,
+          "regression": 0.0,
+          "reason": "accepted"
+        },
+        {
+          "index": 8,
+          "label": "uccsd_otimes_paop::uccsd_ferm_lifted::uccsd_sing(beta:2->3)::paop_lf_std::p(site=1)",
+          "accepted": true,
+          "energy_before": 0.18099088933879953,
+          "energy_after": 0.18099088933879953,
+          "regression": 0.0,
+          "reason": "accepted"
+        },
+        {
+          "index": 8,
+          "label": "uccsd_otimes_paop::uccsd_ferm_lifted::uccsd_sing(beta:2->3)::paop_lf_std::p(site=1)",
+          "accepted": true,
+          "energy_before": 0.18099088933879953,
+          "energy_after": 0.17969115560116114,
+          "regression": -0.0012997337376383922,
+          "reason": "accepted"
+        },
+        {
+          "index": 8,
+          "label": "uccsd_otimes_paop::uccsd_ferm_lifted::uccsd_sing(beta:2->3)::paop_lf_std::p(site=1)",
+          "accepted": false,
+          "energy_before": 0.17969115560116114,
+          "energy_after": 0.21196337630540293,
+          "regression": 0.032272220704241794,
+          "reason": "regression_exceeded"
+        },
+        {
+          "index": 9,
+          "label": "uccsd_otimes_paop::uccsd_ferm_lifted::uccsd_sing(beta:2->3)::paop_lf_std::p(site=1)",
+          "accepted": false,
+          "energy_before": 0.17969115560116114,
+          "energy_after": 0.19544089946962157,
+          "regression": 0.015749743868460425,
+          "reason": "regression_exceeded"
+        }
+      ],
+      "energy_before": 0.18099088933879953,
+      "energy_after_prune": 0.17969115560116114,
+      "energy_after_post_refit": 0.17969115560116114,
+      "post_refit_executed": true,
+      "marginal_proxy_benefit": [
+        5.791760537240813e-06,
+        5.868353247573828e-06,
+        5.939974881697762e-06,
+        6.013366360905664e-06,
+        6.088594107954929e-06,
+        6.1657279115293476e-06,
+        6.24484114218225e-06,
+        6.326010985120467e-06,
+        6.409318691381611e-06,
+        6.494849849122821e-06,
+        6.582694676925093e-06,
+        6.672948341226145e-06,
+        6.7657113002297376e-06,
+        6.8610896769041895e-06,
+        Infinity,
+        Infinity,
+        Infinity,
+        Infinity,
+        Infinity,
+        Infinity,
+        Infinity,
+        Infinity
+      ]
+    }
+  },
+  "ground_state": {
+    "exact_energy": 0.1584437535268517,
+    "exact_energy_filtered": 0.1584437535268517,
+    "filtered_sector": {
+      "n_up": 1,
+      "n_dn": 1
+    },
+    "method": "staged_handoff_bundle"
+  },
+  "initial_state": {
+    "source": "adapt_vqe",
+    "nq_total": 8,
+    "amplitudes_qn_to_q0": {
+      "00000101": {
+        "re": -0.253141760137045,
+        "im": -0.02180799028788323
+      },
+      "00000110": {
+        "re": -0.6353935447669068,
+        "im": -0.10695001141426948
+      },
+      "00001001": {
+        "re": -0.6502241571003683,
+        "im": -0.07022588482463031
+      },
+      "00001010": {
+        "re": -0.28494249016324574,
+        "im": -0.046544975914259046
+      },
+      "00010101": {
+        "re": 0.040764193142754486,
+        "im": 0.012146112998844685
+      },
+      "00010110": {
+        "re": 0.02627539064365349,
+        "im": 0.009099358233129186
+      },
+      "00011001": {
+        "re": 0.014857048373491673,
+        "im": 0.023789506888217196
+      },
+      "00011010": {
+        "re": -0.0056746009008157485,
+        "im": -0.009306559248810556
+      },
+      "00100101": {
+        "re": -0.011035575375149941,
+        "im": -0.006116521381994748
+      },
+      "00100110": {
+        "re": -0.003946528155505442,
+        "im": -0.0039171759503932955
+      },
+      "00101001": {
+        "re": -0.0067719131504883935,
+        "im": -0.006505558087229934
+      },
+      "00101010": {
+        "re": -0.011308767314849536,
+        "im": 0.0013403811179493895
+      },
+      "00110101": {
+        "re": 0.003842248190518328,
+        "im": -0.0012635598702340372
+      },
+      "00110110": {
+        "re": -0.00017745018475847594,
+        "im": -0.0004267767246053614
+      },
+      "00111001": {
+        "re": 0.00020288541688100506,
+        "im": 0.0012810946877310433
+      },
+      "00111010": {
+        "re": -0.0017121538951056742,
+        "im": 0.002243073556621273
+      },
+      "01000101": {
+        "re": -0.01888543447167401,
+        "im": -0.0249041043305545
+      },
+      "01000110": {
+        "re": 0.02239233424639706,
+        "im": -0.002501124980171492
+      },
+      "01001001": {
+        "re": 0.011300803976986908,
+        "im": -0.03879043677724347
+      },
+      "01001010": {
+        "re": 0.030416919696241166,
+        "im": -0.016172489842113495
+      },
+      "01010101": {
+        "re": -0.01211620397477453,
+        "im": 0.0062090104426590735
+      },
+      "01010110": {
+        "re": -0.010308649683079839,
+        "im": 0.0009531997836957529
+      },
+      "01011001": {
+        "re": -0.006903898901057953,
+        "im": -0.001927586442527737
+      },
+      "01011010": {
+        "re": -0.00531812445816636,
+        "im": 0.010260679625019283
+      },
+      "01100101": {
+        "re": 0.0033306602550415313,
+        "im": 0.0026151363219703134
+      },
+      "01100110": {
+        "re": -0.00012734385372824031,
+        "im": 0.00030852250082098916
+      },
+      "01101001": {
+        "re": 0.0009793440800611667,
+        "im": -0.0005928225016642451
+      },
+      "01101010": {
+        "re": -0.0030958176168217892,
+        "im": -0.002003498767881308
+      },
+      "01110101": {
+        "re": -0.0008193352467441119,
+        "im": 1.4591968009929961e-05
+      },
+      "01110110": {
+        "re": -0.0001239158918728096,
+        "im": -0.0001240647724018614
+      },
+      "01111001": {
+        "re": -0.00012177285892979233,
+        "im": -0.00015273929404889178
+      },
+      "01111010": {
+        "re": -0.000789975917096563,
+        "im": 0.00022051218684892066
+      },
+      "10000101": {
+        "re": -0.0046920064379418315,
+        "im": 0.00961460727964064
+      },
+      "10000110": {
+        "re": -0.001005908664964871,
+        "im": 0.008089325224273677
+      },
+      "10001001": {
+        "re": -0.004962209700556481,
+        "im": 0.008259769023560322
+      },
+      "10001010": {
+        "re": 0.001830993660964492,
+        "im": 0.011282472731664236
+      },
+      "10010101": {
+        "re": 0.0024791984523345433,
+        "im": 0.0006602262892933054
+      },
+      "10010110": {
+        "re": -0.0003085635306418398,
+        "im": -0.0007280622029891305
+      },
+      "10011001": {
+        "re": 0.00013186021374794437,
+        "im": -0.00014908970273680634
+      },
+      "10011010": {
+        "re": -0.0025804201940080964,
+        "im": -0.000665598665241081
+      },
+      "10100101": {
+        "re": -0.00012157417008493634,
+        "im": -0.0006495304481910567
+      },
+      "10100110": {
+        "re": -8.111229727511954e-05,
+        "im": 1.9162427493398472e-05
+      },
+      "10101001": {
+        "re": -9.038968298229463e-05,
+        "im": 4.3121446624829774e-05
+      },
+      "10101010": {
+        "re": 0.00013559817116648906,
+        "im": -0.000374432259935102
+      },
+      "10110101": {
+        "re": 8.073864612780988e-05,
+        "im": 2.619907283384786e-05
+      },
+      "10110110": {
+        "re": -1.040839506553623e-05,
+        "im": -1.9748320218383972e-05
+      },
+      "10111001": {
+        "re": 2.098081263084872e-05,
+        "im": 1.6401263882680438e-05
+      },
+      "10111010": {
+        "re": -4.182078752386585e-05,
+        "im": -8.991747108694044e-05
+      },
+      "11000101": {
+        "re": -0.0002346255405527682,
+        "im": -0.003072941525379676
+      },
+      "11000110": {
+        "re": -0.0011604792998108013,
+        "im": -0.0014590550537299178
+      },
+      "11001001": {
+        "re": -0.0007192499568861321,
+        "im": 0.003123712463651231
+      },
+      "11001010": {
+        "re": -0.0009888946603009705,
+        "im": 0.004018174102555583
+      },
+      "11010101": {
+        "re": 0.0004769141978577501,
+        "im": 0.00030704766643532697
+      },
+      "11010110": {
+        "re": 0.0006153352958857806,
+        "im": 3.201136416358686e-05
+      },
+      "11011001": {
+        "re": 0.0003847607760305309,
+        "im": -5.798073838456551e-05
+      },
+      "11011010": {
+        "re": 0.00043486150448922495,
+        "im": -0.00020646851712264304
+      },
+      "11100101": {
+        "re": -3.386805088861722e-05,
+        "im": -0.0002470411627119987
+      },
+      "11100110": {
+        "re": 6.242148590200322e-07,
+        "im": -8.01250581772564e-05
+      },
+      "11101001": {
+        "re": -8.310445213588915e-05,
+        "im": 8.332117708328586e-05
+      },
+      "11101010": {
+        "re": 6.110786731765178e-05,
+        "im": 0.00017347072024665288
+      },
+      "11110101": {
+        "re": 3.693634704637442e-05,
+        "im": 2.4238619129651597e-05
+      },
+      "11110110": {
+        "re": -7.828918583736486e-06,
+        "im": -2.13227496256189e-06
+      },
+      "11111001": {
+        "re": -2.1362651412938453e-06,
+        "im": -1.2708227238807038e-05
+      },
+      "11111010": {
+        "re": 3.742095901000963e-05,
+        "im": 1.0443507603023055e-05
+      }
+    },
+    "amplitude_cutoff": 1e-14,
+    "norm": 1.0,
+    "handoff_state_kind": "prepared_state"
+  },
+  "exact": {
+    "E_exact_sector": 0.1584437535268517
+  },
+  "continuation": {
+    "mode": "phase3_v1",
+    "scaffold": {
+      "selected_operator_labels": [
+        "hh_termwise_ham_quadrature_term(eyeezeee)",
+        "hh_termwise_ham_quadrature_term(eyeeeeze)",
+        "hh_termwise_ham_quadrature_term(zyeezeee)",
+        "hh_termwise_ham_quadrature_term(zyeeeeze)",
+        "hh_termwise_ham_quadrature_term(eezyeeez)",
+        "hh_termwise_ham_quadrature_term(eezyezee)",
+        "hh_termwise_ham_quadrature_term(eeeyeeez)",
+        "hh_termwise_ham_quadrature_term(eeeyezee)",
+        "uccsd_otimes_paop::uccsd_ferm_lifted::uccsd_sing(beta:2->3)::paop_lf_std::p(site=1)",
+        "uccsd_otimes_paop::uccsd_ferm_lifted::uccsd_sing(beta:2->3)::paop_lf_std::p(site=1)",
+        "uccsd_otimes_paop::uccsd_ferm_lifted::uccsd_sing(beta:2->3)::paop_lf_std::p(site=1)",
+        "uccsd_otimes_paop::uccsd_ferm_lifted::uccsd_sing(beta:2->3)::paop_lf_std::p(site=1)",
+        "uccsd_otimes_paop::uccsd_ferm_lifted::uccsd_sing(beta:2->3)::paop_lf_std::p(site=1)",
+        "uccsd_otimes_paop::uccsd_ferm_lifted::uccsd_sing(beta:2->3)::paop_lf_std::p(site=1)",
+        "uccsd_otimes_paop::uccsd_ferm_lifted::uccsd_sing(beta:2->3)::paop_lf_std::p(site=1)",
+        "uccsd_otimes_paop::uccsd_ferm_lifted::uccsd_sing(beta:2->3)::paop_lf_std::p(site=1)",
+        "uccsd_otimes_paop::uccsd_ferm_lifted::uccsd_sing(beta:2->3)::paop_lf_std::p(site=1)",
+        "uccsd_otimes_paop::uccsd_ferm_lifted::uccsd_sing(beta:2->3)::paop_lf_std::p(site=1)"
+      ],
+      "selected_generator_ids": [
+        "gen:5635e999a94c5dbc",
+        "gen:d4980fa6183c08da",
+        "gen:91c7bb9c26d7c1e8",
+        "gen:232d412191058e51",
+        "gen:81df9935a8aa8087",
+        "gen:a6ebd48f52a9ac54",
+        "gen:6a2bc92f6ce4a347",
+        "gen:1d26101329c972be",
+        "gen:761681a48e50e139",
+        "gen:761681a48e50e139",
+        "gen:761681a48e50e139",
+        "gen:761681a48e50e139",
+        "gen:761681a48e50e139",
+        "gen:761681a48e50e139",
+        "gen:761681a48e50e139",
+        "gen:761681a48e50e139",
+        "gen:761681a48e50e139",
+        "gen:761681a48e50e139"
+      ],
+      "num_parameters": 18,
+      "generator_family": "phase3_v1",
+      "continuation_mode": "phase3_v1",
+      "compiled_pauli_cache_size": 364,
+      "measurement_plan_version": "phase1_grouped_label_reuse",
+      "post_prune": true,
+      "split_event_count": 0,
+      "motif_record_ids": [
+        "motif:5a037b36dfcee73f",
+        "motif:1e996f642d1e8d44",
+        "motif:2c97c65d4c90ac65",
+        "motif:5286086a2219c78b",
+        "motif:61b7b953ab855a15",
+        "motif:c3bf177132999abe",
+        "motif:082e3fda2f9078a6",
+        "motif:ebe618efc16a55fe",
+        "motif:5ba10c5a3d77e711",
+        "motif:6b9ed661bc4611b9",
+        "motif:4798a5ff7be3f1ea",
+        "motif:b28099a76aa43b23",
+        "motif:0bbc151762d561bd",
+        "motif:b6f4e28472cd9ad5",
+        "motif:9e8d1620e27ca80a",
+        "motif:4c6421e3e39e2e81",
+        "motif:047a2d7338525d0a",
+        "motif:4f0432b554db2f74"
+      ]
+    },
+    "optimizer_memory": {
+      "version": "phase2_spsa_diag_memory_v1",
+      "optimizer": "SPSA",
+      "parameter_count": 21,
+      "available": true,
+      "reason": "preconditioner_disabled",
+      "source": "adapt.post_prune_refit.merge",
+      "reused": true,
+      "history_tail": [
+        {
+          "iter": 569,
+          "ak": 0.004344076856541331,
+          "ck": 0.05269066273477995,
+          "y_plus": 0.1824491714610006,
+          "y_minus": 0.1845286314512744,
+          "grad_norm": 0.0558125551667486,
+          "best_fun": 0.18099088933879953,
+          "nfev_so_far": 1139,
+          "preconditioner_mean": 1.0,
+          "refresh_triggered": false
+        },
+        {
+          "iter": 570,
+          "ak": 0.004339566456108793,
+          "ck": 0.0526813189482509,
+          "y_plus": 0.1822248318199661,
+          "y_minus": 0.18558939572396604,
+          "grad_norm": 0.09032066773388313,
+          "best_fun": 0.18099088933879953,
+          "nfev_so_far": 1141,
+          "preconditioner_mean": 1.0,
+          "refresh_triggered": false
+        },
+        {
+          "iter": 571,
+          "ak": 0.004335068496535248,
+          "ck": 0.05267199319257791,
+          "y_plus": 0.18319692280933753,
+          "y_minus": 0.18414017306797784,
+          "grad_norm": 0.02532574196696673,
+          "best_fun": 0.18099088933879953,
+          "nfev_so_far": 1143,
+          "preconditioner_mean": 1.0,
+          "refresh_triggered": false
+        },
+        {
+          "iter": 572,
+          "ak": 0.004330582922181178,
+          "ck": 0.052662685401480155,
+          "y_plus": 0.18292649798244173,
+          "y_minus": 0.1853411845060678,
+          "grad_norm": 0.06484444164891623,
+          "best_fun": 0.18099088933879953,
+          "nfev_so_far": 1145,
+          "preconditioner_mean": 1.0,
+          "refresh_triggered": false
+        },
+        {
+          "iter": 573,
+          "ak": 0.004326109677750949,
+          "ck": 0.05265339550903574,
+          "y_plus": 0.1855684708985766,
+          "y_minus": 0.1822308257453946,
+          "grad_norm": 0.08964555839914996,
+          "best_fun": 0.18099088933879953,
+          "nfev_so_far": 1147,
+          "preconditioner_mean": 1.0,
+          "refresh_triggered": false
+        },
+        {
+          "iter": 574,
+          "ak": 0.0043216487082900915,
+          "ck": 0.052644123449679225,
+          "y_plus": 0.18256119473987759,
+          "y_minus": 0.18522805147098578,
+          "grad_norm": 0.07164151876598815,
+          "best_fun": 0.18099088933879953,
+          "nfev_so_far": 1149,
+          "preconditioner_mean": 1.0,
+          "refresh_triggered": false
+        },
+        {
+          "iter": 575,
+          "ak": 0.004317199959182623,
+          "ck": 0.052634869158199024,
+          "y_plus": 0.18345010788289565,
+          "y_minus": 0.1843776474624758,
+          "grad_norm": 0.024921484066723065,
+          "best_fun": 0.18099088933879953,
+          "nfev_so_far": 1151,
+          "preconditioner_mean": 1.0,
+          "refresh_triggered": false
+        },
+        {
+          "iter": 576,
+          "ak": 0.004312763376148386,
+          "ck": 0.052625632569734924,
+          "y_plus": 0.18305526380112003,
+          "y_minus": 0.18304637124031395,
+          "grad_norm": 0.00023897062100905223,
+          "best_fun": 0.18099088933879953,
+          "nfev_so_far": 1153,
+          "preconditioner_mean": 1.0,
+          "refresh_triggered": false
+        },
+        {
+          "iter": 577,
+          "ak": 0.004308338905240413,
+          "ck": 0.052616413619775544,
+          "y_plus": 0.18606222001182737,
+          "y_minus": 0.18306683183348463,
+          "grad_norm": 0.08050945123314583,
+          "best_fun": 0.18099088933879953,
+          "nfev_so_far": 1155,
+          "preconditioner_mean": 1.0,
+          "refresh_triggered": false
+        },
+        {
+          "iter": 578,
+          "ak": 0.004303926492842323,
+          "ck": 0.0526072122441559,
+          "y_plus": 0.1835217045885408,
+          "y_minus": 0.18466829312774014,
+          "grad_norm": 0.03082317031116543,
+          "best_fun": 0.18099088933879953,
+          "nfev_so_far": 1157,
+          "preconditioner_mean": 1.0,
+          "refresh_triggered": false
+        },
+        {
+          "iter": 579,
+          "ak": 0.004299526085665732,
+          "ck": 0.05259802837905492,
+          "y_plus": 0.18410978692624075,
+          "y_minus": 0.1831959231365033,
+          "grad_norm": 0.0245712359462324,
+          "best_fun": 0.18099088933879953,
+          "nfev_so_far": 1159,
+          "preconditioner_mean": 1.0,
+          "refresh_triggered": false
+        },
+        {
+          "iter": 580,
+          "ak": 0.004295137630747696,
+          "ck": 0.05258886196099301,
+          "y_plus": 0.183637578950566,
+          "y_minus": 0.18329513572358563,
+          "grad_norm": 0.009208943450757125,
+          "best_fun": 0.18099088933879953,
+          "nfev_so_far": 1161,
+          "preconditioner_mean": 1.0,
+          "refresh_triggered": false
+        },
+        {
+          "iter": 581,
+          "ak": 0.004290761075448177,
+          "ck": 0.05257971292682966,
+          "y_plus": 0.1824312979699062,
+          "y_minus": 0.1845019128857989,
+          "grad_norm": 0.05569242457794523,
+          "best_fun": 0.18099088933879953,
+          "nfev_so_far": 1163,
+          "preconditioner_mean": 1.0,
+          "refresh_triggered": false
+        },
+        {
+          "iter": 582,
+          "ak": 0.00428639636744753,
+          "ck": 0.052570581213761056,
+          "y_plus": 0.18388277195567085,
+          "y_minus": 0.18388346396631333,
+          "grad_norm": 1.8615940956164965e-05,
+          "best_fun": 0.18099088933879953,
+          "nfev_so_far": 1165,
+          "preconditioner_mean": 1.0,
+          "refresh_triggered": false
+        },
+        {
+          "iter": 583,
+          "ak": 0.004282043454744018,
+          "ck": 0.05256146675931768,
+          "y_plus": 0.18449697674153498,
+          "y_minus": 0.18243018181327866,
+          "grad_norm": 0.055608977420057694,
+          "best_fun": 0.18099088933879953,
+          "nfev_so_far": 1167,
+          "preconditioner_mean": 1.0,
+          "refresh_triggered": false
+        },
+        {
+          "iter": 584,
+          "ak": 0.004277702285651344,
+          "ck": 0.05255236950136199,
+          "y_plus": 0.1848446835873439,
+          "y_minus": 0.18425799009022306,
+          "grad_norm": 0.01578824910193429,
+          "best_fun": 0.18099088933879953,
+          "nfev_so_far": 1169,
+          "preconditioner_mean": 1.0,
+          "refresh_triggered": false
+        },
+        {
+          "iter": 585,
+          "ak": 0.004273372808796218,
+          "ck": 0.05254328937808606,
+          "y_plus": 0.18495690114260344,
+          "y_minus": 0.18196709263412436,
+          "grad_norm": 0.08047131787209778,
+          "best_fun": 0.18099088933879953,
+          "nfev_so_far": 1171,
+          "preconditioner_mean": 1.0,
+          "refresh_triggered": false
+        },
+        {
+          "iter": 586,
+          "ak": 0.00426905497311593,
+          "ck": 0.052534226328009324,
+          "y_plus": 0.18435989035392353,
+          "y_minus": 0.18343718175871448,
+          "grad_norm": 0.024839178201947292,
+          "best_fun": 0.18099088933879953,
+          "nfev_so_far": 1173,
+          "preconditioner_mean": 1.0,
+          "refresh_triggered": false
+        },
+        {
+          "iter": 587,
+          "ak": 0.004264748727855964,
+          "ck": 0.05252518028997623,
+          "y_plus": 0.18435795887202225,
+          "y_minus": 0.18343786111955043,
+          "grad_norm": 0.024773160474100553,
+          "best_fun": 0.18099088933879953,
+          "nfev_so_far": 1175,
+          "preconditioner_mean": 1.0,
+          "refresh_triggered": false
+        },
+        {
+          "iter": 588,
+          "ak": 0.004260454022567619,
+          "ck": 0.052516151203154,
+          "y_plus": 0.18304333219482857,
+          "y_minus": 0.1830344569023293,
+          "grad_norm": 0.00023900378711943438,
+          "best_fun": 0.18099088933879953,
+          "nfev_so_far": 1177,
+          "preconditioner_mean": 1.0,
+          "refresh_triggered": false
+        },
+        {
+          "iter": 589,
+          "ak": 0.00425617080710566,
+          "ck": 0.05250713900703038,
+          "y_plus": 0.18520007799620045,
+          "y_minus": 0.18255118862132058,
+          "grad_norm": 0.07134449429209075,
+          "best_fun": 0.18099088933879953,
+          "nfev_so_far": 1179,
+          "preconditioner_mean": 1.0,
+          "refresh_triggered": false
+        },
+        {
+          "iter": 590,
+          "ak": 0.004251899031625993,
+          "ck": 0.05249814364141141,
+          "y_plus": 0.1822130709745571,
+          "y_minus": 0.18553126396347397,
+          "grad_norm": 0.08938665640352124,
+          "best_fun": 0.18099088933879953,
+          "nfev_so_far": 1181,
+          "preconditioner_mean": 1.0,
+          "refresh_triggered": false
+        },
+        {
+          "iter": 591,
+          "ak": 0.004247638646583353,
+          "ck": 0.0524891650464192,
+          "y_plus": 0.18302324118691635,
+          "y_minus": 0.1847488102800512,
+          "grad_norm": 0.04649194194963892,
+          "best_fun": 0.18099088933879953,
+          "nfev_so_far": 1183,
+          "preconditioner_mean": 1.0,
+          "refresh_triggered": false
+        },
+        {
+          "iter": 592,
+          "ak": 0.004243389602729023,
+          "ck": 0.05248020316248976,
+          "y_plus": 0.18481891002443335,
+          "y_minus": 0.18425176950005157,
+          "grad_norm": 0.015283054809615825,
+          "best_fun": 0.18099088933879953,
+          "nfev_so_far": 1185,
+          "preconditioner_mean": 1.0,
+          "refresh_triggered": false
+        },
+        {
+          "iter": 593,
+          "ak": 0.004239151851108572,
+          "ck": 0.052471257930370815,
+          "y_plus": 0.18140804892172402,
+          "y_minus": 0.18883699011322994,
+          "grad_norm": 0.2002259865971077,
+          "best_fun": 0.18099088933879953,
+          "nfev_so_far": 1187,
+          "preconditioner_mean": 1.0,
+          "refresh_triggered": false
+        },
+        {
+          "iter": 594,
+          "ak": 0.004234925343059603,
+          "ck": 0.052462329291119644,
+          "y_plus": 0.18549876329804305,
+          "y_minus": 0.18252152989082782,
+          "grad_norm": 0.08025651776667765,
+          "best_fun": 0.18099088933879953,
+          "nfev_so_far": 1189,
+          "preconditioner_mean": 1.0,
+          "refresh_triggered": false
+        },
+        {
+          "iter": 595,
+          "ak": 0.004230710030209542,
+          "ck": 0.05245341718610097,
+          "y_plus": 0.18541036755357534,
+          "y_minus": 0.18394129692617475,
+          "grad_norm": 0.03960808879205651,
+          "best_fun": 0.18099088933879953,
+          "nfev_so_far": 1191,
+          "preconditioner_mean": 1.0,
+          "refresh_triggered": false
+        },
+        {
+          "iter": 596,
+          "ak": 0.004226505864473426,
+          "ck": 0.05244452155698482,
+          "y_plus": 0.1832663178855867,
+          "y_minus": 0.18358006342606428,
+          "grad_norm": 0.008460429903919696,
+          "best_fun": 0.18099088933879953,
+          "nfev_so_far": 1193,
+          "preconditioner_mean": 1.0,
+          "refresh_triggered": false
+        },
+        {
+          "iter": 597,
+          "ak": 0.004222312798051732,
+          "ck": 0.05243564234574443,
+          "y_plus": 0.185496572440041,
+          "y_minus": 0.18285365419736233,
+          "grad_norm": 0.07128072921076349,
+          "best_fun": 0.18099088933879953,
+          "nfev_so_far": 1195,
+          "preconditioner_mean": 1.0,
+          "refresh_triggered": false
+        },
+        {
+          "iter": 598,
+          "ak": 0.0042181307834282065,
+          "ck": 0.05242677949465417,
+          "y_plus": 0.1844407947583518,
+          "y_minus": 0.18239765875055203,
+          "grad_norm": 0.05511364001097707,
+          "best_fun": 0.18099088933879953,
+          "nfev_so_far": 1197,
+          "preconditioner_mean": 1.0,
+          "refresh_triggered": false
+        },
+        {
+          "iter": 599,
+          "ak": 0.004213959773367731,
+          "ck": 0.052417932946287465,
+          "y_plus": 0.1844395940484188,
+          "y_minus": 0.18239740232110732,
+          "grad_norm": 0.055097465226060474,
+          "best_fun": 0.18099088933879953,
+          "nfev_so_far": 1199,
+          "preconditioner_mean": 1.0,
+          "refresh_triggered": false
+        },
+        {
+          "iter": 600,
+          "ak": 0.004209799720914193,
+          "ck": 0.052409102643514796,
+          "y_plus": 0.18444125572849074,
+          "y_minus": 0.18239007687276146,
+          "grad_norm": 0.055349258245394224,
+          "best_fun": 0.18099088933879953,
+          "nfev_so_far": 1201,
+          "preconditioner_mean": 1.0,
+          "refresh_triggered": false
+        }
+      ],
+      "refresh_points": [],
+      "remap_events": [
+        {
+          "op": "insert",
+          "position_id": 10,
+          "count": 1
+        },
+        {
+          "op": "merge_active",
+          "active_indices": [
+            10
+          ]
+        },
+        {
+          "op": "insert",
+          "position_id": 11,
+          "count": 1
+        },
+        {
+          "op": "merge_active",
+          "active_indices": [
+            11
+          ]
+        },
+        {
+          "op": "insert",
+          "position_id": 12,
+          "count": 1
+        },
+        {
+          "op": "merge_active",
+          "active_indices": [
+            12
+          ]
+        },
+        {
+          "op": "insert",
+          "position_id": 13,
+          "count": 1
+        },
+        {
+          "op": "merge_active",
+          "active_indices": [
+            13
+          ]
+        },
+        {
+          "op": "insert",
+          "position_id": 14,
+          "count": 1
+        },
+        {
+          "op": "merge_active",
+          "active_indices": [
+            14
+          ]
+        },
+        {
+          "op": "insert",
+          "position_id": 15,
+          "count": 1
+        },
+        {
+          "op": "merge_active",
+          "active_indices": [
+            15
+          ]
+        },
+        {
+          "op": "insert",
+          "position_id": 16,
+          "count": 1
+        },
+        {
+          "op": "merge_active",
+          "active_indices": [
+            16
+          ]
+        },
+        {
+          "op": "insert",
+          "position_id": 17,
+          "count": 1
+        },
+        {
+          "op": "merge_active",
+          "active_indices": [
+            17
+          ]
+        },
+        {
+          "op": "insert",
+          "position_id": 18,
+          "count": 1
+        },
+        {
+          "op": "merge_active",
+          "active_indices": [
+            18
+          ]
+        },
+        {
+          "op": "insert",
+          "position_id": 19,
+          "count": 1
+        },
+        {
+          "op": "merge_active",
+          "active_indices": [
+            19
+          ]
+        },
+        {
+          "op": "insert",
+          "position_id": 20,
+          "count": 1
+        },
+        {
+          "op": "merge_active",
+          "active_indices": [
+            20
+          ]
+        },
+        {
+          "op": "insert",
+          "position_id": 21,
+          "count": 1
+        },
+        {
+          "op": "merge_active",
+          "active_indices": [
+            21
+          ]
+        },
+        {
+          "op": "merge_active",
+          "active_indices": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16,
+            17,
+            18,
+            19,
+            20
+          ]
+        },
+        {
+          "op": "merge_active",
+          "active_indices": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16,
+            17,
+            18,
+            19
+          ]
+        },
+        {
+          "op": "merge_active",
+          "active_indices": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16,
+            17,
+            18
+          ]
+        },
+        {
+          "op": "merge_active",
+          "active_indices": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16,
+            17
+          ]
+        },
+        {
+          "op": "merge_active",
+          "active_indices": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16
+          ]
+        },
+        {
+          "op": "merge_active",
+          "active_indices": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16
+          ]
+        },
+        {
+          "op": "remove",
+          "indices": [
+            8
+          ]
+        },
+        {
+          "op": "merge_active",
+          "active_indices": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16,
+            17
+          ]
+        }
+      ],
+      "preconditioner_diag": [
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "grad_sq_ema": [
+        0.004680607304668141,
+        0.004680607304668141,
+        0.004680607304668141,
+        0.004680607304668141,
+        0.004680607304668141,
+        0.004680607304668141,
+        0.004680607304668141,
+        0.004680607304668141,
+        0.004680607304668141,
+        0.004680607304668141,
+        0.004680607304668141,
+        0.004680607304668141,
+        0.004680607304668141,
+        0.004680607304668141,
+        0.004680607304668141,
+        0.004680607304668141,
+        0.004676586005880125,
+        0.004677498828765527,
+        0.6490562468234699,
+        0.6264175059194897,
+        4.000206715700833e-13
+      ]
+    },
+    "selected_generator_metadata": [
+      {
+        "generator_id": "gen:5635e999a94c5dbc",
+        "family_id": "full_meta",
+        "template_id": "full_meta|atomic|terms1|sites0|bos1|ferm1",
+        "candidate_label": "hh_termwise_ham_quadrature_term(eyeezeee)",
+        "support_qubits": [
+          3,
+          6
+        ],
+        "support_sites": [
+          1
+        ],
+        "support_site_offsets": [
+          0
+        ],
+        "is_macro_generator": false,
+        "split_policy": "preserve",
+        "parent_generator_id": null,
+        "symmetry_spec": {
+          "spec_version": "phase3_symmetry_v1",
+          "particle_number_mode": "preserving",
+          "spin_sector_mode": "preserving",
+          "phonon_number_mode": "not_conserved",
+          "leakage_risk": 0.1,
+          "mitigation_eligible": false,
+          "grouping_eligible": true,
+          "hard_guard": false,
+          "tags": [
+            "fermion_number",
+            "spin_sector"
+          ]
+        },
+        "measured_geometry_capability": {
+          "schema_version": 2,
+          "surface": "phase_a_measured_local_system_capability",
+          "family_id": "full_meta",
+          "eligible_for_certification": false,
+          "certifiable_local_system_modes": [],
+          "allowed_requested_families": [],
+          "requires_reference_state_handoff": true,
+          "requires_basis_reference_state": true,
+          "disallow_fallback": true,
+          "static_hamiltonian_only": true,
+          "driven_segments_supported": false,
+          "runtime_submission_blocked": true,
+          "phase_b_supported": false
+        },
+        "derivative_capability": {
+          "schema_version": 2,
+          "surface": "phase_a_measured_local_system_capability",
+          "family_id": "full_meta",
+          "eligible_for_certification": false,
+          "certifiable_local_system_modes": [],
+          "allowed_requested_families": [],
+          "requires_reference_state_handoff": true,
+          "requires_basis_reference_state": true,
+          "disallow_fallback": true,
+          "static_hamiltonian_only": true,
+          "driven_segments_supported": false,
+          "runtime_submission_blocked": true,
+          "phase_b_supported": false
+        },
+        "compile_metadata": {
+          "num_polynomial_terms": 1,
+          "signature_size": 1,
+          "has_boson_support": true,
+          "has_fermion_support": true,
+          "support_size": 2,
+          "serialized_terms_exyz": [
+            {
+              "pauli_exyz": "eyeezeee",
+              "coeff_re": 0.125,
+              "coeff_im": 0.0,
+              "nq": 8
+            }
+          ]
+        }
+      },
+      {
+        "generator_id": "gen:d4980fa6183c08da",
+        "family_id": "full_meta",
+        "template_id": "full_meta|atomic|terms1|sites0|bos1|ferm1",
+        "candidate_label": "hh_termwise_ham_quadrature_term(eyeeeeze)",
+        "support_qubits": [
+          1,
+          6
+        ],
+        "support_sites": [
+          1
+        ],
+        "support_site_offsets": [
+          0
+        ],
+        "is_macro_generator": false,
+        "split_policy": "preserve",
+        "parent_generator_id": null,
+        "symmetry_spec": {
+          "spec_version": "phase3_symmetry_v1",
+          "particle_number_mode": "preserving",
+          "spin_sector_mode": "preserving",
+          "phonon_number_mode": "not_conserved",
+          "leakage_risk": 0.1,
+          "mitigation_eligible": false,
+          "grouping_eligible": true,
+          "hard_guard": false,
+          "tags": [
+            "fermion_number",
+            "spin_sector"
+          ]
+        },
+        "measured_geometry_capability": {
+          "schema_version": 2,
+          "surface": "phase_a_measured_local_system_capability",
+          "family_id": "full_meta",
+          "eligible_for_certification": false,
+          "certifiable_local_system_modes": [],
+          "allowed_requested_families": [],
+          "requires_reference_state_handoff": true,
+          "requires_basis_reference_state": true,
+          "disallow_fallback": true,
+          "static_hamiltonian_only": true,
+          "driven_segments_supported": false,
+          "runtime_submission_blocked": true,
+          "phase_b_supported": false
+        },
+        "derivative_capability": {
+          "schema_version": 2,
+          "surface": "phase_a_measured_local_system_capability",
+          "family_id": "full_meta",
+          "eligible_for_certification": false,
+          "certifiable_local_system_modes": [],
+          "allowed_requested_families": [],
+          "requires_reference_state_handoff": true,
+          "requires_basis_reference_state": true,
+          "disallow_fallback": true,
+          "static_hamiltonian_only": true,
+          "driven_segments_supported": false,
+          "runtime_submission_blocked": true,
+          "phase_b_supported": false
+        },
+        "compile_metadata": {
+          "num_polynomial_terms": 1,
+          "signature_size": 1,
+          "has_boson_support": true,
+          "has_fermion_support": true,
+          "support_size": 2,
+          "serialized_terms_exyz": [
+            {
+              "pauli_exyz": "eyeeeeze",
+              "coeff_re": 0.125,
+              "coeff_im": 0.0,
+              "nq": 8
+            }
+          ]
+        }
+      },
+      {
+        "generator_id": "gen:91c7bb9c26d7c1e8",
+        "family_id": "full_meta",
+        "template_id": "full_meta|atomic|terms1|sites0|bos1|ferm1",
+        "candidate_label": "hh_termwise_ham_quadrature_term(zyeezeee)",
+        "support_qubits": [
+          3,
+          6,
+          7
+        ],
+        "support_sites": [
+          1
+        ],
+        "support_site_offsets": [
+          0
+        ],
+        "is_macro_generator": false,
+        "split_policy": "preserve",
+        "parent_generator_id": null,
+        "symmetry_spec": {
+          "spec_version": "phase3_symmetry_v1",
+          "particle_number_mode": "preserving",
+          "spin_sector_mode": "preserving",
+          "phonon_number_mode": "not_conserved",
+          "leakage_risk": 0.1,
+          "mitigation_eligible": false,
+          "grouping_eligible": true,
+          "hard_guard": false,
+          "tags": [
+            "fermion_number",
+            "spin_sector"
+          ]
+        },
+        "measured_geometry_capability": {
+          "schema_version": 2,
+          "surface": "phase_a_measured_local_system_capability",
+          "family_id": "full_meta",
+          "eligible_for_certification": false,
+          "certifiable_local_system_modes": [],
+          "allowed_requested_families": [],
+          "requires_reference_state_handoff": true,
+          "requires_basis_reference_state": true,
+          "disallow_fallback": true,
+          "static_hamiltonian_only": true,
+          "driven_segments_supported": false,
+          "runtime_submission_blocked": true,
+          "phase_b_supported": false
+        },
+        "derivative_capability": {
+          "schema_version": 2,
+          "surface": "phase_a_measured_local_system_capability",
+          "family_id": "full_meta",
+          "eligible_for_certification": false,
+          "certifiable_local_system_modes": [],
+          "allowed_requested_families": [],
+          "requires_reference_state_handoff": true,
+          "requires_basis_reference_state": true,
+          "disallow_fallback": true,
+          "static_hamiltonian_only": true,
+          "driven_segments_supported": false,
+          "runtime_submission_blocked": true,
+          "phase_b_supported": false
+        },
+        "compile_metadata": {
+          "num_polynomial_terms": 1,
+          "signature_size": 1,
+          "has_boson_support": true,
+          "has_fermion_support": true,
+          "support_size": 3,
+          "serialized_terms_exyz": [
+            {
+              "pauli_exyz": "zyeezeee",
+              "coeff_re": 0.125,
+              "coeff_im": 0.0,
+              "nq": 8
+            }
+          ]
+        }
+      },
+      {
+        "generator_id": "gen:232d412191058e51",
+        "family_id": "full_meta",
+        "template_id": "full_meta|atomic|terms1|sites0|bos1|ferm1",
+        "candidate_label": "hh_termwise_ham_quadrature_term(zyeeeeze)",
+        "support_qubits": [
+          1,
+          6,
+          7
+        ],
+        "support_sites": [
+          1
+        ],
+        "support_site_offsets": [
+          0
+        ],
+        "is_macro_generator": false,
+        "split_policy": "preserve",
+        "parent_generator_id": null,
+        "symmetry_spec": {
+          "spec_version": "phase3_symmetry_v1",
+          "particle_number_mode": "preserving",
+          "spin_sector_mode": "preserving",
+          "phonon_number_mode": "not_conserved",
+          "leakage_risk": 0.1,
+          "mitigation_eligible": false,
+          "grouping_eligible": true,
+          "hard_guard": false,
+          "tags": [
+            "fermion_number",
+            "spin_sector"
+          ]
+        },
+        "measured_geometry_capability": {
+          "schema_version": 2,
+          "surface": "phase_a_measured_local_system_capability",
+          "family_id": "full_meta",
+          "eligible_for_certification": false,
+          "certifiable_local_system_modes": [],
+          "allowed_requested_families": [],
+          "requires_reference_state_handoff": true,
+          "requires_basis_reference_state": true,
+          "disallow_fallback": true,
+          "static_hamiltonian_only": true,
+          "driven_segments_supported": false,
+          "runtime_submission_blocked": true,
+          "phase_b_supported": false
+        },
+        "derivative_capability": {
+          "schema_version": 2,
+          "surface": "phase_a_measured_local_system_capability",
+          "family_id": "full_meta",
+          "eligible_for_certification": false,
+          "certifiable_local_system_modes": [],
+          "allowed_requested_families": [],
+          "requires_reference_state_handoff": true,
+          "requires_basis_reference_state": true,
+          "disallow_fallback": true,
+          "static_hamiltonian_only": true,
+          "driven_segments_supported": false,
+          "runtime_submission_blocked": true,
+          "phase_b_supported": false
+        },
+        "compile_metadata": {
+          "num_polynomial_terms": 1,
+          "signature_size": 1,
+          "has_boson_support": true,
+          "has_fermion_support": true,
+          "support_size": 3,
+          "serialized_terms_exyz": [
+            {
+              "pauli_exyz": "zyeeeeze",
+              "coeff_re": 0.125,
+              "coeff_im": 0.0,
+              "nq": 8
+            }
+          ]
+        }
+      },
+      {
+        "generator_id": "gen:81df9935a8aa8087",
+        "family_id": "full_meta",
+        "template_id": "full_meta|atomic|terms1|sites0|bos1|ferm1",
+        "candidate_label": "hh_termwise_ham_quadrature_term(eezyeeez)",
+        "support_qubits": [
+          0,
+          4,
+          5
+        ],
+        "support_sites": [
+          0
+        ],
+        "support_site_offsets": [
+          0
+        ],
+        "is_macro_generator": false,
+        "split_policy": "preserve",
+        "parent_generator_id": null,
+        "symmetry_spec": {
+          "spec_version": "phase3_symmetry_v1",
+          "particle_number_mode": "preserving",
+          "spin_sector_mode": "preserving",
+          "phonon_number_mode": "not_conserved",
+          "leakage_risk": 0.1,
+          "mitigation_eligible": false,
+          "grouping_eligible": true,
+          "hard_guard": false,
+          "tags": [
+            "fermion_number",
+            "spin_sector"
+          ]
+        },
+        "measured_geometry_capability": {
+          "schema_version": 2,
+          "surface": "phase_a_measured_local_system_capability",
+          "family_id": "full_meta",
+          "eligible_for_certification": false,
+          "certifiable_local_system_modes": [],
+          "allowed_requested_families": [],
+          "requires_reference_state_handoff": true,
+          "requires_basis_reference_state": true,
+          "disallow_fallback": true,
+          "static_hamiltonian_only": true,
+          "driven_segments_supported": false,
+          "runtime_submission_blocked": true,
+          "phase_b_supported": false
+        },
+        "derivative_capability": {
+          "schema_version": 2,
+          "surface": "phase_a_measured_local_system_capability",
+          "family_id": "full_meta",
+          "eligible_for_certification": false,
+          "certifiable_local_system_modes": [],
+          "allowed_requested_families": [],
+          "requires_reference_state_handoff": true,
+          "requires_basis_reference_state": true,
+          "disallow_fallback": true,
+          "static_hamiltonian_only": true,
+          "driven_segments_supported": false,
+          "runtime_submission_blocked": true,
+          "phase_b_supported": false
+        },
+        "compile_metadata": {
+          "num_polynomial_terms": 1,
+          "signature_size": 1,
+          "has_boson_support": true,
+          "has_fermion_support": true,
+          "support_size": 3,
+          "serialized_terms_exyz": [
+            {
+              "pauli_exyz": "eezyeeez",
+              "coeff_re": 0.125,
+              "coeff_im": 0.0,
+              "nq": 8
+            }
+          ]
+        }
+      },
+      {
+        "generator_id": "gen:a6ebd48f52a9ac54",
+        "family_id": "full_meta",
+        "template_id": "full_meta|atomic|terms1|sites0|bos1|ferm1",
+        "candidate_label": "hh_termwise_ham_quadrature_term(eezyezee)",
+        "support_qubits": [
+          2,
+          4,
+          5
+        ],
+        "support_sites": [
+          0
+        ],
+        "support_site_offsets": [
+          0
+        ],
+        "is_macro_generator": false,
+        "split_policy": "preserve",
+        "parent_generator_id": null,
+        "symmetry_spec": {
+          "spec_version": "phase3_symmetry_v1",
+          "particle_number_mode": "preserving",
+          "spin_sector_mode": "preserving",
+          "phonon_number_mode": "not_conserved",
+          "leakage_risk": 0.1,
+          "mitigation_eligible": false,
+          "grouping_eligible": true,
+          "hard_guard": false,
+          "tags": [
+            "fermion_number",
+            "spin_sector"
+          ]
+        },
+        "measured_geometry_capability": {
+          "schema_version": 2,
+          "surface": "phase_a_measured_local_system_capability",
+          "family_id": "full_meta",
+          "eligible_for_certification": false,
+          "certifiable_local_system_modes": [],
+          "allowed_requested_families": [],
+          "requires_reference_state_handoff": true,
+          "requires_basis_reference_state": true,
+          "disallow_fallback": true,
+          "static_hamiltonian_only": true,
+          "driven_segments_supported": false,
+          "runtime_submission_blocked": true,
+          "phase_b_supported": false
+        },
+        "derivative_capability": {
+          "schema_version": 2,
+          "surface": "phase_a_measured_local_system_capability",
+          "family_id": "full_meta",
+          "eligible_for_certification": false,
+          "certifiable_local_system_modes": [],
+          "allowed_requested_families": [],
+          "requires_reference_state_handoff": true,
+          "requires_basis_reference_state": true,
+          "disallow_fallback": true,
+          "static_hamiltonian_only": true,
+          "driven_segments_supported": false,
+          "runtime_submission_blocked": true,
+          "phase_b_supported": false
+        },
+        "compile_metadata": {
+          "num_polynomial_terms": 1,
+          "signature_size": 1,
+          "has_boson_support": true,
+          "has_fermion_support": true,
+          "support_size": 3,
+          "serialized_terms_exyz": [
+            {
+              "pauli_exyz": "eezyezee",
+              "coeff_re": 0.125,
+              "coeff_im": 0.0,
+              "nq": 8
+            }
+          ]
+        }
+      },
+      {
+        "generator_id": "gen:6a2bc92f6ce4a347",
+        "family_id": "full_meta",
+        "template_id": "full_meta|atomic|terms1|sites0|bos1|ferm1",
+        "candidate_label": "hh_termwise_ham_quadrature_term(eeeyeeez)",
+        "support_qubits": [
+          0,
+          4
+        ],
+        "support_sites": [
+          0
+        ],
+        "support_site_offsets": [
+          0
+        ],
+        "is_macro_generator": false,
+        "split_policy": "preserve",
+        "parent_generator_id": null,
+        "symmetry_spec": {
+          "spec_version": "phase3_symmetry_v1",
+          "particle_number_mode": "preserving",
+          "spin_sector_mode": "preserving",
+          "phonon_number_mode": "not_conserved",
+          "leakage_risk": 0.1,
+          "mitigation_eligible": false,
+          "grouping_eligible": true,
+          "hard_guard": false,
+          "tags": [
+            "fermion_number",
+            "spin_sector"
+          ]
+        },
+        "measured_geometry_capability": {
+          "schema_version": 2,
+          "surface": "phase_a_measured_local_system_capability",
+          "family_id": "full_meta",
+          "eligible_for_certification": false,
+          "certifiable_local_system_modes": [],
+          "allowed_requested_families": [],
+          "requires_reference_state_handoff": true,
+          "requires_basis_reference_state": true,
+          "disallow_fallback": true,
+          "static_hamiltonian_only": true,
+          "driven_segments_supported": false,
+          "runtime_submission_blocked": true,
+          "phase_b_supported": false
+        },
+        "derivative_capability": {
+          "schema_version": 2,
+          "surface": "phase_a_measured_local_system_capability",
+          "family_id": "full_meta",
+          "eligible_for_certification": false,
+          "certifiable_local_system_modes": [],
+          "allowed_requested_families": [],
+          "requires_reference_state_handoff": true,
+          "requires_basis_reference_state": true,
+          "disallow_fallback": true,
+          "static_hamiltonian_only": true,
+          "driven_segments_supported": false,
+          "runtime_submission_blocked": true,
+          "phase_b_supported": false
+        },
+        "compile_metadata": {
+          "num_polynomial_terms": 1,
+          "signature_size": 1,
+          "has_boson_support": true,
+          "has_fermion_support": true,
+          "support_size": 2,
+          "serialized_terms_exyz": [
+            {
+              "pauli_exyz": "eeeyeeez",
+              "coeff_re": 0.125,
+              "coeff_im": 0.0,
+              "nq": 8
+            }
+          ]
+        }
+      },
+      {
+        "generator_id": "gen:1d26101329c972be",
+        "family_id": "full_meta",
+        "template_id": "full_meta|atomic|terms1|sites0|bos1|ferm1",
+        "candidate_label": "hh_termwise_ham_quadrature_term(eeeyezee)",
+        "support_qubits": [
+          2,
+          4
+        ],
+        "support_sites": [
+          0
+        ],
+        "support_site_offsets": [
+          0
+        ],
+        "is_macro_generator": false,
+        "split_policy": "preserve",
+        "parent_generator_id": null,
+        "symmetry_spec": {
+          "spec_version": "phase3_symmetry_v1",
+          "particle_number_mode": "preserving",
+          "spin_sector_mode": "preserving",
+          "phonon_number_mode": "not_conserved",
+          "leakage_risk": 0.1,
+          "mitigation_eligible": false,
+          "grouping_eligible": true,
+          "hard_guard": false,
+          "tags": [
+            "fermion_number",
+            "spin_sector"
+          ]
+        },
+        "measured_geometry_capability": {
+          "schema_version": 2,
+          "surface": "phase_a_measured_local_system_capability",
+          "family_id": "full_meta",
+          "eligible_for_certification": false,
+          "certifiable_local_system_modes": [],
+          "allowed_requested_families": [],
+          "requires_reference_state_handoff": true,
+          "requires_basis_reference_state": true,
+          "disallow_fallback": true,
+          "static_hamiltonian_only": true,
+          "driven_segments_supported": false,
+          "runtime_submission_blocked": true,
+          "phase_b_supported": false
+        },
+        "derivative_capability": {
+          "schema_version": 2,
+          "surface": "phase_a_measured_local_system_capability",
+          "family_id": "full_meta",
+          "eligible_for_certification": false,
+          "certifiable_local_system_modes": [],
+          "allowed_requested_families": [],
+          "requires_reference_state_handoff": true,
+          "requires_basis_reference_state": true,
+          "disallow_fallback": true,
+          "static_hamiltonian_only": true,
+          "driven_segments_supported": false,
+          "runtime_submission_blocked": true,
+          "phase_b_supported": false
+        },
+        "compile_metadata": {
+          "num_polynomial_terms": 1,
+          "signature_size": 1,
+          "has_boson_support": true,
+          "has_fermion_support": true,
+          "support_size": 2,
+          "serialized_terms_exyz": [
+            {
+              "pauli_exyz": "eeeyezee",
+              "coeff_re": 0.125,
+              "coeff_im": 0.0,
+              "nq": 8
+            }
+          ]
+        }
+      },
+      {
+        "generator_id": "gen:761681a48e50e139",
+        "family_id": "uccsd_otimes_paop_lf_std",
+        "template_id": "uccsd_otimes_paop_lf_std|macro|terms8|sites0,1|bos1|ferm1",
+        "candidate_label": "uccsd_otimes_paop::uccsd_ferm_lifted::uccsd_sing(beta:2->3)::paop_lf_std::p(site=1)",
+        "support_qubits": [
+          2,
+          3,
+          6,
+          7
+        ],
+        "support_sites": [
+          0,
+          1
+        ],
+        "support_site_offsets": [
+          0,
+          1
+        ],
+        "is_macro_generator": true,
+        "split_policy": "preserve",
+        "parent_generator_id": null,
+        "symmetry_spec": {
+          "spec_version": "phase3_symmetry_v1",
+          "particle_number_mode": "preserving",
+          "spin_sector_mode": "preserving",
+          "phonon_number_mode": "not_conserved",
+          "leakage_risk": 0.2,
+          "mitigation_eligible": false,
+          "grouping_eligible": true,
+          "hard_guard": false,
+          "tags": [
+            "fermion_number",
+            "spin_sector"
+          ]
+        },
+        "measured_geometry_capability": {
+          "schema_version": 2,
+          "surface": "phase_a_measured_local_system_capability",
+          "family_id": "uccsd_otimes_paop_lf_std",
+          "eligible_for_certification": true,
+          "certifiable_local_system_modes": [
+            "hadamard_transition_fd_general"
+          ],
+          "allowed_requested_families": [
+            "uccsd_otimes_paop_lf_std"
+          ],
+          "requires_reference_state_handoff": true,
+          "requires_basis_reference_state": true,
+          "disallow_fallback": true,
+          "static_hamiltonian_only": true,
+          "driven_segments_supported": false,
+          "runtime_submission_blocked": true,
+          "phase_b_supported": false
+        },
+        "derivative_capability": {
+          "schema_version": 2,
+          "surface": "phase_a_measured_local_system_capability",
+          "family_id": "uccsd_otimes_paop_lf_std",
+          "eligible_for_certification": true,
+          "certifiable_local_system_modes": [
+            "hadamard_transition_fd_general"
+          ],
+          "allowed_requested_families": [
+            "uccsd_otimes_paop_lf_std"
+          ],
+          "requires_reference_state_handoff": true,
+          "requires_basis_reference_state": true,
+          "disallow_fallback": true,
+          "static_hamiltonian_only": true,
+          "driven_segments_supported": false,
+          "runtime_submission_blocked": true,
+          "phase_b_supported": false
+        },
+        "compile_metadata": {
+          "num_polynomial_terms": 8,
+          "signature_size": 8,
+          "has_boson_support": true,
+          "has_fermion_support": true,
+          "support_size": 4,
+          "serialized_terms_exyz": [
+            {
+              "pauli_exyz": "yxeeyxee",
+              "coeff_re": 0.3535533905932738,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "eyeeyxee",
+              "coeff_re": 0.25,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "xyeeyxee",
+              "coeff_re": -0.3535533905932738,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "zyeeyxee",
+              "coeff_re": 0.25,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "yxeexyee",
+              "coeff_re": -0.3535533905932738,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "eyeexyee",
+              "coeff_re": -0.25,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "xyeexyee",
+              "coeff_re": 0.3535533905932738,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "zyeexyee",
+              "coeff_re": -0.25,
+              "coeff_im": 0.0,
+              "nq": 8
+            }
+          ]
+        }
+      },
+      {
+        "generator_id": "gen:761681a48e50e139",
+        "family_id": "uccsd_otimes_paop_lf_std",
+        "template_id": "uccsd_otimes_paop_lf_std|macro|terms8|sites0,1|bos1|ferm1",
+        "candidate_label": "uccsd_otimes_paop::uccsd_ferm_lifted::uccsd_sing(beta:2->3)::paop_lf_std::p(site=1)",
+        "support_qubits": [
+          2,
+          3,
+          6,
+          7
+        ],
+        "support_sites": [
+          0,
+          1
+        ],
+        "support_site_offsets": [
+          0,
+          1
+        ],
+        "is_macro_generator": true,
+        "split_policy": "preserve",
+        "parent_generator_id": null,
+        "symmetry_spec": {
+          "spec_version": "phase3_symmetry_v1",
+          "particle_number_mode": "preserving",
+          "spin_sector_mode": "preserving",
+          "phonon_number_mode": "not_conserved",
+          "leakage_risk": 0.2,
+          "mitigation_eligible": false,
+          "grouping_eligible": true,
+          "hard_guard": false,
+          "tags": [
+            "fermion_number",
+            "spin_sector"
+          ]
+        },
+        "measured_geometry_capability": {
+          "schema_version": 2,
+          "surface": "phase_a_measured_local_system_capability",
+          "family_id": "uccsd_otimes_paop_lf_std",
+          "eligible_for_certification": true,
+          "certifiable_local_system_modes": [
+            "hadamard_transition_fd_general"
+          ],
+          "allowed_requested_families": [
+            "uccsd_otimes_paop_lf_std"
+          ],
+          "requires_reference_state_handoff": true,
+          "requires_basis_reference_state": true,
+          "disallow_fallback": true,
+          "static_hamiltonian_only": true,
+          "driven_segments_supported": false,
+          "runtime_submission_blocked": true,
+          "phase_b_supported": false
+        },
+        "derivative_capability": {
+          "schema_version": 2,
+          "surface": "phase_a_measured_local_system_capability",
+          "family_id": "uccsd_otimes_paop_lf_std",
+          "eligible_for_certification": true,
+          "certifiable_local_system_modes": [
+            "hadamard_transition_fd_general"
+          ],
+          "allowed_requested_families": [
+            "uccsd_otimes_paop_lf_std"
+          ],
+          "requires_reference_state_handoff": true,
+          "requires_basis_reference_state": true,
+          "disallow_fallback": true,
+          "static_hamiltonian_only": true,
+          "driven_segments_supported": false,
+          "runtime_submission_blocked": true,
+          "phase_b_supported": false
+        },
+        "compile_metadata": {
+          "num_polynomial_terms": 8,
+          "signature_size": 8,
+          "has_boson_support": true,
+          "has_fermion_support": true,
+          "support_size": 4,
+          "serialized_terms_exyz": [
+            {
+              "pauli_exyz": "yxeeyxee",
+              "coeff_re": 0.3535533905932738,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "eyeeyxee",
+              "coeff_re": 0.25,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "xyeeyxee",
+              "coeff_re": -0.3535533905932738,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "zyeeyxee",
+              "coeff_re": 0.25,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "yxeexyee",
+              "coeff_re": -0.3535533905932738,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "eyeexyee",
+              "coeff_re": -0.25,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "xyeexyee",
+              "coeff_re": 0.3535533905932738,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "zyeexyee",
+              "coeff_re": -0.25,
+              "coeff_im": 0.0,
+              "nq": 8
+            }
+          ]
+        }
+      },
+      {
+        "generator_id": "gen:761681a48e50e139",
+        "family_id": "uccsd_otimes_paop_lf_std",
+        "template_id": "uccsd_otimes_paop_lf_std|macro|terms8|sites0,1|bos1|ferm1",
+        "candidate_label": "uccsd_otimes_paop::uccsd_ferm_lifted::uccsd_sing(beta:2->3)::paop_lf_std::p(site=1)",
+        "support_qubits": [
+          2,
+          3,
+          6,
+          7
+        ],
+        "support_sites": [
+          0,
+          1
+        ],
+        "support_site_offsets": [
+          0,
+          1
+        ],
+        "is_macro_generator": true,
+        "split_policy": "preserve",
+        "parent_generator_id": null,
+        "symmetry_spec": {
+          "spec_version": "phase3_symmetry_v1",
+          "particle_number_mode": "preserving",
+          "spin_sector_mode": "preserving",
+          "phonon_number_mode": "not_conserved",
+          "leakage_risk": 0.2,
+          "mitigation_eligible": false,
+          "grouping_eligible": true,
+          "hard_guard": false,
+          "tags": [
+            "fermion_number",
+            "spin_sector"
+          ]
+        },
+        "measured_geometry_capability": {
+          "schema_version": 2,
+          "surface": "phase_a_measured_local_system_capability",
+          "family_id": "uccsd_otimes_paop_lf_std",
+          "eligible_for_certification": true,
+          "certifiable_local_system_modes": [
+            "hadamard_transition_fd_general"
+          ],
+          "allowed_requested_families": [
+            "uccsd_otimes_paop_lf_std"
+          ],
+          "requires_reference_state_handoff": true,
+          "requires_basis_reference_state": true,
+          "disallow_fallback": true,
+          "static_hamiltonian_only": true,
+          "driven_segments_supported": false,
+          "runtime_submission_blocked": true,
+          "phase_b_supported": false
+        },
+        "derivative_capability": {
+          "schema_version": 2,
+          "surface": "phase_a_measured_local_system_capability",
+          "family_id": "uccsd_otimes_paop_lf_std",
+          "eligible_for_certification": true,
+          "certifiable_local_system_modes": [
+            "hadamard_transition_fd_general"
+          ],
+          "allowed_requested_families": [
+            "uccsd_otimes_paop_lf_std"
+          ],
+          "requires_reference_state_handoff": true,
+          "requires_basis_reference_state": true,
+          "disallow_fallback": true,
+          "static_hamiltonian_only": true,
+          "driven_segments_supported": false,
+          "runtime_submission_blocked": true,
+          "phase_b_supported": false
+        },
+        "compile_metadata": {
+          "num_polynomial_terms": 8,
+          "signature_size": 8,
+          "has_boson_support": true,
+          "has_fermion_support": true,
+          "support_size": 4,
+          "serialized_terms_exyz": [
+            {
+              "pauli_exyz": "yxeeyxee",
+              "coeff_re": 0.3535533905932738,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "eyeeyxee",
+              "coeff_re": 0.25,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "xyeeyxee",
+              "coeff_re": -0.3535533905932738,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "zyeeyxee",
+              "coeff_re": 0.25,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "yxeexyee",
+              "coeff_re": -0.3535533905932738,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "eyeexyee",
+              "coeff_re": -0.25,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "xyeexyee",
+              "coeff_re": 0.3535533905932738,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "zyeexyee",
+              "coeff_re": -0.25,
+              "coeff_im": 0.0,
+              "nq": 8
+            }
+          ]
+        }
+      },
+      {
+        "generator_id": "gen:761681a48e50e139",
+        "family_id": "uccsd_otimes_paop_lf_std",
+        "template_id": "uccsd_otimes_paop_lf_std|macro|terms8|sites0,1|bos1|ferm1",
+        "candidate_label": "uccsd_otimes_paop::uccsd_ferm_lifted::uccsd_sing(beta:2->3)::paop_lf_std::p(site=1)",
+        "support_qubits": [
+          2,
+          3,
+          6,
+          7
+        ],
+        "support_sites": [
+          0,
+          1
+        ],
+        "support_site_offsets": [
+          0,
+          1
+        ],
+        "is_macro_generator": true,
+        "split_policy": "preserve",
+        "parent_generator_id": null,
+        "symmetry_spec": {
+          "spec_version": "phase3_symmetry_v1",
+          "particle_number_mode": "preserving",
+          "spin_sector_mode": "preserving",
+          "phonon_number_mode": "not_conserved",
+          "leakage_risk": 0.2,
+          "mitigation_eligible": false,
+          "grouping_eligible": true,
+          "hard_guard": false,
+          "tags": [
+            "fermion_number",
+            "spin_sector"
+          ]
+        },
+        "measured_geometry_capability": {
+          "schema_version": 2,
+          "surface": "phase_a_measured_local_system_capability",
+          "family_id": "uccsd_otimes_paop_lf_std",
+          "eligible_for_certification": true,
+          "certifiable_local_system_modes": [
+            "hadamard_transition_fd_general"
+          ],
+          "allowed_requested_families": [
+            "uccsd_otimes_paop_lf_std"
+          ],
+          "requires_reference_state_handoff": true,
+          "requires_basis_reference_state": true,
+          "disallow_fallback": true,
+          "static_hamiltonian_only": true,
+          "driven_segments_supported": false,
+          "runtime_submission_blocked": true,
+          "phase_b_supported": false
+        },
+        "derivative_capability": {
+          "schema_version": 2,
+          "surface": "phase_a_measured_local_system_capability",
+          "family_id": "uccsd_otimes_paop_lf_std",
+          "eligible_for_certification": true,
+          "certifiable_local_system_modes": [
+            "hadamard_transition_fd_general"
+          ],
+          "allowed_requested_families": [
+            "uccsd_otimes_paop_lf_std"
+          ],
+          "requires_reference_state_handoff": true,
+          "requires_basis_reference_state": true,
+          "disallow_fallback": true,
+          "static_hamiltonian_only": true,
+          "driven_segments_supported": false,
+          "runtime_submission_blocked": true,
+          "phase_b_supported": false
+        },
+        "compile_metadata": {
+          "num_polynomial_terms": 8,
+          "signature_size": 8,
+          "has_boson_support": true,
+          "has_fermion_support": true,
+          "support_size": 4,
+          "serialized_terms_exyz": [
+            {
+              "pauli_exyz": "yxeeyxee",
+              "coeff_re": 0.3535533905932738,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "eyeeyxee",
+              "coeff_re": 0.25,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "xyeeyxee",
+              "coeff_re": -0.3535533905932738,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "zyeeyxee",
+              "coeff_re": 0.25,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "yxeexyee",
+              "coeff_re": -0.3535533905932738,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "eyeexyee",
+              "coeff_re": -0.25,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "xyeexyee",
+              "coeff_re": 0.3535533905932738,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "zyeexyee",
+              "coeff_re": -0.25,
+              "coeff_im": 0.0,
+              "nq": 8
+            }
+          ]
+        }
+      },
+      {
+        "generator_id": "gen:761681a48e50e139",
+        "family_id": "uccsd_otimes_paop_lf_std",
+        "template_id": "uccsd_otimes_paop_lf_std|macro|terms8|sites0,1|bos1|ferm1",
+        "candidate_label": "uccsd_otimes_paop::uccsd_ferm_lifted::uccsd_sing(beta:2->3)::paop_lf_std::p(site=1)",
+        "support_qubits": [
+          2,
+          3,
+          6,
+          7
+        ],
+        "support_sites": [
+          0,
+          1
+        ],
+        "support_site_offsets": [
+          0,
+          1
+        ],
+        "is_macro_generator": true,
+        "split_policy": "preserve",
+        "parent_generator_id": null,
+        "symmetry_spec": {
+          "spec_version": "phase3_symmetry_v1",
+          "particle_number_mode": "preserving",
+          "spin_sector_mode": "preserving",
+          "phonon_number_mode": "not_conserved",
+          "leakage_risk": 0.2,
+          "mitigation_eligible": false,
+          "grouping_eligible": true,
+          "hard_guard": false,
+          "tags": [
+            "fermion_number",
+            "spin_sector"
+          ]
+        },
+        "measured_geometry_capability": {
+          "schema_version": 2,
+          "surface": "phase_a_measured_local_system_capability",
+          "family_id": "uccsd_otimes_paop_lf_std",
+          "eligible_for_certification": true,
+          "certifiable_local_system_modes": [
+            "hadamard_transition_fd_general"
+          ],
+          "allowed_requested_families": [
+            "uccsd_otimes_paop_lf_std"
+          ],
+          "requires_reference_state_handoff": true,
+          "requires_basis_reference_state": true,
+          "disallow_fallback": true,
+          "static_hamiltonian_only": true,
+          "driven_segments_supported": false,
+          "runtime_submission_blocked": true,
+          "phase_b_supported": false
+        },
+        "derivative_capability": {
+          "schema_version": 2,
+          "surface": "phase_a_measured_local_system_capability",
+          "family_id": "uccsd_otimes_paop_lf_std",
+          "eligible_for_certification": true,
+          "certifiable_local_system_modes": [
+            "hadamard_transition_fd_general"
+          ],
+          "allowed_requested_families": [
+            "uccsd_otimes_paop_lf_std"
+          ],
+          "requires_reference_state_handoff": true,
+          "requires_basis_reference_state": true,
+          "disallow_fallback": true,
+          "static_hamiltonian_only": true,
+          "driven_segments_supported": false,
+          "runtime_submission_blocked": true,
+          "phase_b_supported": false
+        },
+        "compile_metadata": {
+          "num_polynomial_terms": 8,
+          "signature_size": 8,
+          "has_boson_support": true,
+          "has_fermion_support": true,
+          "support_size": 4,
+          "serialized_terms_exyz": [
+            {
+              "pauli_exyz": "yxeeyxee",
+              "coeff_re": 0.3535533905932738,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "eyeeyxee",
+              "coeff_re": 0.25,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "xyeeyxee",
+              "coeff_re": -0.3535533905932738,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "zyeeyxee",
+              "coeff_re": 0.25,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "yxeexyee",
+              "coeff_re": -0.3535533905932738,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "eyeexyee",
+              "coeff_re": -0.25,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "xyeexyee",
+              "coeff_re": 0.3535533905932738,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "zyeexyee",
+              "coeff_re": -0.25,
+              "coeff_im": 0.0,
+              "nq": 8
+            }
+          ]
+        }
+      },
+      {
+        "generator_id": "gen:761681a48e50e139",
+        "family_id": "uccsd_otimes_paop_lf_std",
+        "template_id": "uccsd_otimes_paop_lf_std|macro|terms8|sites0,1|bos1|ferm1",
+        "candidate_label": "uccsd_otimes_paop::uccsd_ferm_lifted::uccsd_sing(beta:2->3)::paop_lf_std::p(site=1)",
+        "support_qubits": [
+          2,
+          3,
+          6,
+          7
+        ],
+        "support_sites": [
+          0,
+          1
+        ],
+        "support_site_offsets": [
+          0,
+          1
+        ],
+        "is_macro_generator": true,
+        "split_policy": "preserve",
+        "parent_generator_id": null,
+        "symmetry_spec": {
+          "spec_version": "phase3_symmetry_v1",
+          "particle_number_mode": "preserving",
+          "spin_sector_mode": "preserving",
+          "phonon_number_mode": "not_conserved",
+          "leakage_risk": 0.2,
+          "mitigation_eligible": false,
+          "grouping_eligible": true,
+          "hard_guard": false,
+          "tags": [
+            "fermion_number",
+            "spin_sector"
+          ]
+        },
+        "measured_geometry_capability": {
+          "schema_version": 2,
+          "surface": "phase_a_measured_local_system_capability",
+          "family_id": "uccsd_otimes_paop_lf_std",
+          "eligible_for_certification": true,
+          "certifiable_local_system_modes": [
+            "hadamard_transition_fd_general"
+          ],
+          "allowed_requested_families": [
+            "uccsd_otimes_paop_lf_std"
+          ],
+          "requires_reference_state_handoff": true,
+          "requires_basis_reference_state": true,
+          "disallow_fallback": true,
+          "static_hamiltonian_only": true,
+          "driven_segments_supported": false,
+          "runtime_submission_blocked": true,
+          "phase_b_supported": false
+        },
+        "derivative_capability": {
+          "schema_version": 2,
+          "surface": "phase_a_measured_local_system_capability",
+          "family_id": "uccsd_otimes_paop_lf_std",
+          "eligible_for_certification": true,
+          "certifiable_local_system_modes": [
+            "hadamard_transition_fd_general"
+          ],
+          "allowed_requested_families": [
+            "uccsd_otimes_paop_lf_std"
+          ],
+          "requires_reference_state_handoff": true,
+          "requires_basis_reference_state": true,
+          "disallow_fallback": true,
+          "static_hamiltonian_only": true,
+          "driven_segments_supported": false,
+          "runtime_submission_blocked": true,
+          "phase_b_supported": false
+        },
+        "compile_metadata": {
+          "num_polynomial_terms": 8,
+          "signature_size": 8,
+          "has_boson_support": true,
+          "has_fermion_support": true,
+          "support_size": 4,
+          "serialized_terms_exyz": [
+            {
+              "pauli_exyz": "yxeeyxee",
+              "coeff_re": 0.3535533905932738,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "eyeeyxee",
+              "coeff_re": 0.25,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "xyeeyxee",
+              "coeff_re": -0.3535533905932738,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "zyeeyxee",
+              "coeff_re": 0.25,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "yxeexyee",
+              "coeff_re": -0.3535533905932738,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "eyeexyee",
+              "coeff_re": -0.25,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "xyeexyee",
+              "coeff_re": 0.3535533905932738,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "zyeexyee",
+              "coeff_re": -0.25,
+              "coeff_im": 0.0,
+              "nq": 8
+            }
+          ]
+        }
+      },
+      {
+        "generator_id": "gen:761681a48e50e139",
+        "family_id": "uccsd_otimes_paop_lf_std",
+        "template_id": "uccsd_otimes_paop_lf_std|macro|terms8|sites0,1|bos1|ferm1",
+        "candidate_label": "uccsd_otimes_paop::uccsd_ferm_lifted::uccsd_sing(beta:2->3)::paop_lf_std::p(site=1)",
+        "support_qubits": [
+          2,
+          3,
+          6,
+          7
+        ],
+        "support_sites": [
+          0,
+          1
+        ],
+        "support_site_offsets": [
+          0,
+          1
+        ],
+        "is_macro_generator": true,
+        "split_policy": "preserve",
+        "parent_generator_id": null,
+        "symmetry_spec": {
+          "spec_version": "phase3_symmetry_v1",
+          "particle_number_mode": "preserving",
+          "spin_sector_mode": "preserving",
+          "phonon_number_mode": "not_conserved",
+          "leakage_risk": 0.2,
+          "mitigation_eligible": false,
+          "grouping_eligible": true,
+          "hard_guard": false,
+          "tags": [
+            "fermion_number",
+            "spin_sector"
+          ]
+        },
+        "measured_geometry_capability": {
+          "schema_version": 2,
+          "surface": "phase_a_measured_local_system_capability",
+          "family_id": "uccsd_otimes_paop_lf_std",
+          "eligible_for_certification": true,
+          "certifiable_local_system_modes": [
+            "hadamard_transition_fd_general"
+          ],
+          "allowed_requested_families": [
+            "uccsd_otimes_paop_lf_std"
+          ],
+          "requires_reference_state_handoff": true,
+          "requires_basis_reference_state": true,
+          "disallow_fallback": true,
+          "static_hamiltonian_only": true,
+          "driven_segments_supported": false,
+          "runtime_submission_blocked": true,
+          "phase_b_supported": false
+        },
+        "derivative_capability": {
+          "schema_version": 2,
+          "surface": "phase_a_measured_local_system_capability",
+          "family_id": "uccsd_otimes_paop_lf_std",
+          "eligible_for_certification": true,
+          "certifiable_local_system_modes": [
+            "hadamard_transition_fd_general"
+          ],
+          "allowed_requested_families": [
+            "uccsd_otimes_paop_lf_std"
+          ],
+          "requires_reference_state_handoff": true,
+          "requires_basis_reference_state": true,
+          "disallow_fallback": true,
+          "static_hamiltonian_only": true,
+          "driven_segments_supported": false,
+          "runtime_submission_blocked": true,
+          "phase_b_supported": false
+        },
+        "compile_metadata": {
+          "num_polynomial_terms": 8,
+          "signature_size": 8,
+          "has_boson_support": true,
+          "has_fermion_support": true,
+          "support_size": 4,
+          "serialized_terms_exyz": [
+            {
+              "pauli_exyz": "yxeeyxee",
+              "coeff_re": 0.3535533905932738,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "eyeeyxee",
+              "coeff_re": 0.25,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "xyeeyxee",
+              "coeff_re": -0.3535533905932738,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "zyeeyxee",
+              "coeff_re": 0.25,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "yxeexyee",
+              "coeff_re": -0.3535533905932738,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "eyeexyee",
+              "coeff_re": -0.25,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "xyeexyee",
+              "coeff_re": 0.3535533905932738,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "zyeexyee",
+              "coeff_re": -0.25,
+              "coeff_im": 0.0,
+              "nq": 8
+            }
+          ]
+        }
+      },
+      {
+        "generator_id": "gen:761681a48e50e139",
+        "family_id": "uccsd_otimes_paop_lf_std",
+        "template_id": "uccsd_otimes_paop_lf_std|macro|terms8|sites0,1|bos1|ferm1",
+        "candidate_label": "uccsd_otimes_paop::uccsd_ferm_lifted::uccsd_sing(beta:2->3)::paop_lf_std::p(site=1)",
+        "support_qubits": [
+          2,
+          3,
+          6,
+          7
+        ],
+        "support_sites": [
+          0,
+          1
+        ],
+        "support_site_offsets": [
+          0,
+          1
+        ],
+        "is_macro_generator": true,
+        "split_policy": "preserve",
+        "parent_generator_id": null,
+        "symmetry_spec": {
+          "spec_version": "phase3_symmetry_v1",
+          "particle_number_mode": "preserving",
+          "spin_sector_mode": "preserving",
+          "phonon_number_mode": "not_conserved",
+          "leakage_risk": 0.2,
+          "mitigation_eligible": false,
+          "grouping_eligible": true,
+          "hard_guard": false,
+          "tags": [
+            "fermion_number",
+            "spin_sector"
+          ]
+        },
+        "measured_geometry_capability": {
+          "schema_version": 2,
+          "surface": "phase_a_measured_local_system_capability",
+          "family_id": "uccsd_otimes_paop_lf_std",
+          "eligible_for_certification": true,
+          "certifiable_local_system_modes": [
+            "hadamard_transition_fd_general"
+          ],
+          "allowed_requested_families": [
+            "uccsd_otimes_paop_lf_std"
+          ],
+          "requires_reference_state_handoff": true,
+          "requires_basis_reference_state": true,
+          "disallow_fallback": true,
+          "static_hamiltonian_only": true,
+          "driven_segments_supported": false,
+          "runtime_submission_blocked": true,
+          "phase_b_supported": false
+        },
+        "derivative_capability": {
+          "schema_version": 2,
+          "surface": "phase_a_measured_local_system_capability",
+          "family_id": "uccsd_otimes_paop_lf_std",
+          "eligible_for_certification": true,
+          "certifiable_local_system_modes": [
+            "hadamard_transition_fd_general"
+          ],
+          "allowed_requested_families": [
+            "uccsd_otimes_paop_lf_std"
+          ],
+          "requires_reference_state_handoff": true,
+          "requires_basis_reference_state": true,
+          "disallow_fallback": true,
+          "static_hamiltonian_only": true,
+          "driven_segments_supported": false,
+          "runtime_submission_blocked": true,
+          "phase_b_supported": false
+        },
+        "compile_metadata": {
+          "num_polynomial_terms": 8,
+          "signature_size": 8,
+          "has_boson_support": true,
+          "has_fermion_support": true,
+          "support_size": 4,
+          "serialized_terms_exyz": [
+            {
+              "pauli_exyz": "yxeeyxee",
+              "coeff_re": 0.3535533905932738,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "eyeeyxee",
+              "coeff_re": 0.25,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "xyeeyxee",
+              "coeff_re": -0.3535533905932738,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "zyeeyxee",
+              "coeff_re": 0.25,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "yxeexyee",
+              "coeff_re": -0.3535533905932738,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "eyeexyee",
+              "coeff_re": -0.25,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "xyeexyee",
+              "coeff_re": 0.3535533905932738,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "zyeexyee",
+              "coeff_re": -0.25,
+              "coeff_im": 0.0,
+              "nq": 8
+            }
+          ]
+        }
+      },
+      {
+        "generator_id": "gen:761681a48e50e139",
+        "family_id": "uccsd_otimes_paop_lf_std",
+        "template_id": "uccsd_otimes_paop_lf_std|macro|terms8|sites0,1|bos1|ferm1",
+        "candidate_label": "uccsd_otimes_paop::uccsd_ferm_lifted::uccsd_sing(beta:2->3)::paop_lf_std::p(site=1)",
+        "support_qubits": [
+          2,
+          3,
+          6,
+          7
+        ],
+        "support_sites": [
+          0,
+          1
+        ],
+        "support_site_offsets": [
+          0,
+          1
+        ],
+        "is_macro_generator": true,
+        "split_policy": "preserve",
+        "parent_generator_id": null,
+        "symmetry_spec": {
+          "spec_version": "phase3_symmetry_v1",
+          "particle_number_mode": "preserving",
+          "spin_sector_mode": "preserving",
+          "phonon_number_mode": "not_conserved",
+          "leakage_risk": 0.2,
+          "mitigation_eligible": false,
+          "grouping_eligible": true,
+          "hard_guard": false,
+          "tags": [
+            "fermion_number",
+            "spin_sector"
+          ]
+        },
+        "measured_geometry_capability": {
+          "schema_version": 2,
+          "surface": "phase_a_measured_local_system_capability",
+          "family_id": "uccsd_otimes_paop_lf_std",
+          "eligible_for_certification": true,
+          "certifiable_local_system_modes": [
+            "hadamard_transition_fd_general"
+          ],
+          "allowed_requested_families": [
+            "uccsd_otimes_paop_lf_std"
+          ],
+          "requires_reference_state_handoff": true,
+          "requires_basis_reference_state": true,
+          "disallow_fallback": true,
+          "static_hamiltonian_only": true,
+          "driven_segments_supported": false,
+          "runtime_submission_blocked": true,
+          "phase_b_supported": false
+        },
+        "derivative_capability": {
+          "schema_version": 2,
+          "surface": "phase_a_measured_local_system_capability",
+          "family_id": "uccsd_otimes_paop_lf_std",
+          "eligible_for_certification": true,
+          "certifiable_local_system_modes": [
+            "hadamard_transition_fd_general"
+          ],
+          "allowed_requested_families": [
+            "uccsd_otimes_paop_lf_std"
+          ],
+          "requires_reference_state_handoff": true,
+          "requires_basis_reference_state": true,
+          "disallow_fallback": true,
+          "static_hamiltonian_only": true,
+          "driven_segments_supported": false,
+          "runtime_submission_blocked": true,
+          "phase_b_supported": false
+        },
+        "compile_metadata": {
+          "num_polynomial_terms": 8,
+          "signature_size": 8,
+          "has_boson_support": true,
+          "has_fermion_support": true,
+          "support_size": 4,
+          "serialized_terms_exyz": [
+            {
+              "pauli_exyz": "yxeeyxee",
+              "coeff_re": 0.3535533905932738,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "eyeeyxee",
+              "coeff_re": 0.25,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "xyeeyxee",
+              "coeff_re": -0.3535533905932738,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "zyeeyxee",
+              "coeff_re": 0.25,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "yxeexyee",
+              "coeff_re": -0.3535533905932738,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "eyeexyee",
+              "coeff_re": -0.25,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "xyeexyee",
+              "coeff_re": 0.3535533905932738,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "zyeexyee",
+              "coeff_re": -0.25,
+              "coeff_im": 0.0,
+              "nq": 8
+            }
+          ]
+        }
+      },
+      {
+        "generator_id": "gen:761681a48e50e139",
+        "family_id": "uccsd_otimes_paop_lf_std",
+        "template_id": "uccsd_otimes_paop_lf_std|macro|terms8|sites0,1|bos1|ferm1",
+        "candidate_label": "uccsd_otimes_paop::uccsd_ferm_lifted::uccsd_sing(beta:2->3)::paop_lf_std::p(site=1)",
+        "support_qubits": [
+          2,
+          3,
+          6,
+          7
+        ],
+        "support_sites": [
+          0,
+          1
+        ],
+        "support_site_offsets": [
+          0,
+          1
+        ],
+        "is_macro_generator": true,
+        "split_policy": "preserve",
+        "parent_generator_id": null,
+        "symmetry_spec": {
+          "spec_version": "phase3_symmetry_v1",
+          "particle_number_mode": "preserving",
+          "spin_sector_mode": "preserving",
+          "phonon_number_mode": "not_conserved",
+          "leakage_risk": 0.2,
+          "mitigation_eligible": false,
+          "grouping_eligible": true,
+          "hard_guard": false,
+          "tags": [
+            "fermion_number",
+            "spin_sector"
+          ]
+        },
+        "measured_geometry_capability": {
+          "schema_version": 2,
+          "surface": "phase_a_measured_local_system_capability",
+          "family_id": "uccsd_otimes_paop_lf_std",
+          "eligible_for_certification": true,
+          "certifiable_local_system_modes": [
+            "hadamard_transition_fd_general"
+          ],
+          "allowed_requested_families": [
+            "uccsd_otimes_paop_lf_std"
+          ],
+          "requires_reference_state_handoff": true,
+          "requires_basis_reference_state": true,
+          "disallow_fallback": true,
+          "static_hamiltonian_only": true,
+          "driven_segments_supported": false,
+          "runtime_submission_blocked": true,
+          "phase_b_supported": false
+        },
+        "derivative_capability": {
+          "schema_version": 2,
+          "surface": "phase_a_measured_local_system_capability",
+          "family_id": "uccsd_otimes_paop_lf_std",
+          "eligible_for_certification": true,
+          "certifiable_local_system_modes": [
+            "hadamard_transition_fd_general"
+          ],
+          "allowed_requested_families": [
+            "uccsd_otimes_paop_lf_std"
+          ],
+          "requires_reference_state_handoff": true,
+          "requires_basis_reference_state": true,
+          "disallow_fallback": true,
+          "static_hamiltonian_only": true,
+          "driven_segments_supported": false,
+          "runtime_submission_blocked": true,
+          "phase_b_supported": false
+        },
+        "compile_metadata": {
+          "num_polynomial_terms": 8,
+          "signature_size": 8,
+          "has_boson_support": true,
+          "has_fermion_support": true,
+          "support_size": 4,
+          "serialized_terms_exyz": [
+            {
+              "pauli_exyz": "yxeeyxee",
+              "coeff_re": 0.3535533905932738,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "eyeeyxee",
+              "coeff_re": 0.25,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "xyeeyxee",
+              "coeff_re": -0.3535533905932738,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "zyeeyxee",
+              "coeff_re": 0.25,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "yxeexyee",
+              "coeff_re": -0.3535533905932738,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "eyeexyee",
+              "coeff_re": -0.25,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "xyeexyee",
+              "coeff_re": 0.3535533905932738,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "zyeexyee",
+              "coeff_re": -0.25,
+              "coeff_im": 0.0,
+              "nq": 8
+            }
+          ]
+        }
+      }
+    ],
+    "generator_split_events": [],
+    "motif_library": {
+      "library_version": "phase3_motif_library_v1",
+      "source_tag": "phase3_v1_L2",
+      "source_num_sites": 2,
+      "ordering": "blocked",
+      "boson_encoding": "binary",
+      "source_tags": [
+        "phase3_v1_L2"
+      ],
+      "records": [
+        {
+          "motif_id": "motif:5a037b36dfcee73f",
+          "family_id": "full_meta",
+          "template_id": "full_meta|atomic|terms1|sites0|bos1|ferm1",
+          "source_num_sites": 2,
+          "relative_order": 0,
+          "support_site_offsets": [
+            0
+          ],
+          "mean_theta": -0.12280122584599368,
+          "mean_abs_theta": 0.12280122584599368,
+          "sign_hint": -1,
+          "generator_ids": [
+            "gen:5635e999a94c5dbc"
+          ],
+          "symmetry_spec": {
+            "spec_version": "phase3_symmetry_v1",
+            "particle_number_mode": "preserving",
+            "spin_sector_mode": "preserving",
+            "phonon_number_mode": "not_conserved",
+            "leakage_risk": 0.1,
+            "mitigation_eligible": false,
+            "grouping_eligible": true,
+            "hard_guard": false,
+            "tags": [
+              "fermion_number",
+              "spin_sector"
+            ]
+          },
+          "boundary_behavior": "right_edge",
+          "source_tags": [
+            "phase3_v1_L2"
+          ]
+        },
+        {
+          "motif_id": "motif:1e996f642d1e8d44",
+          "family_id": "full_meta",
+          "template_id": "full_meta|atomic|terms1|sites0|bos1|ferm1",
+          "source_num_sites": 2,
+          "relative_order": 1,
+          "support_site_offsets": [
+            0
+          ],
+          "mean_theta": 0.2692467658067922,
+          "mean_abs_theta": 0.2692467658067922,
+          "sign_hint": 1,
+          "generator_ids": [
+            "gen:d4980fa6183c08da"
+          ],
+          "symmetry_spec": {
+            "spec_version": "phase3_symmetry_v1",
+            "particle_number_mode": "preserving",
+            "spin_sector_mode": "preserving",
+            "phonon_number_mode": "not_conserved",
+            "leakage_risk": 0.1,
+            "mitigation_eligible": false,
+            "grouping_eligible": true,
+            "hard_guard": false,
+            "tags": [
+              "fermion_number",
+              "spin_sector"
+            ]
+          },
+          "boundary_behavior": "right_edge",
+          "source_tags": [
+            "phase3_v1_L2"
+          ]
+        },
+        {
+          "motif_id": "motif:2c97c65d4c90ac65",
+          "family_id": "full_meta",
+          "template_id": "full_meta|atomic|terms1|sites0|bos1|ferm1",
+          "source_num_sites": 2,
+          "relative_order": 2,
+          "support_site_offsets": [
+            0
+          ],
+          "mean_theta": -0.19209815562990493,
+          "mean_abs_theta": 0.19209815562990493,
+          "sign_hint": -1,
+          "generator_ids": [
+            "gen:91c7bb9c26d7c1e8"
+          ],
+          "symmetry_spec": {
+            "spec_version": "phase3_symmetry_v1",
+            "particle_number_mode": "preserving",
+            "spin_sector_mode": "preserving",
+            "phonon_number_mode": "not_conserved",
+            "leakage_risk": 0.1,
+            "mitigation_eligible": false,
+            "grouping_eligible": true,
+            "hard_guard": false,
+            "tags": [
+              "fermion_number",
+              "spin_sector"
+            ]
+          },
+          "boundary_behavior": "right_edge",
+          "source_tags": [
+            "phase3_v1_L2"
+          ]
+        },
+        {
+          "motif_id": "motif:5286086a2219c78b",
+          "family_id": "full_meta",
+          "template_id": "full_meta|atomic|terms1|sites0|bos1|ferm1",
+          "source_num_sites": 2,
+          "relative_order": 3,
+          "support_site_offsets": [
+            0
+          ],
+          "mean_theta": -0.14680276423458777,
+          "mean_abs_theta": 0.14680276423458777,
+          "sign_hint": -1,
+          "generator_ids": [
+            "gen:232d412191058e51"
+          ],
+          "symmetry_spec": {
+            "spec_version": "phase3_symmetry_v1",
+            "particle_number_mode": "preserving",
+            "spin_sector_mode": "preserving",
+            "phonon_number_mode": "not_conserved",
+            "leakage_risk": 0.1,
+            "mitigation_eligible": false,
+            "grouping_eligible": true,
+            "hard_guard": false,
+            "tags": [
+              "fermion_number",
+              "spin_sector"
+            ]
+          },
+          "boundary_behavior": "right_edge",
+          "source_tags": [
+            "phase3_v1_L2"
+          ]
+        },
+        {
+          "motif_id": "motif:61b7b953ab855a15",
+          "family_id": "full_meta",
+          "template_id": "full_meta|atomic|terms1|sites0|bos1|ferm1",
+          "source_num_sites": 2,
+          "relative_order": 4,
+          "support_site_offsets": [
+            0
+          ],
+          "mean_theta": -0.2560537718307204,
+          "mean_abs_theta": 0.2560537718307204,
+          "sign_hint": -1,
+          "generator_ids": [
+            "gen:81df9935a8aa8087"
+          ],
+          "symmetry_spec": {
+            "spec_version": "phase3_symmetry_v1",
+            "particle_number_mode": "preserving",
+            "spin_sector_mode": "preserving",
+            "phonon_number_mode": "not_conserved",
+            "leakage_risk": 0.1,
+            "mitigation_eligible": false,
+            "grouping_eligible": true,
+            "hard_guard": false,
+            "tags": [
+              "fermion_number",
+              "spin_sector"
+            ]
+          },
+          "boundary_behavior": "left_edge",
+          "source_tags": [
+            "phase3_v1_L2"
+          ]
+        },
+        {
+          "motif_id": "motif:c3bf177132999abe",
+          "family_id": "full_meta",
+          "template_id": "full_meta|atomic|terms1|sites0|bos1|ferm1",
+          "source_num_sites": 2,
+          "relative_order": 5,
+          "support_site_offsets": [
+            0
+          ],
+          "mean_theta": 0.18476017596820465,
+          "mean_abs_theta": 0.18476017596820465,
+          "sign_hint": 1,
+          "generator_ids": [
+            "gen:a6ebd48f52a9ac54"
+          ],
+          "symmetry_spec": {
+            "spec_version": "phase3_symmetry_v1",
+            "particle_number_mode": "preserving",
+            "spin_sector_mode": "preserving",
+            "phonon_number_mode": "not_conserved",
+            "leakage_risk": 0.1,
+            "mitigation_eligible": false,
+            "grouping_eligible": true,
+            "hard_guard": false,
+            "tags": [
+              "fermion_number",
+              "spin_sector"
+            ]
+          },
+          "boundary_behavior": "left_edge",
+          "source_tags": [
+            "phase3_v1_L2"
+          ]
+        },
+        {
+          "motif_id": "motif:082e3fda2f9078a6",
+          "family_id": "full_meta",
+          "template_id": "full_meta|atomic|terms1|sites0|bos1|ferm1",
+          "source_num_sites": 2,
+          "relative_order": 6,
+          "support_site_offsets": [
+            0
+          ],
+          "mean_theta": -0.06882812165292337,
+          "mean_abs_theta": 0.06882812165292337,
+          "sign_hint": -1,
+          "generator_ids": [
+            "gen:6a2bc92f6ce4a347"
+          ],
+          "symmetry_spec": {
+            "spec_version": "phase3_symmetry_v1",
+            "particle_number_mode": "preserving",
+            "spin_sector_mode": "preserving",
+            "phonon_number_mode": "not_conserved",
+            "leakage_risk": 0.1,
+            "mitigation_eligible": false,
+            "grouping_eligible": true,
+            "hard_guard": false,
+            "tags": [
+              "fermion_number",
+              "spin_sector"
+            ]
+          },
+          "boundary_behavior": "left_edge",
+          "source_tags": [
+            "phase3_v1_L2"
+          ]
+        },
+        {
+          "motif_id": "motif:ebe618efc16a55fe",
+          "family_id": "full_meta",
+          "template_id": "full_meta|atomic|terms1|sites0|bos1|ferm1",
+          "source_num_sites": 2,
+          "relative_order": 7,
+          "support_site_offsets": [
+            0
+          ],
+          "mean_theta": 0.25248144934945893,
+          "mean_abs_theta": 0.25248144934945893,
+          "sign_hint": 1,
+          "generator_ids": [
+            "gen:1d26101329c972be"
+          ],
+          "symmetry_spec": {
+            "spec_version": "phase3_symmetry_v1",
+            "particle_number_mode": "preserving",
+            "spin_sector_mode": "preserving",
+            "phonon_number_mode": "not_conserved",
+            "leakage_risk": 0.1,
+            "mitigation_eligible": false,
+            "grouping_eligible": true,
+            "hard_guard": false,
+            "tags": [
+              "fermion_number",
+              "spin_sector"
+            ]
+          },
+          "boundary_behavior": "left_edge",
+          "source_tags": [
+            "phase3_v1_L2"
+          ]
+        },
+        {
+          "motif_id": "motif:5ba10c5a3d77e711",
+          "family_id": "uccsd_otimes_paop_lf_std",
+          "template_id": "uccsd_otimes_paop_lf_std|macro|terms8|sites0,1|bos1|ferm1",
+          "source_num_sites": 2,
+          "relative_order": 8,
+          "support_site_offsets": [
+            0,
+            1
+          ],
+          "mean_theta": 0.19966361262585344,
+          "mean_abs_theta": 0.19966361262585344,
+          "sign_hint": 1,
+          "generator_ids": [
+            "gen:761681a48e50e139"
+          ],
+          "symmetry_spec": {
+            "spec_version": "phase3_symmetry_v1",
+            "particle_number_mode": "preserving",
+            "spin_sector_mode": "preserving",
+            "phonon_number_mode": "not_conserved",
+            "leakage_risk": 0.2,
+            "mitigation_eligible": false,
+            "grouping_eligible": true,
+            "hard_guard": false,
+            "tags": [
+              "fermion_number",
+              "spin_sector"
+            ]
+          },
+          "boundary_behavior": "both_edges",
+          "source_tags": [
+            "phase3_v1_L2"
+          ]
+        },
+        {
+          "motif_id": "motif:6b9ed661bc4611b9",
+          "family_id": "uccsd_otimes_paop_lf_std",
+          "template_id": "uccsd_otimes_paop_lf_std|macro|terms8|sites0,1|bos1|ferm1",
+          "source_num_sites": 2,
+          "relative_order": 9,
+          "support_site_offsets": [
+            0,
+            1
+          ],
+          "mean_theta": -0.05348535292593367,
+          "mean_abs_theta": 0.05348535292593367,
+          "sign_hint": -1,
+          "generator_ids": [
+            "gen:761681a48e50e139"
+          ],
+          "symmetry_spec": {
+            "spec_version": "phase3_symmetry_v1",
+            "particle_number_mode": "preserving",
+            "spin_sector_mode": "preserving",
+            "phonon_number_mode": "not_conserved",
+            "leakage_risk": 0.2,
+            "mitigation_eligible": false,
+            "grouping_eligible": true,
+            "hard_guard": false,
+            "tags": [
+              "fermion_number",
+              "spin_sector"
+            ]
+          },
+          "boundary_behavior": "both_edges",
+          "source_tags": [
+            "phase3_v1_L2"
+          ]
+        },
+        {
+          "motif_id": "motif:4798a5ff7be3f1ea",
+          "family_id": "uccsd_otimes_paop_lf_std",
+          "template_id": "uccsd_otimes_paop_lf_std|macro|terms8|sites0,1|bos1|ferm1",
+          "source_num_sites": 2,
+          "relative_order": 10,
+          "support_site_offsets": [
+            0,
+            1
+          ],
+          "mean_theta": 0.04738636466526002,
+          "mean_abs_theta": 0.04738636466526002,
+          "sign_hint": 1,
+          "generator_ids": [
+            "gen:761681a48e50e139"
+          ],
+          "symmetry_spec": {
+            "spec_version": "phase3_symmetry_v1",
+            "particle_number_mode": "preserving",
+            "spin_sector_mode": "preserving",
+            "phonon_number_mode": "not_conserved",
+            "leakage_risk": 0.2,
+            "mitigation_eligible": false,
+            "grouping_eligible": true,
+            "hard_guard": false,
+            "tags": [
+              "fermion_number",
+              "spin_sector"
+            ]
+          },
+          "boundary_behavior": "both_edges",
+          "source_tags": [
+            "phase3_v1_L2"
+          ]
+        },
+        {
+          "motif_id": "motif:b28099a76aa43b23",
+          "family_id": "uccsd_otimes_paop_lf_std",
+          "template_id": "uccsd_otimes_paop_lf_std|macro|terms8|sites0,1|bos1|ferm1",
+          "source_num_sites": 2,
+          "relative_order": 11,
+          "support_site_offsets": [
+            0,
+            1
+          ],
+          "mean_theta": -0.0976771871232385,
+          "mean_abs_theta": 0.0976771871232385,
+          "sign_hint": -1,
+          "generator_ids": [
+            "gen:761681a48e50e139"
+          ],
+          "symmetry_spec": {
+            "spec_version": "phase3_symmetry_v1",
+            "particle_number_mode": "preserving",
+            "spin_sector_mode": "preserving",
+            "phonon_number_mode": "not_conserved",
+            "leakage_risk": 0.2,
+            "mitigation_eligible": false,
+            "grouping_eligible": true,
+            "hard_guard": false,
+            "tags": [
+              "fermion_number",
+              "spin_sector"
+            ]
+          },
+          "boundary_behavior": "both_edges",
+          "source_tags": [
+            "phase3_v1_L2"
+          ]
+        },
+        {
+          "motif_id": "motif:0bbc151762d561bd",
+          "family_id": "uccsd_otimes_paop_lf_std",
+          "template_id": "uccsd_otimes_paop_lf_std|macro|terms8|sites0,1|bos1|ferm1",
+          "source_num_sites": 2,
+          "relative_order": 12,
+          "support_site_offsets": [
+            0,
+            1
+          ],
+          "mean_theta": -0.14842306904681765,
+          "mean_abs_theta": 0.14842306904681765,
+          "sign_hint": -1,
+          "generator_ids": [
+            "gen:761681a48e50e139"
+          ],
+          "symmetry_spec": {
+            "spec_version": "phase3_symmetry_v1",
+            "particle_number_mode": "preserving",
+            "spin_sector_mode": "preserving",
+            "phonon_number_mode": "not_conserved",
+            "leakage_risk": 0.2,
+            "mitigation_eligible": false,
+            "grouping_eligible": true,
+            "hard_guard": false,
+            "tags": [
+              "fermion_number",
+              "spin_sector"
+            ]
+          },
+          "boundary_behavior": "both_edges",
+          "source_tags": [
+            "phase3_v1_L2"
+          ]
+        },
+        {
+          "motif_id": "motif:b6f4e28472cd9ad5",
+          "family_id": "uccsd_otimes_paop_lf_std",
+          "template_id": "uccsd_otimes_paop_lf_std|macro|terms8|sites0,1|bos1|ferm1",
+          "source_num_sites": 2,
+          "relative_order": 13,
+          "support_site_offsets": [
+            0,
+            1
+          ],
+          "mean_theta": 0.06682196964751545,
+          "mean_abs_theta": 0.06682196964751545,
+          "sign_hint": 1,
+          "generator_ids": [
+            "gen:761681a48e50e139"
+          ],
+          "symmetry_spec": {
+            "spec_version": "phase3_symmetry_v1",
+            "particle_number_mode": "preserving",
+            "spin_sector_mode": "preserving",
+            "phonon_number_mode": "not_conserved",
+            "leakage_risk": 0.2,
+            "mitigation_eligible": false,
+            "grouping_eligible": true,
+            "hard_guard": false,
+            "tags": [
+              "fermion_number",
+              "spin_sector"
+            ]
+          },
+          "boundary_behavior": "both_edges",
+          "source_tags": [
+            "phase3_v1_L2"
+          ]
+        },
+        {
+          "motif_id": "motif:9e8d1620e27ca80a",
+          "family_id": "uccsd_otimes_paop_lf_std",
+          "template_id": "uccsd_otimes_paop_lf_std|macro|terms8|sites0,1|bos1|ferm1",
+          "source_num_sites": 2,
+          "relative_order": 14,
+          "support_site_offsets": [
+            0,
+            1
+          ],
+          "mean_theta": 0.025025473724697045,
+          "mean_abs_theta": 0.025025473724697045,
+          "sign_hint": 1,
+          "generator_ids": [
+            "gen:761681a48e50e139"
+          ],
+          "symmetry_spec": {
+            "spec_version": "phase3_symmetry_v1",
+            "particle_number_mode": "preserving",
+            "spin_sector_mode": "preserving",
+            "phonon_number_mode": "not_conserved",
+            "leakage_risk": 0.2,
+            "mitigation_eligible": false,
+            "grouping_eligible": true,
+            "hard_guard": false,
+            "tags": [
+              "fermion_number",
+              "spin_sector"
+            ]
+          },
+          "boundary_behavior": "both_edges",
+          "source_tags": [
+            "phase3_v1_L2"
+          ]
+        },
+        {
+          "motif_id": "motif:4c6421e3e39e2e81",
+          "family_id": "uccsd_otimes_paop_lf_std",
+          "template_id": "uccsd_otimes_paop_lf_std|macro|terms8|sites0,1|bos1|ferm1",
+          "source_num_sites": 2,
+          "relative_order": 15,
+          "support_site_offsets": [
+            0,
+            1
+          ],
+          "mean_theta": 0.037961891486156536,
+          "mean_abs_theta": 0.037961891486156536,
+          "sign_hint": 1,
+          "generator_ids": [
+            "gen:761681a48e50e139"
+          ],
+          "symmetry_spec": {
+            "spec_version": "phase3_symmetry_v1",
+            "particle_number_mode": "preserving",
+            "spin_sector_mode": "preserving",
+            "phonon_number_mode": "not_conserved",
+            "leakage_risk": 0.2,
+            "mitigation_eligible": false,
+            "grouping_eligible": true,
+            "hard_guard": false,
+            "tags": [
+              "fermion_number",
+              "spin_sector"
+            ]
+          },
+          "boundary_behavior": "both_edges",
+          "source_tags": [
+            "phase3_v1_L2"
+          ]
+        },
+        {
+          "motif_id": "motif:047a2d7338525d0a",
+          "family_id": "uccsd_otimes_paop_lf_std",
+          "template_id": "uccsd_otimes_paop_lf_std|macro|terms8|sites0,1|bos1|ferm1",
+          "source_num_sites": 2,
+          "relative_order": 16,
+          "support_site_offsets": [
+            0,
+            1
+          ],
+          "mean_theta": -0.028280944293180094,
+          "mean_abs_theta": 0.028280944293180094,
+          "sign_hint": -1,
+          "generator_ids": [
+            "gen:761681a48e50e139"
+          ],
+          "symmetry_spec": {
+            "spec_version": "phase3_symmetry_v1",
+            "particle_number_mode": "preserving",
+            "spin_sector_mode": "preserving",
+            "phonon_number_mode": "not_conserved",
+            "leakage_risk": 0.2,
+            "mitigation_eligible": false,
+            "grouping_eligible": true,
+            "hard_guard": false,
+            "tags": [
+              "fermion_number",
+              "spin_sector"
+            ]
+          },
+          "boundary_behavior": "both_edges",
+          "source_tags": [
+            "phase3_v1_L2"
+          ]
+        },
+        {
+          "motif_id": "motif:4f0432b554db2f74",
+          "family_id": "uccsd_otimes_paop_lf_std",
+          "template_id": "uccsd_otimes_paop_lf_std|macro|terms8|sites0,1|bos1|ferm1",
+          "source_num_sites": 2,
+          "relative_order": 17,
+          "support_site_offsets": [
+            0,
+            1
+          ],
+          "mean_theta": -0.06396696961524649,
+          "mean_abs_theta": 0.06396696961524649,
+          "sign_hint": -1,
+          "generator_ids": [
+            "gen:761681a48e50e139"
+          ],
+          "symmetry_spec": {
+            "spec_version": "phase3_symmetry_v1",
+            "particle_number_mode": "preserving",
+            "spin_sector_mode": "preserving",
+            "phonon_number_mode": "not_conserved",
+            "leakage_risk": 0.2,
+            "mitigation_eligible": false,
+            "grouping_eligible": true,
+            "hard_guard": false,
+            "tags": [
+              "fermion_number",
+              "spin_sector"
+            ]
+          },
+          "boundary_behavior": "both_edges",
+          "source_tags": [
+            "phase3_v1_L2"
+          ]
+        }
+      ]
+    },
+    "motif_usage": {
+      "enabled": false,
+      "source_json": null,
+      "source_tag": null,
+      "seeded_labels": [],
+      "seeded_generator_ids": [],
+      "seeded_motif_ids": [],
+      "selected_match_count": 0
+    },
+    "symmetry_mitigation": {
+      "mode": "off",
+      "executed": false,
+      "active": false,
+      "passed": true,
+      "high_risk_count": 0,
+      "max_leakage_risk": 0.0
+    },
+    "rescue_history": [],
+    "replay_contract": {
+      "contract_version": 2,
+      "generator_family": {
+        "requested": "match_adapt",
+        "resolved": "full_meta",
+        "resolution_source": "fallback_family",
+        "fallback_family": "full_meta",
+        "fallback_used": true
+      },
+      "seed_policy_requested": "auto",
+      "seed_policy_resolved": "residual_only",
+      "handoff_state_kind": "prepared_state",
+      "provenance_source": "explicit",
+      "continuation_mode": "phase3_v1",
+      "contract_seed_hint": "built-in_staged_writer"
+    },
+    "replay_contract_hint": {
+      "generator_family": "match_adapt",
+      "fallback_family": "full_meta",
+      "replay_seed_policy": "auto",
+      "replay_continuation_mode": "phase3_v1"
+    }
+  },
+  "meta": {
+    "pipeline": "hh_staged_noiseless",
+    "workflow_tag": "20260319_hh_l2_promoted_live_patch_parallel_controls_v1__attempt1_ptw_prepared_legacy",
+    "stage_chain": [
+      "hf_reference",
+      "warm_start_hva",
+      "adapt_vqe",
+      "matched_family_replay"
+    ]
+  }
+}

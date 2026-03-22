@@ -1,0 +1,1024 @@
+{
+  "ansatz_family": {
+    "entangler_axes": [
+      "xx",
+      "zz"
+    ],
+    "logical_entangler_edges": [
+      [
+        0,
+        1
+      ],
+      [
+        1,
+        2
+      ],
+      [
+        2,
+        3
+      ],
+      [
+        3,
+        4
+      ],
+      [
+        4,
+        5
+      ],
+      [
+        5,
+        6
+      ],
+      [
+        6,
+        7
+      ]
+    ],
+    "single_axes": [
+      "y"
+    ]
+  },
+  "artifacts": {
+    "output_csv": "artifacts/json/hh_fixed_seed_local_checkpoint_fit_t4.csv",
+    "output_json": "artifacts/json/hh_fixed_seed_local_checkpoint_fit_t4.json",
+    "output_pdf": "artifacts/pdf/hh_fixed_seed_local_checkpoint_fit_t4.pdf",
+    "run_root": "artifacts/json/hh_fixed_seed_local_checkpoint_fit_t4_runs"
+  },
+  "drive_profile": {
+    "A": 1.0,
+    "omega": 1.0,
+    "pattern": "staggered",
+    "phi": 0.0,
+    "t0": 0.0,
+    "tbar": 5.0,
+    "time_sampling": "midpoint"
+  },
+  "exact_reference": {
+    "reference_steps": 1024,
+    "time_sampling": "midpoint",
+    "trajectory": [
+      {
+        "energy_total_exact": 0.16386851531179653,
+        "state_norm": 1.0,
+        "time": 0.0
+      },
+      {
+        "energy_total_exact": 0.16396789377788037,
+        "state_norm": 1.0,
+        "time": 0.025
+      },
+      {
+        "energy_total_exact": 0.16406486905540194,
+        "state_norm": 1.0000000000000002,
+        "time": 0.05
+      },
+      {
+        "energy_total_exact": 0.1641549485701194,
+        "state_norm": 1.0,
+        "time": 0.07500000000000001
+      },
+      {
+        "energy_total_exact": 0.16423144077508603,
+        "state_norm": 1.0,
+        "time": 0.1
+      },
+      {
+        "energy_total_exact": 0.16428559781998847,
+        "state_norm": 1.0,
+        "time": 0.125
+      },
+      {
+        "energy_total_exact": 0.16430681442132272,
+        "state_norm": 1.0,
+        "time": 0.15000000000000002
+      },
+      {
+        "energy_total_exact": 0.1642828778529997,
+        "state_norm": 1.0,
+        "time": 0.17500000000000002
+      },
+      {
+        "energy_total_exact": 0.1642002624177523,
+        "state_norm": 1.0,
+        "time": 0.2
+      },
+      {
+        "energy_total_exact": 0.16404446040073367,
+        "state_norm": 1.0,
+        "time": 0.225
+      },
+      {
+        "energy_total_exact": 0.16380034039319624,
+        "state_norm": 1.0000000000000002,
+        "time": 0.25
+      },
+      {
+        "energy_total_exact": 0.16345252304761426,
+        "state_norm": 1.0,
+        "time": 0.275
+      },
+      {
+        "energy_total_exact": 0.16298576381503302,
+        "state_norm": 1.0,
+        "time": 0.30000000000000004
+      },
+      {
+        "energy_total_exact": 0.16238533204283598,
+        "state_norm": 0.9999999999999999,
+        "time": 0.325
+      },
+      {
+        "energy_total_exact": 0.1616373759844626,
+        "state_norm": 1.0,
+        "time": 0.35000000000000003
+      },
+      {
+        "energy_total_exact": 0.16072926379058103,
+        "state_norm": 1.0,
+        "time": 0.375
+      },
+      {
+        "energy_total_exact": 0.1596498913983263,
+        "state_norm": 1.0,
+        "time": 0.4
+      },
+      {
+        "energy_total_exact": 0.15838994938527207,
+        "state_norm": 1.0,
+        "time": 0.42500000000000004
+      },
+      {
+        "energy_total_exact": 0.15694214226910996,
+        "state_norm": 1.0000000000000002,
+        "time": 0.45
+      },
+      {
+        "energy_total_exact": 0.15530135536385284,
+        "state_norm": 1.0,
+        "time": 0.47500000000000003
+      },
+      {
+        "energy_total_exact": 0.15346476609034995,
+        "state_norm": 1.0,
+        "time": 0.5
+      },
+      {
+        "energy_total_exact": 0.15143189851771055,
+        "state_norm": 1.0,
+        "time": 0.525
+      },
+      {
+        "energy_total_exact": 0.14920462181213057,
+        "state_norm": 1.0,
+        "time": 0.55
+      },
+      {
+        "energy_total_exact": 0.1467870951179988,
+        "state_norm": 1.0,
+        "time": 0.5750000000000001
+      },
+      {
+        "energy_total_exact": 0.1441856631204707,
+        "state_norm": 1.0,
+        "time": 0.6000000000000001
+      },
+      {
+        "energy_total_exact": 0.1414087080706826,
+        "state_norm": 1.0000000000000002,
+        "time": 0.625
+      },
+      {
+        "energy_total_exact": 0.138466465332487,
+        "state_norm": 1.0,
+        "time": 0.65
+      },
+      {
+        "energy_total_exact": 0.13537081048122188,
+        "state_norm": 1.0,
+        "time": 0.675
+      },
+      {
+        "energy_total_exact": 0.13213502661118504,
+        "state_norm": 1.0,
+        "time": 0.7000000000000001
+      },
+      {
+        "energy_total_exact": 0.1287735607643802,
+        "state_norm": 1.0,
+        "time": 0.7250000000000001
+      },
+      {
+        "energy_total_exact": 0.12530177827073302,
+        "state_norm": 1.0,
+        "time": 0.75
+      },
+      {
+        "energy_total_exact": 0.12173572329782295,
+        "state_norm": 1.0,
+        "time": 0.775
+      },
+      {
+        "energy_total_exact": 0.11809189307304926,
+        "state_norm": 1.0,
+        "time": 0.8
+      },
+      {
+        "energy_total_exact": 0.11438703210517859,
+        "state_norm": 1.0,
+        "time": 0.8250000000000001
+      },
+      {
+        "energy_total_exact": 0.11063795135311347,
+        "state_norm": 0.9999999999999999,
+        "time": 0.8500000000000001
+      },
+      {
+        "energy_total_exact": 0.10686137573682178,
+        "state_norm": 1.0,
+        "time": 0.875
+      },
+      {
+        "energy_total_exact": 0.10307382173689435,
+        "state_norm": 1.0,
+        "time": 0.9
+      },
+      {
+        "energy_total_exact": 0.09929150516811738,
+        "state_norm": 1.0,
+        "time": 0.925
+      },
+      {
+        "energy_total_exact": 0.09553027762266403,
+        "state_norm": 1.0,
+        "time": 0.9500000000000001
+      },
+      {
+        "energy_total_exact": 0.09180558863921892,
+        "state_norm": 1.0,
+        "time": 0.9750000000000001
+      },
+      {
+        "energy_total_exact": 0.08813246943760175,
+        "state_norm": 1.0,
+        "time": 1.0
+      },
+      {
+        "energy_total_exact": 0.08452553312311857,
+        "state_norm": 1.0,
+        "time": 1.0250000000000001
+      },
+      {
+        "energy_total_exact": 0.080998985654869,
+        "state_norm": 1.0,
+        "time": 1.05
+      },
+      {
+        "energy_total_exact": 0.07756664161365016,
+        "state_norm": 1.0,
+        "time": 1.075
+      },
+      {
+        "energy_total_exact": 0.07424193890394479,
+        "state_norm": 1.0,
+        "time": 1.1
+      },
+      {
+        "energy_total_exact": 0.07103794696773671,
+        "state_norm": 1.0,
+        "time": 1.125
+      },
+      {
+        "energy_total_exact": 0.06796736384315386,
+        "state_norm": 1.0,
+        "time": 1.1500000000000001
+      },
+      {
+        "energy_total_exact": 0.06504249841884029,
+        "state_norm": 1.0,
+        "time": 1.175
+      },
+      {
+        "energy_total_exact": 0.062275235452308425,
+        "state_norm": 1.0,
+        "time": 1.2000000000000002
+      },
+      {
+        "energy_total_exact": 0.05967698226359921,
+        "state_norm": 1.0,
+        "time": 1.225
+      },
+      {
+        "energy_total_exact": 0.057258597404950456,
+        "state_norm": 0.9999999999999999,
+        "time": 1.25
+      },
+      {
+        "energy_total_exact": 0.055030302962216684,
+        "state_norm": 1.0,
+        "time": 1.2750000000000001
+      },
+      {
+        "energy_total_exact": 0.05300158338727959,
+        "state_norm": 1.0,
+        "time": 1.3
+      },
+      {
+        "energy_total_exact": 0.05118107482355924,
+        "state_norm": 1.0,
+        "time": 1.3250000000000002
+      },
+      {
+        "energy_total_exact": 0.04957644971167177,
+        "state_norm": 1.0,
+        "time": 1.35
+      },
+      {
+        "energy_total_exact": 0.048194302006862366,
+        "state_norm": 1.0,
+        "time": 1.375
+      },
+      {
+        "energy_total_exact": 0.047040038578925705,
+        "state_norm": 1.0,
+        "time": 1.4000000000000001
+      },
+      {
+        "energy_total_exact": 0.046117782291485235,
+        "state_norm": 1.0,
+        "time": 1.425
+      },
+      {
+        "energy_total_exact": 0.04543029188165859,
+        "state_norm": 0.9999999999999999,
+        "time": 1.4500000000000002
+      },
+      {
+        "energy_total_exact": 0.0449789031108581,
+        "state_norm": 1.0000000000000002,
+        "time": 1.475
+      },
+      {
+        "energy_total_exact": 0.04476349477467033,
+        "state_norm": 0.9999999999999999,
+        "time": 1.5
+      },
+      {
+        "energy_total_exact": 0.04478248209852265,
+        "state_norm": 1.0,
+        "time": 1.5250000000000001
+      },
+      {
+        "energy_total_exact": 0.045032838867674174,
+        "state_norm": 1.0000000000000002,
+        "time": 1.55
+      },
+      {
+        "energy_total_exact": 0.04551014841117487,
+        "state_norm": 1.0000000000000002,
+        "time": 1.5750000000000002
+      },
+      {
+        "energy_total_exact": 0.04620868234572749,
+        "state_norm": 0.9999999999999999,
+        "time": 1.6
+      },
+      {
+        "energy_total_exact": 0.04712150484947071,
+        "state_norm": 1.0000000000000002,
+        "time": 1.625
+      },
+      {
+        "energy_total_exact": 0.0482405992326847,
+        "state_norm": 1.0,
+        "time": 1.6500000000000001
+      },
+      {
+        "energy_total_exact": 0.04955701274816307,
+        "state_norm": 1.0,
+        "time": 1.675
+      },
+      {
+        "energy_total_exact": 0.05106101497181914,
+        "state_norm": 1.0,
+        "time": 1.7000000000000002
+      },
+      {
+        "energy_total_exact": 0.052742264704520564,
+        "state_norm": 1.0,
+        "time": 1.725
+      },
+      {
+        "energy_total_exact": 0.05458998020634404,
+        "state_norm": 1.0,
+        "time": 1.75
+      },
+      {
+        "energy_total_exact": 0.05659310766788504,
+        "state_norm": 1.0,
+        "time": 1.7750000000000001
+      },
+      {
+        "energy_total_exact": 0.05874048313263326,
+        "state_norm": 1.0,
+        "time": 1.8
+      },
+      {
+        "energy_total_exact": 0.06102098358069105,
+        "state_norm": 1.0,
+        "time": 1.8250000000000002
+      },
+      {
+        "energy_total_exact": 0.0634236635330137,
+        "state_norm": 1.0,
+        "time": 1.85
+      },
+      {
+        "energy_total_exact": 0.06593787429381254,
+        "state_norm": 1.0000000000000002,
+        "time": 1.875
+      },
+      {
+        "energy_total_exact": 0.06855336377506019,
+        "state_norm": 1.0,
+        "time": 1.9000000000000001
+      },
+      {
+        "energy_total_exact": 0.07126035569582609,
+        "state_norm": 1.0,
+        "time": 1.925
+      },
+      {
+        "energy_total_exact": 0.07404960778025681,
+        "state_norm": 1.0,
+        "time": 1.9500000000000002
+      },
+      {
+        "energy_total_exact": 0.07691244935325486,
+        "state_norm": 0.9999999999999999,
+        "time": 1.975
+      },
+      {
+        "energy_total_exact": 0.07984079942249579,
+        "state_norm": 1.0,
+        "time": 2.0
+      },
+      {
+        "energy_total_exact": 0.08282716691408058,
+        "state_norm": 1.0000000000000002,
+        "time": 2.025
+      },
+      {
+        "energy_total_exact": 0.08586463518146968,
+        "state_norm": 1.0000000000000002,
+        "time": 2.0500000000000003
+      },
+      {
+        "energy_total_exact": 0.0889468332249286,
+        "state_norm": 1.0,
+        "time": 2.075
+      },
+      {
+        "energy_total_exact": 0.09206789623976741,
+        "state_norm": 1.0000000000000002,
+        "time": 2.1
+      },
+      {
+        "energy_total_exact": 0.09522241816346969,
+        "state_norm": 1.0000000000000002,
+        "time": 2.125
+      },
+      {
+        "energy_total_exact": 0.0984053988252045,
+        "state_norm": 1.0,
+        "time": 2.15
+      },
+      {
+        "energy_total_exact": 0.10161218813248685,
+        "state_norm": 1.0,
+        "time": 2.1750000000000003
+      },
+      {
+        "energy_total_exact": 0.1048384294798758,
+        "state_norm": 1.0000000000000002,
+        "time": 2.2
+      },
+      {
+        "energy_total_exact": 0.10808000425371363,
+        "state_norm": 0.9999999999999998,
+        "time": 2.225
+      },
+      {
+        "energy_total_exact": 0.11133297895818045,
+        "state_norm": 1.0000000000000002,
+        "time": 2.25
+      },
+      {
+        "energy_total_exact": 0.11459355612345136,
+        "state_norm": 1.0,
+        "time": 2.275
+      },
+      {
+        "energy_total_exact": 0.11785802979559809,
+        "state_norm": 1.0,
+        "time": 2.3000000000000003
+      },
+      {
+        "energy_total_exact": 0.12112274606874462,
+        "state_norm": 0.9999999999999999,
+        "time": 2.325
+      },
+      {
+        "energy_total_exact": 0.12438406881734299,
+        "state_norm": 1.0,
+        "time": 2.35
+      },
+      {
+        "energy_total_exact": 0.12763835053072903,
+        "state_norm": 1.0,
+        "time": 2.375
+      },
+      {
+        "energy_total_exact": 0.13088190795230317,
+        "state_norm": 1.0,
+        "time": 2.4000000000000004
+      },
+      {
+        "energy_total_exact": 0.13411100208383087,
+        "state_norm": 1.0000000000000002,
+        "time": 2.4250000000000003
+      },
+      {
+        "energy_total_exact": 0.13732182203358126,
+        "state_norm": 1.0,
+        "time": 2.45
+      },
+      {
+        "energy_total_exact": 0.14051047216127932,
+        "state_norm": 1.0,
+        "time": 2.475
+      },
+      {
+        "energy_total_exact": 0.14367296199815816,
+        "state_norm": 0.9999999999999999,
+        "time": 2.5
+      },
+      {
+        "energy_total_exact": 0.14680519848926524,
+        "state_norm": 1.0,
+        "time": 2.5250000000000004
+      },
+      {
+        "energy_total_exact": 0.14990298020753648,
+        "state_norm": 1.0,
+        "time": 2.5500000000000003
+      },
+      {
+        "energy_total_exact": 0.15296199331520693,
+        "state_norm": 1.0,
+        "time": 2.575
+      },
+      {
+        "energy_total_exact": 0.15597780918668988,
+        "state_norm": 1.0,
+        "time": 2.6
+      },
+      {
+        "energy_total_exact": 0.15894588374704285,
+        "state_norm": 1.0,
+        "time": 2.625
+      },
+      {
+        "energy_total_exact": 0.16186155871155536,
+        "state_norm": 1.0000000000000002,
+        "time": 2.6500000000000004
+      },
+      {
+        "energy_total_exact": 0.16472006502530306,
+        "state_norm": 0.9999999999999999,
+        "time": 2.6750000000000003
+      },
+      {
+        "energy_total_exact": 0.1675165288889006,
+        "state_norm": 0.9999999999999999,
+        "time": 2.7
+      },
+      {
+        "energy_total_exact": 0.1702459808119488,
+        "state_norm": 1.0,
+        "time": 2.725
+      },
+      {
+        "energy_total_exact": 0.1729033681545516,
+        "state_norm": 1.0,
+        "time": 2.75
+      },
+      {
+        "energy_total_exact": 0.17548357159761424,
+        "state_norm": 1.0,
+        "time": 2.7750000000000004
+      },
+      {
+        "energy_total_exact": 0.17798142592441518,
+        "state_norm": 1.0,
+        "time": 2.8000000000000003
+      },
+      {
+        "energy_total_exact": 0.18039174540106478,
+        "state_norm": 1.0000000000000002,
+        "time": 2.825
+      },
+      {
+        "energy_total_exact": 0.18270935391615353,
+        "state_norm": 1.0,
+        "time": 2.85
+      },
+      {
+        "energy_total_exact": 0.18492911988572422,
+        "state_norm": 1.0,
+        "time": 2.875
+      },
+      {
+        "energy_total_exact": 0.18704599575581313,
+        "state_norm": 1.0,
+        "time": 2.9000000000000004
+      },
+      {
+        "energy_total_exact": 0.1890550617498502,
+        "state_norm": 0.9999999999999999,
+        "time": 2.9250000000000003
+      },
+      {
+        "energy_total_exact": 0.19095157332071286,
+        "state_norm": 1.0,
+        "time": 2.95
+      },
+      {
+        "energy_total_exact": 0.19273101158701983,
+        "state_norm": 1.0,
+        "time": 2.975
+      },
+      {
+        "energy_total_exact": 0.19438913586895962,
+        "state_norm": 1.0000000000000002,
+        "time": 3.0
+      },
+      {
+        "energy_total_exact": 0.1959220372994619,
+        "state_norm": 1.0000000000000002,
+        "time": 3.0250000000000004
+      },
+      {
+        "energy_total_exact": 0.19732619237885757,
+        "state_norm": 1.0,
+        "time": 3.0500000000000003
+      },
+      {
+        "energy_total_exact": 0.19859851527166897,
+        "state_norm": 1.0,
+        "time": 3.075
+      },
+      {
+        "energy_total_exact": 0.19973640761657965,
+        "state_norm": 0.9999999999999999,
+        "time": 3.1
+      },
+      {
+        "energy_total_exact": 0.20073780463746127,
+        "state_norm": 1.0,
+        "time": 3.125
+      },
+      {
+        "energy_total_exact": 0.20160121640434198,
+        "state_norm": 1.0,
+        "time": 3.1500000000000004
+      },
+      {
+        "energy_total_exact": 0.2023257631962832,
+        "state_norm": 1.0000000000000002,
+        "time": 3.1750000000000003
+      },
+      {
+        "energy_total_exact": 0.2029112040590067,
+        "state_norm": 1.0,
+        "time": 3.2
+      },
+      {
+        "energy_total_exact": 0.2033579578226857,
+        "state_norm": 1.0,
+        "time": 3.225
+      },
+      {
+        "energy_total_exact": 0.20366711604172127,
+        "state_norm": 1.0,
+        "time": 3.25
+      },
+      {
+        "energy_total_exact": 0.20384044752984043,
+        "state_norm": 1.0,
+        "time": 3.2750000000000004
+      },
+      {
+        "energy_total_exact": 0.2038803943809886,
+        "state_norm": 0.9999999999999999,
+        "time": 3.3000000000000003
+      },
+      {
+        "energy_total_exact": 0.20379005957932553,
+        "state_norm": 1.0,
+        "time": 3.325
+      },
+      {
+        "energy_total_exact": 0.203573186501346,
+        "state_norm": 1.0,
+        "time": 3.35
+      },
+      {
+        "energy_total_exact": 0.2032341307911411,
+        "state_norm": 1.0,
+        "time": 3.375
+      },
+      {
+        "energy_total_exact": 0.20277782523953394,
+        "state_norm": 1.0,
+        "time": 3.4000000000000004
+      },
+      {
+        "energy_total_exact": 0.20220973841415857,
+        "state_norm": 0.9999999999999999,
+        "time": 3.4250000000000003
+      },
+      {
+        "energy_total_exact": 0.20153582786797314,
+        "state_norm": 1.0,
+        "time": 3.45
+      },
+      {
+        "energy_total_exact": 0.20076248879750197,
+        "state_norm": 1.0,
+        "time": 3.475
+      },
+      {
+        "energy_total_exact": 0.19989649903144266,
+        "state_norm": 1.0000000000000002,
+        "time": 3.5
+      },
+      {
+        "energy_total_exact": 0.19894496120907934,
+        "state_norm": 1.0,
+        "time": 3.5250000000000004
+      },
+      {
+        "energy_total_exact": 0.19791524296226123,
+        "state_norm": 1.0,
+        "time": 3.5500000000000003
+      },
+      {
+        "energy_total_exact": 0.1968149158519555,
+        "state_norm": 1.0,
+        "time": 3.575
+      },
+      {
+        "energy_total_exact": 0.1956516937388736,
+        "state_norm": 1.0,
+        "time": 3.6
+      },
+      {
+        "energy_total_exact": 0.19443337119604231,
+        "state_norm": 1.0000000000000002,
+        "time": 3.625
+      },
+      {
+        "energy_total_exact": 0.19316776250752807,
+        "state_norm": 1.0,
+        "time": 3.6500000000000004
+      },
+      {
+        "energy_total_exact": 0.19186264174902523,
+        "state_norm": 1.0,
+        "time": 3.6750000000000003
+      },
+      {
+        "energy_total_exact": 0.19052568441807174,
+        "state_norm": 1.0,
+        "time": 3.7
+      },
+      {
+        "energy_total_exact": 0.1891644110774155,
+        "state_norm": 1.0,
+        "time": 3.725
+      },
+      {
+        "energy_total_exact": 0.18778613349538065,
+        "state_norm": 1.0,
+        "time": 3.75
+      },
+      {
+        "energy_total_exact": 0.18639790380963023,
+        "state_norm": 0.9999999999999999,
+        "time": 3.7750000000000004
+      },
+      {
+        "energy_total_exact": 0.18500646730093812,
+        "state_norm": 1.0,
+        "time": 3.8000000000000003
+      },
+      {
+        "energy_total_exact": 0.1836182194340223,
+        "state_norm": 1.0,
+        "time": 3.825
+      },
+      {
+        "energy_total_exact": 0.1822391678937743,
+        "state_norm": 1.0,
+        "time": 3.85
+      },
+      {
+        "energy_total_exact": 0.18087490040648388,
+        "state_norm": 1.0,
+        "time": 3.875
+      },
+      {
+        "energy_total_exact": 0.17953055917539254,
+        "state_norm": 1.0,
+        "time": 3.9000000000000004
+      },
+      {
+        "energy_total_exact": 0.17821082276659472,
+        "state_norm": 1.0000000000000002,
+        "time": 3.9250000000000003
+      },
+      {
+        "energy_total_exact": 0.17691989624475468,
+        "state_norm": 1.0000000000000002,
+        "time": 3.95
+      },
+      {
+        "energy_total_exact": 0.17566151026982296,
+        "state_norm": 1.0,
+        "time": 3.975
+      },
+      {
+        "energy_total_exact": 0.17443892972055214,
+        "state_norm": 1.0000000000000002,
+        "time": 4.0
+      }
+    ]
+  },
+  "generated_utc": "2026-03-15T00:28:50.953608+00:00",
+  "model_family": "Hubbard-Holstein (HH)",
+  "pipeline": "hh_fixed_seed_local_checkpoint_fit",
+  "rows": [
+    {
+      "ansatz_label": "local_y_xx-zz_reps1",
+      "budget_pass": true,
+      "final_abs_energy_total_error": 0.03231794045296166,
+      "final_fidelity": 0.9902045725074874,
+      "final_transpiled_count_2q": 20,
+      "final_transpiled_depth": 24,
+      "max_abs_energy_total_error": 0.16896741914418267,
+      "max_transpiled_count_2q": 20,
+      "max_transpiled_depth": 28,
+      "min_fidelity": 0.9493405873814535,
+      "num_parameters": 22,
+      "reps": 1
+    },
+    {
+      "ansatz_label": "local_y_xx-zz_reps2",
+      "budget_pass": true,
+      "final_abs_energy_total_error": 0.0013344878070059019,
+      "final_fidelity": 0.9977219864199006,
+      "final_transpiled_count_2q": 40,
+      "final_transpiled_depth": 42,
+      "max_abs_energy_total_error": 0.010313730601668639,
+      "max_transpiled_count_2q": 40,
+      "max_transpiled_depth": 45,
+      "min_fidelity": 0.9870696071696009,
+      "num_parameters": 44,
+      "reps": 2
+    },
+    {
+      "ansatz_label": "local_y_xx-zz_reps3",
+      "budget_pass": true,
+      "final_abs_energy_total_error": 0.0027628440749007666,
+      "final_fidelity": 0.99885579721042,
+      "final_transpiled_count_2q": 58,
+      "final_transpiled_depth": 59,
+      "max_abs_energy_total_error": 0.00541045323684234,
+      "max_transpiled_count_2q": 60,
+      "max_transpiled_depth": 64,
+      "min_fidelity": 0.9954807773629177,
+      "num_parameters": 66,
+      "reps": 3
+    }
+  ],
+  "scope": {
+    "budget_scope": "dynamics_only",
+    "local_only": true,
+    "noiseless_only": true,
+    "surrogate_method": "checkpoint_local_fit"
+  },
+  "seed": {
+    "family_info": {
+      "fallback_family": "full_meta",
+      "fallback_used": true,
+      "requested": "match_adapt",
+      "resolution_source": "fallback_family_missing_labels",
+      "resolved": "full_meta",
+      "warning": "Resolved replay family could not represent the ADAPT-selected labels; retrying replay with fallback family 'full_meta'."
+    },
+    "family_resolved": "full_meta",
+    "fixed_seed_json": "artifacts/json/l2_hh_open_direct_adapt_phase3_paoplf_u4_g05_nph2.json",
+    "pool_meta": {
+      "family": "full_meta",
+      "raw_sizes": {
+        "raw_hh_termwise_augmented": 40,
+        "raw_hva": 16,
+        "raw_paop_full": 0,
+        "raw_paop_lf_full": 0,
+        "raw_paop_lf_std": 4,
+        "raw_uccsd_lifted": 3
+      },
+      "raw_total": 63,
+      "replay_terms": 15,
+      "selected_unique_labels": 8,
+      "selection_mode": "sparse_label_lookup",
+      "supplemental_families": [
+        "paop_lf_std"
+      ]
+    },
+    "term_count": 15
+  },
+  "settings": {
+    "angle_bound": 3.141592653589793,
+    "backend_name": "FakeGuadalupeV2",
+    "circuit_optimization_level": 3,
+    "circuit_seed_transpiler": 11,
+    "drive_A": 1.0,
+    "drive_omega": 1.0,
+    "drive_pattern": "staggered",
+    "drive_phi": 0.0,
+    "drive_t0": 0.0,
+    "drive_tbar": 5.0,
+    "drive_time_sampling": "midpoint",
+    "entangler_axes": [
+      "xx",
+      "zz"
+    ],
+    "fixed_seed_json": "artifacts/json/l2_hh_open_direct_adapt_phase3_paoplf_u4_g05_nph2.json",
+    "max_cx_budget": 100,
+    "num_times": 161,
+    "optimizer_ftol": 1e-12,
+    "optimizer_gtol": 1e-08,
+    "optimizer_maxiter": 60,
+    "optimizer_method": "L-BFGS-B",
+    "output_csv": "artifacts/json/hh_fixed_seed_local_checkpoint_fit_t4.csv",
+    "output_json": "artifacts/json/hh_fixed_seed_local_checkpoint_fit_t4.json",
+    "output_pdf": "artifacts/pdf/hh_fixed_seed_local_checkpoint_fit_t4.pdf",
+    "param_shift": 1.5707963267948966,
+    "reference_steps": 1024,
+    "reps_list": [
+      1,
+      2,
+      3
+    ],
+    "run_root": "artifacts/json/hh_fixed_seed_local_checkpoint_fit_t4_runs",
+    "single_axes": [
+      "y"
+    ],
+    "skip_pdf": false,
+    "t_final": 4.0,
+    "tag": "local_checkpoint_fit",
+    "use_fake_backend": true
+  },
+  "summary": {
+    "best_by_cx_under_budget": {
+      "ansatz_label": "local_y_xx-zz_reps1",
+      "budget_pass": true,
+      "final_abs_energy_total_error": 0.03231794045296166,
+      "final_fidelity": 0.9902045725074874,
+      "final_transpiled_count_2q": 20,
+      "final_transpiled_depth": 24,
+      "max_abs_energy_total_error": 0.16896741914418267,
+      "max_transpiled_count_2q": 20,
+      "max_transpiled_depth": 28,
+      "min_fidelity": 0.9493405873814535,
+      "num_parameters": 22,
+      "reps": 1
+    },
+    "best_by_error_under_budget": {
+      "ansatz_label": "local_y_xx-zz_reps3",
+      "budget_pass": true,
+      "final_abs_energy_total_error": 0.0027628440749007666,
+      "final_fidelity": 0.99885579721042,
+      "final_transpiled_count_2q": 58,
+      "final_transpiled_depth": 59,
+      "max_abs_energy_total_error": 0.00541045323684234,
+      "max_transpiled_count_2q": 60,
+      "max_transpiled_depth": 64,
+      "min_fidelity": 0.9954807773629177,
+      "num_parameters": 66,
+      "reps": 3
+    },
+    "feasible_count": 3
+  }
+}

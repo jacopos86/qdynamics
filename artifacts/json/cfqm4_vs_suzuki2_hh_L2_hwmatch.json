@@ -1,0 +1,85 @@
+{
+  "artifacts": {
+    "cfqm4_json": "artifacts/json/cfqm4_hh_L2_driveA1.0_U4_nph1_t10.json",
+    "suzuki2_initial_json": "artifacts/json/suzuki2_hh_L2_driveA1.0_U4_nph1_t10_trotter64.json",
+    "suzuki2_matched_json": "artifacts/json/suzuki2_hh_L2_driveA1.0_U4_nph1_t10_trotter128.json",
+    "compare_json": "artifacts/json/cfqm4_vs_suzuki2_hh_L2_hwmatch.json",
+    "compare_pdf": "artifacts/pdf/cfqm4_vs_suzuki2_hh_L2_hwmatch.pdf"
+  },
+  "run_contract": {
+    "problem": "hh",
+    "L": 2,
+    "drive_enabled": true,
+    "drive_A": 1.0,
+    "drive_omega": 1.0,
+    "drive_tbar": 5.0,
+    "drive_phi": 0.0,
+    "drive_pattern": "staggered",
+    "t_final": 10.0,
+    "num_times": 201,
+    "match_metric": "cx_proxy_total",
+    "match_tolerance_rel": 0.02,
+    "seed_json_runtime_copy": "artifacts/json/user_l2_hh_static_heavy_strictfix.json",
+    "runtime_ansatz_override": "hh_hva_ptw"
+  },
+  "costs": {
+    "cfqm4_trotter_steps": 64,
+    "cfqm4": {
+      "term_exp_count_total": 4352,
+      "pauli_rot_count_total": 4352,
+      "cx_proxy_total": 5120,
+      "sq_proxy_total": 10496,
+      "depth_proxy_total": 4352
+    },
+    "suzuki2_initial_trotter_steps": 64,
+    "suzuki2_initial": {
+      "term_exp_count_total": 2176,
+      "pauli_rot_count_total": 2176,
+      "cx_proxy_total": 2560,
+      "sq_proxy_total": 5248,
+      "depth_proxy_total": 2176
+    },
+    "suzuki2_matched_trotter_steps": 128,
+    "suzuki2_matched": {
+      "term_exp_count_total": 4352,
+      "pauli_rot_count_total": 4352,
+      "cx_proxy_total": 5120,
+      "sq_proxy_total": 10496,
+      "depth_proxy_total": 4352
+    },
+    "relative_mismatch_final": 0.0,
+    "within_tolerance": true
+  },
+  "validation": {
+    "cfqm4_adapt_import_metadata_match_passed": true,
+    "suzuki2_adapt_import_metadata_match_passed": true,
+    "same_time_grid": true,
+    "same_physics_settings_except_allowed_method_differences": true,
+    "allowed_setting_differences": {
+      "cfqm4_only": {
+        "propagator": "cfqm4",
+        "trotter_steps": 64,
+        "cfqm": {
+          "stage_exp_backend": "pauli_suzuki2",
+          "coeff_drop_abs_tol": 0.0,
+          "normalize": false
+        },
+        "drive_reference_steps": 128
+      },
+      "suzuki2_only": {
+        "propagator": null,
+        "trotter_steps": 128,
+        "cfqm": null,
+        "drive_reference_steps": 256
+      }
+    }
+  },
+  "trajectory_deltas": {
+    "max_abs_energy_static_trotter_delta": 8.87091251957628e-05,
+    "max_abs_fidelity_paop_trotter_delta": 0.00012845051254817275,
+    "final_energy_static_trotter_cfqm4": 0.48898931686356945,
+    "final_energy_static_trotter_suzuki2": 0.4889184870746721,
+    "final_fidelity_paop_trotter_cfqm4": 0.49465968535995614,
+    "final_fidelity_paop_trotter_suzuki2": 0.49453123484740796
+  }
+}

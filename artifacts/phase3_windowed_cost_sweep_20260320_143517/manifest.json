@@ -1,0 +1,117 @@
+{
+  "experiment_dir": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/artifacts/phase3_windowed_cost_sweep_20260320_143517",
+  "base_command": [
+    "/opt/anaconda3/bin/python",
+    "pipelines/hardcoded/adapt_pipeline.py",
+    "--problem",
+    "hh",
+    "--L",
+    "2",
+    "--t",
+    "1.0",
+    "--u",
+    "4.0",
+    "--dv",
+    "0.0",
+    "--omega0",
+    "1.0",
+    "--g-ep",
+    "0.5",
+    "--n-ph-max",
+    "1",
+    "--boson-encoding",
+    "binary",
+    "--boundary",
+    "periodic",
+    "--ordering",
+    "blocked",
+    "--adapt-pool",
+    "paop_lf_std",
+    "--adapt-continuation-mode",
+    "phase3_v1",
+    "--adapt-inner-optimizer",
+    "SPSA",
+    "--adapt-maxiter",
+    "800",
+    "--adapt-max-depth",
+    "12",
+    "--adapt-eps-grad",
+    "-1",
+    "--adapt-eps-energy",
+    "-1",
+    "--adapt-no-finite-angle-fallback",
+    "--adapt-final-full-refit",
+    "false",
+    "--adapt-full-refit-every",
+    "0",
+    "--phase3-lifetime-cost-mode",
+    "phase3_v1",
+    "--phase3-symmetry-mitigation-mode",
+    "off",
+    "--phase3-runtime-split-mode",
+    "off",
+    "--skip-pdf",
+    "--adapt-spsa-callback-every",
+    "20",
+    "--adapt-spsa-progress-every-s",
+    "20"
+  ],
+  "configs": [
+    {
+      "name": "append_only",
+      "args": [
+        "--adapt-reopt-policy",
+        "append_only"
+      ]
+    },
+    {
+      "name": "windowed_w1",
+      "args": [
+        "--adapt-reopt-policy",
+        "windowed",
+        "--adapt-window-size",
+        "1",
+        "--adapt-window-topk",
+        "0"
+      ]
+    },
+    {
+      "name": "windowed_w2",
+      "args": [
+        "--adapt-reopt-policy",
+        "windowed",
+        "--adapt-window-size",
+        "2",
+        "--adapt-window-topk",
+        "0"
+      ]
+    },
+    {
+      "name": "windowed_w3",
+      "args": [
+        "--adapt-reopt-policy",
+        "windowed",
+        "--adapt-window-size",
+        "3",
+        "--adapt-window-topk",
+        "0"
+      ]
+    },
+    {
+      "name": "windowed_w4",
+      "args": [
+        "--adapt-reopt-policy",
+        "windowed",
+        "--adapt-window-size",
+        "4",
+        "--adapt-window-topk",
+        "0"
+      ]
+    }
+  ],
+  "seeds": [
+    7,
+    11,
+    17
+  ]
+}

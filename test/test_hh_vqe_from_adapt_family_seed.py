@@ -6,6 +6,7 @@ from types import SimpleNamespace
 import numpy as np
 import pytest
 
+from src.quantum.ansatz_parameterization import build_parameter_layout, serialize_layout
 from pipelines.hardcoded.hh_vqe_from_adapt_family import (
     PoolTermwiseAnsatz,
     REPLAY_CONTRACT_VERSION,
@@ -18,6 +19,7 @@ from pipelines.hardcoded.hh_vqe_from_adapt_family import (
     _infer_handoff_state_kind,
 )
 from src.quantum.hubbard_latex_python_pairs import build_hubbard_holstein_hamiltonian
+from src.quantum.vqe_latex_python_pairs import AnsatzTerm, PauliPolynomial, PauliTerm
 
 
 @dataclass(frozen=True)
@@ -74,6 +76,30 @@ def test_extract_adapt_operator_theta_sequence_rejects_nonfinite_theta() -> None
     }
     with pytest.raises(ValueError, match="Non-finite theta value"):
         _extract_adapt_operator_theta_sequence(payload)
+
+
+def test_extract_adapt_operator_theta_sequence_accepts_parameterized_runtime_vector() -> None:
+    terms = [
+        AnsatzTerm(
+            label="g0",
+            polynomial=PauliPolynomial("JW", [PauliTerm(2, ps="xx", pc=1.0), PauliTerm(2, ps="zz", pc=0.5)]),
+        ),
+        AnsatzTerm(
+            label="g1",
+            polynomial=PauliPolynomial("JW", [PauliTerm(2, ps="xy", pc=1.0)]),
+        ),
+    ]
+    layout = build_parameter_layout(terms)
+    payload = {
+        "adapt_vqe": {
+            "operators": ["g0", "g1"],
+            "optimal_point": [0.1, -0.2, 0.3],
+            "parameterization": serialize_layout(layout),
+        }
+    }
+    labels, theta = _extract_adapt_operator_theta_sequence(payload)
+    assert labels == ["g0", "g1"]
+    assert np.allclose(theta, [0.1, -0.2, 0.3])
 
 
 def test_build_replay_terms_preserves_operator_order_and_duplicates() -> None:
@@ -190,14 +216,30 @@ def test_sparse_full_meta_replay_terms_reconstruct_runtime_split_children_from_p
     assert str(terms[0].pw2strng()) == "eeeeeexy"
 
 
-def test_build_replay_seed_theta_tiled_and_npar_matches_adapt_depth_times_reps() -> None:
+def test_build_replay_seed_theta_tiled_and_npar_matches_runtime_parameter_count_times_reps() -> None:
+    replay_terms = [
+        AnsatzTerm(
+            label="g0",
+            polynomial=PauliPolynomial("JW", [PauliTerm(2, ps="xx", pc=1.0), PauliTerm(2, ps="zz", pc=0.5)]),
+        ),
+        AnsatzTerm(
+            label="g1",
+            polynomial=PauliPolynomial("JW", [PauliTerm(2, ps="xy", pc=1.0)]),
+        ),
+    ]
+    layout = build_parameter_layout(replay_terms)
     adapt_theta = np.array([0.2, -0.1, 0.05], dtype=float)
     reps = 4
     seed = _build_replay_seed_theta(adapt_theta, reps=reps)
     assert np.allclose(seed, np.tile(adapt_theta, reps))
 
-    replay_terms = [_DummyTerm("g0"), _DummyTerm("g1"), _DummyTerm("g2")]
-    ansatz = PoolTermwiseAnsatz(terms=replay_terms, reps=reps, nq=1)
+    ansatz = PoolTermwiseAnsatz(
+        terms=replay_terms,
+        reps=reps,
+        nq=2,
+        parameterization_layout=layout,
+        parameterization_mode="per_pauli_term",
+    )
     assert int(seed.size) == int(ansatz.num_parameters)
 
 

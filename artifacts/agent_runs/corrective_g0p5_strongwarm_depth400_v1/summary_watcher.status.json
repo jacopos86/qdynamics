@@ -1,0 +1,8 @@
+{
+  "status": "completed",
+  "updated_utc": "2026-03-15T14:46:23.107386Z",
+  "summary_json": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_2/artifacts/agent_runs/corrective_g0p5_strongwarm_depth400_v1/overnight_summary.json",
+  "summary_md": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_2/artifacts/agent_runs/corrective_g0p5_strongwarm_depth400_v1/overnight_summary.md",
+  "passing_runs": 0,
+  "best_tag": null
+}

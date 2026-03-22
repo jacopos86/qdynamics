@@ -1,0 +1,128 @@
+{
+  "generated_utc": "2026-03-20T12:16:21Z",
+  "settings": {
+    "L": 2,
+    "problem": "hh",
+    "t": 1.0,
+    "u": 2.0,
+    "dv": 0.0,
+    "omega0": 1.0,
+    "g_ep": 1.0,
+    "n_ph_max": 1,
+    "boson_encoding": "binary",
+    "ordering": "blocked",
+    "boundary": "open",
+    "sector_n_up": 1,
+    "sector_n_dn": 1,
+    "adapt_pool": "paop_lf_std"
+  },
+  "adapt_vqe": {
+    "energy": -1.03,
+    "abs_delta_e": 0.02,
+    "relative_error_abs": 0.019047619047619063,
+    "operators": [
+      "warm_scaffold_0",
+      "warm_scaffold_1",
+      "paop_add"
+    ],
+    "optimal_point": [
+      0.1,
+      0.2,
+      0.3
+    ],
+    "ansatz_depth": 3,
+    "num_parameters": 3,
+    "pool_type": "paop_lf_std",
+    "pre_prune_scaffold": {},
+    "prune_summary": {},
+    "history": [],
+    "stop_reason": "drop_plateau"
+  },
+  "ground_state": {
+    "exact_energy": -1.05,
+    "exact_energy_filtered": -1.05,
+    "filtered_sector": {
+      "n_up": 1,
+      "n_dn": 1
+    },
+    "method": "staged_handoff_bundle"
+  },
+  "initial_state": {
+    "source": "hf_reference",
+    "nq_total": 6,
+    "amplitudes_qn_to_q0": {
+      "000000": {
+        "re": 1.0,
+        "im": 0.0
+      }
+    },
+    "amplitude_cutoff": 1e-14,
+    "norm": 1.0,
+    "handoff_state_kind": "reference_state"
+  },
+  "exact": {
+    "E_exact_sector": -1.05
+  },
+  "continuation": {
+    "mode": "phase3_v1",
+    "scaffold": {},
+    "optimizer_memory": {
+      "cached": true
+    },
+    "selected_generator_metadata": [
+      {
+        "candidate_label": "warm_scaffold_0",
+        "generator_id": "warm_g0",
+        "family_id": "hh_hva"
+      },
+      {
+        "candidate_label": "warm_scaffold_1",
+        "generator_id": "warm_g1",
+        "family_id": "hh_hva"
+      },
+      {
+        "candidate_label": "paop_add",
+        "generator_id": "paop_add_g",
+        "family_id": "paop_lf_std"
+      }
+    ],
+    "generator_split_events": [],
+    "motif_library": {},
+    "motif_usage": {},
+    "symmetry_mitigation": {},
+    "rescue_history": [],
+    "beam_search": {},
+    "replay_contract": {
+      "contract_version": 2,
+      "generator_family": {
+        "requested": "match_adapt",
+        "resolved": "paop_lf_std",
+        "resolution_source": "continuation.selected_generator_metadata.family_id",
+        "fallback_family": "full_meta",
+        "fallback_used": false
+      },
+      "seed_policy_requested": "auto",
+      "seed_policy_resolved": "scaffold_plus_zero",
+      "handoff_state_kind": "reference_state",
+      "provenance_source": "explicit",
+      "continuation_mode": "phase3_v1",
+      "contract_seed_hint": "built-in_staged_writer"
+    },
+    "replay_contract_hint": {
+      "generator_family": "match_adapt",
+      "fallback_family": "full_meta",
+      "replay_seed_policy": "auto",
+      "replay_continuation_mode": "phase3_v1"
+    }
+  },
+  "meta": {
+    "pipeline": "hh_staged_noiseless",
+    "workflow_tag": "hh_staged_L2_static_t1_U2_dv0_w1_g1_nph1_warmhh_hva_ptw_handofflive_scaffold_bridgehh_hva_ptwk5_8c4d55c4f0",
+    "stage_chain": [
+      "hf_reference",
+      "warm_start_hva",
+      "adapt_vqe",
+      "matched_family_replay"
+    ]
+  }
+}

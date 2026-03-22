@@ -1,0 +1,99 @@
+{
+  "best_state": {
+    "amplitudes_qn_to_q0": {
+      "000101": {
+        "im": 0.07155833082766064,
+        "re": 0.24255399380146908
+      },
+      "000110": {
+        "im": 0.1439109174381763,
+        "re": 0.6214026462973946
+      },
+      "001001": {
+        "im": 0.1800014765032998,
+        "re": 0.6537627658804843
+      },
+      "001010": {
+        "im": 0.053785124211292994,
+        "re": 0.2545732099437424
+      },
+      "010101": {
+        "im": -0.0032628461718703407,
+        "re": -0.014451203809631538
+      },
+      "010110": {
+        "im": -0.007032187808271358,
+        "re": 0.0003241516690260955
+      },
+      "011001": {
+        "im": 0.006896002008613308,
+        "re": 1.97878962515214e-05
+      },
+      "011010": {
+        "im": 0.0006136513379471159,
+        "re": 0.016619924797324413
+      },
+      "100101": {
+        "im": 0.007001656968718115,
+        "re": 0.0213558168235025
+      },
+      "100110": {
+        "im": -0.002715793942354793,
+        "re": -0.004955023945559833
+      },
+      "101001": {
+        "im": 0.002993780450095754,
+        "re": 0.00534466378712008
+      },
+      "101010": {
+        "im": -0.0057683672296385885,
+        "re": -0.02199692838135748
+      },
+      "110101": {
+        "im": -0.00029675637048200143,
+        "re": -0.0012756348721282653
+      },
+      "110110": {
+        "im": 5.957555679071341e-05,
+        "re": -1.9440068370925438e-05
+      },
+      "111001": {
+        "im": 5.9860492615025804e-05,
+        "re": -1.3216396161377534e-05
+      },
+      "111010": {
+        "im": -0.00015303160175484076,
+        "re": -0.001445925069215676
+      }
+    }
+  },
+  "exact": {
+    "E_exact_sector": 0.15866790412572634
+  },
+  "fixed_final_state_import": {
+    "circuit_provenance": {
+      "warm_cutover_json": null,
+      "workflow_json": null
+    },
+    "delta_abs": 0.006985648972667485,
+    "energy": 0.16565355309839383,
+    "exact_energy": 0.15866790412572634,
+    "initial_state_source": "adapt_vqe",
+    "mismatches": [],
+    "relative_error_abs": 0.04402685603719924,
+    "resolved_json": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/artifacts 1/json/compare_suzuki2_vs_adaptive_realtime_L2_weak_ptw_light_20260316/seed_for_compare.json",
+    "resolved_via": null,
+    "source_json": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/artifacts 1/json/compare_suzuki2_vs_adaptive_realtime_L2_weak_ptw_light_20260316/seed_for_compare.json",
+    "strict_match": true
+  },
+  "generated_utc": "2026-03-16T08:01:04Z",
+  "mode": "fixed_final_state_import",
+  "pipeline": "hh_staged_noiseless",
+  "source_json": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/artifacts 1/json/compare_suzuki2_vs_adaptive_realtime_L2_weak_ptw_light_20260316/seed_for_compare.json",
+  "vqe": {
+    "abs_delta_e": 0.006985648972667485,
+    "energy": 0.16565355309839383,
+    "relative_error_abs": 0.04402685603719924,
+    "stop_reason": "skipped_fixed_final_state_json"
+  }
+}

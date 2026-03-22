@@ -1,0 +1,282 @@
+{
+  "generated_utc": "2026-03-15T07:48:56.874399Z",
+  "budget": {
+    "max_depth_per_stage": 400,
+    "replay_delta_abs_max": 0.001
+  },
+  "total_runs": 10,
+  "passing_runs": 0,
+  "best_tag": null,
+  "runs": [
+    {
+      "tag": "ov_g0p5_ptw_powell_nr_b2_d4_split",
+      "kind": "beam2_split",
+      "adapt_max_depth": 4,
+      "beam_live_branches": 2,
+      "split_mode": "shortlist_pauli_children_v1",
+      "status": "completed",
+      "final_json": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_2/artifacts/json/ov_g0p5_ptw_powell_nr_b2_d4_split.json",
+      "warm": {
+        "delta_abs": 0.010373448184006567,
+        "depth": 186,
+        "cx_count": 208
+      },
+      "adapt": {
+        "delta_abs": 0.0013518901168850517,
+        "depth": 1524,
+        "cx_count": 281
+      },
+      "replay": {
+        "delta_abs": 0.001064156181864201,
+        "depth": 1058,
+        "cx_count": 315
+      },
+      "passes_energy": false,
+      "passes_depth_budget": false,
+      "passes_all": false
+    },
+    {
+      "tag": "ov_g0p5_ptw_powell_nr_b2_d5_split",
+      "kind": "beam2_split",
+      "adapt_max_depth": 5,
+      "beam_live_branches": 2,
+      "split_mode": "shortlist_pauli_children_v1",
+      "status": "completed",
+      "final_json": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_2/artifacts/json/ov_g0p5_ptw_powell_nr_b2_d5_split.json",
+      "warm": {
+        "delta_abs": 0.010373448184006567,
+        "depth": 186,
+        "cx_count": 208
+      },
+      "adapt": {
+        "delta_abs": 0.0012808759003153647,
+        "depth": 1533,
+        "cx_count": 287
+      },
+      "replay": {
+        "delta_abs": 0.001023760453588679,
+        "depth": 1078,
+        "cx_count": 327
+      },
+      "passes_energy": false,
+      "passes_depth_budget": false,
+      "passes_all": false
+    },
+    {
+      "tag": "ov_g0p5_ptw_powell_nr_b2_d6_split",
+      "kind": "beam2_split",
+      "adapt_max_depth": 6,
+      "beam_live_branches": 2,
+      "split_mode": "shortlist_pauli_children_v1",
+      "status": "completed",
+      "final_json": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_2/artifacts/json/ov_g0p5_ptw_powell_nr_b2_d6_split.json",
+      "warm": {
+        "delta_abs": 0.010373448184006567,
+        "depth": 186,
+        "cx_count": 208
+      },
+      "adapt": {
+        "delta_abs": 0.001215591449237996,
+        "depth": 1538,
+        "cx_count": 291
+      },
+      "replay": {
+        "delta_abs": 0.0008597329171279589,
+        "depth": 1083,
+        "cx_count": 335
+      },
+      "passes_energy": true,
+      "passes_depth_budget": false,
+      "passes_all": false
+    },
+    {
+      "tag": "ov_g0p5_ptw_powell_nr_b1_d2_off",
+      "kind": "beam1_off",
+      "adapt_max_depth": 2,
+      "beam_live_branches": 1,
+      "split_mode": "off",
+      "status": "completed",
+      "final_json": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_2/artifacts/json/ov_g0p5_ptw_powell_nr_b1_d2_off.json",
+      "warm": {
+        "delta_abs": 0.010373448184006567,
+        "depth": 186,
+        "cx_count": 208
+      },
+      "adapt": {
+        "delta_abs": 0.0014284687581072597,
+        "depth": 1934,
+        "cx_count": 613
+      },
+      "replay": {
+        "delta_abs": 0.0014284657498320752,
+        "depth": 1416,
+        "cx_count": 291
+      },
+      "passes_energy": false,
+      "passes_depth_budget": false,
+      "passes_all": false
+    },
+    {
+      "tag": "ov_g0p5_ptw_powell_nr_b1_d1_off",
+      "kind": "beam1_off",
+      "adapt_max_depth": 1,
+      "beam_live_branches": 1,
+      "split_mode": "off",
+      "status": "completed",
+      "final_json": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_2/artifacts/json/ov_g0p5_ptw_powell_nr_b1_d1_off.json",
+      "warm": {
+        "delta_abs": 0.010373448184006567,
+        "depth": 186,
+        "cx_count": 208
+      },
+      "adapt": {
+        "delta_abs": 0.002403654204453848,
+        "depth": 1504,
+        "cx_count": 267
+      },
+      "replay": {
+        "delta_abs": 0.0023189004809561486,
+        "depth": 1424,
+        "cx_count": 287
+      },
+      "passes_energy": false,
+      "passes_depth_budget": false,
+      "passes_all": false
+    },
+    {
+      "tag": "ov_g0p5_ptw_powell_nr_b2_d3_split",
+      "kind": "beam2_split",
+      "adapt_max_depth": 3,
+      "beam_live_branches": 2,
+      "split_mode": "shortlist_pauli_children_v1",
+      "status": "completed",
+      "final_json": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_2/artifacts/json/ov_g0p5_ptw_powell_nr_b2_d3_split.json",
+      "warm": {
+        "delta_abs": 0.010373448184006567,
+        "depth": 186,
+        "cx_count": 208
+      },
+      "adapt": {
+        "delta_abs": 0.0013851522894037516,
+        "depth": 1514,
+        "cx_count": 275
+      },
+      "replay": {
+        "delta_abs": 0.0013851346064649994,
+        "depth": 1432,
+        "cx_count": 299
+      },
+      "passes_energy": false,
+      "passes_depth_budget": false,
+      "passes_all": false
+    },
+    {
+      "tag": "ov_g0p5_ptw_powell_nr_b1_d5_off",
+      "kind": "beam1_off",
+      "adapt_max_depth": 5,
+      "beam_live_branches": 1,
+      "split_mode": "off",
+      "status": "completed",
+      "final_json": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_2/artifacts/json/ov_g0p5_ptw_powell_nr_b1_d5_off.json",
+      "warm": {
+        "delta_abs": 0.010373448184006567,
+        "depth": 186,
+        "cx_count": 208
+      },
+      "adapt": {
+        "delta_abs": 0.001227945792143692,
+        "depth": 1946,
+        "cx_count": 627
+      },
+      "replay": {
+        "delta_abs": 0.0012277456875136594,
+        "depth": 1437,
+        "cx_count": 307
+      },
+      "passes_energy": false,
+      "passes_depth_budget": false,
+      "passes_all": false
+    },
+    {
+      "tag": "ov_g0p5_ptw_powell_nr_b1_d3_off",
+      "kind": "beam1_off",
+      "adapt_max_depth": 3,
+      "beam_live_branches": 1,
+      "split_mode": "off",
+      "status": "completed",
+      "final_json": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_2/artifacts/json/ov_g0p5_ptw_powell_nr_b1_d3_off.json",
+      "warm": {
+        "delta_abs": 0.010373448184006567,
+        "depth": 186,
+        "cx_count": 208
+      },
+      "adapt": {
+        "delta_abs": 0.0013570163762814391,
+        "depth": 1946,
+        "cx_count": 619
+      },
+      "replay": {
+        "delta_abs": 0.0013570070331034856,
+        "depth": 1439,
+        "cx_count": 299
+      },
+      "passes_energy": false,
+      "passes_depth_budget": false,
+      "passes_all": false
+    },
+    {
+      "tag": "ov_g0p5_ptw_powell_nr_b1_d6_off",
+      "kind": "beam1_off",
+      "adapt_max_depth": 6,
+      "beam_live_branches": 1,
+      "split_mode": "off",
+      "status": "completed",
+      "final_json": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_2/artifacts/json/ov_g0p5_ptw_powell_nr_b1_d6_off.json",
+      "warm": {
+        "delta_abs": 0.010373448184006567,
+        "depth": 186,
+        "cx_count": 208
+      },
+      "adapt": {
+        "delta_abs": 0.00119674960259733,
+        "depth": 1950,
+        "cx_count": 629
+      },
+      "replay": {
+        "delta_abs": 0.001193427410125375,
+        "depth": 1442,
+        "cx_count": 307
+      },
+      "passes_energy": false,
+      "passes_depth_budget": false,
+      "passes_all": false
+    },
+    {
+      "tag": "ov_g0p5_ptw_powell_nr_b1_d4_off",
+      "kind": "beam1_off",
+      "adapt_max_depth": 4,
+      "beam_live_branches": 1,
+      "split_mode": "off",
+      "status": "completed",
+      "final_json": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_2/artifacts/json/ov_g0p5_ptw_powell_nr_b1_d4_off.json",
+      "warm": {
+        "delta_abs": 0.010373448184006567,
+        "depth": 186,
+        "cx_count": 208
+      },
+      "adapt": {
+        "delta_abs": 0.0013305203752912442,
+        "depth": 1946,
+        "cx_count": 625
+      },
+      "replay": {
+        "delta_abs": 0.0012922462471579854,
+        "depth": 1443,
+        "cx_count": 315
+      },
+      "passes_energy": false,
+      "passes_depth_budget": false,
+      "passes_all": false
+    }
+  ]
+}

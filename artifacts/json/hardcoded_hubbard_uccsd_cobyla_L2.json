@@ -1,0 +1,27 @@
+{
+  "success": true,
+  "method": "hardcoded_uccsd_layerwise_statevector",
+  "energy": -0.8284271196779727,
+  "ansatz": "uccsd",
+  "parameterization": "layerwise",
+  "exact_filtered_energy": -0.8284271247461902,
+  "best_restart": 0,
+  "nfev": 65,
+  "nit": 0,
+  "message": "Optimization terminated successfully.",
+  "num_particles": {
+    "n_up": 1,
+    "n_dn": 1
+  },
+  "num_parameters": 4,
+  "reps": 2,
+  "optimizer_method": "COBYLA",
+  "energy_backend": "one_apply_compiled",
+  "optimal_point": [
+    1.5391283560749411,
+    0.4197206227840409,
+    -0.6889563766119471,
+    -0.36013502091465266
+  ],
+  "hf_bitstring_qn_to_q0": "0101"
+}

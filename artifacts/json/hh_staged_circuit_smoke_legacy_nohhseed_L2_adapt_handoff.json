@@ -1,0 +1,140 @@
+{
+  "generated_utc": "2026-03-09T17:30:06Z",
+  "settings": {
+    "L": 2,
+    "problem": "hh",
+    "t": 1.0,
+    "u": 2.0,
+    "dv": 0.0,
+    "omega0": 1.0,
+    "g_ep": 1.0,
+    "n_ph_max": 1,
+    "boson_encoding": "binary",
+    "ordering": "blocked",
+    "boundary": "periodic",
+    "sector_n_up": 1,
+    "sector_n_dn": 1,
+    "adapt_pool": "paop_lf_std"
+  },
+  "adapt_vqe": {
+    "energy": 1.9423766018663065,
+    "abs_delta_e": 2.331929705163364,
+    "relative_error_abs": 5.986166418459072,
+    "operators": [
+      "paop_lf_std:paop_curdrag(0,1)",
+      "paop_lf_std:paop_curdrag(0,1)"
+    ],
+    "optimal_point": [
+      0.2,
+      0.1
+    ],
+    "ansatz_depth": 2,
+    "num_parameters": 2,
+    "pool_type": "paop_lf_std",
+    "pre_prune_scaffold": {},
+    "prune_summary": {}
+  },
+  "initial_state": {
+    "source": "adapt_vqe",
+    "nq_total": 6,
+    "amplitudes_qn_to_q0": {
+      "000101": {
+        "re": 0.7504675107097305,
+        "im": -0.1745798533605038
+      },
+      "000110": {
+        "re": 0.09876110650814826,
+        "im": 0.030684566451468956
+      },
+      "001001": {
+        "re": 0.11574028480232489,
+        "im": 0.11818863416869954
+      },
+      "001010": {
+        "re": 0.13440641973514061,
+        "im": -0.03661552211754811
+      },
+      "010101": {
+        "re": -0.07566941171487038,
+        "im": -0.033668957869219404
+      },
+      "010110": {
+        "re": -0.04979853672902715,
+        "im": -0.22236864115404537
+      },
+      "011001": {
+        "re": -0.049798536729027135,
+        "im": -0.22236864115404534
+      },
+      "011010": {
+        "re": 0.0512268200821111,
+        "im": -0.07547613443008397
+      },
+      "100101": {
+        "re": 0.11593976890709691,
+        "im": 0.20787525968775203
+      },
+      "100110": {
+        "re": 0.049798536729027135,
+        "im": 0.22236864115404528
+      },
+      "101001": {
+        "re": 0.049798536729027156,
+        "im": 0.22236864115404537
+      },
+      "101010": {
+        "re": -0.05171831028385088,
+        "im": 0.07889699156712841
+      },
+      "110101": {
+        "re": -0.118775958764203,
+        "im": 0.02635860085907617
+      },
+      "110110": {
+        "re": 0.08001643202998483,
+        "im": -0.06591818053995671
+      },
+      "111001": {
+        "re": 0.08001643202998482,
+        "im": -0.06591818053995672
+      },
+      "111010": {
+        "re": 0.15147559401493613,
+        "im": -0.03416311572516779
+      }
+    },
+    "amplitude_cutoff": 1e-14,
+    "norm": 1.0,
+    "handoff_state_kind": "prepared_state"
+  },
+  "exact": {
+    "E_exact_sector": -0.38955310329705756
+  },
+  "continuation": {
+    "mode": "legacy",
+    "scaffold": {},
+    "optimizer_memory": {},
+    "selected_generator_metadata": [],
+    "generator_split_events": [],
+    "motif_library": {},
+    "motif_usage": {},
+    "symmetry_mitigation": {},
+    "rescue_history": [],
+    "replay_contract_hint": {
+      "generator_family": "match_adapt",
+      "fallback_family": "full_meta",
+      "replay_seed_policy": "auto",
+      "replay_continuation_mode": "legacy"
+    }
+  },
+  "meta": {
+    "pipeline": "hh_staged_noiseless",
+    "workflow_tag": "hh_staged_circuit_smoke_legacy_nohhseed_L2",
+    "stage_chain": [
+      "hf_reference",
+      "warm_start_hva",
+      "adapt_vqe",
+      "matched_family_replay"
+    ]
+  }
+}

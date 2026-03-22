@@ -1,0 +1,132 @@
+{
+  "generated_utc": "2026-03-16T18:53:08Z",
+  "settings": {
+    "L": 2,
+    "problem": "hh",
+    "t": 1.0,
+    "u": 2.0,
+    "dv": 0.0,
+    "omega0": 1.0,
+    "g_ep": 1.0,
+    "n_ph_max": 1,
+    "boson_encoding": "binary",
+    "ordering": "blocked",
+    "boundary": "open",
+    "sector_n_up": 1,
+    "sector_n_dn": 1
+  },
+  "adapt_vqe": {
+    "energy": 0.3119288163887711,
+    "abs_delta_e": 0.7014819196858273,
+    "relative_error_abs": 1.8007350313697996
+  },
+  "ground_state": {
+    "exact_energy": -0.3895531032970562,
+    "exact_energy_filtered": -0.3895531032970562,
+    "filtered_sector": {
+      "n_up": 1,
+      "n_dn": 1
+    },
+    "method": "staged_handoff_bundle"
+  },
+  "initial_state": {
+    "source": "warm_vqe",
+    "nq_total": 6,
+    "amplitudes_qn_to_q0": {
+      "000101": {
+        "re": -0.18246738618353983,
+        "im": 0.5277570524939534
+      },
+      "000110": {
+        "re": -0.03592441986541993,
+        "im": 0.32917344114196434
+      },
+      "001001": {
+        "re": -0.0359244198654199,
+        "im": 0.32917344114196434
+      },
+      "001010": {
+        "re": 0.13799411634041012,
+        "im": 0.09170059744671036
+      },
+      "010101": {
+        "re": 0.03733151432800892,
+        "im": -0.30611360093456463
+      },
+      "010110": {
+        "re": 0.009664180863046119,
+        "im": -0.17657239379688708
+      },
+      "011001": {
+        "re": 0.009664180863046087,
+        "im": -0.17657239379688713
+      },
+      "011010": {
+        "re": 0.025009895213047372,
+        "im": -0.15176155279069903
+      },
+      "100101": {
+        "re": -0.03733151432800881,
+        "im": 0.3061136009345646
+      },
+      "100110": {
+        "re": -0.009664180863046119,
+        "im": 0.17657239379688705
+      },
+      "101001": {
+        "re": -0.00966418086304609,
+        "im": 0.17657239379688705
+      },
+      "101010": {
+        "re": -0.025009895213047407,
+        "im": 0.15176155279069903
+      },
+      "110101": {
+        "re": 0.03293242507945858,
+        "im": -0.21806923065279787
+      },
+      "110110": {
+        "re": 0.03716462733309522,
+        "im": -0.10627189628707494
+      },
+      "111001": {
+        "re": 0.037164627333095224,
+        "im": -0.10627189628707495
+      },
+      "111010": {
+        "re": 0.05213069538386661,
+        "im": -0.046171728632812555
+      }
+    },
+    "amplitude_cutoff": 1e-14,
+    "norm": 1.0,
+    "handoff_state_kind": "prepared_state"
+  },
+  "exact": {
+    "E_exact_sector": -0.3895531032970562
+  },
+  "meta": {
+    "pipeline": "hh_staged_noiseless",
+    "workflow_tag": "20260316_l2_hh_phase3_layerwise_noreplay",
+    "stage": "warm_start_hva",
+    "checkpoint_role": "warm_cutover",
+    "warm_ansatz": "hh_hva",
+    "optimizer_method": "SPSA",
+    "warm_stop_energy": null,
+    "warm_stop_delta_abs": null,
+    "cutoff_triggered": false,
+    "cutoff_reason": null,
+    "delta_abs": 0.7014819196858273,
+    "warm_optimal_point": [
+      0.21485290789473296,
+      -1.1108078603371017,
+      0.5080853472110047,
+      0.6109382814472384,
+      -0.42607876254664767,
+      0.006580682038235537,
+      1.289055076995881,
+      -0.6398043181054689
+    ],
+    "source_json": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/artifacts/json/20260316_l2_hh_phase3_layerwise_noreplay_warm_checkpoint_state.json"
+  }
+}

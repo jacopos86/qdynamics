@@ -211,7 +211,11 @@ def extract_staged_hh_pareto_rows(
         measurement_stats = _mapping_dict(rec.get("measurement_cache_stats"))
         compile_cost = _mapping_dict(rec.get("compile_cost_proxy"))
         batch_size = max(1, _to_int(rec.get("batch_size")) or 1)
-        params_cumulative += int(batch_size)
+        params_after_opt = _to_int(rec.get("num_parameters_after_opt"))
+        if params_after_opt is not None:
+            params_cumulative = int(params_after_opt)
+        else:
+            params_cumulative += int(batch_size)
 
         groups_new = _to_int(measurement_stats.get("groups_new")) or 0
         shots_new = _to_float(measurement_stats.get("shots_new")) or 0.0

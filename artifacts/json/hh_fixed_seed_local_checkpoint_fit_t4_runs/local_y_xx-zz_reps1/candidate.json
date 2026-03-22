@@ -1,0 +1,4556 @@
+{
+  "ansatz_label": "local_y_xx-zz_reps1",
+  "reps": 1,
+  "row": {
+    "ansatz_label": "local_y_xx-zz_reps1",
+    "budget_pass": true,
+    "final_abs_energy_total_error": 0.03231794045296166,
+    "final_fidelity": 0.9902045725074874,
+    "final_transpiled_count_2q": 20,
+    "final_transpiled_depth": 24,
+    "max_abs_energy_total_error": 0.16896741914418267,
+    "max_transpiled_count_2q": 20,
+    "max_transpiled_depth": 28,
+    "min_fidelity": 0.9493405873814535,
+    "num_parameters": 22,
+    "reps": 1
+  },
+  "run_dir": "artifacts/json/hh_fixed_seed_local_checkpoint_fit_t4_runs/local_y_xx-zz_reps1",
+  "solver_rows": [
+    {
+      "fidelity": 1.0000000000000004,
+      "message": "Exact reference-target match at initialization.",
+      "nfev": 1,
+      "nit": 0,
+      "njev": 0,
+      "objective": 0.0,
+      "optimizer_method": "L-BFGS-B",
+      "status": 0,
+      "success": true,
+      "time": 0.0
+    },
+    {
+      "fidelity": 0.9999903328736558,
+      "gradient_norm": 1.5850335890441853e-05,
+      "message": "STOP: TOTAL NO. OF ITERATIONS REACHED LIMIT",
+      "nfev": 65,
+      "nit": 60,
+      "njev": 65,
+      "objective": 9.667126344203858e-06,
+      "optimizer_method": "L-BFGS-B",
+      "status": 1,
+      "success": false,
+      "time": 0.025
+    },
+    {
+      "fidelity": 0.99996043875024,
+      "gradient_norm": 0.0003758463925213047,
+      "message": "STOP: TOTAL NO. OF ITERATIONS REACHED LIMIT",
+      "nfev": 65,
+      "nit": 60,
+      "njev": 65,
+      "objective": 3.956124976001174e-05,
+      "optimizer_method": "L-BFGS-B",
+      "status": 1,
+      "success": false,
+      "time": 0.05
+    },
+    {
+      "fidelity": 0.9999068613908548,
+      "gradient_norm": 2.0033645039634383e-05,
+      "message": "STOP: TOTAL NO. OF ITERATIONS REACHED LIMIT",
+      "nfev": 67,
+      "nit": 60,
+      "njev": 67,
+      "objective": 9.313860914517136e-05,
+      "optimizer_method": "L-BFGS-B",
+      "status": 1,
+      "success": false,
+      "time": 0.07500000000000001
+    },
+    {
+      "fidelity": 0.9998249206656511,
+      "gradient_norm": 1.0580389225686385e-05,
+      "message": "STOP: TOTAL NO. OF ITERATIONS REACHED LIMIT",
+      "nfev": 66,
+      "nit": 60,
+      "njev": 66,
+      "objective": 0.00017507933434890433,
+      "optimizer_method": "L-BFGS-B",
+      "status": 1,
+      "success": false,
+      "time": 0.1
+    },
+    {
+      "fidelity": 0.9997073278977411,
+      "gradient_norm": 1.6328408766300956e-05,
+      "message": "STOP: TOTAL NO. OF ITERATIONS REACHED LIMIT",
+      "nfev": 67,
+      "nit": 60,
+      "njev": 67,
+      "objective": 0.0002926721022589174,
+      "optimizer_method": "L-BFGS-B",
+      "status": 1,
+      "success": false,
+      "time": 0.125
+    },
+    {
+      "fidelity": 0.9995468477953682,
+      "gradient_norm": 7.153349372580028e-05,
+      "message": "STOP: TOTAL NO. OF ITERATIONS REACHED LIMIT",
+      "nfev": 65,
+      "nit": 60,
+      "njev": 65,
+      "objective": 0.0004531522046318237,
+      "optimizer_method": "L-BFGS-B",
+      "status": 1,
+      "success": false,
+      "time": 0.15000000000000002
+    },
+    {
+      "fidelity": 0.9993352640442182,
+      "gradient_norm": 2.447113904865095e-05,
+      "message": "STOP: TOTAL NO. OF ITERATIONS REACHED LIMIT",
+      "nfev": 65,
+      "nit": 60,
+      "njev": 65,
+      "objective": 0.0006647359557817589,
+      "optimizer_method": "L-BFGS-B",
+      "status": 1,
+      "success": false,
+      "time": 0.17500000000000002
+    },
+    {
+      "fidelity": 0.9990641432593692,
+      "gradient_norm": 8.480481159562549e-07,
+      "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "nfev": 26,
+      "nit": 24,
+      "njev": 26,
+      "objective": 0.0009358567406307916,
+      "optimizer_method": "L-BFGS-B",
+      "status": 0,
+      "success": true,
+      "time": 0.2
+    },
+    {
+      "fidelity": 0.9987254982114154,
+      "gradient_norm": 1.071096431725294e-06,
+      "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "nfev": 64,
+      "nit": 58,
+      "njev": 64,
+      "objective": 0.00127450178858457,
+      "optimizer_method": "L-BFGS-B",
+      "status": 0,
+      "success": true,
+      "time": 0.225
+    },
+    {
+      "fidelity": 0.9983122508077998,
+      "gradient_norm": 4.351017298969107e-07,
+      "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "nfev": 40,
+      "nit": 36,
+      "njev": 40,
+      "objective": 0.0016877491922001608,
+      "optimizer_method": "L-BFGS-B",
+      "status": 0,
+      "success": true,
+      "time": 0.25
+    },
+    {
+      "fidelity": 0.9978188088846749,
+      "gradient_norm": 6.447680587333807e-06,
+      "message": "STOP: TOTAL NO. OF ITERATIONS REACHED LIMIT",
+      "nfev": 66,
+      "nit": 60,
+      "njev": 66,
+      "objective": 0.0021811911153251096,
+      "optimizer_method": "L-BFGS-B",
+      "status": 1,
+      "success": false,
+      "time": 0.275
+    },
+    {
+      "fidelity": 0.9972415391319133,
+      "gradient_norm": 7.595508032073145e-06,
+      "message": "STOP: TOTAL NO. OF ITERATIONS REACHED LIMIT",
+      "nfev": 65,
+      "nit": 60,
+      "njev": 65,
+      "objective": 0.0027584608680867317,
+      "optimizer_method": "L-BFGS-B",
+      "status": 1,
+      "success": false,
+      "time": 0.30000000000000004
+    },
+    {
+      "fidelity": 0.9965791934507893,
+      "gradient_norm": 4.470251335135056e-05,
+      "message": "STOP: TOTAL NO. OF ITERATIONS REACHED LIMIT",
+      "nfev": 70,
+      "nit": 60,
+      "njev": 70,
+      "objective": 0.003420806549210731,
+      "optimizer_method": "L-BFGS-B",
+      "status": 1,
+      "success": false,
+      "time": 0.325
+    },
+    {
+      "fidelity": 0.9958332175414226,
+      "gradient_norm": 4.9381153273690507e-05,
+      "message": "STOP: TOTAL NO. OF ITERATIONS REACHED LIMIT",
+      "nfev": 66,
+      "nit": 60,
+      "njev": 66,
+      "objective": 0.004166782458577378,
+      "optimizer_method": "L-BFGS-B",
+      "status": 1,
+      "success": false,
+      "time": 0.35000000000000003
+    },
+    {
+      "fidelity": 0.9950078811872757,
+      "gradient_norm": 8.697479122848348e-06,
+      "message": "STOP: TOTAL NO. OF ITERATIONS REACHED LIMIT",
+      "nfev": 68,
+      "nit": 60,
+      "njev": 68,
+      "objective": 0.004992118812724322,
+      "optimizer_method": "L-BFGS-B",
+      "status": 1,
+      "success": false,
+      "time": 0.375
+    },
+    {
+      "fidelity": 0.9941102693954033,
+      "gradient_norm": 1.872037300556612e-06,
+      "message": "STOP: TOTAL NO. OF ITERATIONS REACHED LIMIT",
+      "nfev": 67,
+      "nit": 60,
+      "njev": 67,
+      "objective": 0.0058897306045967435,
+      "optimizer_method": "L-BFGS-B",
+      "status": 1,
+      "success": false,
+      "time": 0.4
+    },
+    {
+      "fidelity": 0.9931500558103681,
+      "gradient_norm": 1.775837711788009e-05,
+      "message": "STOP: TOTAL NO. OF ITERATIONS REACHED LIMIT",
+      "nfev": 66,
+      "nit": 60,
+      "njev": 66,
+      "objective": 0.006849944189631918,
+      "optimizer_method": "L-BFGS-B",
+      "status": 1,
+      "success": false,
+      "time": 0.42500000000000004
+    },
+    {
+      "fidelity": 0.9921390759228399,
+      "gradient_norm": 2.2245539319026004e-05,
+      "message": "STOP: TOTAL NO. OF ITERATIONS REACHED LIMIT",
+      "nfev": 66,
+      "nit": 60,
+      "njev": 66,
+      "objective": 0.007860924077160103,
+      "optimizer_method": "L-BFGS-B",
+      "status": 1,
+      "success": false,
+      "time": 0.45
+    },
+    {
+      "fidelity": 0.9910906854825875,
+      "gradient_norm": 8.905710527689997e-07,
+      "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "nfev": 68,
+      "nit": 59,
+      "njev": 68,
+      "objective": 0.008909314517412503,
+      "optimizer_method": "L-BFGS-B",
+      "status": 0,
+      "success": true,
+      "time": 0.47500000000000003
+    },
+    {
+      "fidelity": 0.9900189682098077,
+      "gradient_norm": 8.786572216703817e-07,
+      "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "nfev": 52,
+      "nit": 47,
+      "njev": 52,
+      "objective": 0.009981031790192274,
+      "optimizer_method": "L-BFGS-B",
+      "status": 0,
+      "success": true,
+      "time": 0.5
+    },
+    {
+      "fidelity": 0.988937812480308,
+      "gradient_norm": 7.812308138924388e-07,
+      "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "nfev": 55,
+      "nit": 49,
+      "njev": 55,
+      "objective": 0.011062187519692013,
+      "optimizer_method": "L-BFGS-B",
+      "status": 0,
+      "success": true,
+      "time": 0.525
+    },
+    {
+      "fidelity": 0.9878599356257829,
+      "gradient_norm": 5.796610678686899e-05,
+      "message": "STOP: TOTAL NO. OF ITERATIONS REACHED LIMIT",
+      "nfev": 65,
+      "nit": 60,
+      "njev": 65,
+      "objective": 0.012140064374217108,
+      "optimizer_method": "L-BFGS-B",
+      "status": 1,
+      "success": false,
+      "time": 0.55
+    },
+    {
+      "fidelity": 0.986795969297713,
+      "gradient_norm": 7.15985448259538e-06,
+      "message": "STOP: TOTAL NO. OF ITERATIONS REACHED LIMIT",
+      "nfev": 64,
+      "nit": 60,
+      "njev": 64,
+      "objective": 0.01320403070228704,
+      "optimizer_method": "L-BFGS-B",
+      "status": 1,
+      "success": false,
+      "time": 0.5750000000000001
+    },
+    {
+      "fidelity": 0.9857536170049049,
+      "gradient_norm": 7.366809424880823e-06,
+      "message": "STOP: TOTAL NO. OF ITERATIONS REACHED LIMIT",
+      "nfev": 64,
+      "nit": 60,
+      "njev": 64,
+      "objective": 0.014246382995095064,
+      "optimizer_method": "L-BFGS-B",
+      "status": 1,
+      "success": false,
+      "time": 0.6000000000000001
+    },
+    {
+      "fidelity": 0.9847370730741116,
+      "gradient_norm": 1.9188321111373924e-06,
+      "message": "STOP: TOTAL NO. OF ITERATIONS REACHED LIMIT",
+      "nfev": 63,
+      "nit": 60,
+      "njev": 63,
+      "objective": 0.015262926925888376,
+      "optimizer_method": "L-BFGS-B",
+      "status": 1,
+      "success": false,
+      "time": 0.625
+    },
+    {
+      "fidelity": 0.9837466630945522,
+      "gradient_norm": 1.5124879759886668e-05,
+      "message": "STOP: TOTAL NO. OF ITERATIONS REACHED LIMIT",
+      "nfev": 65,
+      "nit": 60,
+      "njev": 65,
+      "objective": 0.016253336905447835,
+      "optimizer_method": "L-BFGS-B",
+      "status": 1,
+      "success": false,
+      "time": 0.65
+    },
+    {
+      "fidelity": 0.982778777775311,
+      "gradient_norm": 5.313061075199586e-05,
+      "message": "STOP: TOTAL NO. OF ITERATIONS REACHED LIMIT",
+      "nfev": 65,
+      "nit": 60,
+      "njev": 65,
+      "objective": 0.017221222224689026,
+      "optimizer_method": "L-BFGS-B",
+      "status": 1,
+      "success": false,
+      "time": 0.675
+    },
+    {
+      "fidelity": 0.9818261128090534,
+      "gradient_norm": 1.751076574637238e-05,
+      "message": "STOP: TOTAL NO. OF ITERATIONS REACHED LIMIT",
+      "nfev": 67,
+      "nit": 60,
+      "njev": 67,
+      "objective": 0.01817388719094659,
+      "optimizer_method": "L-BFGS-B",
+      "status": 1,
+      "success": false,
+      "time": 0.7000000000000001
+    },
+    {
+      "fidelity": 0.9808781434323717,
+      "gradient_norm": 4.343936295863116e-06,
+      "message": "STOP: TOTAL NO. OF ITERATIONS REACHED LIMIT",
+      "nfev": 64,
+      "nit": 60,
+      "njev": 64,
+      "objective": 0.019121856567628326,
+      "optimizer_method": "L-BFGS-B",
+      "status": 1,
+      "success": false,
+      "time": 0.7250000000000001
+    },
+    {
+      "fidelity": 0.9799223181601215,
+      "gradient_norm": 3.053220593445727e-05,
+      "message": "STOP: TOTAL NO. OF ITERATIONS REACHED LIMIT",
+      "nfev": 65,
+      "nit": 60,
+      "njev": 65,
+      "objective": 0.02007768183987846,
+      "optimizer_method": "L-BFGS-B",
+      "status": 1,
+      "success": false,
+      "time": 0.75
+    },
+    {
+      "fidelity": 0.9789496206532657,
+      "gradient_norm": 3.553205455878425e-05,
+      "message": "STOP: TOTAL NO. OF ITERATIONS REACHED LIMIT",
+      "nfev": 68,
+      "nit": 60,
+      "njev": 68,
+      "objective": 0.02105037934673426,
+      "optimizer_method": "L-BFGS-B",
+      "status": 1,
+      "success": false,
+      "time": 0.775
+    },
+    {
+      "fidelity": 0.9779837368033701,
+      "gradient_norm": 0.00038127299466063466,
+      "message": "STOP: TOTAL NO. OF ITERATIONS REACHED LIMIT",
+      "nfev": 66,
+      "nit": 60,
+      "njev": 66,
+      "objective": 0.02201626319662986,
+      "optimizer_method": "L-BFGS-B",
+      "status": 1,
+      "success": false,
+      "time": 0.8
+    },
+    {
+      "fidelity": 0.9770470573867849,
+      "gradient_norm": 2.211692364088588e-06,
+      "message": "STOP: TOTAL NO. OF ITERATIONS REACHED LIMIT",
+      "nfev": 68,
+      "nit": 60,
+      "njev": 68,
+      "objective": 0.02295294261321512,
+      "optimizer_method": "L-BFGS-B",
+      "status": 1,
+      "success": false,
+      "time": 0.8250000000000001
+    },
+    {
+      "fidelity": 0.976138479397961,
+      "gradient_norm": 4.896224266685825e-05,
+      "message": "STOP: TOTAL NO. OF ITERATIONS REACHED LIMIT",
+      "nfev": 65,
+      "nit": 60,
+      "njev": 65,
+      "objective": 0.023861520602039055,
+      "optimizer_method": "L-BFGS-B",
+      "status": 1,
+      "success": false,
+      "time": 0.8500000000000001
+    },
+    {
+      "fidelity": 0.9752568914345826,
+      "gradient_norm": 9.290791815182755e-06,
+      "message": "STOP: TOTAL NO. OF ITERATIONS REACHED LIMIT",
+      "nfev": 64,
+      "nit": 60,
+      "njev": 64,
+      "objective": 0.024743108565417393,
+      "optimizer_method": "L-BFGS-B",
+      "status": 1,
+      "success": false,
+      "time": 0.875
+    },
+    {
+      "fidelity": 0.9743950650215992,
+      "gradient_norm": 1.3131822362075152e-05,
+      "message": "STOP: TOTAL NO. OF ITERATIONS REACHED LIMIT",
+      "nfev": 66,
+      "nit": 60,
+      "njev": 66,
+      "objective": 0.025604934978400773,
+      "optimizer_method": "L-BFGS-B",
+      "status": 1,
+      "success": false,
+      "time": 0.9
+    },
+    {
+      "fidelity": 0.9735411900197218,
+      "gradient_norm": 2.054957333318044e-05,
+      "message": "STOP: TOTAL NO. OF ITERATIONS REACHED LIMIT",
+      "nfev": 64,
+      "nit": 60,
+      "njev": 64,
+      "objective": 0.026458809980278164,
+      "optimizer_method": "L-BFGS-B",
+      "status": 1,
+      "success": false,
+      "time": 0.925
+    },
+    {
+      "fidelity": 0.9726813165465394,
+      "gradient_norm": 2.737349866214564e-06,
+      "message": "STOP: TOTAL NO. OF ITERATIONS REACHED LIMIT",
+      "nfev": 66,
+      "nit": 60,
+      "njev": 66,
+      "objective": 0.027318683453460557,
+      "optimizer_method": "L-BFGS-B",
+      "status": 1,
+      "success": false,
+      "time": 0.9500000000000001
+    },
+    {
+      "fidelity": 0.9718015176770706,
+      "gradient_norm": 3.2604344754871625e-06,
+      "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "nfev": 59,
+      "nit": 54,
+      "njev": 59,
+      "objective": 0.02819848232292943,
+      "optimizer_method": "L-BFGS-B",
+      "status": 0,
+      "success": true,
+      "time": 0.9750000000000001
+    },
+    {
+      "fidelity": 0.9708890516866658,
+      "gradient_norm": 1.0965667447815813e-06,
+      "message": "STOP: TOTAL NO. OF ITERATIONS REACHED LIMIT",
+      "nfev": 65,
+      "nit": 60,
+      "njev": 65,
+      "objective": 0.029110948313334162,
+      "optimizer_method": "L-BFGS-B",
+      "status": 1,
+      "success": false,
+      "time": 1.0
+    },
+    {
+      "fidelity": 0.9699330406242178,
+      "gradient_norm": 4.7143057558425887e-07,
+      "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "nfev": 52,
+      "nit": 47,
+      "njev": 52,
+      "objective": 0.030066959375782187,
+      "optimizer_method": "L-BFGS-B",
+      "status": 0,
+      "success": true,
+      "time": 1.0250000000000001
+    },
+    {
+      "fidelity": 0.9689249487177045,
+      "gradient_norm": 4.131920670813363e-07,
+      "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "nfev": 63,
+      "nit": 58,
+      "njev": 63,
+      "objective": 0.031075051282295485,
+      "optimizer_method": "L-BFGS-B",
+      "status": 0,
+      "success": true,
+      "time": 1.05
+    },
+    {
+      "fidelity": 0.9678589597586077,
+      "gradient_norm": 1.2136822537013526e-06,
+      "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "nfev": 56,
+      "nit": 49,
+      "njev": 56,
+      "objective": 0.032141040241392305,
+      "optimizer_method": "L-BFGS-B",
+      "status": 0,
+      "success": true,
+      "time": 1.075
+    },
+    {
+      "fidelity": 0.966732273801406,
+      "gradient_norm": 2.4832801235919833e-06,
+      "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "nfev": 63,
+      "nit": 57,
+      "njev": 63,
+      "objective": 0.03326772619859397,
+      "optimizer_method": "L-BFGS-B",
+      "status": 0,
+      "success": true,
+      "time": 1.1
+    },
+    {
+      "fidelity": 0.9655453157316229,
+      "gradient_norm": 2.9793309771844393e-06,
+      "message": "STOP: TOTAL NO. OF ITERATIONS REACHED LIMIT",
+      "nfev": 65,
+      "nit": 60,
+      "njev": 65,
+      "objective": 0.034454684268377056,
+      "optimizer_method": "L-BFGS-B",
+      "status": 1,
+      "success": false,
+      "time": 1.125
+    },
+    {
+      "fidelity": 0.9643018467487533,
+      "gradient_norm": 5.750904260942362e-07,
+      "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "nfev": 54,
+      "nit": 47,
+      "njev": 54,
+      "objective": 0.0356981532512467,
+      "optimizer_method": "L-BFGS-B",
+      "status": 0,
+      "success": true,
+      "time": 1.1500000000000001
+    },
+    {
+      "fidelity": 0.963008977595357,
+      "gradient_norm": 1.8310120172403164e-06,
+      "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "nfev": 44,
+      "nit": 40,
+      "njev": 44,
+      "objective": 0.036991022404643026,
+      "optimizer_method": "L-BFGS-B",
+      "status": 0,
+      "success": true,
+      "time": 1.175
+    },
+    {
+      "fidelity": 0.9616770877866703,
+      "gradient_norm": 8.465446865342921e-07,
+      "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "nfev": 47,
+      "nit": 42,
+      "njev": 47,
+      "objective": 0.03832291221332973,
+      "optimizer_method": "L-BFGS-B",
+      "status": 0,
+      "success": true,
+      "time": 1.2000000000000002
+    },
+    {
+      "fidelity": 0.9603196533489785,
+      "gradient_norm": 8.061530108094962e-07,
+      "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "nfev": 46,
+      "nit": 41,
+      "njev": 46,
+      "objective": 0.03968034665102149,
+      "optimizer_method": "L-BFGS-B",
+      "status": 0,
+      "success": true,
+      "time": 1.225
+    },
+    {
+      "fidelity": 0.9589529844256801,
+      "gradient_norm": 9.179102093625923e-07,
+      "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "nfev": 60,
+      "nit": 53,
+      "njev": 60,
+      "objective": 0.04104701557431989,
+      "optimizer_method": "L-BFGS-B",
+      "status": 0,
+      "success": true,
+      "time": 1.25
+    },
+    {
+      "fidelity": 0.957595872749887,
+      "gradient_norm": 2.584750845819952e-07,
+      "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "nfev": 55,
+      "nit": 50,
+      "njev": 55,
+      "objective": 0.042404127250113,
+      "optimizer_method": "L-BFGS-B",
+      "status": 0,
+      "success": true,
+      "time": 1.2750000000000001
+    },
+    {
+      "fidelity": 0.956269149132508,
+      "gradient_norm": 9.823223340867025e-07,
+      "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "nfev": 51,
+      "nit": 46,
+      "njev": 51,
+      "objective": 0.043730850867491955,
+      "optimizer_method": "L-BFGS-B",
+      "status": 0,
+      "success": true,
+      "time": 1.3
+    },
+    {
+      "fidelity": 0.9549951533438825,
+      "gradient_norm": 1.6080203053381522e-06,
+      "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "nfev": 44,
+      "nit": 40,
+      "njev": 44,
+      "objective": 0.04500484665611748,
+      "optimizer_method": "L-BFGS-B",
+      "status": 0,
+      "success": true,
+      "time": 1.3250000000000002
+    },
+    {
+      "fidelity": 0.9537971208103523,
+      "gradient_norm": 5.084035475840502e-07,
+      "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "nfev": 54,
+      "nit": 50,
+      "njev": 54,
+      "objective": 0.046202879189647716,
+      "optimizer_method": "L-BFGS-B",
+      "status": 0,
+      "success": true,
+      "time": 1.35
+    },
+    {
+      "fidelity": 0.9526984951495329,
+      "gradient_norm": 9.385672600253224e-07,
+      "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "nfev": 60,
+      "nit": 52,
+      "njev": 60,
+      "objective": 0.047301504850467135,
+      "optimizer_method": "L-BFGS-B",
+      "status": 0,
+      "success": true,
+      "time": 1.375
+    },
+    {
+      "fidelity": 0.9517221804507093,
+      "gradient_norm": 2.867753630652483e-07,
+      "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "nfev": 29,
+      "nit": 26,
+      "njev": 29,
+      "objective": 0.04827781954929067,
+      "optimizer_method": "L-BFGS-B",
+      "status": 0,
+      "success": true,
+      "time": 1.4000000000000001
+    },
+    {
+      "fidelity": 0.9508897545343158,
+      "gradient_norm": 9.410319612692505e-07,
+      "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "nfev": 50,
+      "nit": 45,
+      "njev": 50,
+      "objective": 0.04911024546568421,
+      "optimizer_method": "L-BFGS-B",
+      "status": 0,
+      "success": true,
+      "time": 1.425
+    },
+    {
+      "fidelity": 0.9502206721780062,
+      "gradient_norm": 8.430240361487054e-07,
+      "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "nfev": 53,
+      "nit": 47,
+      "njev": 53,
+      "objective": 0.04977932782199379,
+      "optimizer_method": "L-BFGS-B",
+      "status": 0,
+      "success": true,
+      "time": 1.4500000000000002
+    },
+    {
+      "fidelity": 0.9497314960358243,
+      "gradient_norm": 5.673327573368334e-07,
+      "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "nfev": 65,
+      "nit": 59,
+      "njev": 65,
+      "objective": 0.050268503964175704,
+      "optimizer_method": "L-BFGS-B",
+      "status": 0,
+      "success": true,
+      "time": 1.475
+    },
+    {
+      "fidelity": 0.9494351992809855,
+      "gradient_norm": 5.963986590147786e-07,
+      "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "nfev": 63,
+      "nit": 57,
+      "njev": 63,
+      "objective": 0.05056480071901448,
+      "optimizer_method": "L-BFGS-B",
+      "status": 0,
+      "success": true,
+      "time": 1.5
+    },
+    {
+      "fidelity": 0.9493405873814535,
+      "gradient_norm": 1.064863215818699e-06,
+      "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "nfev": 62,
+      "nit": 53,
+      "njev": 62,
+      "objective": 0.05065941261854645,
+      "optimizer_method": "L-BFGS-B",
+      "status": 0,
+      "success": true,
+      "time": 1.5250000000000001
+    },
+    {
+      "fidelity": 0.9494518843934545,
+      "gradient_norm": 6.415784036430503e-07,
+      "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "nfev": 57,
+      "nit": 49,
+      "njev": 57,
+      "objective": 0.050548115606545485,
+      "optimizer_method": "L-BFGS-B",
+      "status": 0,
+      "success": true,
+      "time": 1.55
+    },
+    {
+      "fidelity": 0.9497685217556925,
+      "gradient_norm": 1.0679181893761589e-06,
+      "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "nfev": 61,
+      "nit": 56,
+      "njev": 61,
+      "objective": 0.050231478244307515,
+      "optimizer_method": "L-BFGS-B",
+      "status": 0,
+      "success": true,
+      "time": 1.5750000000000002
+    },
+    {
+      "fidelity": 0.9502851551043764,
+      "gradient_norm": 4.318255115071216e-07,
+      "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "nfev": 56,
+      "nit": 50,
+      "njev": 56,
+      "objective": 0.04971484489562361,
+      "optimizer_method": "L-BFGS-B",
+      "status": 0,
+      "success": true,
+      "time": 1.6
+    },
+    {
+      "fidelity": 0.9509919163771532,
+      "gradient_norm": 1.510995713882817e-06,
+      "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "nfev": 52,
+      "nit": 49,
+      "njev": 52,
+      "objective": 0.04900808362284681,
+      "optimizer_method": "L-BFGS-B",
+      "status": 0,
+      "success": true,
+      "time": 1.625
+    },
+    {
+      "fidelity": 0.951874885402088,
+      "gradient_norm": 6.042955090880965e-07,
+      "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "nfev": 49,
+      "nit": 44,
+      "njev": 49,
+      "objective": 0.04812511459791202,
+      "optimizer_method": "L-BFGS-B",
+      "status": 0,
+      "success": true,
+      "time": 1.6500000000000001
+    },
+    {
+      "fidelity": 0.9529167398670582,
+      "gradient_norm": 4.2202850945702115e-07,
+      "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "nfev": 46,
+      "nit": 40,
+      "njev": 46,
+      "objective": 0.04708326013294184,
+      "optimizer_method": "L-BFGS-B",
+      "status": 0,
+      "success": true,
+      "time": 1.675
+    },
+    {
+      "fidelity": 0.9540975240536175,
+      "gradient_norm": 3.961914531492638e-07,
+      "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "nfev": 48,
+      "nit": 43,
+      "njev": 48,
+      "objective": 0.045902475946382526,
+      "optimizer_method": "L-BFGS-B",
+      "status": 0,
+      "success": true,
+      "time": 1.7000000000000002
+    },
+    {
+      "fidelity": 0.9553954704690332,
+      "gradient_norm": 1.9139414891483545e-06,
+      "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "nfev": 46,
+      "nit": 44,
+      "njev": 46,
+      "objective": 0.04460452953096683,
+      "optimizer_method": "L-BFGS-B",
+      "status": 0,
+      "success": true,
+      "time": 1.725
+    },
+    {
+      "fidelity": 0.9567878152164749,
+      "gradient_norm": 2.8693028837479024e-07,
+      "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "nfev": 46,
+      "nit": 41,
+      "njev": 46,
+      "objective": 0.043212184783525065,
+      "optimizer_method": "L-BFGS-B",
+      "status": 0,
+      "success": true,
+      "time": 1.75
+    },
+    {
+      "fidelity": 0.9582515617216704,
+      "gradient_norm": 3.343052379872607e-07,
+      "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "nfev": 55,
+      "nit": 50,
+      "njev": 55,
+      "objective": 0.041748438278329636,
+      "optimizer_method": "L-BFGS-B",
+      "status": 0,
+      "success": true,
+      "time": 1.7750000000000001
+    },
+    {
+      "fidelity": 0.9597641626227164,
+      "gradient_norm": 2.6031369879074464e-07,
+      "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "nfev": 45,
+      "nit": 40,
+      "njev": 45,
+      "objective": 0.040235837377283645,
+      "optimizer_method": "L-BFGS-B",
+      "status": 0,
+      "success": true,
+      "time": 1.8
+    },
+    {
+      "fidelity": 0.961304102153453,
+      "gradient_norm": 9.365964219700918e-07,
+      "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "nfev": 39,
+      "nit": 36,
+      "njev": 39,
+      "objective": 0.038695897846547034,
+      "optimizer_method": "L-BFGS-B",
+      "status": 0,
+      "success": true,
+      "time": 1.8250000000000002
+    },
+    {
+      "fidelity": 0.9628513709181752,
+      "gradient_norm": 1.9825577198493763e-07,
+      "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "nfev": 48,
+      "nit": 43,
+      "njev": 48,
+      "objective": 0.03714862908182481,
+      "optimizer_method": "L-BFGS-B",
+      "status": 0,
+      "success": true,
+      "time": 1.85
+    },
+    {
+      "fidelity": 0.9643878315284576,
+      "gradient_norm": 1.3314591560671824e-06,
+      "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "nfev": 44,
+      "nit": 40,
+      "njev": 44,
+      "objective": 0.03561216847154236,
+      "optimizer_method": "L-BFGS-B",
+      "status": 0,
+      "success": true,
+      "time": 1.875
+    },
+    {
+      "fidelity": 0.9658974784608406,
+      "gradient_norm": 3.198814655866077e-07,
+      "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "nfev": 52,
+      "nit": 48,
+      "njev": 52,
+      "objective": 0.03410252153915938,
+      "optimizer_method": "L-BFGS-B",
+      "status": 0,
+      "success": true,
+      "time": 1.9000000000000001
+    },
+    {
+      "fidelity": 0.9673665991368214,
+      "gradient_norm": 3.631160848586928e-07,
+      "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "nfev": 50,
+      "nit": 44,
+      "njev": 50,
+      "objective": 0.03263340086317856,
+      "optimizer_method": "L-BFGS-B",
+      "status": 0,
+      "success": true,
+      "time": 1.925
+    },
+    {
+      "fidelity": 0.9687838460142916,
+      "gradient_norm": 1.4951758872241054e-06,
+      "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "nfev": 32,
+      "nit": 27,
+      "njev": 32,
+      "objective": 0.031216153985708428,
+      "optimizer_method": "L-BFGS-B",
+      "status": 0,
+      "success": true,
+      "time": 1.9500000000000002
+    },
+    {
+      "fidelity": 0.9701402319494021,
+      "gradient_norm": 4.245649981480556e-07,
+      "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "nfev": 47,
+      "nit": 41,
+      "njev": 47,
+      "objective": 0.029859768050597868,
+      "optimizer_method": "L-BFGS-B",
+      "status": 0,
+      "success": true,
+      "time": 1.975
+    },
+    {
+      "fidelity": 0.971429059984905,
+      "gradient_norm": 1.5431643186942047e-07,
+      "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "nfev": 48,
+      "nit": 43,
+      "njev": 48,
+      "objective": 0.02857094001509497,
+      "optimizer_method": "L-BFGS-B",
+      "status": 0,
+      "success": true,
+      "time": 2.0
+    },
+    {
+      "fidelity": 0.9726458030903499,
+      "gradient_norm": 5.033015568435139e-07,
+      "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "nfev": 43,
+      "nit": 38,
+      "njev": 43,
+      "objective": 0.02735419690965013,
+      "optimizer_method": "L-BFGS-B",
+      "status": 0,
+      "success": true,
+      "time": 2.025
+    },
+    {
+      "fidelity": 0.9737879433983065,
+      "gradient_norm": 9.909261653404107e-07,
+      "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "nfev": 49,
+      "nit": 46,
+      "njev": 49,
+      "objective": 0.026212056601693456,
+      "optimizer_method": "L-BFGS-B",
+      "status": 0,
+      "success": true,
+      "time": 2.0500000000000003
+    },
+    {
+      "fidelity": 0.9748547835896002,
+      "gradient_norm": 1.979375902131677e-06,
+      "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "nfev": 48,
+      "nit": 43,
+      "njev": 48,
+      "objective": 0.025145216410399795,
+      "optimizer_method": "L-BFGS-B",
+      "status": 0,
+      "success": true,
+      "time": 2.075
+    },
+    {
+      "fidelity": 0.9758472395440966,
+      "gradient_norm": 7.855953690517105e-07,
+      "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "nfev": 49,
+      "nit": 46,
+      "njev": 49,
+      "objective": 0.02415276045590342,
+      "optimizer_method": "L-BFGS-B",
+      "status": 0,
+      "success": true,
+      "time": 2.1
+    },
+    {
+      "fidelity": 0.9767676224512032,
+      "gradient_norm": 2.258728276315017e-06,
+      "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "nfev": 44,
+      "nit": 41,
+      "njev": 44,
+      "objective": 0.023232377548796812,
+      "optimizer_method": "L-BFGS-B",
+      "status": 0,
+      "success": true,
+      "time": 2.125
+    },
+    {
+      "fidelity": 0.977619417044791,
+      "gradient_norm": 6.51728158312686e-07,
+      "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "nfev": 47,
+      "nit": 44,
+      "njev": 47,
+      "objective": 0.02238058295520895,
+      "optimizer_method": "L-BFGS-B",
+      "status": 0,
+      "success": true,
+      "time": 2.15
+    },
+    {
+      "fidelity": 0.9784070613907855,
+      "gradient_norm": 3.0401544207082887e-07,
+      "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "nfev": 52,
+      "nit": 49,
+      "njev": 52,
+      "objective": 0.021592938609214518,
+      "optimizer_method": "L-BFGS-B",
+      "status": 0,
+      "success": true,
+      "time": 2.1750000000000003
+    },
+    {
+      "fidelity": 0.9791357323899532,
+      "gradient_norm": 4.1782789003960165e-07,
+      "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "nfev": 50,
+      "nit": 46,
+      "njev": 50,
+      "objective": 0.020864267610046783,
+      "optimizer_method": "L-BFGS-B",
+      "status": 0,
+      "success": true,
+      "time": 2.2
+    },
+    {
+      "fidelity": 0.9798111403197677,
+      "gradient_norm": 1.1728891449359456e-06,
+      "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "nfev": 38,
+      "nit": 37,
+      "njev": 38,
+      "objective": 0.02018885968023232,
+      "optimizer_method": "L-BFGS-B",
+      "status": 0,
+      "success": true,
+      "time": 2.225
+    },
+    {
+      "fidelity": 0.9804393347742248,
+      "gradient_norm": 4.654581971033661e-07,
+      "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "nfev": 49,
+      "nit": 43,
+      "njev": 49,
+      "objective": 0.019560665225775153,
+      "optimizer_method": "L-BFGS-B",
+      "status": 0,
+      "success": true,
+      "time": 2.25
+    },
+    {
+      "fidelity": 0.9810265236752725,
+      "gradient_norm": 1.358549070400616e-06,
+      "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "nfev": 45,
+      "nit": 41,
+      "njev": 45,
+      "objective": 0.018973476324727456,
+      "optimizer_method": "L-BFGS-B",
+      "status": 0,
+      "success": true,
+      "time": 2.275
+    },
+    {
+      "fidelity": 0.9815789063483022,
+      "gradient_norm": 1.8221940804558998e-07,
+      "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "nfev": 49,
+      "nit": 47,
+      "njev": 49,
+      "objective": 0.01842109365169775,
+      "optimizer_method": "L-BFGS-B",
+      "status": 0,
+      "success": true,
+      "time": 2.3000000000000003
+    },
+    {
+      "fidelity": 0.9821025210097127,
+      "gradient_norm": 1.1007361577954899e-07,
+      "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "nfev": 53,
+      "nit": 47,
+      "njev": 53,
+      "objective": 0.017897478990287263,
+      "optimizer_method": "L-BFGS-B",
+      "status": 0,
+      "success": true,
+      "time": 2.325
+    },
+    {
+      "fidelity": 0.9826031067176215,
+      "gradient_norm": 3.630200855358805e-07,
+      "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "nfev": 44,
+      "nit": 40,
+      "njev": 44,
+      "objective": 0.01739689328237848,
+      "optimizer_method": "L-BFGS-B",
+      "status": 0,
+      "success": true,
+      "time": 2.35
+    },
+    {
+      "fidelity": 0.9830859796680019,
+      "gradient_norm": 3.3165091858424565e-06,
+      "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "nfev": 46,
+      "nit": 44,
+      "njev": 46,
+      "objective": 0.01691402033199807,
+      "optimizer_method": "L-BFGS-B",
+      "status": 0,
+      "success": true,
+      "time": 2.375
+    },
+    {
+      "fidelity": 0.9835559241664775,
+      "gradient_norm": 1.8456466464961356e-07,
+      "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "nfev": 52,
+      "nit": 46,
+      "njev": 52,
+      "objective": 0.016444075833522476,
+      "optimizer_method": "L-BFGS-B",
+      "status": 0,
+      "success": true,
+      "time": 2.4000000000000004
+    },
+    {
+      "fidelity": 0.9840170994586604,
+      "gradient_norm": 4.844822187625614e-07,
+      "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "nfev": 48,
+      "nit": 46,
+      "njev": 48,
+      "objective": 0.01598290054133955,
+      "optimizer_method": "L-BFGS-B",
+      "status": 0,
+      "success": true,
+      "time": 2.4250000000000003
+    },
+    {
+      "fidelity": 0.9844729652323174,
+      "gradient_norm": 2.975625093188998e-07,
+      "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "nfev": 65,
+      "nit": 59,
+      "njev": 65,
+      "objective": 0.01552703476768258,
+      "optimizer_method": "L-BFGS-B",
+      "status": 0,
+      "success": true,
+      "time": 2.45
+    },
+    {
+      "fidelity": 0.9849262299011471,
+      "gradient_norm": 7.477605394323609e-07,
+      "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "nfev": 44,
+      "nit": 41,
+      "njev": 44,
+      "objective": 0.015073770098852912,
+      "optimizer_method": "L-BFGS-B",
+      "status": 0,
+      "success": true,
+      "time": 2.475
+    },
+    {
+      "fidelity": 0.9853788269512704,
+      "gradient_norm": 1.3289734262599456e-06,
+      "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "nfev": 62,
+      "nit": 59,
+      "njev": 62,
+      "objective": 0.014621173048729563,
+      "optimizer_method": "L-BFGS-B",
+      "status": 0,
+      "success": true,
+      "time": 2.5
+    },
+    {
+      "fidelity": 0.9858319239847007,
+      "gradient_norm": 2.911883356204239e-07,
+      "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "nfev": 50,
+      "nit": 45,
+      "njev": 50,
+      "objective": 0.014168076015299347,
+      "optimizer_method": "L-BFGS-B",
+      "status": 0,
+      "success": true,
+      "time": 2.5250000000000004
+    },
+    {
+      "fidelity": 0.9862859664569237,
+      "gradient_norm": 5.219966583741715e-07,
+      "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "nfev": 45,
+      "nit": 42,
+      "njev": 45,
+      "objective": 0.01371403354307632,
+      "optimizer_method": "L-BFGS-B",
+      "status": 0,
+      "success": true,
+      "time": 2.5500000000000003
+    },
+    {
+      "fidelity": 0.9867407538290267,
+      "gradient_norm": 1.8330346241980757e-07,
+      "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "nfev": 57,
+      "nit": 51,
+      "njev": 57,
+      "objective": 0.013259246170973293,
+      "optimizer_method": "L-BFGS-B",
+      "status": 0,
+      "success": true,
+      "time": 2.575
+    },
+    {
+      "fidelity": 0.987195541036038,
+      "gradient_norm": 1.2005626190288883e-06,
+      "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "nfev": 52,
+      "nit": 48,
+      "njev": 52,
+      "objective": 0.012804458963961984,
+      "optimizer_method": "L-BFGS-B",
+      "status": 0,
+      "success": true,
+      "time": 2.6
+    },
+    {
+      "fidelity": 0.9876491552619344,
+      "gradient_norm": 1.6895552536782065e-06,
+      "message": "STOP: TOTAL NO. OF ITERATIONS REACHED LIMIT",
+      "nfev": 65,
+      "nit": 60,
+      "njev": 65,
+      "objective": 0.01235084473806558,
+      "optimizer_method": "L-BFGS-B",
+      "status": 1,
+      "success": false,
+      "time": 2.625
+    },
+    {
+      "fidelity": 0.9881001176720592,
+      "gradient_norm": 2.6089580678156165e-06,
+      "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "nfev": 50,
+      "nit": 47,
+      "njev": 50,
+      "objective": 0.011899882327940814,
+      "optimizer_method": "L-BFGS-B",
+      "status": 0,
+      "success": true,
+      "time": 2.6500000000000004
+    },
+    {
+      "fidelity": 0.9885467616546368,
+      "gradient_norm": 2.4236519501969446e-06,
+      "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "nfev": 45,
+      "nit": 42,
+      "njev": 45,
+      "objective": 0.01145323834536316,
+      "optimizer_method": "L-BFGS-B",
+      "status": 0,
+      "success": true,
+      "time": 2.6750000000000003
+    },
+    {
+      "fidelity": 0.9889873417258472,
+      "gradient_norm": 3.914601010210073e-07,
+      "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "nfev": 52,
+      "nit": 49,
+      "njev": 52,
+      "objective": 0.011012658274152765,
+      "optimizer_method": "L-BFGS-B",
+      "status": 0,
+      "success": true,
+      "time": 2.7
+    },
+    {
+      "fidelity": 0.9894201297807896,
+      "gradient_norm": 6.284355723567824e-07,
+      "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "nfev": 52,
+      "nit": 51,
+      "njev": 52,
+      "objective": 0.010579870219210363,
+      "optimizer_method": "L-BFGS-B",
+      "status": 0,
+      "success": true,
+      "time": 2.725
+    },
+    {
+      "fidelity": 0.9898434960584777,
+      "gradient_norm": 2.0123046171178764e-06,
+      "message": "STOP: TOTAL NO. OF ITERATIONS REACHED LIMIT",
+      "nfev": 64,
+      "nit": 60,
+      "njev": 64,
+      "objective": 0.010156503941522343,
+      "optimizer_method": "L-BFGS-B",
+      "status": 1,
+      "success": false,
+      "time": 2.75
+    },
+    {
+      "fidelity": 0.9902559735501195,
+      "gradient_norm": 1.0598238495687744e-06,
+      "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "nfev": 60,
+      "nit": 58,
+      "njev": 60,
+      "objective": 0.009744026449880483,
+      "optimizer_method": "L-BFGS-B",
+      "status": 0,
+      "success": true,
+      "time": 2.7750000000000004
+    },
+    {
+      "fidelity": 0.9906563042389369,
+      "gradient_norm": 3.796893859759807e-07,
+      "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "nfev": 52,
+      "nit": 46,
+      "njev": 52,
+      "objective": 0.009343695761063087,
+      "optimizer_method": "L-BFGS-B",
+      "status": 0,
+      "success": true,
+      "time": 2.8000000000000003
+    },
+    {
+      "fidelity": 0.9910434675997887,
+      "gradient_norm": 5.141944746648381e-07,
+      "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "nfev": 51,
+      "nit": 46,
+      "njev": 51,
+      "objective": 0.008956532400211326,
+      "optimizer_method": "L-BFGS-B",
+      "status": 0,
+      "success": true,
+      "time": 2.825
+    },
+    {
+      "fidelity": 0.9914166912752049,
+      "gradient_norm": 4.369324104208288e-07,
+      "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "nfev": 49,
+      "nit": 45,
+      "njev": 49,
+      "objective": 0.008583308724795069,
+      "optimizer_method": "L-BFGS-B",
+      "status": 0,
+      "success": true,
+      "time": 2.85
+    },
+    {
+      "fidelity": 0.9917754450508977,
+      "gradient_norm": 6.790790077587299e-07,
+      "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "nfev": 57,
+      "nit": 52,
+      "njev": 57,
+      "objective": 0.008224554949102347,
+      "optimizer_method": "L-BFGS-B",
+      "status": 0,
+      "success": true,
+      "time": 2.875
+    },
+    {
+      "fidelity": 0.9921194206674905,
+      "gradient_norm": 6.409164457014318e-07,
+      "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "nfev": 55,
+      "nit": 50,
+      "njev": 55,
+      "objective": 0.007880579332509519,
+      "optimizer_method": "L-BFGS-B",
+      "status": 0,
+      "success": true,
+      "time": 2.9000000000000004
+    },
+    {
+      "fidelity": 0.9924485001438743,
+      "gradient_norm": 1.306547330387928e-06,
+      "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "nfev": 56,
+      "nit": 54,
+      "njev": 56,
+      "objective": 0.007551499856125687,
+      "optimizer_method": "L-BFGS-B",
+      "status": 0,
+      "success": true,
+      "time": 2.9250000000000003
+    },
+    {
+      "fidelity": 0.9927627170622919,
+      "gradient_norm": 6.527037289314019e-07,
+      "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "nfev": 56,
+      "nit": 50,
+      "njev": 56,
+      "objective": 0.007237282937708089,
+      "optimizer_method": "L-BFGS-B",
+      "status": 0,
+      "success": true,
+      "time": 2.95
+    },
+    {
+      "fidelity": 0.9930622178725202,
+      "gradient_norm": 2.727942510344677e-07,
+      "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "nfev": 29,
+      "nit": 26,
+      "njev": 29,
+      "objective": 0.006937782127479752,
+      "optimizer_method": "L-BFGS-B",
+      "status": 0,
+      "success": true,
+      "time": 2.975
+    },
+    {
+      "fidelity": 0.9933472417514705,
+      "gradient_norm": 3.024958563526327e-06,
+      "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "nfev": 58,
+      "nit": 53,
+      "njev": 58,
+      "objective": 0.006652758248529511,
+      "optimizer_method": "L-BFGS-B",
+      "status": 0,
+      "success": true,
+      "time": 3.0
+    },
+    {
+      "fidelity": 0.9936181672973844,
+      "gradient_norm": 2.488406174224394e-06,
+      "message": "STOP: TOTAL NO. OF ITERATIONS REACHED LIMIT",
+      "nfev": 65,
+      "nit": 60,
+      "njev": 65,
+      "objective": 0.0063818327026156085,
+      "optimizer_method": "L-BFGS-B",
+      "status": 1,
+      "success": false,
+      "time": 3.0250000000000004
+    },
+    {
+      "fidelity": 0.9938756951104462,
+      "gradient_norm": 5.589464680944429e-07,
+      "message": "STOP: TOTAL NO. OF ITERATIONS REACHED LIMIT",
+      "nfev": 63,
+      "nit": 60,
+      "njev": 63,
+      "objective": 0.006124304889553844,
+      "optimizer_method": "L-BFGS-B",
+      "status": 1,
+      "success": false,
+      "time": 3.0500000000000003
+    },
+    {
+      "fidelity": 0.9941207662808139,
+      "gradient_norm": 1.1220816897440166e-06,
+      "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "nfev": 61,
+      "nit": 57,
+      "njev": 61,
+      "objective": 0.005879233719186083,
+      "optimizer_method": "L-BFGS-B",
+      "status": 0,
+      "success": true,
+      "time": 3.075
+    },
+    {
+      "fidelity": 0.9943533836797911,
+      "gradient_norm": 5.81426044271784e-07,
+      "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "nfev": 53,
+      "nit": 50,
+      "njev": 53,
+      "objective": 0.005646616320208908,
+      "optimizer_method": "L-BFGS-B",
+      "status": 0,
+      "success": true,
+      "time": 3.1
+    },
+    {
+      "fidelity": 0.9945722538093844,
+      "gradient_norm": 3.204654386723071e-06,
+      "message": "STOP: TOTAL NO. OF ITERATIONS REACHED LIMIT",
+      "nfev": 67,
+      "nit": 60,
+      "njev": 67,
+      "objective": 0.00542774619061559,
+      "optimizer_method": "L-BFGS-B",
+      "status": 1,
+      "success": false,
+      "time": 3.125
+    },
+    {
+      "fidelity": 0.9947762326154633,
+      "gradient_norm": 1.0403542264713073e-06,
+      "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "nfev": 52,
+      "nit": 50,
+      "njev": 52,
+      "objective": 0.0052237673845366706,
+      "optimizer_method": "L-BFGS-B",
+      "status": 0,
+      "success": true,
+      "time": 3.1500000000000004
+    },
+    {
+      "fidelity": 0.9949645176574589,
+      "gradient_norm": 5.78079683509404e-07,
+      "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "nfev": 60,
+      "nit": 54,
+      "njev": 60,
+      "objective": 0.005035482342541142,
+      "optimizer_method": "L-BFGS-B",
+      "status": 0,
+      "success": true,
+      "time": 3.1750000000000003
+    },
+    {
+      "fidelity": 0.9951363474610148,
+      "gradient_norm": 5.820755210323757e-07,
+      "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "nfev": 54,
+      "nit": 51,
+      "njev": 54,
+      "objective": 0.004863652538985241,
+      "optimizer_method": "L-BFGS-B",
+      "status": 0,
+      "success": true,
+      "time": 3.2
+    },
+    {
+      "fidelity": 0.9952908927753786,
+      "gradient_norm": 4.253037348951346e-07,
+      "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "nfev": 54,
+      "nit": 49,
+      "njev": 54,
+      "objective": 0.004709107224621367,
+      "optimizer_method": "L-BFGS-B",
+      "status": 0,
+      "success": true,
+      "time": 3.225
+    },
+    {
+      "fidelity": 0.9954272383658178,
+      "gradient_norm": 5.781169045029411e-07,
+      "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "nfev": 33,
+      "nit": 29,
+      "njev": 33,
+      "objective": 0.0045727616341821875,
+      "optimizer_method": "L-BFGS-B",
+      "status": 0,
+      "success": true,
+      "time": 3.25
+    },
+    {
+      "fidelity": 0.9955443986851994,
+      "gradient_norm": 2.569353304632824e-07,
+      "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "nfev": 49,
+      "nit": 43,
+      "njev": 49,
+      "objective": 0.004455601314800606,
+      "optimizer_method": "L-BFGS-B",
+      "status": 0,
+      "success": true,
+      "time": 3.2750000000000004
+    },
+    {
+      "fidelity": 0.9956413366383715,
+      "gradient_norm": 5.124372547931086e-07,
+      "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "nfev": 28,
+      "nit": 25,
+      "njev": 28,
+      "objective": 0.00435866336162849,
+      "optimizer_method": "L-BFGS-B",
+      "status": 0,
+      "success": true,
+      "time": 3.3000000000000003
+    },
+    {
+      "fidelity": 0.9957170000507971,
+      "gradient_norm": 8.819902434988857e-07,
+      "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "nfev": 25,
+      "nit": 23,
+      "njev": 25,
+      "objective": 0.0042829999492028925,
+      "optimizer_method": "L-BFGS-B",
+      "status": 0,
+      "success": true,
+      "time": 3.325
+    },
+    {
+      "fidelity": 0.9957703521636085,
+      "gradient_norm": 5.550020253829596e-07,
+      "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "nfev": 32,
+      "nit": 28,
+      "njev": 32,
+      "objective": 0.004229647836391459,
+      "optimizer_method": "L-BFGS-B",
+      "status": 0,
+      "success": true,
+      "time": 3.35
+    },
+    {
+      "fidelity": 0.9958004091385477,
+      "gradient_norm": 2.341571646911209e-06,
+      "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "nfev": 49,
+      "nit": 45,
+      "njev": 49,
+      "objective": 0.004199590861452274,
+      "optimizer_method": "L-BFGS-B",
+      "status": 0,
+      "success": true,
+      "time": 3.375
+    },
+    {
+      "fidelity": 0.9958062708293329,
+      "gradient_norm": 1.285791363242705e-06,
+      "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "nfev": 30,
+      "nit": 25,
+      "njev": 30,
+      "objective": 0.004193729170667071,
+      "optimizer_method": "L-BFGS-B",
+      "status": 0,
+      "success": true,
+      "time": 3.4000000000000004
+    },
+    {
+      "fidelity": 0.9957871671521777,
+      "gradient_norm": 3.9094278169051927e-07,
+      "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "nfev": 57,
+      "nit": 54,
+      "njev": 57,
+      "objective": 0.0042128328478222565,
+      "optimizer_method": "L-BFGS-B",
+      "status": 0,
+      "success": true,
+      "time": 3.4250000000000003
+    },
+    {
+      "fidelity": 0.9957424822406888,
+      "gradient_norm": 5.16501549848979e-07,
+      "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "nfev": 44,
+      "nit": 42,
+      "njev": 44,
+      "objective": 0.004257517759311158,
+      "optimizer_method": "L-BFGS-B",
+      "status": 0,
+      "success": true,
+      "time": 3.45
+    },
+    {
+      "fidelity": 0.9956718001594226,
+      "gradient_norm": 1.3874518726863444e-07,
+      "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "nfev": 54,
+      "nit": 47,
+      "njev": 54,
+      "objective": 0.004328199840577418,
+      "optimizer_method": "L-BFGS-B",
+      "status": 0,
+      "success": true,
+      "time": 3.475
+    },
+    {
+      "fidelity": 0.9955749345278959,
+      "gradient_norm": 4.3380276659038695e-07,
+      "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "nfev": 56,
+      "nit": 50,
+      "njev": 56,
+      "objective": 0.004425065472104084,
+      "optimizer_method": "L-BFGS-B",
+      "status": 0,
+      "success": true,
+      "time": 3.5
+    },
+    {
+      "fidelity": 0.9954519612825867,
+      "gradient_norm": 8.670868507875994e-07,
+      "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "nfev": 46,
+      "nit": 40,
+      "njev": 46,
+      "objective": 0.004548038717413272,
+      "optimizer_method": "L-BFGS-B",
+      "status": 0,
+      "success": true,
+      "time": 3.5250000000000004
+    },
+    {
+      "fidelity": 0.9953032463452618,
+      "gradient_norm": 1.682155988615759e-06,
+      "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "nfev": 51,
+      "nit": 48,
+      "njev": 51,
+      "objective": 0.004696753654738206,
+      "optimizer_method": "L-BFGS-B",
+      "status": 0,
+      "success": true,
+      "time": 3.5500000000000003
+    },
+    {
+      "fidelity": 0.9951294672203596,
+      "gradient_norm": 8.002855562300801e-07,
+      "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "nfev": 55,
+      "nit": 50,
+      "njev": 55,
+      "objective": 0.004870532779640446,
+      "optimizer_method": "L-BFGS-B",
+      "status": 0,
+      "success": true,
+      "time": 3.575
+    },
+    {
+      "fidelity": 0.9949316263025227,
+      "gradient_norm": 8.185998634253183e-07,
+      "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "nfev": 46,
+      "nit": 42,
+      "njev": 46,
+      "objective": 0.0050683736974772575,
+      "optimizer_method": "L-BFGS-B",
+      "status": 0,
+      "success": true,
+      "time": 3.6
+    },
+    {
+      "fidelity": 0.9947110539301606,
+      "gradient_norm": 9.076524575892223e-07,
+      "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "nfev": 54,
+      "nit": 49,
+      "njev": 54,
+      "objective": 0.005288946069839429,
+      "optimizer_method": "L-BFGS-B",
+      "status": 0,
+      "success": true,
+      "time": 3.625
+    },
+    {
+      "fidelity": 0.9944693995821435,
+      "gradient_norm": 4.317066525072818e-07,
+      "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "nfev": 52,
+      "nit": 47,
+      "njev": 52,
+      "objective": 0.005530600417856468,
+      "optimizer_method": "L-BFGS-B",
+      "status": 0,
+      "success": true,
+      "time": 3.6500000000000004
+    },
+    {
+      "fidelity": 0.9942086108349812,
+      "gradient_norm": 2.4936381597955805e-07,
+      "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "nfev": 50,
+      "nit": 45,
+      "njev": 50,
+      "objective": 0.0057913891650187566,
+      "optimizer_method": "L-BFGS-B",
+      "status": 0,
+      "success": true,
+      "time": 3.6750000000000003
+    },
+    {
+      "fidelity": 0.993930899999917,
+      "gradient_norm": 5.624927671879941e-07,
+      "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "nfev": 47,
+      "nit": 43,
+      "njev": 47,
+      "objective": 0.006069100000082983,
+      "optimizer_method": "L-BFGS-B",
+      "status": 0,
+      "success": true,
+      "time": 3.7
+    },
+    {
+      "fidelity": 0.9936386995580149,
+      "gradient_norm": 1.347562183107618e-06,
+      "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "nfev": 57,
+      "nit": 52,
+      "njev": 57,
+      "objective": 0.006361300441985129,
+      "optimizer_method": "L-BFGS-B",
+      "status": 0,
+      "success": true,
+      "time": 3.725
+    },
+    {
+      "fidelity": 0.9933346078544527,
+      "gradient_norm": 4.867948639825813e-07,
+      "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "nfev": 48,
+      "nit": 43,
+      "njev": 48,
+      "objective": 0.006665392145547289,
+      "optimizer_method": "L-BFGS-B",
+      "status": 0,
+      "success": true,
+      "time": 3.75
+    },
+    {
+      "fidelity": 0.9930213276421187,
+      "gradient_norm": 7.147420052750548e-07,
+      "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "nfev": 49,
+      "nit": 45,
+      "njev": 49,
+      "objective": 0.006978672357881299,
+      "optimizer_method": "L-BFGS-B",
+      "status": 0,
+      "success": true,
+      "time": 3.7750000000000004
+    },
+    {
+      "fidelity": 0.9927016009578175,
+      "gradient_norm": 6.941562309967611e-07,
+      "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "nfev": 46,
+      "nit": 41,
+      "njev": 46,
+      "objective": 0.007298399042182546,
+      "optimizer_method": "L-BFGS-B",
+      "status": 0,
+      "success": true,
+      "time": 3.8000000000000003
+    },
+    {
+      "fidelity": 0.9923781444087595,
+      "gradient_norm": 1.5446173035492625e-06,
+      "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "nfev": 47,
+      "nit": 43,
+      "njev": 47,
+      "objective": 0.007621855591240512,
+      "optimizer_method": "L-BFGS-B",
+      "status": 0,
+      "success": true,
+      "time": 3.825
+    },
+    {
+      "fidelity": 0.9920535881140531,
+      "gradient_norm": 1.473265937214791e-06,
+      "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "nfev": 45,
+      "nit": 42,
+      "njev": 45,
+      "objective": 0.007946411885946914,
+      "optimizer_method": "L-BFGS-B",
+      "status": 0,
+      "success": true,
+      "time": 3.85
+    },
+    {
+      "fidelity": 0.9917304189763813,
+      "gradient_norm": 5.304250052698502e-07,
+      "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "nfev": 58,
+      "nit": 55,
+      "njev": 58,
+      "objective": 0.008269581023618744,
+      "optimizer_method": "L-BFGS-B",
+      "status": 0,
+      "success": true,
+      "time": 3.875
+    },
+    {
+      "fidelity": 0.9914109247170402,
+      "gradient_norm": 1.5234781423163952e-06,
+      "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "nfev": 48,
+      "nit": 43,
+      "njev": 48,
+      "objective": 0.008589075282959824,
+      "optimizer_method": "L-BFGS-B",
+      "status": 0,
+      "success": true,
+      "time": 3.9000000000000004
+    },
+    {
+      "fidelity": 0.9910971314489285,
+      "gradient_norm": 7.387644479654632e-07,
+      "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "nfev": 28,
+      "nit": 26,
+      "njev": 28,
+      "objective": 0.008902868551071474,
+      "optimizer_method": "L-BFGS-B",
+      "status": 0,
+      "success": true,
+      "time": 3.9250000000000003
+    },
+    {
+      "fidelity": 0.9907907271076776,
+      "gradient_norm": 1.7319068118670243e-06,
+      "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "nfev": 55,
+      "nit": 50,
+      "njev": 55,
+      "objective": 0.009209272892322429,
+      "optimizer_method": "L-BFGS-B",
+      "status": 0,
+      "success": true,
+      "time": 3.95
+    },
+    {
+      "fidelity": 0.9904929677519405,
+      "gradient_norm": 1.5979063564464872e-07,
+      "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "nfev": 52,
+      "nit": 48,
+      "njev": 52,
+      "objective": 0.009507032248059488,
+      "optimizer_method": "L-BFGS-B",
+      "status": 0,
+      "success": true,
+      "time": 3.975
+    },
+    {
+      "fidelity": 0.9902045725074876,
+      "gradient_norm": 3.619083312850559e-07,
+      "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "nfev": 52,
+      "nit": 49,
+      "njev": 52,
+      "objective": 0.009795427492512387,
+      "optimizer_method": "L-BFGS-B",
+      "status": 0,
+      "success": true,
+      "time": 4.0
+    }
+  ],
+  "term_labels": [
+    "local_y(q=0)_rep1",
+    "local_y(q=1)_rep1",
+    "local_y(q=2)_rep1",
+    "local_y(q=3)_rep1",
+    "local_y(q=4)_rep1",
+    "local_y(q=5)_rep1",
+    "local_y(q=6)_rep1",
+    "local_y(q=7)_rep1",
+    "local_xx(q=0,1)_rep1",
+    "local_xx(q=1,2)_rep1",
+    "local_xx(q=2,3)_rep1",
+    "local_xx(q=3,4)_rep1",
+    "local_xx(q=4,5)_rep1",
+    "local_xx(q=5,6)_rep1",
+    "local_xx(q=6,7)_rep1",
+    "local_zz(q=0,1)_rep1",
+    "local_zz(q=1,2)_rep1",
+    "local_zz(q=2,3)_rep1",
+    "local_zz(q=3,4)_rep1",
+    "local_zz(q=4,5)_rep1",
+    "local_zz(q=5,6)_rep1",
+    "local_zz(q=6,7)_rep1"
+  ],
+  "trajectory": [
+    {
+      "abs_energy_total_error": 0.0,
+      "energy_total_exact": 0.16386851531179653,
+      "energy_total_fit": 0.16386851531179653,
+      "fidelity": 1.0000000000000004,
+      "theta_norm": 0.0,
+      "time": 0.0
+    },
+    {
+      "abs_energy_total_error": 6.0687935243164404e-05,
+      "energy_total_exact": 0.16396789377788037,
+      "energy_total_fit": 0.16402858171312354,
+      "fidelity": 0.9999903328736558,
+      "theta_norm": 0.018551459976300897,
+      "time": 0.025
+    },
+    {
+      "abs_energy_total_error": 0.00022427384776904646,
+      "energy_total_exact": 0.16406486905540194,
+      "energy_total_fit": 0.16428914290317098,
+      "fidelity": 0.9999604387502404,
+      "theta_norm": 0.22459161764972968,
+      "time": 0.05
+    },
+    {
+      "abs_energy_total_error": 0.00045806386862928816,
+      "energy_total_exact": 0.1641549485701194,
+      "energy_total_fit": 0.16461301243874868,
+      "fidelity": 0.9999068613908548,
+      "theta_norm": 0.231316214701367,
+      "time": 0.07500000000000001
+    },
+    {
+      "abs_energy_total_error": 0.000806268387546355,
+      "energy_total_exact": 0.16423144077508603,
+      "energy_total_fit": 0.16503770916263238,
+      "fidelity": 0.9998249206656511,
+      "theta_norm": 0.5017873192843639,
+      "time": 0.1
+    },
+    {
+      "abs_energy_total_error": 0.00120696441998977,
+      "energy_total_exact": 0.16428559781998847,
+      "energy_total_fit": 0.16549256223997824,
+      "fidelity": 0.9997073278977404,
+      "theta_norm": 0.505609705207861,
+      "time": 0.125
+    },
+    {
+      "abs_energy_total_error": 0.0016757157426500469,
+      "energy_total_exact": 0.16430681442132272,
+      "energy_total_fit": 0.16598253016397277,
+      "fidelity": 0.9995468477953682,
+      "theta_norm": 0.5300399948196606,
+      "time": 0.15000000000000002
+    },
+    {
+      "abs_energy_total_error": 0.0021684256727320106,
+      "energy_total_exact": 0.1642828778529997,
+      "energy_total_fit": 0.1664513035257317,
+      "fidelity": 0.9993352640442182,
+      "theta_norm": 0.5681267260526153,
+      "time": 0.17500000000000002
+    },
+    {
+      "abs_energy_total_error": 0.002687960522025773,
+      "energy_total_exact": 0.1642002624177523,
+      "energy_total_fit": 0.16688822293977806,
+      "fidelity": 0.9990641432593692,
+      "theta_norm": 0.5699138511572305,
+      "time": 0.2
+    },
+    {
+      "abs_energy_total_error": 0.003222248870083766,
+      "energy_total_exact": 0.16404446040073367,
+      "energy_total_fit": 0.16726670927081744,
+      "fidelity": 0.9987254982114154,
+      "theta_norm": 0.5874631271727654,
+      "time": 0.225
+    },
+    {
+      "abs_energy_total_error": 0.0037604023468645886,
+      "energy_total_exact": 0.16380034039319624,
+      "energy_total_fit": 0.16756074274006083,
+      "fidelity": 0.9983122508077994,
+      "theta_norm": 0.5891640697600445,
+      "time": 0.25
+    },
+    {
+      "abs_energy_total_error": 0.004306278243236372,
+      "energy_total_exact": 0.16345252304761426,
+      "energy_total_fit": 0.16775880129085063,
+      "fidelity": 0.9978188088846753,
+      "theta_norm": 0.6059004117627006,
+      "time": 0.275
+    },
+    {
+      "abs_energy_total_error": 0.004866199567993057,
+      "energy_total_exact": 0.16298576381503302,
+      "energy_total_fit": 0.16785196338302608,
+      "fidelity": 0.9972415391319128,
+      "theta_norm": 0.6171255623279736,
+      "time": 0.30000000000000004
+    },
+    {
+      "abs_energy_total_error": 0.005457461912391409,
+      "energy_total_exact": 0.16238533204283598,
+      "energy_total_fit": 0.1678427939552274,
+      "fidelity": 0.9965791934507893,
+      "theta_norm": 0.6233991846966529,
+      "time": 0.325
+    },
+    {
+      "abs_energy_total_error": 0.006117514457700507,
+      "energy_total_exact": 0.1616373759844626,
+      "energy_total_fit": 0.1677548904421631,
+      "fidelity": 0.9958332175414226,
+      "theta_norm": 0.6467112899545996,
+      "time": 0.35000000000000003
+    },
+    {
+      "abs_energy_total_error": 0.006871382777987961,
+      "energy_total_exact": 0.16072926379058103,
+      "energy_total_fit": 0.167600646568569,
+      "fidelity": 0.9950078811872757,
+      "theta_norm": 0.6703902647068394,
+      "time": 0.375
+    },
+    {
+      "abs_energy_total_error": 0.007776889550485083,
+      "energy_total_exact": 0.1596498913983263,
+      "energy_total_fit": 0.1674267809488114,
+      "fidelity": 0.9941102693954033,
+      "theta_norm": 0.6912895125475632,
+      "time": 0.4
+    },
+    {
+      "abs_energy_total_error": 0.008885837880189151,
+      "energy_total_exact": 0.15838994938527207,
+      "energy_total_fit": 0.16727578726546122,
+      "fidelity": 0.9931500558103682,
+      "theta_norm": 0.7176353091802614,
+      "time": 0.42500000000000004
+    },
+    {
+      "abs_energy_total_error": 0.010257952755898109,
+      "energy_total_exact": 0.15694214226910996,
+      "energy_total_fit": 0.16720009502500807,
+      "fidelity": 0.9921390759228399,
+      "theta_norm": 0.7462254103889384,
+      "time": 0.45
+    },
+    {
+      "abs_energy_total_error": 0.01196024266156942,
+      "energy_total_exact": 0.15530135536385284,
+      "energy_total_fit": 0.16726159802542226,
+      "fidelity": 0.9910906854825875,
+      "theta_norm": 0.7783886794041976,
+      "time": 0.47500000000000003
+    },
+    {
+      "abs_energy_total_error": 0.014041307292670002,
+      "energy_total_exact": 0.15346476609034995,
+      "energy_total_fit": 0.16750607338301995,
+      "fidelity": 0.9900189682098077,
+      "theta_norm": 0.811086219203195,
+      "time": 0.5
+    },
+    {
+      "abs_energy_total_error": 0.01655104878389657,
+      "energy_total_exact": 0.15143189851771055,
+      "energy_total_fit": 0.16798294730160712,
+      "fidelity": 0.988937812480308,
+      "theta_norm": 0.8455197518967612,
+      "time": 0.525
+    },
+    {
+      "abs_energy_total_error": 0.019519081569309538,
+      "energy_total_exact": 0.14920462181213057,
+      "energy_total_fit": 0.1687237033814401,
+      "fidelity": 0.9878599356257829,
+      "theta_norm": 0.8773254540199046,
+      "time": 0.55
+    },
+    {
+      "abs_energy_total_error": 0.022960982103674782,
+      "energy_total_exact": 0.1467870951179988,
+      "energy_total_fit": 0.1697480772216736,
+      "fidelity": 0.986795969297713,
+      "theta_norm": 0.9112439622443621,
+      "time": 0.5750000000000001
+    },
+    {
+      "abs_energy_total_error": 0.02687094606472823,
+      "energy_total_exact": 0.1441856631204707,
+      "energy_total_fit": 0.17105660918519894,
+      "fidelity": 0.9857536170049049,
+      "theta_norm": 0.9413331544780105,
+      "time": 0.6000000000000001
+    },
+    {
+      "abs_energy_total_error": 0.03121565489022965,
+      "energy_total_exact": 0.1414087080706826,
+      "energy_total_fit": 0.17262436296091224,
+      "fidelity": 0.9847370730741114,
+      "theta_norm": 0.971395465597316,
+      "time": 0.625
+    },
+    {
+      "abs_energy_total_error": 0.03594215695793221,
+      "energy_total_exact": 0.138466465332487,
+      "energy_total_fit": 0.1744086222904192,
+      "fidelity": 0.9837466630945522,
+      "theta_norm": 0.9978558644799117,
+      "time": 0.65
+    },
+    {
+      "abs_energy_total_error": 0.04100421284294184,
+      "energy_total_exact": 0.13537081048122188,
+      "energy_total_fit": 0.17637502332416372,
+      "fidelity": 0.9827787777753116,
+      "theta_norm": 1.0213911002933842,
+      "time": 0.675
+    },
+    {
+      "abs_energy_total_error": 0.04626517586143483,
+      "energy_total_exact": 0.13213502661118504,
+      "energy_total_fit": 0.17840020247261987,
+      "fidelity": 0.981826112809053,
+      "theta_norm": 1.0484179734969383,
+      "time": 0.7000000000000001
+    },
+    {
+      "abs_energy_total_error": 0.051668121524246796,
+      "energy_total_exact": 0.1287735607643802,
+      "energy_total_fit": 0.180441682288627,
+      "fidelity": 0.9808781434323717,
+      "theta_norm": 1.0783587628600595,
+      "time": 0.7250000000000001
+    },
+    {
+      "abs_energy_total_error": 0.057102450498404844,
+      "energy_total_exact": 0.12530177827073302,
+      "energy_total_fit": 0.18240422876913787,
+      "fidelity": 0.9799223181601215,
+      "theta_norm": 1.11176894608834,
+      "time": 0.75
+    },
+    {
+      "abs_energy_total_error": 0.06248070146510029,
+      "energy_total_exact": 0.12173572329782295,
+      "energy_total_fit": 0.18421642476292324,
+      "fidelity": 0.9789496206532657,
+      "theta_norm": 1.2736394955083667,
+      "time": 0.775
+    },
+    {
+      "abs_energy_total_error": 0.06823599148193635,
+      "energy_total_exact": 0.11809189307304926,
+      "energy_total_fit": 0.1863278845549856,
+      "fidelity": 0.9779837368033701,
+      "theta_norm": 1.5439017917004376,
+      "time": 0.8
+    },
+    {
+      "abs_energy_total_error": 0.07469741919782294,
+      "energy_total_exact": 0.11438703210517859,
+      "energy_total_fit": 0.18908445130300153,
+      "fidelity": 0.9770470573867849,
+      "theta_norm": 1.7003038644017983,
+      "time": 0.8250000000000001
+    },
+    {
+      "abs_energy_total_error": 0.08117137669415117,
+      "energy_total_exact": 0.11063795135311347,
+      "energy_total_fit": 0.19180932804726464,
+      "fidelity": 0.976138479397961,
+      "theta_norm": 1.7454674718755048,
+      "time": 0.8500000000000001
+    },
+    {
+      "abs_energy_total_error": 0.08772479212305645,
+      "energy_total_exact": 0.10686137573682178,
+      "energy_total_fit": 0.19458616785987823,
+      "fidelity": 0.9752568914345826,
+      "theta_norm": 1.7985850493289326,
+      "time": 0.875
+    },
+    {
+      "abs_energy_total_error": 0.09442356466569528,
+      "energy_total_exact": 0.10307382173689435,
+      "energy_total_fit": 0.19749738640258963,
+      "fidelity": 0.9743950650215992,
+      "theta_norm": 1.8449276182421155,
+      "time": 0.9
+    },
+    {
+      "abs_energy_total_error": 0.10112449468840332,
+      "energy_total_exact": 0.09929150516811738,
+      "energy_total_fit": 0.2004159998565207,
+      "fidelity": 0.9735411900197218,
+      "theta_norm": 1.8895041998456346,
+      "time": 0.925
+    },
+    {
+      "abs_energy_total_error": 0.10776246434986816,
+      "energy_total_exact": 0.09553027762266403,
+      "energy_total_fit": 0.2032927419725322,
+      "fidelity": 0.9726813165465394,
+      "theta_norm": 1.9377432740809397,
+      "time": 0.9500000000000001
+    },
+    {
+      "abs_energy_total_error": 0.11424778761312485,
+      "energy_total_exact": 0.09180558863921892,
+      "energy_total_fit": 0.20605337625234377,
+      "fidelity": 0.9718015176770706,
+      "theta_norm": 1.9863130209890119,
+      "time": 0.9750000000000001
+    },
+    {
+      "abs_energy_total_error": 0.12052216137410066,
+      "energy_total_exact": 0.08813246943760175,
+      "energy_total_fit": 0.2086546308117024,
+      "fidelity": 0.9708890516866658,
+      "theta_norm": 2.036379842694233,
+      "time": 1.0
+    },
+    {
+      "abs_energy_total_error": 0.12653358671786336,
+      "energy_total_exact": 0.08452553312311857,
+      "energy_total_fit": 0.21105911984098194,
+      "fidelity": 0.9699330406242178,
+      "theta_norm": 2.085683263318072,
+      "time": 1.0250000000000001
+    },
+    {
+      "abs_energy_total_error": 0.132232906979238,
+      "energy_total_exact": 0.080998985654869,
+      "energy_total_fit": 0.213231892634107,
+      "fidelity": 0.9689249487177045,
+      "theta_norm": 2.132509711533302,
+      "time": 1.05
+    },
+    {
+      "abs_energy_total_error": 0.13758261569686253,
+      "energy_total_exact": 0.07756664161365016,
+      "energy_total_fit": 0.21514925731051268,
+      "fidelity": 0.9678589597586077,
+      "theta_norm": 2.1752226333052493,
+      "time": 1.075
+    },
+    {
+      "abs_energy_total_error": 0.14254919286746007,
+      "energy_total_exact": 0.07424193890394479,
+      "energy_total_fit": 0.21679113177140485,
+      "fidelity": 0.966732273801406,
+      "theta_norm": 2.2126433515818715,
+      "time": 1.1
+    },
+    {
+      "abs_energy_total_error": 0.1471105434691619,
+      "energy_total_exact": 0.07103794696773671,
+      "energy_total_fit": 0.2181484904368986,
+      "fidelity": 0.9655453157316229,
+      "theta_norm": 2.244352145364771,
+      "time": 1.125
+    },
+    {
+      "abs_energy_total_error": 0.1512413471976882,
+      "energy_total_exact": 0.06796736384315386,
+      "energy_total_fit": 0.21920871104084205,
+      "fidelity": 0.9643018467487533,
+      "theta_norm": 2.271064443851655,
+      "time": 1.1500000000000001
+    },
+    {
+      "abs_energy_total_error": 0.15493520374893915,
+      "energy_total_exact": 0.06504249841884029,
+      "energy_total_fit": 0.21997770216777943,
+      "fidelity": 0.963008977595357,
+      "theta_norm": 2.293281506181374,
+      "time": 1.175
+    },
+    {
+      "abs_energy_total_error": 0.15818319445355844,
+      "energy_total_exact": 0.062275235452308425,
+      "energy_total_fit": 0.22045842990586687,
+      "fidelity": 0.9616770877866703,
+      "theta_norm": 2.3114377800088897,
+      "time": 1.2000000000000002
+    },
+    {
+      "abs_energy_total_error": 0.16098391617074606,
+      "energy_total_exact": 0.05967698226359921,
+      "energy_total_fit": 0.22066089843434528,
+      "fidelity": 0.9603196533489785,
+      "theta_norm": 2.32630172993657,
+      "time": 1.225
+    },
+    {
+      "abs_energy_total_error": 0.16334006429896183,
+      "energy_total_exact": 0.057258597404950456,
+      "energy_total_fit": 0.2205986617039123,
+      "fidelity": 0.9589529844256804,
+      "theta_norm": 2.3383555979635986,
+      "time": 1.25
+    },
+    {
+      "abs_energy_total_error": 0.16526063695330456,
+      "energy_total_exact": 0.055030302962216684,
+      "energy_total_fit": 0.22029093991552123,
+      "fidelity": 0.957595872749887,
+      "theta_norm": 2.3482449059808763,
+      "time": 1.2750000000000001
+    },
+    {
+      "abs_energy_total_error": 0.16675887500944014,
+      "energy_total_exact": 0.05300158338727959,
+      "energy_total_fit": 0.21976045839671973,
+      "fidelity": 0.956269149132508,
+      "theta_norm": 2.3557346804731982,
+      "time": 1.3
+    },
+    {
+      "abs_energy_total_error": 0.1678548770826877,
+      "energy_total_exact": 0.05118107482355924,
+      "energy_total_fit": 0.21903595190624695,
+      "fidelity": 0.9549951533438825,
+      "theta_norm": 2.361372170810489,
+      "time": 1.3250000000000002
+    },
+    {
+      "abs_energy_total_error": 0.1685692823451938,
+      "energy_total_exact": 0.04957644971167177,
+      "energy_total_fit": 0.21814573205686558,
+      "fidelity": 0.9537971208103525,
+      "theta_norm": 2.3648316672487857,
+      "time": 1.35
+    },
+    {
+      "abs_energy_total_error": 0.16893015171906703,
+      "energy_total_exact": 0.048194302006862366,
+      "energy_total_fit": 0.2171244537259294,
+      "fidelity": 0.9526984951495329,
+      "theta_norm": 2.3657985772977828,
+      "time": 1.375
+    },
+    {
+      "abs_energy_total_error": 0.16896741914418267,
+      "energy_total_exact": 0.047040038578925705,
+      "energy_total_fit": 0.21600745772310836,
+      "fidelity": 0.95172218045071,
+      "theta_norm": 2.3644337212426323,
+      "time": 1.4000000000000001
+    },
+    {
+      "abs_energy_total_error": 0.1687110276698397,
+      "energy_total_exact": 0.046117782291485235,
+      "energy_total_fit": 0.21482880996132492,
+      "fidelity": 0.9508897545343153,
+      "theta_norm": 2.359609509293294,
+      "time": 1.425
+    },
+    {
+      "abs_energy_total_error": 0.1681960058418692,
+      "energy_total_exact": 0.04543029188165859,
+      "energy_total_fit": 0.21362629772352779,
+      "fidelity": 0.9502206721780064,
+      "theta_norm": 2.3513980011971265,
+      "time": 1.4500000000000002
+    },
+    {
+      "abs_energy_total_error": 0.1674533226128993,
+      "energy_total_exact": 0.0449789031108581,
+      "energy_total_fit": 0.2124322257237574,
+      "fidelity": 0.9497314960358243,
+      "theta_norm": 2.339401401543284,
+      "time": 1.475
+    },
+    {
+      "abs_energy_total_error": 0.16651522957341192,
+      "energy_total_exact": 0.04476349477467033,
+      "energy_total_fit": 0.21127872434808226,
+      "fidelity": 0.9494351992809861,
+      "theta_norm": 2.323194065205347,
+      "time": 1.5
+    },
+    {
+      "abs_energy_total_error": 0.1654110912722332,
+      "energy_total_exact": 0.04478248209852265,
+      "energy_total_fit": 0.21019357337075584,
+      "fidelity": 0.9493405873814535,
+      "theta_norm": 2.3028721353597685,
+      "time": 1.5250000000000001
+    },
+    {
+      "abs_energy_total_error": 0.1641655115513308,
+      "energy_total_exact": 0.045032838867674174,
+      "energy_total_fit": 0.20919835041900497,
+      "fidelity": 0.9494518843934552,
+      "theta_norm": 2.2789273638459204,
+      "time": 1.55
+    },
+    {
+      "abs_energy_total_error": 0.1628021270912112,
+      "energy_total_exact": 0.04551014841117487,
+      "energy_total_fit": 0.20831227550238607,
+      "fidelity": 0.9497685217556929,
+      "theta_norm": 2.2520835957932652,
+      "time": 1.5750000000000002
+    },
+    {
+      "abs_energy_total_error": 0.16133662286095007,
+      "energy_total_exact": 0.04620868234572749,
+      "energy_total_fit": 0.20754530520667758,
+      "fidelity": 0.950285155104377,
+      "theta_norm": 2.2237390054509767,
+      "time": 1.6
+    },
+    {
+      "abs_energy_total_error": 0.15978018273621758,
+      "energy_total_exact": 0.04712150484947071,
+      "energy_total_fit": 0.20690168758568828,
+      "fidelity": 0.9509919163771525,
+      "theta_norm": 2.1947222698223454,
+      "time": 1.625
+    },
+    {
+      "abs_energy_total_error": 0.15813978088341246,
+      "energy_total_exact": 0.0482405992326847,
+      "energy_total_fit": 0.20638038011609716,
+      "fidelity": 0.951874885402088,
+      "theta_norm": 2.166467214301745,
+      "time": 1.6500000000000001
+    },
+    {
+      "abs_energy_total_error": 0.15641713691892647,
+      "energy_total_exact": 0.04955701274816307,
+      "energy_total_fit": 0.20597414966708955,
+      "fidelity": 0.9529167398670584,
+      "theta_norm": 2.1397835168145183,
+      "time": 1.675
+    },
+    {
+      "abs_energy_total_error": 0.15461075045594144,
+      "energy_total_exact": 0.05106101497181914,
+      "energy_total_fit": 0.20567176542776058,
+      "fidelity": 0.9540975240536175,
+      "theta_norm": 2.115155723690739,
+      "time": 1.7000000000000002
+    },
+    {
+      "abs_energy_total_error": 0.15271622943583021,
+      "energy_total_exact": 0.052742264704520564,
+      "energy_total_fit": 0.20545849414035078,
+      "fidelity": 0.9553954704690332,
+      "theta_norm": 2.0929323772762527,
+      "time": 1.725
+    },
+    {
+      "abs_energy_total_error": 0.1507289732745848,
+      "energy_total_exact": 0.05458998020634404,
+      "energy_total_fit": 0.20531895348092882,
+      "fidelity": 0.9567878152164749,
+      "theta_norm": 2.0730076156959205,
+      "time": 1.75
+    },
+    {
+      "abs_energy_total_error": 0.1486411519734923,
+      "energy_total_exact": 0.05659310766788504,
+      "energy_total_fit": 0.20523425964137737,
+      "fidelity": 0.9582515617216704,
+      "theta_norm": 2.055474883325868,
+      "time": 1.7750000000000001
+    },
+    {
+      "abs_energy_total_error": 0.14644722858343084,
+      "energy_total_exact": 0.05874048313263326,
+      "energy_total_fit": 0.20518771171606412,
+      "fidelity": 0.9597641626227164,
+      "theta_norm": 2.0400630977739653,
+      "time": 1.8
+    },
+    {
+      "abs_energy_total_error": 0.14414128052944883,
+      "energy_total_exact": 0.06102098358069105,
+      "energy_total_fit": 0.20516226411013988,
+      "fidelity": 0.961304102153453,
+      "theta_norm": 2.026787350117698,
+      "time": 1.8250000000000002
+    },
+    {
+      "abs_energy_total_error": 0.14171913620740423,
+      "energy_total_exact": 0.0634236635330137,
+      "energy_total_fit": 0.20514279974041794,
+      "fidelity": 0.962851370918175,
+      "theta_norm": 2.015483094761254,
+      "time": 1.85
+    },
+    {
+      "abs_energy_total_error": 0.1391778993385293,
+      "energy_total_exact": 0.06593787429381254,
+      "energy_total_fit": 0.20511577363234185,
+      "fidelity": 0.9643878315284576,
+      "theta_norm": 2.006066387797548,
+      "time": 1.875
+    },
+    {
+      "abs_energy_total_error": 0.13651635710393323,
+      "energy_total_exact": 0.06855336377506019,
+      "energy_total_fit": 0.20506972087899342,
+      "fidelity": 0.9658974784608404,
+      "theta_norm": 1.9984330038428086,
+      "time": 1.9000000000000001
+    },
+    {
+      "abs_energy_total_error": 0.13373521268868888,
+      "energy_total_exact": 0.07126035569582609,
+      "energy_total_fit": 0.20499556838451496,
+      "fidelity": 0.9673665991368214,
+      "theta_norm": 1.9924739761718562,
+      "time": 1.925
+    },
+    {
+      "abs_energy_total_error": 0.13083654855880472,
+      "energy_total_exact": 0.07404960778025681,
+      "energy_total_fit": 0.20488615633906151,
+      "fidelity": 0.9687838460142916,
+      "theta_norm": 1.98842571494599,
+      "time": 1.9500000000000002
+    },
+    {
+      "abs_energy_total_error": 0.12782362883523096,
+      "energy_total_exact": 0.07691244935325486,
+      "energy_total_fit": 0.20473607818848583,
+      "fidelity": 0.9701402319494021,
+      "theta_norm": 1.9852186259490345,
+      "time": 1.975
+    },
+    {
+      "abs_energy_total_error": 0.12470040224853036,
+      "energy_total_exact": 0.07984079942249579,
+      "energy_total_fit": 0.20454120167102616,
+      "fidelity": 0.971429059984905,
+      "theta_norm": 1.9836994417381855,
+      "time": 2.0
+    },
+    {
+      "abs_energy_total_error": 0.12147258252180267,
+      "energy_total_exact": 0.08282716691408058,
+      "energy_total_fit": 0.20429974943588325,
+      "fidelity": 0.9726458030903496,
+      "theta_norm": 1.9834705890345126,
+      "time": 2.025
+    },
+    {
+      "abs_energy_total_error": 0.11814666200001396,
+      "energy_total_exact": 0.08586463518146968,
+      "energy_total_fit": 0.20401129718148364,
+      "fidelity": 0.9737879433983065,
+      "theta_norm": 1.9843753107017807,
+      "time": 2.0500000000000003
+    },
+    {
+      "abs_energy_total_error": 0.11472956424047678,
+      "energy_total_exact": 0.0889468332249286,
+      "energy_total_fit": 0.2036763974654054,
+      "fidelity": 0.9748547835896002,
+      "theta_norm": 1.9863446117973693,
+      "time": 2.075
+    },
+    {
+      "abs_energy_total_error": 0.11122927207364364,
+      "energy_total_exact": 0.09206789623976741,
+      "energy_total_fit": 0.20329716831341105,
+      "fidelity": 0.9758472395440966,
+      "theta_norm": 1.9893257294754625,
+      "time": 2.1
+    },
+    {
+      "abs_energy_total_error": 0.10765263492136287,
+      "energy_total_exact": 0.09522241816346969,
+      "energy_total_fit": 0.20287505308483256,
+      "fidelity": 0.9767676224512032,
+      "theta_norm": 1.9930835923848587,
+      "time": 2.125
+    },
+    {
+      "abs_energy_total_error": 0.10400954965202502,
+      "energy_total_exact": 0.0984053988252045,
+      "energy_total_fit": 0.20241494847722952,
+      "fidelity": 0.977619417044791,
+      "theta_norm": 1.9976866017392878,
+      "time": 2.15
+    },
+    {
+      "abs_energy_total_error": 0.10030809849091643,
+      "energy_total_exact": 0.10161218813248685,
+      "energy_total_fit": 0.20192028662340328,
+      "fidelity": 0.9784070613907855,
+      "theta_norm": 2.0029696609131142,
+      "time": 2.1750000000000003
+    },
+    {
+      "abs_energy_total_error": 0.0965586053735928,
+      "energy_total_exact": 0.1048384294798758,
+      "energy_total_fit": 0.2013970348534686,
+      "fidelity": 0.9791357323899532,
+      "theta_norm": 2.0088399157039305,
+      "time": 2.2
+    },
+    {
+      "abs_energy_total_error": 0.09277001049725732,
+      "energy_total_exact": 0.10808000425371363,
+      "energy_total_fit": 0.20085001475097095,
+      "fidelity": 0.9798111403197679,
+      "theta_norm": 2.015358340019713,
+      "time": 2.225
+    },
+    {
+      "abs_energy_total_error": 0.08895426839050674,
+      "energy_total_exact": 0.11133297895818045,
+      "energy_total_fit": 0.2002872473486872,
+      "fidelity": 0.9804393347742248,
+      "theta_norm": 2.0223578359500856,
+      "time": 2.25
+    },
+    {
+      "abs_energy_total_error": 0.08512027066184384,
+      "energy_total_exact": 0.11459355612345136,
+      "energy_total_fit": 0.1997138267852952,
+      "fidelity": 0.9810265236752725,
+      "theta_norm": 2.029839670251383,
+      "time": 2.275
+    },
+    {
+      "abs_energy_total_error": 0.08127937924613968,
+      "energy_total_exact": 0.11785802979559809,
+      "energy_total_fit": 0.19913740904173777,
+      "fidelity": 0.9815789063483022,
+      "theta_norm": 2.037747899578153,
+      "time": 2.3000000000000003
+    },
+    {
+      "abs_energy_total_error": 0.07744297245814613,
+      "energy_total_exact": 0.12112274606874462,
+      "energy_total_fit": 0.19856571852689076,
+      "fidelity": 0.9821025210097127,
+      "theta_norm": 2.046077361481919,
+      "time": 2.325
+    },
+    {
+      "abs_energy_total_error": 0.07362218022879047,
+      "energy_total_exact": 0.12438406881734299,
+      "energy_total_fit": 0.19800624904613345,
+      "fidelity": 0.9826031067176215,
+      "theta_norm": 2.05482287170306,
+      "time": 2.35
+    },
+    {
+      "abs_energy_total_error": 0.06982819370657697,
+      "energy_total_exact": 0.12763835053072903,
+      "energy_total_fit": 0.197466544237306,
+      "fidelity": 0.9830859796680019,
+      "theta_norm": 2.0640066779114346,
+      "time": 2.375
+    },
+    {
+      "abs_energy_total_error": 0.06607129568636111,
+      "energy_total_exact": 0.13088190795230317,
+      "energy_total_fit": 0.19695320363866428,
+      "fidelity": 0.9835559241664775,
+      "theta_norm": 2.073655344302539,
+      "time": 2.4000000000000004
+    },
+    {
+      "abs_energy_total_error": 0.06236248245394971,
+      "energy_total_exact": 0.13411100208383087,
+      "energy_total_fit": 0.19647348453778057,
+      "fidelity": 0.9840170994586604,
+      "theta_norm": 2.0837849682508787,
+      "time": 2.4250000000000003
+    },
+    {
+      "abs_energy_total_error": 0.05871099221884138,
+      "energy_total_exact": 0.13732182203358126,
+      "energy_total_fit": 0.19603281425242264,
+      "fidelity": 0.9844729652323174,
+      "theta_norm": 2.0945325766755722,
+      "time": 2.45
+    },
+    {
+      "abs_energy_total_error": 0.05512498276737576,
+      "energy_total_exact": 0.14051047216127932,
+      "energy_total_fit": 0.19563545492865508,
+      "fidelity": 0.9849262299011471,
+      "theta_norm": 2.1058347993837163,
+      "time": 2.475
+    },
+    {
+      "abs_energy_total_error": 0.05161108022717256,
+      "energy_total_exact": 0.14367296199815816,
+      "energy_total_fit": 0.19528404222533072,
+      "fidelity": 0.9853788269512704,
+      "theta_norm": 2.1178346566800723,
+      "time": 2.5
+    },
+    {
+      "abs_energy_total_error": 0.048174277480404926,
+      "energy_total_exact": 0.14680519848926524,
+      "energy_total_fit": 0.19497947596967016,
+      "fidelity": 0.9858319239847007,
+      "theta_norm": 2.130529830657092,
+      "time": 2.5250000000000004
+    },
+    {
+      "abs_energy_total_error": 0.044817462008909265,
+      "energy_total_exact": 0.14990298020753648,
+      "energy_total_fit": 0.19472044221644574,
+      "fidelity": 0.9862859664569237,
+      "theta_norm": 2.143913292858479,
+      "time": 2.5500000000000003
+    },
+    {
+      "abs_energy_total_error": 0.04154181173763266,
+      "energy_total_exact": 0.15296199331520693,
+      "energy_total_fit": 0.1945038050528396,
+      "fidelity": 0.9867407538290267,
+      "theta_norm": 2.158012227958162,
+      "time": 2.575
+    },
+    {
+      "abs_energy_total_error": 0.038347493535355215,
+      "energy_total_exact": 0.15597780918668988,
+      "energy_total_fit": 0.1943253027220451,
+      "fidelity": 0.987195541036038,
+      "theta_norm": 2.1728383982195636,
+      "time": 2.6
+    },
+    {
+      "abs_energy_total_error": 0.03523368369031937,
+      "energy_total_exact": 0.15894588374704285,
+      "energy_total_fit": 0.19417956743736223,
+      "fidelity": 0.9876491552619349,
+      "theta_norm": 2.188424918549748,
+      "time": 2.625
+    },
+    {
+      "abs_energy_total_error": 0.032199258853212315,
+      "energy_total_exact": 0.16186155871155536,
+      "energy_total_fit": 0.19406081756476767,
+      "fidelity": 0.9881001176720592,
+      "theta_norm": 2.204599189991196,
+      "time": 2.6500000000000004
+    },
+    {
+      "abs_energy_total_error": 0.029242761131862055,
+      "energy_total_exact": 0.16472006502530306,
+      "energy_total_fit": 0.19396282615716512,
+      "fidelity": 0.9885467616546368,
+      "theta_norm": 2.221068115787796,
+      "time": 2.6750000000000003
+    },
+    {
+      "abs_energy_total_error": 0.026364192014575683,
+      "energy_total_exact": 0.1675165288889006,
+      "energy_total_fit": 0.19388072090347627,
+      "fidelity": 0.9889873417258472,
+      "theta_norm": 2.2383901439681093,
+      "time": 2.7
+    },
+    {
+      "abs_energy_total_error": 0.023563673218219283,
+      "energy_total_exact": 0.1702459808119488,
+      "energy_total_fit": 0.1938096540301681,
+      "fidelity": 0.9894201297807896,
+      "theta_norm": 2.2560723555104865,
+      "time": 2.725
+    },
+    {
+      "abs_energy_total_error": 0.02084188385359817,
+      "energy_total_exact": 0.1729033681545516,
+      "energy_total_fit": 0.19374525200814977,
+      "fidelity": 0.9898434960584777,
+      "theta_norm": 2.2738506792741937,
+      "time": 2.75
+    },
+    {
+      "abs_energy_total_error": 0.018202124640463196,
+      "energy_total_exact": 0.17548357159761424,
+      "energy_total_fit": 0.19368569623807744,
+      "fidelity": 0.9902559735501195,
+      "theta_norm": 2.292780150551552,
+      "time": 2.7750000000000004
+    },
+    {
+      "abs_energy_total_error": 0.015646261265494954,
+      "energy_total_exact": 0.17798142592441518,
+      "energy_total_fit": 0.19362768718991014,
+      "fidelity": 0.9906563042389369,
+      "theta_norm": 2.3110006540302015,
+      "time": 2.8000000000000003
+    },
+    {
+      "abs_energy_total_error": 0.013179600423949472,
+      "energy_total_exact": 0.18039174540106478,
+      "energy_total_fit": 0.19357134582501426,
+      "fidelity": 0.9910434675997887,
+      "theta_norm": 2.3294620029258484,
+      "time": 2.825
+    },
+    {
+      "abs_energy_total_error": 0.010806921439756562,
+      "energy_total_exact": 0.18270935391615353,
+      "energy_total_fit": 0.1935162753559101,
+      "fidelity": 0.9914166912752049,
+      "theta_norm": 2.347508151967872,
+      "time": 2.85
+    },
+    {
+      "abs_energy_total_error": 0.008534907625170923,
+      "energy_total_exact": 0.18492911988572422,
+      "energy_total_fit": 0.19346402751089514,
+      "fidelity": 0.9917754450508977,
+      "theta_norm": 2.36462983833269,
+      "time": 2.875
+    },
+    {
+      "abs_energy_total_error": 0.006370556087214124,
+      "energy_total_exact": 0.18704599575581313,
+      "energy_total_fit": 0.19341655184302725,
+      "fidelity": 0.9921194206674905,
+      "theta_norm": 2.380292540928327,
+      "time": 2.9000000000000004
+    },
+    {
+      "abs_energy_total_error": 0.004320739157226999,
+      "energy_total_exact": 0.1890550617498502,
+      "energy_total_fit": 0.1933758009070772,
+      "fidelity": 0.9924485001438748,
+      "theta_norm": 2.393225682450595,
+      "time": 2.9250000000000003
+    },
+    {
+      "abs_energy_total_error": 0.0023929505086824066,
+      "energy_total_exact": 0.19095157332071286,
+      "energy_total_fit": 0.19334452382939527,
+      "fidelity": 0.9927627170622919,
+      "theta_norm": 2.400884210164716,
+      "time": 2.95
+    },
+    {
+      "abs_energy_total_error": 0.0005934758548197805,
+      "energy_total_exact": 0.19273101158701983,
+      "energy_total_fit": 0.1933244874418396,
+      "fidelity": 0.9930622178725207,
+      "theta_norm": 2.400297361901578,
+      "time": 2.975
+    },
+    {
+      "abs_energy_total_error": 0.0010752211426007796,
+      "energy_total_exact": 0.19438913586895962,
+      "energy_total_fit": 0.19331391472635884,
+      "fidelity": 0.9933472417514709,
+      "theta_norm": 2.376077561674328,
+      "time": 3.0
+    },
+    {
+      "abs_energy_total_error": 0.002607784047743311,
+      "energy_total_exact": 0.1959220372994619,
+      "energy_total_fit": 0.19331425325171858,
+      "fidelity": 0.9936181672973844,
+      "theta_norm": 2.3106119256206976,
+      "time": 3.0250000000000004
+    },
+    {
+      "abs_energy_total_error": 0.0039939452263521025,
+      "energy_total_exact": 0.19732619237885757,
+      "energy_total_fit": 0.19333224715250547,
+      "fidelity": 0.9938756951104462,
+      "theta_norm": 2.176398316448492,
+      "time": 3.0500000000000003
+    },
+    {
+      "abs_energy_total_error": 0.005196844681103374,
+      "energy_total_exact": 0.19859851527166897,
+      "energy_total_fit": 0.1934016705905656,
+      "fidelity": 0.9941207662808139,
+      "theta_norm": 1.9884654953308696,
+      "time": 3.075
+    },
+    {
+      "abs_energy_total_error": 0.006209535117234322,
+      "energy_total_exact": 0.19973640761657965,
+      "energy_total_fit": 0.19352687249934533,
+      "fidelity": 0.9943533836797915,
+      "theta_norm": 1.828449408783453,
+      "time": 3.1
+    },
+    {
+      "abs_energy_total_error": 0.007068846051572847,
+      "energy_total_exact": 0.20073780463746127,
+      "energy_total_fit": 0.19366895858588842,
+      "fidelity": 0.9945722538093844,
+      "theta_norm": 1.742287806218025,
+      "time": 3.125
+    },
+    {
+      "abs_energy_total_error": 0.007783189012565056,
+      "energy_total_exact": 0.20160121640434198,
+      "energy_total_fit": 0.19381802739177692,
+      "fidelity": 0.9947762326154633,
+      "theta_norm": 1.7004019802405919,
+      "time": 3.1500000000000004
+    },
+    {
+      "abs_energy_total_error": 0.008349992571390658,
+      "energy_total_exact": 0.2023257631962832,
+      "energy_total_fit": 0.19397577062489255,
+      "fidelity": 0.9949645176574586,
+      "theta_norm": 1.6791603435952192,
+      "time": 3.1750000000000003
+    },
+    {
+      "abs_energy_total_error": 0.008769741484985882,
+      "energy_total_exact": 0.2029112040590067,
+      "energy_total_fit": 0.19414146257402082,
+      "fidelity": 0.9951363474610148,
+      "theta_norm": 1.6683223240919607,
+      "time": 3.2
+    },
+    {
+      "abs_energy_total_error": 0.009044765928117454,
+      "energy_total_exact": 0.2033579578226857,
+      "energy_total_fit": 0.19431319189456825,
+      "fidelity": 0.9952908927753786,
+      "theta_norm": 1.6627290004101924,
+      "time": 3.225
+    },
+    {
+      "abs_energy_total_error": 0.009180221457649962,
+      "energy_total_exact": 0.20366711604172127,
+      "energy_total_fit": 0.1944868945840713,
+      "fidelity": 0.9954272383658178,
+      "theta_norm": 1.662808987388348,
+      "time": 3.25
+    },
+    {
+      "abs_energy_total_error": 0.00917898258213573,
+      "energy_total_exact": 0.20384044752984043,
+      "energy_total_fit": 0.1946614649477047,
+      "fidelity": 0.9955443986851994,
+      "theta_norm": 1.6591929143159807,
+      "time": 3.2750000000000004
+    },
+    {
+      "abs_energy_total_error": 0.0090490921015427,
+      "energy_total_exact": 0.2038803943809886,
+      "energy_total_fit": 0.1948313022794459,
+      "fidelity": 0.9956413366383715,
+      "theta_norm": 1.6596274581739696,
+      "time": 3.3000000000000003
+    },
+    {
+      "abs_energy_total_error": 0.00879561980262314,
+      "energy_total_exact": 0.20379005957932553,
+      "energy_total_fit": 0.1949944397767024,
+      "fidelity": 0.9957170000507971,
+      "theta_norm": 1.6601904581612814,
+      "time": 3.325
+    },
+    {
+      "abs_energy_total_error": 0.008424124449322723,
+      "energy_total_exact": 0.203573186501346,
+      "energy_total_fit": 0.1951490620520233,
+      "fidelity": 0.9957703521636085,
+      "theta_norm": 1.6608611853656734,
+      "time": 3.35
+    },
+    {
+      "abs_energy_total_error": 0.007939001409838525,
+      "energy_total_exact": 0.2032341307911411,
+      "energy_total_fit": 0.19529512938130258,
+      "fidelity": 0.9958004091385477,
+      "theta_norm": 1.657458065388128,
+      "time": 3.375
+    },
+    {
+      "abs_energy_total_error": 0.00734761431053127,
+      "energy_total_exact": 0.20277782523953394,
+      "energy_total_fit": 0.19543021092900267,
+      "fidelity": 0.9958062708293329,
+      "theta_norm": 1.6584181111625689,
+      "time": 3.4000000000000004
+    },
+    {
+      "abs_energy_total_error": 0.006650891342715987,
+      "energy_total_exact": 0.20220973841415857,
+      "energy_total_fit": 0.19555884707144258,
+      "fidelity": 0.9957871671521777,
+      "theta_norm": 1.652331142675276,
+      "time": 3.4250000000000003
+    },
+    {
+      "abs_energy_total_error": 0.005854304528617682,
+      "energy_total_exact": 0.20153582786797314,
+      "energy_total_fit": 0.19568152333935546,
+      "fidelity": 0.9957424822406888,
+      "theta_norm": 1.6476166694929177,
+      "time": 3.45
+    },
+    {
+      "abs_energy_total_error": 0.004959522468796912,
+      "energy_total_exact": 0.20076248879750197,
+      "energy_total_fit": 0.19580296632870506,
+      "fidelity": 0.9956718001594226,
+      "theta_norm": 1.641090798880352,
+      "time": 3.475
+    },
+    {
+      "abs_energy_total_error": 0.003968209645608095,
+      "energy_total_exact": 0.19989649903144266,
+      "energy_total_fit": 0.19592828938583456,
+      "fidelity": 0.9955749345278959,
+      "theta_norm": 1.6326065511588268,
+      "time": 3.5
+    },
+    {
+      "abs_energy_total_error": 0.0028814949320725147,
+      "energy_total_exact": 0.19894496120907934,
+      "energy_total_fit": 0.19606346627700683,
+      "fidelity": 0.9954519612825867,
+      "theta_norm": 1.6220819565292706,
+      "time": 3.5250000000000004
+    },
+    {
+      "abs_energy_total_error": 0.0016994574742397461,
+      "energy_total_exact": 0.19791524296226123,
+      "energy_total_fit": 0.1962157854880215,
+      "fidelity": 0.9953032463452618,
+      "theta_norm": 1.6094676105984669,
+      "time": 3.5500000000000003
+    },
+    {
+      "abs_energy_total_error": 0.00042337851447746266,
+      "energy_total_exact": 0.1968149158519555,
+      "energy_total_fit": 0.19639153733747805,
+      "fidelity": 0.9951294672203596,
+      "theta_norm": 1.5950059056845054,
+      "time": 3.575
+    },
+    {
+      "abs_energy_total_error": 0.0009475460716751316,
+      "energy_total_exact": 0.1956516937388736,
+      "energy_total_fit": 0.19659923981054872,
+      "fidelity": 0.9949316263025227,
+      "theta_norm": 1.579195749597751,
+      "time": 3.6
+    },
+    {
+      "abs_energy_total_error": 0.0024121608634016245,
+      "energy_total_exact": 0.19443337119604231,
+      "energy_total_fit": 0.19684553205944394,
+      "fidelity": 0.9947110539301606,
+      "theta_norm": 1.5625850826165344,
+      "time": 3.625
+    },
+    {
+      "abs_energy_total_error": 0.003969428543751291,
+      "energy_total_exact": 0.19316776250752807,
+      "energy_total_fit": 0.19713719105127936,
+      "fidelity": 0.9944693995821435,
+      "theta_norm": 1.5458184005888078,
+      "time": 3.6500000000000004
+    },
+    {
+      "abs_energy_total_error": 0.0056174049411762406,
+      "energy_total_exact": 0.19186264174902523,
+      "energy_total_fit": 0.19748004669020147,
+      "fidelity": 0.9942086108349812,
+      "theta_norm": 1.5299137569912888,
+      "time": 3.6750000000000003
+    },
+    {
+      "abs_energy_total_error": 0.007352920580368655,
+      "energy_total_exact": 0.19052568441807174,
+      "energy_total_fit": 0.1978786049984404,
+      "fidelity": 0.993930899999917,
+      "theta_norm": 1.5153603498961206,
+      "time": 3.7
+    },
+    {
+      "abs_energy_total_error": 0.009171292999193587,
+      "energy_total_exact": 0.1891644110774155,
+      "energy_total_fit": 0.19833570407660908,
+      "fidelity": 0.9936386995580149,
+      "theta_norm": 1.5027593467995135,
+      "time": 3.725
+    },
+    {
+      "abs_energy_total_error": 0.011066600925952186,
+      "energy_total_exact": 0.18778613349538065,
+      "energy_total_fit": 0.19885273442133283,
+      "fidelity": 0.9933346078544527,
+      "theta_norm": 1.4925071402688754,
+      "time": 3.75
+    },
+    {
+      "abs_energy_total_error": 0.013031224858201296,
+      "energy_total_exact": 0.18639790380963023,
+      "energy_total_fit": 0.19942912866783152,
+      "fidelity": 0.9930213276421191,
+      "theta_norm": 1.4848251025984749,
+      "time": 3.7750000000000004
+    },
+    {
+      "abs_energy_total_error": 0.01505616023645212,
+      "energy_total_exact": 0.18500646730093812,
+      "energy_total_fit": 0.20006262753739024,
+      "fidelity": 0.9927016009578175,
+      "theta_norm": 1.4797783018073465,
+      "time": 3.8000000000000003
+    },
+    {
+      "abs_energy_total_error": 0.017131677150758695,
+      "energy_total_exact": 0.1836182194340223,
+      "energy_total_fit": 0.20074989658478098,
+      "fidelity": 0.9923781444087595,
+      "theta_norm": 1.4771313484871569,
+      "time": 3.825
+    },
+    {
+      "abs_energy_total_error": 0.01924711571236251,
+      "energy_total_exact": 0.1822391678937743,
+      "energy_total_fit": 0.20148628360613682,
+      "fidelity": 0.9920535881140531,
+      "theta_norm": 1.4768757186054615,
+      "time": 3.85
+    },
+    {
+      "abs_energy_total_error": 0.021392795691678346,
+      "energy_total_exact": 0.18087490040648388,
+      "energy_total_fit": 0.20226769609816223,
+      "fidelity": 0.9917304189763813,
+      "theta_norm": 1.4787681385185414,
+      "time": 3.875
+    },
+    {
+      "abs_energy_total_error": 0.023559669665246613,
+      "energy_total_exact": 0.17953055917539254,
+      "energy_total_fit": 0.20309022884063915,
+      "fidelity": 0.9914109247170402,
+      "theta_norm": 1.4825962130784962,
+      "time": 3.9000000000000004
+    },
+    {
+      "abs_energy_total_error": 0.02574032561812259,
+      "energy_total_exact": 0.17821082276659472,
+      "energy_total_fit": 0.2039511483847173,
+      "fidelity": 0.9910971314489285,
+      "theta_norm": 1.4879644961198377,
+      "time": 3.9250000000000003
+    },
+    {
+      "abs_energy_total_error": 0.027929389135151583,
+      "energy_total_exact": 0.17691989624475468,
+      "energy_total_fit": 0.20484928537990627,
+      "fidelity": 0.9907907271076776,
+      "theta_norm": 1.4950563756281263,
+      "time": 3.95
+    },
+    {
+      "abs_energy_total_error": 0.03012306399562603,
+      "energy_total_exact": 0.17566151026982296,
+      "energy_total_fit": 0.205784574265449,
+      "fidelity": 0.9904929677519405,
+      "theta_norm": 1.5032486334984194,
+      "time": 3.975
+    },
+    {
+      "abs_energy_total_error": 0.03231794045296166,
+      "energy_total_exact": 0.17443892972055214,
+      "energy_total_fit": 0.2067568701735138,
+      "fidelity": 0.9902045725074874,
+      "theta_norm": 1.512513519845857,
+      "time": 4.0
+    }
+  ],
+  "transpile_rows": [
+    {
+      "count_1q": 0,
+      "count_2q": 0,
+      "depth": 0,
+      "size": 0,
+      "time_index": 0
+    },
+    {
+      "count_1q": 53,
+      "count_2q": 18,
+      "depth": 21,
+      "size": 71,
+      "time_index": 1
+    },
+    {
+      "count_1q": 53,
+      "count_2q": 18,
+      "depth": 21,
+      "size": 71,
+      "time_index": 2
+    },
+    {
+      "count_1q": 53,
+      "count_2q": 18,
+      "depth": 21,
+      "size": 71,
+      "time_index": 3
+    },
+    {
+      "count_1q": 50,
+      "count_2q": 16,
+      "depth": 21,
+      "size": 66,
+      "time_index": 4
+    },
+    {
+      "count_1q": 53,
+      "count_2q": 18,
+      "depth": 21,
+      "size": 71,
+      "time_index": 5
+    },
+    {
+      "count_1q": 53,
+      "count_2q": 18,
+      "depth": 21,
+      "size": 71,
+      "time_index": 6
+    },
+    {
+      "count_1q": 53,
+      "count_2q": 18,
+      "depth": 21,
+      "size": 71,
+      "time_index": 7
+    },
+    {
+      "count_1q": 53,
+      "count_2q": 18,
+      "depth": 21,
+      "size": 71,
+      "time_index": 8
+    },
+    {
+      "count_1q": 53,
+      "count_2q": 18,
+      "depth": 21,
+      "size": 71,
+      "time_index": 9
+    },
+    {
+      "count_1q": 53,
+      "count_2q": 18,
+      "depth": 21,
+      "size": 71,
+      "time_index": 10
+    },
+    {
+      "count_1q": 53,
+      "count_2q": 18,
+      "depth": 21,
+      "size": 71,
+      "time_index": 11
+    },
+    {
+      "count_1q": 53,
+      "count_2q": 18,
+      "depth": 21,
+      "size": 71,
+      "time_index": 12
+    },
+    {
+      "count_1q": 54,
+      "count_2q": 18,
+      "depth": 21,
+      "size": 72,
+      "time_index": 13
+    },
+    {
+      "count_1q": 61,
+      "count_2q": 20,
+      "depth": 24,
+      "size": 81,
+      "time_index": 14
+    },
+    {
+      "count_1q": 63,
+      "count_2q": 20,
+      "depth": 25,
+      "size": 83,
+      "time_index": 15
+    },
+    {
+      "count_1q": 62,
+      "count_2q": 20,
+      "depth": 27,
+      "size": 82,
+      "time_index": 16
+    },
+    {
+      "count_1q": 62,
+      "count_2q": 20,
+      "depth": 24,
+      "size": 82,
+      "time_index": 17
+    },
+    {
+      "count_1q": 62,
+      "count_2q": 20,
+      "depth": 24,
+      "size": 82,
+      "time_index": 18
+    },
+    {
+      "count_1q": 61,
+      "count_2q": 20,
+      "depth": 24,
+      "size": 81,
+      "time_index": 19
+    },
+    {
+      "count_1q": 62,
+      "count_2q": 20,
+      "depth": 27,
+      "size": 82,
+      "time_index": 20
+    },
+    {
+      "count_1q": 61,
+      "count_2q": 20,
+      "depth": 24,
+      "size": 81,
+      "time_index": 21
+    },
+    {
+      "count_1q": 61,
+      "count_2q": 20,
+      "depth": 24,
+      "size": 81,
+      "time_index": 22
+    },
+    {
+      "count_1q": 64,
+      "count_2q": 20,
+      "depth": 27,
+      "size": 84,
+      "time_index": 23
+    },
+    {
+      "count_1q": 61,
+      "count_2q": 20,
+      "depth": 24,
+      "size": 81,
+      "time_index": 24
+    },
+    {
+      "count_1q": 61,
+      "count_2q": 20,
+      "depth": 24,
+      "size": 81,
+      "time_index": 25
+    },
+    {
+      "count_1q": 65,
+      "count_2q": 20,
+      "depth": 28,
+      "size": 85,
+      "time_index": 26
+    },
+    {
+      "count_1q": 54,
+      "count_2q": 18,
+      "depth": 21,
+      "size": 72,
+      "time_index": 27
+    },
+    {
+      "count_1q": 53,
+      "count_2q": 18,
+      "depth": 21,
+      "size": 71,
+      "time_index": 28
+    },
+    {
+      "count_1q": 53,
+      "count_2q": 18,
+      "depth": 21,
+      "size": 71,
+      "time_index": 29
+    },
+    {
+      "count_1q": 53,
+      "count_2q": 18,
+      "depth": 21,
+      "size": 71,
+      "time_index": 30
+    },
+    {
+      "count_1q": 53,
+      "count_2q": 18,
+      "depth": 21,
+      "size": 71,
+      "time_index": 31
+    },
+    {
+      "count_1q": 61,
+      "count_2q": 20,
+      "depth": 24,
+      "size": 81,
+      "time_index": 32
+    },
+    {
+      "count_1q": 60,
+      "count_2q": 20,
+      "depth": 23,
+      "size": 80,
+      "time_index": 33
+    },
+    {
+      "count_1q": 61,
+      "count_2q": 20,
+      "depth": 24,
+      "size": 81,
+      "time_index": 34
+    },
+    {
+      "count_1q": 61,
+      "count_2q": 20,
+      "depth": 24,
+      "size": 81,
+      "time_index": 35
+    },
+    {
+      "count_1q": 62,
+      "count_2q": 20,
+      "depth": 25,
+      "size": 82,
+      "time_index": 36
+    },
+    {
+      "count_1q": 61,
+      "count_2q": 20,
+      "depth": 24,
+      "size": 81,
+      "time_index": 37
+    },
+    {
+      "count_1q": 60,
+      "count_2q": 20,
+      "depth": 23,
+      "size": 80,
+      "time_index": 38
+    },
+    {
+      "count_1q": 63,
+      "count_2q": 20,
+      "depth": 27,
+      "size": 83,
+      "time_index": 39
+    },
+    {
+      "count_1q": 61,
+      "count_2q": 20,
+      "depth": 24,
+      "size": 81,
+      "time_index": 40
+    },
+    {
+      "count_1q": 62,
+      "count_2q": 20,
+      "depth": 25,
+      "size": 82,
+      "time_index": 41
+    },
+    {
+      "count_1q": 62,
+      "count_2q": 20,
+      "depth": 25,
+      "size": 82,
+      "time_index": 42
+    },
+    {
+      "count_1q": 63,
+      "count_2q": 20,
+      "depth": 25,
+      "size": 83,
+      "time_index": 43
+    },
+    {
+      "count_1q": 53,
+      "count_2q": 18,
+      "depth": 21,
+      "size": 71,
+      "time_index": 44
+    },
+    {
+      "count_1q": 53,
+      "count_2q": 18,
+      "depth": 21,
+      "size": 71,
+      "time_index": 45
+    },
+    {
+      "count_1q": 53,
+      "count_2q": 18,
+      "depth": 21,
+      "size": 71,
+      "time_index": 46
+    },
+    {
+      "count_1q": 53,
+      "count_2q": 18,
+      "depth": 21,
+      "size": 71,
+      "time_index": 47
+    },
+    {
+      "count_1q": 53,
+      "count_2q": 18,
+      "depth": 21,
+      "size": 71,
+      "time_index": 48
+    },
+    {
+      "count_1q": 53,
+      "count_2q": 18,
+      "depth": 21,
+      "size": 71,
+      "time_index": 49
+    },
+    {
+      "count_1q": 63,
+      "count_2q": 20,
+      "depth": 25,
+      "size": 83,
+      "time_index": 50
+    },
+    {
+      "count_1q": 62,
+      "count_2q": 20,
+      "depth": 24,
+      "size": 82,
+      "time_index": 51
+    },
+    {
+      "count_1q": 63,
+      "count_2q": 20,
+      "depth": 25,
+      "size": 83,
+      "time_index": 52
+    },
+    {
+      "count_1q": 65,
+      "count_2q": 20,
+      "depth": 28,
+      "size": 85,
+      "time_index": 53
+    },
+    {
+      "count_1q": 61,
+      "count_2q": 20,
+      "depth": 24,
+      "size": 81,
+      "time_index": 54
+    },
+    {
+      "count_1q": 61,
+      "count_2q": 20,
+      "depth": 24,
+      "size": 81,
+      "time_index": 55
+    },
+    {
+      "count_1q": 61,
+      "count_2q": 20,
+      "depth": 25,
+      "size": 81,
+      "time_index": 56
+    },
+    {
+      "count_1q": 60,
+      "count_2q": 20,
+      "depth": 24,
+      "size": 80,
+      "time_index": 57
+    },
+    {
+      "count_1q": 59,
+      "count_2q": 20,
+      "depth": 23,
+      "size": 79,
+      "time_index": 58
+    },
+    {
+      "count_1q": 61,
+      "count_2q": 20,
+      "depth": 24,
+      "size": 81,
+      "time_index": 59
+    },
+    {
+      "count_1q": 64,
+      "count_2q": 20,
+      "depth": 27,
+      "size": 84,
+      "time_index": 60
+    },
+    {
+      "count_1q": 59,
+      "count_2q": 20,
+      "depth": 23,
+      "size": 79,
+      "time_index": 61
+    },
+    {
+      "count_1q": 61,
+      "count_2q": 20,
+      "depth": 24,
+      "size": 81,
+      "time_index": 62
+    },
+    {
+      "count_1q": 60,
+      "count_2q": 20,
+      "depth": 24,
+      "size": 80,
+      "time_index": 63
+    },
+    {
+      "count_1q": 63,
+      "count_2q": 20,
+      "depth": 25,
+      "size": 83,
+      "time_index": 64
+    },
+    {
+      "count_1q": 60,
+      "count_2q": 20,
+      "depth": 23,
+      "size": 80,
+      "time_index": 65
+    },
+    {
+      "count_1q": 60,
+      "count_2q": 20,
+      "depth": 24,
+      "size": 80,
+      "time_index": 66
+    },
+    {
+      "count_1q": 61,
+      "count_2q": 20,
+      "depth": 24,
+      "size": 81,
+      "time_index": 67
+    },
+    {
+      "count_1q": 61,
+      "count_2q": 20,
+      "depth": 24,
+      "size": 81,
+      "time_index": 68
+    },
+    {
+      "count_1q": 62,
+      "count_2q": 20,
+      "depth": 25,
+      "size": 82,
+      "time_index": 69
+    },
+    {
+      "count_1q": 60,
+      "count_2q": 20,
+      "depth": 24,
+      "size": 80,
+      "time_index": 70
+    },
+    {
+      "count_1q": 62,
+      "count_2q": 20,
+      "depth": 25,
+      "size": 82,
+      "time_index": 71
+    },
+    {
+      "count_1q": 61,
+      "count_2q": 20,
+      "depth": 24,
+      "size": 81,
+      "time_index": 72
+    },
+    {
+      "count_1q": 63,
+      "count_2q": 20,
+      "depth": 25,
+      "size": 83,
+      "time_index": 73
+    },
+    {
+      "count_1q": 61,
+      "count_2q": 20,
+      "depth": 25,
+      "size": 81,
+      "time_index": 74
+    },
+    {
+      "count_1q": 61,
+      "count_2q": 20,
+      "depth": 24,
+      "size": 81,
+      "time_index": 75
+    },
+    {
+      "count_1q": 61,
+      "count_2q": 20,
+      "depth": 24,
+      "size": 81,
+      "time_index": 76
+    },
+    {
+      "count_1q": 60,
+      "count_2q": 20,
+      "depth": 24,
+      "size": 80,
+      "time_index": 77
+    },
+    {
+      "count_1q": 63,
+      "count_2q": 20,
+      "depth": 25,
+      "size": 83,
+      "time_index": 78
+    },
+    {
+      "count_1q": 61,
+      "count_2q": 20,
+      "depth": 25,
+      "size": 81,
+      "time_index": 79
+    },
+    {
+      "count_1q": 62,
+      "count_2q": 20,
+      "depth": 25,
+      "size": 82,
+      "time_index": 80
+    },
+    {
+      "count_1q": 60,
+      "count_2q": 20,
+      "depth": 24,
+      "size": 80,
+      "time_index": 81
+    },
+    {
+      "count_1q": 61,
+      "count_2q": 20,
+      "depth": 24,
+      "size": 81,
+      "time_index": 82
+    },
+    {
+      "count_1q": 60,
+      "count_2q": 20,
+      "depth": 23,
+      "size": 80,
+      "time_index": 83
+    },
+    {
+      "count_1q": 60,
+      "count_2q": 20,
+      "depth": 24,
+      "size": 80,
+      "time_index": 84
+    },
+    {
+      "count_1q": 63,
+      "count_2q": 20,
+      "depth": 27,
+      "size": 83,
+      "time_index": 85
+    },
+    {
+      "count_1q": 63,
+      "count_2q": 20,
+      "depth": 25,
+      "size": 83,
+      "time_index": 86
+    },
+    {
+      "count_1q": 60,
+      "count_2q": 20,
+      "depth": 24,
+      "size": 80,
+      "time_index": 87
+    },
+    {
+      "count_1q": 60,
+      "count_2q": 20,
+      "depth": 24,
+      "size": 80,
+      "time_index": 88
+    },
+    {
+      "count_1q": 64,
+      "count_2q": 20,
+      "depth": 28,
+      "size": 84,
+      "time_index": 89
+    },
+    {
+      "count_1q": 60,
+      "count_2q": 20,
+      "depth": 24,
+      "size": 80,
+      "time_index": 90
+    },
+    {
+      "count_1q": 65,
+      "count_2q": 20,
+      "depth": 28,
+      "size": 85,
+      "time_index": 91
+    },
+    {
+      "count_1q": 61,
+      "count_2q": 20,
+      "depth": 24,
+      "size": 81,
+      "time_index": 92
+    },
+    {
+      "count_1q": 61,
+      "count_2q": 20,
+      "depth": 24,
+      "size": 81,
+      "time_index": 93
+    },
+    {
+      "count_1q": 64,
+      "count_2q": 20,
+      "depth": 27,
+      "size": 84,
+      "time_index": 94
+    },
+    {
+      "count_1q": 63,
+      "count_2q": 20,
+      "depth": 27,
+      "size": 83,
+      "time_index": 95
+    },
+    {
+      "count_1q": 60,
+      "count_2q": 20,
+      "depth": 24,
+      "size": 80,
+      "time_index": 96
+    },
+    {
+      "count_1q": 59,
+      "count_2q": 20,
+      "depth": 23,
+      "size": 79,
+      "time_index": 97
+    },
+    {
+      "count_1q": 63,
+      "count_2q": 20,
+      "depth": 27,
+      "size": 83,
+      "time_index": 98
+    },
+    {
+      "count_1q": 59,
+      "count_2q": 20,
+      "depth": 23,
+      "size": 79,
+      "time_index": 99
+    },
+    {
+      "count_1q": 59,
+      "count_2q": 20,
+      "depth": 23,
+      "size": 79,
+      "time_index": 100
+    },
+    {
+      "count_1q": 60,
+      "count_2q": 20,
+      "depth": 23,
+      "size": 80,
+      "time_index": 101
+    },
+    {
+      "count_1q": 59,
+      "count_2q": 20,
+      "depth": 23,
+      "size": 79,
+      "time_index": 102
+    },
+    {
+      "count_1q": 59,
+      "count_2q": 20,
+      "depth": 23,
+      "size": 79,
+      "time_index": 103
+    },
+    {
+      "count_1q": 59,
+      "count_2q": 20,
+      "depth": 23,
+      "size": 79,
+      "time_index": 104
+    },
+    {
+      "count_1q": 59,
+      "count_2q": 20,
+      "depth": 23,
+      "size": 79,
+      "time_index": 105
+    },
+    {
+      "count_1q": 60,
+      "count_2q": 20,
+      "depth": 24,
+      "size": 80,
+      "time_index": 106
+    },
+    {
+      "count_1q": 59,
+      "count_2q": 20,
+      "depth": 23,
+      "size": 79,
+      "time_index": 107
+    },
+    {
+      "count_1q": 59,
+      "count_2q": 20,
+      "depth": 23,
+      "size": 79,
+      "time_index": 108
+    },
+    {
+      "count_1q": 59,
+      "count_2q": 20,
+      "depth": 23,
+      "size": 79,
+      "time_index": 109
+    },
+    {
+      "count_1q": 59,
+      "count_2q": 20,
+      "depth": 23,
+      "size": 79,
+      "time_index": 110
+    },
+    {
+      "count_1q": 59,
+      "count_2q": 20,
+      "depth": 23,
+      "size": 79,
+      "time_index": 111
+    },
+    {
+      "count_1q": 60,
+      "count_2q": 20,
+      "depth": 24,
+      "size": 80,
+      "time_index": 112
+    },
+    {
+      "count_1q": 59,
+      "count_2q": 20,
+      "depth": 23,
+      "size": 79,
+      "time_index": 113
+    },
+    {
+      "count_1q": 59,
+      "count_2q": 20,
+      "depth": 23,
+      "size": 79,
+      "time_index": 114
+    },
+    {
+      "count_1q": 59,
+      "count_2q": 20,
+      "depth": 23,
+      "size": 79,
+      "time_index": 115
+    },
+    {
+      "count_1q": 60,
+      "count_2q": 20,
+      "depth": 24,
+      "size": 80,
+      "time_index": 116
+    },
+    {
+      "count_1q": 60,
+      "count_2q": 20,
+      "depth": 24,
+      "size": 80,
+      "time_index": 117
+    },
+    {
+      "count_1q": 59,
+      "count_2q": 20,
+      "depth": 23,
+      "size": 79,
+      "time_index": 118
+    },
+    {
+      "count_1q": 60,
+      "count_2q": 20,
+      "depth": 24,
+      "size": 80,
+      "time_index": 119
+    },
+    {
+      "count_1q": 60,
+      "count_2q": 20,
+      "depth": 24,
+      "size": 80,
+      "time_index": 120
+    },
+    {
+      "count_1q": 59,
+      "count_2q": 20,
+      "depth": 23,
+      "size": 79,
+      "time_index": 121
+    },
+    {
+      "count_1q": 60,
+      "count_2q": 20,
+      "depth": 24,
+      "size": 80,
+      "time_index": 122
+    },
+    {
+      "count_1q": 59,
+      "count_2q": 20,
+      "depth": 23,
+      "size": 79,
+      "time_index": 123
+    },
+    {
+      "count_1q": 59,
+      "count_2q": 20,
+      "depth": 23,
+      "size": 79,
+      "time_index": 124
+    },
+    {
+      "count_1q": 60,
+      "count_2q": 20,
+      "depth": 24,
+      "size": 80,
+      "time_index": 125
+    },
+    {
+      "count_1q": 63,
+      "count_2q": 20,
+      "depth": 25,
+      "size": 83,
+      "time_index": 126
+    },
+    {
+      "count_1q": 53,
+      "count_2q": 18,
+      "depth": 21,
+      "size": 71,
+      "time_index": 127
+    },
+    {
+      "count_1q": 53,
+      "count_2q": 18,
+      "depth": 21,
+      "size": 71,
+      "time_index": 128
+    },
+    {
+      "count_1q": 53,
+      "count_2q": 18,
+      "depth": 21,
+      "size": 71,
+      "time_index": 129
+    },
+    {
+      "count_1q": 63,
+      "count_2q": 20,
+      "depth": 27,
+      "size": 83,
+      "time_index": 130
+    },
+    {
+      "count_1q": 63,
+      "count_2q": 20,
+      "depth": 25,
+      "size": 83,
+      "time_index": 131
+    },
+    {
+      "count_1q": 63,
+      "count_2q": 20,
+      "depth": 25,
+      "size": 83,
+      "time_index": 132
+    },
+    {
+      "count_1q": 63,
+      "count_2q": 20,
+      "depth": 27,
+      "size": 83,
+      "time_index": 133
+    },
+    {
+      "count_1q": 63,
+      "count_2q": 20,
+      "depth": 27,
+      "size": 83,
+      "time_index": 134
+    },
+    {
+      "count_1q": 64,
+      "count_2q": 20,
+      "depth": 27,
+      "size": 84,
+      "time_index": 135
+    },
+    {
+      "count_1q": 59,
+      "count_2q": 20,
+      "depth": 23,
+      "size": 79,
+      "time_index": 136
+    },
+    {
+      "count_1q": 61,
+      "count_2q": 20,
+      "depth": 24,
+      "size": 81,
+      "time_index": 137
+    },
+    {
+      "count_1q": 60,
+      "count_2q": 20,
+      "depth": 24,
+      "size": 80,
+      "time_index": 138
+    },
+    {
+      "count_1q": 59,
+      "count_2q": 20,
+      "depth": 23,
+      "size": 79,
+      "time_index": 139
+    },
+    {
+      "count_1q": 60,
+      "count_2q": 20,
+      "depth": 24,
+      "size": 80,
+      "time_index": 140
+    },
+    {
+      "count_1q": 60,
+      "count_2q": 20,
+      "depth": 24,
+      "size": 80,
+      "time_index": 141
+    },
+    {
+      "count_1q": 60,
+      "count_2q": 20,
+      "depth": 24,
+      "size": 80,
+      "time_index": 142
+    },
+    {
+      "count_1q": 60,
+      "count_2q": 20,
+      "depth": 24,
+      "size": 80,
+      "time_index": 143
+    },
+    {
+      "count_1q": 60,
+      "count_2q": 20,
+      "depth": 24,
+      "size": 80,
+      "time_index": 144
+    },
+    {
+      "count_1q": 60,
+      "count_2q": 20,
+      "depth": 24,
+      "size": 80,
+      "time_index": 145
+    },
+    {
+      "count_1q": 60,
+      "count_2q": 20,
+      "depth": 24,
+      "size": 80,
+      "time_index": 146
+    },
+    {
+      "count_1q": 59,
+      "count_2q": 20,
+      "depth": 23,
+      "size": 79,
+      "time_index": 147
+    },
+    {
+      "count_1q": 60,
+      "count_2q": 20,
+      "depth": 24,
+      "size": 80,
+      "time_index": 148
+    },
+    {
+      "count_1q": 60,
+      "count_2q": 20,
+      "depth": 24,
+      "size": 80,
+      "time_index": 149
+    },
+    {
+      "count_1q": 59,
+      "count_2q": 20,
+      "depth": 23,
+      "size": 79,
+      "time_index": 150
+    },
+    {
+      "count_1q": 60,
+      "count_2q": 20,
+      "depth": 24,
+      "size": 80,
+      "time_index": 151
+    },
+    {
+      "count_1q": 59,
+      "count_2q": 20,
+      "depth": 23,
+      "size": 79,
+      "time_index": 152
+    },
+    {
+      "count_1q": 59,
+      "count_2q": 20,
+      "depth": 23,
+      "size": 79,
+      "time_index": 153
+    },
+    {
+      "count_1q": 60,
+      "count_2q": 20,
+      "depth": 24,
+      "size": 80,
+      "time_index": 154
+    },
+    {
+      "count_1q": 59,
+      "count_2q": 20,
+      "depth": 23,
+      "size": 79,
+      "time_index": 155
+    },
+    {
+      "count_1q": 60,
+      "count_2q": 20,
+      "depth": 24,
+      "size": 80,
+      "time_index": 156
+    },
+    {
+      "count_1q": 60,
+      "count_2q": 20,
+      "depth": 24,
+      "size": 80,
+      "time_index": 157
+    },
+    {
+      "count_1q": 60,
+      "count_2q": 20,
+      "depth": 24,
+      "size": 80,
+      "time_index": 158
+    },
+    {
+      "count_1q": 59,
+      "count_2q": 20,
+      "depth": 23,
+      "size": 79,
+      "time_index": 159
+    },
+    {
+      "count_1q": 61,
+      "count_2q": 20,
+      "depth": 24,
+      "size": 81,
+      "time_index": 160
+    }
+  ]
+}

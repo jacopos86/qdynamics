@@ -65,6 +65,42 @@ def _statevector_to_amplitudes_qn_to_q0(
     return out
 
 
+_VALID_HANDOFF_STATE_KINDS = {"prepared_state", "reference_state"}
+
+
+def build_statevector_manifest(
+    *,
+    psi_state: np.ndarray,
+    source: str,
+    handoff_state_kind: str | None = None,
+    amplitude_cutoff: float = 1e-14,
+) -> dict[str, Any]:
+    psi = np.asarray(psi_state, dtype=complex).reshape(-1)
+    norm = float(np.linalg.norm(psi))
+    if norm <= 0.0:
+        raise ValueError("psi_state must be non-zero.")
+    psi = psi / norm
+    nq_total = int(round(math.log2(int(psi.size))))
+    kind = None if handoff_state_kind is None else str(handoff_state_kind).strip()
+    if kind is not None and kind not in _VALID_HANDOFF_STATE_KINDS:
+        raise ValueError(
+            f"handoff_state_kind must be one of {sorted(_VALID_HANDOFF_STATE_KINDS)} when provided."
+        )
+    manifest: dict[str, Any] = {
+        "source": str(source),
+        "nq_total": int(nq_total),
+        "amplitudes_qn_to_q0": _statevector_to_amplitudes_qn_to_q0(
+            psi,
+            cutoff=float(amplitude_cutoff),
+        ),
+        "amplitude_cutoff": float(amplitude_cutoff),
+        "norm": float(np.linalg.norm(psi)),
+    }
+    if kind is not None:
+        manifest["handoff_state_kind"] = kind
+    return manifest
+
+
 def write_handoff_state_bundle(
     *,
     path: Path,
@@ -78,6 +114,9 @@ def write_handoff_state_bundle(
     meta: dict[str, Any] | None = None,
     adapt_operators: list[str] | None = None,
     adapt_optimal_point: list[float] | None = None,
+    adapt_logical_optimal_point: list[float] | None = None,
+    adapt_parameterization: dict[str, Any] | None = None,
+    adapt_logical_num_parameters: int | None = None,
     adapt_pool_type: str | None = None,
     handoff_state_kind: str | None = None,
     continuation_mode: str | None = None,
@@ -92,6 +131,9 @@ def write_handoff_state_bundle(
     prune_summary: dict[str, Any] | None = None,
     pre_prune_scaffold: dict[str, Any] | None = None,
     replay_contract_hint: dict[str, Any] | None = None,
+    ansatz_input_state: np.ndarray | None = None,
+    ansatz_input_state_source: str | None = None,
+    ansatz_input_state_handoff_state_kind: str | None = None,
     amplitude_cutoff: float = 1e-14,
 ) -> None:
     """Write an adapt_json-compatible HH handoff bundle."""
@@ -101,8 +143,6 @@ def write_handoff_state_bundle(
     if norm <= 0.0:
         raise ValueError("psi_state must be non-zero.")
     psi = psi / norm
-    nq_total = int(round(math.log2(int(psi.size))))
-    amps = _statevector_to_amplitudes_qn_to_q0(psi, cutoff=float(amplitude_cutoff))
 
     adapt_vqe_block: dict[str, Any] = {
         "energy": float(energy),
@@ -114,6 +154,12 @@ def write_handoff_state_bundle(
         adapt_vqe_block["optimal_point"] = [float(x) for x in adapt_optimal_point]
         adapt_vqe_block["ansatz_depth"] = int(len(adapt_operators))
         adapt_vqe_block["num_parameters"] = int(len(adapt_optimal_point))
+        if adapt_logical_optimal_point is not None:
+            adapt_vqe_block["logical_optimal_point"] = [float(x) for x in adapt_logical_optimal_point]
+        if adapt_logical_num_parameters is not None:
+            adapt_vqe_block["logical_num_parameters"] = int(adapt_logical_num_parameters)
+        if adapt_parameterization is not None:
+            adapt_vqe_block["parameterization"] = dict(adapt_parameterization)
     if adapt_pool_type is not None:
         adapt_vqe_block["pool_type"] = str(adapt_pool_type)
     if pre_prune_scaffold is not None:
@@ -125,22 +171,25 @@ def write_handoff_state_bundle(
         "generated_utc": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "settings": build_handoff_settings_manifest(cfg),
         "adapt_vqe": adapt_vqe_block,
-        "initial_state": {
-            "source": str(source),
-            "nq_total": nq_total,
-            "amplitudes_qn_to_q0": amps,
-            "amplitude_cutoff": float(amplitude_cutoff),
-            "norm": float(np.linalg.norm(psi)),
-            **(
-                {"handoff_state_kind": str(handoff_state_kind)}
-                if handoff_state_kind is not None
-                else {}
-            ),
-        },
+        "initial_state": build_statevector_manifest(
+            psi_state=psi,
+            source=str(source),
+            handoff_state_kind=handoff_state_kind,
+            amplitude_cutoff=float(amplitude_cutoff),
+        ),
         "exact": {
             "E_exact_sector": float(exact_energy),
         },
     }
+    if ansatz_input_state is not None:
+        if ansatz_input_state_source is None or str(ansatz_input_state_source).strip() == "":
+            raise ValueError("ansatz_input_state_source is required when ansatz_input_state is provided.")
+        payload["ansatz_input_state"] = build_statevector_manifest(
+            psi_state=np.asarray(ansatz_input_state, dtype=complex).reshape(-1),
+            source=str(ansatz_input_state_source),
+            handoff_state_kind=ansatz_input_state_handoff_state_kind,
+            amplitude_cutoff=float(amplitude_cutoff),
+        )
     continuation_block: dict[str, Any] = {}
     if continuation_mode is not None:
         continuation_block["mode"] = str(continuation_mode)

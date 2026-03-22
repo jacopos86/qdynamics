@@ -43,6 +43,9 @@ The priority is **correctness and consistency of operator conventions**, not “
 - Treat this as the canonical source for execution contracts that are not operator-level invariants (e.g., thresholds, gating policy, and recommended run ladders).
 - Canonical doc order for agent decisions: `AGENTS.md` -> `pipelines/run_guide.md` -> `README.md` -> task-specific `MATH/` notes.
 - Root-level supporting docs for agents: `README.md` and task-specific `MATH/` notes.
+- Math naming contract for agents:
+  - `MATH/Math.md` is the canonical symbolic math manuscript and is the source corresponding to `MATH/Math.pdf`.
+  - `MATH/archaic_repo_math.md` is archival only; do not treat it as the default math file unless the user explicitly asks for the archaic repo-oriented notes.
 - Agents should ignore `docs/` unless the user explicitly asks for material from that folder or PDF/report output is in scope.
 - Agents may use `docs/reports/` when repairing or extending PDF/report output.
 

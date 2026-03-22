@@ -1,0 +1,9 @@
+{
+  "tag": "l2_nph2_hva_ptw_refine_b1_splitoff",
+  "status": "stopped",
+  "pid": 7790,
+  "started_utc": "2026-03-15T05:07:03Z",
+  "log": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_2/artifacts/agent_runs/l2_nph2_beam_depth_search/recovery/l2_nph2_hva_ptw_refine_b1_splitoff.stdout.log",
+  "pidfile": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_2/artifacts/agent_runs/l2_nph2_beam_depth_search/recovery/l2_nph2_hva_ptw_refine_b1_splitoff.pid",
+  "stopped_utc": "2026-03-15T05:33:10Z"
+}

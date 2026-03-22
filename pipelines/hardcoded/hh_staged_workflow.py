@@ -930,7 +930,12 @@ def _handoff_continuation_meta(adapt_payload: Mapping[str, Any]) -> dict[str, An
     }
 
 
-def _write_adapt_handoff(cfg: StagedHHConfig, adapt_payload: Mapping[str, Any], psi_adapt: np.ndarray) -> None:
+def _write_adapt_handoff(
+    cfg: StagedHHConfig,
+    adapt_payload: Mapping[str, Any],
+    psi_adapt: np.ndarray,
+    psi_ansatz_input: np.ndarray,
+) -> None:
     exact_energy = float(adapt_payload.get("exact_gs_energy", float("nan")))
     energy = float(adapt_payload.get("energy", float("nan")))
     continuation_meta = _handoff_continuation_meta(adapt_payload)
@@ -964,6 +969,17 @@ def _write_adapt_handoff(cfg: StagedHHConfig, adapt_payload: Mapping[str, Any], 
         },
         adapt_operators=[str(x) for x in adapt_payload.get("operators", [])],
         adapt_optimal_point=[float(x) for x in adapt_payload.get("optimal_point", [])],
+        adapt_logical_optimal_point=[float(x) for x in adapt_payload.get("logical_optimal_point", [])],
+        adapt_parameterization=(
+            dict(adapt_payload.get("parameterization", {}))
+            if isinstance(adapt_payload.get("parameterization", {}), Mapping)
+            else None
+        ),
+        adapt_logical_num_parameters=(
+            int(adapt_payload.get("logical_num_parameters"))
+            if adapt_payload.get("logical_num_parameters") is not None
+            else None
+        ),
         adapt_pool_type=(None if adapt_payload.get("pool_type") is None else str(adapt_payload.get("pool_type"))),
         handoff_state_kind="prepared_state",
         continuation_mode=str(continuation_meta.get("continuation_mode", cfg.adapt.continuation_mode)),
@@ -983,6 +999,9 @@ def _write_adapt_handoff(cfg: StagedHHConfig, adapt_payload: Mapping[str, Any], 
             "replay_seed_policy": str(cfg.replay.replay_seed_policy),
             "replay_continuation_mode": str(cfg.replay.continuation_mode),
         },
+        ansatz_input_state=np.asarray(psi_ansatz_input, dtype=complex).reshape(-1),
+        ansatz_input_state_source="warm_start_hva",
+        ansatz_input_state_handoff_state_kind="prepared_state",
     )
 
 
@@ -1085,7 +1104,12 @@ def run_stage_pipeline(cfg: StagedHHConfig) -> StageExecutionResult:
         phase3_runtime_split_mode=str(cfg.adapt.phase3_runtime_split_mode),
     )
 
-    _write_adapt_handoff(cfg, adapt_payload, np.asarray(psi_adapt, dtype=complex).reshape(-1))
+    _write_adapt_handoff(
+        cfg,
+        adapt_payload,
+        np.asarray(psi_adapt, dtype=complex).reshape(-1),
+        np.asarray(psi_warm, dtype=complex).reshape(-1),
+    )
     replay_cfg = replay_mod.RunConfig(
         adapt_input_json=Path(cfg.artifacts.handoff_json),
         output_json=Path(cfg.artifacts.replay_output_json),
@@ -1396,6 +1420,18 @@ def _stage_summary(stage_result: StageExecutionResult, cfg: StagedHHConfig) -> d
             "exact_energy": float(adapt_exact),
             "delta_abs": float(adapt_delta),
             "depth": int(stage_result.adapt_payload.get("ansatz_depth", 0)),
+            "num_parameters": int(
+                stage_result.adapt_payload.get(
+                    "num_parameters",
+                    stage_result.adapt_payload.get("ansatz_depth", 0),
+                )
+            ),
+            "logical_num_parameters": int(
+                stage_result.adapt_payload.get(
+                    "logical_num_parameters",
+                    stage_result.adapt_payload.get("ansatz_depth", 0),
+                )
+            ),
             "pool_type": str(stage_result.adapt_payload.get("pool_type", cfg.adapt.pool or cfg.adapt.continuation_mode)),
             "continuation_mode": str(stage_result.adapt_payload.get("continuation_mode", cfg.adapt.continuation_mode)),
             "stop_reason": str(stage_result.adapt_payload.get("stop_reason", "")),

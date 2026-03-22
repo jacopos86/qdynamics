@@ -1,0 +1,282 @@
+{
+  "compare_spec": {
+    "problem": "hh",
+    "L": 2,
+    "t": 1.0,
+    "U": 4.0,
+    "dv": 0.0,
+    "omega0": 1.0,
+    "g_ep": 0.5,
+    "n_ph_max": 2,
+    "ordering": "blocked",
+    "boundary": "periodic",
+    "warm_ansatz": "hh_hva_ptw",
+    "adapt_pool": "paop_lf_std",
+    "basis_gates": [
+      "cx",
+      "rz",
+      "sx",
+      "x"
+    ],
+    "transpile_optimization_level": 1,
+    "warm_handoff_shared": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_2/artifacts/json/l2_hh_nb2_paop_phase3v1_costcmp_warm_cutover_state.json"
+  },
+  "results": {
+    "phase3_v1": {
+      "summary": {
+        "hf_reference": {
+          "state_kind": "reference_state",
+          "nq_total": 8,
+          "sector_n_up": 1,
+          "sector_n_dn": 1
+        },
+        "warm_start": {
+          "ansatz": "hh_hva_ptw",
+          "energy": 0.17996606861966136,
+          "exact_energy": 0.1584437535268517,
+          "delta_abs": 0.021522315092809663,
+          "ecut_1": {
+            "threshold": 0.1,
+            "pass": true
+          },
+          "optimizer_method": "SPSA",
+          "reps": 2,
+          "restarts": 4,
+          "maxiter": 1778,
+          "message": "spsa_completed(maxiter=1778,a=0.2,c=0.1,alpha=0.602,gamma=0.101,A=10.0,eval_repeats=1,eval_agg=mean,avg_last=0)",
+          "checkpoint_json_latest": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_2/artifacts/json/l2_hh_nb2_paop_phase3v1_costcmp_warm_checkpoint_state.json",
+          "checkpoint_json_used": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_2/artifacts/json/l2_hh_nb2_paop_phase3v1_costcmp_warm_cutover_state.json",
+          "cutoff_triggered": false,
+          "cutoff_reason": null,
+          "resumed_from_checkpoint": false
+        },
+        "adapt_vqe": {
+          "energy": 0.16570411191317322,
+          "exact_energy": 0.1584437535268517,
+          "delta_abs": 0.007260358386321525,
+          "depth": 18,
+          "pool_type": "phase3_v1",
+          "continuation_mode": "phase3_v1",
+          "stop_reason": "drop_plateau",
+          "handoff_json": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_2/artifacts/json/l2_hh_nb2_paop_phase3v1_costcmp_adapt_handoff.json",
+          "adapt_ref_json": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_2/artifacts/json/l2_hh_nb2_paop_phase3v1_costcmp_warm_cutover_state.json",
+          "initial_state_source": "adapt_ref_json"
+        },
+        "conventional_replay": {
+          "energy": 0.16557763358085628,
+          "exact_energy": 0.1584437535268517,
+          "delta_abs": 0.007133880054004588,
+          "ecut_2": {
+            "threshold": 0.0001,
+            "pass": false
+          },
+          "generator_family": {
+            "requested": "match_adapt",
+            "resolved": "paop_lf_std",
+            "resolution_source": "continuation.selected_generator_metadata.family_id",
+            "fallback_family": "full_meta",
+            "fallback_used": false,
+            "warning": null
+          },
+          "seed_baseline": {
+            "theta_policy": "residual_only",
+            "energy": 0.16570411191317186,
+            "abs_delta_e": 0.007260358386320165,
+            "relative_error_abs": 0.045822938580470714
+          },
+          "stop_reason": "converged",
+          "replay_continuation_mode": "phase3_v1",
+          "replay_output_json": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_2/artifacts/json/l2_hh_nb2_paop_phase3v1_costcmp_replay.json"
+        }
+      },
+      "artifacts": {
+        "workflow_output_json": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_2/artifacts/json/l2_hh_nb2_paop_phase3v1_costcmp.json",
+        "adapt_handoff_json": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_2/artifacts/json/l2_hh_nb2_paop_phase3v1_costcmp_adapt_handoff.json",
+        "replay_output_json": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_2/artifacts/json/l2_hh_nb2_paop_phase3v1_costcmp_replay.json",
+        "warm_cutover_json": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_2/artifacts/json/l2_hh_nb2_paop_phase3v1_costcmp_warm_cutover_state.json"
+      },
+      "circuits": {
+        "warm_start": {
+          "num_qubits": 8,
+          "depth": 186,
+          "size": 486,
+          "count_ops": {
+            "rz": 214,
+            "cx": 208,
+            "sx": 64
+          },
+          "cx": 208,
+          "sx": 64,
+          "rz": 214,
+          "x": 0
+        },
+        "adapt_vqe": {
+          "num_qubits": 8,
+          "depth": 1499,
+          "size": 1550,
+          "count_ops": {
+            "rz": 768,
+            "sx": 505,
+            "cx": 269,
+            "reset": 8
+          },
+          "cx": 269,
+          "sx": 505,
+          "rz": 768,
+          "x": 0
+        },
+        "conventional_replay": {
+          "num_qubits": 8,
+          "depth": 1499,
+          "size": 1550,
+          "count_ops": {
+            "rz": 768,
+            "sx": 505,
+            "cx": 269,
+            "reset": 8
+          },
+          "cx": 269,
+          "sx": 505,
+          "rz": 768,
+          "x": 0
+        }
+      }
+    },
+    "phase1_v1": {
+      "summary": {
+        "hf_reference": {
+          "state_kind": "reference_state",
+          "nq_total": 8,
+          "sector_n_up": 1,
+          "sector_n_dn": 1
+        },
+        "warm_start": {
+          "ansatz": "hh_hva_ptw",
+          "energy": 0.17996606861966136,
+          "exact_energy": 0.1584437535268517,
+          "delta_abs": 0.021522315092809663,
+          "ecut_1": {
+            "threshold": 0.1,
+            "pass": true
+          },
+          "optimizer_method": "SPSA",
+          "reps": 2,
+          "restarts": 4,
+          "maxiter": 1778,
+          "message": "warm_handoff_from_checkpoint",
+          "checkpoint_json_latest": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_2/artifacts/json/l2_hh_nb2_paop_phase1v1_costcmp_samewarm_warm_checkpoint_state.json",
+          "checkpoint_json_used": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_2/artifacts/json/l2_hh_nb2_paop_phase1v1_costcmp_samewarm_warm_cutover_state.json",
+          "cutoff_triggered": false,
+          "cutoff_reason": null,
+          "resumed_from_checkpoint": false
+        },
+        "adapt_vqe": {
+          "energy": 0.16923927122981436,
+          "exact_energy": 0.1584437535268517,
+          "delta_abs": 0.010795517702962665,
+          "depth": 18,
+          "pool_type": "phase1_v1",
+          "continuation_mode": "phase1_v1",
+          "stop_reason": "drop_plateau",
+          "handoff_json": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_2/artifacts/json/l2_hh_nb2_paop_phase1v1_costcmp_samewarm_adapt_handoff.json",
+          "adapt_ref_json": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_2/artifacts/json/l2_hh_nb2_paop_phase1v1_costcmp_samewarm_warm_cutover_state.json",
+          "initial_state_source": "adapt_ref_json"
+        },
+        "conventional_replay": {
+          "energy": 0.16782816299027337,
+          "exact_energy": 0.1584437535268517,
+          "delta_abs": 0.009384409463421672,
+          "ecut_2": {
+            "threshold": 0.0001,
+            "pass": false
+          },
+          "generator_family": {
+            "requested": "match_adapt",
+            "resolved": "full_meta",
+            "resolution_source": "adapt_payload.operators",
+            "fallback_family": "full_meta",
+            "fallback_used": false,
+            "warning": null
+          },
+          "seed_baseline": {
+            "theta_policy": "residual_only",
+            "energy": 0.16923927122981317,
+            "abs_delta_e": 0.010795517702961471,
+            "relative_error_abs": 0.06813470056509321
+          },
+          "stop_reason": "converged",
+          "replay_continuation_mode": "phase1_v1",
+          "replay_output_json": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_2/artifacts/json/l2_hh_nb2_paop_phase1v1_costcmp_samewarm_replay.json"
+        }
+      },
+      "artifacts": {
+        "workflow_output_json": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_2/artifacts/json/l2_hh_nb2_paop_phase1v1_costcmp_samewarm.json",
+        "adapt_handoff_json": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_2/artifacts/json/l2_hh_nb2_paop_phase1v1_costcmp_samewarm_adapt_handoff.json",
+        "replay_output_json": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_2/artifacts/json/l2_hh_nb2_paop_phase1v1_costcmp_samewarm_replay.json",
+        "warm_cutover_json": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_2/artifacts/json/l2_hh_nb2_paop_phase1v1_costcmp_samewarm_warm_cutover_state.json"
+      },
+      "circuits": {
+        "warm_start": {
+          "num_qubits": 8,
+          "depth": 186,
+          "size": 486,
+          "count_ops": {
+            "rz": 214,
+            "cx": 208,
+            "sx": 64
+          },
+          "cx": 208,
+          "sx": 64,
+          "rz": 214,
+          "x": 0
+        },
+        "adapt_vqe": {
+          "num_qubits": 8,
+          "depth": 1496,
+          "size": 1547,
+          "count_ops": {
+            "rz": 767,
+            "sx": 505,
+            "cx": 267,
+            "reset": 8
+          },
+          "cx": 267,
+          "sx": 505,
+          "rz": 767,
+          "x": 0
+        },
+        "conventional_replay": {
+          "num_qubits": 8,
+          "depth": 1509,
+          "size": 1575,
+          "count_ops": {
+            "rz": 775,
+            "sx": 505,
+            "cx": 287,
+            "reset": 8
+          },
+          "cx": 287,
+          "sx": 505,
+          "rz": 775,
+          "x": 0
+        }
+      }
+    }
+  },
+  "stage_deltas": {
+    "adapt_vqe": {
+      "depth_delta_phase3_minus_phase1": 3,
+      "cx_delta_phase3_minus_phase1": 2,
+      "size_delta_phase3_minus_phase1": 3,
+      "delta_abs_energy_phase1": 0.010795517702962665,
+      "delta_abs_energy_phase3": 0.007260358386321525
+    },
+    "conventional_replay": {
+      "depth_delta_phase3_minus_phase1": -10,
+      "cx_delta_phase3_minus_phase1": -18,
+      "size_delta_phase3_minus_phase1": -25,
+      "delta_abs_energy_phase1": 0.009384409463421672,
+      "delta_abs_energy_phase3": 0.007133880054004588
+    }
+  }
+}

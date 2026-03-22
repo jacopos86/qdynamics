@@ -1,0 +1,845 @@
+{
+  "schema_kind": "hh_realtime_vqs_bundle",
+  "schema_version": 8,
+  "generated_utc": "2026-03-17T23:10:59Z",
+  "tag": "hh_fixed_seed_runtime_geometry_smoke",
+  "artifact": {
+    "output_json": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/artifacts/json/phase_a_local_rehearsal_20260317_134642/active_window_shots_fixed_patch_smoke.bundle.json"
+  },
+  "serialization": {
+    "amplitude_cutoff": 1e-14
+  },
+  "settings": {
+    "L": 2,
+    "problem": "hh",
+    "t": 1.0,
+    "u": 4.0,
+    "dv": 0.0,
+    "omega0": 1.0,
+    "g_ep": 0.5,
+    "n_ph_max": 1,
+    "boson_encoding": "binary",
+    "ordering": "blocked",
+    "boundary": "open",
+    "sector_n_up": 1,
+    "sector_n_dn": 1
+  },
+  "seed": {
+    "source_json": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/artifacts/json/phase_a_local_rehearsal_20260317_134642/seed_ref_basis_uccsd_otimes_paop_lf_std.json",
+    "generator_family_requested": "uccsd_otimes_paop_lf_std",
+    "generator_family_resolved": "uccsd_otimes_paop_lf_std",
+    "fallback_family": "full_meta",
+    "legacy_paop_key": "paop_lf_std",
+    "replay_continuation_mode": "phase3_v1",
+    "handoff_state_kind": "reference_state",
+    "provenance_source": "explicit",
+    "resolved_seed_policy": "scaffold_plus_zero",
+    "seed_policy_source": "inferred_handoff_state",
+    "contract_version": null,
+    "phase_compatibility": "fixed_structure_phase_a",
+    "family_info": {
+      "requested": "uccsd_otimes_paop_lf_std",
+      "resolved": "uccsd_otimes_paop_lf_std",
+      "resolution_source": "cli.generator_family",
+      "fallback_family": "full_meta",
+      "fallback_used": false,
+      "warning": null,
+      "measured_geometry_capability": {
+        "schema_version": 2,
+        "surface": "phase_a_measured_local_system_capability",
+        "family_id": "uccsd_otimes_paop_lf_std",
+        "eligible_for_certification": true,
+        "certifiable_local_system_modes": [
+          "hadamard_transition_fd_general"
+        ],
+        "allowed_requested_families": [
+          "uccsd_otimes_paop_lf_std"
+        ],
+        "requires_reference_state_handoff": true,
+        "requires_basis_reference_state": true,
+        "disallow_fallback": true,
+        "static_hamiltonian_only": true,
+        "driven_segments_supported": false,
+        "runtime_submission_blocked": true,
+        "phase_b_supported": false
+      },
+      "derivative_capability": {
+        "schema_version": 2,
+        "surface": "phase_a_measured_local_system_capability",
+        "family_id": "uccsd_otimes_paop_lf_std",
+        "eligible_for_certification": true,
+        "certifiable_local_system_modes": [
+          "hadamard_transition_fd_general"
+        ],
+        "allowed_requested_families": [
+          "uccsd_otimes_paop_lf_std"
+        ],
+        "requires_reference_state_handoff": true,
+        "requires_basis_reference_state": true,
+        "disallow_fallback": true,
+        "static_hamiltonian_only": true,
+        "driven_segments_supported": false,
+        "runtime_submission_blocked": true,
+        "phase_b_supported": false
+      },
+      "measured_geometry_seed_cert": {
+        "schema_version": 2,
+        "surface": "fixed_structure_phase_a_geometry_seed",
+        "status": "certified",
+        "reason": "explicit_target_family_reference_basis_seed",
+        "requested_family": "uccsd_otimes_paop_lf_std",
+        "resolved_family": "uccsd_otimes_paop_lf_std",
+        "handoff_state_kind": "reference_state",
+        "fallback_used": false,
+        "reference_state_is_basis_state": true,
+        "generator_fingerprint": "53e0691e73bdfed5"
+      },
+      "derivative_certification": {
+        "schema_version": 2,
+        "surface": "fixed_structure_phase_a_geometry_seed",
+        "status": "certified",
+        "reason": "explicit_target_family_reference_basis_seed",
+        "requested_family": "uccsd_otimes_paop_lf_std",
+        "resolved_family": "uccsd_otimes_paop_lf_std",
+        "handoff_state_kind": "reference_state",
+        "fallback_used": false,
+        "reference_state_is_basis_state": true,
+        "generator_fingerprint": "53e0691e73bdfed5"
+      }
+    },
+    "pool_meta": {
+      "family": "uccsd_otimes_paop_lf_std",
+      "family_kind": "uccsd_paop_product",
+      "parameterization": "single_product",
+      "motif_family": "paop_lf_std",
+      "locality_rule": "lf_overlap",
+      "raw_sizes": {
+        "raw_uccsd_lifted": 3,
+        "raw_phonon_motifs": 3,
+        "raw_logical_pairs": 9,
+        "raw_emitted_terms": 9
+      },
+      "logical_element_count": 9,
+      "expanded_term_count": 9,
+      "dedup_strategy": "signature",
+      "dedup_total": 9
+    },
+    "term_labels": [
+      "uccsd_otimes_paop::uccsd_ferm_lifted::uccsd_sing(alpha:0->1)::paop_lf_std::delta_p(0,1)"
+    ],
+    "source_adapt_labels": [
+      "uccsd_otimes_paop::uccsd_ferm_lifted::uccsd_sing(alpha:0->1)::paop_lf_std::delta_p(0,1)"
+    ],
+    "seed_theta": [
+      0.0
+    ],
+    "replay_terms": [
+      {
+        "label": "uccsd_otimes_paop::uccsd_ferm_lifted::uccsd_sing(alpha:0->1)::paop_lf_std::delta_p(0,1)",
+        "serialized_terms_exyz": [
+          {
+            "pauli_exyz": "eyeeyx",
+            "coeff_re": 0.5,
+            "coeff_im": 0.0,
+            "nq": 6
+          },
+          {
+            "pauli_exyz": "yeeeyx",
+            "coeff_re": -0.5,
+            "coeff_im": 0.0,
+            "nq": 6
+          },
+          {
+            "pauli_exyz": "eyeexy",
+            "coeff_re": -0.5,
+            "coeff_im": 0.0,
+            "nq": 6
+          },
+          {
+            "pauli_exyz": "yeeexy",
+            "coeff_re": 0.5,
+            "coeff_im": 0.0,
+            "nq": 6
+          }
+        ]
+      }
+    ]
+  },
+  "initial_state": {
+    "nq_total": 6,
+    "amplitude_cutoff": 0.0,
+    "amplitudes_qn_to_q0": {
+      "000000": {
+        "re": 1.0,
+        "im": 0.0
+      }
+    }
+  },
+  "projected_real_time": {
+    "config": {
+      "t_final": 0.01,
+      "num_times": 2,
+      "ode_substeps": 1,
+      "tangent_eps": 1e-06,
+      "lambda_reg": 1e-08,
+      "svd_rcond": 1e-12,
+      "coefficient_tolerance": 1e-12,
+      "sort_terms": true,
+      "propagation_geometry_mode": "horizontal",
+      "propagation_regularization_mode": "whitened_subspace",
+      "policy_geometry_mode": "horizontal",
+      "policy_regularization_mode": "whitened_subspace",
+      "policy_normalization_mode": "var_h",
+      "policy_normalization_floor": 1e-12,
+      "active_window_mode": "latest_parameters_count",
+      "active_window_size": 1
+    },
+    "drive": {
+      "enabled": false,
+      "A": 1.0,
+      "omega": 1.0,
+      "tbar": 5.0,
+      "phi": 0.0,
+      "pattern": "staggered",
+      "t0": 0.0,
+      "time_sampling": "midpoint"
+    },
+    "reference": {
+      "enabled": false,
+      "reference_steps": 256
+    },
+    "geometry_runtime_preflight_request": {
+      "noise_mode": "runtime",
+      "shots": 8,
+      "seed": 7,
+      "oracle_repeats": 1,
+      "oracle_aggregate": "mean",
+      "backend_name": "generic_seeded_7q",
+      "backend_profile": null,
+      "schedule_policy": null,
+      "layout_policy": "fixed_patch",
+      "fixed_physical_patch": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "fixed_couplers": null,
+      "layout_lock_key": "active_window_shots_fixed_patch_smoke",
+      "seed_transpiler": null,
+      "seed_simulator": null,
+      "approximation": false,
+      "abelian_grouping": true,
+      "mitigation": "none",
+      "runtime_twirling": null,
+      "symmetry_mitigation": "off",
+      "allow_runtime_submission": false
+    },
+    "geometry_runtime_preflight_summary": {
+      "schema_version": 1,
+      "requested": true,
+      "submission_blocked": true,
+      "submission_block_reason": "Phase A runtime geometry preflight is inspection-only; no Runtime service, session, estimator, or job was created.",
+      "allow_runtime_submission": false,
+      "preflight_statement": "This record describes a runtime-capable target bundle only. Runtime submission remains disabled in the current repo slice.",
+      "target_honesty_statement": "runtime raw: runtime-submitted ISA/layout with mitigation explicitly disabled",
+      "local_system_plan": {
+        "schema_version": 1,
+        "mode": "hadamard_transition_fd_general",
+        "execution_eligible": true,
+        "gate_reason": null,
+        "gate_detail": null,
+        "capability_family_id": "uccsd_otimes_paop_lf_std",
+        "capability_certifiable_modes": [
+          "hadamard_transition_fd_general"
+        ],
+        "seed_certificate_status": "certified",
+        "seed_certificate_reason": "explicit_target_family_reference_basis_seed",
+        "context_is_driven": false
+      },
+      "geometry_backend_plan": {
+        "schema_version": 1,
+        "backend_kind": "runtime_hadamard_transition_fd_v1",
+        "execution_mode": "plan_only",
+        "local_system_mode": "hadamard_transition_fd_general",
+        "planned_local_system_source": "runtime_hadamard_transition_fd",
+        "planned_observable_source": "runtime_expectation_oracle",
+        "actual_phase_a_execution_backend": "local_phase_a_geometry_adapter",
+        "context_shape": {
+          "num_qubits": 6,
+          "term_count": 1,
+          "active_parameter_count": 1,
+          "drive_enabled": false,
+          "sector_observables_present": true,
+          "coefficient_tolerance": 1e-12
+        },
+        "constraints": {
+          "static_hamiltonian_only": true,
+          "requires_basis_reference_state": true,
+          "driven_segments_supported": false,
+          "phase_b_supported": false,
+          "runtime_submission_blocked": true
+        },
+        "eligibility": {
+          "schema_version": 1,
+          "mode": "hadamard_transition_fd_general",
+          "execution_eligible": true,
+          "gate_reason": null,
+          "gate_detail": null,
+          "capability_family_id": "uccsd_otimes_paop_lf_std",
+          "capability_certifiable_modes": [
+            "hadamard_transition_fd_general"
+          ],
+          "seed_certificate_status": "certified",
+          "seed_certificate_reason": "explicit_target_family_reference_basis_seed",
+          "context_is_driven": false
+        },
+        "per_estimate_local_system_workload": {
+          "num_qubits": 6,
+          "parameter_count": 1,
+          "full_parameter_count": 1,
+          "hamiltonian_pauli_term_count": 17,
+          "overlap_transition_requests": 6,
+          "pauli_transition_requests": 51,
+          "transition_requests_total": 57,
+          "ancilla_circuit_evaluations_total": 114,
+          "finite_difference_eps": 0.001,
+          "local_system_source": "hadamard_transition_fd_general",
+          "transition_request_families": [
+            "overlap",
+            "pauli_transition"
+          ]
+        },
+        "per_estimate_observable_workload": {
+          "observable_request_count": 4,
+          "includes_hamiltonian_variance": true,
+          "includes_sector_observables": true,
+          "observable_term_counts": {
+            "energy": 17,
+            "h2": 91,
+            "n_up": 3,
+            "n_dn": 3
+          }
+        },
+        "nominal_trajectory_estimate_calls": 6,
+        "nominal_trajectory_totals": {
+          "estimate_calls": 6,
+          "transition_requests_total": 342,
+          "ancilla_circuit_evaluations_total": 684,
+          "observable_request_count": 24
+        }
+      },
+      "geometry_backend_interface": {
+        "schema_version": 1,
+        "backend_kind": "runtime_hadamard_transition_fd_v1",
+        "execution_mode": "blocked_preflight",
+        "local_system_mode": "hadamard_transition_fd_general",
+        "required_executor": "runtime_qpu",
+        "submission_blocked": true,
+        "submission_block_reason": "Current repo slice exposes the runtime geometry backend contract but keeps Runtime submission gated off by default.",
+        "allow_runtime_submission": false,
+        "transition_primitive": "hadamard_test_ancilla_z",
+        "transition_request_families": [
+          "overlap",
+          "pauli_transition"
+        ],
+        "observable_primitive": "runtime_expectation_oracle",
+        "observable_request_names": [
+          "energy",
+          "h2",
+          "n_up",
+          "n_dn"
+        ],
+        "response_contract": "mclachlan_local_system_estimate_v1",
+        "oracle_execution": {
+          "noise_mode": "runtime",
+          "estimator_kind": "runtime_preflight_only",
+          "backend_name": "generic_seeded_7q",
+          "using_fake_backend": false,
+          "shots": 8,
+          "mitigation": {
+            "mode": "none",
+            "zne_scales": [],
+            "dd_sequence": null,
+            "local_readout_strategy": "tensor",
+            "local_readout_calibration_shots": null
+          },
+          "runtime_twirling": {
+            "enable_gates": false,
+            "enable_measure": false,
+            "num_randomizations": null,
+            "strategy": null
+          },
+          "symmetry_mitigation_config": {
+            "mode": "off",
+            "num_sites": null,
+            "ordering": "blocked",
+            "sector_n_up": null,
+            "sector_n_dn": null
+          },
+          "symmetry_mitigation_result": null,
+          "resolved_noise_spec": {
+            "executor": "runtime_qpu",
+            "noise_kind": "qpu_raw",
+            "backend_profile_kind": "live_backend",
+            "mitigation_bundle": "none",
+            "layout_policy": "fixed_patch",
+            "schedule_policy": "none",
+            "shots": 8,
+            "seed_transpiler": null,
+            "seed_simulator": null,
+            "allow_noisy_fallback": false,
+            "snapshot_path": null,
+            "fixed_physical_patch": [
+              0,
+              1,
+              2,
+              3,
+              4,
+              5,
+              6
+            ],
+            "fixed_couplers": null,
+            "notes": [],
+            "labels": {
+              "requested_noise_mode": "runtime",
+              "backend_name": "generic_seeded_7q",
+              "layout_lock_key": "active_window_shots_fixed_patch_smoke",
+              "runtime_twirling": {
+                "enable_gates": false,
+                "enable_measure": false,
+                "num_randomizations": null,
+                "strategy": null
+              },
+              "layer_noise_model_supplied": false
+            }
+          },
+          "resolved_noise_spec_hash": "nspec_52dec24fdc7b08d3",
+          "calibration_snapshot": null,
+          "transpile_snapshot": null,
+          "noise_artifact_hash": null,
+          "snapshot_hash": null,
+          "layout_hash": null,
+          "transpile_hash": null,
+          "circuit_structure_hash": null,
+          "layout_anchor_source": null,
+          "runtime_mitigation_options": null,
+          "runtime_execution_bundle": {
+            "requested_noise_mode": "runtime",
+            "resolved_noise_kind": "qpu_raw",
+            "mitigation_bundle": "none",
+            "mitigation_mode": "none",
+            "twirling_enable_gates": false,
+            "twirling_enable_measure": false,
+            "twirling_num_randomizations": null,
+            "twirling_strategy": null,
+            "trex_like_measure_suppression": false,
+            "zne_amplifier": null,
+            "layer_noise_learning_requested": false,
+            "layer_noise_model_supplied": false,
+            "layer_noise_model_source": null,
+            "layer_noise_model_kind": null,
+            "layer_noise_model_entry_count": null,
+            "layer_noise_model_fingerprint": null,
+            "implicit_gate_twirling_via_pea": false,
+            "suppression_components": []
+          },
+          "local_readout_mitigation_result": null,
+          "fixed_couplers_status": null,
+          "patch_selection_summary": null,
+          "source_kind": "live_backend",
+          "used_physical_qubits": [],
+          "used_physical_edges": [],
+          "scheduled_duration_total": null,
+          "idle_duration_total": null,
+          "seed_transpiler": null,
+          "seed_simulator": null,
+          "warnings": [],
+          "omitted_channels": [],
+          "noise_model_basis_gates": [],
+          "aer_failed": false,
+          "fallback_used": false,
+          "fallback_mode": null,
+          "fallback_reason": "",
+          "env_workaround_applied": false,
+          "provenance_summary": {
+            "classification": "runtime_preflight_raw",
+            "uses_backend_snapshot": false,
+            "uses_frozen_snapshot_json": false,
+            "local_replay": false,
+            "patch_frozen_replay": false,
+            "runtime_submission_recorded": false,
+            "runtime_suppressed": false,
+            "runtime_layer_noise_learning": false,
+            "runtime_layer_noise_model_supplied": false,
+            "runtime_layer_noise_model_source": null,
+            "runtime_layer_noise_model_kind": null,
+            "runtime_layer_noise_model_fingerprint": null,
+            "runtime_zne_amplifier": null,
+            "runtime_gate_twirling": false,
+            "runtime_measure_twirling": false,
+            "runtime_trex_like_measure_suppression": false,
+            "layout_anchor_source": null,
+            "layout_anchor_reused": false,
+            "runtime_execution_bundle": {
+              "requested_noise_mode": "runtime",
+              "resolved_noise_kind": "qpu_raw",
+              "mitigation_bundle": "none",
+              "mitigation_mode": "none",
+              "twirling_enable_gates": false,
+              "twirling_enable_measure": false,
+              "twirling_num_randomizations": null,
+              "twirling_strategy": null,
+              "trex_like_measure_suppression": false,
+              "zne_amplifier": null,
+              "layer_noise_learning_requested": false,
+              "layer_noise_model_supplied": false,
+              "layer_noise_model_source": null,
+              "layer_noise_model_kind": null,
+              "layer_noise_model_entry_count": null,
+              "layer_noise_model_fingerprint": null,
+              "implicit_gate_twirling_via_pea": false,
+              "suppression_components": []
+            },
+            "fixed_couplers_requested": false,
+            "fixed_couplers_verified": false
+          }
+        }
+      },
+      "oracle_execution": {
+        "noise_mode": "runtime",
+        "estimator_kind": "runtime_preflight_only",
+        "backend_name": "generic_seeded_7q",
+        "using_fake_backend": false,
+        "shots": 8,
+        "mitigation": {
+          "mode": "none",
+          "zne_scales": [],
+          "dd_sequence": null,
+          "local_readout_strategy": "tensor",
+          "local_readout_calibration_shots": null
+        },
+        "runtime_twirling": {
+          "enable_gates": false,
+          "enable_measure": false,
+          "num_randomizations": null,
+          "strategy": null
+        },
+        "symmetry_mitigation_config": {
+          "mode": "off",
+          "num_sites": null,
+          "ordering": "blocked",
+          "sector_n_up": null,
+          "sector_n_dn": null
+        },
+        "symmetry_mitigation_result": null,
+        "resolved_noise_spec": {
+          "executor": "runtime_qpu",
+          "noise_kind": "qpu_raw",
+          "backend_profile_kind": "live_backend",
+          "mitigation_bundle": "none",
+          "layout_policy": "fixed_patch",
+          "schedule_policy": "none",
+          "shots": 8,
+          "seed_transpiler": null,
+          "seed_simulator": null,
+          "allow_noisy_fallback": false,
+          "snapshot_path": null,
+          "fixed_physical_patch": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6
+          ],
+          "fixed_couplers": null,
+          "notes": [],
+          "labels": {
+            "requested_noise_mode": "runtime",
+            "backend_name": "generic_seeded_7q",
+            "layout_lock_key": "active_window_shots_fixed_patch_smoke",
+            "runtime_twirling": {
+              "enable_gates": false,
+              "enable_measure": false,
+              "num_randomizations": null,
+              "strategy": null
+            },
+            "layer_noise_model_supplied": false
+          }
+        },
+        "resolved_noise_spec_hash": "nspec_52dec24fdc7b08d3",
+        "calibration_snapshot": null,
+        "transpile_snapshot": null,
+        "noise_artifact_hash": null,
+        "snapshot_hash": null,
+        "layout_hash": null,
+        "transpile_hash": null,
+        "circuit_structure_hash": null,
+        "layout_anchor_source": null,
+        "runtime_mitigation_options": null,
+        "runtime_execution_bundle": {
+          "requested_noise_mode": "runtime",
+          "resolved_noise_kind": "qpu_raw",
+          "mitigation_bundle": "none",
+          "mitigation_mode": "none",
+          "twirling_enable_gates": false,
+          "twirling_enable_measure": false,
+          "twirling_num_randomizations": null,
+          "twirling_strategy": null,
+          "trex_like_measure_suppression": false,
+          "zne_amplifier": null,
+          "layer_noise_learning_requested": false,
+          "layer_noise_model_supplied": false,
+          "layer_noise_model_source": null,
+          "layer_noise_model_kind": null,
+          "layer_noise_model_entry_count": null,
+          "layer_noise_model_fingerprint": null,
+          "implicit_gate_twirling_via_pea": false,
+          "suppression_components": []
+        },
+        "local_readout_mitigation_result": null,
+        "fixed_couplers_status": null,
+        "patch_selection_summary": null,
+        "source_kind": "live_backend",
+        "used_physical_qubits": [],
+        "used_physical_edges": [],
+        "scheduled_duration_total": null,
+        "idle_duration_total": null,
+        "seed_transpiler": null,
+        "seed_simulator": null,
+        "warnings": [],
+        "omitted_channels": [],
+        "noise_model_basis_gates": [],
+        "aer_failed": false,
+        "fallback_used": false,
+        "fallback_mode": null,
+        "fallback_reason": "",
+        "env_workaround_applied": false,
+        "provenance_summary": {
+          "classification": "runtime_preflight_raw",
+          "uses_backend_snapshot": false,
+          "uses_frozen_snapshot_json": false,
+          "local_replay": false,
+          "patch_frozen_replay": false,
+          "runtime_submission_recorded": false,
+          "runtime_suppressed": false,
+          "runtime_layer_noise_learning": false,
+          "runtime_layer_noise_model_supplied": false,
+          "runtime_layer_noise_model_source": null,
+          "runtime_layer_noise_model_kind": null,
+          "runtime_layer_noise_model_fingerprint": null,
+          "runtime_zne_amplifier": null,
+          "runtime_gate_twirling": false,
+          "runtime_measure_twirling": false,
+          "runtime_trex_like_measure_suppression": false,
+          "layout_anchor_source": null,
+          "layout_anchor_reused": false,
+          "runtime_execution_bundle": {
+            "requested_noise_mode": "runtime",
+            "resolved_noise_kind": "qpu_raw",
+            "mitigation_bundle": "none",
+            "mitigation_mode": "none",
+            "twirling_enable_gates": false,
+            "twirling_enable_measure": false,
+            "twirling_num_randomizations": null,
+            "twirling_strategy": null,
+            "trex_like_measure_suppression": false,
+            "zne_amplifier": null,
+            "layer_noise_learning_requested": false,
+            "layer_noise_model_supplied": false,
+            "layer_noise_model_source": null,
+            "layer_noise_model_kind": null,
+            "layer_noise_model_entry_count": null,
+            "layer_noise_model_fingerprint": null,
+            "implicit_gate_twirling_via_pea": false,
+            "suppression_components": []
+          },
+          "fixed_couplers_requested": false,
+          "fixed_couplers_verified": false
+        }
+      },
+      "execution_mode": "blocked_preflight",
+      "execution_statement": null,
+      "transition_execution": null,
+      "observable_execution": null,
+      "estimate_call_count": null,
+      "estimate_request_totals": null,
+      "last_estimate_request": null,
+      "layout_lock_scope": null
+    },
+    "geometry_adapter": {
+      "enabled": true,
+      "local_system_mode": "hadamard_transition_fd_general",
+      "local_system_finite_difference_eps": 0.001,
+      "local_system_max_supported_qubits": 2,
+      "local_system_max_supported_terms": 2,
+      "noise_mode": "shots",
+      "shots": 8,
+      "seed": 7,
+      "oracle_repeats": 1,
+      "oracle_aggregate": "mean",
+      "backend_name": "generic_seeded_7q",
+      "use_fake_backend": false,
+      "backend_profile": "generic_seeded",
+      "aer_noise_kind": "scheduled",
+      "schedule_policy": null,
+      "layout_policy": "fixed_patch",
+      "noise_snapshot_json": null,
+      "fixed_physical_patch": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "fixed_couplers": null,
+      "layout_lock_key": "active_window_shots_fixed_patch_smoke",
+      "mitigation": "none",
+      "runtime_twirling": null,
+      "symmetry_mitigation": "off",
+      "allow_noisy_fallback": false,
+      "omp_shm_workaround": true,
+      "measure_hamiltonian_variance": true,
+      "measure_sector_observables": true,
+      "allow_runtime_submission": false
+    }
+  },
+  "segment": {
+    "segment_index": 0,
+    "term_labels": [
+      "uccsd_otimes_paop::uccsd_ferm_lifted::uccsd_sing(alpha:0->1)::paop_lf_std::delta_p(0,1)"
+    ],
+    "time_start": 0.0,
+    "time_end": 0.01,
+    "times": [
+      0.0,
+      0.01
+    ],
+    "theta_start": [
+      0.0
+    ],
+    "theta_end": [
+      0.0
+    ],
+    "theta_history": [
+      [
+        0.0
+      ],
+      [
+        0.0
+      ]
+    ],
+    "trajectory_rows": [
+      {
+        "time": 0.0,
+        "theta_norm": 0.0,
+        "theta_dot_norm": 0.0,
+        "condition_number": 1.0,
+        "regularization": 1e-08,
+        "regularization_used": true,
+        "solve_mode": "whitened_empty_support",
+        "residual_norm": 0.0,
+        "matrix_rank": 0,
+        "energy_total": 0.375,
+        "hamiltonian_variance": 1.484375,
+        "epsilon_proj_sq": 1.484375,
+        "epsilon_step_sq": 1.484375,
+        "epsilon_proj_ratio": 1.0,
+        "epsilon_step_ratio": 1.0,
+        "stabilization_gap_sq": 0.0,
+        "stabilization_gap_ratio": 0.0,
+        "damping_gap_sq": 0.0,
+        "damping_gap_ratio": 0.0,
+        "defect_normalization_floored": false,
+        "defect_ratio_guard_active": false,
+        "policy_condition_number": 1.0,
+        "policy_regularization": 1e-08,
+        "policy_matrix_rank": 0,
+        "policy_solve_mode": "whitened_empty_support",
+        "n_up_expectation": 0.0,
+        "n_dn_expectation": 0.0,
+        "n_total_expectation": 0.0,
+        "active_window_mode": "latest_parameters_count",
+        "active_window_applied": false,
+        "active_window_size_requested": 1,
+        "active_window_size_effective": 1,
+        "active_window_total_parameter_count": 1,
+        "active_window_indices": [
+          0
+        ],
+        "active_window_source": "oracle_provided"
+      },
+      {
+        "time": 0.01,
+        "theta_norm": 0.0,
+        "theta_dot_norm": 0.0,
+        "condition_number": 1.0,
+        "regularization": 1e-08,
+        "regularization_used": true,
+        "solve_mode": "whitened_empty_support",
+        "residual_norm": 0.0,
+        "matrix_rank": 0,
+        "energy_total": 0.375,
+        "hamiltonian_variance": 1.484375,
+        "epsilon_proj_sq": 1.484375,
+        "epsilon_step_sq": 1.484375,
+        "epsilon_proj_ratio": 1.0,
+        "epsilon_step_ratio": 1.0,
+        "stabilization_gap_sq": 0.0,
+        "stabilization_gap_ratio": 0.0,
+        "damping_gap_sq": 0.0,
+        "damping_gap_ratio": 0.0,
+        "defect_normalization_floored": false,
+        "defect_ratio_guard_active": false,
+        "policy_condition_number": 1.0,
+        "policy_regularization": 1e-08,
+        "policy_matrix_rank": 0,
+        "policy_solve_mode": "whitened_empty_support",
+        "n_up_expectation": 0.0,
+        "n_dn_expectation": 0.0,
+        "n_total_expectation": 0.0,
+        "active_window_mode": "latest_parameters_count",
+        "active_window_applied": false,
+        "active_window_size_requested": 1,
+        "active_window_size_effective": 1,
+        "active_window_total_parameter_count": 1,
+        "active_window_indices": [
+          0
+        ],
+        "active_window_source": "oracle_provided"
+      }
+    ],
+    "states": [
+      {
+        "nq_total": 6,
+        "amplitudes_qn_to_q0": {
+          "000000": {
+            "re": 1.0,
+            "im": 0.0
+          }
+        }
+      },
+      {
+        "nq_total": 6,
+        "amplitudes_qn_to_q0": {
+          "000000": {
+            "re": 1.0,
+            "im": 0.0
+          }
+        }
+      }
+    ]
+  },
+  "drive_profile": null,
+  "exact_reference": {
+    "enabled": false,
+    "reference_steps": 256
+  }
+}

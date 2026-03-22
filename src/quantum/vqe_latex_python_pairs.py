@@ -22,6 +22,7 @@ from dataclasses import dataclass
 from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union
 
 import numpy as np
+from src.quantum.ansatz_parameterization import iter_runtime_rotation_terms
 from src.quantum.spsa_optimizer import SPSAResult, spsa_minimize
 
 try:
@@ -127,6 +128,7 @@ __all__ = [
     "expval_pauli_polynomial_one_apply",
     "apply_pauli_rotation",
     "apply_exp_pauli_polynomial",
+    "apply_exp_pauli_polynomial_termwise",
     # Hamiltonian term builders
     "half_filled_num_particles",
     "jw_number_operator",
@@ -348,6 +350,37 @@ def apply_pauli_rotation(state: np.ndarray, pauli: str, angle: float) -> np.ndar
     s = math.sin(0.5 * float(angle))
     return c * state - 1j * s * Ppsi
 
+def apply_exp_pauli_polynomial_termwise(
+    state: np.ndarray,
+    H: PauliPolynomial,
+    theta_terms: np.ndarray,
+    *,
+    ignore_identity: bool = True,
+    coefficient_tolerance: float = 1e-12,
+    sort_terms: bool = True,
+) -> np.ndarray:
+    r"""
+    Approximate ∏_j exp(-i theta_j * h_j P_j)|psi> with one free parameter per active Pauli term.
+    angle_j = 2 * theta_j * h_j for each active Pauli term h_j P_j.
+    """
+    specs = iter_runtime_rotation_terms(
+        H,
+        ignore_identity=ignore_identity,
+        coefficient_tolerance=coefficient_tolerance,
+        sort_terms=sort_terms,
+    )
+    theta_arr = np.asarray(theta_terms, dtype=float).reshape(-1)
+    if int(theta_arr.size) != int(len(specs)):
+        log.error(
+            f"theta_terms length mismatch: got {theta_arr.size}, expected {len(specs)} for active Pauli terms"
+        )
+    psi = np.array(state, copy=True)
+    for idx, spec in enumerate(specs):
+        angle = 2.0 * float(theta_arr[idx]) * float(spec.coeff_real)
+        psi = apply_pauli_rotation(psi, str(spec.pauli_exyz), angle)
+    return psi
+
+
 def apply_exp_pauli_polynomial(
     state: np.ndarray,
     H: PauliPolynomial,
@@ -361,30 +394,22 @@ def apply_exp_pauli_polynomial(
     Approximate exp(-i theta * H)|psi> with first-order product over Pauli terms.
     angle_j = 2 * theta * h_j for each Pauli term h_j P_j.
     """
-    terms = H.return_polynomial()
-    if not terms:
+    specs = iter_runtime_rotation_terms(
+        H,
+        ignore_identity=ignore_identity,
+        coefficient_tolerance=coefficient_tolerance,
+        sort_terms=sort_terms,
+    )
+    if not specs:
         return np.array(state, copy=True)
-
-    nq = int(terms[0].nqubit())
-    id_str = "e" * nq
-
-    ordered = list(terms)
-    if sort_terms:
-        ordered.sort(key=lambda t: t.pw2strng())
-
-    psi = np.array(state, copy=True)
-    for term in ordered:
-        ps = term.pw2strng()
-        coeff = complex(term.p_coeff)
-        if abs(coeff) < coefficient_tolerance:
-            continue
-        if ignore_identity and ps == id_str:
-            continue
-        if abs(coeff.imag) > coefficient_tolerance:
-            log.error(f"non-negligible imaginary coefficient in term {ps}: {coeff}")
-        angle = 2.0 * float(theta) * float(coeff.real)
-        psi = apply_pauli_rotation(psi, ps, angle)
-    return psi
+    return apply_exp_pauli_polynomial_termwise(
+        state,
+        H,
+        np.full(len(specs), float(theta), dtype=float),
+        ignore_identity=ignore_identity,
+        coefficient_tolerance=coefficient_tolerance,
+        sort_terms=sort_terms,
+    )
 
 def half_filled_num_particles(num_sites: int) -> Tuple[int, int]:
     L = int(num_sites)

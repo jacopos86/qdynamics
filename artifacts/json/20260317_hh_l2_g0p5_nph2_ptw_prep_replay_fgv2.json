@@ -1,0 +1,752 @@
+{
+  "artifacts": {
+    "intermediate": {
+      "adapt_handoff_json": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/artifacts/json/20260317_hh_l2_g0p5_nph2_ptw_prep_replay_fgv2_adapt_handoff.json",
+      "realtime_vqs_json": null,
+      "replay_output_csv": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/artifacts/json/20260317_hh_l2_g0p5_nph2_ptw_prep_replay_fgv2_replay.csv",
+      "replay_output_json": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/artifacts/json/20260317_hh_l2_g0p5_nph2_ptw_prep_replay_fgv2_replay.json",
+      "replay_output_log": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/artifacts/logs/20260317_hh_l2_g0p5_nph2_ptw_prep_replay_fgv2_replay.log",
+      "replay_output_md": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/artifacts/useful/L2/20260317_hh_l2_g0p5_nph2_ptw_prep_replay_fgv2_replay.md",
+      "warm_checkpoint_json": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/artifacts/json/20260317_hh_l2_g0p5_nph2_ptw_prep_replay_fgv2_warm_checkpoint_state.json",
+      "warm_cutover_json": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/artifacts/json/20260317_hh_l2_g0p5_nph2_ptw_prep_replay_fgv2_warm_cutover_state.json",
+      "workflow_log": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/artifacts/logs/20260317_hh_l2_g0p5_nph2_ptw_prep_replay_fgv2.log"
+    },
+    "workflow": {
+      "output_json": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/artifacts/json/20260317_hh_l2_g0p5_nph2_ptw_prep_replay_fgv2.json",
+      "output_pdf": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/artifacts/pdf/20260317_hh_l2_g0p5_nph2_ptw_prep_replay_fgv2.pdf"
+    }
+  },
+  "circuit_metrics": {
+    "dynamics": {},
+    "stages": {
+      "adapt_vqe": {
+        "metadata": {
+          "continuation_mode": "phase3_v1",
+          "depth": 20,
+          "energy": -0.26025560440268236,
+          "exact_energy": -0.2712135777366955,
+          "pool_type": "phase3_v1",
+          "stop_reason": "drop_plateau",
+          "transpile_metrics": {
+            "expanded_once": {
+              "count_1q": 24,
+              "count_2q": 36,
+              "count_measure": 0,
+              "count_ops": {
+                "cx": 24,
+                "initialize": 1,
+                "rz": 8,
+                "rzx": 12,
+                "sx": 8,
+                "sxdg": 8
+              },
+              "cx_count": 24,
+              "depth": 37,
+              "num_parameters": 0,
+              "num_qubits": 8,
+              "size": 61
+            },
+            "raw": {
+              "count_1q": 0,
+              "count_2q": 0,
+              "count_measure": 0,
+              "count_ops": {
+                "PauliEvolution": 20,
+                "initialize": 1
+              },
+              "cx_count": 0,
+              "depth": 21,
+              "num_parameters": 0,
+              "num_qubits": 8,
+              "size": 21
+            },
+            "target": {
+              "backend_name": "FakeGuadalupeV2",
+              "backend_num_qubits": 16,
+              "backend_source": "qiskit_ibm_runtime.fake_provider",
+              "basis_gates": [
+                "rz",
+                "sx",
+                "x",
+                "cx"
+              ],
+              "optimization_level": 2,
+              "seed_transpiler": 7,
+              "use_fake_backend": true
+            },
+            "transpiled": {
+              "count_1q": 1019,
+              "count_2q": 448,
+              "count_measure": 0,
+              "count_ops": {
+                "cx": 448,
+                "reset": 8,
+                "rz": 530,
+                "sx": 456,
+                "x": 25
+              },
+              "cx_count": 448,
+              "depth": 1159,
+              "num_parameters": 0,
+              "num_qubits": 16,
+              "size": 1467
+            }
+          }
+        },
+        "notes": [
+          "Circuit uses the actual selected ADAPT generators and optimized theta values.",
+          "Reference state is the warm-stage output handed to ADAPT."
+        ],
+        "title": "L=2 ADAPT-VQE"
+      },
+      "conventional_replay": {
+        "metadata": {
+          "energy": -0.26025560440268236,
+          "exact_energy": -0.2712135777366955,
+          "family_info": {
+            "derivative_capability": {
+              "allowed_requested_families": [],
+              "certifiable_local_system_modes": [],
+              "disallow_fallback": true,
+              "driven_segments_supported": false,
+              "eligible_for_certification": false,
+              "family_id": "paop_lf_std",
+              "phase_b_supported": false,
+              "requires_basis_reference_state": true,
+              "requires_reference_state_handoff": true,
+              "runtime_submission_blocked": true,
+              "schema_version": 2,
+              "static_hamiltonian_only": true,
+              "surface": "phase_a_measured_local_system_capability"
+            },
+            "fallback_family": "full_meta",
+            "fallback_used": false,
+            "measured_geometry_capability": {
+              "allowed_requested_families": [],
+              "certifiable_local_system_modes": [],
+              "disallow_fallback": true,
+              "driven_segments_supported": false,
+              "eligible_for_certification": false,
+              "family_id": "paop_lf_std",
+              "phase_b_supported": false,
+              "requires_basis_reference_state": true,
+              "requires_reference_state_handoff": true,
+              "runtime_submission_blocked": true,
+              "schema_version": 2,
+              "static_hamiltonian_only": true,
+              "surface": "phase_a_measured_local_system_capability"
+            },
+            "measured_geometry_seed_cert": {
+              "fallback_used": false,
+              "generator_fingerprint": "0f98f79d961d709d",
+              "handoff_state_kind": "prepared_state",
+              "reason": "match_adapt_not_certified",
+              "reference_state_is_basis_state": false,
+              "requested_family": "match_adapt",
+              "resolved_family": "paop_lf_std",
+              "schema_version": 2,
+              "status": "uncertified",
+              "surface": "fixed_structure_phase_a_geometry_seed"
+            },
+            "requested": "match_adapt",
+            "resolution_source": "continuation.selected_generator_metadata.family_id",
+            "resolved": "paop_lf_std",
+            "warning": null
+          },
+          "reps": 3,
+          "seed_policy": "residual_only",
+          "stop_reason": "converged",
+          "transpile_metrics": {
+            "expanded_once": {
+              "count_1q": 72,
+              "count_2q": 108,
+              "count_measure": 0,
+              "count_ops": {
+                "cx": 72,
+                "initialize": 1,
+                "rz": 24,
+                "rzx": 36,
+                "sx": 24,
+                "sxdg": 24
+              },
+              "cx_count": 72,
+              "depth": 109,
+              "num_parameters": 0,
+              "num_qubits": 8,
+              "size": 181
+            },
+            "raw": {
+              "count_1q": 0,
+              "count_2q": 0,
+              "count_measure": 0,
+              "count_ops": {
+                "PauliEvolution": 60,
+                "initialize": 1
+              },
+              "cx_count": 0,
+              "depth": 61,
+              "num_parameters": 0,
+              "num_qubits": 8,
+              "size": 61
+            },
+            "target": {
+              "backend_name": "FakeGuadalupeV2",
+              "backend_num_qubits": 16,
+              "backend_source": "qiskit_ibm_runtime.fake_provider",
+              "basis_gates": [
+                "rz",
+                "sx",
+                "x",
+                "cx"
+              ],
+              "optimization_level": 2,
+              "seed_transpiler": 7,
+              "use_fake_backend": true
+            },
+            "transpiled": {
+              "count_1q": 1055,
+              "count_2q": 403,
+              "count_measure": 0,
+              "count_ops": {
+                "cx": 403,
+                "reset": 8,
+                "rz": 552,
+                "sx": 482,
+                "x": 13
+              },
+              "cx_count": 403,
+              "depth": 1142,
+              "num_parameters": 0,
+              "num_qubits": 16,
+              "size": 1458
+            }
+          }
+        },
+        "notes": [
+          "Replay circuit uses the matched ADAPT-family ansatz with the final optimized replay theta values.",
+          "This is the conventional non-ADAPT VQE stage in the staged HH workflow."
+        ],
+        "title": "L=2 matched-family replay"
+      },
+      "warm_start": {
+        "metadata": {
+          "ansatz": "hh_hva_ptw",
+          "delta_abs": 0.01479468761237146,
+          "energy": -0.25641889012432406,
+          "exact_energy": -0.2712135777366955,
+          "reps": 3,
+          "transpile_metrics": {
+            "expanded_once": {
+              "count_1q": 332,
+              "count_2q": 324,
+              "count_measure": 0,
+              "count_ops": {
+                "cx": 264,
+                "h": 144,
+                "rxx": 12,
+                "ryy": 6,
+                "rz": 114,
+                "rzx": 24,
+                "rzz": 18,
+                "sx": 36,
+                "sxdg": 36,
+                "x": 2
+              },
+              "cx_count": 264,
+              "depth": 255,
+              "num_parameters": 0,
+              "num_qubits": 8,
+              "size": 656
+            },
+            "raw": {
+              "count_1q": 2,
+              "count_2q": 0,
+              "count_measure": 0,
+              "count_ops": {
+                "PauliEvolution": 24,
+                "x": 2
+              },
+              "cx_count": 0,
+              "depth": 25,
+              "num_parameters": 0,
+              "num_qubits": 8,
+              "size": 26
+            },
+            "target": {
+              "backend_name": "FakeGuadalupeV2",
+              "backend_num_qubits": 16,
+              "backend_source": "qiskit_ibm_runtime.fake_provider",
+              "basis_gates": [
+                "rz",
+                "sx",
+                "x",
+                "cx"
+              ],
+              "optimization_level": 2,
+              "seed_transpiler": 7,
+              "use_fake_backend": true
+            },
+            "transpiled": {
+              "count_1q": 618,
+              "count_2q": 372,
+              "count_measure": 0,
+              "count_ops": {
+                "cx": 372,
+                "rz": 392,
+                "sx": 195,
+                "x": 31
+              },
+              "cx_count": 372,
+              "depth": 415,
+              "num_parameters": 0,
+              "num_qubits": 16,
+              "size": 990
+            }
+          }
+        },
+        "notes": [
+          "Representative view keeps PauliEvolutionGate blocks intact.",
+          "Expanded view applies one circuit-definition decomposition pass."
+        ],
+        "title": "L=2 warm HH-HVA"
+      }
+    },
+    "transpile_target": {
+      "backend_name": "FakeGuadalupeV2",
+      "basis_gates": [
+        "rz",
+        "sx",
+        "x",
+        "cx"
+      ],
+      "optimization_level": 2,
+      "seed_transpiler": 7,
+      "use_fake_backend": true
+    }
+  },
+  "command": "/opt/anaconda3/bin/python pipelines/hardcoded/hh_staged_noiseless.py --tag 20260317_hh_l2_g0p5_nph2_ptw_prep_replay_fgv2 --L 2 --t 1 --u 2 --dv 0 --omega0 1 --g-ep 0.5 --n-ph-max 2 --warm-ansatz hh_hva_ptw --warm-method SPSA --warm-seed 7 --warm-reps 3 --warm-restarts 4 --warm-maxiter 1778 --adapt-seed 11 --run-replay --final-method SPSA --final-seed 13 --final-reps 3 --final-restarts 4 --final-maxiter 1778 --circuit-backend-name FakeGuadalupeV2 --circuit-use-fake-backend --circuit-transpile-optimization-level 2 --circuit-seed-transpiler 7 --skip-pdf",
+  "comparisons": {
+    "noiseless_vs_ground_state": {},
+    "noiseless_vs_reference": {},
+    "stage_gates": {
+      "ecut_1": {
+        "pass": true,
+        "threshold": 0.1
+      },
+      "ecut_2": {
+        "evaluated": true,
+        "pass": false,
+        "threshold": 0.0001
+      }
+    }
+  },
+  "default_provenance": {
+    "adapt_eps_energy": "run_guide.adapt_eps_energy=1e-9",
+    "adapt_eps_grad": "run_guide.adapt_eps_grad=5e-7",
+    "adapt_max_depth": "run_guide.adapt_max_depth(L)=40L",
+    "adapt_maxiter": "run_guide.adapt_maxiter(L)=round(5000L^2/9)",
+    "ecut_1": "run_guide.ecut_1=1e-1",
+    "ecut_2": "run_guide.ecut_2=1e-4",
+    "exact_steps_multiplier": "run_guide.exact_steps_multiplier(L)=ceil((L+1)/2)",
+    "final_maxiter": "cli",
+    "final_reps": "cli",
+    "final_restarts": "cli",
+    "num_times": "run_guide.num_times(L)=1+ceil(200L/3)",
+    "output_json": "artifacts/json/<tag>.json",
+    "output_pdf": "artifacts/pdf/<tag>.pdf",
+    "replay_continuation_mode": "workflow.replay_mode := adapt_continuation_mode",
+    "seed_refine_maxiter": "workflow.seed_refine_maxiter := final_maxiter(L)",
+    "seed_refine_optimizer": "workflow.seed_refine_optimizer.default=SPSA",
+    "seed_refine_reps": "workflow.seed_refine_reps := final_reps(L)",
+    "state_export_dir": "artifacts/json",
+    "state_export_prefix": "workflow.state_export_prefix := tag",
+    "t_final": "run_guide.t_final(L)=5L",
+    "tag": "cli",
+    "trotter_steps": "run_guide.trotter_steps(L)=64L",
+    "warm_ansatz": "cli",
+    "warm_maxiter": "cli",
+    "warm_reps": "cli",
+    "warm_restarts": "cli"
+  },
+  "dynamics_noiseless": {
+    "profiles": {},
+    "skip_reason": "run_dynamics_false",
+    "skipped": true
+  },
+  "generated_utc": "2026-03-17T18:53:16Z",
+  "pipeline": "hh_staged_noiseless",
+  "settings": {
+    "adapt": {
+      "allow_repeats": true,
+      "beam_children_per_parent": null,
+      "beam_live_branches": 1,
+      "beam_terminated_keep": null,
+      "bridge_fixed_depth": 4,
+      "bridge_mode": "off",
+      "bridge_pool": "hh_hva_ptw",
+      "continuation_mode": "phase3_v1",
+      "disable_hh_seed": false,
+      "drop_floor": null,
+      "drop_min_depth": null,
+      "drop_patience": null,
+      "eps_energy": 1e-09,
+      "eps_grad": 5e-07,
+      "final_full_refit": true,
+      "finite_angle": 0.1,
+      "finite_angle_fallback": true,
+      "finite_angle_min_improvement": 1e-12,
+      "full_refit_every": 0,
+      "grad_floor": null,
+      "handoff_mode": "prepared_state",
+      "inner_optimizer": "SPSA",
+      "max_depth": 80,
+      "maxiter": 2222,
+      "paop_normalization": "none",
+      "paop_prune_eps": 0.0,
+      "paop_r": 1,
+      "paop_split_paulis": false,
+      "phase1_lambda_F": 1.0,
+      "phase1_lambda_compile": 0.05,
+      "phase1_lambda_leak": 0.0,
+      "phase1_lambda_measure": 0.02,
+      "phase1_plateau_patience": 2,
+      "phase1_probe_max_positions": 6,
+      "phase1_prune_enabled": true,
+      "phase1_prune_fraction": 0.25,
+      "phase1_prune_max_candidates": 6,
+      "phase1_prune_max_regression": 1e-08,
+      "phase1_score_z_alpha": 0.0,
+      "phase1_trough_margin_ratio": 1.0,
+      "phase3_enable_rescue": false,
+      "phase3_lifetime_cost_mode": "phase3_v1",
+      "phase3_motif_source_json": null,
+      "phase3_runtime_split_mode": "off",
+      "phase3_symmetry_mitigation_mode": "off",
+      "pool": null,
+      "reopt_policy": "append_only",
+      "seed": 11,
+      "spsa_A": 10.0,
+      "spsa_a": 0.2,
+      "spsa_alpha": 0.602,
+      "spsa_avg_last": 0,
+      "spsa_c": 0.1,
+      "spsa_callback_every": 5,
+      "spsa_eval_agg": "mean",
+      "spsa_eval_repeats": 1,
+      "spsa_gamma": 0.101,
+      "spsa_progress_every_s": 60.0,
+      "window_size": 3,
+      "window_topk": 0
+    },
+    "artifacts": {
+      "handoff_json": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/artifacts/json/20260317_hh_l2_g0p5_nph2_ptw_prep_replay_fgv2_adapt_handoff.json",
+      "output_json": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/artifacts/json/20260317_hh_l2_g0p5_nph2_ptw_prep_replay_fgv2.json",
+      "output_pdf": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/artifacts/pdf/20260317_hh_l2_g0p5_nph2_ptw_prep_replay_fgv2.pdf",
+      "realtime_vqs_json": null,
+      "replay_output_csv": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/artifacts/json/20260317_hh_l2_g0p5_nph2_ptw_prep_replay_fgv2_replay.csv",
+      "replay_output_json": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/artifacts/json/20260317_hh_l2_g0p5_nph2_ptw_prep_replay_fgv2_replay.json",
+      "replay_output_log": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/artifacts/logs/20260317_hh_l2_g0p5_nph2_ptw_prep_replay_fgv2_replay.log",
+      "replay_output_md": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/artifacts/useful/L2/20260317_hh_l2_g0p5_nph2_ptw_prep_replay_fgv2_replay.md",
+      "skip_pdf": true,
+      "tag": "20260317_hh_l2_g0p5_nph2_ptw_prep_replay_fgv2",
+      "warm_checkpoint_json": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/artifacts/json/20260317_hh_l2_g0p5_nph2_ptw_prep_replay_fgv2_warm_checkpoint_state.json",
+      "warm_cutover_json": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/artifacts/json/20260317_hh_l2_g0p5_nph2_ptw_prep_replay_fgv2_warm_cutover_state.json",
+      "workflow_log": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/artifacts/logs/20260317_hh_l2_g0p5_nph2_ptw_prep_replay_fgv2.log"
+    },
+    "circuit_metrics": {
+      "backend_name": "FakeGuadalupeV2",
+      "optimization_level": 2,
+      "seed_transpiler": 7,
+      "use_fake_backend": true
+    },
+    "default_provenance": {
+      "adapt_eps_energy": "run_guide.adapt_eps_energy=1e-9",
+      "adapt_eps_grad": "run_guide.adapt_eps_grad=5e-7",
+      "adapt_max_depth": "run_guide.adapt_max_depth(L)=40L",
+      "adapt_maxiter": "run_guide.adapt_maxiter(L)=round(5000L^2/9)",
+      "ecut_1": "run_guide.ecut_1=1e-1",
+      "ecut_2": "run_guide.ecut_2=1e-4",
+      "exact_steps_multiplier": "run_guide.exact_steps_multiplier(L)=ceil((L+1)/2)",
+      "final_maxiter": "cli",
+      "final_reps": "cli",
+      "final_restarts": "cli",
+      "num_times": "run_guide.num_times(L)=1+ceil(200L/3)",
+      "output_json": "artifacts/json/<tag>.json",
+      "output_pdf": "artifacts/pdf/<tag>.pdf",
+      "replay_continuation_mode": "workflow.replay_mode := adapt_continuation_mode",
+      "seed_refine_maxiter": "workflow.seed_refine_maxiter := final_maxiter(L)",
+      "seed_refine_optimizer": "workflow.seed_refine_optimizer.default=SPSA",
+      "seed_refine_reps": "workflow.seed_refine_reps := final_reps(L)",
+      "state_export_dir": "artifacts/json",
+      "state_export_prefix": "workflow.state_export_prefix := tag",
+      "t_final": "run_guide.t_final(L)=5L",
+      "tag": "cli",
+      "trotter_steps": "run_guide.trotter_steps(L)=64L",
+      "warm_ansatz": "cli",
+      "warm_maxiter": "cli",
+      "warm_reps": "cli",
+      "warm_restarts": "cli"
+    },
+    "dynamics": {
+      "cfqm_coeff_drop_abs_tol": 0.0,
+      "cfqm_normalize": false,
+      "cfqm_stage_exp": "expm_multiply_sparse",
+      "drive_A": 0.6,
+      "drive_custom_s": null,
+      "drive_include_identity": false,
+      "drive_omega": 2.0,
+      "drive_pattern": "staggered",
+      "drive_phi": 0.0,
+      "drive_t0": 0.0,
+      "drive_tbar": 2.5,
+      "drive_time_sampling": "midpoint",
+      "enable_drive": false,
+      "enabled": false,
+      "exact_steps_multiplier": 2,
+      "fidelity_subspace_energy_tol": 1e-09,
+      "methods": [
+        "suzuki2",
+        "cfqm4"
+      ],
+      "num_times": 135,
+      "t_final": 10.0,
+      "trotter_steps": 128
+    },
+    "external_noise_handle": null,
+    "fixed_final_state": null,
+    "gates": {
+      "ecut_1": 0.1,
+      "ecut_2": 0.0001
+    },
+    "physics": {
+      "L": 2,
+      "boson_encoding": "binary",
+      "boundary": "open",
+      "dv": 0.0,
+      "g_ep": 0.5,
+      "n_ph_max": 2,
+      "omega0": 1.0,
+      "ordering": "blocked",
+      "sector_n_dn": 1,
+      "sector_n_up": 1,
+      "t": 1.0,
+      "u": 2.0
+    },
+    "realtime_vqs": {
+      "lambda_reg": 1e-08,
+      "mode": "off",
+      "ode_substeps": 4,
+      "phase_b_enabled": false,
+      "svd_rcond": 1e-12,
+      "tangent_eps": 1e-06
+    },
+    "replay": {
+      "continuation_mode": "phase3_v1",
+      "enabled": true,
+      "energy_backend": "one_apply_compiled",
+      "fallback_family": "full_meta",
+      "generator_family": "match_adapt",
+      "legacy_paop_key": "paop_lf_std",
+      "maxiter": 1778,
+      "method": "SPSA",
+      "paop_normalization": "none",
+      "paop_prune_eps": 0.0,
+      "paop_r": 1,
+      "paop_split_paulis": false,
+      "phase3_symmetry_mitigation_mode": "off",
+      "progress_every_s": 60.0,
+      "replay_freeze_fraction": 0.2,
+      "replay_full_fraction": 0.5,
+      "replay_qn_spsa_refresh_every": 5,
+      "replay_qn_spsa_refresh_mode": "diag_rms_grad",
+      "replay_seed_policy": "auto",
+      "replay_unfreeze_fraction": 0.3,
+      "reps": 3,
+      "restarts": 4,
+      "seed": 13,
+      "spsa_A": 10.0,
+      "spsa_a": 0.2,
+      "spsa_alpha": 0.602,
+      "spsa_avg_last": 0,
+      "spsa_c": 0.1,
+      "spsa_eval_agg": "mean",
+      "spsa_eval_repeats": 1,
+      "spsa_gamma": 0.101,
+      "wallclock_cap_s": 43200
+    },
+    "seed_refine": {
+      "family": null,
+      "maxiter": 1778,
+      "optimizer": "SPSA",
+      "reps": 2
+    },
+    "smoke_test_intentionally_weak": false,
+    "warm_checkpoint": {
+      "handoff_from_warm_checkpoint": null,
+      "resume_from_warm_checkpoint": null,
+      "state_export_dir": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/artifacts/json",
+      "state_export_prefix": "20260317_hh_l2_g0p5_nph2_ptw_prep_replay_fgv2",
+      "stop_delta_abs": null,
+      "stop_energy": null
+    },
+    "warm_start": {
+      "ansatz_name": "hh_hva_ptw",
+      "energy_backend": "one_apply_compiled",
+      "maxiter": 1778,
+      "method": "SPSA",
+      "progress_every_s": 60.0,
+      "reps": 3,
+      "restarts": 4,
+      "seed": 7,
+      "spsa_A": 10.0,
+      "spsa_a": 0.2,
+      "spsa_alpha": 0.602,
+      "spsa_avg_last": 0,
+      "spsa_c": 0.1,
+      "spsa_eval_agg": "mean",
+      "spsa_eval_repeats": 1,
+      "spsa_gamma": 0.101
+    }
+  },
+  "stage_pipeline": {
+    "adapt_vqe": {
+      "adapt_ref_json": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/artifacts/json/20260317_hh_l2_g0p5_nph2_ptw_prep_replay_fgv2_warm_cutover_state.json",
+      "continuation_mode": "phase3_v1",
+      "delta_abs": 0.01095797333401316,
+      "depth": 20,
+      "energy": -0.26025560440268236,
+      "exact_energy": -0.2712135777366955,
+      "handoff_json": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/artifacts/json/20260317_hh_l2_g0p5_nph2_ptw_prep_replay_fgv2_adapt_handoff.json",
+      "initial_state_source": "adapt_ref_json",
+      "pool_type": "phase3_v1",
+      "skip_reason": null,
+      "skipped": false,
+      "stop_reason": "drop_plateau"
+    },
+    "conventional_replay": {
+      "delta_abs": 0.01095797333401316,
+      "ecut_2": {
+        "evaluated": true,
+        "pass": false,
+        "threshold": 0.0001
+      },
+      "energy": -0.26025560440268236,
+      "exact_energy": -0.2712135777366955,
+      "generator_family": {
+        "derivative_capability": {
+          "allowed_requested_families": [],
+          "certifiable_local_system_modes": [],
+          "disallow_fallback": true,
+          "driven_segments_supported": false,
+          "eligible_for_certification": false,
+          "family_id": "paop_lf_std",
+          "phase_b_supported": false,
+          "requires_basis_reference_state": true,
+          "requires_reference_state_handoff": true,
+          "runtime_submission_blocked": true,
+          "schema_version": 2,
+          "static_hamiltonian_only": true,
+          "surface": "phase_a_measured_local_system_capability"
+        },
+        "fallback_family": "full_meta",
+        "fallback_used": false,
+        "measured_geometry_capability": {
+          "allowed_requested_families": [],
+          "certifiable_local_system_modes": [],
+          "disallow_fallback": true,
+          "driven_segments_supported": false,
+          "eligible_for_certification": false,
+          "family_id": "paop_lf_std",
+          "phase_b_supported": false,
+          "requires_basis_reference_state": true,
+          "requires_reference_state_handoff": true,
+          "runtime_submission_blocked": true,
+          "schema_version": 2,
+          "static_hamiltonian_only": true,
+          "surface": "phase_a_measured_local_system_capability"
+        },
+        "measured_geometry_seed_cert": {
+          "fallback_used": false,
+          "generator_fingerprint": "0f98f79d961d709d",
+          "handoff_state_kind": "prepared_state",
+          "reason": "match_adapt_not_certified",
+          "reference_state_is_basis_state": false,
+          "requested_family": "match_adapt",
+          "resolved_family": "paop_lf_std",
+          "schema_version": 2,
+          "status": "uncertified",
+          "surface": "fixed_structure_phase_a_geometry_seed"
+        },
+        "requested": "match_adapt",
+        "resolution_source": "continuation.selected_generator_metadata.family_id",
+        "resolved": "paop_lf_std",
+        "warning": null
+      },
+      "replay_continuation_mode": "phase3_v1",
+      "replay_output_json": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/artifacts/json/20260317_hh_l2_g0p5_nph2_ptw_prep_replay_fgv2_replay.json",
+      "seed_baseline": {
+        "abs_delta_e": 0.010957973334014492,
+        "energy": -0.26025560440268103,
+        "relative_error_abs": 0.04040348357725995,
+        "theta_policy": "residual_only"
+      },
+      "skip_reason": null,
+      "skipped": false,
+      "stop_reason": "converged"
+    },
+    "hf_reference": {
+      "nq_total": 8,
+      "sector_n_dn": 1,
+      "sector_n_up": 1,
+      "state_kind": "reference_state"
+    },
+    "realtime_vqs": {
+      "bundle_json": null,
+      "bundle_schema_kind": null,
+      "bundle_schema_version": null,
+      "checkpoint_count": 0,
+      "chosen_branch_present": false,
+      "mode": "off",
+      "phase_b_enabled": false,
+      "seed_source_json": null,
+      "skip_reason": "realtime_vqs_disabled",
+      "skipped": true,
+      "term_count": 0,
+      "winner_branch_id": null
+    },
+    "warm_start": {
+      "ansatz": "hh_hva_ptw",
+      "checkpoint_json_latest": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/artifacts/json/20260317_hh_l2_g0p5_nph2_ptw_prep_replay_fgv2_warm_checkpoint_state.json",
+      "checkpoint_json_used": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/artifacts/json/20260317_hh_l2_g0p5_nph2_ptw_prep_replay_fgv2_warm_cutover_state.json",
+      "cutoff_reason": null,
+      "cutoff_triggered": false,
+      "delta_abs": 0.01479468761237146,
+      "ecut_1": {
+        "pass": true,
+        "threshold": 0.1
+      },
+      "energy": -0.25641889012432406,
+      "exact_energy": -0.2712135777366955,
+      "maxiter": 1778,
+      "message": "spsa_completed(maxiter=1778,a=0.2,c=0.1,alpha=0.602,gamma=0.101,A=10.0,eval_repeats=1,eval_agg=mean,avg_last=0)",
+      "optimizer_method": "SPSA",
+      "reps": 3,
+      "restarts": 4,
+      "resumed_from_checkpoint": false,
+      "skip_reason": null,
+      "skipped": false
+    }
+  },
+  "workflow_contract": {
+    "conventional_vqe_definition": "non-ADAPT matched-family replay from ADAPT handoff",
+    "drive_default": "opt_in",
+    "noiseless_energy_metric": "not_run (run_dynamics=false)",
+    "noiseless_fidelity_metric": "not_run (run_dynamics=false)",
+    "stage_chain": [
+      "hf_reference",
+      "warm_start_hva",
+      "adapt_vqe",
+      "matched_family_replay"
+    ]
+  }
+}

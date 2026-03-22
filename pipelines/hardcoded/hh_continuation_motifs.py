@@ -9,7 +9,10 @@ from pathlib import Path
 import json
 from typing import Any, Mapping, Sequence
 
+import numpy as np
+
 from pipelines.hardcoded.hh_continuation_types import MotifLibrary, MotifMetadata, MotifRecord
+from src.quantum.ansatz_parameterization import deserialize_layout, project_runtime_theta_block_mean
 
 
 def _boundary_behavior_from_sites(
@@ -263,12 +266,27 @@ def load_motif_library_from_payload(payload: Mapping[str, Any]) -> dict[str, Any
         if isinstance(motif_library, Sequence):
             return merge_motif_libraries([x for x in motif_library if isinstance(x, Mapping)])
         generator_metadata = continuation.get("selected_generator_metadata", None)
-        optimal_point = payload.get("adapt_vqe", {}).get("optimal_point", None) if isinstance(payload.get("adapt_vqe", {}), Mapping) else None
+        adapt_block = payload.get("adapt_vqe", {}) if isinstance(payload.get("adapt_vqe", {}), Mapping) else {}
+        optimal_point = adapt_block.get("optimal_point", None)
+        logical_optimal_point = adapt_block.get("logical_optimal_point", None)
+        parameterization = adapt_block.get("parameterization", None)
         settings = payload.get("settings", None)
-        if isinstance(generator_metadata, Sequence) and isinstance(optimal_point, Sequence) and isinstance(settings, Mapping):
+        theta_logical: list[float] | None = None
+        if isinstance(logical_optimal_point, Sequence):
+            theta_logical = [float(x) for x in logical_optimal_point]
+        elif isinstance(parameterization, Mapping) and isinstance(optimal_point, Sequence):
+            try:
+                layout = deserialize_layout(parameterization)
+                theta_runtime = np.asarray([float(x) for x in optimal_point], dtype=float)
+                theta_logical = [float(x) for x in project_runtime_theta_block_mean(theta_runtime, layout)]
+            except Exception:
+                theta_logical = None
+        elif isinstance(optimal_point, Sequence):
+            theta_logical = [float(x) for x in optimal_point]
+        if isinstance(generator_metadata, Sequence) and theta_logical is not None and isinstance(settings, Mapping):
             return extract_motif_library(
                 generator_metadata=[dict(x) for x in generator_metadata if isinstance(x, Mapping)],
-                theta=[float(x) for x in optimal_point],
+                theta=theta_logical,
                 source_num_sites=int(settings.get("L", 0)),
                 source_tag=str(payload.get("generated_utc", "source_payload")),
                 ordering=str(settings.get("ordering", "blocked")),

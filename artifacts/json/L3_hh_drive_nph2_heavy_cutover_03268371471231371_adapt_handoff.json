@@ -1,0 +1,3497 @@
+{
+  "generated_utc": "2026-03-12T11:03:47Z",
+  "settings": {
+    "L": 3,
+    "problem": "hh",
+    "t": 1.0,
+    "u": 4.0,
+    "dv": 0.0,
+    "omega0": 1.0,
+    "g_ep": 0.5,
+    "n_ph_max": 2,
+    "boson_encoding": "binary",
+    "ordering": "blocked",
+    "boundary": "open",
+    "sector_n_up": 2,
+    "sector_n_dn": 1,
+    "adapt_pool": "paop_lf_std"
+  },
+  "adapt_vqe": {
+    "energy": 0.31723164219261407,
+    "abs_delta_e": 0.07263775137687284,
+    "relative_error_abs": 0.29697287669213573,
+    "operators": [
+      "hh_termwise_ham_quadrature_term(eyeeeezeeeee)",
+      "hh_termwise_ham_quadrature_term(eyeeeeeeezee)",
+      "hh_termwise_ham_quadrature_term(zyeeeezeeeee)",
+      "hh_termwise_ham_quadrature_term(zyeeeeeeezee)",
+      "hh_termwise_ham_quadrature_term(eeeeeyeezeee)",
+      "hh_termwise_ham_quadrature_term(eeeeeyeeeeez)",
+      "hh_termwise_ham_quadrature_term(eeeezyeezeee)",
+      "hh_termwise_ham_quadrature_term(eeeezyeeeeez)",
+      "hh_termwise_ham_quadrature_term(eezyeeeeeeze)",
+      "hh_termwise_ham_quadrature_term(eezyeeezeeee)",
+      "hh_termwise_ham_quadrature_term(eeeyeeeeeeze)",
+      "hh_termwise_ham_quadrature_term(eeeyeeezeeee)",
+      "hh_termwise_ham_unit_term(eeexeeezeeee)",
+      "hh_termwise_ham_unit_term(eeexeeezeeee)",
+      "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+      "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+      "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+      "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+      "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+      "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+      "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+      "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+      "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+      "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+      "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+      "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+      "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+      "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+      "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+      "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+      "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+      "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+      "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+      "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+      "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+      "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+      "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+      "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+      "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+      "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+      "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+      "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+      "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+      "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+      "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+      "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+      "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+      "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+      "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+      "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+      "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+      "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+      "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+      "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+      "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+      "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+      "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+      "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+      "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+      "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+      "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+      "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+      "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+      "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+      "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+      "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+      "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+      "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+      "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+      "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+      "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+      "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+      "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+      "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+      "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+      "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+      "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+      "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+      "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+      "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+      "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+      "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+      "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+      "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+      "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+      "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+      "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+      "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+      "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+      "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+      "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+      "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+      "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+      "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+      "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+      "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+      "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+      "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+      "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+      "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+      "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+      "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+      "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+      "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+      "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+      "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+      "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+      "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+      "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+      "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+      "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+      "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+      "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+      "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+      "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+      "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+      "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+      "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+      "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+      "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+      "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+      "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+      "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+      "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+      "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+      "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+      "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+      "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+      "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+      "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+      "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+      "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+      "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+      "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+      "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+      "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+      "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+      "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+      "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+      "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+      "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+      "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+      "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+      "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+      "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+      "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+      "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+      "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+      "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+      "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+      "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+      "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+      "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+      "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+      "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+      "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+      "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+      "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+      "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+      "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+      "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+      "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+      "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+      "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+      "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+      "hh_termwise_ham_unit_term(eeeeeexxeeee)"
+    ],
+    "optimal_point": [
+      0.1111537255490985,
+      0.11614080681600564,
+      0.0772530773880608,
+      0.09965040814506468,
+      0.11127000836795523,
+      0.09439333327141454,
+      0.10640860012413639,
+      0.08985457568628474,
+      -0.03120329971288791,
+      0.14699334672219205,
+      0.09624975124465164,
+      0.14613526469189686,
+      0.005029799950686677,
+      0.08121734870067465,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+    ],
+    "ansatz_depth": 166,
+    "num_parameters": 166,
+    "pool_type": "paop_lf_std",
+    "pre_prune_scaffold": {
+      "operators": [
+        "hh_termwise_ham_quadrature_term(eyeeeezeeeee)",
+        "hh_termwise_ham_quadrature_term(eyeeeeeeezee)",
+        "hh_termwise_ham_quadrature_term(zyeeeezeeeee)",
+        "hh_termwise_ham_quadrature_term(zyeeeeeeezee)",
+        "hh_termwise_ham_quadrature_term(eeeeeyeezeee)",
+        "hh_termwise_ham_quadrature_term(eeeeeyeeeeez)",
+        "hh_termwise_ham_quadrature_term(eeeezyeezeee)",
+        "hh_termwise_ham_quadrature_term(eeeezyeeeeez)",
+        "hh_termwise_ham_quadrature_term(eezyeeeeeeze)",
+        "hh_termwise_ham_quadrature_term(eezyeeezeeee)",
+        "hh_termwise_ham_quadrature_term(eeeyeeeeeeze)",
+        "hh_termwise_ham_quadrature_term(eeeyeeezeeee)",
+        "hh_termwise_ham_unit_term(eeexeeezeeee)",
+        "hh_termwise_ham_unit_term(eeexeeezeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)"
+      ],
+      "optimal_point": [
+        0.1111537255490985,
+        0.11614080681600564,
+        0.0772530773880608,
+        0.09965040814506468,
+        0.11127000836795523,
+        0.09439333327141454,
+        0.10640860012413639,
+        0.08985457568628474,
+        -0.03120329971288791,
+        0.14699334672219205,
+        0.09624975124465164,
+        0.14613526469189686,
+        0.005029799950686677,
+        0.08121734870067465,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "energy": 0.31723164219261407
+    },
+    "prune_summary": {
+      "enabled": true,
+      "executed": true,
+      "rolled_back": false,
+      "accepted_count": 6,
+      "candidate_count": 6,
+      "decisions": [
+        {
+          "index": 14,
+          "label": "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+          "accepted": true,
+          "energy_before": 0.31723164219261407,
+          "energy_after": 0.31723164219261407,
+          "regression": 0.0,
+          "reason": "accepted"
+        },
+        {
+          "index": 14,
+          "label": "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+          "accepted": true,
+          "energy_before": 0.31723164219261407,
+          "energy_after": 0.31723164219261407,
+          "regression": 0.0,
+          "reason": "accepted"
+        },
+        {
+          "index": 14,
+          "label": "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+          "accepted": true,
+          "energy_before": 0.31723164219261407,
+          "energy_after": 0.31723164219261407,
+          "regression": 0.0,
+          "reason": "accepted"
+        },
+        {
+          "index": 14,
+          "label": "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+          "accepted": true,
+          "energy_before": 0.31723164219261407,
+          "energy_after": 0.31723164219261407,
+          "regression": 0.0,
+          "reason": "accepted"
+        },
+        {
+          "index": 14,
+          "label": "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+          "accepted": true,
+          "energy_before": 0.31723164219261407,
+          "energy_after": 0.31723164219261407,
+          "regression": 0.0,
+          "reason": "accepted"
+        },
+        {
+          "index": 14,
+          "label": "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+          "accepted": true,
+          "energy_before": 0.31723164219261407,
+          "energy_after": 0.31723164219261407,
+          "regression": 0.0,
+          "reason": "accepted"
+        }
+      ],
+      "energy_before": 0.31723164219261407,
+      "energy_after_prune": 0.31723164219261407,
+      "energy_after_post_refit": 0.31723164219261407,
+      "post_refit_executed": true,
+      "marginal_proxy_benefit": [
+        0.34403281010533776,
+        0.34311571338128244,
+        0.3446761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        0.4046761577312664,
+        Infinity,
+        Infinity,
+        Infinity,
+        Infinity,
+        Infinity,
+        Infinity,
+        Infinity,
+        Infinity,
+        Infinity,
+        Infinity,
+        Infinity,
+        Infinity
+      ]
+    }
+  },
+  "ground_state": {
+    "exact_energy": 0.24459389081574123,
+    "exact_energy_filtered": 0.24459389081574123,
+    "filtered_sector": {
+      "n_up": 2,
+      "n_dn": 1
+    },
+    "method": "staged_handoff_bundle"
+  },
+  "initial_state": {
+    "source": "adapt_vqe",
+    "nq_total": 12,
+    "amplitudes_qn_to_q0": {
+      "000000001011": {
+        "re": 0.05087351487886226,
+        "im": 0.048454824166182395
+      },
+      "000000001101": {
+        "re": 0.13021480014675937,
+        "im": 0.17411247957354303
+      },
+      "000000001110": {
+        "re": 0.22243013848692203,
+        "im": 0.3492502676391751
+      },
+      "000000010011": {
+        "re": 0.13528283871952412,
+        "im": 0.15073056227355813
+      },
+      "000000010101": {
+        "re": 0.46585277186647017,
+        "im": 0.5597518720231154
+      },
+      "000000010110": {
+        "re": 0.16480572337628327,
+        "im": 0.21760711376663863
+      },
+      "000000100011": {
+        "re": 0.1655654079336352,
+        "im": 0.19681323786580698
+      },
+      "000000100101": {
+        "re": 0.09459778752195269,
+        "im": 0.18020880110215376
+      },
+      "000000100110": {
+        "re": 0.018458991485834055,
+        "im": 0.11822272717813277
+      },
+      "000001001011": {
+        "re": 0.006396937280692638,
+        "im": 0.0019764833444356244
+      },
+      "000001001101": {
+        "re": -0.006746412383459225,
+        "im": -0.011044106186394235
+      },
+      "000001001110": {
+        "re": -0.005979761843087371,
+        "im": 0.0028398882830610915
+      },
+      "000001010011": {
+        "re": -0.0050940360254436295,
+        "im": 0.0004764249294880579
+      },
+      "000001010101": {
+        "re": 0.004481660417692948,
+        "im": 0.003653417411472423
+      },
+      "000001010110": {
+        "re": 0.031016851524366992,
+        "im": 0.011272145602695332
+      },
+      "000001100011": {
+        "re": 0.0021814511441370717,
+        "im": -0.00041833693655825017
+      },
+      "000001100101": {
+        "re": 0.00039653966888182743,
+        "im": -0.003856641760549174
+      },
+      "000001100110": {
+        "re": 0.0008242846572945864,
+        "im": 0.009157287955271093
+      },
+      "000010001011": {
+        "re": -9.398221820807377e-05,
+        "im": 0.0006497580705539524
+      },
+      "000010001101": {
+        "re": 0.0004456158473890122,
+        "im": 0.000138752372618203
+      },
+      "000010001110": {
+        "re": -0.0001160162624174939,
+        "im": 0.0002348633802198059
+      },
+      "000010010011": {
+        "re": 0.00013408682058787044,
+        "im": 0.0001346335077790649
+      },
+      "000010010101": {
+        "re": 0.0003394017722918843,
+        "im": 0.00013585458133596356
+      },
+      "000010010110": {
+        "re": 3.165215144963747e-05,
+        "im": -0.0009692841871022337
+      },
+      "000010100011": {
+        "re": 6.934360881823208e-05,
+        "im": 7.04024752071583e-05
+      },
+      "000010100101": {
+        "re": 4.091007256386865e-05,
+        "im": 4.3622312942494906e-05
+      },
+      "000010100110": {
+        "re": 0.00028871452775464286,
+        "im": 8.242397647620875e-05
+      },
+      "000011001011": {
+        "re": 1.068234953750715e-05,
+        "im": -6.05767913365662e-07
+      },
+      "000011001101": {
+        "re": 1.2211048446958234e-06,
+        "im": -7.082325875972944e-06
+      },
+      "000011001110": {
+        "re": 5.323748015222194e-06,
+        "im": 1.8871064925382102e-06
+      },
+      "000011010011": {
+        "re": 7.999132990993972e-07,
+        "im": 2.5685372004402626e-06
+      },
+      "000011010101": {
+        "re": 9.210088161821047e-07,
+        "im": 1.7987484470209765e-06
+      },
+      "000011010110": {
+        "re": 1.8119581157391464e-05,
+        "im": -4.40449107804228e-06
+      },
+      "000011100011": {
+        "re": -3.598744667397008e-07,
+        "im": 9.234898738737589e-08
+      },
+      "000011100101": {
+        "re": -1.166793204030189e-06,
+        "im": 2.9522776994145434e-07
+      },
+      "000011100110": {
+        "re": 7.544460397342118e-08,
+        "im": 4.813110488853036e-06
+      },
+      "000100001011": {
+        "re": 0.007190973663072968,
+        "im": 0.006819712138201346
+      },
+      "000100001101": {
+        "re": 0.01365488432421011,
+        "im": 0.022410755504906277
+      },
+      "000100001110": {
+        "re": 0.023312819440372192,
+        "im": -0.023899815059683714
+      },
+      "000100010011": {
+        "re": -0.016179382377053082,
+        "im": -0.009014077368956395
+      },
+      "000100010101": {
+        "re": -0.039908669368397175,
+        "im": 0.022668606610799027
+      },
+      "000100010110": {
+        "re": -0.009108454804273771,
+        "im": -0.003990859135413325
+      },
+      "000100100011": {
+        "re": 0.019654037784139284,
+        "im": -0.004653603551609276
+      },
+      "000100100101": {
+        "re": 0.006019389445196199,
+        "im": 0.009760455246167322
+      },
+      "000100100110": {
+        "re": 0.00510981431609639,
+        "im": 8.332446880972352e-05
+      },
+      "000101001011": {
+        "re": -0.00028313387545813397,
+        "im": -0.0007286100372555647
+      },
+      "000101001101": {
+        "re": -0.000994685717549828,
+        "im": -0.00029225424549698796
+      },
+      "000101001110": {
+        "re": -0.0004422329189065762,
+        "im": 0.0004338981160825181
+      },
+      "000101010011": {
+        "re": -0.00032281463302648175,
+        "im": 0.0007033738053582103
+      },
+      "000101010101": {
+        "re": -0.00030821437553376783,
+        "im": 0.0004395890918638135
+      },
+      "000101010110": {
+        "re": -0.0007674898243645655,
+        "im": -0.0008647170391318613
+      },
+      "000101100011": {
+        "re": -4.554692114422736e-05,
+        "im": -4.729059012060562e-05
+      },
+      "000101100101": {
+        "re": 0.00020926895074213967,
+        "im": -0.00017937314349626468
+      },
+      "000101100110": {
+        "re": 0.000549181271922007,
+        "im": 0.0005063699279575672
+      },
+      "000110001011": {
+        "re": 3.0291439385210685e-05,
+        "im": 2.068876280416572e-05
+      },
+      "000110001101": {
+        "re": -1.9565931837141896e-05,
+        "im": 2.1994406759977293e-05
+      },
+      "000110001110": {
+        "re": 4.682293691458834e-06,
+        "im": 2.378247723785444e-06
+      },
+      "000110010011": {
+        "re": -3.195061068032531e-06,
+        "im": -6.375073417745308e-06
+      },
+      "000110010101": {
+        "re": -7.672724350582725e-06,
+        "im": 1.1610111126016133e-05
+      },
+      "000110010110": {
+        "re": -4.221959080617868e-05,
+        "im": 2.48973956690565e-05
+      },
+      "000110100011": {
+        "re": 9.830922292833936e-06,
+        "im": -3.7776121018286784e-06
+      },
+      "000110100101": {
+        "re": 3.5713971174377918e-06,
+        "im": -2.2461075361962806e-06
+      },
+      "000110100110": {
+        "re": 3.003707210442713e-05,
+        "im": -2.4063913188843276e-05
+      },
+      "000111001011": {
+        "re": 1.3070599484503433e-07,
+        "im": -5.430517283036273e-07
+      },
+      "000111001101": {
+        "re": 4.311380904777178e-07,
+        "im": 4.141838391382016e-07
+      },
+      "000111001110": {
+        "re": 1.460699685758987e-07,
+        "im": -9.75113127060035e-08
+      },
+      "000111010011": {
+        "re": 2.2703743595283468e-07,
+        "im": 1.105783138662661e-07
+      },
+      "000111010101": {
+        "re": -6.702527978880406e-08,
+        "im": 1.5184765389770305e-07
+      },
+      "000111010110": {
+        "re": -7.483249949939954e-07,
+        "im": -5.71954215581286e-07
+      },
+      "000111100011": {
+        "re": 2.897255801963157e-08,
+        "im": 6.890142525128119e-08
+      },
+      "000111100101": {
+        "re": -6.24522757199693e-08,
+        "im": -2.2423839189448892e-08
+      },
+      "000111100110": {
+        "re": 5.118250207845356e-07,
+        "im": 3.5926634454606005e-07
+      },
+      "001000001011": {
+        "re": 5.603612012471744e-05,
+        "im": -0.00039928074172299163
+      },
+      "001000001101": {
+        "re": -0.003259662174904597,
+        "im": 0.0004409297860579096
+      },
+      "001000001110": {
+        "re": 0.00047959054962025014,
+        "im": -0.0002555278287556548
+      },
+      "001000010011": {
+        "re": -0.0019535457660913693,
+        "im": 0.0015695636234386177
+      },
+      "001000010101": {
+        "re": 0.0005997639109638005,
+        "im": -0.0006927090734044133
+      },
+      "001000010110": {
+        "re": 0.0005969108715072589,
+        "im": -0.0005154383413761836
+      },
+      "001000100011": {
+        "re": -0.000289455866570694,
+        "im": 0.00020605509427725722
+      },
+      "001000100101": {
+        "re": -0.0005817923623096662,
+        "im": -0.0007709570753195471
+      },
+      "001000100110": {
+        "re": -0.00021669729633660902,
+        "im": 3.714302001988715e-05
+      },
+      "001001001011": {
+        "re": 6.3265098979128806e-06,
+        "im": 1.53038681095261e-05
+      },
+      "001001001101": {
+        "re": 1.7487174049178016e-06,
+        "im": -7.350369467549508e-05
+      },
+      "001001001110": {
+        "re": 1.396615926465823e-05,
+        "im": -8.733212775871557e-06
+      },
+      "001001010011": {
+        "re": 0.00013510586608242567,
+        "im": 0.00011717086960657874
+      },
+      "001001010101": {
+        "re": 2.27958698490443e-05,
+        "im": -5.538188482448958e-06
+      },
+      "001001010110": {
+        "re": -0.00017615694155311408,
+        "im": -0.00016883107603856714
+      },
+      "001001100011": {
+        "re": 5.388153674723216e-08,
+        "im": 1.3679136129006355e-05
+      },
+      "001001100101": {
+        "re": 6.632861224396103e-06,
+        "im": 4.766560056521864e-05
+      },
+      "001001100110": {
+        "re": -8.385177133514098e-06,
+        "im": 1.3559685091561677e-05
+      },
+      "001010001011": {
+        "re": -8.089265283281256e-08,
+        "im": 1.698282251567045e-07
+      },
+      "001010001101": {
+        "re": -4.708019957510475e-06,
+        "im": -7.857537569089823e-06
+      },
+      "001010001110": {
+        "re": 4.804622899037613e-07,
+        "im": -4.233452547694166e-07
+      },
+      "001010010011": {
+        "re": -6.751451027327844e-07,
+        "im": -7.901278911016051e-07
+      },
+      "001010010101": {
+        "re": 2.512908035743942e-07,
+        "im": -6.303961086822996e-07
+      },
+      "001010010110": {
+        "re": -3.747162218941698e-06,
+        "im": 1.115818575547224e-05
+      },
+      "001010100011": {
+        "re": 1.1494823632119133e-07,
+        "im": 1.0838694442078875e-07
+      },
+      "001010100101": {
+        "re": 5.483614078060998e-07,
+        "im": -1.2957355146376748e-07
+      },
+      "001010100110": {
+        "re": 2.9027896429595154e-07,
+        "im": 1.0165522091186474e-07
+      },
+      "001011001011": {
+        "re": -4.079874962162955e-10,
+        "im": 5.168961186636861e-10
+      },
+      "001011001101": {
+        "re": -1.341139088309878e-07,
+        "im": 1.0047895994745714e-07
+      },
+      "001011001110": {
+        "re": -4.340088867348624e-09,
+        "im": -8.947340077841735e-09
+      },
+      "001011010011": {
+        "re": 4.170529234320014e-08,
+        "im": -5.006216292296275e-08
+      },
+      "001011010101": {
+        "re": 5.677450621176144e-09,
+        "im": -4.43157253811196e-09
+      },
+      "001011010110": {
+        "re": -2.1963740540560102e-07,
+        "im": -7.994980765101096e-09
+      },
+      "001011100011": {
+        "re": 3.3521248424711676e-09,
+        "im": 9.660555707876697e-10
+      },
+      "001011100101": {
+        "re": 1.2122696332157083e-08,
+        "im": -4.847106149125457e-09
+      },
+      "001011100110": {
+        "re": 3.0990663654412144e-09,
+        "im": 4.96240611166702e-09
+      },
+      "001100001011": {
+        "re": -4.310241856655894e-05,
+        "im": 9.025160188869047e-06
+      },
+      "001100001101": {
+        "re": 1.2165081032968387e-05,
+        "im": 0.00046295508586637616
+      },
+      "001100001110": {
+        "re": -3.5575503067276236e-05,
+        "im": -4.6470533979152786e-05
+      },
+      "001100010011": {
+        "re": -0.00017750286090443144,
+        "im": -0.0002603789516573938
+      },
+      "001100010101": {
+        "re": 8.024174135394249e-05,
+        "im": 4.43799112506324e-05
+      },
+      "001100010110": {
+        "re": 7.240369620276805e-05,
+        "im": 7.430384112522584e-05
+      },
+      "001100100011": {
+        "re": 1.5024662047587522e-05,
+        "im": 2.0615073168031843e-05
+      },
+      "001100100101": {
+        "re": -0.00010139149352158777,
+        "im": 8.069536144141316e-05
+      },
+      "001100100110": {
+        "re": -2.8181806024423624e-08,
+        "im": 1.9494613736281577e-05
+      },
+      "001101001011": {
+        "re": 8.534576348144873e-07,
+        "im": -1.370621277191971e-06
+      },
+      "001101001101": {
+        "re": -1.0001524913004789e-05,
+        "im": -1.5079198958245627e-06
+      },
+      "001101001110": {
+        "re": -1.4047670287137035e-06,
+        "im": -1.2394212083125386e-06
+      },
+      "001101010011": {
+        "re": -1.7736494814041772e-05,
+        "im": 1.7824755940235072e-05
+      },
+      "001101010101": {
+        "re": 9.72605087624841e-07,
+        "im": 2.2142132059928715e-06
+      },
+      "001101010110": {
+        "re": 2.5723251262634547e-05,
+        "im": -2.3532942491890967e-05
+      },
+      "001101100011": {
+        "re": 1.003722768917432e-06,
+        "im": -1.3828014557477712e-07
+      },
+      "001101100101": {
+        "re": 7.148948278911778e-06,
+        "im": 2.5163321542587345e-07
+      },
+      "001101100110": {
+        "re": 1.1572477918241895e-06,
+        "im": 9.263999810492196e-07
+      },
+      "001110001011": {
+        "re": -2.9530316518286947e-09,
+        "im": -2.224964569678183e-08
+      },
+      "001110001101": {
+        "re": -1.1464753289025035e-06,
+        "im": 5.385187258650459e-07
+      },
+      "001110001110": {
+        "re": -5.957097465508689e-08,
+        "im": -4.775437455737901e-08
+      },
+      "001110010011": {
+        "re": 1.2828846917047118e-07,
+        "im": -8.278811515824809e-08
+      },
+      "001110010101": {
+        "re": 6.720772921100371e-08,
+        "im": 5.712010766688815e-09
+      },
+      "001110010110": {
+        "re": -1.5278251345902586e-06,
+        "im": -6.640307761091173e-07
+      },
+      "001110100011": {
+        "re": 5.451816527255057e-09,
+        "im": -1.2813959898345412e-08
+      },
+      "001110100101": {
+        "re": 4.425762187046493e-09,
+        "im": -8.129087778025074e-08
+      },
+      "001110100110": {
+        "re": 1.466241750733296e-08,
+        "im": -3.3595413328360726e-08
+      },
+      "001111001011": {
+        "re": -4.0095388784775453e-10,
+        "im": 3.799275981953989e-10
+      },
+      "001111001101": {
+        "re": 1.1739670162389613e-08,
+        "im": 2.0200111972279002e-08
+      },
+      "001111001110": {
+        "re": -8.682631331026177e-10,
+        "im": 8.779731512911365e-10
+      },
+      "001111010011": {
+        "re": 6.699361057614857e-09,
+        "im": 6.4451985521578565e-09
+      },
+      "001111010101": {
+        "re": 6.013199449381721e-10,
+        "im": 5.625008391352527e-10
+      },
+      "001111010110": {
+        "re": 3.429300980229486e-09,
+        "im": -3.0521813130313415e-08
+      },
+      "001111100011": {
+        "re": 5.4536465693148617e-11,
+        "im": -2.4461961187380387e-10
+      },
+      "001111100101": {
+        "re": -3.4452165179310694e-10,
+        "im": -1.7744043112010848e-09
+      },
+      "001111100110": {
+        "re": 5.563261085390859e-10,
+        "im": -2.35901112445592e-10
+      },
+      "010000001011": {
+        "re": -0.008660911044725309,
+        "im": 0.003571294480784458
+      },
+      "010000001101": {
+        "re": 0.0037643067502014876,
+        "im": -0.007446460589252822
+      },
+      "010000001110": {
+        "re": -0.002304067745790121,
+        "im": 0.010116586754308264
+      },
+      "010000010011": {
+        "re": 0.000631787200007406,
+        "im": 0.032757310486201945
+      },
+      "010000010101": {
+        "re": 0.0010827828391108624,
+        "im": 0.00911873208751764
+      },
+      "010000010110": {
+        "re": 0.0038320408726303804,
+        "im": 0.002535400327836713
+      },
+      "010000100011": {
+        "re": -0.0046103156934841185,
+        "im": 0.0016169426325901408
+      },
+      "010000100101": {
+        "re": 0.013291799804199114,
+        "im": -0.01844763633471644
+      },
+      "010000100110": {
+        "re": 0.003438145204957312,
+        "im": -0.0012788596273685285
+      },
+      "010001001011": {
+        "re": 0.0005298671028831306,
+        "im": 0.0007827264249633945
+      },
+      "010001001101": {
+        "re": 0.0004706976682346993,
+        "im": 0.0002465338085171823
+      },
+      "010001001110": {
+        "re": -3.862959078184469e-05,
+        "im": 0.00012467571196038852
+      },
+      "010001010011": {
+        "re": -0.00023900987473590005,
+        "im": -0.0006006740159634247
+      },
+      "010001010101": {
+        "re": 1.6521729319161236e-05,
+        "im": -6.676709098054591e-05
+      },
+      "010001010110": {
+        "re": 0.00039911932283581,
+        "im": 0.00020202440348640065
+      },
+      "010001100011": {
+        "re": 2.6205861828518148e-05,
+        "im": 0.0001483505918462236
+      },
+      "010001100101": {
+        "re": -0.00022650117063736675,
+        "im": 0.00030659285826292737
+      },
+      "010001100110": {
+        "re": 0.0007620539006223969,
+        "im": -2.750548618558861e-05
+      },
+      "010010001011": {
+        "re": -6.99875870206484e-05,
+        "im": 2.1205248316732178e-05
+      },
+      "010010001101": {
+        "re": 1.9978740846874794e-05,
+        "im": 2.4007572251670765e-05
+      },
+      "010010001110": {
+        "re": -4.662583655246593e-06,
+        "im": 5.646604268784901e-06
+      },
+      "010010010011": {
+        "re": -3.9071513943842185e-06,
+        "im": 2.4561035483140647e-05
+      },
+      "010010010101": {
+        "re": -2.2103303504091263e-06,
+        "im": 4.012154153505527e-06
+      },
+      "010010010110": {
+        "re": 6.074941739890028e-06,
+        "im": -1.123637850001684e-05
+      },
+      "010010100011": {
+        "re": -1.3604343504190727e-06,
+        "im": 1.4829162987555505e-06
+      },
+      "010010100101": {
+        "re": 2.652716424445133e-06,
+        "im": -7.426644157261995e-06
+      },
+      "010010100110": {
+        "re": -6.653739259350091e-06,
+        "im": -3.6834207073836844e-05
+      },
+      "010011001011": {
+        "re": 5.651146038700746e-07,
+        "im": 1.042619117648248e-06
+      },
+      "010011001101": {
+        "re": 3.4394111542781073e-07,
+        "im": -4.175549822497708e-07
+      },
+      "010011001110": {
+        "re": 1.2490973770669862e-07,
+        "im": 8.025334744383502e-08
+      },
+      "010011010011": {
+        "re": -2.6443486827478577e-07,
+        "im": 1.8417495563089114e-07
+      },
+      "010011010101": {
+        "re": -7.25422624051456e-09,
+        "im": 9.074701604077378e-09
+      },
+      "010011010110": {
+        "re": 2.4463719302436727e-07,
+        "im": 8.932865465417977e-08
+      },
+      "010011100011": {
+        "re": 4.0150468003668e-08,
+        "im": -1.7158982958399e-08
+      },
+      "010011100101": {
+        "re": 1.5797904267580874e-07,
+        "im": 6.752071676779979e-08
+      },
+      "010011100110": {
+        "re": 5.844865609451886e-07,
+        "im": -2.21161623291671e-07
+      },
+      "010100001011": {
+        "re": -0.0008491955642168283,
+        "im": 0.0015527400429370185
+      },
+      "010100001101": {
+        "re": 0.0005782191210387304,
+        "im": 0.0005288927787318302
+      },
+      "010100001110": {
+        "re": 0.000537433005707535,
+        "im": 0.00011839934385747396
+      },
+      "010100010011": {
+        "re": -0.00015431957366601873,
+        "im": -0.0026802812869340564
+      },
+      "010100010101": {
+        "re": -0.000694153963495573,
+        "im": -0.0003924672043538608
+      },
+      "010100010110": {
+        "re": -0.0005416769661255535,
+        "im": -0.0002940504565888375
+      },
+      "010100100011": {
+        "re": -0.00017372353377625535,
+        "im": 0.0004750949059513928
+      },
+      "010100100101": {
+        "re": 0.0005767943229384921,
+        "im": -0.0011665042897913494
+      },
+      "010100100110": {
+        "re": 0.00010666672350532348,
+        "im": 8.2613074947787e-05
+      },
+      "010101001011": {
+        "re": 7.433533311845289e-05,
+        "im": -0.0001054238067824227
+      },
+      "010101001101": {
+        "re": -2.685915021897198e-05,
+        "im": 1.7051806579198153e-05
+      },
+      "010101001110": {
+        "re": -1.9338488233482044e-06,
+        "im": -7.009525183875752e-06
+      },
+      "010101010011": {
+        "re": -0.00010196062016938593,
+        "im": 1.3979609751689057e-05
+      },
+      "010101010101": {
+        "re": -2.645565709160801e-06,
+        "im": -1.3128367723016915e-05
+      },
+      "010101010110": {
+        "re": -3.439212500736104e-05,
+        "im": -8.168195776439262e-06
+      },
+      "010101100011": {
+        "re": 7.511457818171784e-06,
+        "im": 9.01445878862623e-06
+      },
+      "010101100101": {
+        "re": -2.805440481696339e-05,
+        "im": -7.247252269118238e-07
+      },
+      "010101100110": {
+        "re": 5.7560824491079425e-05,
+        "im": -7.048835040160127e-05
+      },
+      "010110001011": {
+        "re": -5.154167735032312e-07,
+        "im": 4.090008184116263e-06
+      },
+      "010110001101": {
+        "re": -1.4930782233473348e-06,
+        "im": 1.4982252859361972e-06
+      },
+      "010110001110": {
+        "re": 2.4895425754499413e-07,
+        "im": 1.6078739186885747e-08
+      },
+      "010110010011": {
+        "re": 6.645203932228694e-07,
+        "im": -6.917553907866121e-07
+      },
+      "010110010101": {
+        "re": -3.360759909615243e-07,
+        "im": -5.940842075306005e-07
+      },
+      "010110010110": {
+        "re": -4.1099822872907206e-07,
+        "im": 1.40723326167889e-07
+      },
+      "010110100011": {
+        "re": 1.1389259027856007e-07,
+        "im": 2.8568073536901834e-07
+      },
+      "010110100101": {
+        "re": -3.561782888513883e-07,
+        "im": -3.8133207595032803e-07
+      },
+      "010110100110": {
+        "re": -4.550310175217164e-06,
+        "im": -1.8447924774165562e-06
+      },
+      "010111001011": {
+        "re": 6.068306509116107e-08,
+        "im": -1.6579322217231277e-08
+      },
+      "010111001101": {
+        "re": 2.9308355887485213e-08,
+        "im": 2.0166695423128602e-08
+      },
+      "010111001110": {
+        "re": -5.236199571376445e-10,
+        "im": -4.342783826912856e-09
+      },
+      "010111010011": {
+        "re": 1.170438464796613e-09,
+        "im": 3.4611408950064985e-08
+      },
+      "010111010101": {
+        "re": -7.363311760509905e-09,
+        "im": 8.163830883992112e-10
+      },
+      "010111010110": {
+        "re": -7.684353985197047e-09,
+        "im": -3.7021661518844703e-09
+      },
+      "010111100011": {
+        "re": 2.7211591998304973e-09,
+        "im": -1.9937719399066917e-09
+      },
+      "010111100101": {
+        "re": 6.686870425596737e-09,
+        "im": 8.816042410581943e-09
+      },
+      "010111100110": {
+        "re": 1.1811316832410314e-08,
+        "im": -8.329337068348754e-08
+      },
+      "011000001011": {
+        "re": 5.2421816474929446e-05,
+        "im": -3.5082566316924576e-05
+      },
+      "011000001101": {
+        "re": -0.0001694079737949811,
+        "im": 8.793962552370826e-05
+      },
+      "011000001110": {
+        "re": 2.4595721706314682e-05,
+        "im": -8.475213689713715e-06
+      },
+      "011000010011": {
+        "re": -0.0003298551387509603,
+        "im": -0.00017036188826583768
+      },
+      "011000010101": {
+        "re": 1.1974319404544837e-05,
+        "im": -3.895558058761719e-05
+      },
+      "011000010110": {
+        "re": -5.405300080147276e-05,
+        "im": 5.237490362960357e-05
+      },
+      "011000100011": {
+        "re": -6.4928807903184845e-06,
+        "im": 6.419894947820364e-06
+      },
+      "011000100101": {
+        "re": -4.001663288224236e-05,
+        "im": 6.712486965937166e-05
+      },
+      "011000100110": {
+        "re": 2.240291746126226e-05,
+        "im": 1.7039346147135925e-05
+      },
+      "011001001011": {
+        "re": -6.664524777789934e-07,
+        "im": 2.4370998268495795e-06
+      },
+      "011001001101": {
+        "re": -2.8119009833508063e-06,
+        "im": -9.11624547118569e-06
+      },
+      "011001001110": {
+        "re": 9.328460445148903e-07,
+        "im": -9.944492934526541e-08
+      },
+      "011001010011": {
+        "re": -4.289432255926727e-06,
+        "im": 2.2825738087518247e-05
+      },
+      "011001010101": {
+        "re": -1.5045627699727735e-07,
+        "im": -6.248628638400033e-07
+      },
+      "011001010110": {
+        "re": -1.8183928864447243e-06,
+        "im": 1.8979160622970825e-06
+      },
+      "011001100011": {
+        "re": -1.1732389074556646e-07,
+        "im": 2.875147859661316e-07
+      },
+      "011001100101": {
+        "re": 2.7025471391785024e-06,
+        "im": -5.220395547990326e-06
+      },
+      "011001100110": {
+        "re": 2.1078740146015507e-06,
+        "im": -4.428066777216765e-07
+      },
+      "011010001011": {
+        "re": 1.3862546949665896e-11,
+        "im": 3.4808760302007136e-08
+      },
+      "011010001101": {
+        "re": -1.5866095425283257e-07,
+        "im": -5.373808398299115e-07
+      },
+      "011010001110": {
+        "re": 3.4239429633601365e-08,
+        "im": 2.7562552394299394e-09
+      },
+      "011010010011": {
+        "re": 6.744093022361676e-08,
+        "im": -1.696325286667477e-07
+      },
+      "011010010101": {
+        "re": -2.5283022783223212e-09,
+        "im": -1.2017272929938987e-08
+      },
+      "011010010110": {
+        "re": -8.558616118982539e-08,
+        "im": 6.721156133550974e-08
+      },
+      "011010100011": {
+        "re": 2.734521804623404e-10,
+        "im": 7.086415809422547e-09
+      },
+      "011010100101": {
+        "re": -3.3064065167032834e-08,
+        "im": -3.898105623229522e-08
+      },
+      "011010100110": {
+        "re": -2.086697841489162e-08,
+        "im": -3.54184587468303e-08
+      },
+      "011011001011": {
+        "re": 3.7728143282902503e-10,
+        "im": -5.248008258001111e-10
+      },
+      "011011001101": {
+        "re": -8.498213890738469e-09,
+        "im": 4.192884542890909e-09
+      },
+      "011011001110": {
+        "re": -6.7265623849856825e-12,
+        "im": -6.478841058527994e-10
+      },
+      "011011010011": {
+        "re": 8.34967951602779e-09,
+        "im": 2.035819100099915e-09
+      },
+      "011011010101": {
+        "re": -1.9462501303532714e-10,
+        "im": -1.3600966784277656e-10
+      },
+      "011011010110": {
+        "re": -9.959337460624431e-10,
+        "im": -1.1871432520193345e-09
+      },
+      "011011100011": {
+        "re": 7.939734956259533e-11,
+        "im": 4.865719249166908e-11
+      },
+      "011011100101": {
+        "re": -1.944100027063884e-09,
+        "im": -4.0436074650587413e-10
+      },
+      "011011100110": {
+        "re": 2.589068245198299e-10,
+        "im": -8.886362205794018e-10
+      },
+      "011100001011": {
+        "re": -5.290612269265203e-06,
+        "im": -4.191721091247304e-06
+      },
+      "011100001101": {
+        "re": 1.0248731348825146e-05,
+        "im": 2.5086660874549418e-05
+      },
+      "011100001110": {
+        "re": -1.3222540209768821e-06,
+        "im": -2.3802707496830838e-06
+      },
+      "011100010011": {
+        "re": 2.6823721472610675e-05,
+        "im": -3.9805350060725825e-05
+      },
+      "011100010101": {
+        "re": 4.30406898795286e-06,
+        "im": 1.0932484156833416e-07
+      },
+      "011100010110": {
+        "re": -6.369126486768309e-06,
+        "im": -8.33012273199996e-06
+      },
+      "011100100011": {
+        "re": 3.557266552614271e-07,
+        "im": 4.2330246544332157e-07
+      },
+      "011100100101": {
+        "re": 9.884266508639873e-06,
+        "im": 4.142254239907652e-06
+      },
+      "011100100110": {
+        "re": 1.6008822202109596e-06,
+        "im": -1.892826153009216e-06
+      },
+      "011101001011": {
+        "re": 2.5632669873570074e-07,
+        "im": -6.520079937674107e-08
+      },
+      "011101001101": {
+        "re": -1.3377414516746302e-06,
+        "im": 2.5142624029820927e-07
+      },
+      "011101001110": {
+        "re": -2.9762543264313577e-08,
+        "im": -9.543302005830309e-08
+      },
+      "011101010011": {
+        "re": -3.1396355486546173e-06,
+        "im": -8.368426440954897e-07
+      },
+      "011101010101": {
+        "re": 5.8999199565507464e-08,
+        "im": -4.240866613984046e-08
+      },
+      "011101010110": {
+        "re": -2.406772945853497e-07,
+        "im": -3.0130840767390707e-07
+      },
+      "011101100011": {
+        "re": 1.641453778512879e-08,
+        "im": 1.2210528384497227e-08
+      },
+      "011101100101": {
+        "re": -6.590037046565805e-07,
+        "im": -5.258878921656361e-07
+      },
+      "011101100110": {
+        "re": -3.448871306096402e-08,
+        "im": -1.9690971105103068e-07
+      },
+      "011110001011": {
+        "re": 4.346254905399689e-09,
+        "im": -4.564315180624625e-09
+      },
+      "011110001101": {
+        "re": -7.699318004054525e-08,
+        "im": 1.3208484745515538e-08
+      },
+      "011110001110": {
+        "re": -2.5895841651723125e-10,
+        "im": -3.582050736976798e-09
+      },
+      "011110010011": {
+        "re": 2.3529409652921543e-08,
+        "im": 1.2178884074927283e-08
+      },
+      "011110010101": {
+        "re": 1.1794434816106088e-09,
+        "im": -9.099486524794983e-10
+      },
+      "011110010110": {
+        "re": -9.088846605429091e-09,
+        "im": -1.315102563753813e-08
+      },
+      "011110100011": {
+        "re": 6.074104904205948e-10,
+        "im": 9.752888266962465e-12
+      },
+      "011110100101": {
+        "re": -6.754686461524722e-09,
+        "im": 2.518832340005463e-09
+      },
+      "011110100110": {
+        "re": -4.135599331629905e-09,
+        "im": 1.9228532103307795e-09
+      },
+      "011111001011": {
+        "re": -1.2133288891631906e-10,
+        "im": -4.497562980756766e-11
+      },
+      "011111001101": {
+        "re": 4.462010779545013e-10,
+        "im": 1.2480902317689534e-09
+      },
+      "011111001110": {
+        "re": -6.700377835267786e-11,
+        "im": 1.1956444470335999e-11
+      },
+      "011111010011": {
+        "re": -3.8009220662056865e-10,
+        "im": 1.1605447523305792e-09
+      },
+      "011111010101": {
+        "re": 4.6085651668467784e-12,
+        "im": -2.341085301205267e-11
+      },
+      "011111010110": {
+        "re": 1.6300087339874036e-10,
+        "im": -1.3403450283955963e-10
+      },
+      "011111100011": {
+        "re": 3.831268571533395e-12,
+        "im": -3.1092268681575465e-12
+      },
+      "011111100101": {
+        "re": -9.184692271352334e-11,
+        "im": 2.524761105665747e-10
+      },
+      "011111100110": {
+        "re": -8.394921801747151e-11,
+        "im": -3.2281376747297e-11
+      },
+      "100000001011": {
+        "re": -0.0002775375841738102,
+        "im": -0.0011340810872475784
+      },
+      "100000001101": {
+        "re": -6.018431730537841e-05,
+        "im": -0.0006630227858480067
+      },
+      "100000001110": {
+        "re": -4.696313398267581e-05,
+        "im": 0.00026392016444333407
+      },
+      "100000010011": {
+        "re": -0.0021106993445731493,
+        "im": 0.0003651170094042762
+      },
+      "100000010101": {
+        "re": -0.0003538052256818065,
+        "im": 0.00044308631812226397
+      },
+      "100000010110": {
+        "re": 0.0005371155922709747,
+        "im": 0.00018215744026984362
+      },
+      "100000100011": {
+        "re": 0.0004000376967462998,
+        "im": -0.00013126562746765052
+      },
+      "100000100101": {
+        "re": -0.0004239200124289931,
+        "im": -0.001231433113925057
+      },
+      "100000100110": {
+        "re": 0.0008108298326042319,
+        "im": -2.0858998756433035e-05
+      },
+      "100001001011": {
+        "re": -4.670473380691686e-05,
+        "im": 2.3222542931346673e-05
+      },
+      "100001001101": {
+        "re": 3.58302982120789e-05,
+        "im": 1.2126554520192602e-05
+      },
+      "100001001110": {
+        "re": -5.971893480045319e-07,
+        "im": 8.673794382501282e-06
+      },
+      "100001010011": {
+        "re": 6.355653065389734e-05,
+        "im": -1.2256758373087976e-06
+      },
+      "100001010101": {
+        "re": 4.383902357444851e-06,
+        "im": 8.030711030900756e-06
+      },
+      "100001010110": {
+        "re": 3.392918347565259e-05,
+        "im": -3.7828090360731915e-06
+      },
+      "100001100011": {
+        "re": -5.0877429121132045e-06,
+        "im": -4.3370337945559676e-06
+      },
+      "100001100101": {
+        "re": 9.720859568120771e-06,
+        "im": 8.478928950392755e-07
+      },
+      "100001100110": {
+        "re": 6.180708361627795e-05,
+        "im": -5.4196234264013015e-05
+      },
+      "100010001011": {
+        "re": 9.486945366764457e-07,
+        "im": -5.68679196969095e-06
+      },
+      "100010001101": {
+        "re": 1.4782383474882387e-06,
+        "im": 6.594273553596344e-07
+      },
+      "100010001110": {
+        "re": -1.954576786571498e-07,
+        "im": 2.6363326434944833e-07
+      },
+      "100010010011": {
+        "re": -1.5918481990554855e-06,
+        "im": -6.693045276602208e-07
+      },
+      "100010010101": {
+        "re": -1.1051149001538512e-07,
+        "im": 2.3375270199583148e-07
+      },
+      "100010010110": {
+        "re": -1.3632947283808054e-08,
+        "im": -2.3129328207415638e-07
+      },
+      "100010100011": {
+        "re": 9.49873999792288e-08,
+        "im": -1.1444274922796366e-07
+      },
+      "100010100101": {
+        "re": -4.3238617864372765e-07,
+        "im": -2.9424517287718757e-07
+      },
+      "100010100110": {
+        "re": -2.2146669160271173e-06,
+        "im": -6.459785574231086e-07
+      },
+      "100011001011": {
+        "re": -9.394190107159083e-08,
+        "im": 3.5609562446130236e-09
+      },
+      "100011001101": {
+        "re": 6.125636476008329e-09,
+        "im": -2.7028703946062082e-08
+      },
+      "100011001110": {
+        "re": 5.791112886357678e-09,
+        "im": 3.228062076311673e-09
+      },
+      "100011010011": {
+        "re": -3.655119379995408e-09,
+        "im": -2.8576283559277616e-08
+      },
+      "100011010101": {
+        "re": 3.780806751793383e-09,
+        "im": -8.721351810250828e-11
+      },
+      "100011010110": {
+        "re": 5.866993429762929e-09,
+        "im": -2.9765874247628527e-09
+      },
+      "100011100011": {
+        "re": -1.49041178243975e-09,
+        "im": 1.1395002079663334e-09
+      },
+      "100011100101": {
+        "re": 2.904520678841581e-09,
+        "im": -9.609948720581417e-09
+      },
+      "100011100110": {
+        "re": 4.300416240565442e-09,
+        "im": -4.266490115658276e-08
+      },
+      "100100001011": {
+        "re": -0.00011778201402468883,
+        "im": -8.635609787543922e-05
+      },
+      "100100001101": {
+        "re": 3.0472103801534658e-05,
+        "im": 2.4647503116421996e-06
+      },
+      "100100001110": {
+        "re": 3.3816597275607547e-06,
+        "im": 3.584063115949985e-06
+      },
+      "100100010011": {
+        "re": 0.0001788531210639557,
+        "im": 3.4213527890892617e-06
+      },
+      "100100010101": {
+        "re": -4.0259320733756396e-05,
+        "im": -3.187454558473229e-05
+      },
+      "100100010110": {
+        "re": -3.134852349567127e-05,
+        "im": -1.8554958203262282e-05
+      },
+      "100100100011": {
+        "re": 4.5385919840437795e-06,
+        "im": -4.249838243163067e-05
+      },
+      "100100100101": {
+        "re": -4.320345623680964e-05,
+        "im": -4.8258007214901736e-05
+      },
+      "100100100110": {
+        "re": 2.9013381396403495e-05,
+        "im": -5.844437310925352e-05
+      },
+      "100101001011": {
+        "re": 6.425542016738108e-06,
+        "im": 6.687616511853762e-06
+      },
+      "100101001101": {
+        "re": -3.172535625077545e-07,
+        "im": 1.5454977576228433e-06
+      },
+      "100101001110": {
+        "re": 1.3332215360469177e-07,
+        "im": -2.316507269591833e-07
+      },
+      "100101010011": {
+        "re": 1.3916852455128868e-07,
+        "im": -7.194098879022973e-06
+      },
+      "100101010101": {
+        "re": -1.2559562804809484e-06,
+        "im": 8.317940483609662e-08
+      },
+      "100101010110": {
+        "re": -2.1928105344737886e-06,
+        "im": 7.461294837603354e-08
+      },
+      "100101100011": {
+        "re": -4.149539298446082e-07,
+        "im": 1.2698072526647307e-07
+      },
+      "100101100101": {
+        "re": -4.4685914238153824e-07,
+        "im": 7.592912123229471e-07
+      },
+      "100101100110": {
+        "re": -2.921421144632091e-06,
+        "im": -8.008414448713484e-06
+      },
+      "100110001011": {
+        "re": -2.8542265056076197e-07,
+        "im": -1.5594824514411956e-07
+      },
+      "100110001101": {
+        "re": -2.2453302422760794e-08,
+        "im": 9.843717778317502e-08
+      },
+      "100110001110": {
+        "re": 4.12911818504707e-09,
+        "im": 2.051369885628506e-09
+      },
+      "100110010011": {
+        "re": 3.107760580930459e-08,
+        "im": 8.210825209389967e-08
+      },
+      "100110010101": {
+        "re": -2.3419403409427472e-08,
+        "im": -1.8708949988277987e-08
+      },
+      "100110010110": {
+        "re": 9.831271149960138e-09,
+        "im": 1.0729137954695239e-08
+      },
+      "100110100011": {
+        "re": -4.802686604090971e-09,
+        "im": -1.330536835705065e-08
+      },
+      "100110100101": {
+        "re": -5.083969461448009e-08,
+        "im": 1.0864260647693139e-08
+      },
+      "100110100110": {
+        "re": -2.0576046305120692e-07,
+        "im": 2.1590705264581665e-07
+      },
+      "100111001011": {
+        "re": -5.270379615834089e-10,
+        "im": 5.019038602049689e-09
+      },
+      "100111001101": {
+        "re": 1.6875366765623224e-09,
+        "im": 7.446573153006963e-11
+      },
+      "100111001110": {
+        "re": 8.226325659699748e-12,
+        "im": -9.578695970252684e-11
+      },
+      "100111010011": {
+        "re": -2.5785089451946614e-09,
+        "im": -5.338117681069121e-10
+      },
+      "100111010101": {
+        "re": -1.9065946943751443e-10,
+        "im": 4.696197544088831e-10
+      },
+      "100111010110": {
+        "re": -3.7003923332235235e-10,
+        "im": 4.4056178580705755e-10
+      },
+      "100111100011": {
+        "re": -4.420956941762183e-11,
+        "im": 1.8567030822754246e-10
+      },
+      "100111100101": {
+        "re": 4.332424579143095e-10,
+        "im": -4.5213596221341155e-10
+      },
+      "100111100110": {
+        "re": -4.853184662045492e-09,
+        "im": -2.5152239636560053e-09
+      },
+      "101000001011": {
+        "re": 2.721249858457604e-06,
+        "im": 3.5656264631222563e-06
+      },
+      "101000001101": {
+        "re": -5.474008750830087e-06,
+        "im": 8.0930034926202e-06
+      },
+      "101000001110": {
+        "re": 8.83292984724248e-07,
+        "im": -7.284482466674512e-07
+      },
+      "101000010011": {
+        "re": 1.5825308584122026e-05,
+        "im": -2.1492806942181447e-05
+      },
+      "101000010101": {
+        "re": 2.3063731405993772e-09,
+        "im": -1.0756751485529607e-06
+      },
+      "101000010110": {
+        "re": -4.68706889268318e-06,
+        "im": 3.184485609200786e-07
+      },
+      "101000100011": {
+        "re": 4.351721116542857e-08,
+        "im": 4.606306905905019e-07
+      },
+      "101000100101": {
+        "re": -2.1716793854884424e-06,
+        "im": 3.7915004513279695e-06
+      },
+      "101000100110": {
+        "re": 7.812300060709395e-07,
+        "im": -1.2429713817079777e-06
+      },
+      "101001001011": {
+        "re": -1.6659804432823246e-07,
+        "im": -3.0372354978726143e-09
+      },
+      "101001001101": {
+        "re": -3.2063955285524176e-07,
+        "im": -3.7591225647995705e-07
+      },
+      "101001001110": {
+        "re": 3.478083785402973e-08,
+        "im": -1.7562991265417718e-08
+      },
+      "101001010011": {
+        "re": -1.552067768146345e-06,
+        "im": -6.724034879989033e-07
+      },
+      "101001010101": {
+        "re": -1.2268140152378902e-08,
+        "im": -1.3251802893766035e-08
+      },
+      "101001010110": {
+        "re": -1.9581020693978987e-07,
+        "im": 1.3840654839383192e-07
+      },
+      "101001100011": {
+        "re": 1.1337375549626345e-08,
+        "im": 3.963313632238331e-09
+      },
+      "101001100101": {
+        "re": -2.486986762245437e-07,
+        "im": -1.1131724486257173e-07
+      },
+      "101001100110": {
+        "re": -3.576127143858313e-08,
+        "im": -1.2130964372074411e-07
+      },
+      "101010001011": {
+        "re": -3.2641521828098332e-09,
+        "im": 2.965321437962734e-09
+      },
+      "101010001101": {
+        "re": -1.8370877339579403e-08,
+        "im": -1.8761682707624815e-08
+      },
+      "101010001110": {
+        "re": 1.4174585240529021e-09,
+        "im": -4.2882823411612955e-10
+      },
+      "101010010011": {
+        "re": 1.501294074055511e-08,
+        "im": 9.547004545520084e-09
+      },
+      "101010010101": {
+        "re": 3.108323396398316e-11,
+        "im": -1.1288833969561074e-10
+      },
+      "101010010110": {
+        "re": 4.914483651789386e-10,
+        "im": -5.551785962606273e-10
+      },
+      "101010100011": {
+        "re": 1.4916966513424978e-10,
+        "im": -1.6949366118301613e-10
+      },
+      "101010100101": {
+        "re": -2.637528566907308e-09,
+        "im": -1.684144622677691e-09
+      },
+      "101010100110": {
+        "re": -1.6815742440650944e-09,
+        "im": 1.6509762387549766e-09
+      },
+      "101011001011": {
+        "re": 8.931402160361284e-11,
+        "im": 3.7988975203169044e-11
+      },
+      "101011001101": {
+        "re": -2.569893997339057e-10,
+        "im": 3.6099698852930914e-10
+      },
+      "101011001110": {
+        "re": -1.0136353568597024e-11,
+        "im": -2.5822268423438165e-11
+      },
+      "101011010011": {
+        "re": -3.4116169808844585e-10,
+        "im": 5.701787336860468e-10
+      },
+      "101011010101": {
+        "re": -6.3608007447553685e-12,
+        "im": -1.2507515597802572e-12
+      },
+      "101011010110": {
+        "re": 2.1067216367094407e-11,
+        "im": 3.054874555142942e-11
+      },
+      "101011100011": {
+        "re": 9.042449291058108e-13,
+        "im": -3.186555308286886e-12
+      },
+      "101011100101": {
+        "re": -2.3293350114702476e-11,
+        "im": 1.1265265515290715e-10
+      },
+      "101011100110": {
+        "re": -6.213237943102621e-11,
+        "im": -1.7016005692333035e-11
+      },
+      "101100001011": {
+        "re": 2.945197568461567e-07,
+        "im": -3.7695867639793404e-07
+      },
+      "101100001101": {
+        "re": 1.0723799221190353e-06,
+        "im": 8.921384072656879e-07
+      },
+      "101100001110": {
+        "re": -9.34780795703823e-08,
+        "im": -7.637988435506596e-08
+      },
+      "101100010011": {
+        "re": 2.6263321986527323e-06,
+        "im": 2.436070826890726e-06
+      },
+      "101100010101": {
+        "re": 1.0282809364644578e-07,
+        "im": -2.784317994776088e-08
+      },
+      "101100010110": {
+        "re": 2.0024036157792235e-08,
+        "im": -6.482878638255732e-07
+      },
+      "101100100011": {
+        "re": 3.61372874407646e-08,
+        "im": -1.1132475136454269e-08
+      },
+      "101100100101": {
+        "re": 3.498656698310566e-07,
+        "im": 1.615504196901993e-07
+      },
+      "101100100110": {
+        "re": -1.042175583009787e-07,
+        "im": -5.458885692694442e-08
+      },
+      "101101001011": {
+        "re": 7.0786898432791174e-09,
+        "im": 1.780920564053336e-08
+      },
+      "101101001101": {
+        "re": -5.860697840135304e-08,
+        "im": 3.928622309600254e-08
+      },
+      "101101001110": {
+        "re": -2.524904270123497e-09,
+        "im": -3.366587553006667e-09
+      },
+      "101101010011": {
+        "re": 1.1268736177763251e-07,
+        "im": -2.0849596697070344e-07
+      },
+      "101101010101": {
+        "re": 7.367760160536564e-10,
+        "im": -1.7761509820110727e-09
+      },
+      "101101010110": {
+        "re": -1.656755169005968e-08,
+        "im": -2.885807067084338e-08
+      },
+      "101101100011": {
+        "re": 1.7498526934177116e-10,
+        "im": -1.1607675772582113e-09
+      },
+      "101101100101": {
+        "re": -2.30608036400493e-08,
+        "im": 2.8423490823024678e-08
+      },
+      "101101100110": {
+        "re": -1.0277828204670003e-08,
+        "im": 3.5911898467477287e-09
+      },
+      "101110001011": {
+        "re": 5.266807871684745e-10,
+        "im": 3.616654783325353e-10
+      },
+      "101110001101": {
+        "re": -2.914231652797284e-09,
+        "im": 2.2643054687774456e-09
+      },
+      "101110001110": {
+        "re": -6.945293709823349e-11,
+        "im": -1.4021770527176517e-10
+      },
+      "101110010011": {
+        "re": -1.5259177037476654e-09,
+        "im": 1.998469984639805e-09
+      },
+      "101110010101": {
+        "re": 1.1868053543219593e-11,
+        "im": -9.797189512378107e-12
+      },
+      "101110010110": {
+        "re": 6.020047193389255e-11,
+        "im": 6.367580123340913e-11
+      },
+      "101110100011": {
+        "re": -2.1378027231072694e-11,
+        "im": -9.201742744502182e-12
+      },
+      "101110100101": {
+        "re": -4.113285704894764e-10,
+        "im": 3.183545717354092e-10
+      },
+      "101110100110": {
+        "re": 1.299561297281454e-10,
+        "im": 1.787402355272248e-10
+      },
+      "101111001011": {
+        "re": 4.032670661690571e-12,
+        "im": -1.2063035825690344e-11
+      },
+      "101111001101": {
+        "re": 4.644727316256592e-11,
+        "im": 4.1695183120814194e-11
+      },
+      "101111001110": {
+        "re": -2.5441869139016367e-12,
+        "im": 1.538334798992896e-12
+      },
+      "101111010011": {
+        "re": -7.669496435689115e-11,
+        "im": -5.546742682869322e-11
+      },
+      "101111010101": {
+        "re": -1.5954368772555457e-13,
+        "im": -5.71640378096413e-13
+      },
+      "101111010110": {
+        "re": -4.942433299689071e-12,
+        "im": 2.6176834881846525e-12
+      },
+      "101111100011": {
+        "re": -3.7172523082554805e-13,
+        "im": -3.5588883322910167e-14
+      },
+      "101111100101": {
+        "re": 1.428824176903578e-11,
+        "im": 4.4307891582703265e-12
+      },
+      "101111100110": {
+        "re": -1.7143236129917086e-12,
+        "im": 5.362303371591938e-12
+      },
+      "110000001011": {
+        "re": -8.861643211433351e-05,
+        "im": -1.766815106406387e-05
+      },
+      "110000001101": {
+        "re": -4.283908357208437e-06,
+        "im": -1.8027263861955115e-05
+      },
+      "110000001110": {
+        "re": 3.72285864117887e-06,
+        "im": 5.480038774018474e-06
+      },
+      "110000010011": {
+        "re": 2.7353115553600875e-05,
+        "im": 0.00014756477914993013
+      },
+      "110000010101": {
+        "re": -1.0163895160862532e-06,
+        "im": 6.998632344143481e-06
+      },
+      "110000010110": {
+        "re": 1.1189987532507538e-05,
+        "im": -3.142515911555597e-07
+      },
+      "110000100011": {
+        "re": -8.400655150646603e-07,
+        "im": 1.6765928467562644e-07
+      },
+      "110000100101": {
+        "re": 6.837501796606372e-05,
+        "im": -2.7717894349351998e-05
+      },
+      "110000100110": {
+        "re": -2.4637343837603654e-05,
+        "im": 6.415444733963855e-05
+      },
+      "110001001011": {
+        "re": 2.6829577932637013e-06,
+        "im": 2.3741226641348027e-06
+      },
+      "110001001101": {
+        "re": 9.62956799542142e-07,
+        "im": 1.790043866675533e-07
+      },
+      "110001001110": {
+        "re": 1.300754665342432e-07,
+        "im": 2.351601700129644e-07
+      },
+      "110001010011": {
+        "re": 8.706207580174758e-07,
+        "im": -3.3168941838173103e-06
+      },
+      "110001010101": {
+        "re": 1.7458238884442617e-08,
+        "im": 1.6542333703143015e-07
+      },
+      "110001010110": {
+        "re": 6.899577410216752e-07,
+        "im": -4.437597220862871e-07
+      },
+      "110001100011": {
+        "re": 1.879359180083047e-07,
+        "im": 5.076040222139281e-08
+      },
+      "110001100101": {
+        "re": 2.81841067593295e-07,
+        "im": 1.2090491010561148e-06
+      },
+      "110001100110": {
+        "re": 2.6452944417001443e-06,
+        "im": 5.113733362933937e-06
+      },
+      "110010001011": {
+        "re": -2.450553280338483e-07,
+        "im": -1.1288798392145939e-07
+      },
+      "110010001101": {
+        "re": 4.302504228606454e-08,
+        "im": 7.671274627881919e-09
+      },
+      "110010001110": {
+        "re": 1.0647156628882812e-10,
+        "im": 9.119011061628025e-09
+      },
+      "110010010011": {
+        "re": -3.6548147968601255e-08,
+        "im": 8.087912447478715e-08
+      },
+      "110010010101": {
+        "re": -2.0309312865851452e-10,
+        "im": 4.93607538014971e-09
+      },
+      "110010010110": {
+        "re": -1.0841876758001824e-08,
+        "im": -7.017704568223979e-09
+      },
+      "110010100011": {
+        "re": -7.825956415927432e-10,
+        "im": 1.5657027405216157e-10
+      },
+      "110010100101": {
+        "re": 2.1182718741935228e-08,
+        "im": -2.445188137166277e-08
+      },
+      "110010100110": {
+        "re": 3.582309558378623e-08,
+        "im": -1.4601433153141646e-07
+      },
+      "110011001011": {
+        "re": -1.0285340969804612e-09,
+        "im": 4.231275060005967e-09
+      },
+      "110011001101": {
+        "re": -1.4171710435004805e-11,
+        "im": -7.423094533816739e-10
+      },
+      "110011001110": {
+        "re": 1.8419740778202475e-10,
+        "im": -2.6672215598119295e-11
+      },
+      "110011010011": {
+        "re": -1.5259676600849665e-09,
+        "im": -1.3986049505056088e-10
+      },
+      "110011010101": {
+        "re": 7.991833844538548e-11,
+        "im": 1.3704400767897898e-11
+      },
+      "110011010110": {
+        "re": 1.2740055333924212e-10,
+        "im": -2.62957294500911e-10
+      },
+      "110011100011": {
+        "re": 2.6098901141502932e-11,
+        "im": -5.2923535025548005e-11
+      },
+      "110011100101": {
+        "re": 7.609597923052422e-10,
+        "im": 1.4134370913493703e-10
+      },
+      "110011100110": {
+        "re": 2.9256158878792787e-09,
+        "im": 3.6279341431493725e-10
+      },
+      "110100001011": {
+        "re": -7.5761894142165155e-06,
+        "im": 7.777815285321478e-06
+      },
+      "110100001101": {
+        "re": 8.710398006832502e-07,
+        "im": -1.5037823515999873e-07
+      },
+      "110100001110": {
+        "re": -2.786663262125256e-09,
+        "im": -2.1399807749419445e-08
+      },
+      "110100010011": {
+        "re": 1.1292950873855692e-06,
+        "im": -1.191051551980565e-05
+      },
+      "110100010101": {
+        "re": -6.928690993987985e-07,
+        "im": 1.3442120556531404e-07
+      },
+      "110100010110": {
+        "re": -6.651140448184981e-07,
+        "im": -1.0776635671041072e-07
+      },
+      "110100100011": {
+        "re": -1.1072729019768352e-07,
+        "im": 5.773089147933478e-08
+      },
+      "110100100101": {
+        "re": 2.942305015712506e-06,
+        "im": -2.5058381421156203e-06
+      },
+      "110100100110": {
+        "re": 4.012397947616204e-06,
+        "im": 3.964029137468059e-06
+      },
+      "110101001011": {
+        "re": 4.0016648774924064e-07,
+        "im": -4.4419512932029993e-07
+      },
+      "110101001101": {
+        "re": -1.756626218417729e-11,
+        "im": 4.46707402877902e-08
+      },
+      "110101001110": {
+        "re": 2.6047480600955528e-09,
+        "im": -6.4498746009755e-09
+      },
+      "110101010011": {
+        "re": -4.192114670884787e-07,
+        "im": -6.143239408460856e-08
+      },
+      "110101010101": {
+        "re": -2.0785596727316935e-08,
+        "im": -4.39841559615272e-09
+      },
+      "110101010110": {
+        "re": -4.5855621300856195e-08,
+        "im": 1.891975324661872e-08
+      },
+      "110101100011": {
+        "re": 9.0019416078449e-09,
+        "im": -9.422601093762747e-09
+      },
+      "110101100101": {
+        "re": -5.183654451869978e-08,
+        "im": 2.4207926086255973e-08
+      },
+      "110101100110": {
+        "re": 5.662181407222365e-07,
+        "im": -1.002787156034702e-07
+      },
+      "110110001011": {
+        "re": -1.1492411944624722e-08,
+        "im": 1.0596868717370103e-08
+      },
+      "110110001101": {
+        "re": 7.037325027381408e-11,
+        "im": 2.7257285543022977e-09
+      },
+      "110110001110": {
+        "re": 1.133536315223631e-10,
+        "im": -2.7215443360485912e-11
+      },
+      "110110010011": {
+        "re": 4.188987671185688e-09,
+        "im": -8.428860395020068e-10
+      },
+      "110110010101": {
+        "re": -5.881040488735305e-10,
+        "im": -2.6975032216989095e-10
+      },
+      "110110010110": {
+        "re": 4.0584610536086687e-10,
+        "im": 4.845234393508083e-10
+      },
+      "110110100011": {
+        "re": 7.437418067062734e-12,
+        "im": 1.822720030810921e-10
+      },
+      "110110100101": {
+        "re": -1.8504739455023246e-10,
+        "im": -2.7528603671296102e-09
+      },
+      "110110100110": {
+        "re": -1.4366044374940847e-08,
+        "im": -1.2754423702669375e-08
+      },
+      "110111001011": {
+        "re": 2.0762537587399026e-10,
+        "im": 9.508358039128353e-11
+      },
+      "110111001101": {
+        "re": 4.4773309773405144e-11,
+        "im": -8.79080565609528e-12
+      },
+      "110111001110": {
+        "re": -1.4335113509484195e-12,
+        "im": -2.5756777858383332e-12
+      },
+      "110111010011": {
+        "re": -4.9479594030806343e-11,
+        "im": 1.4600749454890616e-10
+      },
+      "110111010101": {
+        "re": -5.3818852040837675e-12,
+        "im": 1.0656455312981074e-11
+      },
+      "110111010110": {
+        "re": -1.0199165965745019e-11,
+        "im": 1.559321659718641e-11
+      },
+      "110111100011": {
+        "re": -9.076470079836122e-13,
+        "im": -4.2045924713952e-12
+      },
+      "110111100101": {
+        "re": 4.6018308386998445e-11,
+        "im": 3.7366427484345916e-11
+      },
+      "110111100110": {
+        "re": 1.7057330436244542e-10,
+        "im": -3.233620435064476e-10
+      },
+      "111000001011": {
+        "re": 2.431350499727013e-07,
+        "im": -1.559158115240418e-07
+      },
+      "111000001101": {
+        "re": -9.936832368843316e-08,
+        "im": 2.611520945853463e-07
+      },
+      "111000001110": {
+        "re": 8.760332238172678e-09,
+        "im": -3.095478510191128e-08
+      },
+      "111000010011": {
+        "re": -1.3923363077036174e-06,
+        "im": -1.214055628272733e-06
+      },
+      "111000010101": {
+        "re": 1.2924823711303023e-08,
+        "im": -2.4696417258570706e-08
+      },
+      "111000010110": {
+        "re": -7.734740731958621e-08,
+        "im": 3.1312962228447305e-08
+      },
+      "111000100011": {
+        "re": -9.231493148980329e-09,
+        "im": 6.417884249630631e-09
+      },
+      "111000100101": {
+        "re": -2.2044003423357952e-07,
+        "im": -7.785912141423063e-08
+      },
+      "111000100110": {
+        "re": 8.041561677174788e-08,
+        "im": 5.676943371579955e-08
+      },
+      "111001001011": {
+        "re": -1.1677028110779732e-09,
+        "im": 1.1594988044500765e-08
+      },
+      "111001001101": {
+        "re": -1.0787646735911615e-08,
+        "im": -8.298060496677257e-09
+      },
+      "111001001110": {
+        "re": 5.111952057204423e-10,
+        "im": -9.843770522111156e-10
+      },
+      "111001010011": {
+        "re": -5.011808370695982e-08,
+        "im": 8.159058597800453e-08
+      },
+      "111001010101": {
+        "re": 3.317779870978553e-11,
+        "im": -5.404735362453212e-10
+      },
+      "111001010110": {
+        "re": -3.5321659805152563e-09,
+        "im": 4.6721615932325515e-09
+      },
+      "111001100011": {
+        "re": -2.0543904406345146e-10,
+        "im": 1.875368003444428e-10
+      },
+      "111001100101": {
+        "re": 1.7609194979811696e-09,
+        "im": -2.1159603321687223e-08
+      },
+      "111001100110": {
+        "re": 8.014870224941278e-09,
+        "im": -1.949317850441278e-09
+      },
+      "111010001011": {
+        "re": 1.2813565983486118e-10,
+        "im": 2.811418273959857e-10
+      },
+      "111010001101": {
+        "re": -6.217687003465207e-10,
+        "im": -3.727329985563259e-10
+      },
+      "111010001110": {
+        "re": 2.5304454185991133e-11,
+        "im": -3.2438568165753605e-11
+      },
+      "111010010011": {
+        "re": 6.176763904385225e-10,
+        "im": -7.094107853078889e-10
+      },
+      "111010010101": {
+        "re": -2.281953829533031e-13,
+        "im": -1.1978895351048546e-11
+      },
+      "111010010110": {
+        "re": 7.979875989797039e-11,
+        "im": 3.374630275696284e-11
+      },
+      "111010100011": {
+        "re": 2.308476512381019e-12,
+        "im": 6.832436014670049e-12
+      },
+      "111010100101": {
+        "re": 5.194266121300001e-11,
+        "im": -1.1647116048328173e-10
+      },
+      "111010100110": {
+        "re": -1.0233212692046628e-10,
+        "im": -1.2352344033607242e-10
+      },
+      "111011001011": {
+        "re": 4.016909075433134e-12,
+        "im": -4.914989519052638e-12
+      },
+      "111011001101": {
+        "re": -4.36268644644121e-12,
+        "im": 1.1414261457093785e-11
+      },
+      "111011001110": {
+        "re": -6.504308866978823e-13,
+        "im": -4.283471445912973e-13
+      },
+      "111011010011": {
+        "re": 2.9249710990976245e-11,
+        "im": 2.3587327028070598e-11
+      },
+      "111011010101": {
+        "re": -2.3614255512147584e-13,
+        "im": -1.1383304246935682e-13
+      },
+      "111011010110": {
+        "re": -7.327338339731515e-14,
+        "im": 1.8630594379295475e-12
+      },
+      "111011100011": {
+        "re": 5.850572094940761e-14,
+        "im": 8.000367159515499e-14
+      },
+      "111011100101": {
+        "re": -9.592896399513856e-12,
+        "im": 5.791950539159769e-13
+      },
+      "111011100110": {
+        "re": 1.3197581760417041e-12,
+        "im": -4.097590162109927e-12
+      },
+      "111100001011": {
+        "re": -2.2434829330291465e-08,
+        "im": -1.9960715559177874e-08
+      },
+      "111100001101": {
+        "re": 3.512002034934081e-08,
+        "im": 1.788369842813142e-08
+      },
+      "111100001110": {
+        "re": -3.4100135389714385e-09,
+        "im": -2.6113169200094715e-10
+      },
+      "111100010011": {
+        "re": 1.8612235866579967e-07,
+        "im": -1.661956988715728e-07
+      },
+      "111100010101": {
+        "re": 2.6639916034331806e-09,
+        "im": 6.927343529272621e-10
+      },
+      "111100010110": {
+        "re": -3.269868827523401e-09,
+        "im": -1.1332763312045207e-08
+      },
+      "111100100011": {
+        "re": 4.802301573289346e-10,
+        "im": 6.956728773001974e-10
+      },
+      "111100100101": {
+        "re": -2.061835120472203e-09,
+        "im": 2.148552483579897e-08
+      },
+      "111100100110": {
+        "re": 3.968696053971099e-09,
+        "im": -7.900663657155136e-09
+      },
+      "111101001011": {
+        "re": 1.204560361904795e-09,
+        "im": -3.666688665505567e-10
+      },
+      "111101001101": {
+        "re": -1.3356864892223845e-09,
+        "im": 1.3677118210651304e-09
+      },
+      "111101001110": {
+        "re": -1.133318123142303e-10,
+        "im": -3.5253411574473245e-11
+      },
+      "111101010011": {
+        "re": -1.0741671230922254e-08,
+        "im": -7.950702642657525e-09
+      },
+      "111101010101": {
+        "re": 4.674478591296599e-11,
+        "im": -1.6976834120618156e-11
+      },
+      "111101010110": {
+        "re": -6.208585355787056e-10,
+        "im": -5.669733126422634e-10
+      },
+      "111101100011": {
+        "re": 1.4189341662043683e-11,
+        "im": 2.203372331125594e-11
+      },
+      "111101100101": {
+        "re": -2.6976864475485106e-09,
+        "im": -7.495061970280499e-10
+      },
+      "111101100110": {
+        "re": -2.5574405569230525e-10,
+        "im": -7.336554623416242e-10
+      },
+      "111110001011": {
+        "re": 2.9229461693263035e-11,
+        "im": -2.9104539971565814e-11
+      },
+      "111110001101": {
+        "re": -6.133113942249458e-11,
+        "im": 8.004805635264744e-11
+      },
+      "111110001110": {
+        "re": -3.842196138695455e-12,
+        "im": -2.0443420924468952e-12
+      },
+      "111110010011": {
+        "re": 9.360830224103388e-11,
+        "im": 9.508961149553676e-11
+      },
+      "111110010101": {
+        "re": 9.936368716505415e-13,
+        "im": -5.06038732219456e-13
+      },
+      "111110010110": {
+        "re": -6.7159378471109874e-12,
+        "im": 1.1089161606910632e-11
+      },
+      "111110100011": {
+        "re": 5.596059120892976e-13,
+        "im": -1.7974403174268214e-13
+      },
+      "111110100101": {
+        "re": -1.3909161580142981e-11,
+        "im": -1.633957955111014e-11
+      },
+      "111110100110": {
+        "re": -1.3126297550871896e-11,
+        "im": 8.964008627136702e-12
+      },
+      "111111001011": {
+        "re": -7.149628973114755e-13,
+        "im": -3.83594943854245e-13
+      },
+      "111111001101": {
+        "re": 1.5136034801295634e-12,
+        "im": 7.846245686835949e-13
+      },
+      "111111001110": {
+        "re": -3.29613721251191e-14,
+        "im": 7.630915611505789e-14
+      },
+      "111111010011": {
+        "re": -3.699063010483828e-12,
+        "im": 3.8513576119157864e-12
+      },
+      "111111010101": {
+        "re": 5.663067371781208e-15,
+        "im": -2.2265902929151647e-14
+      },
+      "111111010110": {
+        "re": -2.7710758969439343e-13,
+        "im": -2.8165033579012226e-14
+      },
+      "111111100101": {
+        "re": -3.678835801921053e-14,
+        "im": 1.309209729810827e-12
+      },
+      "111111100110": {
+        "re": -3.748319672835322e-13,
+        "im": -1.194883790262532e-13
+      }
+    },
+    "amplitude_cutoff": 1e-14,
+    "norm": 1.0,
+    "handoff_state_kind": "prepared_state"
+  },
+  "exact": {
+    "E_exact_sector": 0.24459389081574123
+  },
+  "continuation": {
+    "mode": "phase1_v1",
+    "scaffold": {
+      "selected_operator_labels": [
+        "hh_termwise_ham_quadrature_term(eyeeeezeeeee)",
+        "hh_termwise_ham_quadrature_term(eyeeeeeeezee)",
+        "hh_termwise_ham_quadrature_term(zyeeeezeeeee)",
+        "hh_termwise_ham_quadrature_term(zyeeeeeeezee)",
+        "hh_termwise_ham_quadrature_term(eeeeeyeezeee)",
+        "hh_termwise_ham_quadrature_term(eeeeeyeeeeez)",
+        "hh_termwise_ham_quadrature_term(eeeezyeezeee)",
+        "hh_termwise_ham_quadrature_term(eeeezyeeeeez)",
+        "hh_termwise_ham_quadrature_term(eezyeeeeeeze)",
+        "hh_termwise_ham_quadrature_term(eezyeeezeeee)",
+        "hh_termwise_ham_quadrature_term(eeeyeeeeeeze)",
+        "hh_termwise_ham_quadrature_term(eeeyeeezeeee)",
+        "hh_termwise_ham_unit_term(eeexeeezeeee)",
+        "hh_termwise_ham_unit_term(eeexeeezeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)",
+        "hh_termwise_ham_unit_term(eeeeeexxeeee)"
+      ],
+      "selected_generator_ids": [],
+      "num_parameters": 166,
+      "generator_family": "phase1_v1",
+      "continuation_mode": "phase1_v1",
+      "compiled_pauli_cache_size": 578,
+      "measurement_plan_version": "phase1_grouped_label_reuse",
+      "post_prune": true,
+      "split_event_count": 0,
+      "motif_record_ids": []
+    },
+    "optimizer_memory": {},
+    "selected_generator_metadata": [],
+    "generator_split_events": [],
+    "motif_library": {},
+    "motif_usage": {},
+    "symmetry_mitigation": {},
+    "rescue_history": [],
+    "replay_contract": {
+      "contract_version": 2,
+      "generator_family": {
+        "requested": "match_adapt",
+        "resolved": "paop_lf_std",
+        "resolution_source": "cfg.adapt.pool",
+        "fallback_family": "full_meta",
+        "fallback_used": false
+      },
+      "seed_policy_requested": "auto",
+      "seed_policy_resolved": "residual_only",
+      "handoff_state_kind": "prepared_state",
+      "provenance_source": "explicit",
+      "continuation_mode": "phase1_v1",
+      "contract_seed_hint": "built-in_staged_writer"
+    },
+    "replay_contract_hint": {
+      "generator_family": "match_adapt",
+      "fallback_family": "full_meta",
+      "replay_seed_policy": "auto",
+      "replay_continuation_mode": "phase1_v1"
+    }
+  },
+  "meta": {
+    "pipeline": "hh_staged_noiseless",
+    "workflow_tag": "L3_hh_drive_nph2_heavy_cutover_03268371471231371",
+    "stage_chain": [
+      "hf_reference",
+      "warm_start_hva",
+      "adapt_vqe",
+      "matched_family_replay"
+    ]
+  }
+}

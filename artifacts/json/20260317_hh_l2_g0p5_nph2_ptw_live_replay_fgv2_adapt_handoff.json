@@ -1,0 +1,4559 @@
+{
+  "generated_utc": "2026-03-17T18:47:03Z",
+  "settings": {
+    "L": 2,
+    "problem": "hh",
+    "t": 1.0,
+    "u": 2.0,
+    "dv": 0.0,
+    "omega0": 1.0,
+    "g_ep": 0.5,
+    "n_ph_max": 2,
+    "boson_encoding": "binary",
+    "ordering": "blocked",
+    "boundary": "open",
+    "sector_n_up": 1,
+    "sector_n_dn": 1,
+    "adapt_pool": "paop_lf_std"
+  },
+  "adapt_vqe": {
+    "energy": -0.2581753660593149,
+    "abs_delta_e": 0.013038211677380618,
+    "relative_error_abs": 0.04807359493645488,
+    "operators": [
+      "hh_hva_ptw::rep0::hh_hop(i=0,j=1,spin=0)",
+      "hh_hva_ptw::rep0::hh_hop(i=0,j=1,spin=1)",
+      "hh_hva_ptw::rep0::hh_onsite(i=0)",
+      "hh_hva_ptw::rep0::hh_onsite(i=1)",
+      "hh_hva_ptw::rep0::hh_phonon(i=0)",
+      "hh_hva_ptw::rep0::hh_phonon(i=1)",
+      "hh_hva_ptw::rep0::hh_eph(i=0)",
+      "hh_hva_ptw::rep0::hh_eph(i=1)",
+      "hh_hva_ptw::rep1::hh_hop(i=0,j=1,spin=0)",
+      "hh_hva_ptw::rep1::hh_hop(i=0,j=1,spin=1)",
+      "hh_hva_ptw::rep1::hh_onsite(i=0)",
+      "hh_hva_ptw::rep1::hh_onsite(i=1)",
+      "hh_hva_ptw::rep1::hh_phonon(i=0)",
+      "hh_hva_ptw::rep1::hh_phonon(i=1)",
+      "hh_hva_ptw::rep1::hh_eph(i=0)",
+      "hh_hva_ptw::rep1::hh_eph(i=1)",
+      "hh_hva_ptw::rep2::hh_hop(i=0,j=1,spin=0)",
+      "hh_hva_ptw::rep2::hh_hop(i=0,j=1,spin=1)",
+      "hh_hva_ptw::rep2::hh_onsite(i=0)",
+      "hh_hva_ptw::rep2::hh_onsite(i=1)",
+      "hh_hva_ptw::rep2::hh_phonon(i=0)",
+      "hh_hva_ptw::rep2::hh_phonon(i=1)",
+      "hh_hva_ptw::rep2::hh_eph(i=0)",
+      "hh_hva_ptw::rep2::hh_eph(i=1)",
+      "hh_termwise_ham_quadrature_term(eezyeeez)",
+      "hh_termwise_ham_unit_term(exeezeee)",
+      "hh_termwise_ham_unit_term(exeezeee)",
+      "hh_termwise_ham_unit_term(exeezeee)",
+      "hh_termwise_ham_unit_term(exeezeee)",
+      "hh_termwise_ham_unit_term(exeezeee)",
+      "hh_termwise_ham_unit_term(exeezeee)",
+      "hh_termwise_ham_unit_term(exeezeee)"
+    ],
+    "optimal_point": [
+      -0.2311591530010729,
+      -0.12188956445198343,
+      0.49006004269261816,
+      0.13064573477102956,
+      -0.2672243461349108,
+      -0.9822940633877034,
+      0.09060471870637679,
+      0.11341410594296683,
+      -0.47594624940657126,
+      -0.6067416589165765,
+      0.3314887918472326,
+      -0.9675689891651326,
+      0.6197653846141066,
+      -0.13450860488073396,
+      -0.2632804138621384,
+      -0.2399864673180486,
+      -0.779107076334922,
+      -0.34388938810312736,
+      0.026518760903782086,
+      -0.35735356864918294,
+      -0.8107623885081267,
+      0.1015270274054779,
+      -0.19901844300432195,
+      0.04088228642329226,
+      0.16190970392199205,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+    ],
+    "ansatz_depth": 32,
+    "num_parameters": 32,
+    "pool_type": "paop_lf_std",
+    "pre_prune_scaffold": {
+      "operators": [
+        "hh_hva_ptw::rep0::hh_hop(i=0,j=1,spin=0)",
+        "hh_hva_ptw::rep0::hh_hop(i=0,j=1,spin=1)",
+        "hh_hva_ptw::rep0::hh_onsite(i=0)",
+        "hh_hva_ptw::rep0::hh_onsite(i=1)",
+        "hh_hva_ptw::rep0::hh_phonon(i=0)",
+        "hh_hva_ptw::rep0::hh_phonon(i=1)",
+        "hh_hva_ptw::rep0::hh_eph(i=0)",
+        "hh_hva_ptw::rep0::hh_eph(i=1)",
+        "hh_hva_ptw::rep1::hh_hop(i=0,j=1,spin=0)",
+        "hh_hva_ptw::rep1::hh_hop(i=0,j=1,spin=1)",
+        "hh_hva_ptw::rep1::hh_onsite(i=0)",
+        "hh_hva_ptw::rep1::hh_onsite(i=1)",
+        "hh_hva_ptw::rep1::hh_phonon(i=0)",
+        "hh_hva_ptw::rep1::hh_phonon(i=1)",
+        "hh_hva_ptw::rep1::hh_eph(i=0)",
+        "hh_hva_ptw::rep1::hh_eph(i=1)",
+        "hh_hva_ptw::rep2::hh_hop(i=0,j=1,spin=0)",
+        "hh_hva_ptw::rep2::hh_hop(i=0,j=1,spin=1)",
+        "hh_hva_ptw::rep2::hh_onsite(i=0)",
+        "hh_hva_ptw::rep2::hh_onsite(i=1)",
+        "hh_hva_ptw::rep2::hh_phonon(i=0)",
+        "hh_hva_ptw::rep2::hh_phonon(i=1)",
+        "hh_hva_ptw::rep2::hh_eph(i=0)",
+        "hh_hva_ptw::rep2::hh_eph(i=1)",
+        "hh_termwise_ham_quadrature_term(eezyeeez)",
+        "hh_termwise_ham_unit_term(exeezeee)",
+        "hh_termwise_ham_unit_term(exeezeee)",
+        "hh_termwise_ham_unit_term(exeezeee)",
+        "hh_termwise_ham_unit_term(exeezeee)",
+        "hh_termwise_ham_unit_term(exeezeee)",
+        "hh_termwise_ham_unit_term(exeezeee)",
+        "hh_termwise_ham_unit_term(exeezeee)",
+        "hh_termwise_ham_unit_term(exeezeee)",
+        "hh_termwise_ham_unit_term(exeezeee)",
+        "hh_termwise_ham_unit_term(exeezeee)",
+        "hh_termwise_ham_unit_term(exeezeee)",
+        "hh_termwise_ham_unit_term(exeezeee)",
+        "hh_termwise_ham_unit_term(exeezeee)"
+      ],
+      "optimal_point": [
+        -0.2311591530010729,
+        -0.12188956445198343,
+        0.49006004269261816,
+        0.13064573477102956,
+        -0.2672243461349108,
+        -0.9822940633877034,
+        0.09060471870637679,
+        0.11341410594296683,
+        -0.47594624940657126,
+        -0.6067416589165765,
+        0.3314887918472326,
+        -0.9675689891651326,
+        0.6197653846141066,
+        -0.13450860488073396,
+        -0.2632804138621384,
+        -0.2399864673180486,
+        -0.779107076334922,
+        -0.34388938810312736,
+        0.026518760903782086,
+        -0.35735356864918294,
+        -0.8107623885081267,
+        0.1015270274054779,
+        -0.19901844300432195,
+        0.04088228642329226,
+        0.16190970392199205,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "energy": -0.2581753660593149
+    },
+    "prune_summary": {
+      "enabled": true,
+      "executed": true,
+      "rolled_back": false,
+      "accepted_count": 6,
+      "candidate_count": 6,
+      "decisions": [
+        {
+          "index": 25,
+          "label": "hh_termwise_ham_unit_term(exeezeee)",
+          "accepted": true,
+          "energy_before": -0.2581753660593149,
+          "energy_after": -0.2581753660593149,
+          "regression": 0.0,
+          "reason": "accepted"
+        },
+        {
+          "index": 25,
+          "label": "hh_termwise_ham_unit_term(exeezeee)",
+          "accepted": true,
+          "energy_before": -0.2581753660593149,
+          "energy_after": -0.2581753660593149,
+          "regression": 0.0,
+          "reason": "accepted"
+        },
+        {
+          "index": 25,
+          "label": "hh_termwise_ham_unit_term(exeezeee)",
+          "accepted": true,
+          "energy_before": -0.2581753660593149,
+          "energy_after": -0.2581753660593149,
+          "regression": 0.0,
+          "reason": "accepted"
+        },
+        {
+          "index": 25,
+          "label": "hh_termwise_ham_unit_term(exeezeee)",
+          "accepted": true,
+          "energy_before": -0.2581753660593149,
+          "energy_after": -0.2581753660593149,
+          "regression": 0.0,
+          "reason": "accepted"
+        },
+        {
+          "index": 25,
+          "label": "hh_termwise_ham_unit_term(exeezeee)",
+          "accepted": true,
+          "energy_before": -0.2581753660593149,
+          "energy_after": -0.2581753660593149,
+          "regression": 0.0,
+          "reason": "accepted"
+        },
+        {
+          "index": 25,
+          "label": "hh_termwise_ham_unit_term(exeezeee)",
+          "accepted": true,
+          "energy_before": -0.2581753660593149,
+          "energy_after": -0.2581753660593149,
+          "regression": 0.0,
+          "reason": "accepted"
+        }
+      ],
+      "energy_before": -0.2581753660593149,
+      "energy_after_prune": -0.2581753660593149,
+      "energy_after_post_refit": -0.2581753660593149,
+      "post_refit_executed": true,
+      "marginal_proxy_benefit": [
+        5.444139043637856e-05,
+        5.42554304842049e-05,
+        5.5247907871111074e-05,
+        5.575788855915211e-05,
+        5.627737199293302e-05,
+        5.680662627499822e-05,
+        5.7345929689001375e-05,
+        5.7895571187618004e-05,
+        5.8455850908788494e-05,
+        5.9027080722229434e-05,
+        5.9609584808304055e-05,
+        6.0203700271509744e-05,
+        6.080977779102159e-05,
+        6.142818231093028e-05,
+        Infinity,
+        Infinity,
+        Infinity,
+        Infinity,
+        Infinity,
+        Infinity,
+        Infinity,
+        Infinity,
+        Infinity,
+        Infinity,
+        Infinity,
+        Infinity,
+        Infinity,
+        Infinity,
+        Infinity,
+        Infinity,
+        Infinity,
+        Infinity,
+        Infinity,
+        Infinity,
+        Infinity,
+        Infinity,
+        Infinity,
+        Infinity
+      ]
+    }
+  },
+  "ground_state": {
+    "exact_energy": -0.2712135777366955,
+    "exact_energy_filtered": -0.2712135777366955,
+    "filtered_sector": {
+      "n_up": 1,
+      "n_dn": 1
+    },
+    "method": "staged_handoff_bundle"
+  },
+  "initial_state": {
+    "source": "hf_reference",
+    "nq_total": 8,
+    "amplitudes_qn_to_q0": {
+      "00000101": {
+        "re": 1.0,
+        "im": 0.0
+      }
+    },
+    "amplitude_cutoff": 1e-14,
+    "norm": 1.0,
+    "handoff_state_kind": "reference_state"
+  },
+  "exact": {
+    "E_exact_sector": -0.2712135777366955
+  },
+  "continuation": {
+    "mode": "phase3_v1",
+    "scaffold": {
+      "selected_operator_labels": [
+        "hh_hva_ptw::rep0::hh_hop(i=0,j=1,spin=0)",
+        "hh_hva_ptw::rep0::hh_hop(i=0,j=1,spin=1)",
+        "hh_hva_ptw::rep0::hh_onsite(i=0)",
+        "hh_hva_ptw::rep0::hh_onsite(i=1)",
+        "hh_hva_ptw::rep0::hh_phonon(i=0)",
+        "hh_hva_ptw::rep0::hh_phonon(i=1)",
+        "hh_hva_ptw::rep0::hh_eph(i=0)",
+        "hh_hva_ptw::rep0::hh_eph(i=1)",
+        "hh_hva_ptw::rep1::hh_hop(i=0,j=1,spin=0)",
+        "hh_hva_ptw::rep1::hh_hop(i=0,j=1,spin=1)",
+        "hh_hva_ptw::rep1::hh_onsite(i=0)",
+        "hh_hva_ptw::rep1::hh_onsite(i=1)",
+        "hh_hva_ptw::rep1::hh_phonon(i=0)",
+        "hh_hva_ptw::rep1::hh_phonon(i=1)",
+        "hh_hva_ptw::rep1::hh_eph(i=0)",
+        "hh_hva_ptw::rep1::hh_eph(i=1)",
+        "hh_hva_ptw::rep2::hh_hop(i=0,j=1,spin=0)",
+        "hh_hva_ptw::rep2::hh_hop(i=0,j=1,spin=1)",
+        "hh_hva_ptw::rep2::hh_onsite(i=0)",
+        "hh_hva_ptw::rep2::hh_onsite(i=1)",
+        "hh_hva_ptw::rep2::hh_phonon(i=0)",
+        "hh_hva_ptw::rep2::hh_phonon(i=1)",
+        "hh_hva_ptw::rep2::hh_eph(i=0)",
+        "hh_hva_ptw::rep2::hh_eph(i=1)",
+        "hh_termwise_ham_quadrature_term(eezyeeez)",
+        "hh_termwise_ham_unit_term(exeezeee)",
+        "hh_termwise_ham_unit_term(exeezeee)",
+        "hh_termwise_ham_unit_term(exeezeee)",
+        "hh_termwise_ham_unit_term(exeezeee)",
+        "hh_termwise_ham_unit_term(exeezeee)",
+        "hh_termwise_ham_unit_term(exeezeee)",
+        "hh_termwise_ham_unit_term(exeezeee)"
+      ],
+      "selected_generator_ids": [
+        "gen:c7a07401cacc94b9",
+        "gen:f45089eb50956f9d",
+        "gen:e63d86440e7aca66",
+        "gen:64cf71c8cf30d93e",
+        "gen:a3fe223505ad8c65",
+        "gen:bace52e44f344231",
+        "gen:a1e0c46bb5e3c48e",
+        "gen:8d38e35976e057d0",
+        "gen:c7a07401cacc94b9",
+        "gen:f45089eb50956f9d",
+        "gen:e63d86440e7aca66",
+        "gen:64cf71c8cf30d93e",
+        "gen:a3fe223505ad8c65",
+        "gen:bace52e44f344231",
+        "gen:a1e0c46bb5e3c48e",
+        "gen:8d38e35976e057d0",
+        "gen:c7a07401cacc94b9",
+        "gen:f45089eb50956f9d",
+        "gen:e63d86440e7aca66",
+        "gen:64cf71c8cf30d93e",
+        "gen:a3fe223505ad8c65",
+        "gen:bace52e44f344231",
+        "gen:a1e0c46bb5e3c48e",
+        "gen:8d38e35976e057d0",
+        "gen:fcb814acec6201b9",
+        "gen:f2a6814064214bb0",
+        "gen:f2a6814064214bb0",
+        "gen:f2a6814064214bb0",
+        "gen:f2a6814064214bb0",
+        "gen:f2a6814064214bb0",
+        "gen:f2a6814064214bb0",
+        "gen:f2a6814064214bb0"
+      ],
+      "num_parameters": 32,
+      "generator_family": "phase3_v1",
+      "continuation_mode": "phase3_v1",
+      "compiled_pauli_cache_size": 300,
+      "measurement_plan_version": "phase1_grouped_label_reuse",
+      "post_prune": true,
+      "split_event_count": 0,
+      "motif_record_ids": [
+        "motif:ffca5930fb975d8f",
+        "motif:356094c66bd273b7",
+        "motif:11f31090b5d3d4fc",
+        "motif:bfb859f04544f7a1",
+        "motif:fc23761d730c268f",
+        "motif:19ed20359838ba4c",
+        "motif:36e9503608385c53",
+        "motif:e627a45f9cdd7771",
+        "motif:72431ff53b339263",
+        "motif:687830fc593faf78",
+        "motif:af8f437bb04ba0f4",
+        "motif:2b4c7f98254365aa",
+        "motif:d8669a02b429cf46",
+        "motif:2c0ac18571346340",
+        "motif:058dfa5b130967f6",
+        "motif:e0220dcddb676eae",
+        "motif:cec935292c626f98",
+        "motif:5b1a018899b087ec",
+        "motif:3eca348173960f4f",
+        "motif:ede06c092faf2027",
+        "motif:d169b6b65e4d43de",
+        "motif:78e174dd741c9961",
+        "motif:e907f92720ace54f",
+        "motif:e9b17715a46fb405",
+        "motif:52df7f0e36c989a2",
+        "motif:4e2e36a1f7e81f04",
+        "motif:e517ec443bcdd602",
+        "motif:8bc5b223158f6629",
+        "motif:a1a0ece5b80ac27a",
+        "motif:438bb5a6115333fd",
+        "motif:2e9224d09eebc6bf",
+        "motif:5ed7b4de4af6628a"
+      ]
+    },
+    "optimizer_memory": {
+      "version": "phase2_optimizer_memory_v1",
+      "optimizer": "SPSA",
+      "parameter_count": 37,
+      "available": true,
+      "reason": "initial_scaffold",
+      "source": "adapt.post_prune_refit.merge",
+      "reused": true,
+      "history_tail": [],
+      "refresh_points": [],
+      "remap_events": [
+        {
+          "op": "insert",
+          "position_id": 26,
+          "count": 1
+        },
+        {
+          "op": "merge_active",
+          "active_indices": [
+            26
+          ]
+        },
+        {
+          "op": "insert",
+          "position_id": 27,
+          "count": 1
+        },
+        {
+          "op": "merge_active",
+          "active_indices": [
+            27
+          ]
+        },
+        {
+          "op": "insert",
+          "position_id": 28,
+          "count": 1
+        },
+        {
+          "op": "merge_active",
+          "active_indices": [
+            28
+          ]
+        },
+        {
+          "op": "insert",
+          "position_id": 29,
+          "count": 1
+        },
+        {
+          "op": "merge_active",
+          "active_indices": [
+            29
+          ]
+        },
+        {
+          "op": "insert",
+          "position_id": 30,
+          "count": 1
+        },
+        {
+          "op": "merge_active",
+          "active_indices": [
+            30
+          ]
+        },
+        {
+          "op": "insert",
+          "position_id": 31,
+          "count": 1
+        },
+        {
+          "op": "merge_active",
+          "active_indices": [
+            31
+          ]
+        },
+        {
+          "op": "insert",
+          "position_id": 32,
+          "count": 1
+        },
+        {
+          "op": "merge_active",
+          "active_indices": [
+            32
+          ]
+        },
+        {
+          "op": "insert",
+          "position_id": 33,
+          "count": 1
+        },
+        {
+          "op": "merge_active",
+          "active_indices": [
+            33
+          ]
+        },
+        {
+          "op": "insert",
+          "position_id": 34,
+          "count": 1
+        },
+        {
+          "op": "merge_active",
+          "active_indices": [
+            34
+          ]
+        },
+        {
+          "op": "insert",
+          "position_id": 35,
+          "count": 1
+        },
+        {
+          "op": "merge_active",
+          "active_indices": [
+            35
+          ]
+        },
+        {
+          "op": "insert",
+          "position_id": 36,
+          "count": 1
+        },
+        {
+          "op": "merge_active",
+          "active_indices": [
+            36
+          ]
+        },
+        {
+          "op": "insert",
+          "position_id": 37,
+          "count": 1
+        },
+        {
+          "op": "merge_active",
+          "active_indices": [
+            37
+          ]
+        },
+        {
+          "op": "merge_active",
+          "active_indices": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16,
+            17,
+            18,
+            19,
+            20,
+            21,
+            22,
+            23,
+            24,
+            25,
+            26,
+            27,
+            28,
+            29,
+            30,
+            31,
+            32,
+            33,
+            34,
+            35,
+            36
+          ]
+        },
+        {
+          "op": "merge_active",
+          "active_indices": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16,
+            17,
+            18,
+            19,
+            20,
+            21,
+            22,
+            23,
+            24,
+            25,
+            26,
+            27,
+            28,
+            29,
+            30,
+            31,
+            32,
+            33,
+            34,
+            35
+          ]
+        },
+        {
+          "op": "merge_active",
+          "active_indices": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16,
+            17,
+            18,
+            19,
+            20,
+            21,
+            22,
+            23,
+            24,
+            25,
+            26,
+            27,
+            28,
+            29,
+            30,
+            31,
+            32,
+            33,
+            34
+          ]
+        },
+        {
+          "op": "merge_active",
+          "active_indices": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16,
+            17,
+            18,
+            19,
+            20,
+            21,
+            22,
+            23,
+            24,
+            25,
+            26,
+            27,
+            28,
+            29,
+            30,
+            31,
+            32,
+            33
+          ]
+        },
+        {
+          "op": "merge_active",
+          "active_indices": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16,
+            17,
+            18,
+            19,
+            20,
+            21,
+            22,
+            23,
+            24,
+            25,
+            26,
+            27,
+            28,
+            29,
+            30,
+            31,
+            32
+          ]
+        },
+        {
+          "op": "merge_active",
+          "active_indices": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16,
+            17,
+            18,
+            19,
+            20,
+            21,
+            22,
+            23,
+            24,
+            25,
+            26,
+            27,
+            28,
+            29,
+            30,
+            31
+          ]
+        },
+        {
+          "op": "remove",
+          "indices": [
+            25
+          ]
+        },
+        {
+          "op": "merge_active",
+          "active_indices": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16,
+            17,
+            18,
+            19,
+            20,
+            21,
+            22,
+            23,
+            24,
+            25,
+            26,
+            27,
+            28,
+            29,
+            30,
+            31
+          ]
+        }
+      ],
+      "preconditioner_diag": [
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "grad_sq_ema": [
+        0.17529055679485644,
+        0.17529055679485644,
+        0.17529055679485644,
+        0.17529055679485644,
+        0.17529055679485644,
+        0.17529055679485644,
+        0.17529055679485644,
+        0.17529055679485644,
+        0.17529055679485644,
+        0.17529055679485644,
+        0.17529055679485644,
+        0.17529055679485644,
+        0.17529055679485644,
+        0.17529055679485644,
+        0.17529055679485644,
+        0.17529055679485644,
+        0.17529055679485644,
+        0.17529055679485644,
+        0.17529055679485644,
+        0.17529055679485644,
+        0.17529055679485644,
+        0.17529055679485644,
+        0.17529055679485644,
+        0.17529055679485644,
+        0.17529055679485644,
+        0.17529055679485644,
+        0.17529055679485644,
+        0.17529055679485644,
+        0.17529055679485644,
+        0.17529055679485644,
+        0.17529055679485644,
+        0.17529099720942265,
+        0.6453849130665633,
+        1.0421931760795098,
+        3.7889292638526175,
+        0.33327287269830497,
+        8.168371331785873e-30
+      ]
+    },
+    "selected_generator_metadata": [
+      {
+        "generator_id": "gen:c7a07401cacc94b9",
+        "family_id": "hh_hva_ptw",
+        "template_id": "hh_hva_ptw|macro|terms2|sites0,1|bos0|ferm1",
+        "candidate_label": "hh_hva_ptw::rep0::hh_hop(i=0,j=1,spin=0)",
+        "support_qubits": [
+          0,
+          1
+        ],
+        "support_sites": [
+          0,
+          1
+        ],
+        "support_site_offsets": [
+          0,
+          1
+        ],
+        "is_macro_generator": true,
+        "split_policy": "preserve",
+        "parent_generator_id": null,
+        "symmetry_spec": null,
+        "measured_geometry_capability": {
+          "schema_version": 2,
+          "surface": "phase_a_measured_local_system_capability",
+          "family_id": "hh_hva_ptw",
+          "eligible_for_certification": false,
+          "certifiable_local_system_modes": [],
+          "allowed_requested_families": [],
+          "requires_reference_state_handoff": true,
+          "requires_basis_reference_state": true,
+          "disallow_fallback": true,
+          "static_hamiltonian_only": true,
+          "driven_segments_supported": false,
+          "runtime_submission_blocked": true,
+          "phase_b_supported": false
+        },
+        "derivative_capability": {
+          "schema_version": 2,
+          "surface": "phase_a_measured_local_system_capability",
+          "family_id": "hh_hva_ptw",
+          "eligible_for_certification": false,
+          "certifiable_local_system_modes": [],
+          "allowed_requested_families": [],
+          "requires_reference_state_handoff": true,
+          "requires_basis_reference_state": true,
+          "disallow_fallback": true,
+          "static_hamiltonian_only": true,
+          "driven_segments_supported": false,
+          "runtime_submission_blocked": true,
+          "phase_b_supported": false
+        },
+        "compile_metadata": {
+          "num_polynomial_terms": 2,
+          "signature_size": 2,
+          "has_boson_support": false,
+          "has_fermion_support": true,
+          "support_size": 2,
+          "serialized_terms_exyz": [
+            {
+              "pauli_exyz": "eeeeeexx",
+              "coeff_re": -0.5,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "eeeeeeyy",
+              "coeff_re": -0.5,
+              "coeff_im": 0.0,
+              "nq": 8
+            }
+          ]
+        },
+        "warm_scaffold": true,
+        "warm_ansatz": "hh_hva_ptw",
+        "warm_parameter_group": "hh_hop(i=0,j=1,spin=0)::rep0"
+      },
+      {
+        "generator_id": "gen:f45089eb50956f9d",
+        "family_id": "hh_hva_ptw",
+        "template_id": "hh_hva_ptw|macro|terms2|sites0,1|bos0|ferm1",
+        "candidate_label": "hh_hva_ptw::rep0::hh_hop(i=0,j=1,spin=1)",
+        "support_qubits": [
+          2,
+          3
+        ],
+        "support_sites": [
+          0,
+          1
+        ],
+        "support_site_offsets": [
+          0,
+          1
+        ],
+        "is_macro_generator": true,
+        "split_policy": "preserve",
+        "parent_generator_id": null,
+        "symmetry_spec": null,
+        "measured_geometry_capability": {
+          "schema_version": 2,
+          "surface": "phase_a_measured_local_system_capability",
+          "family_id": "hh_hva_ptw",
+          "eligible_for_certification": false,
+          "certifiable_local_system_modes": [],
+          "allowed_requested_families": [],
+          "requires_reference_state_handoff": true,
+          "requires_basis_reference_state": true,
+          "disallow_fallback": true,
+          "static_hamiltonian_only": true,
+          "driven_segments_supported": false,
+          "runtime_submission_blocked": true,
+          "phase_b_supported": false
+        },
+        "derivative_capability": {
+          "schema_version": 2,
+          "surface": "phase_a_measured_local_system_capability",
+          "family_id": "hh_hva_ptw",
+          "eligible_for_certification": false,
+          "certifiable_local_system_modes": [],
+          "allowed_requested_families": [],
+          "requires_reference_state_handoff": true,
+          "requires_basis_reference_state": true,
+          "disallow_fallback": true,
+          "static_hamiltonian_only": true,
+          "driven_segments_supported": false,
+          "runtime_submission_blocked": true,
+          "phase_b_supported": false
+        },
+        "compile_metadata": {
+          "num_polynomial_terms": 2,
+          "signature_size": 2,
+          "has_boson_support": false,
+          "has_fermion_support": true,
+          "support_size": 2,
+          "serialized_terms_exyz": [
+            {
+              "pauli_exyz": "eeeexxee",
+              "coeff_re": -0.5,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "eeeeyyee",
+              "coeff_re": -0.5,
+              "coeff_im": 0.0,
+              "nq": 8
+            }
+          ]
+        },
+        "warm_scaffold": true,
+        "warm_ansatz": "hh_hva_ptw",
+        "warm_parameter_group": "hh_hop(i=0,j=1,spin=1)::rep0"
+      },
+      {
+        "generator_id": "gen:e63d86440e7aca66",
+        "family_id": "hh_hva_ptw",
+        "template_id": "hh_hva_ptw|macro|terms4|sites0|bos0|ferm1",
+        "candidate_label": "hh_hva_ptw::rep0::hh_onsite(i=0)",
+        "support_qubits": [
+          0,
+          2
+        ],
+        "support_sites": [
+          0
+        ],
+        "support_site_offsets": [
+          0
+        ],
+        "is_macro_generator": true,
+        "split_policy": "preserve",
+        "parent_generator_id": null,
+        "symmetry_spec": null,
+        "measured_geometry_capability": {
+          "schema_version": 2,
+          "surface": "phase_a_measured_local_system_capability",
+          "family_id": "hh_hva_ptw",
+          "eligible_for_certification": false,
+          "certifiable_local_system_modes": [],
+          "allowed_requested_families": [],
+          "requires_reference_state_handoff": true,
+          "requires_basis_reference_state": true,
+          "disallow_fallback": true,
+          "static_hamiltonian_only": true,
+          "driven_segments_supported": false,
+          "runtime_submission_blocked": true,
+          "phase_b_supported": false
+        },
+        "derivative_capability": {
+          "schema_version": 2,
+          "surface": "phase_a_measured_local_system_capability",
+          "family_id": "hh_hva_ptw",
+          "eligible_for_certification": false,
+          "certifiable_local_system_modes": [],
+          "allowed_requested_families": [],
+          "requires_reference_state_handoff": true,
+          "requires_basis_reference_state": true,
+          "disallow_fallback": true,
+          "static_hamiltonian_only": true,
+          "driven_segments_supported": false,
+          "runtime_submission_blocked": true,
+          "phase_b_supported": false
+        },
+        "compile_metadata": {
+          "num_polynomial_terms": 4,
+          "signature_size": 4,
+          "has_boson_support": false,
+          "has_fermion_support": true,
+          "support_size": 2,
+          "serialized_terms_exyz": [
+            {
+              "pauli_exyz": "eeeeezez",
+              "coeff_re": 0.5,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "eeeeeeez",
+              "coeff_re": -0.5,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "eeeeezee",
+              "coeff_re": -0.5,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "eeeeeeee",
+              "coeff_re": 0.5,
+              "coeff_im": 0.0,
+              "nq": 8
+            }
+          ]
+        },
+        "warm_scaffold": true,
+        "warm_ansatz": "hh_hva_ptw",
+        "warm_parameter_group": "hh_onsite(i=0)::rep0"
+      },
+      {
+        "generator_id": "gen:64cf71c8cf30d93e",
+        "family_id": "hh_hva_ptw",
+        "template_id": "hh_hva_ptw|macro|terms4|sites0|bos0|ferm1",
+        "candidate_label": "hh_hva_ptw::rep0::hh_onsite(i=1)",
+        "support_qubits": [
+          1,
+          3
+        ],
+        "support_sites": [
+          1
+        ],
+        "support_site_offsets": [
+          0
+        ],
+        "is_macro_generator": true,
+        "split_policy": "preserve",
+        "parent_generator_id": null,
+        "symmetry_spec": null,
+        "measured_geometry_capability": {
+          "schema_version": 2,
+          "surface": "phase_a_measured_local_system_capability",
+          "family_id": "hh_hva_ptw",
+          "eligible_for_certification": false,
+          "certifiable_local_system_modes": [],
+          "allowed_requested_families": [],
+          "requires_reference_state_handoff": true,
+          "requires_basis_reference_state": true,
+          "disallow_fallback": true,
+          "static_hamiltonian_only": true,
+          "driven_segments_supported": false,
+          "runtime_submission_blocked": true,
+          "phase_b_supported": false
+        },
+        "derivative_capability": {
+          "schema_version": 2,
+          "surface": "phase_a_measured_local_system_capability",
+          "family_id": "hh_hva_ptw",
+          "eligible_for_certification": false,
+          "certifiable_local_system_modes": [],
+          "allowed_requested_families": [],
+          "requires_reference_state_handoff": true,
+          "requires_basis_reference_state": true,
+          "disallow_fallback": true,
+          "static_hamiltonian_only": true,
+          "driven_segments_supported": false,
+          "runtime_submission_blocked": true,
+          "phase_b_supported": false
+        },
+        "compile_metadata": {
+          "num_polynomial_terms": 4,
+          "signature_size": 4,
+          "has_boson_support": false,
+          "has_fermion_support": true,
+          "support_size": 2,
+          "serialized_terms_exyz": [
+            {
+              "pauli_exyz": "eeeezeze",
+              "coeff_re": 0.5,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "eeeeeeze",
+              "coeff_re": -0.5,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "eeeezeee",
+              "coeff_re": -0.5,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "eeeeeeee",
+              "coeff_re": 0.5,
+              "coeff_im": 0.0,
+              "nq": 8
+            }
+          ]
+        },
+        "warm_scaffold": true,
+        "warm_ansatz": "hh_hva_ptw",
+        "warm_parameter_group": "hh_onsite(i=1)::rep0"
+      },
+      {
+        "generator_id": "gen:a3fe223505ad8c65",
+        "family_id": "hh_hva_ptw",
+        "template_id": "hh_hva_ptw|macro|terms4|sites0|bos1|ferm0",
+        "candidate_label": "hh_hva_ptw::rep0::hh_phonon(i=0)",
+        "support_qubits": [
+          4,
+          5
+        ],
+        "support_sites": [
+          0
+        ],
+        "support_site_offsets": [
+          0
+        ],
+        "is_macro_generator": true,
+        "split_policy": "preserve",
+        "parent_generator_id": null,
+        "symmetry_spec": null,
+        "measured_geometry_capability": {
+          "schema_version": 2,
+          "surface": "phase_a_measured_local_system_capability",
+          "family_id": "hh_hva_ptw",
+          "eligible_for_certification": false,
+          "certifiable_local_system_modes": [],
+          "allowed_requested_families": [],
+          "requires_reference_state_handoff": true,
+          "requires_basis_reference_state": true,
+          "disallow_fallback": true,
+          "static_hamiltonian_only": true,
+          "driven_segments_supported": false,
+          "runtime_submission_blocked": true,
+          "phase_b_supported": false
+        },
+        "derivative_capability": {
+          "schema_version": 2,
+          "surface": "phase_a_measured_local_system_capability",
+          "family_id": "hh_hva_ptw",
+          "eligible_for_certification": false,
+          "certifiable_local_system_modes": [],
+          "allowed_requested_families": [],
+          "requires_reference_state_handoff": true,
+          "requires_basis_reference_state": true,
+          "disallow_fallback": true,
+          "static_hamiltonian_only": true,
+          "driven_segments_supported": false,
+          "runtime_submission_blocked": true,
+          "phase_b_supported": false
+        },
+        "compile_metadata": {
+          "num_polynomial_terms": 4,
+          "signature_size": 4,
+          "has_boson_support": true,
+          "has_fermion_support": false,
+          "support_size": 2,
+          "serialized_terms_exyz": [
+            {
+              "pauli_exyz": "eezeeeee",
+              "coeff_re": -0.2500000000000001,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "eeeeeeee",
+              "coeff_re": 0.7500000000000001,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "eeezeeee",
+              "coeff_re": 0.2500000000000001,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "eezzeeee",
+              "coeff_re": -0.7500000000000001,
+              "coeff_im": 0.0,
+              "nq": 8
+            }
+          ]
+        },
+        "warm_scaffold": true,
+        "warm_ansatz": "hh_hva_ptw",
+        "warm_parameter_group": "hh_phonon(i=0)::rep0"
+      },
+      {
+        "generator_id": "gen:bace52e44f344231",
+        "family_id": "hh_hva_ptw",
+        "template_id": "hh_hva_ptw|macro|terms4|sites0|bos1|ferm0",
+        "candidate_label": "hh_hva_ptw::rep0::hh_phonon(i=1)",
+        "support_qubits": [
+          6,
+          7
+        ],
+        "support_sites": [
+          1
+        ],
+        "support_site_offsets": [
+          0
+        ],
+        "is_macro_generator": true,
+        "split_policy": "preserve",
+        "parent_generator_id": null,
+        "symmetry_spec": null,
+        "measured_geometry_capability": {
+          "schema_version": 2,
+          "surface": "phase_a_measured_local_system_capability",
+          "family_id": "hh_hva_ptw",
+          "eligible_for_certification": false,
+          "certifiable_local_system_modes": [],
+          "allowed_requested_families": [],
+          "requires_reference_state_handoff": true,
+          "requires_basis_reference_state": true,
+          "disallow_fallback": true,
+          "static_hamiltonian_only": true,
+          "driven_segments_supported": false,
+          "runtime_submission_blocked": true,
+          "phase_b_supported": false
+        },
+        "derivative_capability": {
+          "schema_version": 2,
+          "surface": "phase_a_measured_local_system_capability",
+          "family_id": "hh_hva_ptw",
+          "eligible_for_certification": false,
+          "certifiable_local_system_modes": [],
+          "allowed_requested_families": [],
+          "requires_reference_state_handoff": true,
+          "requires_basis_reference_state": true,
+          "disallow_fallback": true,
+          "static_hamiltonian_only": true,
+          "driven_segments_supported": false,
+          "runtime_submission_blocked": true,
+          "phase_b_supported": false
+        },
+        "compile_metadata": {
+          "num_polynomial_terms": 4,
+          "signature_size": 4,
+          "has_boson_support": true,
+          "has_fermion_support": false,
+          "support_size": 2,
+          "serialized_terms_exyz": [
+            {
+              "pauli_exyz": "zeeeeeee",
+              "coeff_re": -0.2500000000000001,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "eeeeeeee",
+              "coeff_re": 0.7500000000000001,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "ezeeeeee",
+              "coeff_re": 0.2500000000000001,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "zzeeeeee",
+              "coeff_re": -0.7500000000000001,
+              "coeff_im": 0.0,
+              "nq": 8
+            }
+          ]
+        },
+        "warm_scaffold": true,
+        "warm_ansatz": "hh_hva_ptw",
+        "warm_parameter_group": "hh_phonon(i=1)::rep0"
+      },
+      {
+        "generator_id": "gen:a1e0c46bb5e3c48e",
+        "family_id": "hh_hva_ptw",
+        "template_id": "hh_hva_ptw|macro|terms8|sites0|bos1|ferm1",
+        "candidate_label": "hh_hva_ptw::rep0::hh_eph(i=0)",
+        "support_qubits": [
+          0,
+          2,
+          4,
+          5
+        ],
+        "support_sites": [
+          0
+        ],
+        "support_site_offsets": [
+          0
+        ],
+        "is_macro_generator": true,
+        "split_policy": "preserve",
+        "parent_generator_id": null,
+        "symmetry_spec": null,
+        "measured_geometry_capability": {
+          "schema_version": 2,
+          "surface": "phase_a_measured_local_system_capability",
+          "family_id": "hh_hva_ptw",
+          "eligible_for_certification": false,
+          "certifiable_local_system_modes": [],
+          "allowed_requested_families": [],
+          "requires_reference_state_handoff": true,
+          "requires_basis_reference_state": true,
+          "disallow_fallback": true,
+          "static_hamiltonian_only": true,
+          "driven_segments_supported": false,
+          "runtime_submission_blocked": true,
+          "phase_b_supported": false
+        },
+        "derivative_capability": {
+          "schema_version": 2,
+          "surface": "phase_a_measured_local_system_capability",
+          "family_id": "hh_hva_ptw",
+          "eligible_for_certification": false,
+          "certifiable_local_system_modes": [],
+          "allowed_requested_families": [],
+          "requires_reference_state_handoff": true,
+          "requires_basis_reference_state": true,
+          "disallow_fallback": true,
+          "static_hamiltonian_only": true,
+          "driven_segments_supported": false,
+          "runtime_submission_blocked": true,
+          "phase_b_supported": false
+        },
+        "compile_metadata": {
+          "num_polynomial_terms": 8,
+          "signature_size": 8,
+          "has_boson_support": true,
+          "has_fermion_support": true,
+          "support_size": 4,
+          "serialized_terms_exyz": [
+            {
+              "pauli_exyz": "eezxeeez",
+              "coeff_re": -0.125,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "eezxezee",
+              "coeff_re": -0.125,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "eexxeeez",
+              "coeff_re": -0.1767766952966369,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "eexxezee",
+              "coeff_re": -0.1767766952966369,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "eeexeeez",
+              "coeff_re": -0.125,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "eeexezee",
+              "coeff_re": -0.125,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "eeyyeeez",
+              "coeff_re": -0.1767766952966369,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "eeyyezee",
+              "coeff_re": -0.1767766952966369,
+              "coeff_im": 0.0,
+              "nq": 8
+            }
+          ]
+        },
+        "warm_scaffold": true,
+        "warm_ansatz": "hh_hva_ptw",
+        "warm_parameter_group": "hh_eph(i=0)::rep0"
+      },
+      {
+        "generator_id": "gen:8d38e35976e057d0",
+        "family_id": "hh_hva_ptw",
+        "template_id": "hh_hva_ptw|macro|terms8|sites0|bos1|ferm1",
+        "candidate_label": "hh_hva_ptw::rep0::hh_eph(i=1)",
+        "support_qubits": [
+          1,
+          3,
+          6,
+          7
+        ],
+        "support_sites": [
+          1
+        ],
+        "support_site_offsets": [
+          0
+        ],
+        "is_macro_generator": true,
+        "split_policy": "preserve",
+        "parent_generator_id": null,
+        "symmetry_spec": null,
+        "measured_geometry_capability": {
+          "schema_version": 2,
+          "surface": "phase_a_measured_local_system_capability",
+          "family_id": "hh_hva_ptw",
+          "eligible_for_certification": false,
+          "certifiable_local_system_modes": [],
+          "allowed_requested_families": [],
+          "requires_reference_state_handoff": true,
+          "requires_basis_reference_state": true,
+          "disallow_fallback": true,
+          "static_hamiltonian_only": true,
+          "driven_segments_supported": false,
+          "runtime_submission_blocked": true,
+          "phase_b_supported": false
+        },
+        "derivative_capability": {
+          "schema_version": 2,
+          "surface": "phase_a_measured_local_system_capability",
+          "family_id": "hh_hva_ptw",
+          "eligible_for_certification": false,
+          "certifiable_local_system_modes": [],
+          "allowed_requested_families": [],
+          "requires_reference_state_handoff": true,
+          "requires_basis_reference_state": true,
+          "disallow_fallback": true,
+          "static_hamiltonian_only": true,
+          "driven_segments_supported": false,
+          "runtime_submission_blocked": true,
+          "phase_b_supported": false
+        },
+        "compile_metadata": {
+          "num_polynomial_terms": 8,
+          "signature_size": 8,
+          "has_boson_support": true,
+          "has_fermion_support": true,
+          "support_size": 4,
+          "serialized_terms_exyz": [
+            {
+              "pauli_exyz": "zxeeeeze",
+              "coeff_re": -0.125,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "zxeezeee",
+              "coeff_re": -0.125,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "xxeeeeze",
+              "coeff_re": -0.1767766952966369,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "xxeezeee",
+              "coeff_re": -0.1767766952966369,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "exeeeeze",
+              "coeff_re": -0.125,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "exeezeee",
+              "coeff_re": -0.125,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "yyeeeeze",
+              "coeff_re": -0.1767766952966369,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "yyeezeee",
+              "coeff_re": -0.1767766952966369,
+              "coeff_im": 0.0,
+              "nq": 8
+            }
+          ]
+        },
+        "warm_scaffold": true,
+        "warm_ansatz": "hh_hva_ptw",
+        "warm_parameter_group": "hh_eph(i=1)::rep0"
+      },
+      {
+        "generator_id": "gen:c7a07401cacc94b9",
+        "family_id": "hh_hva_ptw",
+        "template_id": "hh_hva_ptw|macro|terms2|sites0,1|bos0|ferm1",
+        "candidate_label": "hh_hva_ptw::rep1::hh_hop(i=0,j=1,spin=0)",
+        "support_qubits": [
+          0,
+          1
+        ],
+        "support_sites": [
+          0,
+          1
+        ],
+        "support_site_offsets": [
+          0,
+          1
+        ],
+        "is_macro_generator": true,
+        "split_policy": "preserve",
+        "parent_generator_id": null,
+        "symmetry_spec": null,
+        "measured_geometry_capability": {
+          "schema_version": 2,
+          "surface": "phase_a_measured_local_system_capability",
+          "family_id": "hh_hva_ptw",
+          "eligible_for_certification": false,
+          "certifiable_local_system_modes": [],
+          "allowed_requested_families": [],
+          "requires_reference_state_handoff": true,
+          "requires_basis_reference_state": true,
+          "disallow_fallback": true,
+          "static_hamiltonian_only": true,
+          "driven_segments_supported": false,
+          "runtime_submission_blocked": true,
+          "phase_b_supported": false
+        },
+        "derivative_capability": {
+          "schema_version": 2,
+          "surface": "phase_a_measured_local_system_capability",
+          "family_id": "hh_hva_ptw",
+          "eligible_for_certification": false,
+          "certifiable_local_system_modes": [],
+          "allowed_requested_families": [],
+          "requires_reference_state_handoff": true,
+          "requires_basis_reference_state": true,
+          "disallow_fallback": true,
+          "static_hamiltonian_only": true,
+          "driven_segments_supported": false,
+          "runtime_submission_blocked": true,
+          "phase_b_supported": false
+        },
+        "compile_metadata": {
+          "num_polynomial_terms": 2,
+          "signature_size": 2,
+          "has_boson_support": false,
+          "has_fermion_support": true,
+          "support_size": 2,
+          "serialized_terms_exyz": [
+            {
+              "pauli_exyz": "eeeeeexx",
+              "coeff_re": -0.5,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "eeeeeeyy",
+              "coeff_re": -0.5,
+              "coeff_im": 0.0,
+              "nq": 8
+            }
+          ]
+        },
+        "warm_scaffold": true,
+        "warm_ansatz": "hh_hva_ptw",
+        "warm_parameter_group": "hh_hop(i=0,j=1,spin=0)::rep1"
+      },
+      {
+        "generator_id": "gen:f45089eb50956f9d",
+        "family_id": "hh_hva_ptw",
+        "template_id": "hh_hva_ptw|macro|terms2|sites0,1|bos0|ferm1",
+        "candidate_label": "hh_hva_ptw::rep1::hh_hop(i=0,j=1,spin=1)",
+        "support_qubits": [
+          2,
+          3
+        ],
+        "support_sites": [
+          0,
+          1
+        ],
+        "support_site_offsets": [
+          0,
+          1
+        ],
+        "is_macro_generator": true,
+        "split_policy": "preserve",
+        "parent_generator_id": null,
+        "symmetry_spec": null,
+        "measured_geometry_capability": {
+          "schema_version": 2,
+          "surface": "phase_a_measured_local_system_capability",
+          "family_id": "hh_hva_ptw",
+          "eligible_for_certification": false,
+          "certifiable_local_system_modes": [],
+          "allowed_requested_families": [],
+          "requires_reference_state_handoff": true,
+          "requires_basis_reference_state": true,
+          "disallow_fallback": true,
+          "static_hamiltonian_only": true,
+          "driven_segments_supported": false,
+          "runtime_submission_blocked": true,
+          "phase_b_supported": false
+        },
+        "derivative_capability": {
+          "schema_version": 2,
+          "surface": "phase_a_measured_local_system_capability",
+          "family_id": "hh_hva_ptw",
+          "eligible_for_certification": false,
+          "certifiable_local_system_modes": [],
+          "allowed_requested_families": [],
+          "requires_reference_state_handoff": true,
+          "requires_basis_reference_state": true,
+          "disallow_fallback": true,
+          "static_hamiltonian_only": true,
+          "driven_segments_supported": false,
+          "runtime_submission_blocked": true,
+          "phase_b_supported": false
+        },
+        "compile_metadata": {
+          "num_polynomial_terms": 2,
+          "signature_size": 2,
+          "has_boson_support": false,
+          "has_fermion_support": true,
+          "support_size": 2,
+          "serialized_terms_exyz": [
+            {
+              "pauli_exyz": "eeeexxee",
+              "coeff_re": -0.5,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "eeeeyyee",
+              "coeff_re": -0.5,
+              "coeff_im": 0.0,
+              "nq": 8
+            }
+          ]
+        },
+        "warm_scaffold": true,
+        "warm_ansatz": "hh_hva_ptw",
+        "warm_parameter_group": "hh_hop(i=0,j=1,spin=1)::rep1"
+      },
+      {
+        "generator_id": "gen:e63d86440e7aca66",
+        "family_id": "hh_hva_ptw",
+        "template_id": "hh_hva_ptw|macro|terms4|sites0|bos0|ferm1",
+        "candidate_label": "hh_hva_ptw::rep1::hh_onsite(i=0)",
+        "support_qubits": [
+          0,
+          2
+        ],
+        "support_sites": [
+          0
+        ],
+        "support_site_offsets": [
+          0
+        ],
+        "is_macro_generator": true,
+        "split_policy": "preserve",
+        "parent_generator_id": null,
+        "symmetry_spec": null,
+        "measured_geometry_capability": {
+          "schema_version": 2,
+          "surface": "phase_a_measured_local_system_capability",
+          "family_id": "hh_hva_ptw",
+          "eligible_for_certification": false,
+          "certifiable_local_system_modes": [],
+          "allowed_requested_families": [],
+          "requires_reference_state_handoff": true,
+          "requires_basis_reference_state": true,
+          "disallow_fallback": true,
+          "static_hamiltonian_only": true,
+          "driven_segments_supported": false,
+          "runtime_submission_blocked": true,
+          "phase_b_supported": false
+        },
+        "derivative_capability": {
+          "schema_version": 2,
+          "surface": "phase_a_measured_local_system_capability",
+          "family_id": "hh_hva_ptw",
+          "eligible_for_certification": false,
+          "certifiable_local_system_modes": [],
+          "allowed_requested_families": [],
+          "requires_reference_state_handoff": true,
+          "requires_basis_reference_state": true,
+          "disallow_fallback": true,
+          "static_hamiltonian_only": true,
+          "driven_segments_supported": false,
+          "runtime_submission_blocked": true,
+          "phase_b_supported": false
+        },
+        "compile_metadata": {
+          "num_polynomial_terms": 4,
+          "signature_size": 4,
+          "has_boson_support": false,
+          "has_fermion_support": true,
+          "support_size": 2,
+          "serialized_terms_exyz": [
+            {
+              "pauli_exyz": "eeeeezez",
+              "coeff_re": 0.5,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "eeeeeeez",
+              "coeff_re": -0.5,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "eeeeezee",
+              "coeff_re": -0.5,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "eeeeeeee",
+              "coeff_re": 0.5,
+              "coeff_im": 0.0,
+              "nq": 8
+            }
+          ]
+        },
+        "warm_scaffold": true,
+        "warm_ansatz": "hh_hva_ptw",
+        "warm_parameter_group": "hh_onsite(i=0)::rep1"
+      },
+      {
+        "generator_id": "gen:64cf71c8cf30d93e",
+        "family_id": "hh_hva_ptw",
+        "template_id": "hh_hva_ptw|macro|terms4|sites0|bos0|ferm1",
+        "candidate_label": "hh_hva_ptw::rep1::hh_onsite(i=1)",
+        "support_qubits": [
+          1,
+          3
+        ],
+        "support_sites": [
+          1
+        ],
+        "support_site_offsets": [
+          0
+        ],
+        "is_macro_generator": true,
+        "split_policy": "preserve",
+        "parent_generator_id": null,
+        "symmetry_spec": null,
+        "measured_geometry_capability": {
+          "schema_version": 2,
+          "surface": "phase_a_measured_local_system_capability",
+          "family_id": "hh_hva_ptw",
+          "eligible_for_certification": false,
+          "certifiable_local_system_modes": [],
+          "allowed_requested_families": [],
+          "requires_reference_state_handoff": true,
+          "requires_basis_reference_state": true,
+          "disallow_fallback": true,
+          "static_hamiltonian_only": true,
+          "driven_segments_supported": false,
+          "runtime_submission_blocked": true,
+          "phase_b_supported": false
+        },
+        "derivative_capability": {
+          "schema_version": 2,
+          "surface": "phase_a_measured_local_system_capability",
+          "family_id": "hh_hva_ptw",
+          "eligible_for_certification": false,
+          "certifiable_local_system_modes": [],
+          "allowed_requested_families": [],
+          "requires_reference_state_handoff": true,
+          "requires_basis_reference_state": true,
+          "disallow_fallback": true,
+          "static_hamiltonian_only": true,
+          "driven_segments_supported": false,
+          "runtime_submission_blocked": true,
+          "phase_b_supported": false
+        },
+        "compile_metadata": {
+          "num_polynomial_terms": 4,
+          "signature_size": 4,
+          "has_boson_support": false,
+          "has_fermion_support": true,
+          "support_size": 2,
+          "serialized_terms_exyz": [
+            {
+              "pauli_exyz": "eeeezeze",
+              "coeff_re": 0.5,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "eeeeeeze",
+              "coeff_re": -0.5,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "eeeezeee",
+              "coeff_re": -0.5,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "eeeeeeee",
+              "coeff_re": 0.5,
+              "coeff_im": 0.0,
+              "nq": 8
+            }
+          ]
+        },
+        "warm_scaffold": true,
+        "warm_ansatz": "hh_hva_ptw",
+        "warm_parameter_group": "hh_onsite(i=1)::rep1"
+      },
+      {
+        "generator_id": "gen:a3fe223505ad8c65",
+        "family_id": "hh_hva_ptw",
+        "template_id": "hh_hva_ptw|macro|terms4|sites0|bos1|ferm0",
+        "candidate_label": "hh_hva_ptw::rep1::hh_phonon(i=0)",
+        "support_qubits": [
+          4,
+          5
+        ],
+        "support_sites": [
+          0
+        ],
+        "support_site_offsets": [
+          0
+        ],
+        "is_macro_generator": true,
+        "split_policy": "preserve",
+        "parent_generator_id": null,
+        "symmetry_spec": null,
+        "measured_geometry_capability": {
+          "schema_version": 2,
+          "surface": "phase_a_measured_local_system_capability",
+          "family_id": "hh_hva_ptw",
+          "eligible_for_certification": false,
+          "certifiable_local_system_modes": [],
+          "allowed_requested_families": [],
+          "requires_reference_state_handoff": true,
+          "requires_basis_reference_state": true,
+          "disallow_fallback": true,
+          "static_hamiltonian_only": true,
+          "driven_segments_supported": false,
+          "runtime_submission_blocked": true,
+          "phase_b_supported": false
+        },
+        "derivative_capability": {
+          "schema_version": 2,
+          "surface": "phase_a_measured_local_system_capability",
+          "family_id": "hh_hva_ptw",
+          "eligible_for_certification": false,
+          "certifiable_local_system_modes": [],
+          "allowed_requested_families": [],
+          "requires_reference_state_handoff": true,
+          "requires_basis_reference_state": true,
+          "disallow_fallback": true,
+          "static_hamiltonian_only": true,
+          "driven_segments_supported": false,
+          "runtime_submission_blocked": true,
+          "phase_b_supported": false
+        },
+        "compile_metadata": {
+          "num_polynomial_terms": 4,
+          "signature_size": 4,
+          "has_boson_support": true,
+          "has_fermion_support": false,
+          "support_size": 2,
+          "serialized_terms_exyz": [
+            {
+              "pauli_exyz": "eezeeeee",
+              "coeff_re": -0.2500000000000001,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "eeeeeeee",
+              "coeff_re": 0.7500000000000001,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "eeezeeee",
+              "coeff_re": 0.2500000000000001,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "eezzeeee",
+              "coeff_re": -0.7500000000000001,
+              "coeff_im": 0.0,
+              "nq": 8
+            }
+          ]
+        },
+        "warm_scaffold": true,
+        "warm_ansatz": "hh_hva_ptw",
+        "warm_parameter_group": "hh_phonon(i=0)::rep1"
+      },
+      {
+        "generator_id": "gen:bace52e44f344231",
+        "family_id": "hh_hva_ptw",
+        "template_id": "hh_hva_ptw|macro|terms4|sites0|bos1|ferm0",
+        "candidate_label": "hh_hva_ptw::rep1::hh_phonon(i=1)",
+        "support_qubits": [
+          6,
+          7
+        ],
+        "support_sites": [
+          1
+        ],
+        "support_site_offsets": [
+          0
+        ],
+        "is_macro_generator": true,
+        "split_policy": "preserve",
+        "parent_generator_id": null,
+        "symmetry_spec": null,
+        "measured_geometry_capability": {
+          "schema_version": 2,
+          "surface": "phase_a_measured_local_system_capability",
+          "family_id": "hh_hva_ptw",
+          "eligible_for_certification": false,
+          "certifiable_local_system_modes": [],
+          "allowed_requested_families": [],
+          "requires_reference_state_handoff": true,
+          "requires_basis_reference_state": true,
+          "disallow_fallback": true,
+          "static_hamiltonian_only": true,
+          "driven_segments_supported": false,
+          "runtime_submission_blocked": true,
+          "phase_b_supported": false
+        },
+        "derivative_capability": {
+          "schema_version": 2,
+          "surface": "phase_a_measured_local_system_capability",
+          "family_id": "hh_hva_ptw",
+          "eligible_for_certification": false,
+          "certifiable_local_system_modes": [],
+          "allowed_requested_families": [],
+          "requires_reference_state_handoff": true,
+          "requires_basis_reference_state": true,
+          "disallow_fallback": true,
+          "static_hamiltonian_only": true,
+          "driven_segments_supported": false,
+          "runtime_submission_blocked": true,
+          "phase_b_supported": false
+        },
+        "compile_metadata": {
+          "num_polynomial_terms": 4,
+          "signature_size": 4,
+          "has_boson_support": true,
+          "has_fermion_support": false,
+          "support_size": 2,
+          "serialized_terms_exyz": [
+            {
+              "pauli_exyz": "zeeeeeee",
+              "coeff_re": -0.2500000000000001,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "eeeeeeee",
+              "coeff_re": 0.7500000000000001,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "ezeeeeee",
+              "coeff_re": 0.2500000000000001,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "zzeeeeee",
+              "coeff_re": -0.7500000000000001,
+              "coeff_im": 0.0,
+              "nq": 8
+            }
+          ]
+        },
+        "warm_scaffold": true,
+        "warm_ansatz": "hh_hva_ptw",
+        "warm_parameter_group": "hh_phonon(i=1)::rep1"
+      },
+      {
+        "generator_id": "gen:a1e0c46bb5e3c48e",
+        "family_id": "hh_hva_ptw",
+        "template_id": "hh_hva_ptw|macro|terms8|sites0|bos1|ferm1",
+        "candidate_label": "hh_hva_ptw::rep1::hh_eph(i=0)",
+        "support_qubits": [
+          0,
+          2,
+          4,
+          5
+        ],
+        "support_sites": [
+          0
+        ],
+        "support_site_offsets": [
+          0
+        ],
+        "is_macro_generator": true,
+        "split_policy": "preserve",
+        "parent_generator_id": null,
+        "symmetry_spec": null,
+        "measured_geometry_capability": {
+          "schema_version": 2,
+          "surface": "phase_a_measured_local_system_capability",
+          "family_id": "hh_hva_ptw",
+          "eligible_for_certification": false,
+          "certifiable_local_system_modes": [],
+          "allowed_requested_families": [],
+          "requires_reference_state_handoff": true,
+          "requires_basis_reference_state": true,
+          "disallow_fallback": true,
+          "static_hamiltonian_only": true,
+          "driven_segments_supported": false,
+          "runtime_submission_blocked": true,
+          "phase_b_supported": false
+        },
+        "derivative_capability": {
+          "schema_version": 2,
+          "surface": "phase_a_measured_local_system_capability",
+          "family_id": "hh_hva_ptw",
+          "eligible_for_certification": false,
+          "certifiable_local_system_modes": [],
+          "allowed_requested_families": [],
+          "requires_reference_state_handoff": true,
+          "requires_basis_reference_state": true,
+          "disallow_fallback": true,
+          "static_hamiltonian_only": true,
+          "driven_segments_supported": false,
+          "runtime_submission_blocked": true,
+          "phase_b_supported": false
+        },
+        "compile_metadata": {
+          "num_polynomial_terms": 8,
+          "signature_size": 8,
+          "has_boson_support": true,
+          "has_fermion_support": true,
+          "support_size": 4,
+          "serialized_terms_exyz": [
+            {
+              "pauli_exyz": "eezxeeez",
+              "coeff_re": -0.125,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "eezxezee",
+              "coeff_re": -0.125,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "eexxeeez",
+              "coeff_re": -0.1767766952966369,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "eexxezee",
+              "coeff_re": -0.1767766952966369,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "eeexeeez",
+              "coeff_re": -0.125,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "eeexezee",
+              "coeff_re": -0.125,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "eeyyeeez",
+              "coeff_re": -0.1767766952966369,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "eeyyezee",
+              "coeff_re": -0.1767766952966369,
+              "coeff_im": 0.0,
+              "nq": 8
+            }
+          ]
+        },
+        "warm_scaffold": true,
+        "warm_ansatz": "hh_hva_ptw",
+        "warm_parameter_group": "hh_eph(i=0)::rep1"
+      },
+      {
+        "generator_id": "gen:8d38e35976e057d0",
+        "family_id": "hh_hva_ptw",
+        "template_id": "hh_hva_ptw|macro|terms8|sites0|bos1|ferm1",
+        "candidate_label": "hh_hva_ptw::rep1::hh_eph(i=1)",
+        "support_qubits": [
+          1,
+          3,
+          6,
+          7
+        ],
+        "support_sites": [
+          1
+        ],
+        "support_site_offsets": [
+          0
+        ],
+        "is_macro_generator": true,
+        "split_policy": "preserve",
+        "parent_generator_id": null,
+        "symmetry_spec": null,
+        "measured_geometry_capability": {
+          "schema_version": 2,
+          "surface": "phase_a_measured_local_system_capability",
+          "family_id": "hh_hva_ptw",
+          "eligible_for_certification": false,
+          "certifiable_local_system_modes": [],
+          "allowed_requested_families": [],
+          "requires_reference_state_handoff": true,
+          "requires_basis_reference_state": true,
+          "disallow_fallback": true,
+          "static_hamiltonian_only": true,
+          "driven_segments_supported": false,
+          "runtime_submission_blocked": true,
+          "phase_b_supported": false
+        },
+        "derivative_capability": {
+          "schema_version": 2,
+          "surface": "phase_a_measured_local_system_capability",
+          "family_id": "hh_hva_ptw",
+          "eligible_for_certification": false,
+          "certifiable_local_system_modes": [],
+          "allowed_requested_families": [],
+          "requires_reference_state_handoff": true,
+          "requires_basis_reference_state": true,
+          "disallow_fallback": true,
+          "static_hamiltonian_only": true,
+          "driven_segments_supported": false,
+          "runtime_submission_blocked": true,
+          "phase_b_supported": false
+        },
+        "compile_metadata": {
+          "num_polynomial_terms": 8,
+          "signature_size": 8,
+          "has_boson_support": true,
+          "has_fermion_support": true,
+          "support_size": 4,
+          "serialized_terms_exyz": [
+            {
+              "pauli_exyz": "zxeeeeze",
+              "coeff_re": -0.125,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "zxeezeee",
+              "coeff_re": -0.125,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "xxeeeeze",
+              "coeff_re": -0.1767766952966369,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "xxeezeee",
+              "coeff_re": -0.1767766952966369,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "exeeeeze",
+              "coeff_re": -0.125,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "exeezeee",
+              "coeff_re": -0.125,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "yyeeeeze",
+              "coeff_re": -0.1767766952966369,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "yyeezeee",
+              "coeff_re": -0.1767766952966369,
+              "coeff_im": 0.0,
+              "nq": 8
+            }
+          ]
+        },
+        "warm_scaffold": true,
+        "warm_ansatz": "hh_hva_ptw",
+        "warm_parameter_group": "hh_eph(i=1)::rep1"
+      },
+      {
+        "generator_id": "gen:c7a07401cacc94b9",
+        "family_id": "hh_hva_ptw",
+        "template_id": "hh_hva_ptw|macro|terms2|sites0,1|bos0|ferm1",
+        "candidate_label": "hh_hva_ptw::rep2::hh_hop(i=0,j=1,spin=0)",
+        "support_qubits": [
+          0,
+          1
+        ],
+        "support_sites": [
+          0,
+          1
+        ],
+        "support_site_offsets": [
+          0,
+          1
+        ],
+        "is_macro_generator": true,
+        "split_policy": "preserve",
+        "parent_generator_id": null,
+        "symmetry_spec": null,
+        "measured_geometry_capability": {
+          "schema_version": 2,
+          "surface": "phase_a_measured_local_system_capability",
+          "family_id": "hh_hva_ptw",
+          "eligible_for_certification": false,
+          "certifiable_local_system_modes": [],
+          "allowed_requested_families": [],
+          "requires_reference_state_handoff": true,
+          "requires_basis_reference_state": true,
+          "disallow_fallback": true,
+          "static_hamiltonian_only": true,
+          "driven_segments_supported": false,
+          "runtime_submission_blocked": true,
+          "phase_b_supported": false
+        },
+        "derivative_capability": {
+          "schema_version": 2,
+          "surface": "phase_a_measured_local_system_capability",
+          "family_id": "hh_hva_ptw",
+          "eligible_for_certification": false,
+          "certifiable_local_system_modes": [],
+          "allowed_requested_families": [],
+          "requires_reference_state_handoff": true,
+          "requires_basis_reference_state": true,
+          "disallow_fallback": true,
+          "static_hamiltonian_only": true,
+          "driven_segments_supported": false,
+          "runtime_submission_blocked": true,
+          "phase_b_supported": false
+        },
+        "compile_metadata": {
+          "num_polynomial_terms": 2,
+          "signature_size": 2,
+          "has_boson_support": false,
+          "has_fermion_support": true,
+          "support_size": 2,
+          "serialized_terms_exyz": [
+            {
+              "pauli_exyz": "eeeeeexx",
+              "coeff_re": -0.5,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "eeeeeeyy",
+              "coeff_re": -0.5,
+              "coeff_im": 0.0,
+              "nq": 8
+            }
+          ]
+        },
+        "warm_scaffold": true,
+        "warm_ansatz": "hh_hva_ptw",
+        "warm_parameter_group": "hh_hop(i=0,j=1,spin=0)::rep2"
+      },
+      {
+        "generator_id": "gen:f45089eb50956f9d",
+        "family_id": "hh_hva_ptw",
+        "template_id": "hh_hva_ptw|macro|terms2|sites0,1|bos0|ferm1",
+        "candidate_label": "hh_hva_ptw::rep2::hh_hop(i=0,j=1,spin=1)",
+        "support_qubits": [
+          2,
+          3
+        ],
+        "support_sites": [
+          0,
+          1
+        ],
+        "support_site_offsets": [
+          0,
+          1
+        ],
+        "is_macro_generator": true,
+        "split_policy": "preserve",
+        "parent_generator_id": null,
+        "symmetry_spec": null,
+        "measured_geometry_capability": {
+          "schema_version": 2,
+          "surface": "phase_a_measured_local_system_capability",
+          "family_id": "hh_hva_ptw",
+          "eligible_for_certification": false,
+          "certifiable_local_system_modes": [],
+          "allowed_requested_families": [],
+          "requires_reference_state_handoff": true,
+          "requires_basis_reference_state": true,
+          "disallow_fallback": true,
+          "static_hamiltonian_only": true,
+          "driven_segments_supported": false,
+          "runtime_submission_blocked": true,
+          "phase_b_supported": false
+        },
+        "derivative_capability": {
+          "schema_version": 2,
+          "surface": "phase_a_measured_local_system_capability",
+          "family_id": "hh_hva_ptw",
+          "eligible_for_certification": false,
+          "certifiable_local_system_modes": [],
+          "allowed_requested_families": [],
+          "requires_reference_state_handoff": true,
+          "requires_basis_reference_state": true,
+          "disallow_fallback": true,
+          "static_hamiltonian_only": true,
+          "driven_segments_supported": false,
+          "runtime_submission_blocked": true,
+          "phase_b_supported": false
+        },
+        "compile_metadata": {
+          "num_polynomial_terms": 2,
+          "signature_size": 2,
+          "has_boson_support": false,
+          "has_fermion_support": true,
+          "support_size": 2,
+          "serialized_terms_exyz": [
+            {
+              "pauli_exyz": "eeeexxee",
+              "coeff_re": -0.5,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "eeeeyyee",
+              "coeff_re": -0.5,
+              "coeff_im": 0.0,
+              "nq": 8
+            }
+          ]
+        },
+        "warm_scaffold": true,
+        "warm_ansatz": "hh_hva_ptw",
+        "warm_parameter_group": "hh_hop(i=0,j=1,spin=1)::rep2"
+      },
+      {
+        "generator_id": "gen:e63d86440e7aca66",
+        "family_id": "hh_hva_ptw",
+        "template_id": "hh_hva_ptw|macro|terms4|sites0|bos0|ferm1",
+        "candidate_label": "hh_hva_ptw::rep2::hh_onsite(i=0)",
+        "support_qubits": [
+          0,
+          2
+        ],
+        "support_sites": [
+          0
+        ],
+        "support_site_offsets": [
+          0
+        ],
+        "is_macro_generator": true,
+        "split_policy": "preserve",
+        "parent_generator_id": null,
+        "symmetry_spec": null,
+        "measured_geometry_capability": {
+          "schema_version": 2,
+          "surface": "phase_a_measured_local_system_capability",
+          "family_id": "hh_hva_ptw",
+          "eligible_for_certification": false,
+          "certifiable_local_system_modes": [],
+          "allowed_requested_families": [],
+          "requires_reference_state_handoff": true,
+          "requires_basis_reference_state": true,
+          "disallow_fallback": true,
+          "static_hamiltonian_only": true,
+          "driven_segments_supported": false,
+          "runtime_submission_blocked": true,
+          "phase_b_supported": false
+        },
+        "derivative_capability": {
+          "schema_version": 2,
+          "surface": "phase_a_measured_local_system_capability",
+          "family_id": "hh_hva_ptw",
+          "eligible_for_certification": false,
+          "certifiable_local_system_modes": [],
+          "allowed_requested_families": [],
+          "requires_reference_state_handoff": true,
+          "requires_basis_reference_state": true,
+          "disallow_fallback": true,
+          "static_hamiltonian_only": true,
+          "driven_segments_supported": false,
+          "runtime_submission_blocked": true,
+          "phase_b_supported": false
+        },
+        "compile_metadata": {
+          "num_polynomial_terms": 4,
+          "signature_size": 4,
+          "has_boson_support": false,
+          "has_fermion_support": true,
+          "support_size": 2,
+          "serialized_terms_exyz": [
+            {
+              "pauli_exyz": "eeeeezez",
+              "coeff_re": 0.5,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "eeeeeeez",
+              "coeff_re": -0.5,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "eeeeezee",
+              "coeff_re": -0.5,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "eeeeeeee",
+              "coeff_re": 0.5,
+              "coeff_im": 0.0,
+              "nq": 8
+            }
+          ]
+        },
+        "warm_scaffold": true,
+        "warm_ansatz": "hh_hva_ptw",
+        "warm_parameter_group": "hh_onsite(i=0)::rep2"
+      },
+      {
+        "generator_id": "gen:64cf71c8cf30d93e",
+        "family_id": "hh_hva_ptw",
+        "template_id": "hh_hva_ptw|macro|terms4|sites0|bos0|ferm1",
+        "candidate_label": "hh_hva_ptw::rep2::hh_onsite(i=1)",
+        "support_qubits": [
+          1,
+          3
+        ],
+        "support_sites": [
+          1
+        ],
+        "support_site_offsets": [
+          0
+        ],
+        "is_macro_generator": true,
+        "split_policy": "preserve",
+        "parent_generator_id": null,
+        "symmetry_spec": null,
+        "measured_geometry_capability": {
+          "schema_version": 2,
+          "surface": "phase_a_measured_local_system_capability",
+          "family_id": "hh_hva_ptw",
+          "eligible_for_certification": false,
+          "certifiable_local_system_modes": [],
+          "allowed_requested_families": [],
+          "requires_reference_state_handoff": true,
+          "requires_basis_reference_state": true,
+          "disallow_fallback": true,
+          "static_hamiltonian_only": true,
+          "driven_segments_supported": false,
+          "runtime_submission_blocked": true,
+          "phase_b_supported": false
+        },
+        "derivative_capability": {
+          "schema_version": 2,
+          "surface": "phase_a_measured_local_system_capability",
+          "family_id": "hh_hva_ptw",
+          "eligible_for_certification": false,
+          "certifiable_local_system_modes": [],
+          "allowed_requested_families": [],
+          "requires_reference_state_handoff": true,
+          "requires_basis_reference_state": true,
+          "disallow_fallback": true,
+          "static_hamiltonian_only": true,
+          "driven_segments_supported": false,
+          "runtime_submission_blocked": true,
+          "phase_b_supported": false
+        },
+        "compile_metadata": {
+          "num_polynomial_terms": 4,
+          "signature_size": 4,
+          "has_boson_support": false,
+          "has_fermion_support": true,
+          "support_size": 2,
+          "serialized_terms_exyz": [
+            {
+              "pauli_exyz": "eeeezeze",
+              "coeff_re": 0.5,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "eeeeeeze",
+              "coeff_re": -0.5,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "eeeezeee",
+              "coeff_re": -0.5,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "eeeeeeee",
+              "coeff_re": 0.5,
+              "coeff_im": 0.0,
+              "nq": 8
+            }
+          ]
+        },
+        "warm_scaffold": true,
+        "warm_ansatz": "hh_hva_ptw",
+        "warm_parameter_group": "hh_onsite(i=1)::rep2"
+      },
+      {
+        "generator_id": "gen:a3fe223505ad8c65",
+        "family_id": "hh_hva_ptw",
+        "template_id": "hh_hva_ptw|macro|terms4|sites0|bos1|ferm0",
+        "candidate_label": "hh_hva_ptw::rep2::hh_phonon(i=0)",
+        "support_qubits": [
+          4,
+          5
+        ],
+        "support_sites": [
+          0
+        ],
+        "support_site_offsets": [
+          0
+        ],
+        "is_macro_generator": true,
+        "split_policy": "preserve",
+        "parent_generator_id": null,
+        "symmetry_spec": null,
+        "measured_geometry_capability": {
+          "schema_version": 2,
+          "surface": "phase_a_measured_local_system_capability",
+          "family_id": "hh_hva_ptw",
+          "eligible_for_certification": false,
+          "certifiable_local_system_modes": [],
+          "allowed_requested_families": [],
+          "requires_reference_state_handoff": true,
+          "requires_basis_reference_state": true,
+          "disallow_fallback": true,
+          "static_hamiltonian_only": true,
+          "driven_segments_supported": false,
+          "runtime_submission_blocked": true,
+          "phase_b_supported": false
+        },
+        "derivative_capability": {
+          "schema_version": 2,
+          "surface": "phase_a_measured_local_system_capability",
+          "family_id": "hh_hva_ptw",
+          "eligible_for_certification": false,
+          "certifiable_local_system_modes": [],
+          "allowed_requested_families": [],
+          "requires_reference_state_handoff": true,
+          "requires_basis_reference_state": true,
+          "disallow_fallback": true,
+          "static_hamiltonian_only": true,
+          "driven_segments_supported": false,
+          "runtime_submission_blocked": true,
+          "phase_b_supported": false
+        },
+        "compile_metadata": {
+          "num_polynomial_terms": 4,
+          "signature_size": 4,
+          "has_boson_support": true,
+          "has_fermion_support": false,
+          "support_size": 2,
+          "serialized_terms_exyz": [
+            {
+              "pauli_exyz": "eezeeeee",
+              "coeff_re": -0.2500000000000001,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "eeeeeeee",
+              "coeff_re": 0.7500000000000001,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "eeezeeee",
+              "coeff_re": 0.2500000000000001,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "eezzeeee",
+              "coeff_re": -0.7500000000000001,
+              "coeff_im": 0.0,
+              "nq": 8
+            }
+          ]
+        },
+        "warm_scaffold": true,
+        "warm_ansatz": "hh_hva_ptw",
+        "warm_parameter_group": "hh_phonon(i=0)::rep2"
+      },
+      {
+        "generator_id": "gen:bace52e44f344231",
+        "family_id": "hh_hva_ptw",
+        "template_id": "hh_hva_ptw|macro|terms4|sites0|bos1|ferm0",
+        "candidate_label": "hh_hva_ptw::rep2::hh_phonon(i=1)",
+        "support_qubits": [
+          6,
+          7
+        ],
+        "support_sites": [
+          1
+        ],
+        "support_site_offsets": [
+          0
+        ],
+        "is_macro_generator": true,
+        "split_policy": "preserve",
+        "parent_generator_id": null,
+        "symmetry_spec": null,
+        "measured_geometry_capability": {
+          "schema_version": 2,
+          "surface": "phase_a_measured_local_system_capability",
+          "family_id": "hh_hva_ptw",
+          "eligible_for_certification": false,
+          "certifiable_local_system_modes": [],
+          "allowed_requested_families": [],
+          "requires_reference_state_handoff": true,
+          "requires_basis_reference_state": true,
+          "disallow_fallback": true,
+          "static_hamiltonian_only": true,
+          "driven_segments_supported": false,
+          "runtime_submission_blocked": true,
+          "phase_b_supported": false
+        },
+        "derivative_capability": {
+          "schema_version": 2,
+          "surface": "phase_a_measured_local_system_capability",
+          "family_id": "hh_hva_ptw",
+          "eligible_for_certification": false,
+          "certifiable_local_system_modes": [],
+          "allowed_requested_families": [],
+          "requires_reference_state_handoff": true,
+          "requires_basis_reference_state": true,
+          "disallow_fallback": true,
+          "static_hamiltonian_only": true,
+          "driven_segments_supported": false,
+          "runtime_submission_blocked": true,
+          "phase_b_supported": false
+        },
+        "compile_metadata": {
+          "num_polynomial_terms": 4,
+          "signature_size": 4,
+          "has_boson_support": true,
+          "has_fermion_support": false,
+          "support_size": 2,
+          "serialized_terms_exyz": [
+            {
+              "pauli_exyz": "zeeeeeee",
+              "coeff_re": -0.2500000000000001,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "eeeeeeee",
+              "coeff_re": 0.7500000000000001,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "ezeeeeee",
+              "coeff_re": 0.2500000000000001,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "zzeeeeee",
+              "coeff_re": -0.7500000000000001,
+              "coeff_im": 0.0,
+              "nq": 8
+            }
+          ]
+        },
+        "warm_scaffold": true,
+        "warm_ansatz": "hh_hva_ptw",
+        "warm_parameter_group": "hh_phonon(i=1)::rep2"
+      },
+      {
+        "generator_id": "gen:a1e0c46bb5e3c48e",
+        "family_id": "hh_hva_ptw",
+        "template_id": "hh_hva_ptw|macro|terms8|sites0|bos1|ferm1",
+        "candidate_label": "hh_hva_ptw::rep2::hh_eph(i=0)",
+        "support_qubits": [
+          0,
+          2,
+          4,
+          5
+        ],
+        "support_sites": [
+          0
+        ],
+        "support_site_offsets": [
+          0
+        ],
+        "is_macro_generator": true,
+        "split_policy": "preserve",
+        "parent_generator_id": null,
+        "symmetry_spec": null,
+        "measured_geometry_capability": {
+          "schema_version": 2,
+          "surface": "phase_a_measured_local_system_capability",
+          "family_id": "hh_hva_ptw",
+          "eligible_for_certification": false,
+          "certifiable_local_system_modes": [],
+          "allowed_requested_families": [],
+          "requires_reference_state_handoff": true,
+          "requires_basis_reference_state": true,
+          "disallow_fallback": true,
+          "static_hamiltonian_only": true,
+          "driven_segments_supported": false,
+          "runtime_submission_blocked": true,
+          "phase_b_supported": false
+        },
+        "derivative_capability": {
+          "schema_version": 2,
+          "surface": "phase_a_measured_local_system_capability",
+          "family_id": "hh_hva_ptw",
+          "eligible_for_certification": false,
+          "certifiable_local_system_modes": [],
+          "allowed_requested_families": [],
+          "requires_reference_state_handoff": true,
+          "requires_basis_reference_state": true,
+          "disallow_fallback": true,
+          "static_hamiltonian_only": true,
+          "driven_segments_supported": false,
+          "runtime_submission_blocked": true,
+          "phase_b_supported": false
+        },
+        "compile_metadata": {
+          "num_polynomial_terms": 8,
+          "signature_size": 8,
+          "has_boson_support": true,
+          "has_fermion_support": true,
+          "support_size": 4,
+          "serialized_terms_exyz": [
+            {
+              "pauli_exyz": "eezxeeez",
+              "coeff_re": -0.125,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "eezxezee",
+              "coeff_re": -0.125,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "eexxeeez",
+              "coeff_re": -0.1767766952966369,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "eexxezee",
+              "coeff_re": -0.1767766952966369,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "eeexeeez",
+              "coeff_re": -0.125,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "eeexezee",
+              "coeff_re": -0.125,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "eeyyeeez",
+              "coeff_re": -0.1767766952966369,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "eeyyezee",
+              "coeff_re": -0.1767766952966369,
+              "coeff_im": 0.0,
+              "nq": 8
+            }
+          ]
+        },
+        "warm_scaffold": true,
+        "warm_ansatz": "hh_hva_ptw",
+        "warm_parameter_group": "hh_eph(i=0)::rep2"
+      },
+      {
+        "generator_id": "gen:8d38e35976e057d0",
+        "family_id": "hh_hva_ptw",
+        "template_id": "hh_hva_ptw|macro|terms8|sites0|bos1|ferm1",
+        "candidate_label": "hh_hva_ptw::rep2::hh_eph(i=1)",
+        "support_qubits": [
+          1,
+          3,
+          6,
+          7
+        ],
+        "support_sites": [
+          1
+        ],
+        "support_site_offsets": [
+          0
+        ],
+        "is_macro_generator": true,
+        "split_policy": "preserve",
+        "parent_generator_id": null,
+        "symmetry_spec": null,
+        "measured_geometry_capability": {
+          "schema_version": 2,
+          "surface": "phase_a_measured_local_system_capability",
+          "family_id": "hh_hva_ptw",
+          "eligible_for_certification": false,
+          "certifiable_local_system_modes": [],
+          "allowed_requested_families": [],
+          "requires_reference_state_handoff": true,
+          "requires_basis_reference_state": true,
+          "disallow_fallback": true,
+          "static_hamiltonian_only": true,
+          "driven_segments_supported": false,
+          "runtime_submission_blocked": true,
+          "phase_b_supported": false
+        },
+        "derivative_capability": {
+          "schema_version": 2,
+          "surface": "phase_a_measured_local_system_capability",
+          "family_id": "hh_hva_ptw",
+          "eligible_for_certification": false,
+          "certifiable_local_system_modes": [],
+          "allowed_requested_families": [],
+          "requires_reference_state_handoff": true,
+          "requires_basis_reference_state": true,
+          "disallow_fallback": true,
+          "static_hamiltonian_only": true,
+          "driven_segments_supported": false,
+          "runtime_submission_blocked": true,
+          "phase_b_supported": false
+        },
+        "compile_metadata": {
+          "num_polynomial_terms": 8,
+          "signature_size": 8,
+          "has_boson_support": true,
+          "has_fermion_support": true,
+          "support_size": 4,
+          "serialized_terms_exyz": [
+            {
+              "pauli_exyz": "zxeeeeze",
+              "coeff_re": -0.125,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "zxeezeee",
+              "coeff_re": -0.125,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "xxeeeeze",
+              "coeff_re": -0.1767766952966369,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "xxeezeee",
+              "coeff_re": -0.1767766952966369,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "exeeeeze",
+              "coeff_re": -0.125,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "exeezeee",
+              "coeff_re": -0.125,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "yyeeeeze",
+              "coeff_re": -0.1767766952966369,
+              "coeff_im": 0.0,
+              "nq": 8
+            },
+            {
+              "pauli_exyz": "yyeezeee",
+              "coeff_re": -0.1767766952966369,
+              "coeff_im": 0.0,
+              "nq": 8
+            }
+          ]
+        },
+        "warm_scaffold": true,
+        "warm_ansatz": "hh_hva_ptw",
+        "warm_parameter_group": "hh_eph(i=1)::rep2"
+      },
+      {
+        "generator_id": "gen:fcb814acec6201b9",
+        "family_id": "paop_lf_std",
+        "template_id": "paop_lf_std|atomic|terms1|sites0|bos1|ferm1",
+        "candidate_label": "hh_termwise_ham_quadrature_term(eezyeeez)",
+        "support_qubits": [
+          0,
+          4,
+          5
+        ],
+        "support_sites": [
+          0
+        ],
+        "support_site_offsets": [
+          0
+        ],
+        "is_macro_generator": false,
+        "split_policy": "preserve",
+        "parent_generator_id": null,
+        "symmetry_spec": {
+          "spec_version": "phase3_symmetry_v1",
+          "particle_number_mode": "preserving",
+          "spin_sector_mode": "preserving",
+          "phonon_number_mode": "not_conserved",
+          "leakage_risk": 0.0,
+          "mitigation_eligible": false,
+          "grouping_eligible": true,
+          "hard_guard": false,
+          "tags": [
+            "fermion_number",
+            "spin_sector"
+          ]
+        },
+        "measured_geometry_capability": {
+          "schema_version": 2,
+          "surface": "phase_a_measured_local_system_capability",
+          "family_id": "paop_lf_std",
+          "eligible_for_certification": false,
+          "certifiable_local_system_modes": [],
+          "allowed_requested_families": [],
+          "requires_reference_state_handoff": true,
+          "requires_basis_reference_state": true,
+          "disallow_fallback": true,
+          "static_hamiltonian_only": true,
+          "driven_segments_supported": false,
+          "runtime_submission_blocked": true,
+          "phase_b_supported": false
+        },
+        "derivative_capability": {
+          "schema_version": 2,
+          "surface": "phase_a_measured_local_system_capability",
+          "family_id": "paop_lf_std",
+          "eligible_for_certification": false,
+          "certifiable_local_system_modes": [],
+          "allowed_requested_families": [],
+          "requires_reference_state_handoff": true,
+          "requires_basis_reference_state": true,
+          "disallow_fallback": true,
+          "static_hamiltonian_only": true,
+          "driven_segments_supported": false,
+          "runtime_submission_blocked": true,
+          "phase_b_supported": false
+        },
+        "compile_metadata": {
+          "num_polynomial_terms": 1,
+          "signature_size": 1,
+          "has_boson_support": true,
+          "has_fermion_support": true,
+          "support_size": 3,
+          "serialized_terms_exyz": [
+            {
+              "pauli_exyz": "eezyeeez",
+              "coeff_re": 0.125,
+              "coeff_im": 0.0,
+              "nq": 8
+            }
+          ]
+        }
+      },
+      {
+        "generator_id": "gen:f2a6814064214bb0",
+        "family_id": "paop_lf_std",
+        "template_id": "paop_lf_std|atomic|terms1|sites0|bos1|ferm1",
+        "candidate_label": "hh_termwise_ham_unit_term(exeezeee)",
+        "support_qubits": [
+          3,
+          6
+        ],
+        "support_sites": [
+          1
+        ],
+        "support_site_offsets": [
+          0
+        ],
+        "is_macro_generator": false,
+        "split_policy": "preserve",
+        "parent_generator_id": null,
+        "symmetry_spec": {
+          "spec_version": "phase3_symmetry_v1",
+          "particle_number_mode": "preserving",
+          "spin_sector_mode": "preserving",
+          "phonon_number_mode": "not_conserved",
+          "leakage_risk": 0.0,
+          "mitigation_eligible": false,
+          "grouping_eligible": true,
+          "hard_guard": false,
+          "tags": [
+            "fermion_number",
+            "spin_sector"
+          ]
+        },
+        "measured_geometry_capability": {
+          "schema_version": 2,
+          "surface": "phase_a_measured_local_system_capability",
+          "family_id": "paop_lf_std",
+          "eligible_for_certification": false,
+          "certifiable_local_system_modes": [],
+          "allowed_requested_families": [],
+          "requires_reference_state_handoff": true,
+          "requires_basis_reference_state": true,
+          "disallow_fallback": true,
+          "static_hamiltonian_only": true,
+          "driven_segments_supported": false,
+          "runtime_submission_blocked": true,
+          "phase_b_supported": false
+        },
+        "derivative_capability": {
+          "schema_version": 2,
+          "surface": "phase_a_measured_local_system_capability",
+          "family_id": "paop_lf_std",
+          "eligible_for_certification": false,
+          "certifiable_local_system_modes": [],
+          "allowed_requested_families": [],
+          "requires_reference_state_handoff": true,
+          "requires_basis_reference_state": true,
+          "disallow_fallback": true,
+          "static_hamiltonian_only": true,
+          "driven_segments_supported": false,
+          "runtime_submission_blocked": true,
+          "phase_b_supported": false
+        },
+        "compile_metadata": {
+          "num_polynomial_terms": 1,
+          "signature_size": 1,
+          "has_boson_support": true,
+          "has_fermion_support": true,
+          "support_size": 2,
+          "serialized_terms_exyz": [
+            {
+              "pauli_exyz": "exeezeee",
+              "coeff_re": 1.0,
+              "coeff_im": 0.0,
+              "nq": 8
+            }
+          ]
+        }
+      },
+      {
+        "generator_id": "gen:f2a6814064214bb0",
+        "family_id": "paop_lf_std",
+        "template_id": "paop_lf_std|atomic|terms1|sites0|bos1|ferm1",
+        "candidate_label": "hh_termwise_ham_unit_term(exeezeee)",
+        "support_qubits": [
+          3,
+          6
+        ],
+        "support_sites": [
+          1
+        ],
+        "support_site_offsets": [
+          0
+        ],
+        "is_macro_generator": false,
+        "split_policy": "preserve",
+        "parent_generator_id": null,
+        "symmetry_spec": {
+          "spec_version": "phase3_symmetry_v1",
+          "particle_number_mode": "preserving",
+          "spin_sector_mode": "preserving",
+          "phonon_number_mode": "not_conserved",
+          "leakage_risk": 0.0,
+          "mitigation_eligible": false,
+          "grouping_eligible": true,
+          "hard_guard": false,
+          "tags": [
+            "fermion_number",
+            "spin_sector"
+          ]
+        },
+        "measured_geometry_capability": {
+          "schema_version": 2,
+          "surface": "phase_a_measured_local_system_capability",
+          "family_id": "paop_lf_std",
+          "eligible_for_certification": false,
+          "certifiable_local_system_modes": [],
+          "allowed_requested_families": [],
+          "requires_reference_state_handoff": true,
+          "requires_basis_reference_state": true,
+          "disallow_fallback": true,
+          "static_hamiltonian_only": true,
+          "driven_segments_supported": false,
+          "runtime_submission_blocked": true,
+          "phase_b_supported": false
+        },
+        "derivative_capability": {
+          "schema_version": 2,
+          "surface": "phase_a_measured_local_system_capability",
+          "family_id": "paop_lf_std",
+          "eligible_for_certification": false,
+          "certifiable_local_system_modes": [],
+          "allowed_requested_families": [],
+          "requires_reference_state_handoff": true,
+          "requires_basis_reference_state": true,
+          "disallow_fallback": true,
+          "static_hamiltonian_only": true,
+          "driven_segments_supported": false,
+          "runtime_submission_blocked": true,
+          "phase_b_supported": false
+        },
+        "compile_metadata": {
+          "num_polynomial_terms": 1,
+          "signature_size": 1,
+          "has_boson_support": true,
+          "has_fermion_support": true,
+          "support_size": 2,
+          "serialized_terms_exyz": [
+            {
+              "pauli_exyz": "exeezeee",
+              "coeff_re": 1.0,
+              "coeff_im": 0.0,
+              "nq": 8
+            }
+          ]
+        }
+      },
+      {
+        "generator_id": "gen:f2a6814064214bb0",
+        "family_id": "paop_lf_std",
+        "template_id": "paop_lf_std|atomic|terms1|sites0|bos1|ferm1",
+        "candidate_label": "hh_termwise_ham_unit_term(exeezeee)",
+        "support_qubits": [
+          3,
+          6
+        ],
+        "support_sites": [
+          1
+        ],
+        "support_site_offsets": [
+          0
+        ],
+        "is_macro_generator": false,
+        "split_policy": "preserve",
+        "parent_generator_id": null,
+        "symmetry_spec": {
+          "spec_version": "phase3_symmetry_v1",
+          "particle_number_mode": "preserving",
+          "spin_sector_mode": "preserving",
+          "phonon_number_mode": "not_conserved",
+          "leakage_risk": 0.0,
+          "mitigation_eligible": false,
+          "grouping_eligible": true,
+          "hard_guard": false,
+          "tags": [
+            "fermion_number",
+            "spin_sector"
+          ]
+        },
+        "measured_geometry_capability": {
+          "schema_version": 2,
+          "surface": "phase_a_measured_local_system_capability",
+          "family_id": "paop_lf_std",
+          "eligible_for_certification": false,
+          "certifiable_local_system_modes": [],
+          "allowed_requested_families": [],
+          "requires_reference_state_handoff": true,
+          "requires_basis_reference_state": true,
+          "disallow_fallback": true,
+          "static_hamiltonian_only": true,
+          "driven_segments_supported": false,
+          "runtime_submission_blocked": true,
+          "phase_b_supported": false
+        },
+        "derivative_capability": {
+          "schema_version": 2,
+          "surface": "phase_a_measured_local_system_capability",
+          "family_id": "paop_lf_std",
+          "eligible_for_certification": false,
+          "certifiable_local_system_modes": [],
+          "allowed_requested_families": [],
+          "requires_reference_state_handoff": true,
+          "requires_basis_reference_state": true,
+          "disallow_fallback": true,
+          "static_hamiltonian_only": true,
+          "driven_segments_supported": false,
+          "runtime_submission_blocked": true,
+          "phase_b_supported": false
+        },
+        "compile_metadata": {
+          "num_polynomial_terms": 1,
+          "signature_size": 1,
+          "has_boson_support": true,
+          "has_fermion_support": true,
+          "support_size": 2,
+          "serialized_terms_exyz": [
+            {
+              "pauli_exyz": "exeezeee",
+              "coeff_re": 1.0,
+              "coeff_im": 0.0,
+              "nq": 8
+            }
+          ]
+        }
+      },
+      {
+        "generator_id": "gen:f2a6814064214bb0",
+        "family_id": "paop_lf_std",
+        "template_id": "paop_lf_std|atomic|terms1|sites0|bos1|ferm1",
+        "candidate_label": "hh_termwise_ham_unit_term(exeezeee)",
+        "support_qubits": [
+          3,
+          6
+        ],
+        "support_sites": [
+          1
+        ],
+        "support_site_offsets": [
+          0
+        ],
+        "is_macro_generator": false,
+        "split_policy": "preserve",
+        "parent_generator_id": null,
+        "symmetry_spec": {
+          "spec_version": "phase3_symmetry_v1",
+          "particle_number_mode": "preserving",
+          "spin_sector_mode": "preserving",
+          "phonon_number_mode": "not_conserved",
+          "leakage_risk": 0.0,
+          "mitigation_eligible": false,
+          "grouping_eligible": true,
+          "hard_guard": false,
+          "tags": [
+            "fermion_number",
+            "spin_sector"
+          ]
+        },
+        "measured_geometry_capability": {
+          "schema_version": 2,
+          "surface": "phase_a_measured_local_system_capability",
+          "family_id": "paop_lf_std",
+          "eligible_for_certification": false,
+          "certifiable_local_system_modes": [],
+          "allowed_requested_families": [],
+          "requires_reference_state_handoff": true,
+          "requires_basis_reference_state": true,
+          "disallow_fallback": true,
+          "static_hamiltonian_only": true,
+          "driven_segments_supported": false,
+          "runtime_submission_blocked": true,
+          "phase_b_supported": false
+        },
+        "derivative_capability": {
+          "schema_version": 2,
+          "surface": "phase_a_measured_local_system_capability",
+          "family_id": "paop_lf_std",
+          "eligible_for_certification": false,
+          "certifiable_local_system_modes": [],
+          "allowed_requested_families": [],
+          "requires_reference_state_handoff": true,
+          "requires_basis_reference_state": true,
+          "disallow_fallback": true,
+          "static_hamiltonian_only": true,
+          "driven_segments_supported": false,
+          "runtime_submission_blocked": true,
+          "phase_b_supported": false
+        },
+        "compile_metadata": {
+          "num_polynomial_terms": 1,
+          "signature_size": 1,
+          "has_boson_support": true,
+          "has_fermion_support": true,
+          "support_size": 2,
+          "serialized_terms_exyz": [
+            {
+              "pauli_exyz": "exeezeee",
+              "coeff_re": 1.0,
+              "coeff_im": 0.0,
+              "nq": 8
+            }
+          ]
+        }
+      },
+      {
+        "generator_id": "gen:f2a6814064214bb0",
+        "family_id": "paop_lf_std",
+        "template_id": "paop_lf_std|atomic|terms1|sites0|bos1|ferm1",
+        "candidate_label": "hh_termwise_ham_unit_term(exeezeee)",
+        "support_qubits": [
+          3,
+          6
+        ],
+        "support_sites": [
+          1
+        ],
+        "support_site_offsets": [
+          0
+        ],
+        "is_macro_generator": false,
+        "split_policy": "preserve",
+        "parent_generator_id": null,
+        "symmetry_spec": {
+          "spec_version": "phase3_symmetry_v1",
+          "particle_number_mode": "preserving",
+          "spin_sector_mode": "preserving",
+          "phonon_number_mode": "not_conserved",
+          "leakage_risk": 0.0,
+          "mitigation_eligible": false,
+          "grouping_eligible": true,
+          "hard_guard": false,
+          "tags": [
+            "fermion_number",
+            "spin_sector"
+          ]
+        },
+        "measured_geometry_capability": {
+          "schema_version": 2,
+          "surface": "phase_a_measured_local_system_capability",
+          "family_id": "paop_lf_std",
+          "eligible_for_certification": false,
+          "certifiable_local_system_modes": [],
+          "allowed_requested_families": [],
+          "requires_reference_state_handoff": true,
+          "requires_basis_reference_state": true,
+          "disallow_fallback": true,
+          "static_hamiltonian_only": true,
+          "driven_segments_supported": false,
+          "runtime_submission_blocked": true,
+          "phase_b_supported": false
+        },
+        "derivative_capability": {
+          "schema_version": 2,
+          "surface": "phase_a_measured_local_system_capability",
+          "family_id": "paop_lf_std",
+          "eligible_for_certification": false,
+          "certifiable_local_system_modes": [],
+          "allowed_requested_families": [],
+          "requires_reference_state_handoff": true,
+          "requires_basis_reference_state": true,
+          "disallow_fallback": true,
+          "static_hamiltonian_only": true,
+          "driven_segments_supported": false,
+          "runtime_submission_blocked": true,
+          "phase_b_supported": false
+        },
+        "compile_metadata": {
+          "num_polynomial_terms": 1,
+          "signature_size": 1,
+          "has_boson_support": true,
+          "has_fermion_support": true,
+          "support_size": 2,
+          "serialized_terms_exyz": [
+            {
+              "pauli_exyz": "exeezeee",
+              "coeff_re": 1.0,
+              "coeff_im": 0.0,
+              "nq": 8
+            }
+          ]
+        }
+      },
+      {
+        "generator_id": "gen:f2a6814064214bb0",
+        "family_id": "paop_lf_std",
+        "template_id": "paop_lf_std|atomic|terms1|sites0|bos1|ferm1",
+        "candidate_label": "hh_termwise_ham_unit_term(exeezeee)",
+        "support_qubits": [
+          3,
+          6
+        ],
+        "support_sites": [
+          1
+        ],
+        "support_site_offsets": [
+          0
+        ],
+        "is_macro_generator": false,
+        "split_policy": "preserve",
+        "parent_generator_id": null,
+        "symmetry_spec": {
+          "spec_version": "phase3_symmetry_v1",
+          "particle_number_mode": "preserving",
+          "spin_sector_mode": "preserving",
+          "phonon_number_mode": "not_conserved",
+          "leakage_risk": 0.0,
+          "mitigation_eligible": false,
+          "grouping_eligible": true,
+          "hard_guard": false,
+          "tags": [
+            "fermion_number",
+            "spin_sector"
+          ]
+        },
+        "measured_geometry_capability": {
+          "schema_version": 2,
+          "surface": "phase_a_measured_local_system_capability",
+          "family_id": "paop_lf_std",
+          "eligible_for_certification": false,
+          "certifiable_local_system_modes": [],
+          "allowed_requested_families": [],
+          "requires_reference_state_handoff": true,
+          "requires_basis_reference_state": true,
+          "disallow_fallback": true,
+          "static_hamiltonian_only": true,
+          "driven_segments_supported": false,
+          "runtime_submission_blocked": true,
+          "phase_b_supported": false
+        },
+        "derivative_capability": {
+          "schema_version": 2,
+          "surface": "phase_a_measured_local_system_capability",
+          "family_id": "paop_lf_std",
+          "eligible_for_certification": false,
+          "certifiable_local_system_modes": [],
+          "allowed_requested_families": [],
+          "requires_reference_state_handoff": true,
+          "requires_basis_reference_state": true,
+          "disallow_fallback": true,
+          "static_hamiltonian_only": true,
+          "driven_segments_supported": false,
+          "runtime_submission_blocked": true,
+          "phase_b_supported": false
+        },
+        "compile_metadata": {
+          "num_polynomial_terms": 1,
+          "signature_size": 1,
+          "has_boson_support": true,
+          "has_fermion_support": true,
+          "support_size": 2,
+          "serialized_terms_exyz": [
+            {
+              "pauli_exyz": "exeezeee",
+              "coeff_re": 1.0,
+              "coeff_im": 0.0,
+              "nq": 8
+            }
+          ]
+        }
+      },
+      {
+        "generator_id": "gen:f2a6814064214bb0",
+        "family_id": "paop_lf_std",
+        "template_id": "paop_lf_std|atomic|terms1|sites0|bos1|ferm1",
+        "candidate_label": "hh_termwise_ham_unit_term(exeezeee)",
+        "support_qubits": [
+          3,
+          6
+        ],
+        "support_sites": [
+          1
+        ],
+        "support_site_offsets": [
+          0
+        ],
+        "is_macro_generator": false,
+        "split_policy": "preserve",
+        "parent_generator_id": null,
+        "symmetry_spec": {
+          "spec_version": "phase3_symmetry_v1",
+          "particle_number_mode": "preserving",
+          "spin_sector_mode": "preserving",
+          "phonon_number_mode": "not_conserved",
+          "leakage_risk": 0.0,
+          "mitigation_eligible": false,
+          "grouping_eligible": true,
+          "hard_guard": false,
+          "tags": [
+            "fermion_number",
+            "spin_sector"
+          ]
+        },
+        "measured_geometry_capability": {
+          "schema_version": 2,
+          "surface": "phase_a_measured_local_system_capability",
+          "family_id": "paop_lf_std",
+          "eligible_for_certification": false,
+          "certifiable_local_system_modes": [],
+          "allowed_requested_families": [],
+          "requires_reference_state_handoff": true,
+          "requires_basis_reference_state": true,
+          "disallow_fallback": true,
+          "static_hamiltonian_only": true,
+          "driven_segments_supported": false,
+          "runtime_submission_blocked": true,
+          "phase_b_supported": false
+        },
+        "derivative_capability": {
+          "schema_version": 2,
+          "surface": "phase_a_measured_local_system_capability",
+          "family_id": "paop_lf_std",
+          "eligible_for_certification": false,
+          "certifiable_local_system_modes": [],
+          "allowed_requested_families": [],
+          "requires_reference_state_handoff": true,
+          "requires_basis_reference_state": true,
+          "disallow_fallback": true,
+          "static_hamiltonian_only": true,
+          "driven_segments_supported": false,
+          "runtime_submission_blocked": true,
+          "phase_b_supported": false
+        },
+        "compile_metadata": {
+          "num_polynomial_terms": 1,
+          "signature_size": 1,
+          "has_boson_support": true,
+          "has_fermion_support": true,
+          "support_size": 2,
+          "serialized_terms_exyz": [
+            {
+              "pauli_exyz": "exeezeee",
+              "coeff_re": 1.0,
+              "coeff_im": 0.0,
+              "nq": 8
+            }
+          ]
+        }
+      }
+    ],
+    "generator_split_events": [],
+    "motif_library": {
+      "library_version": "phase3_motif_library_v1",
+      "source_tag": "phase3_v1_L2",
+      "source_num_sites": 2,
+      "ordering": "blocked",
+      "boson_encoding": "binary",
+      "source_tags": [
+        "phase3_v1_L2"
+      ],
+      "records": [
+        {
+          "motif_id": "motif:ffca5930fb975d8f",
+          "family_id": "hh_hva_ptw",
+          "template_id": "hh_hva_ptw|macro|terms2|sites0,1|bos0|ferm1",
+          "source_num_sites": 2,
+          "relative_order": 0,
+          "support_site_offsets": [
+            0,
+            1
+          ],
+          "mean_theta": -0.2311591530010729,
+          "mean_abs_theta": 0.2311591530010729,
+          "sign_hint": -1,
+          "generator_ids": [
+            "gen:c7a07401cacc94b9"
+          ],
+          "symmetry_spec": null,
+          "boundary_behavior": "both_edges",
+          "source_tags": [
+            "phase3_v1_L2"
+          ]
+        },
+        {
+          "motif_id": "motif:356094c66bd273b7",
+          "family_id": "hh_hva_ptw",
+          "template_id": "hh_hva_ptw|macro|terms2|sites0,1|bos0|ferm1",
+          "source_num_sites": 2,
+          "relative_order": 1,
+          "support_site_offsets": [
+            0,
+            1
+          ],
+          "mean_theta": -0.12188956445198343,
+          "mean_abs_theta": 0.12188956445198343,
+          "sign_hint": -1,
+          "generator_ids": [
+            "gen:f45089eb50956f9d"
+          ],
+          "symmetry_spec": null,
+          "boundary_behavior": "both_edges",
+          "source_tags": [
+            "phase3_v1_L2"
+          ]
+        },
+        {
+          "motif_id": "motif:11f31090b5d3d4fc",
+          "family_id": "hh_hva_ptw",
+          "template_id": "hh_hva_ptw|macro|terms4|sites0|bos0|ferm1",
+          "source_num_sites": 2,
+          "relative_order": 2,
+          "support_site_offsets": [
+            0
+          ],
+          "mean_theta": 0.49006004269261816,
+          "mean_abs_theta": 0.49006004269261816,
+          "sign_hint": 1,
+          "generator_ids": [
+            "gen:e63d86440e7aca66"
+          ],
+          "symmetry_spec": null,
+          "boundary_behavior": "left_edge",
+          "source_tags": [
+            "phase3_v1_L2"
+          ]
+        },
+        {
+          "motif_id": "motif:bfb859f04544f7a1",
+          "family_id": "hh_hva_ptw",
+          "template_id": "hh_hva_ptw|macro|terms4|sites0|bos0|ferm1",
+          "source_num_sites": 2,
+          "relative_order": 3,
+          "support_site_offsets": [
+            0
+          ],
+          "mean_theta": 0.13064573477102956,
+          "mean_abs_theta": 0.13064573477102956,
+          "sign_hint": 1,
+          "generator_ids": [
+            "gen:64cf71c8cf30d93e"
+          ],
+          "symmetry_spec": null,
+          "boundary_behavior": "right_edge",
+          "source_tags": [
+            "phase3_v1_L2"
+          ]
+        },
+        {
+          "motif_id": "motif:fc23761d730c268f",
+          "family_id": "hh_hva_ptw",
+          "template_id": "hh_hva_ptw|macro|terms4|sites0|bos1|ferm0",
+          "source_num_sites": 2,
+          "relative_order": 4,
+          "support_site_offsets": [
+            0
+          ],
+          "mean_theta": -0.2672243461349108,
+          "mean_abs_theta": 0.2672243461349108,
+          "sign_hint": -1,
+          "generator_ids": [
+            "gen:a3fe223505ad8c65"
+          ],
+          "symmetry_spec": null,
+          "boundary_behavior": "left_edge",
+          "source_tags": [
+            "phase3_v1_L2"
+          ]
+        },
+        {
+          "motif_id": "motif:19ed20359838ba4c",
+          "family_id": "hh_hva_ptw",
+          "template_id": "hh_hva_ptw|macro|terms4|sites0|bos1|ferm0",
+          "source_num_sites": 2,
+          "relative_order": 5,
+          "support_site_offsets": [
+            0
+          ],
+          "mean_theta": -0.9822940633877034,
+          "mean_abs_theta": 0.9822940633877034,
+          "sign_hint": -1,
+          "generator_ids": [
+            "gen:bace52e44f344231"
+          ],
+          "symmetry_spec": null,
+          "boundary_behavior": "right_edge",
+          "source_tags": [
+            "phase3_v1_L2"
+          ]
+        },
+        {
+          "motif_id": "motif:36e9503608385c53",
+          "family_id": "hh_hva_ptw",
+          "template_id": "hh_hva_ptw|macro|terms8|sites0|bos1|ferm1",
+          "source_num_sites": 2,
+          "relative_order": 6,
+          "support_site_offsets": [
+            0
+          ],
+          "mean_theta": 0.09060471870637679,
+          "mean_abs_theta": 0.09060471870637679,
+          "sign_hint": 1,
+          "generator_ids": [
+            "gen:a1e0c46bb5e3c48e"
+          ],
+          "symmetry_spec": null,
+          "boundary_behavior": "left_edge",
+          "source_tags": [
+            "phase3_v1_L2"
+          ]
+        },
+        {
+          "motif_id": "motif:e627a45f9cdd7771",
+          "family_id": "hh_hva_ptw",
+          "template_id": "hh_hva_ptw|macro|terms8|sites0|bos1|ferm1",
+          "source_num_sites": 2,
+          "relative_order": 7,
+          "support_site_offsets": [
+            0
+          ],
+          "mean_theta": 0.11341410594296683,
+          "mean_abs_theta": 0.11341410594296683,
+          "sign_hint": 1,
+          "generator_ids": [
+            "gen:8d38e35976e057d0"
+          ],
+          "symmetry_spec": null,
+          "boundary_behavior": "right_edge",
+          "source_tags": [
+            "phase3_v1_L2"
+          ]
+        },
+        {
+          "motif_id": "motif:72431ff53b339263",
+          "family_id": "hh_hva_ptw",
+          "template_id": "hh_hva_ptw|macro|terms2|sites0,1|bos0|ferm1",
+          "source_num_sites": 2,
+          "relative_order": 8,
+          "support_site_offsets": [
+            0,
+            1
+          ],
+          "mean_theta": -0.47594624940657126,
+          "mean_abs_theta": 0.47594624940657126,
+          "sign_hint": -1,
+          "generator_ids": [
+            "gen:c7a07401cacc94b9"
+          ],
+          "symmetry_spec": null,
+          "boundary_behavior": "both_edges",
+          "source_tags": [
+            "phase3_v1_L2"
+          ]
+        },
+        {
+          "motif_id": "motif:687830fc593faf78",
+          "family_id": "hh_hva_ptw",
+          "template_id": "hh_hva_ptw|macro|terms2|sites0,1|bos0|ferm1",
+          "source_num_sites": 2,
+          "relative_order": 9,
+          "support_site_offsets": [
+            0,
+            1
+          ],
+          "mean_theta": -0.6067416589165765,
+          "mean_abs_theta": 0.6067416589165765,
+          "sign_hint": -1,
+          "generator_ids": [
+            "gen:f45089eb50956f9d"
+          ],
+          "symmetry_spec": null,
+          "boundary_behavior": "both_edges",
+          "source_tags": [
+            "phase3_v1_L2"
+          ]
+        },
+        {
+          "motif_id": "motif:af8f437bb04ba0f4",
+          "family_id": "hh_hva_ptw",
+          "template_id": "hh_hva_ptw|macro|terms4|sites0|bos0|ferm1",
+          "source_num_sites": 2,
+          "relative_order": 10,
+          "support_site_offsets": [
+            0
+          ],
+          "mean_theta": 0.3314887918472326,
+          "mean_abs_theta": 0.3314887918472326,
+          "sign_hint": 1,
+          "generator_ids": [
+            "gen:e63d86440e7aca66"
+          ],
+          "symmetry_spec": null,
+          "boundary_behavior": "left_edge",
+          "source_tags": [
+            "phase3_v1_L2"
+          ]
+        },
+        {
+          "motif_id": "motif:2b4c7f98254365aa",
+          "family_id": "hh_hva_ptw",
+          "template_id": "hh_hva_ptw|macro|terms4|sites0|bos0|ferm1",
+          "source_num_sites": 2,
+          "relative_order": 11,
+          "support_site_offsets": [
+            0
+          ],
+          "mean_theta": -0.9675689891651326,
+          "mean_abs_theta": 0.9675689891651326,
+          "sign_hint": -1,
+          "generator_ids": [
+            "gen:64cf71c8cf30d93e"
+          ],
+          "symmetry_spec": null,
+          "boundary_behavior": "right_edge",
+          "source_tags": [
+            "phase3_v1_L2"
+          ]
+        },
+        {
+          "motif_id": "motif:d8669a02b429cf46",
+          "family_id": "hh_hva_ptw",
+          "template_id": "hh_hva_ptw|macro|terms4|sites0|bos1|ferm0",
+          "source_num_sites": 2,
+          "relative_order": 12,
+          "support_site_offsets": [
+            0
+          ],
+          "mean_theta": 0.6197653846141066,
+          "mean_abs_theta": 0.6197653846141066,
+          "sign_hint": 1,
+          "generator_ids": [
+            "gen:a3fe223505ad8c65"
+          ],
+          "symmetry_spec": null,
+          "boundary_behavior": "left_edge",
+          "source_tags": [
+            "phase3_v1_L2"
+          ]
+        },
+        {
+          "motif_id": "motif:2c0ac18571346340",
+          "family_id": "hh_hva_ptw",
+          "template_id": "hh_hva_ptw|macro|terms4|sites0|bos1|ferm0",
+          "source_num_sites": 2,
+          "relative_order": 13,
+          "support_site_offsets": [
+            0
+          ],
+          "mean_theta": -0.13450860488073396,
+          "mean_abs_theta": 0.13450860488073396,
+          "sign_hint": -1,
+          "generator_ids": [
+            "gen:bace52e44f344231"
+          ],
+          "symmetry_spec": null,
+          "boundary_behavior": "right_edge",
+          "source_tags": [
+            "phase3_v1_L2"
+          ]
+        },
+        {
+          "motif_id": "motif:058dfa5b130967f6",
+          "family_id": "hh_hva_ptw",
+          "template_id": "hh_hva_ptw|macro|terms8|sites0|bos1|ferm1",
+          "source_num_sites": 2,
+          "relative_order": 14,
+          "support_site_offsets": [
+            0
+          ],
+          "mean_theta": -0.2632804138621384,
+          "mean_abs_theta": 0.2632804138621384,
+          "sign_hint": -1,
+          "generator_ids": [
+            "gen:a1e0c46bb5e3c48e"
+          ],
+          "symmetry_spec": null,
+          "boundary_behavior": "left_edge",
+          "source_tags": [
+            "phase3_v1_L2"
+          ]
+        },
+        {
+          "motif_id": "motif:e0220dcddb676eae",
+          "family_id": "hh_hva_ptw",
+          "template_id": "hh_hva_ptw|macro|terms8|sites0|bos1|ferm1",
+          "source_num_sites": 2,
+          "relative_order": 15,
+          "support_site_offsets": [
+            0
+          ],
+          "mean_theta": -0.2399864673180486,
+          "mean_abs_theta": 0.2399864673180486,
+          "sign_hint": -1,
+          "generator_ids": [
+            "gen:8d38e35976e057d0"
+          ],
+          "symmetry_spec": null,
+          "boundary_behavior": "right_edge",
+          "source_tags": [
+            "phase3_v1_L2"
+          ]
+        },
+        {
+          "motif_id": "motif:cec935292c626f98",
+          "family_id": "hh_hva_ptw",
+          "template_id": "hh_hva_ptw|macro|terms2|sites0,1|bos0|ferm1",
+          "source_num_sites": 2,
+          "relative_order": 16,
+          "support_site_offsets": [
+            0,
+            1
+          ],
+          "mean_theta": -0.779107076334922,
+          "mean_abs_theta": 0.779107076334922,
+          "sign_hint": -1,
+          "generator_ids": [
+            "gen:c7a07401cacc94b9"
+          ],
+          "symmetry_spec": null,
+          "boundary_behavior": "both_edges",
+          "source_tags": [
+            "phase3_v1_L2"
+          ]
+        },
+        {
+          "motif_id": "motif:5b1a018899b087ec",
+          "family_id": "hh_hva_ptw",
+          "template_id": "hh_hva_ptw|macro|terms2|sites0,1|bos0|ferm1",
+          "source_num_sites": 2,
+          "relative_order": 17,
+          "support_site_offsets": [
+            0,
+            1
+          ],
+          "mean_theta": -0.34388938810312736,
+          "mean_abs_theta": 0.34388938810312736,
+          "sign_hint": -1,
+          "generator_ids": [
+            "gen:f45089eb50956f9d"
+          ],
+          "symmetry_spec": null,
+          "boundary_behavior": "both_edges",
+          "source_tags": [
+            "phase3_v1_L2"
+          ]
+        },
+        {
+          "motif_id": "motif:3eca348173960f4f",
+          "family_id": "hh_hva_ptw",
+          "template_id": "hh_hva_ptw|macro|terms4|sites0|bos0|ferm1",
+          "source_num_sites": 2,
+          "relative_order": 18,
+          "support_site_offsets": [
+            0
+          ],
+          "mean_theta": 0.026518760903782086,
+          "mean_abs_theta": 0.026518760903782086,
+          "sign_hint": 1,
+          "generator_ids": [
+            "gen:e63d86440e7aca66"
+          ],
+          "symmetry_spec": null,
+          "boundary_behavior": "left_edge",
+          "source_tags": [
+            "phase3_v1_L2"
+          ]
+        },
+        {
+          "motif_id": "motif:ede06c092faf2027",
+          "family_id": "hh_hva_ptw",
+          "template_id": "hh_hva_ptw|macro|terms4|sites0|bos0|ferm1",
+          "source_num_sites": 2,
+          "relative_order": 19,
+          "support_site_offsets": [
+            0
+          ],
+          "mean_theta": -0.35735356864918294,
+          "mean_abs_theta": 0.35735356864918294,
+          "sign_hint": -1,
+          "generator_ids": [
+            "gen:64cf71c8cf30d93e"
+          ],
+          "symmetry_spec": null,
+          "boundary_behavior": "right_edge",
+          "source_tags": [
+            "phase3_v1_L2"
+          ]
+        },
+        {
+          "motif_id": "motif:d169b6b65e4d43de",
+          "family_id": "hh_hva_ptw",
+          "template_id": "hh_hva_ptw|macro|terms4|sites0|bos1|ferm0",
+          "source_num_sites": 2,
+          "relative_order": 20,
+          "support_site_offsets": [
+            0
+          ],
+          "mean_theta": -0.8107623885081267,
+          "mean_abs_theta": 0.8107623885081267,
+          "sign_hint": -1,
+          "generator_ids": [
+            "gen:a3fe223505ad8c65"
+          ],
+          "symmetry_spec": null,
+          "boundary_behavior": "left_edge",
+          "source_tags": [
+            "phase3_v1_L2"
+          ]
+        },
+        {
+          "motif_id": "motif:78e174dd741c9961",
+          "family_id": "hh_hva_ptw",
+          "template_id": "hh_hva_ptw|macro|terms4|sites0|bos1|ferm0",
+          "source_num_sites": 2,
+          "relative_order": 21,
+          "support_site_offsets": [
+            0
+          ],
+          "mean_theta": 0.1015270274054779,
+          "mean_abs_theta": 0.1015270274054779,
+          "sign_hint": 1,
+          "generator_ids": [
+            "gen:bace52e44f344231"
+          ],
+          "symmetry_spec": null,
+          "boundary_behavior": "right_edge",
+          "source_tags": [
+            "phase3_v1_L2"
+          ]
+        },
+        {
+          "motif_id": "motif:e907f92720ace54f",
+          "family_id": "hh_hva_ptw",
+          "template_id": "hh_hva_ptw|macro|terms8|sites0|bos1|ferm1",
+          "source_num_sites": 2,
+          "relative_order": 22,
+          "support_site_offsets": [
+            0
+          ],
+          "mean_theta": -0.19901844300432195,
+          "mean_abs_theta": 0.19901844300432195,
+          "sign_hint": -1,
+          "generator_ids": [
+            "gen:a1e0c46bb5e3c48e"
+          ],
+          "symmetry_spec": null,
+          "boundary_behavior": "left_edge",
+          "source_tags": [
+            "phase3_v1_L2"
+          ]
+        },
+        {
+          "motif_id": "motif:e9b17715a46fb405",
+          "family_id": "hh_hva_ptw",
+          "template_id": "hh_hva_ptw|macro|terms8|sites0|bos1|ferm1",
+          "source_num_sites": 2,
+          "relative_order": 23,
+          "support_site_offsets": [
+            0
+          ],
+          "mean_theta": 0.04088228642329226,
+          "mean_abs_theta": 0.04088228642329226,
+          "sign_hint": 1,
+          "generator_ids": [
+            "gen:8d38e35976e057d0"
+          ],
+          "symmetry_spec": null,
+          "boundary_behavior": "right_edge",
+          "source_tags": [
+            "phase3_v1_L2"
+          ]
+        },
+        {
+          "motif_id": "motif:52df7f0e36c989a2",
+          "family_id": "paop_lf_std",
+          "template_id": "paop_lf_std|atomic|terms1|sites0|bos1|ferm1",
+          "source_num_sites": 2,
+          "relative_order": 24,
+          "support_site_offsets": [
+            0
+          ],
+          "mean_theta": 0.16190970392199205,
+          "mean_abs_theta": 0.16190970392199205,
+          "sign_hint": 1,
+          "generator_ids": [
+            "gen:fcb814acec6201b9"
+          ],
+          "symmetry_spec": {
+            "spec_version": "phase3_symmetry_v1",
+            "particle_number_mode": "preserving",
+            "spin_sector_mode": "preserving",
+            "phonon_number_mode": "not_conserved",
+            "leakage_risk": 0.0,
+            "mitigation_eligible": false,
+            "grouping_eligible": true,
+            "hard_guard": false,
+            "tags": [
+              "fermion_number",
+              "spin_sector"
+            ]
+          },
+          "boundary_behavior": "left_edge",
+          "source_tags": [
+            "phase3_v1_L2"
+          ]
+        },
+        {
+          "motif_id": "motif:4e2e36a1f7e81f04",
+          "family_id": "paop_lf_std",
+          "template_id": "paop_lf_std|atomic|terms1|sites0|bos1|ferm1",
+          "source_num_sites": 2,
+          "relative_order": 25,
+          "support_site_offsets": [
+            0
+          ],
+          "mean_theta": 0.0,
+          "mean_abs_theta": 0.0,
+          "sign_hint": 0,
+          "generator_ids": [
+            "gen:f2a6814064214bb0"
+          ],
+          "symmetry_spec": {
+            "spec_version": "phase3_symmetry_v1",
+            "particle_number_mode": "preserving",
+            "spin_sector_mode": "preserving",
+            "phonon_number_mode": "not_conserved",
+            "leakage_risk": 0.0,
+            "mitigation_eligible": false,
+            "grouping_eligible": true,
+            "hard_guard": false,
+            "tags": [
+              "fermion_number",
+              "spin_sector"
+            ]
+          },
+          "boundary_behavior": "right_edge",
+          "source_tags": [
+            "phase3_v1_L2"
+          ]
+        },
+        {
+          "motif_id": "motif:e517ec443bcdd602",
+          "family_id": "paop_lf_std",
+          "template_id": "paop_lf_std|atomic|terms1|sites0|bos1|ferm1",
+          "source_num_sites": 2,
+          "relative_order": 26,
+          "support_site_offsets": [
+            0
+          ],
+          "mean_theta": 0.0,
+          "mean_abs_theta": 0.0,
+          "sign_hint": 0,
+          "generator_ids": [
+            "gen:f2a6814064214bb0"
+          ],
+          "symmetry_spec": {
+            "spec_version": "phase3_symmetry_v1",
+            "particle_number_mode": "preserving",
+            "spin_sector_mode": "preserving",
+            "phonon_number_mode": "not_conserved",
+            "leakage_risk": 0.0,
+            "mitigation_eligible": false,
+            "grouping_eligible": true,
+            "hard_guard": false,
+            "tags": [
+              "fermion_number",
+              "spin_sector"
+            ]
+          },
+          "boundary_behavior": "right_edge",
+          "source_tags": [
+            "phase3_v1_L2"
+          ]
+        },
+        {
+          "motif_id": "motif:8bc5b223158f6629",
+          "family_id": "paop_lf_std",
+          "template_id": "paop_lf_std|atomic|terms1|sites0|bos1|ferm1",
+          "source_num_sites": 2,
+          "relative_order": 27,
+          "support_site_offsets": [
+            0
+          ],
+          "mean_theta": 0.0,
+          "mean_abs_theta": 0.0,
+          "sign_hint": 0,
+          "generator_ids": [
+            "gen:f2a6814064214bb0"
+          ],
+          "symmetry_spec": {
+            "spec_version": "phase3_symmetry_v1",
+            "particle_number_mode": "preserving",
+            "spin_sector_mode": "preserving",
+            "phonon_number_mode": "not_conserved",
+            "leakage_risk": 0.0,
+            "mitigation_eligible": false,
+            "grouping_eligible": true,
+            "hard_guard": false,
+            "tags": [
+              "fermion_number",
+              "spin_sector"
+            ]
+          },
+          "boundary_behavior": "right_edge",
+          "source_tags": [
+            "phase3_v1_L2"
+          ]
+        },
+        {
+          "motif_id": "motif:a1a0ece5b80ac27a",
+          "family_id": "paop_lf_std",
+          "template_id": "paop_lf_std|atomic|terms1|sites0|bos1|ferm1",
+          "source_num_sites": 2,
+          "relative_order": 28,
+          "support_site_offsets": [
+            0
+          ],
+          "mean_theta": 0.0,
+          "mean_abs_theta": 0.0,
+          "sign_hint": 0,
+          "generator_ids": [
+            "gen:f2a6814064214bb0"
+          ],
+          "symmetry_spec": {
+            "spec_version": "phase3_symmetry_v1",
+            "particle_number_mode": "preserving",
+            "spin_sector_mode": "preserving",
+            "phonon_number_mode": "not_conserved",
+            "leakage_risk": 0.0,
+            "mitigation_eligible": false,
+            "grouping_eligible": true,
+            "hard_guard": false,
+            "tags": [
+              "fermion_number",
+              "spin_sector"
+            ]
+          },
+          "boundary_behavior": "right_edge",
+          "source_tags": [
+            "phase3_v1_L2"
+          ]
+        },
+        {
+          "motif_id": "motif:438bb5a6115333fd",
+          "family_id": "paop_lf_std",
+          "template_id": "paop_lf_std|atomic|terms1|sites0|bos1|ferm1",
+          "source_num_sites": 2,
+          "relative_order": 29,
+          "support_site_offsets": [
+            0
+          ],
+          "mean_theta": 0.0,
+          "mean_abs_theta": 0.0,
+          "sign_hint": 0,
+          "generator_ids": [
+            "gen:f2a6814064214bb0"
+          ],
+          "symmetry_spec": {
+            "spec_version": "phase3_symmetry_v1",
+            "particle_number_mode": "preserving",
+            "spin_sector_mode": "preserving",
+            "phonon_number_mode": "not_conserved",
+            "leakage_risk": 0.0,
+            "mitigation_eligible": false,
+            "grouping_eligible": true,
+            "hard_guard": false,
+            "tags": [
+              "fermion_number",
+              "spin_sector"
+            ]
+          },
+          "boundary_behavior": "right_edge",
+          "source_tags": [
+            "phase3_v1_L2"
+          ]
+        },
+        {
+          "motif_id": "motif:2e9224d09eebc6bf",
+          "family_id": "paop_lf_std",
+          "template_id": "paop_lf_std|atomic|terms1|sites0|bos1|ferm1",
+          "source_num_sites": 2,
+          "relative_order": 30,
+          "support_site_offsets": [
+            0
+          ],
+          "mean_theta": 0.0,
+          "mean_abs_theta": 0.0,
+          "sign_hint": 0,
+          "generator_ids": [
+            "gen:f2a6814064214bb0"
+          ],
+          "symmetry_spec": {
+            "spec_version": "phase3_symmetry_v1",
+            "particle_number_mode": "preserving",
+            "spin_sector_mode": "preserving",
+            "phonon_number_mode": "not_conserved",
+            "leakage_risk": 0.0,
+            "mitigation_eligible": false,
+            "grouping_eligible": true,
+            "hard_guard": false,
+            "tags": [
+              "fermion_number",
+              "spin_sector"
+            ]
+          },
+          "boundary_behavior": "right_edge",
+          "source_tags": [
+            "phase3_v1_L2"
+          ]
+        },
+        {
+          "motif_id": "motif:5ed7b4de4af6628a",
+          "family_id": "paop_lf_std",
+          "template_id": "paop_lf_std|atomic|terms1|sites0|bos1|ferm1",
+          "source_num_sites": 2,
+          "relative_order": 31,
+          "support_site_offsets": [
+            0
+          ],
+          "mean_theta": 0.0,
+          "mean_abs_theta": 0.0,
+          "sign_hint": 0,
+          "generator_ids": [
+            "gen:f2a6814064214bb0"
+          ],
+          "symmetry_spec": {
+            "spec_version": "phase3_symmetry_v1",
+            "particle_number_mode": "preserving",
+            "spin_sector_mode": "preserving",
+            "phonon_number_mode": "not_conserved",
+            "leakage_risk": 0.0,
+            "mitigation_eligible": false,
+            "grouping_eligible": true,
+            "hard_guard": false,
+            "tags": [
+              "fermion_number",
+              "spin_sector"
+            ]
+          },
+          "boundary_behavior": "right_edge",
+          "source_tags": [
+            "phase3_v1_L2"
+          ]
+        }
+      ]
+    },
+    "motif_usage": {
+      "enabled": false,
+      "source_json": null,
+      "source_tag": null,
+      "seeded_labels": [],
+      "seeded_generator_ids": [],
+      "seeded_motif_ids": [],
+      "selected_match_count": 0
+    },
+    "symmetry_mitigation": {
+      "mode": "off",
+      "executed": false,
+      "active": false,
+      "passed": true,
+      "high_risk_count": 0,
+      "max_leakage_risk": 0.0
+    },
+    "rescue_history": [],
+    "replay_contract": {
+      "contract_version": 2,
+      "generator_family": {
+        "requested": "match_adapt",
+        "resolved": "paop_lf_std",
+        "resolution_source": "continuation.selected_generator_metadata.family_id",
+        "fallback_family": "full_meta",
+        "fallback_used": false
+      },
+      "seed_policy_requested": "auto",
+      "seed_policy_resolved": "scaffold_plus_zero",
+      "handoff_state_kind": "reference_state",
+      "provenance_source": "explicit",
+      "continuation_mode": "phase3_v1",
+      "contract_seed_hint": "built-in_staged_writer"
+    },
+    "replay_contract_hint": {
+      "generator_family": "match_adapt",
+      "fallback_family": "full_meta",
+      "replay_seed_policy": "auto",
+      "replay_continuation_mode": "phase3_v1"
+    }
+  },
+  "meta": {
+    "pipeline": "hh_staged_noiseless",
+    "workflow_tag": "20260317_hh_l2_g0p5_nph2_ptw_live_replay_fgv2",
+    "stage_chain": [
+      "hf_reference",
+      "warm_start_hva",
+      "adapt_vqe",
+      "matched_family_replay"
+    ]
+  }
+}

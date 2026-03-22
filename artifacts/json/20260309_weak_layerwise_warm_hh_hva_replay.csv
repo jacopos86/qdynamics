@@ -1,0 +1,2 @@
+tag,family_requested,family_resolved,method,reps,delta_abs,relative_error_abs,gate_pass_1e2,runtime_s,stop_reason,output_json,output_log
+20260309_weak_layerwise_warm_hh_hva_replay,match_adapt,paop_lf_std,SPSA,2,1.6207674408220714,10.214841178829694,False,2.7083247089758515,converged,/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_2/artifacts/json/20260309_weak_layerwise_warm_hh_hva_replay.json,/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_2/artifacts/logs/20260309_weak_layerwise_warm_hh_hva_replay.log

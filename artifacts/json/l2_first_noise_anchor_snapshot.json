@@ -1,0 +1,388 @@
+{
+  "backend_name": "FakeManilaV2",
+  "backend_version": "1.2.6",
+  "basis_gates": [
+    "cx",
+    "id",
+    "if_else",
+    "rz",
+    "delay",
+    "sx",
+    "switch_case",
+    "x",
+    "reset",
+    "measure",
+    "for_loop"
+  ],
+  "calibration_time_utc": "2024-05-27 15:27:23-03:00",
+  "coupling_map": [
+    [
+      0,
+      1
+    ],
+    [
+      1,
+      0
+    ],
+    [
+      1,
+      2
+    ],
+    [
+      2,
+      1
+    ],
+    [
+      2,
+      3
+    ],
+    [
+      3,
+      2
+    ],
+    [
+      3,
+      4
+    ],
+    [
+      4,
+      3
+    ]
+  ],
+  "dt": 2.2222222222222221e-10,
+  "median_1q_error": 0.00021221916498544087,
+  "median_2q_error": 0.01009091745491146,
+  "median_T1": null,
+  "median_T2": null,
+  "median_readout_error": null,
+  "per_gate": [
+    {
+      "duration_s": 3.5555555555555554e-08,
+      "error": 0.00015506593900605392,
+      "gate_name": "id",
+      "qubits": [
+        0
+      ]
+    },
+    {
+      "duration_s": 3.5555555555555554e-08,
+      "error": 0.000392193487309583,
+      "gate_name": "id",
+      "qubits": [
+        1
+      ]
+    },
+    {
+      "duration_s": 3.5555555555555554e-08,
+      "error": 0.0007458158897263205,
+      "gate_name": "id",
+      "qubits": [
+        2
+      ]
+    },
+    {
+      "duration_s": 3.5555555555555554e-08,
+      "error": 0.00021221916498544087,
+      "gate_name": "id",
+      "qubits": [
+        3
+      ]
+    },
+    {
+      "duration_s": 3.5555555555555554e-08,
+      "error": 0.0003538722158551261,
+      "gate_name": "id",
+      "qubits": [
+        4
+      ]
+    },
+    {
+      "duration_s": 0.0,
+      "error": 0.0,
+      "gate_name": "rz",
+      "qubits": [
+        0
+      ]
+    },
+    {
+      "duration_s": 0.0,
+      "error": 0.0,
+      "gate_name": "rz",
+      "qubits": [
+        1
+      ]
+    },
+    {
+      "duration_s": 0.0,
+      "error": 0.0,
+      "gate_name": "rz",
+      "qubits": [
+        2
+      ]
+    },
+    {
+      "duration_s": 0.0,
+      "error": 0.0,
+      "gate_name": "rz",
+      "qubits": [
+        3
+      ]
+    },
+    {
+      "duration_s": 0.0,
+      "error": 0.0,
+      "gate_name": "rz",
+      "qubits": [
+        4
+      ]
+    },
+    {
+      "duration_s": 3.5555555555555554e-08,
+      "error": 0.00015506593900605392,
+      "gate_name": "sx",
+      "qubits": [
+        0
+      ]
+    },
+    {
+      "duration_s": 3.5555555555555554e-08,
+      "error": 0.000392193487309583,
+      "gate_name": "sx",
+      "qubits": [
+        1
+      ]
+    },
+    {
+      "duration_s": 3.5555555555555554e-08,
+      "error": 0.0007458158897263205,
+      "gate_name": "sx",
+      "qubits": [
+        2
+      ]
+    },
+    {
+      "duration_s": 3.5555555555555554e-08,
+      "error": 0.00021221916498544087,
+      "gate_name": "sx",
+      "qubits": [
+        3
+      ]
+    },
+    {
+      "duration_s": 3.5555555555555554e-08,
+      "error": 0.0003538722158551261,
+      "gate_name": "sx",
+      "qubits": [
+        4
+      ]
+    },
+    {
+      "duration_s": 3.5555555555555554e-08,
+      "error": 0.00015506593900605392,
+      "gate_name": "x",
+      "qubits": [
+        0
+      ]
+    },
+    {
+      "duration_s": 3.5555555555555554e-08,
+      "error": 0.000392193487309583,
+      "gate_name": "x",
+      "qubits": [
+        1
+      ]
+    },
+    {
+      "duration_s": 3.5555555555555554e-08,
+      "error": 0.0007458158897263205,
+      "gate_name": "x",
+      "qubits": [
+        2
+      ]
+    },
+    {
+      "duration_s": 3.5555555555555554e-08,
+      "error": 0.00021221916498544087,
+      "gate_name": "x",
+      "qubits": [
+        3
+      ]
+    },
+    {
+      "duration_s": 3.5555555555555554e-08,
+      "error": 0.0003538722158551261,
+      "gate_name": "x",
+      "qubits": [
+        4
+      ]
+    },
+    {
+      "duration_s": 2.9866666666666664e-07,
+      "error": 0.005696275468624307,
+      "gate_name": "cx",
+      "qubits": [
+        4,
+        3
+      ]
+    },
+    {
+      "duration_s": 3.342222222222222e-07,
+      "error": 0.005696275468624307,
+      "gate_name": "cx",
+      "qubits": [
+        3,
+        4
+      ]
+    },
+    {
+      "duration_s": 3.5555555555555553e-07,
+      "error": 0.011354122839193792,
+      "gate_name": "cx",
+      "qubits": [
+        2,
+        3
+      ]
+    },
+    {
+      "duration_s": 3.911111111111111e-07,
+      "error": 0.011354122839193792,
+      "gate_name": "cx",
+      "qubits": [
+        3,
+        2
+      ]
+    },
+    {
+      "duration_s": 4.693333333333333e-07,
+      "error": 0.01394038580879381,
+      "gate_name": "cx",
+      "qubits": [
+        1,
+        2
+      ]
+    },
+    {
+      "duration_s": 5.048888888888888e-07,
+      "error": 0.01394038580879381,
+      "gate_name": "cx",
+      "qubits": [
+        2,
+        1
+      ]
+    },
+    {
+      "duration_s": 2.7733333333333333e-07,
+      "error": 0.008827712070629129,
+      "gate_name": "cx",
+      "qubits": [
+        0,
+        1
+      ]
+    },
+    {
+      "duration_s": 3.1288888888888885e-07,
+      "error": 0.008827712070629129,
+      "gate_name": "cx",
+      "qubits": [
+        1,
+        0
+      ]
+    },
+    {
+      "duration_s": 5.514666666666666e-06,
+      "error": null,
+      "gate_name": "reset",
+      "qubits": [
+        0
+      ]
+    },
+    {
+      "duration_s": 5.514666666666666e-06,
+      "error": null,
+      "gate_name": "reset",
+      "qubits": [
+        1
+      ]
+    },
+    {
+      "duration_s": 5.514666666666666e-06,
+      "error": null,
+      "gate_name": "reset",
+      "qubits": [
+        2
+      ]
+    },
+    {
+      "duration_s": 5.514666666666666e-06,
+      "error": null,
+      "gate_name": "reset",
+      "qubits": [
+        3
+      ]
+    },
+    {
+      "duration_s": 5.514666666666666e-06,
+      "error": null,
+      "gate_name": "reset",
+      "qubits": [
+        4
+      ]
+    }
+  ],
+  "per_qubit": [
+    {
+      "T1_s": null,
+      "T2_s": null,
+      "frequency": null,
+      "measure_duration_s": null,
+      "physical_qubit": 0,
+      "readout_error": null,
+      "readout_p01": null,
+      "readout_p10": null
+    },
+    {
+      "T1_s": null,
+      "T2_s": null,
+      "frequency": null,
+      "measure_duration_s": null,
+      "physical_qubit": 1,
+      "readout_error": null,
+      "readout_p01": null,
+      "readout_p10": null
+    },
+    {
+      "T1_s": null,
+      "T2_s": null,
+      "frequency": null,
+      "measure_duration_s": null,
+      "physical_qubit": 2,
+      "readout_error": null,
+      "readout_p01": null,
+      "readout_p10": null
+    },
+    {
+      "T1_s": null,
+      "T2_s": null,
+      "frequency": null,
+      "measure_duration_s": null,
+      "physical_qubit": 3,
+      "readout_error": null,
+      "readout_p01": null,
+      "readout_p10": null
+    },
+    {
+      "T1_s": null,
+      "T2_s": null,
+      "frequency": null,
+      "measure_duration_s": null,
+      "physical_qubit": 4,
+      "readout_error": null,
+      "readout_p01": null,
+      "readout_p10": null
+    }
+  ],
+  "processor_family": "Falcon",
+  "retrieved_at_utc": "2026-03-10T23:35:44Z",
+  "snapshot_hash": "csnap_4ffe2c044f1f1c37",
+  "source_kind": "fake_snapshot"
+}

@@ -1,0 +1,127 @@
+{
+  "alive": 0,
+  "done": 15,
+  "failed": 0,
+  "rows": [
+    {
+      "id": "append_only__seed7",
+      "status": "OK",
+      "elapsed_s": 15.2,
+      "last_event": "hardcoded_adapt_main_done",
+      "last_depth": null,
+      "last_energy": null
+    },
+    {
+      "id": "append_only__seed11",
+      "status": "OK",
+      "elapsed_s": 15.2,
+      "last_event": "hardcoded_adapt_main_done",
+      "last_depth": null,
+      "last_energy": null
+    },
+    {
+      "id": "append_only__seed17",
+      "status": "OK",
+      "elapsed_s": 15.2,
+      "last_event": "hardcoded_adapt_main_done",
+      "last_depth": null,
+      "last_energy": null
+    },
+    {
+      "id": "windowed_w1__seed7",
+      "status": "OK",
+      "elapsed_s": 15.2,
+      "last_event": "hardcoded_adapt_main_done",
+      "last_depth": null,
+      "last_energy": null
+    },
+    {
+      "id": "windowed_w1__seed11",
+      "status": "OK",
+      "elapsed_s": 15.2,
+      "last_event": "hardcoded_adapt_main_done",
+      "last_depth": null,
+      "last_energy": null
+    },
+    {
+      "id": "windowed_w1__seed17",
+      "status": "OK",
+      "elapsed_s": 15.1,
+      "last_event": "hardcoded_adapt_main_done",
+      "last_depth": null,
+      "last_energy": null
+    },
+    {
+      "id": "windowed_w2__seed7",
+      "status": "OK",
+      "elapsed_s": 15.1,
+      "last_event": "hardcoded_adapt_main_done",
+      "last_depth": null,
+      "last_energy": null
+    },
+    {
+      "id": "windowed_w2__seed11",
+      "status": "OK",
+      "elapsed_s": 15.1,
+      "last_event": "hardcoded_adapt_main_done",
+      "last_depth": null,
+      "last_energy": null
+    },
+    {
+      "id": "windowed_w2__seed17",
+      "status": "OK",
+      "elapsed_s": 15.1,
+      "last_event": "hardcoded_adapt_main_done",
+      "last_depth": null,
+      "last_energy": null
+    },
+    {
+      "id": "windowed_w3__seed7",
+      "status": "OK",
+      "elapsed_s": 15.1,
+      "last_event": "hardcoded_adapt_main_done",
+      "last_depth": null,
+      "last_energy": null
+    },
+    {
+      "id": "windowed_w3__seed11",
+      "status": "OK",
+      "elapsed_s": 15.1,
+      "last_event": "hardcoded_adapt_main_done",
+      "last_depth": null,
+      "last_energy": null
+    },
+    {
+      "id": "windowed_w3__seed17",
+      "status": "OK",
+      "elapsed_s": 15.1,
+      "last_event": "hardcoded_adapt_main_done",
+      "last_depth": null,
+      "last_energy": null
+    },
+    {
+      "id": "windowed_w4__seed7",
+      "status": "OK",
+      "elapsed_s": 15.1,
+      "last_event": "hardcoded_adapt_main_done",
+      "last_depth": null,
+      "last_energy": null
+    },
+    {
+      "id": "windowed_w4__seed11",
+      "status": "OK",
+      "elapsed_s": 15.1,
+      "last_event": "hardcoded_adapt_main_done",
+      "last_depth": null,
+      "last_energy": null
+    },
+    {
+      "id": "windowed_w4__seed17",
+      "status": "OK",
+      "elapsed_s": 15.0,
+      "last_event": "hardcoded_adapt_main_done",
+      "last_depth": null,
+      "last_energy": null
+    }
+  ]
+}

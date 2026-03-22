@@ -1,0 +1,2 @@
+tag,family_requested,family_resolved,method,reps,delta_abs,relative_error_abs,gate_pass_1e2,runtime_s,stop_reason,output_json,output_log
+corr_g0p5_sw_b2_d6_f1_r1_replay,match_adapt,paop_lf_std,Powell,1,0.00026717308355359015,0.0016862329855642554,True,5.231506833806634,converged,/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_2/artifacts/json/corr_g0p5_sw_b2_d6_f1_r1_replay.json,/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_2/artifacts/logs/corr_g0p5_sw_b2_d6_f1_r1_replay.log

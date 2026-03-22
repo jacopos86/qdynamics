@@ -21,8 +21,11 @@ from pipelines.hardcoded.hh_staged_noise_workflow import (
 def build_parser() -> argparse.ArgumentParser:
     return build_staged_hh_parser(
         description=(
-            "Staged HH noise workflow: HF -> hh_hva_ptw warm-start -> staged ADAPT -> "
-            "matched-family conventional replay -> final-only noisy/noiseless dynamics."
+            "Staged HH noise workflow: either (a) HF -> hh_hva_ptw warm-start -> staged ADAPT -> "
+            "matched-family conventional replay -> final-only noisy/noiseless dynamics, or "
+            "(b) imported lean ADAPT prepared-state/full-circuit fake-backend audits, or "
+            "(c) imported fixed-lean scaffold noisy replay with continuous optimization only, or "
+            "(d) imported fixed-lean gate-vs-readout attribution on one shared compiled circuit."
         ),
         include_noise=True,
     )
@@ -39,8 +42,15 @@ def main(argv: list[str] | None = None) -> None:
     print(f"workflow_json={payload['artifacts']['workflow']['output_json']}")
     if not bool(cfg.staged.artifacts.skip_pdf):
         print(f"workflow_pdf={payload['artifacts']['workflow']['output_pdf']}")
-    print(f"adapt_handoff_json={payload['artifacts']['intermediate']['adapt_handoff_json']}")
-    print(f"replay_json={payload['artifacts']['intermediate']['replay_output_json']}")
+    import_source_json = payload.get("artifacts", {}).get("import_source_json", None)
+    if import_source_json is not None:
+        print(f"import_source_json={import_source_json}")
+    intermediate = payload.get("artifacts", {}).get("intermediate", {})
+    if isinstance(intermediate, dict) and intermediate.get("adapt_handoff_json", None) is not None:
+        print(f"adapt_handoff_json={intermediate['adapt_handoff_json']}")
+    if isinstance(intermediate, dict) and intermediate.get("replay_output_json", None) is not None:
+        if str(payload.get("import_source", {}).get("mode", "")) != "imported_artifact":
+            print(f"replay_json={intermediate['replay_output_json']}")
 
 
 if __name__ == "__main__":

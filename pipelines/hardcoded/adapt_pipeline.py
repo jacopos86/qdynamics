@@ -65,6 +65,14 @@ from src.quantum.hubbard_latex_python_pairs import (
     boson_qubits_per_site,
 )
 from src.quantum.hartree_fock_reference_state import hartree_fock_statevector
+from src.quantum.ansatz_parameterization import (
+    AnsatzParameterLayout,
+    build_parameter_layout,
+    project_runtime_theta_block_mean,
+    runtime_indices_for_logical_indices,
+    runtime_insert_position,
+    serialize_layout,
+)
 from src.quantum.compiled_ansatz import CompiledAnsatzExecutor
 from src.quantum.compiled_polynomial import (
     CompiledPolynomialAction,
@@ -88,6 +96,7 @@ from src.quantum.vqe_latex_python_pairs import (
     HubbardHolsteinLayerwiseAnsatz,
     HubbardTermwiseAnsatz,
     apply_exp_pauli_polynomial,
+    apply_exp_pauli_polynomial_termwise,
     apply_pauli_string,
     basis_state,
     exact_ground_energy_sector,
@@ -110,6 +119,7 @@ from pipelines.hardcoded.hh_continuation_generators import (
     build_split_event,
     selected_generator_metadata_for_labels,
 )
+from pipelines.hardcoded.handoff_state_bundle import build_statevector_manifest
 from pipelines.hardcoded.hh_continuation_motifs import (
     extract_motif_library,
     load_motif_library_from_json,
@@ -151,6 +161,10 @@ from pipelines.hardcoded.hh_continuation_pruning import (
     apply_pruning,
     post_prune_refit,
     rank_prune_candidates,
+)
+from pipelines.hardcoded.hh_backend_compile_oracle import (
+    BackendCompileConfig,
+    BackendCompileOracle,
 )
 
 try:
@@ -371,6 +385,11 @@ def _load_adapt_initial_state(
     initial_state = raw.get("initial_state")
     if not isinstance(initial_state, dict):
         raise ValueError("ADAPT input JSON missing object key: initial_state")
+    stored_nq_total_raw = initial_state.get("nq_total", None)
+    if stored_nq_total_raw is not None and int(stored_nq_total_raw) != int(nq_total):
+        raise ValueError(
+            f"ADAPT input JSON initial_state.nq_total={int(stored_nq_total_raw)} does not match expected nq_total={int(nq_total)}."
+        )
     amplitudes = initial_state.get("amplitudes_qn_to_q0")
     psi = _state_from_amplitudes_qn_to_q0(amplitudes, int(nq_total))
     meta = {
@@ -379,8 +398,46 @@ def _load_adapt_initial_state(
         "ground_state": raw.get("ground_state", {}),
         "vqe": raw.get("vqe", {}),
         "initial_state_source": initial_state.get("source"),
+        "initial_state_handoff_state_kind": initial_state.get("handoff_state_kind"),
     }
     return psi, meta
+
+
+def _default_adapt_input_state(
+    *,
+    problem: str,
+    num_sites: int,
+    ordering: str,
+    n_ph_max: int,
+    boson_encoding: str,
+) -> tuple[np.ndarray, str, str]:
+    problem_key = str(problem).strip().lower()
+    num_particles = half_filled_num_particles(int(num_sites))
+    if problem_key == "hh":
+        psi = _normalize_state(
+            np.asarray(
+                hubbard_holstein_reference_state(
+                    dims=int(num_sites),
+                    num_particles=num_particles,
+                    n_ph_max=int(n_ph_max),
+                    boson_encoding=str(boson_encoding),
+                    indexing=str(ordering),
+                ),
+                dtype=complex,
+            ).reshape(-1)
+        )
+    else:
+        psi = _normalize_state(
+            np.asarray(
+                hartree_fock_statevector(
+                    int(num_sites),
+                    num_particles,
+                    indexing=str(ordering),
+                ),
+                dtype=complex,
+            ).reshape(-1)
+        )
+    return psi, "hf", "reference_state"
 
 
 _HH_STAGED_CONTINUATION_MODES = frozenset({"phase1_v1", "phase2_v1", "phase3_v1"})
@@ -1085,6 +1142,10 @@ def _build_hh_pareto_lean_l2_pool(
     Dropped: uccsd_dbl, disp, dbl (bare), all x-type, curdrag, hop2,
              HVA layers, unit terms, unused dbl_p variants.
     """
+    if int(num_sites) != 2:
+        raise ValueError("adapt_pool='pareto_lean_l2' is only valid for L=2.")
+    if int(n_ph_max) != 1:
+        raise ValueError("adapt_pool='pareto_lean_l2' is only valid for n_ph_max=1.")
     # 1. UCCSD lifted — singles only
     all_uccsd = _build_hh_uccsd_fermion_lifted_pool(
         int(num_sites),
@@ -1221,12 +1282,53 @@ def _prepare_adapt_state(
     psi_ref: np.ndarray,
     selected_ops: list[AnsatzTerm],
     theta: np.ndarray,
+    *,
+    parameter_layout: AnsatzParameterLayout | None = None,
 ) -> np.ndarray:
-    """Apply the current ADAPT ansatz: prod_k exp(-i theta_k G_k) |ref>."""
+    """Apply the current ADAPT ansatz.
+
+    Supports both legacy logical-shared theta and per-Pauli runtime theta.
+    """
     psi = np.array(psi_ref, copy=True)
-    for k, op in enumerate(selected_ops):
-        psi = apply_exp_pauli_polynomial(psi, op.polynomial, float(theta[k]))
-    return psi
+    if not selected_ops:
+        return psi
+    theta_arr = np.asarray(theta, dtype=float).reshape(-1)
+    layout = (
+        parameter_layout
+        if parameter_layout is not None
+        else build_parameter_layout(selected_ops, ignore_identity=True, coefficient_tolerance=1e-12, sort_terms=True)
+    )
+    if int(theta_arr.size) == int(layout.runtime_parameter_count):
+        for block, op in zip(layout.blocks, selected_ops):
+            if int(block.runtime_count) <= 0:
+                continue
+            psi = apply_exp_pauli_polynomial_termwise(
+                psi,
+                op.polynomial,
+                theta_arr[block.runtime_start:block.runtime_stop],
+                ignore_identity=bool(layout.ignore_identity),
+                coefficient_tolerance=float(layout.coefficient_tolerance),
+                sort_terms=(str(layout.term_order) == "sorted"),
+            )
+        return psi
+    if int(theta_arr.size) == int(len(selected_ops)):
+        for k, op in enumerate(selected_ops):
+            psi = apply_exp_pauli_polynomial(psi, op.polynomial, float(theta_arr[k]))
+        return psi
+    raise ValueError(
+        f"ADAPT theta length mismatch: got {theta_arr.size}, expected {layout.runtime_parameter_count} (runtime) or {len(selected_ops)} (logical)."
+    )
+
+
+def _logical_theta_alias(theta: np.ndarray, layout: AnsatzParameterLayout) -> np.ndarray:
+    theta_arr = np.asarray(theta, dtype=float).reshape(-1)
+    if int(theta_arr.size) == int(layout.runtime_parameter_count):
+        return np.asarray(project_runtime_theta_block_mean(theta_arr, layout), dtype=float)
+    if int(theta_arr.size) == int(layout.logical_parameter_count):
+        return np.asarray(theta_arr, dtype=float)
+    raise ValueError(
+        f"Cannot project theta of length {theta_arr.size} onto logical blocks of size {layout.logical_parameter_count}."
+    )
 
 
 def _adapt_energy_fn(
@@ -1236,9 +1338,10 @@ def _adapt_energy_fn(
     theta: np.ndarray,
     *,
     h_compiled: CompiledPolynomialAction | None = None,
+    parameter_layout: AnsatzParameterLayout | None = None,
 ) -> float:
     """Energy of the current ADAPT ansatz at parameters theta."""
-    psi = _prepare_adapt_state(psi_ref, selected_ops, theta)
+    psi = _prepare_adapt_state(psi_ref, selected_ops, theta, parameter_layout=parameter_layout)
     if h_compiled is not None:
         energy, _hpsi = energy_via_one_apply(psi, h_compiled)
         return float(energy)
@@ -1638,12 +1741,25 @@ def _splice_candidate_at_position(
     position_id: int,
     init_theta: float = 0.0,
 ) -> tuple[list[AnsatzTerm], np.ndarray]:
-    append_position = int(theta.size)
-    pos = max(0, min(int(append_position), int(position_id)))
+    current_layout = build_parameter_layout(
+        ops,
+        ignore_identity=True,
+        coefficient_tolerance=1e-12,
+        sort_terms=True,
+    )
+    op_layout = build_parameter_layout(
+        [op],
+        ignore_identity=True,
+        coefficient_tolerance=1e-12,
+        sort_terms=True,
+    )
+    pos_logical = max(0, min(int(current_layout.logical_parameter_count), int(position_id)))
+    pos_runtime = int(runtime_insert_position(current_layout, pos_logical))
     new_ops = list(ops)
-    new_ops.insert(pos, op)
+    new_ops.insert(pos_logical, op)
     theta_arr = np.asarray(theta, dtype=float).reshape(-1)
-    new_theta = np.insert(theta_arr, pos, float(init_theta))
+    insert_block = np.full(int(op_layout.runtime_parameter_count), float(init_theta), dtype=float)
+    new_theta = np.insert(theta_arr, pos_runtime, insert_block)
     return new_ops, np.asarray(new_theta, dtype=float)
 
 
@@ -1785,6 +1901,11 @@ def _run_hardcoded_adapt_vqe(
     phase3_enable_rescue: bool = False,
     phase3_lifetime_cost_mode: str = "phase3_v1",
     phase3_runtime_split_mode: str = "off",
+    phase3_backend_cost_mode: str = "proxy",
+    phase3_backend_name: str | None = None,
+    phase3_backend_shortlist: Sequence[str] | None = None,
+    phase3_backend_transpile_seed: int = 7,
+    phase3_backend_optimization_level: int = 1,
 ) -> tuple[dict[str, Any], np.ndarray]:
     """Run standard ADAPT-VQE and return (payload, psi_ground)."""
     if float(finite_angle) <= 0.0:
@@ -1881,6 +2002,33 @@ def _run_hardcoded_adapt_vqe(
         raise ValueError(
             "phase3_runtime_split_mode must be one of {'off','shortlist_pauli_children_v1'}."
         )
+    phase3_backend_cost_mode_key = str(phase3_backend_cost_mode).strip().lower()
+    if phase3_backend_cost_mode_key not in {"proxy", "transpile_single_v1", "transpile_shortlist_v1"}:
+        raise ValueError(
+            "phase3_backend_cost_mode must be one of {'proxy','transpile_single_v1','transpile_shortlist_v1'}."
+        )
+    phase3_backend_shortlist_tokens = tuple(
+        str(tok).strip()
+        for tok in (str(phase3_backend_shortlist).split(",") if isinstance(phase3_backend_shortlist, str) else list(phase3_backend_shortlist or []))
+        if str(tok).strip() != ""
+    )
+    if phase3_backend_cost_mode_key != "proxy":
+        if str(problem_key) != "hh":
+            raise ValueError("phase3_backend_cost_mode is only valid for problem='hh'.")
+        if str(continuation_mode) != "phase3_v1":
+            raise ValueError("phase3_backend_cost_mode is only valid for adapt_continuation_mode='phase3_v1'.")
+        if int(phase3_backend_optimization_level) not in {0, 1, 2, 3}:
+            raise ValueError("phase3_backend_optimization_level must be one of {0,1,2,3}.")
+        if phase3_backend_cost_mode_key == "transpile_single_v1":
+            if phase3_backend_name in {None, ""}:
+                raise ValueError("transpile_single_v1 requires --phase3-backend-name.")
+            if phase3_backend_shortlist_tokens:
+                raise ValueError("transpile_single_v1 does not accept --phase3-backend-shortlist.")
+        if phase3_backend_cost_mode_key == "transpile_shortlist_v1":
+            if phase3_backend_name not in {None, ""}:
+                raise ValueError("transpile_shortlist_v1 does not accept --phase3-backend-name.")
+            if len(phase3_backend_shortlist_tokens) < 1:
+                raise ValueError("transpile_shortlist_v1 requires --phase3-backend-shortlist.")
     pool_key_input = None if adapt_pool is None else str(adapt_pool).strip().lower()
     adapt_spsa_params = {
         "a": float(adapt_spsa_a),
@@ -1905,6 +2053,11 @@ def _run_hardcoded_adapt_vqe(
         phase3_motif_source_json=(str(phase3_motif_source_json) if phase3_motif_source_json is not None else None),
         phase3_symmetry_mitigation_mode=str(phase3_symmetry_mitigation_mode_key),
         phase3_runtime_split_mode=str(phase3_runtime_split_mode_key),
+        phase3_backend_cost_mode=str(phase3_backend_cost_mode_key),
+        phase3_backend_name=(None if phase3_backend_name in {None, ''} else str(phase3_backend_name)),
+        phase3_backend_shortlist=[str(x) for x in phase3_backend_shortlist_tokens],
+        phase3_backend_transpile_seed=int(phase3_backend_transpile_seed),
+        phase3_backend_optimization_level=int(phase3_backend_optimization_level),
         phase3_enable_rescue=bool(phase3_enable_rescue),
         max_depth=int(max_depth),
         maxiter=int(maxiter),
@@ -1944,25 +2097,21 @@ def _run_hardcoded_adapt_vqe(
     )
 
     num_particles = half_filled_num_particles(int(num_sites))
-    if problem_key == "hh":
-        psi_ref = np.asarray(
-            hubbard_holstein_reference_state(
-                dims=int(num_sites),
+    psi_ref, _, _ = _default_adapt_input_state(
+        problem=str(problem_key),
+        num_sites=int(num_sites),
+        ordering=str(ordering),
+        n_ph_max=int(n_ph_max),
+        boson_encoding=str(boson_encoding),
+    )
+    if problem_key != "hh":
+        hf_bits = str(
+            hartree_fock_bitstring(
+                n_sites=int(num_sites),
                 num_particles=num_particles,
-                n_ph_max=int(n_ph_max),
-                boson_encoding=str(boson_encoding),
                 indexing=str(ordering),
-            ),
-            dtype=complex,
+            )
         )
-    else:
-        hf_bits = str(hartree_fock_bitstring(
-            n_sites=int(num_sites),
-            num_particles=num_particles,
-            indexing=str(ordering),
-        ))
-        nq = 2 * int(num_sites)
-        psi_ref = np.asarray(basis_state(nq, hf_bits), dtype=complex)
     if psi_ref_override is not None:
         psi_ref_override_arr = np.asarray(psi_ref_override, dtype=complex).reshape(-1)
         if int(psi_ref_override_arr.size) != int(psi_ref.size):
@@ -2427,10 +2576,20 @@ def _run_hardcoded_adapt_vqe(
             ignore_identity=True,
             sort_terms=True,
             pauli_action_cache=pauli_action_cache,
+            parameterization_mode="per_pauli_term",
+        )
+
+    def _build_selected_layout(ops: list[AnsatzTerm]) -> AnsatzParameterLayout:
+        return build_parameter_layout(
+            ops,
+            ignore_identity=True,
+            coefficient_tolerance=1e-12,
+            sort_terms=True,
         )
 
     # ADAPT-VQE main loop
     selected_ops: list[AnsatzTerm] = []
+    selected_layout = _build_selected_layout(selected_ops)
     theta = np.zeros(0, dtype=float)
     selected_executor: CompiledAnsatzExecutor | None = None
     history: list[dict[str, Any]] = []
@@ -2479,6 +2638,24 @@ def _run_hardcoded_adapt_vqe(
     )
     phase1_compile_oracle = Phase1CompileCostOracle()
     phase1_measure_cache = MeasurementCacheAudit(nominal_shots_per_group=1)
+    backend_compile_cfg = BackendCompileConfig(
+        mode=str(phase3_backend_cost_mode_key),
+        requested_backend_name=(None if phase3_backend_name in {None, ''} else str(phase3_backend_name)),
+        requested_backend_shortlist=tuple(str(x) for x in phase3_backend_shortlist_tokens),
+        seed_transpiler=int(phase3_backend_transpile_seed),
+        optimization_level=int(phase3_backend_optimization_level),
+    )
+    backend_compile_oracle = (
+        BackendCompileOracle(
+            config=backend_compile_cfg,
+            num_qubits=int(round(math.log2(psi_ref.size))),
+            ref_state=np.asarray(psi_ref, dtype=complex),
+        )
+        if str(phase3_backend_cost_mode_key) != "proxy"
+        else None
+    )
+    if backend_compile_oracle is not None and len(getattr(backend_compile_oracle, "targets", ())) == 0:
+        raise RuntimeError("No backend targets could be resolved for phase3 backend-aware scoring.")
     phase2_score_cfg = FullScoreConfig(
         z_alpha=float(phase1_score_z_alpha),
         lambda_F=float(phase1_lambda_F),
@@ -2579,7 +2756,8 @@ def _run_hardcoded_adapt_vqe(
 
         if seed_indices:
             seed_ops = [pool[i] for i in seed_indices]
-            theta_seed0 = np.zeros(len(seed_ops), dtype=float)
+            seed_layout = _build_selected_layout(seed_ops)
+            theta_seed0 = np.zeros(int(seed_layout.runtime_parameter_count), dtype=float)
             seed_executor = (
                 _build_compiled_executor(seed_ops)
                 if adapt_state_backend_key == "compiled"
@@ -2693,19 +2871,20 @@ def _run_hardcoded_adapt_vqe(
             nfev_total += int(seed_nfev)
 
             selected_ops = list(seed_ops)
+            selected_layout = _build_selected_layout(selected_ops)
             theta = np.asarray(seed_theta, dtype=float)
             if phase2_enabled:
                 if adapt_inner_optimizer_key == "SPSA":
                     phase2_optimizer_memory = phase2_memory_adapter.from_result(
                         seed_result,
                         method=str(adapt_inner_optimizer_key),
-                        parameter_count=int(len(seed_ops)),
+                        parameter_count=int(theta.size),
                         source="hh_seed_preopt",
                     )
                 else:
                     phase2_optimizer_memory = phase2_memory_adapter.unavailable(
                         method=str(adapt_inner_optimizer_key),
-                        parameter_count=int(len(seed_ops)),
+                        parameter_count=int(theta.size),
                         reason="non_spsa_seed_preopt",
                     )
             if not allow_repeats:
@@ -2877,7 +3056,12 @@ def _run_hardcoded_adapt_vqe(
                 if adapt_state_backend_key == "compiled":
                     psi_trial = _build_compiled_executor(ops_trial).prepare_state(theta_trial, psi_ref)
                 else:
-                    psi_trial = _prepare_adapt_state(psi_ref, ops_trial, theta_trial)
+                    psi_trial = _prepare_adapt_state(
+                        psi_ref,
+                        ops_trial,
+                        theta_trial,
+                        parameter_layout=_build_selected_layout(ops_trial),
+                    )
                 overlap_trial = float(abs(np.vdot(psi_exact_ref, np.asarray(psi_trial, dtype=complex))) ** 2)
                 gain = float(overlap_trial - overlap_current)
                 if gain > best_gain_local:
@@ -2925,9 +3109,15 @@ def _run_hardcoded_adapt_vqe(
                     selected_executor = _build_compiled_executor(selected_ops)
                 psi_current = selected_executor.prepare_state(theta, psi_ref)
         else:
-            psi_current = _prepare_adapt_state(psi_ref, selected_ops, theta)
+            psi_current = _prepare_adapt_state(psi_ref, selected_ops, theta, parameter_layout=selected_layout)
         energy_current, hpsi_current = energy_via_one_apply(psi_current, h_compiled)
         energy_current = float(energy_current)
+        theta_logical_current = _logical_theta_alias(theta, selected_layout)
+        backend_compile_snapshot = (
+            backend_compile_oracle.snapshot_base(selected_ops)
+            if backend_compile_oracle is not None
+            else None
+        )
 
         # 2) Compute commutator gradients for all pool operators
         gradient_eval_t0 = time.perf_counter()
@@ -2964,11 +3154,11 @@ def _run_hardcoded_adapt_vqe(
         )
 
         # 2b) Select candidate (legacy argmax or phase1_v1 simple score).
-        selected_position = int(theta.size)
+        selected_position = int(len(selected_ops))
         stage_name = "legacy"
         phase1_feature_selected: dict[str, Any] | None = None
         phase1_stage_transition_reason = "legacy"
-        append_position = int(theta.size)
+        append_position = int(len(selected_ops))
         phase1_append_best_score = float("-inf")
         phase2_selected_records: list[dict[str, Any]] = []
         phase2_last_shortlist_records = []
@@ -2987,7 +3177,7 @@ def _run_hardcoded_adapt_vqe(
             current_active_window_for_probe, _probe_window_name = _resolve_reopt_active_indices(
                 policy=str(adapt_reopt_policy_key),
                 n=int(max(1, append_position)),
-                theta=(np.asarray(theta, dtype=float) if append_position > 0 else np.zeros(1, dtype=float)),
+                theta=(np.asarray(theta_logical_current, dtype=float) if append_position > 0 else np.zeros(1, dtype=float)),
                 window_size=int(adapt_window_size_val),
                 window_topk=int(adapt_window_topk_val),
                 periodic_full_refit_triggered=False,
@@ -3011,19 +3201,29 @@ def _run_hardcoded_adapt_vqe(
                 for idx in shortlist:
                     for pos in positions_considered_local:
                         active_window_guess = _predict_reopt_window_for_position(
-                            theta=np.asarray(theta, dtype=float),
+                            theta=np.asarray(theta_logical_current, dtype=float),
                             position_id=int(pos),
                             policy=str(adapt_reopt_policy_key),
                             window_size=int(adapt_window_size_val),
                             window_topk=int(adapt_window_topk_val),
                             periodic_full_refit_triggered=False,
                         )
-                        compile_est = phase1_compile_oracle.estimate(
+                        proxy_compile_est = phase1_compile_oracle.estimate(
                             candidate_term_count=int(len(pool_compiled[int(idx)].terms)),
                             position_id=int(pos),
                             append_position=int(append_position),
                             refit_active_count=int(len(active_window_guess)),
                             candidate_term=pool[int(idx)],
+                        )
+                        compile_est = (
+                            backend_compile_oracle.estimate_insertion(
+                                backend_compile_snapshot,
+                                candidate_term=pool[int(idx)],
+                                position_id=int(pos),
+                                proxy_baseline=proxy_compile_est,
+                            )
+                            if backend_compile_oracle is not None and backend_compile_snapshot is not None
+                            else proxy_compile_est
                         )
                         meas_stats = phase1_measure_cache.estimate(
                             measurement_group_keys_for_term(pool[int(idx)])
@@ -3163,6 +3363,14 @@ def _run_hardcoded_adapt_vqe(
                     [int(x) for x in positions_considered],
                     trough_probe_triggered_local=True,
                 )
+            if backend_compile_oracle is not None:
+                finite_phase1_records = [
+                    rec for rec in score_eval.get("records", [])
+                    if math.isfinite(float(rec.get("simple_score", float("-inf"))))
+                ]
+                if not finite_phase1_records:
+                    stop_reason = "backend_compile_exhausted"
+                    break
             trough = detect_trough(
                 append_score=float(score_eval["append_best_score"]),
                 best_non_append_score=float(score_eval["best_non_append_score"]),
@@ -3254,12 +3462,22 @@ def _run_hardcoded_adapt_vqe(
                                 ),
                             )
                         )
-                        compile_est_candidate = phase1_compile_oracle.estimate(
+                        proxy_compile_est_candidate = phase1_compile_oracle.estimate(
                             candidate_term_count=int(len(compiled_candidate.terms)),
                             position_id=int(feat_base.position_id),
                             append_position=int(feat_base.append_position),
                             refit_active_count=int(len(feat_base.refit_window_indices)),
                             candidate_term=candidate_term,
+                        )
+                        compile_est_candidate = (
+                            backend_compile_oracle.estimate_insertion(
+                                backend_compile_snapshot,
+                                candidate_term=candidate_term,
+                                position_id=int(feat_base.position_id),
+                                proxy_baseline=proxy_compile_est_candidate,
+                            )
+                            if backend_compile_oracle is not None and backend_compile_snapshot is not None
+                            else proxy_compile_est_candidate
                         )
                         measurement_stats_candidate = phase1_measure_cache.estimate(
                             measurement_group_keys_for_term(candidate_term)
@@ -3603,12 +3821,12 @@ def _run_hardcoded_adapt_vqe(
                                             split_margin=float(split_score - parent_score),
                                             symmetry_gate_results=dict(best_split_gate_results),
                                             compiled_cost_parent=float(
-                                                parent_record.get("feature").compiled_position_cost_proxy.get("proxy_total", 0.0)
+                                                parent_record.get("feature").compile_cost_total
                                             )
                                             if isinstance(parent_record.get("feature"), CandidateFeatures)
                                             else None,
                                             compiled_cost_children=float(
-                                                split_candidate_record.get("feature").compiled_position_cost_proxy.get("proxy_total", 0.0)
+                                                split_candidate_record.get("feature").compile_cost_total
                                             )
                                             if isinstance(split_candidate_record.get("feature"), CandidateFeatures)
                                             else None,
@@ -3642,7 +3860,7 @@ def _run_hardcoded_adapt_vqe(
                                     chosen_child_ids=[],
                                     symmetry_gate_results={"admissible_child_set_count": 0},
                                     compiled_cost_parent=float(
-                                        parent_record.get("feature").compiled_position_cost_proxy.get("proxy_total", 0.0)
+                                        parent_record.get("feature").compile_cost_total
                                     )
                                     if isinstance(parent_record.get("feature"), CandidateFeatures)
                                     else None,
@@ -3653,6 +3871,14 @@ def _run_hardcoded_adapt_vqe(
                     if candidate_variants:
                         full_records.append(dict(candidate_variants[0]))
                 full_records = sorted(full_records, key=_phase2_record_sort_key)
+                if backend_compile_oracle is not None:
+                    finite_full_records = [
+                        rec for rec in full_records
+                        if math.isfinite(float(rec.get("full_v2_score", float("-inf"))))
+                    ]
+                    if not finite_full_records:
+                        stop_reason = "backend_compile_exhausted"
+                        break
                 phase2_last_shortlist_eval_records = [dict(rec) for rec in full_records]
                 phase2_last_shortlist_records = [
                     dict(rec["feature"].__dict__)
@@ -3775,7 +4001,13 @@ def _run_hardcoded_adapt_vqe(
                 for idx in available_indices:
                     trial_ops = selected_ops + [pool[idx]]
                     for trial_theta in (float(finite_angle), -float(finite_angle)):
-                        trial_theta_vec = np.append(theta, trial_theta)
+                        trial_ops, trial_theta_vec = _splice_candidate_at_position(
+                            ops=selected_ops,
+                            theta=np.asarray(theta, dtype=float),
+                            op=pool[int(idx)],
+                            position_id=int(append_position),
+                            init_theta=float(trial_theta),
+                        )
                         if adapt_state_backend_key == "compiled":
                             trial_executor = fallback_executor_cache.get(int(idx))
                             if trial_executor is None:
@@ -4010,11 +4242,13 @@ def _run_hardcoded_adapt_vqe(
                 admitted_term = rec.get("candidate_term")
                 if not isinstance(admitted_term, AnsatzTerm):
                     admitted_term = pool[int(idx_sel)]
+                admitted_layout = _build_selected_layout([admitted_term])
+                runtime_insert_pos = int(runtime_insert_position(selected_layout, int(pos_eff)))
                 if phase2_enabled:
                     phase2_optimizer_memory = phase2_memory_adapter.remap_insert(
                         phase2_optimizer_memory,
-                        position_id=int(pos_eff),
-                        count=1,
+                        position_id=int(runtime_insert_pos),
+                        count=int(admitted_layout.runtime_parameter_count),
                     )
                 selected_ops, theta = _splice_candidate_at_position(
                     ops=selected_ops,
@@ -4023,6 +4257,7 @@ def _run_hardcoded_adapt_vqe(
                     position_id=int(pos_eff),
                     init_theta=0.0,
                 )
+                selected_layout = _build_selected_layout(selected_ops)
                 if (
                     phase3_enabled
                     and str(feat_rec.runtime_split_mode) != "off"
@@ -4090,19 +4325,23 @@ def _run_hardcoded_adapt_vqe(
                 best_idx = int(selected_batch_indices[0])
                 selected_position = int(selected_batch_positions[0])
         elif phase1_enabled:
+            admitted_term = pool[int(best_idx)]
+            admitted_layout = _build_selected_layout([admitted_term])
+            runtime_insert_pos = int(runtime_insert_position(selected_layout, int(selected_position)))
             if phase2_enabled:
                 phase2_optimizer_memory = phase2_memory_adapter.remap_insert(
                     phase2_optimizer_memory,
-                    position_id=int(selected_position),
-                    count=1,
+                    position_id=int(runtime_insert_pos),
+                    count=int(admitted_layout.runtime_parameter_count),
                 )
             selected_ops, theta = _splice_candidate_at_position(
                 ops=selected_ops,
                 theta=np.asarray(theta, dtype=float),
-                op=pool[int(best_idx)],
+                op=admitted_term,
                 position_id=int(selected_position),
                 init_theta=float(init_theta),
             )
+            selected_layout = _build_selected_layout(selected_ops)
             selection_counts[best_idx] += 1
             if not allow_repeats:
                 available_indices.discard(best_idx)
@@ -4113,8 +4352,14 @@ def _run_hardcoded_adapt_vqe(
             selected_batch_indices.append(int(best_idx))
             selected_batch_measurement_keys.extend(measurement_group_keys_for_term(pool[int(best_idx)]))
         else:
-            selected_ops.append(pool[best_idx])
-            theta = np.append(theta, float(init_theta))
+            selected_ops, theta = _splice_candidate_at_position(
+                ops=selected_ops,
+                theta=np.asarray(theta, dtype=float),
+                op=pool[int(best_idx)],
+                position_id=int(len(selected_ops)),
+                init_theta=float(init_theta),
+            )
+            selected_layout = _build_selected_layout(selected_ops)
             selection_counts[best_idx] += 1
             if not allow_repeats:
                 available_indices.discard(best_idx)
@@ -4152,6 +4397,7 @@ def _run_hardcoded_adapt_vqe(
                     selected_ops,
                     x,
                     h_compiled=h_compiled,
+                    parameter_layout=selected_layout,
                 )
             if adapt_inner_optimizer_key in {"COBYLA", "POWELL"}:
                 cobyla_nfev_so_far += 1
@@ -4177,7 +4423,9 @@ def _run_hardcoded_adapt_vqe(
             return float(energy_obj_val)
 
         # -- Resolve active reopt indices for this depth --
-        n_theta = int(theta.size)
+        n_theta_runtime = int(theta.size)
+        theta_logical_selected = _logical_theta_alias(theta, selected_layout)
+        n_theta_logical = int(theta_logical_selected.size)
         depth_local = int(depth + 1)
         depth_cumulative = int(adapt_ref_base_depth) + int(depth_local)
         periodic_full_refit_triggered = bool(
@@ -4187,25 +4435,29 @@ def _run_hardcoded_adapt_vqe(
         )
         reopt_active_indices, reopt_policy_effective = _resolve_reopt_active_indices(
             policy=adapt_reopt_policy_key,
-            n=n_theta,
-            theta=theta,
+            n=n_theta_logical,
+            theta=theta_logical_selected,
             window_size=adapt_window_size_val,
             window_topk=adapt_window_topk_val,
             periodic_full_refit_triggered=periodic_full_refit_triggered,
+        )
+        reopt_runtime_active_indices = runtime_indices_for_logical_indices(
+            selected_layout,
+            reopt_active_indices,
         )
         if phase1_enabled and isinstance(phase1_feature_selected, dict):
             phase1_feature_selected["refit_window_indices"] = [int(i) for i in reopt_active_indices]
         if phase1_enabled and selected_batch_records_for_history:
             for rec in selected_batch_records_for_history:
                 rec["refit_window_indices"] = [int(i) for i in reopt_active_indices]
-        _obj_opt, opt_x0 = _make_reduced_objective(theta, reopt_active_indices, _obj)
+        _obj_opt, opt_x0 = _make_reduced_objective(theta, reopt_runtime_active_indices, _obj)
         phase2_active_memory = None
         phase2_last_optimizer_memory_reused = False
         phase2_last_optimizer_memory_source = "unavailable"
         if phase2_enabled and adapt_inner_optimizer_key == "SPSA":
             phase2_active_memory = phase2_memory_adapter.select_active(
                 phase2_optimizer_memory,
-                active_indices=list(reopt_active_indices),
+                active_indices=list(reopt_runtime_active_indices),
                 source=f"adapt.depth{int(depth + 1)}.opt_active",
             )
             phase2_last_optimizer_memory_reused = bool(phase2_active_memory.get("reused", False))
@@ -4254,11 +4506,11 @@ def _run_hardcoded_adapt_vqe(
                 precondition_mode=("diag_rms_grad" if phase2_enabled else "none"),
             )
             # Reconstruct full theta from reduced optimizer result
-            if len(reopt_active_indices) == n_theta:
+            if len(reopt_runtime_active_indices) == n_theta_runtime:
                 theta = np.asarray(result.x, dtype=float)
             else:
                 result_x = np.asarray(result.x, dtype=float).ravel()
-                for k, idx in enumerate(reopt_active_indices):
+                for k, idx in enumerate(reopt_runtime_active_indices):
                     theta[idx] = float(result_x[k])
             energy_current = float(result.fun)
             nfev_opt = int(result.nfev)
@@ -4268,11 +4520,11 @@ def _run_hardcoded_adapt_vqe(
             if phase2_enabled:
                 phase2_optimizer_memory = phase2_memory_adapter.merge_active(
                     phase2_optimizer_memory,
-                    active_indices=list(reopt_active_indices),
+                    active_indices=list(reopt_runtime_active_indices),
                     active_state=phase2_memory_adapter.from_result(
                         result,
                         method=str(adapt_inner_optimizer_key),
-                        parameter_count=int(len(reopt_active_indices)),
+                        parameter_count=int(len(reopt_runtime_active_indices)),
                         source=f"adapt.depth{int(depth + 1)}.spsa_result",
                     ),
                     source=f"adapt.depth{int(depth + 1)}.merge",
@@ -4289,11 +4541,11 @@ def _run_hardcoded_adapt_vqe(
                 options=_scipy_inner_options(int(maxiter)),
             )
             # Reconstruct full theta from reduced optimizer result
-            if len(reopt_active_indices) == n_theta:
+            if len(reopt_runtime_active_indices) == n_theta_runtime:
                 theta = np.asarray(result.x, dtype=float)
             else:
                 result_x = np.asarray(result.x, dtype=float).ravel()
-                for k, idx in enumerate(reopt_active_indices):
+                for k, idx in enumerate(reopt_runtime_active_indices):
                     theta[idx] = float(result_x[k])
             energy_current = float(result.fun)
             nfev_opt = int(getattr(result, "nfev", 0))
@@ -4453,6 +4705,12 @@ def _run_hardcoded_adapt_vqe(
             "reopt_policy_effective": str(reopt_policy_effective),
             "reopt_active_indices": [int(i) for i in reopt_active_indices],
             "reopt_active_count": int(len(reopt_active_indices)),
+            "reopt_runtime_active_indices": [int(i) for i in reopt_runtime_active_indices],
+            "reopt_runtime_active_count": int(len(reopt_runtime_active_indices)),
+            "num_parameters_after_opt": int(theta.size),
+            "logical_num_parameters_after_opt": int(len(selected_ops)),
+            "parameters_added_this_step": int(theta.size - theta_before_opt.size),
+            "logical_parameters_added_this_step": int(len(selected_batch_labels)) if selected_batch_labels else 1,
             "reopt_periodic_full_refit_triggered": bool(periodic_full_refit_triggered),
         }
         if phase1_enabled:
@@ -4513,6 +4771,33 @@ def _run_hardcoded_adapt_vqe(
                     "compile_cost_proxy": (
                         dict(phase1_feature_selected.get("compiled_position_cost_proxy", {}))
                         if isinstance(phase1_feature_selected, dict)
+                        else None
+                    ),
+                    "compile_cost_mode": str(phase3_backend_cost_mode_key),
+                    "compile_cost_source": (
+                        str(phase1_feature_selected.get("compile_cost_source", "proxy"))
+                        if isinstance(phase1_feature_selected, dict)
+                        else "proxy"
+                    ),
+                    "compile_cost_total": (
+                        float(phase1_feature_selected.get("compile_cost_total", 0.0))
+                        if isinstance(phase1_feature_selected, dict)
+                        else 0.0
+                    ),
+                    "compile_gate_open": (
+                        bool(phase1_feature_selected.get("compile_gate_open", True))
+                        if isinstance(phase1_feature_selected, dict)
+                        else True
+                    ),
+                    "compile_failure_reason": (
+                        phase1_feature_selected.get("compile_failure_reason")
+                        if isinstance(phase1_feature_selected, dict)
+                        else None
+                    ),
+                    "compile_cost_backend": (
+                        dict(phase1_feature_selected.get("compiled_position_cost_backend", {}))
+                        if isinstance(phase1_feature_selected, dict)
+                        and isinstance(phase1_feature_selected.get("compiled_position_cost_backend"), Mapping)
                         else None
                     ),
                     "measurement_cache_stats": (
@@ -5013,6 +5298,7 @@ def _run_hardcoded_adapt_vqe(
             return [float(x) for x in benefits[: int(len(selected_ops))]]
 
         pre_prune_ops = list(selected_ops)
+        pre_prune_layout = _build_selected_layout(pre_prune_ops)
         pre_prune_theta = np.asarray(theta, dtype=float).copy()
         pre_prune_energy = float(energy_current)
         pre_prune_memory = dict(phase2_optimizer_memory) if phase2_enabled else None
@@ -5026,7 +5312,7 @@ def _run_hardcoded_adapt_vqe(
         )
         prune_proxy_benefit = _reconstruct_phase1_proxy_benefits()
         candidate_indices = rank_prune_candidates(
-            theta=np.asarray(theta, dtype=float),
+            theta=np.asarray(_logical_theta_alias(theta, selected_layout), dtype=float),
             labels=[str(op.label) for op in selected_ops],
             marginal_proxy_benefit=list(prune_proxy_benefit),
             max_candidates=int(prune_cfg.max_candidates),
@@ -5047,7 +5333,16 @@ def _run_hardcoded_adapt_vqe(
                     psi_obj = executor_refit.prepare_state(np.asarray(x, dtype=float), psi_ref)
                     e_obj, _ = energy_via_one_apply(psi_obj, h_compiled)
                     return float(e_obj)
-                return float(_adapt_energy_fn(h_poly, psi_ref, ops_refit, x, h_compiled=h_compiled))
+                return float(
+                    _adapt_energy_fn(
+                        h_poly,
+                        psi_ref,
+                        ops_refit,
+                        x,
+                        h_compiled=h_compiled,
+                        parameter_layout=_build_selected_layout(ops_refit),
+                    )
+                )
 
             x0 = np.asarray(theta0, dtype=float).reshape(-1)
             if adapt_inner_optimizer_key == "SPSA":
@@ -5118,9 +5413,12 @@ def _run_hardcoded_adapt_vqe(
             theta_cur: np.ndarray,
             labels_cur: list[str],
         ) -> tuple[float, np.ndarray]:
-            ops_trial = _ops_from_labels(list(labels_cur))
+            ops_current = _ops_from_labels(list(labels_cur))
+            layout_current = _build_selected_layout(ops_current)
+            runtime_remove_indices = runtime_indices_for_logical_indices(layout_current, [int(idx_remove)])
+            ops_trial = list(ops_current)
             del ops_trial[int(idx_remove)]
-            theta_trial0 = np.delete(np.asarray(theta_cur, dtype=float), int(idx_remove))
+            theta_trial0 = np.delete(np.asarray(theta_cur, dtype=float), runtime_remove_indices)
             theta_trial_opt, e_trial = _refit_given_ops(ops_trial, theta_trial0)
             return float(e_trial), np.asarray(theta_trial_opt, dtype=float)
 
@@ -5135,10 +5433,14 @@ def _run_hardcoded_adapt_vqe(
         accepted_count = int(sum(1 for d in prune_decisions if bool(d.accepted)))
         if accepted_count > 0:
             accepted_remove_indices = [int(d.index) for d in prune_decisions if bool(d.accepted)]
+            accepted_runtime_remove_indices = runtime_indices_for_logical_indices(
+                pre_prune_layout,
+                accepted_remove_indices,
+            )
             if phase2_enabled:
                 phase2_optimizer_memory = phase2_memory_adapter.remap_remove(
                     phase2_optimizer_memory,
-                    indices=list(accepted_remove_indices),
+                    indices=list(accepted_runtime_remove_indices),
                 )
             label_to_ops: dict[str, list[AnsatzTerm]] = {}
             for op in selected_ops:
@@ -5152,6 +5454,7 @@ def _run_hardcoded_adapt_vqe(
                     continue
                 rebuilt_ops.append(bucket.pop(0))
             selected_ops = list(rebuilt_ops)
+            selected_layout = _build_selected_layout(selected_ops)
             theta = np.asarray(theta_pruned, dtype=float)
             energy_current = float(energy_after_prune)
             if adapt_state_backend_key == "compiled":
@@ -5192,6 +5495,7 @@ def _run_hardcoded_adapt_vqe(
                     > float(sym_pre.get("max_leakage_risk", 0.0)) + 1e-12
                 ):
                     selected_ops = list(pre_prune_ops)
+                    selected_layout = _build_selected_layout(selected_ops)
                     theta = np.asarray(pre_prune_theta, dtype=float)
                     energy_current = float(pre_prune_energy)
                     if phase2_enabled and isinstance(pre_prune_memory, dict):
@@ -5204,6 +5508,7 @@ def _run_hardcoded_adapt_vqe(
                     prune_summary["rollback_reason"] = "symmetry_verify_failed"
             if float(energy_current) > float(pre_prune_energy) + float(prune_cfg.max_regression):
                 selected_ops = list(pre_prune_ops)
+                selected_layout = _build_selected_layout(selected_ops)
                 theta = np.asarray(pre_prune_theta, dtype=float)
                 energy_current = float(pre_prune_energy)
                 if phase2_enabled and isinstance(pre_prune_memory, dict):
@@ -5231,6 +5536,9 @@ def _run_hardcoded_adapt_vqe(
             energy_after_post_refit=float(prune_summary["energy_after_post_refit"]),
         )
 
+    selected_layout = _build_selected_layout(selected_ops)
+    theta_logical_final = _logical_theta_alias(theta, selected_layout)
+
     # Build final state
     if adapt_state_backend_key == "compiled":
         if len(selected_ops) == 0:
@@ -5240,7 +5548,7 @@ def _run_hardcoded_adapt_vqe(
                 selected_executor = _build_compiled_executor(selected_ops)
             psi_adapt = selected_executor.prepare_state(theta, psi_ref)
     else:
-        psi_adapt = _prepare_adapt_state(psi_ref, selected_ops, theta)
+        psi_adapt = _prepare_adapt_state(psi_ref, selected_ops, theta, parameter_layout=selected_layout)
     psi_adapt = _normalize_state(psi_adapt)
 
     elapsed = time.perf_counter() - t0
@@ -5263,7 +5571,7 @@ def _run_hardcoded_adapt_vqe(
     phase3_output_motif_library = (
         extract_motif_library(
             generator_metadata=selected_generator_metadata,
-            theta=[float(x) for x in np.asarray(theta, dtype=float).tolist()],
+            theta=[float(x) for x in np.asarray(theta_logical_final, dtype=float).tolist()],
             source_num_sites=int(num_sites),
             source_tag=f"phase3_v1_L{int(num_sites)}",
             ordering=str(ordering),
@@ -5314,6 +5622,20 @@ def _run_hardcoded_adapt_vqe(
         "last_probe_reason": str(phase1_last_probe_reason),
         "residual_opened": bool(phase1_residual_opened),
     }
+    backend_compile_summary: dict[str, Any] | None = None
+    if backend_compile_oracle is not None:
+        backend_compile_summary = {
+            "mode": str(phase3_backend_cost_mode_key),
+            "requested_backend_name": (
+                None if phase3_backend_name in {None, ""} else str(phase3_backend_name)
+            ),
+            "requested_backend_shortlist": [str(x) for x in phase3_backend_shortlist_tokens],
+            "optimization_level": int(phase3_backend_optimization_level),
+            "seed_transpiler": int(phase3_backend_transpile_seed),
+            "resolution_audit": [dict(row) for row in backend_compile_oracle.resolution_audit],
+            "cache_summary": dict(backend_compile_oracle.cache_summary()),
+            **dict(backend_compile_oracle.final_scaffold_summary(selected_ops)),
+        }
     if phase2_enabled:
         continuation_payload.update(
             {
@@ -5348,6 +5670,8 @@ def _run_hardcoded_adapt_vqe(
                 "rescue_history": [dict(x) for x in phase3_rescue_history],
             }
         )
+    if backend_compile_summary is not None:
+        continuation_payload["backend_compile_cost_summary"] = dict(backend_compile_summary)
 
     payload = {
         "success": True,
@@ -5359,7 +5683,10 @@ def _run_hardcoded_adapt_vqe(
         "num_particles": {"n_up": int(num_particles[0]), "n_dn": int(num_particles[1])},
         "ansatz_depth": int(len(selected_ops)),
         "num_parameters": int(theta.size),
+        "logical_num_parameters": int(len(selected_ops)),
         "optimal_point": [float(x) for x in theta.tolist()],
+        "logical_optimal_point": [float(x) for x in theta_logical_final.tolist()],
+        "parameterization": serialize_layout(selected_layout),
         "operators": [str(op.label) for op in selected_ops],
         "pool_size": int(len(pool)),
         "pool_type": str(pool_key),
@@ -5441,6 +5768,10 @@ def _run_hardcoded_adapt_vqe(
                         "refit_active_count",
                     ],
                 },
+                "compile_cost_mode": str(phase3_backend_cost_mode_key),
+                "backend_compile_cost_summary": (
+                    dict(backend_compile_summary) if backend_compile_summary is not None else None
+                ),
                 "pre_prune_scaffold": (
                     dict(phase1_scaffold_pre_prune) if phase1_scaffold_pre_prune is not None else None
                 ),
@@ -5471,6 +5802,29 @@ def _run_hardcoded_adapt_vqe(
                         ]
                         if isinstance(phase3_output_motif_library, Mapping)
                         else []
+                    ),
+                    compile_cost_mode=str(phase3_backend_cost_mode_key),
+                    backend_target_names=(
+                        list(
+                            dict.fromkeys(
+                                [
+                                    str(row.get("transpile_backend", ""))
+                                    for row in (backend_compile_summary or {}).get("rows", [])
+                                    if str(row.get("transpile_backend", "")) != ""
+                                ]
+                            )
+                        )
+                        if isinstance(backend_compile_summary, Mapping)
+                        else []
+                    ),
+                    backend_reduction_mode=(
+                        "single_backend"
+                        if str(phase3_backend_cost_mode_key) == "transpile_single_v1"
+                        else (
+                            "best_backend_in_shortlist_v1"
+                            if str(phase3_backend_cost_mode_key) == "transpile_shortlist_v1"
+                            else "none"
+                        )
                     ),
                 ).__dict__,
             }
@@ -5785,7 +6139,7 @@ def _write_pipeline_pdf(pdf_path: Path, payload: dict[str, Any], run_command: st
 # CLI + main
 # ---------------------------------------------------------------------------
 
-def parse_args() -> argparse.Namespace:
+def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     p = argparse.ArgumentParser(description="Hardcoded ADAPT-VQE Hubbard / Hubbard-Holstein pipeline.")
     p.add_argument("--L", type=int, default=2)
     p.add_argument("--t", type=float, default=1.0)
@@ -5984,6 +6338,36 @@ def parse_args() -> argparse.Namespace:
         default="off",
         help="Opt-in shortlist-only macro splitting. When enabled, shortlisted macro generators are probed through serialized Pauli child atoms, but only symmetry-safe child-set candidates compete for admission at phase2/phase3 scoring time.",
     )
+    p.add_argument(
+        "--phase3-backend-cost-mode",
+        choices=["proxy", "transpile_single_v1", "transpile_shortlist_v1"],
+        default="proxy",
+        help="Keep ADAPT logical but replace the Phase 3 compile-burden proxy with transpilation-derived burden against one backend or a fixed backend shortlist.",
+    )
+    p.add_argument(
+        "--phase3-backend-name",
+        type=str,
+        default=None,
+        help="Target backend name for --phase3-backend-cost-mode transpile_single_v1 (for example ibm_boston or ibm_miami).",
+    )
+    p.add_argument(
+        "--phase3-backend-shortlist",
+        type=str,
+        default=None,
+        help="Comma-separated backend shortlist for --phase3-backend-cost-mode transpile_shortlist_v1.",
+    )
+    p.add_argument(
+        "--phase3-backend-transpile-seed",
+        type=int,
+        default=7,
+        help="Seed used by the backend-conditioned transpilation oracle.",
+    )
+    p.add_argument(
+        "--phase3-backend-optimization-level",
+        type=int,
+        default=1,
+        help="Qiskit transpiler optimization level used by the backend-conditioned transpilation oracle.",
+    )
     p.add_argument("--adapt-maxiter", type=int, default=300, help="Inner optimizer maxiter per re-optimization")
     p.add_argument("--adapt-spsa-a", type=float, default=0.2)
     p.add_argument("--adapt-spsa-c", type=float, default=0.1)
@@ -6143,11 +6527,11 @@ def parse_args() -> argparse.Namespace:
         help="Skip full dense Hamiltonian diagonalization when Hilbert dimension exceeds this threshold.",
     )
     p.add_argument("--skip-pdf", action="store_true")
-    return p.parse_args()
+    return p.parse_args(argv)
 
 
-def main() -> None:
-    args = parse_args()
+def main(argv: Sequence[str] | None = None) -> None:
+    args = parse_args(argv)
     _ai_log("hardcoded_adapt_main_start", settings=vars(args))
     run_command = current_command_string()
     artifacts_dir = REPO_ROOT / "artifacts"
@@ -6214,11 +6598,15 @@ def main() -> None:
     adapt_ref_import: dict[str, Any] | None = None
     adapt_ref_meta: Mapping[str, Any] | None = None
     adapt_ref_base_depth = 0
+    ansatz_input_state_for_adapt: np.ndarray | None = None
+    ansatz_input_state_source = "hf"
+    ansatz_input_state_kind: str | None = "reference_state"
     if args.adapt_ref_json is not None:
         psi_ref_override_for_adapt, adapt_ref_meta = _load_adapt_initial_state(
             Path(args.adapt_ref_json),
             int(nq_total),
         )
+        ansatz_input_state_for_adapt = np.asarray(psi_ref_override_for_adapt, dtype=complex).reshape(-1)
         adapt_ref_vqe = adapt_ref_meta.get("adapt_vqe", {})
         if isinstance(adapt_ref_vqe, dict):
             ref_depth_raw = adapt_ref_vqe.get("ansatz_depth")
@@ -6231,15 +6619,27 @@ def main() -> None:
         adapt_ref_import = {
             "path": str(Path(args.adapt_ref_json)),
             "initial_state_source": adapt_ref_meta.get("initial_state_source"),
+            "initial_state_handoff_state_kind": adapt_ref_meta.get("initial_state_handoff_state_kind"),
             "settings": adapt_ref_meta.get("settings", {}),
             "adapt_vqe": adapt_ref_meta.get("adapt_vqe", {}),
             "adapt_ref_base_depth": int(adapt_ref_base_depth),
         }
+        ansatz_input_state_source = str(adapt_ref_meta.get("initial_state_source") or "adapt_ref_json")
+        raw_kind = adapt_ref_meta.get("initial_state_handoff_state_kind")
+        ansatz_input_state_kind = None if raw_kind in {None, ""} else str(raw_kind)
         _ai_log(
             "hardcoded_adapt_ref_json_loaded",
             path=str(Path(args.adapt_ref_json)),
             initial_state_source=adapt_ref_meta.get("initial_state_source"),
             adapt_ref_base_depth=int(adapt_ref_base_depth),
+        )
+    else:
+        ansatz_input_state_for_adapt, ansatz_input_state_source, ansatz_input_state_kind = _default_adapt_input_state(
+            problem=str(problem_key),
+            num_sites=int(args.L),
+            ordering=str(args.ordering),
+            n_ph_max=int(args.n_ph_max),
+            boson_encoding=str(args.boson_encoding),
         )
 
     # Sector-filtered exact ground state: ADAPT-VQE preserves particle number,
@@ -6414,6 +6814,15 @@ def main() -> None:
             phase3_enable_rescue=bool(args.phase3_enable_rescue),
             phase3_lifetime_cost_mode=str(args.phase3_lifetime_cost_mode),
             phase3_runtime_split_mode=str(args.phase3_runtime_split_mode),
+            phase3_backend_cost_mode=str(args.phase3_backend_cost_mode),
+            phase3_backend_name=(None if args.phase3_backend_name in {None, ""} else str(args.phase3_backend_name)),
+            phase3_backend_shortlist=(
+                []
+                if args.phase3_backend_shortlist in {None, ""}
+                else [str(tok).strip() for tok in str(args.phase3_backend_shortlist).split(",") if str(tok).strip() != ""]
+            ),
+            phase3_backend_transpile_seed=int(args.phase3_backend_transpile_seed),
+            phase3_backend_optimization_level=int(args.phase3_backend_optimization_level),
         )
     except Exception as exc:
         _ai_log("hardcoded_adapt_vqe_failed", L=int(args.L), error=str(exc))
@@ -6494,6 +6903,15 @@ def main() -> None:
         )
 
     # 5) Emit JSON
+    initial_state_source_resolved = str(
+        args.initial_state_source if args.initial_state_source != "adapt_vqe" or adapt_payload.get("success") else "exact"
+    )
+    initial_state_kind_resolved = (
+        "prepared_state"
+        if (args.initial_state_source == "adapt_vqe" and bool(adapt_payload.get("success", False)))
+        else "reference_state"
+    )
+
     payload: dict[str, Any] = {
         "generated_utc": datetime.now(timezone.utc).isoformat(),
         "pipeline": "hardcoded_adapt",
@@ -6581,6 +6999,17 @@ def main() -> None:
             "phase3_enable_rescue": bool(args.phase3_enable_rescue),
             "phase3_lifetime_cost_mode": str(args.phase3_lifetime_cost_mode),
             "phase3_runtime_split_mode": str(args.phase3_runtime_split_mode),
+            "phase3_backend_cost_mode": str(args.phase3_backend_cost_mode),
+            "phase3_backend_name": (
+                None if args.phase3_backend_name in {None, ""} else str(args.phase3_backend_name)
+            ),
+            "phase3_backend_shortlist": (
+                []
+                if args.phase3_backend_shortlist in {None, ""}
+                else [str(tok).strip() for tok in str(args.phase3_backend_shortlist).split(",") if str(tok).strip() != ""]
+            ),
+            "phase3_backend_transpile_seed": int(args.phase3_backend_transpile_seed),
+            "phase3_backend_optimization_level": int(args.phase3_backend_optimization_level),
             "adapt_ref_json": (str(args.adapt_ref_json) if args.adapt_ref_json is not None else None),
             "paop_r": int(args.paop_r),
             "paop_split_paulis": bool(args.paop_split_paulis),
@@ -6609,15 +7038,18 @@ def main() -> None:
             "method": (EXACT_METHOD if hmat is not None else "sector_exact_only_no_dense_eigh"),
         },
         "adapt_vqe": adapt_payload,
-        "initial_state": {
-            "source": str(args.initial_state_source if args.initial_state_source != "adapt_vqe" or adapt_payload.get("success") else "exact"),
-            "amplitudes_qn_to_q0": _state_to_amplitudes_qn_to_q0(psi0),
-            "handoff_state_kind": (
-                "prepared_state"
-                if (args.initial_state_source == "adapt_vqe" and bool(adapt_payload.get("success", False)))
-                else "reference_state"
-            ),
-        },
+        "initial_state": build_statevector_manifest(
+            psi_state=np.asarray(psi0, dtype=complex).reshape(-1),
+            source=initial_state_source_resolved,
+            handoff_state_kind=initial_state_kind_resolved,
+            amplitude_cutoff=1e-12,
+        ),
+        "ansatz_input_state": build_statevector_manifest(
+            psi_state=np.asarray(ansatz_input_state_for_adapt, dtype=complex).reshape(-1),
+            source=str(ansatz_input_state_source),
+            handoff_state_kind=ansatz_input_state_kind,
+            amplitude_cutoff=1e-12,
+        ),
         "trajectory": trajectory,
     }
     if str(args.adapt_inner_optimizer).strip().upper() == "SPSA":
@@ -6634,6 +7066,7 @@ def main() -> None:
             "progress_every_s": float(args.adapt_spsa_progress_every_s),
         }
     if adapt_ref_import is not None:
+        adapt_ref_import["ansatz_input_state_persisted"] = True
         payload["adapt_ref_import"] = adapt_ref_import
 
     output_json.parent.mkdir(parents=True, exist_ok=True)

@@ -208,12 +208,24 @@ def add_staged_hh_base_args(p: argparse.ArgumentParser) -> argparse.ArgumentPars
 
 def add_staged_hh_noise_args(p: argparse.ArgumentParser) -> argparse.ArgumentParser:
     p.add_argument("--noise-modes", type=str, default="ideal,shots,aer_noise")
+    p.add_argument(
+        "--audit-noise-modes",
+        type=str,
+        default=None,
+        help="Audit-only noise modes for imported prepared-state/full-circuit audits; defaults to ideal,backend_scheduled in import mode.",
+    )
     p.add_argument("--noisy-methods", type=str, default="cfqm4,suzuki2")
     p.add_argument("--benchmark-active-coeff-tol", type=float, default=1e-12)
     p.add_argument("--shots", type=int, default=2048)
     p.add_argument("--oracle-repeats", type=int, default=4)
     p.add_argument("--oracle-aggregate", choices=["mean", "median"], default="mean")
     p.add_argument("--mitigation", choices=["none", "readout", "zne", "dd"], default="none")
+    p.add_argument(
+        "--local-readout-strategy",
+        choices=["mthree"],
+        default="mthree",
+        help="Local readout mitigation backend for compiled fake-backend audits.",
+    )
     p.add_argument(
         "--symmetry-mitigation-mode",
         choices=["off", "verify_only", "postselect_diag_v1", "projector_renorm_v1"],
@@ -222,7 +234,7 @@ def add_staged_hh_noise_args(p: argparse.ArgumentParser) -> argparse.ArgumentPar
     p.add_argument("--zne-scales", type=str, default=None)
     p.add_argument("--dd-sequence", type=str, default=None)
     p.add_argument("--noise-seed", type=int, default=7)
-    p.add_argument("--backend-name", type=str, default="FakeManilaV2")
+    p.add_argument("--backend-name", type=str, default=None, help="Fake/runtime backend name. Imported full-circuit audits default to FakeGuadalupeV2 when omitted.")
     p.add_argument("--use-fake-backend", action="store_true")
     p.set_defaults(allow_aer_fallback=True)
     p.add_argument("--allow-aer-fallback", dest="allow_aer_fallback", action="store_true")
@@ -232,6 +244,40 @@ def add_staged_hh_noise_args(p: argparse.ArgumentParser) -> argparse.ArgumentPar
     p.add_argument("--no-omp-shm-workaround", dest="omp_shm_workaround", action="store_false")
     p.add_argument("--noisy-mode-timeout-s", type=int, default=1200)
     p.add_argument("--include-final-audit", action="store_true")
+    p.add_argument(
+        "--include-full-circuit-audit",
+        action="store_true",
+        help="Enable imported lean ADAPT full-circuit audit. If no import JSON is given, defaults to the latest lean pareto_lean_l2 rerun artifact.",
+    )
+    p.add_argument(
+        "--include-fixed-lean-noisy-replay",
+        action="store_true",
+        help=(
+            "Enable imported fixed-lean conventional replay on the local fake-backend noisy path. "
+            "Locks the imported lean pareto_lean_l2 scaffold, forces reps=1 for this route only, "
+            "and optimizes only continuous parameters under backend_scheduled + readout/mthree."
+        ),
+    )
+    p.add_argument(
+        "--include-fixed-lean-noise-attribution",
+        action="store_true",
+        help=(
+            "Enable imported fixed-lean gate-vs-readout attribution on the local fake-backend path. "
+            "Runs the same locked imported pareto_lean_l2 circuit under readout_only, "
+            "gate_stateprep_only, and full backend_scheduled slices with one shared transpile; "
+            "raw diagnostics only (mitigation none, symmetry off)."
+        ),
+    )
+    p.add_argument(
+        "--fixed-final-state-json",
+        type=Path,
+        default=None,
+        help=(
+            "Import source for prepared-state/full-circuit audits, fixed-lean noisy replay, "
+            "and fixed-lean noise attribution. "
+            "May be a direct ADAPT artifact, handoff bundle, or staged workflow payload."
+        ),
+    )
     return p
 
 

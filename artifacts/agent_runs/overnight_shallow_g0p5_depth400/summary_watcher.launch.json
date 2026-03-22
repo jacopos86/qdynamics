@@ -1,0 +1,7 @@
+{
+  "status": "running",
+  "pid": 38538,
+  "started_utc": "2026-03-15T07:25:26.313034Z",
+  "log": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_2/artifacts/agent_runs/overnight_shallow_g0p5_depth400/summary_watcher.stdout.log",
+  "script": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_2/artifacts/agent_runs/overnight_shallow_g0p5_depth400/summarize_when_done.py"
+}

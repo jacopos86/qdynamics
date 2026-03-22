@@ -1,0 +1,37 @@
+{
+  "attempt_index": 1,
+  "started_utc": "2026-03-20T20:05:55Z",
+  "finished_utc": "2026-03-20T20:22:46Z",
+  "returncode": 0,
+  "succeeded": true,
+  "command": [
+    "/opt/anaconda3/bin/python",
+    "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/pipelines/exact_bench/hh_l2_live_scaffold_patch_benchmark.py",
+    "--benchmark-profile",
+    "historical_d6_pair_compare",
+    "--enable-replay",
+    "--parallel-workers",
+    "2",
+    "--patch-panel-size",
+    "3",
+    "--tag",
+    "20260320_hh_l2_historical_d6_pair_compare_v1__attempt1",
+    "--output-json",
+    "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/artifacts/json/hh_l2_live_scaffold_patch_benchmark_supervised/20260320_hh_l2_historical_d6_pair_compare_v1/attempt_1/20260320_hh_l2_historical_d6_pair_compare_v1__attempt1.json",
+    "--output-csv",
+    "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/artifacts/json/hh_l2_live_scaffold_patch_benchmark_supervised/20260320_hh_l2_historical_d6_pair_compare_v1/attempt_1/20260320_hh_l2_historical_d6_pair_compare_v1__attempt1.csv"
+  ],
+  "stdout_log": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/artifacts/json/hh_l2_live_scaffold_patch_benchmark_supervised/20260320_hh_l2_historical_d6_pair_compare_v1/attempt_1/benchmark.stdout.log",
+  "output_json": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/artifacts/json/hh_l2_live_scaffold_patch_benchmark_supervised/20260320_hh_l2_historical_d6_pair_compare_v1/attempt_1/20260320_hh_l2_historical_d6_pair_compare_v1__attempt1.json",
+  "output_csv": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/artifacts/json/hh_l2_live_scaffold_patch_benchmark_supervised/20260320_hh_l2_historical_d6_pair_compare_v1/attempt_1/20260320_hh_l2_historical_d6_pair_compare_v1__attempt1.csv",
+  "outputs_present": {
+    "json": true,
+    "csv": true
+  },
+  "stdout_tail": [
+    "benchmark_json=/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/artifacts/json/hh_l2_live_scaffold_patch_benchmark_supervised/20260320_hh_l2_historical_d6_pair_compare_v1/attempt_1/20260320_hh_l2_historical_d6_pair_compare_v1__attempt1.json",
+    "benchmark_csv=/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/artifacts/json/hh_l2_live_scaffold_patch_benchmark_supervised/20260320_hh_l2_historical_d6_pair_compare_v1/attempt_1/20260320_hh_l2_historical_d6_pair_compare_v1__attempt1.csv",
+    "patch_panel_backend=FakeGuadalupeV2",
+    "patch_panel_size=3"
+  ]
+}

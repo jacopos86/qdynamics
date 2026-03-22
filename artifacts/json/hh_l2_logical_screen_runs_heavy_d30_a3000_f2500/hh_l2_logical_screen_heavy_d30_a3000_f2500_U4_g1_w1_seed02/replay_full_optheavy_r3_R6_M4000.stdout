@@ -1,0 +1,8 @@
+[2026-03-12T18:48:35Z] Loading ADAPT input JSON: artifacts/json/hh_l2_logical_screen_runs_heavy_d30_a3000_f2500/hh_l2_logical_screen_heavy_d30_a3000_f2500_U4_g1_w1_seed02/handoff.json
+[2026-03-12T18:48:35Z] Generator family resolved: requested=match_adapt resolved=paop_lf_std source=continuation.selected_generator_metadata.family_id
+[2026-03-12T18:48:35Z] Building HH Hamiltonian.
+[2026-03-12T18:48:35Z] Using exact sector energy from input payload: E_exact=0.110210391909
+[2026-03-12T18:48:35Z] Provenance: handoff_state_kind=prepared_state provenance_source=contract replay_seed_policy=auto
+[2026-03-12T18:48:35Z] Pool built: family=paop_lf_std family_terms=4 adapt_depth=40 replay_terms=40 npar=120
+[2026-03-12T18:48:35Z] Seed baseline (policy=residual_only): E=0.130565122815 |DeltaE|=2.035473e-02
+[2026-03-12T19:03:35Z] DONE family=paop_lf_std method=SPSA abs_delta_e=1.659915e-02 runtime_s=899.7

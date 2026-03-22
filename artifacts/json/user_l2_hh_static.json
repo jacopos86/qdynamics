@@ -1,0 +1,572 @@
+{
+  "generated_utc": "2026-03-11T21:37:59.011990+00:00",
+  "pipeline": "hardcoded",
+  "settings": {
+    "L": 2,
+    "problem": "hh",
+    "t": 1.0,
+    "u": 4.0,
+    "dv": 0.0,
+    "boundary": "open",
+    "ordering": "blocked",
+    "t_final": 0.0,
+    "num_times": 1,
+    "suzuki_order": 2,
+    "trotter_steps": 64,
+    "term_order": "sorted",
+    "vqe_ansatz": "hh_hva",
+    "vqe_method": "SPSA",
+    "vqe_energy_backend": "one_apply_compiled",
+    "vqe_progress_every_s": 60.0,
+    "initial_state_source": "vqe",
+    "adapt_input_json": null,
+    "adapt_strict_match": true,
+    "adapt_summary_in_pdf": true,
+    "adapt_pool": "paop_lf_std",
+    "adapt_continuation_mode": "phase3_v1",
+    "adapt_max_depth": 30,
+    "adapt_eps_grad": 1e-05,
+    "adapt_eps_energy": 1e-08,
+    "adapt_maxiter": 800,
+    "adapt_seed": 7,
+    "adapt_allow_repeats": true,
+    "adapt_finite_angle_fallback": true,
+    "adapt_finite_angle": 0.1,
+    "adapt_finite_angle_min_improvement": 1e-12,
+    "adapt_disable_hh_seed": false,
+    "paop_r": 1,
+    "paop_split_paulis": false,
+    "paop_prune_eps": 0.0,
+    "paop_normalization": "none",
+    "phase1_lambda_F": 1.0,
+    "phase1_lambda_compile": 0.05,
+    "phase1_lambda_measure": 0.02,
+    "phase1_lambda_leak": 0.0,
+    "phase1_score_z_alpha": 0.0,
+    "phase1_probe_max_positions": 6,
+    "phase1_plateau_patience": 2,
+    "phase1_trough_margin_ratio": 1.0,
+    "phase1_prune_enabled": true,
+    "phase1_prune_fraction": 0.25,
+    "phase1_prune_max_candidates": 6,
+    "phase1_prune_max_regression": 1e-08,
+    "phase3_motif_source_json": null,
+    "phase3_symmetry_mitigation_mode": "off",
+    "phase3_enable_rescue": false,
+    "phase3_lifetime_cost_mode": "phase3_v1",
+    "phase3_runtime_split_mode": "off",
+    "skip_qpe": true,
+    "fidelity_definition_short": "Subspace Fidelity(t): projected fidelity of trotterized PAOP/HVA branches vs filtered exact GS manifold.",
+    "fidelity_definition": "fidelity_paop_trotter(t) = <psi_paop_trot(t)|P_exact_gs_subspace(t)|psi_paop_trot(t)> and fidelity_hva_trotter(t) = <psi_hva_trot(t)|P_exact_gs_subspace(t)|psi_hva_trot(t)>, where P_exact_gs_subspace(t) projects onto the time-evolved filtered-sector ground manifold selected by E <= E0 + tol. Legacy key fidelity(t) follows the selected initial-state branch.",
+    "fidelity_subspace_energy_tol": 1e-08,
+    "fidelity_reference_subspace": {
+      "sector": {
+        "n_up": 1,
+        "n_dn": 1
+      },
+      "ground_subspace_dimension": 1,
+      "selection_rule": "E <= E0 + tol"
+    },
+    "fidelity_reference_initial_state": "exact_static_ground_manifold_filtered_sector",
+    "fidelity_reference_sector": {
+      "n_up": 1,
+      "n_dn": 1
+    },
+    "fidelity_ansatz_initial_state": "vqe",
+    "trajectory_branches_definition": "exact_gs_filtered: exact/reference propagation from filtered-sector GS init; exact_paop/trotter_paop: exact/Trotter propagation from PAOP-ADAPT initial state; exact_hva/trotter_hva: exact/Trotter propagation from regular hardcoded VQE (HVA-family) initial state; legacy exact_ansatz/trotter/fidelity map to the selected initial-state branch for compatibility.",
+    "energy_observable_definition": "energy_static_exact is <psi_exact_gs_ref(t)|H_static|psi_exact_gs_ref(t)>. energy_static_exact_paop and energy_static_trotter_paop are from PAOP-ADAPT initial state; energy_static_exact_hva and energy_static_trotter_hva are from hardcoded VQE initial state. energy_total_exact is <psi_exact_gs_ref(t)|H_static + H_drive(drive_t0 + t)|psi_exact_gs_ref(t)>. energy_total_exact_paop/energy_total_trotter_paop and energy_total_exact_hva/energy_total_trotter_hva are defined analogously. Legacy energy_*_exact_ansatz and energy_*_trotter keys map to the selected initial-state branch. When drive is disabled, energy_total_* == energy_static_*. Drive sampling uses the same drive_t0 convention as propagation.",
+    "plot_branch_order": [
+      "exact_gs_filtered",
+      "exact_paop",
+      "trotter_paop",
+      "exact_hva",
+      "trotter_hva"
+    ],
+    "vqe_spsa": {
+      "a": 0.2,
+      "c": 0.1,
+      "alpha": 0.602,
+      "gamma": 0.101,
+      "A": 10.0,
+      "avg_last": 0,
+      "eval_repeats": 1,
+      "eval_agg": "mean"
+    },
+    "propagator": "cfqm4",
+    "cfqm": {
+      "stage_exp_backend": "expm_multiply_sparse",
+      "coeff_drop_abs_tol": 0.0,
+      "normalize": false
+    },
+    "adapt_ref_source": "vqe",
+    "holstein": {
+      "omega0": 1.0,
+      "g_ep": 0.5,
+      "n_ph_max": 1,
+      "boson_encoding": "binary",
+      "nq_fermion": 4,
+      "nq_phonon": 2,
+      "nq_total": 6
+    }
+  },
+  "hamiltonian": {
+    "num_qubits": 6,
+    "num_terms": 17,
+    "coefficients_exyz": [
+      {
+        "label_exyz": "eeeeee",
+        "coeff": {
+          "re": 4.0,
+          "im": 0.0
+        }
+      },
+      {
+        "label_exyz": "eeeeez",
+        "coeff": {
+          "re": -1.0,
+          "im": 0.0
+        }
+      },
+      {
+        "label_exyz": "eeeexx",
+        "coeff": {
+          "re": -0.5,
+          "im": 0.0
+        }
+      },
+      {
+        "label_exyz": "eeeeyy",
+        "coeff": {
+          "re": -0.5,
+          "im": 0.0
+        }
+      },
+      {
+        "label_exyz": "eeeeze",
+        "coeff": {
+          "re": -1.0,
+          "im": 0.0
+        }
+      },
+      {
+        "label_exyz": "eeezee",
+        "coeff": {
+          "re": -1.0,
+          "im": 0.0
+        }
+      },
+      {
+        "label_exyz": "eeezez",
+        "coeff": {
+          "re": 1.0,
+          "im": 0.0
+        }
+      },
+      {
+        "label_exyz": "eexxee",
+        "coeff": {
+          "re": -0.5,
+          "im": 0.0
+        }
+      },
+      {
+        "label_exyz": "eeyyee",
+        "coeff": {
+          "re": -0.5,
+          "im": 0.0
+        }
+      },
+      {
+        "label_exyz": "eezeee",
+        "coeff": {
+          "re": -1.0,
+          "im": 0.0
+        }
+      },
+      {
+        "label_exyz": "eezeze",
+        "coeff": {
+          "re": 1.0,
+          "im": 0.0
+        }
+      },
+      {
+        "label_exyz": "exeeez",
+        "coeff": {
+          "re": -0.25,
+          "im": 0.0
+        }
+      },
+      {
+        "label_exyz": "exezee",
+        "coeff": {
+          "re": -0.25,
+          "im": 0.0
+        }
+      },
+      {
+        "label_exyz": "ezeeee",
+        "coeff": {
+          "re": -0.5,
+          "im": 0.0
+        }
+      },
+      {
+        "label_exyz": "xeeeze",
+        "coeff": {
+          "re": -0.25,
+          "im": 0.0
+        }
+      },
+      {
+        "label_exyz": "xezeee",
+        "coeff": {
+          "re": -0.25,
+          "im": 0.0
+        }
+      },
+      {
+        "label_exyz": "zeeeee",
+        "coeff": {
+          "re": -0.5,
+          "im": 0.0
+        }
+      }
+    ]
+  },
+  "ground_state": {
+    "exact_energy": -0.1506801238857842,
+    "exact_energy_filtered": 0.15866790412572704,
+    "filtered_sector": {
+      "n_up": 1,
+      "n_dn": 1
+    },
+    "ground_subspace_dimension": 1,
+    "method": "matrix_diagonalization"
+  },
+  "vqe": {
+    "success": true,
+    "method": "hardcoded_hh_hva_layerwise_statevector",
+    "energy": 0.8422188504163748,
+    "ansatz": "hh_hva",
+    "parameterization": "layerwise",
+    "exact_filtered_energy": 0.1586679041257264,
+    "best_restart": 0,
+    "nfev": 3001,
+    "nit": 1500,
+    "message": "spsa_completed(maxiter=1500,a=0.2,c=0.1,alpha=0.602,gamma=0.101,A=10.0,eval_repeats=1,eval_agg=mean,avg_last=0)",
+    "num_particles": {
+      "n_up": 1,
+      "n_dn": 1
+    },
+    "num_parameters": 12,
+    "reps": 3,
+    "optimizer_method": "SPSA",
+    "energy_backend": "one_apply_compiled",
+    "optimal_point": [
+      -0.3050512090805585,
+      0.42301139125730647,
+      0.19673357185281332,
+      0.9790539792847965,
+      -0.7986544992130286,
+      0.27614824325754445,
+      -1.5985744650867846,
+      1.3982183752124515,
+      -1.140296624454008,
+      0.05181401393473989,
+      -1.4075476756233936,
+      0.9421965554235392
+    ],
+    "hf_bitstring_qn_to_q0": "N/A (HH ref state)",
+    "spsa": {
+      "a": 0.2,
+      "c": 0.1,
+      "alpha": 0.602,
+      "gamma": 0.101,
+      "A": 10.0,
+      "avg_last": 0,
+      "eval_repeats": 1,
+      "eval_agg": "mean"
+    }
+  },
+  "qpe": {
+    "success": false,
+    "method": "qpe_skipped",
+    "energy_estimate": null,
+    "phase": null,
+    "skipped": true,
+    "reason": "--skip-qpe enabled",
+    "num_evaluation_qubits": 6,
+    "shots": 1024
+  },
+  "initial_state": {
+    "source": "vqe",
+    "amplitudes_qn_to_q0": {
+      "000101": {
+        "re": 0.013322438445698503,
+        "im": -0.12842379722947853
+      },
+      "000110": {
+        "re": 0.18248964721918495,
+        "im": -0.4058999307199883
+      },
+      "001001": {
+        "re": 0.1824896472191849,
+        "im": -0.40589993071998837
+      },
+      "001010": {
+        "re": 0.1336307858969428,
+        "im": -0.23913727380954775
+      },
+      "010101": {
+        "re": 0.1700204510351295,
+        "im": 0.043926359106757955
+      },
+      "010110": {
+        "re": 0.30305850464511547,
+        "im": 0.0827242753912034
+      },
+      "011001": {
+        "re": 0.3030585046451154,
+        "im": 0.08272427539120338
+      },
+      "011010": {
+        "re": 0.12629970618193062,
+        "im": 0.012627320774753401
+      },
+      "100101": {
+        "re": -0.17002045103512944,
+        "im": -0.0439263591067578
+      },
+      "100110": {
+        "re": -0.30305850464511547,
+        "im": -0.08272427539120336
+      },
+      "101001": {
+        "re": -0.3030585046451154,
+        "im": -0.08272427539120338
+      },
+      "101010": {
+        "re": -0.1262997061819306,
+        "im": -0.012627320774753405
+      },
+      "110101": {
+        "re": -0.010003395980767974,
+        "im": 0.058766068718417046
+      },
+      "110110": {
+        "re": -0.00260669598873458,
+        "im": -0.09643224421949488
+      },
+      "111001": {
+        "re": -0.0026066959887346007,
+        "im": -0.09643224421949481
+      },
+      "111010": {
+        "re": 0.02087839992475855,
+        "im": 0.030398306340629913
+      }
+    }
+  },
+  "ansatz_branches": {
+    "branch_order": [
+      "exact_gs_filtered",
+      "exact_paop",
+      "trotter_paop",
+      "exact_hva",
+      "trotter_hva"
+    ],
+    "paop": {
+      "source": "internal_adapt",
+      "pool_type": "phase3_v1",
+      "ansatz_depth": 28,
+      "num_parameters": 28,
+      "energy": 0.827968674774071,
+      "abs_delta_e": 0.6693007706483447
+    },
+    "hva": {
+      "source": "regular_vqe",
+      "ansatz": "hh_hva",
+      "vqe_success": true,
+      "energy": 0.8422188504163748,
+      "exact_filtered_energy": 0.1586679041257264
+    },
+    "legacy_selected_branch": "hva",
+    "legacy_selected_source": "vqe"
+  },
+  "trajectory": [
+    {
+      "time": 0.0,
+      "fidelity": 0.47350282753306083,
+      "fidelity_paop_trotter": 0.4785828274647077,
+      "fidelity_hva_trotter": 0.47350282753306083,
+      "legacy_branch_label": "hva",
+      "energy_static_exact": 0.15866790412572584,
+      "energy_static_exact_ansatz": 0.8422188504163747,
+      "energy_static_trotter": 0.8422188504163749,
+      "energy_static_exact_paop": 0.8279686747740704,
+      "energy_static_trotter_paop": 0.8279686747740711,
+      "energy_static_exact_hva": 0.8422188504163747,
+      "energy_static_trotter_hva": 0.8422188504163749,
+      "energy_total_exact": 0.15866790412572584,
+      "energy_total_exact_ansatz": 0.8422188504163747,
+      "energy_total_trotter": 0.8422188504163749,
+      "energy_total_exact_paop": 0.8279686747740704,
+      "energy_total_trotter_paop": 0.8279686747740711,
+      "energy_total_exact_hva": 0.8422188504163747,
+      "energy_total_trotter_hva": 0.8422188504163749,
+      "n_up_site0_exact": 0.5000000000000008,
+      "n_up_site0_exact_ansatz": 0.4866353590571991,
+      "n_up_site0_trotter": 0.4866353590571989,
+      "n_dn_site0_exact": 0.49999999999999956,
+      "n_dn_site0_exact_ansatz": 0.4866353590571989,
+      "n_dn_site0_trotter": 0.48663535905719896,
+      "n_up_site0_exact_paop": 0.5222004688344501,
+      "n_up_site0_trotter_paop": 0.52220046883445,
+      "n_up_site0_exact_hva": 0.4866353590571991,
+      "n_up_site0_trotter_hva": 0.4866353590571989,
+      "n_dn_site0_exact_paop": 0.4866353590571989,
+      "n_dn_site0_trotter_paop": 0.4866353590571989,
+      "n_dn_site0_exact_hva": 0.4866353590571989,
+      "n_dn_site0_trotter_hva": 0.48663535905719896,
+      "n_site_exact": [
+        1.0000000000000004,
+        1.0
+      ],
+      "n_site_exact_ansatz": [
+        0.973270718114398,
+        1.0267292818856029
+      ],
+      "n_site_trotter": [
+        0.9732707181143978,
+        1.0267292818856026
+      ],
+      "n_site_exact_paop": [
+        1.008835827891649,
+        0.9911641721083513
+      ],
+      "n_site_trotter_paop": [
+        1.008835827891649,
+        0.9911641721083513
+      ],
+      "n_site_exact_hva": [
+        0.973270718114398,
+        1.0267292818856029
+      ],
+      "n_site_trotter_hva": [
+        0.9732707181143978,
+        1.0267292818856026
+      ],
+      "staggered_exact": 2.220446049250313e-16,
+      "staggered_exact_ansatz": -0.02672928188560242,
+      "staggered_trotter": -0.02672928188560242,
+      "staggered_exact_paop": 0.008835827891648829,
+      "staggered_trotter_paop": 0.008835827891648829,
+      "staggered_exact_hva": -0.02672928188560242,
+      "staggered_trotter_hva": -0.02672928188560242,
+      "doublon_exact": 0.1523110581756513,
+      "doublon_exact_ansatz": 0.19052255271334806,
+      "doublon_trotter": 0.19052255271334795,
+      "doublon_exact_paop": 0.1883075703468807,
+      "doublon_trotter_paop": 0.18830757034688064,
+      "doublon_exact_hva": 0.19052255271334806,
+      "doublon_trotter_hva": 0.19052255271334795,
+      "doublon_avg_exact": 0.07615552908782565,
+      "doublon_avg_exact_ansatz": 0.09526127635667403,
+      "doublon_avg_trotter": 0.09526127635667397,
+      "doublon_avg_exact_paop": 0.09415378517344035,
+      "doublon_avg_trotter_paop": 0.09415378517344032,
+      "doublon_avg_exact_hva": 0.09526127635667403,
+      "doublon_avg_trotter_hva": 0.09526127635667397,
+      "n_up_site_exact": [
+        0.5000000000000008,
+        0.49999999999999933
+      ],
+      "n_up_site_exact_ansatz": [
+        0.4866353590571991,
+        0.5133646409428013
+      ],
+      "n_up_site_trotter": [
+        0.4866353590571989,
+        0.5133646409428013
+      ],
+      "n_up_site_exact_paop": [
+        0.5222004688344501,
+        0.47779953116555013
+      ],
+      "n_up_site_trotter_paop": [
+        0.52220046883445,
+        0.47779953116555
+      ],
+      "n_up_site_exact_hva": [
+        0.4866353590571991,
+        0.5133646409428013
+      ],
+      "n_up_site_trotter_hva": [
+        0.4866353590571989,
+        0.5133646409428013
+      ],
+      "n_dn_site_exact": [
+        0.49999999999999956,
+        0.5000000000000007
+      ],
+      "n_dn_site_exact_ansatz": [
+        0.4866353590571989,
+        0.5133646409428015
+      ],
+      "n_dn_site_trotter": [
+        0.48663535905719896,
+        0.5133646409428013
+      ],
+      "n_dn_site_exact_paop": [
+        0.4866353590571989,
+        0.5133646409428012
+      ],
+      "n_dn_site_trotter_paop": [
+        0.4866353590571989,
+        0.5133646409428012
+      ],
+      "n_dn_site_exact_hva": [
+        0.4866353590571989,
+        0.5133646409428015
+      ],
+      "n_dn_site_trotter_hva": [
+        0.48663535905719896,
+        0.5133646409428013
+      ],
+      "norm_before_renorm": 1.0
+    }
+  ],
+  "sanity": {
+    "jw_reference": {
+      "checked": false,
+      "reason": "no matching bundled reference for these settings"
+    }
+  },
+  "adapt_internal": {
+    "source": "internal_adapt",
+    "pool_type": "phase3_v1",
+    "ansatz_depth": 28,
+    "num_parameters": 28,
+    "energy": 0.827968674774071,
+    "abs_delta_e": 0.6693007706483447,
+    "success": true,
+    "stop_reason": "max_depth",
+    "eps_energy_termination_enabled": false,
+    "eps_grad_termination_enabled": false,
+    "adapt_drop_policy_enabled": true,
+    "adapt_drop_floor_resolved": 0.0005,
+    "adapt_drop_patience_resolved": 3,
+    "adapt_drop_min_depth_resolved": 12,
+    "adapt_grad_floor_resolved": 0.02,
+    "adapt_drop_floor_source": "auto_hh_staged",
+    "adapt_drop_patience_source": "auto_hh_staged",
+    "adapt_drop_min_depth_source": "auto_hh_staged",
+    "adapt_grad_floor_source": "auto_hh_staged",
+    "adapt_drop_policy_source": "auto_hh_staged",
+    "elapsed_s": 3.4314390420913696,
+    "allow_repeats": true,
+    "adapt_ref_source": "vqe",
+    "nfev_total": 49232
+  }
+}

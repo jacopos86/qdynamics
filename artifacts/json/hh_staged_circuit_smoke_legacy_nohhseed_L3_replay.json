@@ -1,0 +1,378 @@
+{
+  "generated_utc": "2026-03-09T17:30:11Z",
+  "pipeline": "hh_vqe_from_adapt_family",
+  "settings": {
+    "problem": "hh",
+    "L": 3,
+    "t": 1.0,
+    "u": 2.0,
+    "dv": 0.0,
+    "omega0": 1.0,
+    "g_ep": 1.0,
+    "n_ph_max": 1,
+    "boson_encoding": "binary",
+    "ordering": "blocked",
+    "boundary": "periodic",
+    "sector_n_up": 2,
+    "sector_n_dn": 1,
+    "reps": 1,
+    "restarts": 1,
+    "maxiter": 1,
+    "method": "SPSA",
+    "seed": 19,
+    "energy_backend": "one_apply_compiled",
+    "progress_every_s": 60.0,
+    "wallclock_cap_s": 43200,
+    "paop_r": 1,
+    "paop_split_paulis": false,
+    "paop_prune_eps": 0.0,
+    "paop_normalization": "none",
+    "replay_seed_policy": "auto",
+    "replay_continuation_mode": "legacy",
+    "replay_freeze_fraction": 0.2,
+    "replay_unfreeze_fraction": 0.3,
+    "replay_full_fraction": 0.5,
+    "replay_qn_spsa_refresh_every": 5,
+    "replay_qn_spsa_refresh_mode": "diag_rms_grad",
+    "phase3_symmetry_mitigation_mode": "off"
+  },
+  "generator_family": {
+    "requested": "match_adapt",
+    "resolved": "paop_lf_std",
+    "resolution_source": "adapt_vqe.pool_type",
+    "fallback_family": "full_meta",
+    "fallback_used": false,
+    "warning": null
+  },
+  "pool": {
+    "family": "paop_lf_std",
+    "dedup_total": 9
+  },
+  "replay_contract": {
+    "contract_version": 2,
+    "continuation_mode": "legacy",
+    "replay_block_source": "adapt_vqe.operators",
+    "seed_source": "adapt_vqe.optimal_point",
+    "seed_policy_requested": "auto",
+    "seed_policy_resolved": "residual_only",
+    "handoff_state_kind": "prepared_state",
+    "provenance_source": "explicit",
+    "adapt_depth": 2,
+    "reps": 1,
+    "derived_num_parameters_formula": "adapt_depth * reps",
+    "derived_num_parameters": 2
+  },
+  "seed_baseline": {
+    "theta_policy": "residual_only",
+    "energy": 2.688822457252946,
+    "abs_delta_e": 3.3876308423524826,
+    "relative_error_abs": 4.847724948048465
+  },
+  "exact": {
+    "E_exact_sector": -0.6988083850995366
+  },
+  "vqe": {
+    "success": true,
+    "message": "spsa_completed(maxiter=1,a=0.2,c=0.1,alpha=0.602,gamma=0.101,A=10.0,eval_repeats=1,eval_agg=mean,avg_last=0)",
+    "energy": 2.688822457252944,
+    "abs_delta_e": 3.387630842352481,
+    "relative_error_abs": 4.847724948048462,
+    "best_restart": 0,
+    "nfev": 3,
+    "nit": 1,
+    "num_parameters": 2,
+    "runtime_s": 0.009115749970078468,
+    "stop_reason": "converged",
+    "gate_pass_1e2": false
+  },
+  "initial_state": {
+    "source": "adapt_input_json",
+    "input_json_path": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_2/artifacts/json/hh_staged_circuit_smoke_legacy_nohhseed_L3_adapt_handoff.json",
+    "nq_total": 9,
+    "amplitudes_qn_to_q0": {
+      "000001011": {
+        "re": 0.9031609387541963,
+        "im": -0.15561194250608584
+      },
+      "000001101": {
+        "re": -0.006094806123483463,
+        "im": -0.031226791947715677
+      },
+      "000001110": {
+        "re": 0.0012055176540186343,
+        "im": -0.017153965670935595
+      },
+      "000010011": {
+        "re": 0.05659666064121587,
+        "im": 0.15996664100268493
+      },
+      "000010101": {
+        "re": 0.006626985422013672,
+        "im": 0.0016353443875253954
+      },
+      "000010110": {
+        "re": 0.002782964228702495,
+        "im": -0.0011407727806148759
+      },
+      "000100011": {
+        "re": 0.04808694576889215,
+        "im": -0.15712473946721772
+      },
+      "000100101": {
+        "re": -0.0037177831105651977,
+        "im": -0.003940321998199092
+      },
+      "000100110": {
+        "re": -0.0019515259531805442,
+        "im": -0.0019602131763215153
+      },
+      "001001011": {
+        "re": -0.2011740126180058,
+        "im": -0.09342396127618303
+      },
+      "001001101": {
+        "re": -0.003087933826045612,
+        "im": 0.007054003682181445
+      },
+      "001010110": {
+        "re": 0.0007109675840261507,
+        "im": 0.00015626976912604278
+      },
+      "001100110": {
+        "re": -0.00011839928324576944,
+        "im": -0.0006588942814829288
+      },
+      "010001101": {
+        "re": -0.012441264357866709,
+        "im": 0.002428270387786329
+      },
+      "010010011": {
+        "re": -0.06373332465552708,
+        "im": 0.022549034751594005
+      },
+      "010010110": {
+        "re": 0.0004545025233348242,
+        "im": 0.001108778440185149
+      },
+      "010100101": {
+        "re": -0.0015698886941954548,
+        "im": 0.0014812255636505501
+      },
+      "011001101": {
+        "re": 0.002810430374606715,
+        "im": 0.0012302833129242596
+      },
+      "011010110": {
+        "re": -6.226043046929503e-05,
+        "im": 0.00028326110724256486
+      },
+      "100001011": {
+        "re": 0.1631242690104668,
+        "im": -0.13378636629901333
+      },
+      "100010011": {
+        "re": 0.02950868083647615,
+        "im": 0.0255928727225692
+      },
+      "100100101": {
+        "re": 0.0011920510598738697,
+        "im": 0.0003663475902993954
+      },
+      "100100110": {
+        "re": 0.0006134399626315674,
+        "im": 0.00017065547574106915
+      },
+      "101001011": {
+        "re": -0.05089045490017191,
+        "im": 0.0041581317875211046
+      },
+      "101100110": {
+        "re": 9.85785382185317e-05,
+        "im": 0.00011845223965662726
+      },
+      "110010011": {
+        "re": -0.010196618844223331,
+        "im": 0.011756740806202834
+      },
+      "110100101": {
+        "re": 0.0001459588684426369,
+        "im": -0.00047493262800730665
+      }
+    }
+  },
+  "best_state": {
+    "amplitudes_qn_to_q0": {
+      "000001011": {
+        "re": 0.9031609387541966,
+        "im": -0.15561194250608587
+      },
+      "000001101": {
+        "re": -0.006094806123483465,
+        "im": -0.031226791947715684
+      },
+      "000001110": {
+        "re": 0.0012055176540186345,
+        "im": -0.0171539656709356
+      },
+      "000010011": {
+        "re": 0.056596660641215886,
+        "im": 0.15996664100268496
+      },
+      "000010101": {
+        "re": 0.006626985422013673,
+        "im": 0.0016353443875253958
+      },
+      "000010110": {
+        "re": 0.0027829642287024955,
+        "im": -0.001140772780614876
+      },
+      "000100011": {
+        "re": 0.048086945768892164,
+        "im": -0.15712473946721775
+      },
+      "000100101": {
+        "re": -0.0037177831105651986,
+        "im": -0.003940321998199093
+      },
+      "000100110": {
+        "re": -0.0019515259531805447,
+        "im": -0.0019602131763215157
+      },
+      "001001011": {
+        "re": -0.20117401261800585,
+        "im": -0.09342396127618305
+      },
+      "001001101": {
+        "re": -0.0030879338260456127,
+        "im": 0.007054003682181446
+      },
+      "001010110": {
+        "re": 0.0007109675840261509,
+        "im": 0.0001562697691260428
+      },
+      "001100110": {
+        "re": -0.00011839928324576947,
+        "im": -0.0006588942814829289
+      },
+      "010001101": {
+        "re": -0.012441264357866712,
+        "im": 0.0024282703877863293
+      },
+      "010010011": {
+        "re": -0.0637333246555271,
+        "im": 0.02254903475159401
+      },
+      "010010110": {
+        "re": 0.00045450252333482434,
+        "im": 0.0011087784401851491
+      },
+      "010100101": {
+        "re": -0.0015698886941954552,
+        "im": 0.0014812255636505506
+      },
+      "011001101": {
+        "re": 0.0028104303746067155,
+        "im": 0.0012302833129242598
+      },
+      "011010110": {
+        "re": -6.226043046929505e-05,
+        "im": 0.0002832611072425649
+      },
+      "100001011": {
+        "re": 0.16312426901046684,
+        "im": -0.13378636629901336
+      },
+      "100010011": {
+        "re": 0.029508680836476158,
+        "im": 0.02559287272256921
+      },
+      "100100101": {
+        "re": 0.00119205105987387,
+        "im": 0.0003663475902993955
+      },
+      "100100110": {
+        "re": 0.0006134399626315675,
+        "im": 0.00017065547574106918
+      },
+      "101001011": {
+        "re": -0.050890454900171925,
+        "im": 0.004158131787521105
+      },
+      "101100110": {
+        "re": 9.857853821853173e-05,
+        "im": 0.00011845223965662729
+      },
+      "110010011": {
+        "re": -0.010196618844223333,
+        "im": 0.011756740806202837
+      },
+      "110100101": {
+        "re": 0.00014595886844263694,
+        "im": -0.00047493262800730676
+      }
+    },
+    "best_theta": [
+      0.0,
+      0.0
+    ]
+  },
+  "progress_events_tail": [
+    {
+      "event": "run_start",
+      "label": "hh_vqe_from_adapt_family",
+      "restarts_total": 1,
+      "method": "SPSA",
+      "maxiter": 1,
+      "npar": 2,
+      "elapsed_s": 0.0
+    },
+    {
+      "event": "restart_start",
+      "label": "hh_vqe_from_adapt_family",
+      "restart_index": 1,
+      "restarts_total": 1,
+      "elapsed_s": 5.2908435463905334e-06,
+      "elapsed_restart_s": 0.0,
+      "nfev_so_far": 0,
+      "energy_best_global": null,
+      "method": "SPSA",
+      "maxiter": 1
+    },
+    {
+      "event": "restart_end",
+      "label": "hh_vqe_from_adapt_family",
+      "restart_index": 1,
+      "restarts_total": 1,
+      "elapsed_s": 0.00744816567748785,
+      "elapsed_restart_s": 0.00744295958429575,
+      "nfev_restart": 3,
+      "nit_restart": 1,
+      "nfev_so_far": 3,
+      "nit_so_far": 1,
+      "energy_current": 2.715995778181379,
+      "energy_restart_best": 2.688822457252944,
+      "energy_best_global": 2.688822457252944,
+      "theta_restart_best": null,
+      "improvement_from_start": 0.0,
+      "success": true,
+      "message": "spsa_completed(maxiter=1,a=0.2,c=0.1,alpha=0.602,gamma=0.101,A=10.0,eval_repeats=1,eval_agg=mean,avg_last=0)",
+      "method": "SPSA",
+      "maxiter": 1,
+      "delta_abs_current": 3.414804163280915,
+      "delta_abs_best": 3.387630842352481
+    },
+    {
+      "event": "run_end",
+      "label": "hh_vqe_from_adapt_family",
+      "elapsed_s": 0.007861915975809097,
+      "restarts_total": 1,
+      "best_restart": 1,
+      "energy_best": 2.688822457252944,
+      "nfev_total": 3,
+      "nit_total": 1,
+      "success": true,
+      "message": "spsa_completed(maxiter=1,a=0.2,c=0.1,alpha=0.602,gamma=0.101,A=10.0,eval_repeats=1,eval_agg=mean,avg_last=0)",
+      "history_count": 0
+    }
+  ]
+}

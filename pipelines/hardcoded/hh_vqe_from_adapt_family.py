@@ -33,6 +33,8 @@ if str(REPO_ROOT) not in sys.path:
 from pipelines.hardcoded.adapt_pipeline import (
     _build_hh_termwise_augmented_pool,
     _build_hh_full_meta_pool,
+    _build_hh_pareto_lean_l2_pool,
+    _build_hh_pareto_lean_pool,
     _build_hh_uccsd_fermion_lifted_pool,
     _build_hva_pool,
     _build_paop_pool,
@@ -40,6 +42,13 @@ from pipelines.hardcoded.adapt_pipeline import (
     _deduplicate_pool_terms_lightweight,
 )
 from pipelines.hardcoded.hh_continuation_generators import rebuild_polynomial_from_serialized_terms
+from src.quantum.ansatz_parameterization import (
+    AnsatzParameterLayout,
+    build_parameter_layout,
+    deserialize_layout,
+    expand_legacy_logical_theta,
+    project_runtime_theta_block_mean,
+)
 from src.quantum.operator_pools.polaron_paop import _make_paop_core
 from src.quantum.hubbard_latex_python_pairs import (
     boson_qubits_per_site,
@@ -48,6 +57,7 @@ from src.quantum.hubbard_latex_python_pairs import (
 from src.quantum.vqe_latex_python_pairs import (
     AnsatzTerm,
     apply_exp_pauli_polynomial,
+    apply_exp_pauli_polynomial_termwise,
     expval_pauli_polynomial,
     exact_ground_energy_sector_hh,
     vqe_minimize,
@@ -62,6 +72,8 @@ from pipelines.hardcoded.hh_continuation_replay import (
 
 EXPLICIT_FAMILIES = {
     "full_meta",
+    "pareto_lean",
+    "pareto_lean_l2",
     "uccsd_paop_lf_full",
     "hva",
     "paop",
@@ -274,13 +286,33 @@ class RunLogger:
 class PoolTermwiseAnsatz:
     """Fixed ansatz built from a list of generators, repeated by layers."""
 
-    def __init__(self, *, terms: list[AnsatzTerm], reps: int, nq: int) -> None:
+    def __init__(
+        self,
+        *,
+        terms: list[AnsatzTerm],
+        reps: int,
+        nq: int,
+        parameterization_layout: AnsatzParameterLayout | None = None,
+        parameterization_mode: str = "per_pauli_term",
+    ) -> None:
         if int(reps) < 1:
             raise ValueError("reps must be >= 1.")
         self.base_terms = list(terms)
         self.reps = int(reps)
         self.nq = int(nq)
-        self.num_parameters = int(len(self.base_terms)) * int(self.reps)
+        self.parameterization_mode = str(parameterization_mode)
+        self.base_layout = (
+            parameterization_layout
+            if parameterization_layout is not None
+            else build_parameter_layout(self.base_terms, ignore_identity=True, coefficient_tolerance=1e-12, sort_terms=True)
+        )
+        self.logical_parameter_count = int(self.base_layout.logical_parameter_count) * int(self.reps)
+        self.runtime_parameter_count = int(self.base_layout.runtime_parameter_count) * int(self.reps)
+        self.num_parameters = (
+            int(self.runtime_parameter_count)
+            if self.parameterization_mode == "per_pauli_term"
+            else int(self.logical_parameter_count)
+        )
 
     def prepare_state(
         self,
@@ -303,6 +335,27 @@ class PoolTermwiseAnsatz:
         out = np.array(psi, copy=True)
         tol = 1e-12 if coefficient_tolerance is None else float(coefficient_tolerance)
         sflag = True if sort_terms is None else bool(sort_terms)
+        if self.parameterization_mode == "per_pauli_term":
+            expected_base = int(self.base_layout.runtime_parameter_count)
+            idx = 0
+            for _ in range(self.reps):
+                for block, term in zip(self.base_layout.blocks, self.base_terms):
+                    block_theta = arr[idx: idx + int(block.runtime_count)]
+                    out = apply_exp_pauli_polynomial_termwise(
+                        out,
+                        term.polynomial,
+                        block_theta,
+                        ignore_identity=ignore_identity,
+                        coefficient_tolerance=tol,
+                        sort_terms=sflag,
+                    )
+                    idx += int(block.runtime_count)
+            if idx != int(arr.size):
+                raise ValueError(
+                    f"Per-term replay theta usage mismatch: consumed {idx}, expected {arr.size}, base_runtime={expected_base}."
+                )
+            return out
+
         idx = 0
         for _ in range(self.reps):
             for term in self.base_terms:
@@ -349,6 +402,54 @@ def _build_pool_for_family(cfg: RunConfig, *, family: str, h_poly: Any) -> tuple
 
     if family_key == "full_meta":
         pool, meta = _build_hh_full_meta_pool(
+            h_poly=h_poly,
+            num_sites=n_sites,
+            t=float(cfg.t),
+            u=float(cfg.u),
+            omega0=float(cfg.omega0),
+            g_ep=float(cfg.g_ep),
+            dv=float(cfg.dv),
+            n_ph_max=int(cfg.n_ph_max),
+            boson_encoding=str(cfg.boson_encoding),
+            ordering=str(cfg.ordering),
+            boundary=str(cfg.boundary),
+            paop_r=int(cfg.paop_r),
+            paop_split_paulis=bool(cfg.paop_split_paulis),
+            paop_prune_eps=float(cfg.paop_prune_eps),
+            paop_normalization=str(cfg.paop_normalization),
+            num_particles=num_particles,
+        )
+        out_meta = dict(base_meta)
+        out_meta["raw_sizes"] = dict(meta)
+        out_meta["dedup_total"] = int(len(pool))
+        return pool, out_meta
+
+    if family_key == "pareto_lean":
+        pool, meta = _build_hh_pareto_lean_pool(
+            h_poly=h_poly,
+            num_sites=n_sites,
+            t=float(cfg.t),
+            u=float(cfg.u),
+            omega0=float(cfg.omega0),
+            g_ep=float(cfg.g_ep),
+            dv=float(cfg.dv),
+            n_ph_max=int(cfg.n_ph_max),
+            boson_encoding=str(cfg.boson_encoding),
+            ordering=str(cfg.ordering),
+            boundary=str(cfg.boundary),
+            paop_r=int(cfg.paop_r),
+            paop_split_paulis=bool(cfg.paop_split_paulis),
+            paop_prune_eps=float(cfg.paop_prune_eps),
+            paop_normalization=str(cfg.paop_normalization),
+            num_particles=num_particles,
+        )
+        out_meta = dict(base_meta)
+        out_meta["raw_sizes"] = dict(meta)
+        out_meta["dedup_total"] = int(len(pool))
+        return pool, out_meta
+
+    if family_key == "pareto_lean_l2":
+        pool, meta = _build_hh_pareto_lean_l2_pool(
             h_poly=h_poly,
             num_sites=n_sites,
             t=float(cfg.t),
@@ -537,12 +638,13 @@ def _extract_adapt_operator_theta_sequence(payload: Mapping[str, Any]) -> tuple[
         )
     ops_raw = adapt.get("operators", None)
     theta_raw = adapt.get("optimal_point", None)
+    has_parameterization = isinstance(adapt.get("parameterization", None), Mapping)
 
     if not isinstance(ops_raw, list) or len(ops_raw) == 0:
         raise ValueError("Input JSON missing non-empty list adapt_vqe.operators.")
     if not isinstance(theta_raw, list) or len(theta_raw) == 0:
         raise ValueError("Input JSON missing non-empty list adapt_vqe.optimal_point.")
-    if len(ops_raw) != len(theta_raw):
+    if (not has_parameterization) and len(ops_raw) != len(theta_raw):
         raise ValueError(
             "Length mismatch between adapt_vqe.operators and adapt_vqe.optimal_point: "
             f"{len(ops_raw)} vs {len(theta_raw)}."
@@ -571,6 +673,27 @@ def _extract_adapt_operator_theta_sequence(payload: Mapping[str, Any]) -> tuple[
 
     theta = np.asarray(theta_vals, dtype=float)
     return labels, theta
+
+
+def _extract_payload_parameterization_layout(payload: Mapping[str, Any]) -> AnsatzParameterLayout | None:
+    adapt = payload.get("adapt_vqe", None)
+    if not isinstance(adapt, Mapping):
+        return None
+    raw = adapt.get("parameterization", None)
+    if not isinstance(raw, Mapping):
+        return None
+    layout = deserialize_layout(raw)
+    labels = [str(x).strip() for x in adapt.get("operators", []) if str(x).strip() != ""]
+    if int(layout.logical_parameter_count) != int(len(labels)):
+        raise ValueError(
+            f"parameterization logical block count {layout.logical_parameter_count} does not match operators length {len(labels)}."
+        )
+    for idx, label in enumerate(labels):
+        if str(layout.blocks[idx].candidate_label) != str(label):
+            raise ValueError(
+                f"parameterization block label mismatch at {idx}: {layout.blocks[idx].candidate_label!r} vs {label!r}."
+            )
+    return layout
 
 
 def _inject_replay_terms_from_payload(
@@ -1121,7 +1244,8 @@ def run(cfg: RunConfig) -> dict[str, Any]:
         )
         logger.log(f"Computed exact sector energy via ED: E_exact={e_exact:.12f}")
 
-    adapt_labels, adapt_theta = _extract_adapt_operator_theta_sequence(payload_in)
+    adapt_labels, adapt_theta_payload = _extract_adapt_operator_theta_sequence(payload_in)
+    payload_layout = _extract_payload_parameterization_layout(payload_in)
 
     # ── Provenance resolution ────────────────────────────────────────
     handoff_state_kind, provenance_source = _infer_handoff_state_kind(payload_in)
@@ -1145,13 +1269,6 @@ def run(cfg: RunConfig) -> dict[str, Any]:
         f"replay_seed_policy={cfg.replay_seed_policy}"
     )
 
-    seed_theta, resolved_seed_policy = _build_replay_seed_theta_policy(
-        adapt_theta,
-        reps=int(cfg.reps),
-        policy=str(cfg.replay_seed_policy),
-        handoff_state_kind=str(handoff_state_kind),
-    )
-
     family_resolved = str(family_info["resolved"])
     if family_resolved == "full_meta" and int(cfg.n_ph_max) >= 2:
         replay_terms, pool_meta = _build_full_meta_replay_terms_sparse(
@@ -1165,8 +1282,39 @@ def run(cfg: RunConfig) -> dict[str, Any]:
         pool, pool_meta = _build_pool_for_family(cfg, family=family_resolved, h_poly=h_poly)
         replay_terms = _build_replay_terms_from_adapt_labels(pool, adapt_labels, payload=payload_in)
         family_terms_count = int(len(pool))
+
+    if payload_layout is not None:
+        adapt_theta_runtime = np.asarray(adapt_theta_payload, dtype=float)
+        if int(adapt_theta_runtime.size) != int(payload_layout.runtime_parameter_count):
+            raise ValueError(
+                f"parameterized replay payload runtime theta length {adapt_theta_runtime.size} != layout runtime count {payload_layout.runtime_parameter_count}."
+            )
+        adapt_theta_logical_raw = payload_in.get("adapt_vqe", {}).get("logical_optimal_point", None)
+        if isinstance(adapt_theta_logical_raw, Sequence):
+            adapt_theta_logical = np.asarray([float(x) for x in adapt_theta_logical_raw], dtype=float)
+        else:
+            adapt_theta_logical = np.asarray(project_runtime_theta_block_mean(adapt_theta_runtime, payload_layout), dtype=float)
+        base_layout = payload_layout
+    else:
+        base_layout = build_parameter_layout(replay_terms, ignore_identity=True, coefficient_tolerance=1e-12, sort_terms=True)
+        adapt_theta_logical = np.asarray(adapt_theta_payload, dtype=float)
+        adapt_theta_runtime = np.asarray(expand_legacy_logical_theta(adapt_theta_logical, base_layout), dtype=float)
+
+    seed_theta, resolved_seed_policy = _build_replay_seed_theta_policy(
+        adapt_theta_runtime,
+        reps=int(cfg.reps),
+        policy=str(cfg.replay_seed_policy),
+        handoff_state_kind=str(handoff_state_kind),
+    )
+
     nq = int(2 * int(cfg.L) + int(cfg.L) * int(boson_qubits_per_site(int(cfg.n_ph_max), str(cfg.boson_encoding))))
-    ansatz = PoolTermwiseAnsatz(terms=replay_terms, reps=int(cfg.reps), nq=nq)
+    ansatz = PoolTermwiseAnsatz(
+        terms=replay_terms,
+        reps=int(cfg.reps),
+        nq=nq,
+        parameterization_layout=base_layout,
+        parameterization_mode="per_pauli_term",
+    )
     if int(seed_theta.size) != int(ansatz.num_parameters):
         raise ValueError(
             "Internal replay parameter mismatch: "
@@ -1174,7 +1322,7 @@ def run(cfg: RunConfig) -> dict[str, Any]:
         )
     logger.log(
         f"Pool built: family={family_info['resolved']} family_terms={family_terms_count} "
-        f"adapt_depth={len(adapt_labels)} replay_terms={len(replay_terms)} npar={ansatz.num_parameters}"
+        f"adapt_depth={len(adapt_labels)} replay_terms={len(replay_terms)} base_runtime_npar={base_layout.runtime_parameter_count} replay_npar={ansatz.num_parameters}"
     )
     psi_seed = np.asarray(ansatz.prepare_state(seed_theta, psi_ref), dtype=complex).reshape(-1)
     seed_energy = float(expval_pauli_polynomial(psi_seed, h_poly))
@@ -1276,7 +1424,7 @@ def run(cfg: RunConfig) -> dict[str, Any]:
             ansatz=ansatz,
             psi_ref=psi_ref,
             seed_theta=np.asarray(seed_theta, dtype=float),
-            scaffold_block_size=int(len(adapt_labels)),
+            scaffold_block_size=int(base_layout.runtime_parameter_count),
             seed_policy_resolved=str(resolved_seed_policy),
             handoff_state_kind=str(handoff_state_kind),
             cfg=replay_cfg,
@@ -1310,7 +1458,7 @@ def run(cfg: RunConfig) -> dict[str, Any]:
             ansatz=ansatz,
             psi_ref=psi_ref,
             seed_theta=np.asarray(seed_theta, dtype=float),
-            scaffold_block_size=int(len(adapt_labels)),
+            scaffold_block_size=int(base_layout.runtime_parameter_count),
             seed_policy_resolved=str(resolved_seed_policy),
             handoff_state_kind=str(handoff_state_kind),
             cfg=replay_cfg,
@@ -1349,7 +1497,7 @@ def run(cfg: RunConfig) -> dict[str, Any]:
             ansatz=ansatz,
             psi_ref=psi_ref,
             seed_theta=np.asarray(seed_theta, dtype=float),
-            scaffold_block_size=int(len(adapt_labels)),
+            scaffold_block_size=int(base_layout.runtime_parameter_count),
             seed_policy_resolved=str(resolved_seed_policy),
             handoff_state_kind=str(handoff_state_kind),
             cfg=replay_cfg,
@@ -1442,8 +1590,11 @@ def run(cfg: RunConfig) -> dict[str, Any]:
             "handoff_state_kind": str(handoff_state_kind),
             "provenance_source": str(provenance_source),
             "adapt_depth": int(len(adapt_labels)),
+            "adapt_logical_num_parameters": int(base_layout.logical_parameter_count),
+            "adapt_runtime_num_parameters": int(base_layout.runtime_parameter_count),
             "reps": int(cfg.reps),
-            "derived_num_parameters_formula": "adapt_depth * reps",
+            "parameterization_mode": str(ansatz.parameterization_mode),
+            "derived_num_parameters_formula": "adapt_runtime_num_parameters * reps",
             "derived_num_parameters": int(ansatz.num_parameters),
         },
         "seed_baseline": {
@@ -1451,6 +1602,10 @@ def run(cfg: RunConfig) -> dict[str, Any]:
             "energy": float(seed_energy),
             "abs_delta_e": float(seed_delta_abs),
             "relative_error_abs": float(seed_relative_abs),
+            "logical_num_parameters": int(base_layout.logical_parameter_count),
+            "runtime_num_parameters": int(base_layout.runtime_parameter_count),
+            "adapt_logical_theta": [float(x) for x in adapt_theta_logical.tolist()],
+            "adapt_runtime_theta": [float(x) for x in adapt_theta_runtime.tolist()],
         },
         "exact": {"E_exact_sector": float(e_exact)},
         "vqe": {
@@ -1546,8 +1701,10 @@ def run(cfg: RunConfig) -> dict[str, Any]:
             f"- abs_delta_e: {delta_abs}",
             f"- relative_error_abs: {rel_abs}",
             f"- replay_adapt_depth: {len(adapt_labels)}",
+            f"- replay_logical_npar: {base_layout.logical_parameter_count}",
+            f"- replay_runtime_npar_base: {base_layout.runtime_parameter_count}",
             f"- replay_reps: {cfg.reps}",
-            f"- replay_npar: {ansatz.num_parameters} (= adapt_depth * reps)",
+            f"- replay_npar: {ansatz.num_parameters} (= runtime_base_npar * reps)",
             f"- seed_policy_requested: {cfg.replay_seed_policy}",
             f"- seed_policy_resolved: {resolved_seed_policy}",
             f"- handoff_state_kind: {handoff_state_kind}",

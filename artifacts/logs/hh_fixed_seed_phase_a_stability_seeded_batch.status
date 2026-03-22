@@ -1,0 +1,5 @@
+STARTING_RELAUNCH_3
+CMD=/opt/anaconda3/bin/python -u pipelines/exact_bench/hh_fixed_seed_phase_a_stability.py --fixed-seed-json artifacts/json/20260317_hh_l2_g0p5_nph2_hva_live_bridgeadaptive_replay_fgv2_adapt_handoff.json --generator-family uccsd_otimes_paop_lf_std --output-json /Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/artifacts/json/hh_fixed_seed_phase_a_stability_seeded_batch.json --tag l2_seeded_nontrivial_patch_compare --t-final 0.04 --num-times 5 --ode-substeps 1 --transition-shots 2048 --observable-shots 2048 --oracle-seed 7 --oracle-repeats 3 --active-window-size 2 --nontrivial-prefix 3 --include-ideal-fixed-patch-track --backend-name FakeGuadalupeV2 --use-fake-backend --fixed-physical-patch 0,1,2,3,4,5,6,7,8 --prefix-theta-init-mode seed
+PID=82770
+LOG=/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/artifacts/logs/hh_fixed_seed_phase_a_stability_seeded_batch.log
+OUT=/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/artifacts/json/hh_fixed_seed_phase_a_stability_seeded_batch.json

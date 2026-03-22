@@ -1,0 +1,112 @@
+{
+  "generated_utc": "2026-03-14T00:07:49Z",
+  "settings": {
+    "L": 2,
+    "problem": "hh",
+    "t": 1.0,
+    "u": 2.0,
+    "dv": 0.0,
+    "omega0": 1.0,
+    "g_ep": 1.0,
+    "n_ph_max": 1,
+    "boson_encoding": "binary",
+    "ordering": "blocked",
+    "boundary": "open",
+    "sector_n_up": 1,
+    "sector_n_dn": 1,
+    "adapt_pool": "paop_lf_std"
+  },
+  "adapt_vqe": {
+    "energy": -1.03,
+    "abs_delta_e": 0.01,
+    "relative_error_abs": 0.009615384615384623,
+    "operators": [
+      "op_1",
+      "op_2"
+    ],
+    "optimal_point": [
+      0.1,
+      0.2
+    ],
+    "ansatz_depth": 2,
+    "num_parameters": 2,
+    "pool_type": "paop_lf_std",
+    "pre_prune_scaffold": {},
+    "prune_summary": {}
+  },
+  "ground_state": {
+    "exact_energy": -1.04,
+    "exact_energy_filtered": -1.04,
+    "filtered_sector": {
+      "n_up": 1,
+      "n_dn": 1
+    },
+    "method": "staged_handoff_bundle"
+  },
+  "initial_state": {
+    "source": "adapt_vqe",
+    "nq_total": 6,
+    "amplitudes_qn_to_q0": {
+      "000010": {
+        "re": 1.0,
+        "im": 0.0
+      }
+    },
+    "amplitude_cutoff": 1e-14,
+    "norm": 1.0,
+    "handoff_state_kind": "prepared_state"
+  },
+  "exact": {
+    "E_exact_sector": -1.04
+  },
+  "continuation": {
+    "mode": "phase3_v1",
+    "scaffold": {},
+    "optimizer_memory": {
+      "cached": true
+    },
+    "selected_generator_metadata": [
+      {
+        "generator_id": "g1",
+        "family_id": "paop_lf_std"
+      }
+    ],
+    "generator_split_events": [],
+    "motif_library": {},
+    "motif_usage": {},
+    "symmetry_mitigation": {},
+    "rescue_history": [],
+    "replay_contract": {
+      "contract_version": 2,
+      "generator_family": {
+        "requested": "match_adapt",
+        "resolved": "paop_lf_std",
+        "resolution_source": "continuation.selected_generator_metadata.family_id",
+        "fallback_family": "full_meta",
+        "fallback_used": false
+      },
+      "seed_policy_requested": "auto",
+      "seed_policy_resolved": "residual_only",
+      "handoff_state_kind": "prepared_state",
+      "provenance_source": "explicit",
+      "continuation_mode": "phase3_v1",
+      "contract_seed_hint": "built-in_staged_writer"
+    },
+    "replay_contract_hint": {
+      "generator_family": "match_adapt",
+      "fallback_family": "full_meta",
+      "replay_seed_policy": "auto",
+      "replay_continuation_mode": "phase3_v1"
+    }
+  },
+  "meta": {
+    "pipeline": "hh_staged_noiseless",
+    "workflow_tag": "hh_staged_L2_drive_t1_U2_dv0_w1_g1_nph1_warmhh_hva_ptw_b3d876db0d",
+    "stage_chain": [
+      "hf_reference",
+      "warm_start_hva",
+      "adapt_vqe",
+      "matched_family_replay"
+    ]
+  }
+}

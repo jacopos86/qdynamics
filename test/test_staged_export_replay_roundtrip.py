@@ -20,6 +20,7 @@ if str(REPO_ROOT) not in sys.path:
 
 from pipelines.hardcoded.hh_vqe_from_adapt_family import (
     _extract_adapt_operator_theta_sequence,
+    _extract_payload_parameterization_layout,
     _infer_handoff_state_kind,
     _resolve_family_from_metadata,
 )
@@ -27,6 +28,8 @@ from pipelines.hardcoded.handoff_state_bundle import (
     HandoffStateBundleConfig,
     write_handoff_state_bundle,
 )
+from src.quantum.ansatz_parameterization import build_parameter_layout, serialize_layout
+from src.quantum.vqe_latex_python_pairs import AnsatzTerm, PauliPolynomial, PauliTerm
 
 
 # ---------------------------------------------------------------------------
@@ -39,6 +42,9 @@ def _make_staged_export_payload(
     L: int = 2,
     operators: list[str] | None = None,
     optimal_point: list[float] | None = None,
+    logical_optimal_point: list[float] | None = None,
+    logical_num_parameters: int | None = None,
+    parameterization: dict | None = None,
     pool_type: str | None = None,
 ) -> dict:
     if operators is None:
@@ -52,12 +58,28 @@ def _make_staged_export_payload(
     dim = 1 << nq
     psi = np.zeros(dim, dtype=complex)
     psi[0] = 1.0
-    # Build amplitudes dict
     amps = {}
     for idx in range(dim):
         amp = psi[idx]
         if abs(amp) > 1e-14:
             amps[format(idx, f"0{nq}b")] = {"re": float(np.real(amp)), "im": float(np.imag(amp))}
+
+    adapt_vqe = {
+        "energy": -1.0,
+        "abs_delta_e": 0.01,
+        "relative_error_abs": 0.001,
+        "operators": operators,
+        "optimal_point": optimal_point,
+        "ansatz_depth": len(operators),
+        "num_parameters": len(optimal_point),
+        "pool_type": pool_type,
+    }
+    if logical_optimal_point is not None:
+        adapt_vqe["logical_optimal_point"] = logical_optimal_point
+    if logical_num_parameters is not None:
+        adapt_vqe["logical_num_parameters"] = int(logical_num_parameters)
+    if parameterization is not None:
+        adapt_vqe["parameterization"] = dict(parameterization)
 
     return {
         "generated_utc": "2026-03-06T00:00:00Z",
@@ -76,16 +98,7 @@ def _make_staged_export_payload(
             "sector_n_up": (L + 1) // 2,
             "sector_n_dn": L // 2,
         },
-        "adapt_vqe": {
-            "energy": -1.0,
-            "abs_delta_e": 0.01,
-            "relative_error_abs": 0.001,
-            "operators": operators,
-            "optimal_point": optimal_point,
-            "ansatz_depth": len(operators),
-            "num_parameters": len(optimal_point),
-            "pool_type": pool_type,
-        },
+        "adapt_vqe": adapt_vqe,
         "initial_state": {
             "source": "A_probe_final",
             "nq_total": nq,
@@ -96,6 +109,26 @@ def _make_staged_export_payload(
         },
         "exact": {"E_exact_sector": -2.0},
     }
+
+
+def _make_runtime_layout() -> tuple[dict[str, object], list[float], list[float]]:
+    terms = [
+        AnsatzTerm(
+            label="op_x",
+            polynomial=PauliPolynomial(
+                "JW",
+                [PauliTerm(2, ps="xx", pc=1.0), PauliTerm(2, ps="zz", pc=0.5)],
+            ),
+        ),
+        AnsatzTerm(
+            label="op_y",
+            polynomial=PauliPolynomial("JW", [PauliTerm(2, ps="xy", pc=1.0)]),
+        ),
+    ]
+    layout = build_parameter_layout(terms)
+    logical_theta = [0.125, -0.2]
+    runtime_theta = [0.1, 0.15, -0.2]
+    return serialize_layout(layout), logical_theta, runtime_theta
 
 
 # ---------------------------------------------------------------------------
@@ -116,6 +149,23 @@ class TestCanonicalReplayFieldsPresent:
         payload = _make_staged_export_payload(operators=["a", "b"], optimal_point=[0.1, 0.2])
         labels, theta = _extract_adapt_operator_theta_sequence(payload)
         assert len(labels) == len(theta)
+
+    def test_parameterized_runtime_vector_can_exceed_operator_length(self) -> None:
+        parameterization, logical_theta, runtime_theta = _make_runtime_layout()
+        payload = _make_staged_export_payload(
+            operators=["op_x", "op_y"],
+            optimal_point=runtime_theta,
+            logical_optimal_point=logical_theta,
+            logical_num_parameters=2,
+            parameterization=parameterization,
+        )
+        labels, theta = _extract_adapt_operator_theta_sequence(payload)
+        layout = _extract_payload_parameterization_layout(payload)
+        assert labels == ["op_x", "op_y"]
+        assert np.allclose(theta, runtime_theta)
+        assert layout is not None
+        assert int(layout.logical_parameter_count) == 2
+        assert int(layout.runtime_parameter_count) == 3
 
     def test_pool_type_resolves_pool_a(self) -> None:
         payload = _make_staged_export_payload(pool_type="pool_a")
@@ -221,6 +271,8 @@ class TestWriteStateBundleRoundTrip:
         psi = np.zeros(1 << nq, dtype=complex)
         psi[0] = 1.0
 
+        parameterization, logical_theta, runtime_theta = _make_runtime_layout()
+
         out_path = tmp_path / "stage_export.json"
         write_handoff_state_bundle(
             path=out_path,
@@ -233,11 +285,14 @@ class TestWriteStateBundleRoundTrip:
             relative_error_abs=0.05,
             meta={"run_id": "A_probe", "budget_name": "probe"},
             adapt_operators=["op_x", "op_y"],
-            adapt_optimal_point=[0.1, -0.2],
+            adapt_optimal_point=runtime_theta,
+            adapt_logical_optimal_point=logical_theta,
+            adapt_parameterization=parameterization,
+            adapt_logical_num_parameters=2,
             adapt_pool_type="pool_a",
             continuation_mode="phase1_v1",
-            continuation_scaffold={"num_parameters": 2, "post_prune": True},
-            optimizer_memory={"version": "phase2_optimizer_memory_v1", "parameter_count": 2, "available": True},
+            continuation_scaffold={"num_parameters": 3, "post_prune": True},
+            optimizer_memory={"version": "phase2_optimizer_memory_v1", "parameter_count": 3, "available": True},
             selected_generator_metadata=[
                 {
                     "generator_id": "gen:1",
@@ -277,6 +332,9 @@ class TestWriteStateBundleRoundTrip:
             rescue_history=[{"enabled": False, "triggered": False, "reason": "disabled"}],
             pre_prune_scaffold={"operators": ["op_x", "op_y", "op_z"]},
             prune_summary={"executed": True, "accepted_count": 1},
+            ansatz_input_state=np.array(psi, copy=True),
+            ansatz_input_state_source="warm_start_hva",
+            ansatz_input_state_handoff_state_kind="prepared_state",
         )
 
         # Read back and validate
@@ -284,10 +342,16 @@ class TestWriteStateBundleRoundTrip:
 
         # Canonical replay fields
         labels, theta = _extract_adapt_operator_theta_sequence(payload)
+        layout = _extract_payload_parameterization_layout(payload)
         assert labels == ["op_x", "op_y"]
-        assert np.allclose(theta, [0.1, -0.2])
+        assert np.allclose(theta, runtime_theta)
+        assert layout is not None
+        assert int(layout.logical_parameter_count) == 2
+        assert int(layout.runtime_parameter_count) == 3
         assert payload["adapt_vqe"]["ansatz_depth"] == 2
-        assert payload["adapt_vqe"]["num_parameters"] == 2
+        assert payload["adapt_vqe"]["num_parameters"] == 3
+        assert payload["adapt_vqe"]["logical_num_parameters"] == 2
+        assert np.allclose(payload["adapt_vqe"]["logical_optimal_point"], logical_theta)
         assert payload["adapt_vqe"]["pool_type"] == "pool_a"
 
         # Family resolution
@@ -302,8 +366,11 @@ class TestWriteStateBundleRoundTrip:
         # Initial state
         assert "amplitudes_qn_to_q0" in payload["initial_state"]
         assert payload["initial_state"]["nq_total"] == nq
+        assert payload["ansatz_input_state"]["source"] == "warm_start_hva"
+        assert payload["ansatz_input_state"]["handoff_state_kind"] == "prepared_state"
+        assert payload["ansatz_input_state"]["nq_total"] == nq
         assert payload["continuation"]["mode"] == "phase1_v1"
-        assert payload["continuation"]["optimizer_memory"]["parameter_count"] == 2
+        assert payload["continuation"]["optimizer_memory"]["parameter_count"] == 3
         assert payload["continuation"]["selected_generator_metadata"][0]["generator_id"] == "gen:1"
         assert payload["continuation"]["motif_library"]["records"][0]["motif_id"] == "motif:1"
         assert payload["continuation"]["symmetry_mitigation"]["mode"] == "verify_only"
@@ -348,6 +415,7 @@ class TestWriteStateBundleRoundTrip:
 
         payload = json.loads(out_path.read_text(encoding="utf-8"))
         assert "continuation" not in payload
+        assert "ansatz_input_state" not in payload
 
         labels, theta = _extract_adapt_operator_theta_sequence(payload)
         assert labels == ["op_x"]

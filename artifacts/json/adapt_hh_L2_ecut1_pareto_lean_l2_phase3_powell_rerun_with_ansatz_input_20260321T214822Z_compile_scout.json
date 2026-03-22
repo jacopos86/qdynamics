@@ -1,0 +1,969 @@
+{
+  "artifacts": {
+    "output_json": "artifacts/json/adapt_hh_L2_ecut1_pareto_lean_l2_phase3_powell_rerun_with_ansatz_input_20260321T214822Z_compile_scout.json"
+  },
+  "config": {
+    "candidate_backends": [],
+    "optimization_level": 1,
+    "output_json": null,
+    "requested_backend_name": "ibm_boston",
+    "seed_transpiler": 7,
+    "source": {
+      "default_subject": false,
+      "mode": "imported_artifact",
+      "requested_json": "artifacts/json/adapt_hh_L2_ecut1_pareto_lean_l2_phase3_powell_rerun_with_ansatz_input_20260321T214822Z.json",
+      "resolved_json": "artifacts/json/adapt_hh_L2_ecut1_pareto_lean_l2_phase3_powell_rerun_with_ansatz_input_20260321T214822Z.json",
+      "source_kind": "direct_payload"
+    },
+    "sweep_backends": true
+  },
+  "generated_utc": "2026-03-22T16:39:51.935529+00:00",
+  "import_source": {
+    "default_subject": false,
+    "mode": "imported_artifact",
+    "requested_json": "artifacts/json/adapt_hh_L2_ecut1_pareto_lean_l2_phase3_powell_rerun_with_ansatz_input_20260321T214822Z.json",
+    "resolved_json": "artifacts/json/adapt_hh_L2_ecut1_pareto_lean_l2_phase3_powell_rerun_with_ansatz_input_20260321T214822Z.json",
+    "source_kind": "direct_payload"
+  },
+  "logical_circuit": {
+    "abstract_depth": 85,
+    "abstract_size": 205,
+    "ansatz_input_state_kind": "reference_state",
+    "ansatz_input_state_source": "hf",
+    "exact_energy": 0.15866790412572634,
+    "logical_parameter_count": 14,
+    "num_qubits": 6,
+    "operator_count": 14,
+    "reference_state_embedded": true,
+    "runtime_parameter_count": 25,
+    "saved_artifact_energy": 0.15872408236037028
+  },
+  "measurement_cost": {
+    "hamiltonian_terms": 17,
+    "qwc_groups": 4,
+    "shots_per_group_mha": [
+      2539063,
+      195313,
+      195313,
+      97657
+    ],
+    "total_shots_mha": 3027346
+  },
+  "pipeline": "adapt_circuit_compile_scout",
+  "requested_backend": {
+    "error": "ValueError: Unknown fake backend 'FakeIbmBostonV2'. Available examples: FakeAlmadenV2, FakeArmonkV2, FakeAthensV2, FakeBelemV2, FakeBoeblingenV2, FakeBogotaV2, FakeBrooklynV2, FakeBurlingtonV2",
+    "fallback_to_sweep": false,
+    "name": "ibm_boston",
+    "resolved_name": "ibm_boston",
+    "supported_locally": false
+  },
+  "rows": [
+    {
+      "backend_kind": "local_fake",
+      "error": "ValueError: Unknown fake backend 'FakeIbmBostonV2'. Available examples: FakeAlmadenV2, FakeArmonkV2, FakeAthensV2, FakeBelemV2, FakeBoeblingenV2, FakeBogotaV2, FakeBrooklynV2, FakeBurlingtonV2",
+      "logical_qubits_required": 6,
+      "requested_backend_name": "ibm_boston",
+      "transpile_backend": "ibm_boston",
+      "transpile_status": "backend_unavailable"
+    },
+    {
+      "backend_kind": "local_fake",
+      "backend_num_qubits": 20,
+      "compiled_count_2q": 88,
+      "compiled_cx_count": 88,
+      "compiled_depth": 89,
+      "compiled_ecr_count": 0,
+      "compiled_num_qubits": 20,
+      "compiled_op_counts": {
+        "cx": 88,
+        "u1": 23,
+        "u2": 22,
+        "u3": 2
+      },
+      "compiled_size": 135,
+      "error": null,
+      "layout_physical_qubits": [
+        7,
+        14,
+        12,
+        18,
+        13,
+        11
+      ],
+      "logical_qubits_required": 6,
+      "requested_backend_name": "FakeAlmadenV2",
+      "transpile_backend": "FakeAlmadenV2",
+      "transpile_status": "ok"
+    },
+    {
+      "backend_kind": "local_fake",
+      "backend_num_qubits": 1,
+      "error": "logical circuit requires 6 qubits but backend provides 1",
+      "logical_qubits_required": 6,
+      "requested_backend_name": "FakeArmonkV2",
+      "transpile_backend": "FakeArmonkV2",
+      "transpile_status": "insufficient_qubits"
+    },
+    {
+      "backend_kind": "local_fake",
+      "backend_num_qubits": 5,
+      "error": "logical circuit requires 6 qubits but backend provides 5",
+      "logical_qubits_required": 6,
+      "requested_backend_name": "FakeAthensV2",
+      "transpile_backend": "FakeAthensV2",
+      "transpile_status": "insufficient_qubits"
+    },
+    {
+      "backend_kind": "local_fake",
+      "backend_num_qubits": 5,
+      "error": "logical circuit requires 6 qubits but backend provides 5",
+      "logical_qubits_required": 6,
+      "requested_backend_name": "FakeBelemV2",
+      "transpile_backend": "FakeBelemV2",
+      "transpile_status": "insufficient_qubits"
+    },
+    {
+      "backend_kind": "local_fake",
+      "backend_num_qubits": 20,
+      "compiled_count_2q": 88,
+      "compiled_cx_count": 88,
+      "compiled_depth": 89,
+      "compiled_ecr_count": 0,
+      "compiled_num_qubits": 20,
+      "compiled_op_counts": {
+        "cx": 88,
+        "u1": 23,
+        "u2": 22,
+        "u3": 2
+      },
+      "compiled_size": 135,
+      "error": null,
+      "layout_physical_qubits": [
+        9,
+        4,
+        8,
+        2,
+        3,
+        7
+      ],
+      "logical_qubits_required": 6,
+      "requested_backend_name": "FakeBoeblingenV2",
+      "transpile_backend": "FakeBoeblingenV2",
+      "transpile_status": "ok"
+    },
+    {
+      "backend_kind": "local_fake",
+      "backend_num_qubits": 5,
+      "error": "logical circuit requires 6 qubits but backend provides 5",
+      "logical_qubits_required": 6,
+      "requested_backend_name": "FakeBogotaV2",
+      "transpile_backend": "FakeBogotaV2",
+      "transpile_status": "insufficient_qubits"
+    },
+    {
+      "backend_kind": "local_fake",
+      "backend_num_qubits": 65,
+      "compiled_count_2q": 95,
+      "compiled_cx_count": 95,
+      "compiled_depth": 121,
+      "compiled_ecr_count": 0,
+      "compiled_num_qubits": 65,
+      "compiled_op_counts": {
+        "cx": 95,
+        "rz": 59,
+        "sx": 22,
+        "x": 2
+      },
+      "compiled_size": 178,
+      "error": null,
+      "layout_physical_qubits": [
+        21,
+        18,
+        20,
+        25,
+        33,
+        19
+      ],
+      "logical_qubits_required": 6,
+      "requested_backend_name": "FakeBrooklynV2",
+      "transpile_backend": "FakeBrooklynV2",
+      "transpile_status": "ok"
+    },
+    {
+      "backend_kind": "local_fake",
+      "backend_num_qubits": 5,
+      "error": "logical circuit requires 6 qubits but backend provides 5",
+      "logical_qubits_required": 6,
+      "requested_backend_name": "FakeBurlingtonV2",
+      "transpile_backend": "FakeBurlingtonV2",
+      "transpile_status": "insufficient_qubits"
+    },
+    {
+      "backend_kind": "local_fake",
+      "backend_num_qubits": 27,
+      "compiled_count_2q": 94,
+      "compiled_cx_count": 49,
+      "compiled_depth": 249,
+      "compiled_ecr_count": 45,
+      "compiled_num_qubits": 27,
+      "compiled_op_counts": {
+        "cx": 49,
+        "ecr": 45,
+        "rz": 264,
+        "sx": 140,
+        "x": 25
+      },
+      "compiled_size": 523,
+      "error": null,
+      "layout_physical_qubits": [
+        24,
+        17,
+        23,
+        15,
+        18,
+        21
+      ],
+      "logical_qubits_required": 6,
+      "requested_backend_name": "FakeCairoV2",
+      "transpile_backend": "FakeCairoV2",
+      "transpile_status": "ok"
+    },
+    {
+      "backend_kind": "local_fake",
+      "backend_num_qubits": 28,
+      "compiled_count_2q": 100,
+      "compiled_cx_count": 100,
+      "compiled_depth": 83,
+      "compiled_ecr_count": 0,
+      "compiled_num_qubits": 28,
+      "compiled_op_counts": {
+        "cx": 100,
+        "u1": 23,
+        "u2": 22,
+        "u3": 2
+      },
+      "compiled_size": 147,
+      "error": null,
+      "layout_physical_qubits": [
+        2,
+        6,
+        3,
+        13,
+        12,
+        4
+      ],
+      "logical_qubits_required": 6,
+      "requested_backend_name": "FakeCambridgeV2",
+      "transpile_backend": "FakeCambridgeV2",
+      "transpile_status": "ok"
+    },
+    {
+      "backend_kind": "local_fake",
+      "backend_num_qubits": 7,
+      "compiled_count_2q": 94,
+      "compiled_cx_count": 94,
+      "compiled_depth": 108,
+      "compiled_ecr_count": 0,
+      "compiled_num_qubits": 7,
+      "compiled_op_counts": {
+        "cx": 94,
+        "rz": 59,
+        "sx": 22,
+        "x": 2
+      },
+      "compiled_size": 177,
+      "error": null,
+      "layout_physical_qubits": [
+        2,
+        4,
+        1,
+        6,
+        5,
+        3
+      ],
+      "logical_qubits_required": 6,
+      "requested_backend_name": "FakeCasablancaV2",
+      "transpile_backend": "FakeCasablancaV2",
+      "transpile_status": "ok"
+    },
+    {
+      "backend_kind": "local_fake",
+      "backend_num_qubits": 5,
+      "error": "logical circuit requires 6 qubits but backend provides 5",
+      "logical_qubits_required": 6,
+      "requested_backend_name": "FakeEssexV2",
+      "transpile_backend": "FakeEssexV2",
+      "transpile_status": "insufficient_qubits"
+    },
+    {
+      "backend_kind": "local_fake",
+      "backend_num_qubits": 16,
+      "compiled_count_2q": 94,
+      "compiled_cx_count": 94,
+      "compiled_depth": 108,
+      "compiled_ecr_count": 0,
+      "compiled_num_qubits": 16,
+      "compiled_op_counts": {
+        "cx": 94,
+        "rz": 59,
+        "sx": 22,
+        "x": 2
+      },
+      "compiled_size": 177,
+      "error": null,
+      "layout_physical_qubits": [
+        0,
+        10,
+        1,
+        6,
+        7,
+        4
+      ],
+      "logical_qubits_required": 6,
+      "requested_backend_name": "FakeGuadalupeV2",
+      "transpile_backend": "FakeGuadalupeV2",
+      "transpile_status": "ok"
+    },
+    {
+      "backend_kind": "local_fake",
+      "backend_num_qubits": 27,
+      "compiled_count_2q": 94,
+      "compiled_cx_count": 94,
+      "compiled_depth": 127,
+      "compiled_ecr_count": 0,
+      "compiled_num_qubits": 27,
+      "compiled_op_counts": {
+        "cx": 94,
+        "rz": 59,
+        "sx": 22,
+        "x": 2
+      },
+      "compiled_size": 177,
+      "error": null,
+      "layout_physical_qubits": [
+        1,
+        0,
+        2,
+        4,
+        7,
+        3
+      ],
+      "logical_qubits_required": 6,
+      "requested_backend_name": "FakeHanoiV2",
+      "transpile_backend": "FakeHanoiV2",
+      "transpile_status": "ok"
+    },
+    {
+      "backend_kind": "local_fake",
+      "backend_num_qubits": 7,
+      "compiled_count_2q": 94,
+      "compiled_cx_count": 94,
+      "compiled_depth": 108,
+      "compiled_ecr_count": 0,
+      "compiled_num_qubits": 7,
+      "compiled_op_counts": {
+        "cx": 94,
+        "rz": 59,
+        "sx": 22,
+        "x": 2
+      },
+      "compiled_size": 177,
+      "error": null,
+      "layout_physical_qubits": [
+        6,
+        2,
+        5,
+        0,
+        1,
+        3
+      ],
+      "logical_qubits_required": 6,
+      "requested_backend_name": "FakeJakartaV2",
+      "transpile_backend": "FakeJakartaV2",
+      "transpile_status": "ok"
+    },
+    {
+      "backend_kind": "local_fake",
+      "backend_num_qubits": 20,
+      "compiled_count_2q": 89,
+      "compiled_cx_count": 89,
+      "compiled_depth": 91,
+      "compiled_ecr_count": 0,
+      "compiled_num_qubits": 20,
+      "compiled_op_counts": {
+        "cx": 89,
+        "u1": 23,
+        "u2": 22,
+        "u3": 2
+      },
+      "compiled_size": 136,
+      "error": null,
+      "layout_physical_qubits": [
+        10,
+        6,
+        11,
+        13,
+        7,
+        12
+      ],
+      "logical_qubits_required": 6,
+      "requested_backend_name": "FakeJohannesburgV2",
+      "transpile_backend": "FakeJohannesburgV2",
+      "transpile_status": "ok"
+    },
+    {
+      "backend_kind": "local_fake",
+      "backend_num_qubits": 27,
+      "compiled_count_2q": 94,
+      "compiled_cx_count": 94,
+      "compiled_depth": 127,
+      "compiled_ecr_count": 0,
+      "compiled_num_qubits": 27,
+      "compiled_op_counts": {
+        "cx": 94,
+        "rz": 59,
+        "sx": 22,
+        "x": 2
+      },
+      "compiled_size": 177,
+      "error": null,
+      "layout_physical_qubits": [
+        25,
+        26,
+        24,
+        22,
+        19,
+        23
+      ],
+      "logical_qubits_required": 6,
+      "requested_backend_name": "FakeKolkataV2",
+      "transpile_backend": "FakeKolkataV2",
+      "transpile_status": "ok"
+    },
+    {
+      "backend_kind": "local_fake",
+      "backend_num_qubits": 7,
+      "compiled_count_2q": 94,
+      "compiled_cx_count": 94,
+      "compiled_depth": 108,
+      "compiled_ecr_count": 0,
+      "compiled_num_qubits": 7,
+      "compiled_op_counts": {
+        "cx": 94,
+        "rz": 59,
+        "sx": 22,
+        "x": 2
+      },
+      "compiled_size": 177,
+      "error": null,
+      "layout_physical_qubits": [
+        4,
+        2,
+        5,
+        0,
+        1,
+        3
+      ],
+      "logical_qubits_required": 6,
+      "requested_backend_name": "FakeLagosV2",
+      "transpile_backend": "FakeLagosV2",
+      "transpile_status": "ok"
+    },
+    {
+      "backend_kind": "local_fake",
+      "backend_num_qubits": 5,
+      "error": "logical circuit requires 6 qubits but backend provides 5",
+      "logical_qubits_required": 6,
+      "requested_backend_name": "FakeLimaV2",
+      "transpile_backend": "FakeLimaV2",
+      "transpile_status": "insufficient_qubits"
+    },
+    {
+      "backend_kind": "local_fake",
+      "backend_num_qubits": 5,
+      "error": "logical circuit requires 6 qubits but backend provides 5",
+      "logical_qubits_required": 6,
+      "requested_backend_name": "FakeLondonV2",
+      "transpile_backend": "FakeLondonV2",
+      "transpile_status": "insufficient_qubits"
+    },
+    {
+      "backend_kind": "local_fake",
+      "backend_num_qubits": 65,
+      "compiled_count_2q": 95,
+      "compiled_cx_count": 95,
+      "compiled_depth": 121,
+      "compiled_ecr_count": 0,
+      "compiled_num_qubits": 65,
+      "compiled_op_counts": {
+        "cx": 95,
+        "rz": 59,
+        "sx": 22,
+        "x": 2
+      },
+      "compiled_size": 178,
+      "error": null,
+      "layout_physical_qubits": [
+        33,
+        40,
+        34,
+        36,
+        37,
+        35
+      ],
+      "logical_qubits_required": 6,
+      "requested_backend_name": "FakeManhattanV2",
+      "transpile_backend": "FakeManhattanV2",
+      "transpile_status": "ok"
+    },
+    {
+      "backend_kind": "local_fake",
+      "backend_num_qubits": 5,
+      "error": "logical circuit requires 6 qubits but backend provides 5",
+      "logical_qubits_required": 6,
+      "requested_backend_name": "FakeManilaV2",
+      "transpile_backend": "FakeManilaV2",
+      "transpile_status": "insufficient_qubits"
+    },
+    {
+      "backend_kind": "local_fake",
+      "backend_num_qubits": 15,
+      "compiled_count_2q": 76,
+      "compiled_cx_count": 76,
+      "compiled_depth": 93,
+      "compiled_ecr_count": 0,
+      "compiled_num_qubits": 15,
+      "compiled_op_counts": {
+        "cx": 76,
+        "rz": 59,
+        "sx": 22,
+        "x": 2
+      },
+      "compiled_size": 159,
+      "error": null,
+      "layout_physical_qubits": [
+        13,
+        11,
+        1,
+        2,
+        3,
+        0
+      ],
+      "logical_qubits_required": 6,
+      "requested_backend_name": "FakeMelbourneV2",
+      "transpile_backend": "FakeMelbourneV2",
+      "transpile_status": "ok"
+    },
+    {
+      "backend_kind": "local_fake",
+      "backend_num_qubits": 27,
+      "compiled_count_2q": 94,
+      "compiled_cx_count": 94,
+      "compiled_depth": 127,
+      "compiled_ecr_count": 0,
+      "compiled_num_qubits": 27,
+      "compiled_op_counts": {
+        "cx": 94,
+        "rz": 59,
+        "sx": 22,
+        "x": 2
+      },
+      "compiled_size": 177,
+      "error": null,
+      "layout_physical_qubits": [
+        14,
+        16,
+        11,
+        13,
+        12,
+        8
+      ],
+      "logical_qubits_required": 6,
+      "requested_backend_name": "FakeMontrealV2",
+      "transpile_backend": "FakeMontrealV2",
+      "transpile_status": "ok"
+    },
+    {
+      "backend_kind": "local_fake",
+      "backend_num_qubits": 27,
+      "compiled_count_2q": 94,
+      "compiled_cx_count": 94,
+      "compiled_depth": 127,
+      "compiled_ecr_count": 0,
+      "compiled_num_qubits": 27,
+      "compiled_op_counts": {
+        "cx": 94,
+        "rz": 59,
+        "sx": 22,
+        "x": 2
+      },
+      "compiled_size": 177,
+      "error": null,
+      "layout_physical_qubits": [
+        25,
+        26,
+        22,
+        24,
+        23,
+        19
+      ],
+      "logical_qubits_required": 6,
+      "requested_backend_name": "FakeMumbaiV2",
+      "transpile_backend": "FakeMumbaiV2",
+      "transpile_status": "ok"
+    },
+    {
+      "backend_kind": "local_fake",
+      "backend_num_qubits": 7,
+      "compiled_count_2q": 94,
+      "compiled_cx_count": 94,
+      "compiled_depth": 108,
+      "compiled_ecr_count": 0,
+      "compiled_num_qubits": 7,
+      "compiled_op_counts": {
+        "cx": 94,
+        "rz": 59,
+        "sx": 22,
+        "x": 2
+      },
+      "compiled_size": 177,
+      "error": null,
+      "layout_physical_qubits": [
+        2,
+        6,
+        1,
+        4,
+        5,
+        3
+      ],
+      "logical_qubits_required": 6,
+      "requested_backend_name": "FakeNairobiV2",
+      "transpile_backend": "FakeNairobiV2",
+      "transpile_status": "ok"
+    },
+    {
+      "backend_kind": "local_fake",
+      "backend_num_qubits": 5,
+      "error": "logical circuit requires 6 qubits but backend provides 5",
+      "logical_qubits_required": 6,
+      "requested_backend_name": "FakeOurenseV2",
+      "transpile_backend": "FakeOurenseV2",
+      "transpile_status": "insufficient_qubits"
+    },
+    {
+      "backend_kind": "local_fake",
+      "backend_num_qubits": 27,
+      "compiled_count_2q": 94,
+      "compiled_cx_count": 94,
+      "compiled_depth": 127,
+      "compiled_ecr_count": 0,
+      "compiled_num_qubits": 27,
+      "compiled_op_counts": {
+        "cx": 94,
+        "rz": 59,
+        "sx": 22,
+        "x": 2
+      },
+      "compiled_size": 177,
+      "error": null,
+      "layout_physical_qubits": [
+        25,
+        26,
+        22,
+        24,
+        23,
+        19
+      ],
+      "logical_qubits_required": 6,
+      "requested_backend_name": "FakeParisV2",
+      "transpile_backend": "FakeParisV2",
+      "transpile_status": "ok"
+    },
+    {
+      "backend_kind": "local_fake",
+      "backend_num_qubits": 20,
+      "compiled_count_2q": 89,
+      "compiled_cx_count": 89,
+      "compiled_depth": 91,
+      "compiled_ecr_count": 0,
+      "compiled_num_qubits": 20,
+      "compiled_op_counts": {
+        "cx": 89,
+        "u1": 23,
+        "u2": 22,
+        "u3": 2
+      },
+      "compiled_size": 136,
+      "error": null,
+      "layout_physical_qubits": [
+        12,
+        6,
+        11,
+        15,
+        5,
+        10
+      ],
+      "logical_qubits_required": 6,
+      "requested_backend_name": "FakePoughkeepsieV2",
+      "transpile_backend": "FakePoughkeepsieV2",
+      "transpile_status": "ok"
+    },
+    {
+      "backend_kind": "local_fake",
+      "backend_num_qubits": 0,
+      "error": "logical circuit requires 6 qubits but backend provides 0",
+      "logical_qubits_required": 6,
+      "requested_backend_name": "FakeProviderForBackendV2",
+      "transpile_backend": "FakeProviderForBackendV2",
+      "transpile_status": "insufficient_qubits"
+    },
+    {
+      "backend_kind": "local_fake",
+      "backend_num_qubits": 5,
+      "error": "logical circuit requires 6 qubits but backend provides 5",
+      "logical_qubits_required": 6,
+      "requested_backend_name": "FakeQuitoV2",
+      "transpile_backend": "FakeQuitoV2",
+      "transpile_status": "insufficient_qubits"
+    },
+    {
+      "backend_kind": "local_fake",
+      "backend_num_qubits": 53,
+      "compiled_count_2q": 98,
+      "compiled_cx_count": 98,
+      "compiled_depth": 83,
+      "compiled_ecr_count": 0,
+      "compiled_num_qubits": 53,
+      "compiled_op_counts": {
+        "cx": 98,
+        "u1": 23,
+        "u2": 22,
+        "u3": 2
+      },
+      "compiled_size": 145,
+      "error": null,
+      "layout_physical_qubits": [
+        21,
+        8,
+        20,
+        16,
+        7,
+        19
+      ],
+      "logical_qubits_required": 6,
+      "requested_backend_name": "FakeRochesterV2",
+      "transpile_backend": "FakeRochesterV2",
+      "transpile_status": "ok"
+    },
+    {
+      "backend_kind": "local_fake",
+      "backend_num_qubits": 5,
+      "error": "logical circuit requires 6 qubits but backend provides 5",
+      "logical_qubits_required": 6,
+      "requested_backend_name": "FakeRomeV2",
+      "transpile_backend": "FakeRomeV2",
+      "transpile_status": "insufficient_qubits"
+    },
+    {
+      "backend_kind": "local_fake",
+      "backend_num_qubits": 5,
+      "error": "logical circuit requires 6 qubits but backend provides 5",
+      "logical_qubits_required": 6,
+      "requested_backend_name": "FakeSantiagoV2",
+      "transpile_backend": "FakeSantiagoV2",
+      "transpile_status": "insufficient_qubits"
+    },
+    {
+      "backend_kind": "local_fake",
+      "backend_num_qubits": 20,
+      "compiled_count_2q": 88,
+      "compiled_cx_count": 88,
+      "compiled_depth": 89,
+      "compiled_ecr_count": 0,
+      "compiled_num_qubits": 20,
+      "compiled_op_counts": {
+        "cx": 88,
+        "u1": 23,
+        "u2": 22,
+        "u3": 2
+      },
+      "compiled_size": 135,
+      "error": null,
+      "layout_physical_qubits": [
+        10,
+        15,
+        11,
+        17,
+        16,
+        12
+      ],
+      "logical_qubits_required": 6,
+      "requested_backend_name": "FakeSingaporeV2",
+      "transpile_backend": "FakeSingaporeV2",
+      "transpile_status": "ok"
+    },
+    {
+      "backend_kind": "local_fake",
+      "backend_num_qubits": 27,
+      "compiled_count_2q": 94,
+      "compiled_cx_count": 94,
+      "compiled_depth": 127,
+      "compiled_ecr_count": 0,
+      "compiled_num_qubits": 27,
+      "compiled_op_counts": {
+        "cx": 94,
+        "rz": 59,
+        "sx": 22,
+        "x": 2
+      },
+      "compiled_size": 177,
+      "error": null,
+      "layout_physical_qubits": [
+        8,
+        9,
+        11,
+        5,
+        3,
+        14
+      ],
+      "logical_qubits_required": 6,
+      "requested_backend_name": "FakeSydneyV2",
+      "transpile_backend": "FakeSydneyV2",
+      "transpile_status": "ok"
+    },
+    {
+      "backend_kind": "local_fake",
+      "backend_num_qubits": 27,
+      "compiled_count_2q": 94,
+      "compiled_cx_count": 94,
+      "compiled_depth": 127,
+      "compiled_ecr_count": 0,
+      "compiled_num_qubits": 27,
+      "compiled_op_counts": {
+        "cx": 94,
+        "rz": 59,
+        "sx": 22,
+        "x": 2
+      },
+      "compiled_size": 177,
+      "error": null,
+      "layout_physical_qubits": [
+        8,
+        9,
+        11,
+        5,
+        3,
+        14
+      ],
+      "logical_qubits_required": 6,
+      "requested_backend_name": "FakeTorontoV2",
+      "transpile_backend": "FakeTorontoV2",
+      "transpile_status": "ok"
+    },
+    {
+      "backend_kind": "local_fake",
+      "backend_num_qubits": 5,
+      "error": "logical circuit requires 6 qubits but backend provides 5",
+      "logical_qubits_required": 6,
+      "requested_backend_name": "FakeValenciaV2",
+      "transpile_backend": "FakeValenciaV2",
+      "transpile_status": "insufficient_qubits"
+    },
+    {
+      "backend_kind": "local_fake",
+      "backend_num_qubits": 5,
+      "error": "logical circuit requires 6 qubits but backend provides 5",
+      "logical_qubits_required": 6,
+      "requested_backend_name": "FakeVigoV2",
+      "transpile_backend": "FakeVigoV2",
+      "transpile_status": "insufficient_qubits"
+    },
+    {
+      "backend_kind": "local_fake",
+      "backend_num_qubits": 127,
+      "compiled_count_2q": 94,
+      "compiled_cx_count": 94,
+      "compiled_depth": 108,
+      "compiled_ecr_count": 0,
+      "compiled_num_qubits": 127,
+      "compiled_op_counts": {
+        "cx": 94,
+        "rz": 59,
+        "sx": 22,
+        "x": 2
+      },
+      "compiled_size": 177,
+      "error": null,
+      "layout_physical_qubits": [
+        36,
+        55,
+        51,
+        48,
+        49,
+        50
+      ],
+      "logical_qubits_required": 6,
+      "requested_backend_name": "FakeWashingtonV2",
+      "transpile_backend": "FakeWashingtonV2",
+      "transpile_status": "ok"
+    },
+    {
+      "backend_kind": "local_fake",
+      "backend_num_qubits": 5,
+      "error": "logical circuit requires 6 qubits but backend provides 5",
+      "logical_qubits_required": 6,
+      "requested_backend_name": "FakeYorktownV2",
+      "transpile_backend": "FakeYorktownV2",
+      "transpile_status": "insufficient_qubits"
+    }
+  ],
+  "selected_backend": {
+    "backend_kind": "local_fake",
+    "backend_num_qubits": 15,
+    "compiled_count_2q": 76,
+    "compiled_cx_count": 76,
+    "compiled_depth": 93,
+    "compiled_ecr_count": 0,
+    "compiled_num_qubits": 15,
+    "compiled_op_counts": {
+      "cx": 76,
+      "rz": 59,
+      "sx": 22,
+      "x": 2
+    },
+    "compiled_size": 159,
+    "error": null,
+    "layout_physical_qubits": [
+      13,
+      11,
+      1,
+      2,
+      3,
+      0
+    ],
+    "logical_qubits_required": 6,
+    "requested_backend_name": "FakeMelbourneV2",
+    "transpile_backend": "FakeMelbourneV2",
+    "transpile_status": "ok"
+  },
+  "success": true,
+  "summary": {
+    "candidate_count": 42,
+    "reference_state_embedded": true,
+    "requested_backend_supported_locally": false,
+    "selected_backend": "FakeMelbourneV2",
+    "successful_candidates": 24,
+    "warnings": []
+  },
+  "workflow_contract": {
+    "requested_backend_policy": "local_fake_only_then_sweep",
+    "runtime_lookup": false,
+    "scope": "local_fake_backend_transpile_only",
+    "selection_metric": [
+      "compiled_count_2q",
+      "compiled_depth",
+      "compiled_size",
+      "transpile_backend"
+    ]
+  }
+}

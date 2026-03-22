@@ -1,0 +1,47 @@
+{
+  "scope": {
+    "local_only": true,
+    "noise_enabled": false,
+    "problem": "hh",
+    "run_kind": "hardcoded_conventional_vqe_equivalent"
+  },
+  "physics": {
+    "L": 2,
+    "t": 1.0,
+    "u": 4.0,
+    "dv": 0.0,
+    "omega0": 0.0,
+    "g_ep": 0.0,
+    "n_ph_max": 2,
+    "boundary": "open",
+    "ordering": "blocked"
+  },
+  "ansatz_family": "uccsd_ferm_lifted",
+  "exact_energy": -0.8284271247461902,
+  "records": [
+    {
+      "method": "Powell",
+      "energy": -0.4999999872008458,
+      "delta_abs": 0.32842713754534436,
+      "success": true,
+      "nfev": 174,
+      "nit": 5,
+      "best_restart": 0,
+      "runtime_s": 2.153905374929309,
+      "parameter_count": 3,
+      "term_count": 3
+    },
+    {
+      "method": "SPSA",
+      "energy": -0.48677801253682984,
+      "delta_abs": 0.34164911220936034,
+      "success": true,
+      "nfev": 3001,
+      "nit": 1500,
+      "best_restart": 0,
+      "runtime_s": 46.31517308484763,
+      "parameter_count": 3,
+      "term_count": 3
+    }
+  ]
+}

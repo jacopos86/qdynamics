@@ -1,0 +1,58 @@
+{
+  "generated_utc": "2026-03-17T18:46:42Z",
+  "settings": {
+    "L": 2,
+    "problem": "hh",
+    "t": 1.0,
+    "u": 4.0,
+    "dv": 0.0,
+    "omega0": 1.0,
+    "g_ep": 0.5,
+    "n_ph_max": 1,
+    "boson_encoding": "binary",
+    "ordering": "blocked",
+    "boundary": "open",
+    "sector_n_up": 1,
+    "sector_n_dn": 1,
+    "adapt_pool": "uccsd_otimes_paop_lf_std"
+  },
+  "adapt_vqe": {
+    "energy": -1.0,
+    "abs_delta_e": 0.0,
+    "relative_error_abs": 0.0,
+    "operators": [
+      "uccsd_otimes_paop::uccsd_ferm_lifted::uccsd_sing(alpha:0->1)::paop_lf_std::delta_p(0,1)"
+    ],
+    "optimal_point": [
+      0.0
+    ],
+    "ansatz_depth": 1,
+    "num_parameters": 1,
+    "pool_type": "uccsd_otimes_paop_lf_std"
+  },
+  "ground_state": {
+    "exact_energy": -1.0,
+    "exact_energy_filtered": -1.0,
+    "filtered_sector": {
+      "n_up": 1,
+      "n_dn": 1
+    },
+    "method": "staged_handoff_bundle"
+  },
+  "initial_state": {
+    "source": "hf",
+    "nq_total": 6,
+    "amplitudes_qn_to_q0": {
+      "000000": {
+        "re": 1.0,
+        "im": 0.0
+      }
+    },
+    "amplitude_cutoff": 1e-14,
+    "norm": 1.0,
+    "handoff_state_kind": "reference_state"
+  },
+  "exact": {
+    "E_exact_sector": -1.0
+  }
+}

@@ -1,0 +1,176 @@
+{
+  "generated_utc": "2026-03-09T17:29:28Z",
+  "settings": {
+    "L": 2,
+    "problem": "hh",
+    "t": 1.0,
+    "u": 2.0,
+    "dv": 0.0,
+    "omega0": 1.0,
+    "g_ep": 1.0,
+    "n_ph_max": 1,
+    "boson_encoding": "binary",
+    "ordering": "blocked",
+    "boundary": "periodic",
+    "sector_n_up": 1,
+    "sector_n_dn": 1,
+    "adapt_pool": "phase1_v1"
+  },
+  "adapt_vqe": {
+    "energy": 1.4353877634712173,
+    "abs_delta_e": 1.824940866768275,
+    "relative_error_abs": 4.684703706176481,
+    "operators": [
+      "hh_termwise_ham_quadrature_term(yezeee)",
+      "hh_termwise_ham_quadrature_term(yeeeze)",
+      "hh_termwise_ham_quadrature_term(eyeeez)",
+      "hh_termwise_ham_quadrature_term(eyezee)",
+      "paop_lf_std:paop_curdrag(0,1)",
+      "paop_lf_std:paop_curdrag(0,1)"
+    ],
+    "optimal_point": [
+      0.31465934718154187,
+      0.727950263901793,
+      0.5135090855755321,
+      0.6199331402618147,
+      0.2,
+      0.1
+    ],
+    "ansatz_depth": 6,
+    "num_parameters": 6,
+    "pool_type": "phase1_v1",
+    "prune_summary": {
+      "enabled": false,
+      "executed": false,
+      "rolled_back": false,
+      "accepted_count": 0,
+      "candidate_count": 0,
+      "decisions": [],
+      "energy_before": 1.4353877634712173,
+      "energy_after_prune": 1.4353877634712173,
+      "energy_after_post_refit": 1.4353877634712173,
+      "post_refit_executed": false
+    }
+  },
+  "initial_state": {
+    "source": "adapt_vqe",
+    "nq_total": 6,
+    "amplitudes_qn_to_q0": {
+      "000101": {
+        "re": 0.5513662513847593,
+        "im": -0.246268556083331
+      },
+      "000110": {
+        "re": 0.005719237488395531,
+        "im": -0.1490050715664541
+      },
+      "001001": {
+        "re": 0.022313657171835078,
+        "im": -0.06348389977889728
+      },
+      "001010": {
+        "re": 0.04795590146585453,
+        "im": -0.07085980856031494
+      },
+      "010101": {
+        "re": -0.36330692721815394,
+        "im": 0.10705379071546187
+      },
+      "010110": {
+        "re": -0.1053895689152613,
+        "im": -0.08782962046218006
+      },
+      "011001": {
+        "re": -0.10255419059380008,
+        "im": -0.07321718561130154
+      },
+      "011010": {
+        "re": -0.0801558928630107,
+        "im": -0.011078766811684161
+      },
+      "100101": {
+        "re": 0.364071501340687,
+        "im": 0.076095625142037
+      },
+      "100110": {
+        "re": 0.10057325930312683,
+        "im": 0.06300823775769993
+      },
+      "101001": {
+        "re": 0.11173317824121616,
+        "im": 0.1205221106647473
+      },
+      "101010": {
+        "re": 0.07888995706451836,
+        "im": 0.014384755597805086
+      },
+      "110101": {
+        "re": -0.3188092058179144,
+        "im": -0.05344638555177398
+      },
+      "110110": {
+        "re": -0.012396114647634597,
+        "im": -0.24236453646920056
+      },
+      "111001": {
+        "re": -0.012210824615273765,
+        "im": -0.24140962385457834
+      },
+      "111010": {
+        "re": 0.06498516098488633,
+        "im": -0.06825462165502413
+      }
+    },
+    "amplitude_cutoff": 1e-14,
+    "norm": 1.0,
+    "handoff_state_kind": "prepared_state"
+  },
+  "exact": {
+    "E_exact_sector": -0.38955310329705756
+  },
+  "continuation": {
+    "mode": "phase1_v1",
+    "scaffold": {
+      "selected_operator_labels": [
+        "hh_termwise_ham_quadrature_term(yezeee)",
+        "hh_termwise_ham_quadrature_term(yeeeze)",
+        "hh_termwise_ham_quadrature_term(eyeeez)",
+        "hh_termwise_ham_quadrature_term(eyezee)",
+        "paop_lf_std:paop_curdrag(0,1)",
+        "paop_lf_std:paop_curdrag(0,1)"
+      ],
+      "selected_generator_ids": [],
+      "num_parameters": 6,
+      "generator_family": "phase1_v1",
+      "continuation_mode": "phase1_v1",
+      "compiled_pauli_cache_size": 72,
+      "measurement_plan_version": "phase1_grouped_label_reuse",
+      "post_prune": false,
+      "split_event_count": 0,
+      "motif_record_ids": []
+    },
+    "optimizer_memory": {},
+    "selected_generator_metadata": [],
+    "generator_split_events": [],
+    "motif_library": {},
+    "motif_usage": {},
+    "symmetry_mitigation": {},
+    "rescue_history": [],
+    "replay_contract_hint": {
+      "generator_family": "match_adapt",
+      "fallback_family": "full_meta",
+      "replay_seed_policy": "auto",
+      "replay_continuation_mode": "phase1_v1"
+    }
+  },
+  "meta": {
+    "pipeline": "hh_staged_noiseless",
+    "workflow_tag": "hh_staged_circuit_smoke_noprune_L2",
+    "stage_chain": [
+      "hf_reference",
+      "warm_start_hva",
+      "adapt_vqe",
+      "matched_family_replay"
+    ]
+  }
+}
