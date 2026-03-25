@@ -1214,6 +1214,114 @@ def _build_hh_pareto_lean_l2_pool(
     return dedup_pool, meta
 
 
+# ---------------------------------------------------------------------------
+# Gate-pruned pool: informed by term-level leave-one-out analysis.
+# For operators where one Pauli term suffices, replace the multi-term
+# polynomial with the single dominant term.  This halves the 2Q gate count
+# for uccsd_sing and paop_hopdrag at zero energy regression.
+# See artifacts/reports/hh_prune_nighthawk_pareto_menu_20260322.md
+# ---------------------------------------------------------------------------
+
+# Mapping: operator label pattern -> list of Pauli strings to KEEP.
+# If an operator label matches, its polynomial is replaced with only the
+# listed Pauli terms (preserving original coefficients).
+# None means keep the original (no pruning).
+_GATE_PRUNE_TERM_KEEP: dict[str, list[str] | None] = {
+    "uccsd_sing(alpha:0->1)": ["eeeexy"],   # drop eeeeyx (reg ~0)
+    "uccsd_sing(beta:2->3)":  ["eeyxee"],   # drop eexyee (reg ~0)
+    "paop_hopdrag":           ["yeyyee"],    # drop yexxee (reg ~0)
+}
+
+
+def _gate_prune_polynomial(
+    label: str,
+    poly: Any,
+) -> Any:
+    """If the operator matches a gate-prune rule, return a trimmed polynomial."""
+    for pattern, keep_paulis in _GATE_PRUNE_TERM_KEEP.items():
+        if keep_paulis is None:
+            continue
+        if pattern in label:
+            terms = poly.return_polynomial()
+            if not terms:
+                return poly
+            nq = int(terms[0].nqubit())
+            keep_set = set(keep_paulis)
+            kept_terms = [t for t in terms if str(t.pw2strng()) in keep_set]
+            if not kept_terms:
+                return poly  # safety: if nothing matches, keep original
+            pruned = PauliPolynomial("JW", [
+                PauliTerm(nq, ps=str(t.pw2strng()), pc=float(t.p_coeff))
+                for t in kept_terms
+            ])
+            return pruned
+    return poly
+
+
+def _build_hh_pareto_lean_gate_pruned_pool(
+    *,
+    h_poly: Any,
+    num_sites: int,
+    t: float,
+    u: float,
+    omega0: float,
+    g_ep: float,
+    dv: float,
+    n_ph_max: int,
+    boson_encoding: str,
+    ordering: str,
+    boundary: str,
+    paop_r: int,
+    paop_split_paulis: bool,
+    paop_prune_eps: float,
+    paop_normalization: str,
+    num_particles: tuple[int, int],
+) -> tuple[list[AnsatzTerm], dict[str, int]]:
+    """Pareto-lean pool with gate-level term pruning.
+
+    Starts from pareto_lean, then replaces multi-term operators with single-term
+    variants where term-level leave-one-out showed zero regression:
+      - uccsd_sing(alpha:0->1): keep only eeeexy (drop eeeeyx)
+      - uccsd_sing(beta:2->3):  keep only eeyxee (drop eexyee)
+      - paop_hopdrag(*):        keep only yeyyee (drop yexxee)
+
+    All other operators (paop_dbl_p, paop_disp, quadrature) are unchanged.
+    """
+    # Build the base pareto_lean pool
+    base_pool, base_meta = _build_hh_pareto_lean_pool(
+        h_poly=h_poly,
+        num_sites=int(num_sites),
+        t=float(t),
+        u=float(u),
+        omega0=float(omega0),
+        g_ep=float(g_ep),
+        dv=float(dv),
+        n_ph_max=int(n_ph_max),
+        boson_encoding=str(boson_encoding),
+        ordering=str(ordering),
+        boundary=str(boundary),
+        paop_r=int(paop_r),
+        paop_split_paulis=bool(paop_split_paulis),
+        paop_prune_eps=float(paop_prune_eps),
+        paop_normalization=str(paop_normalization),
+        num_particles=num_particles,
+    )
+
+    # Apply gate-level term pruning
+    pruned_pool: list[AnsatzTerm] = []
+    n_pruned = 0
+    for term in base_pool:
+        pruned_poly = _gate_prune_polynomial(term.label, term.polynomial)
+        if pruned_poly is not term.polynomial:
+            n_pruned += 1
+        pruned_pool.append(AnsatzTerm(label=term.label, polynomial=pruned_poly))
+
+    meta = dict(base_meta)
+    meta["gate_pruned_operators"] = int(n_pruned)
+    meta["gate_prune_rules"] = {k: v for k, v in _GATE_PRUNE_TERM_KEEP.items() if v is not None}
+    return pruned_pool, meta
+
+
 def _apply_pauli_polynomial_uncached(state: np.ndarray, poly: Any) -> np.ndarray:
     r"""Compute G|psi> where G is a PauliPolynomial (sum of weighted Pauli strings).
 
@@ -2232,6 +2340,31 @@ def _run_hardcoded_adapt_vqe(
                 dedup_total=int(len(pool_lean_l2)),
             )
             return list(pool_lean_l2), "hardcoded_adapt_vqe_pareto_lean_l2"
+        if key == "pareto_lean_gate_pruned":
+            pool_gp, gp_sizes = _build_hh_pareto_lean_gate_pruned_pool(
+                h_poly=h_poly,
+                num_sites=int(num_sites),
+                t=float(t),
+                u=float(u),
+                omega0=float(omega0),
+                g_ep=float(g_ep),
+                dv=float(dv),
+                n_ph_max=int(n_ph_max),
+                boson_encoding=str(boson_encoding),
+                ordering=str(ordering),
+                boundary=str(boundary),
+                paop_r=int(paop_r),
+                paop_split_paulis=bool(paop_split_paulis),
+                paop_prune_eps=float(paop_prune_eps),
+                paop_normalization=str(paop_normalization),
+                num_particles=num_particles,
+            )
+            _ai_log(
+                "hardcoded_adapt_pareto_lean_gate_pruned_pool_built",
+                **gp_sizes,
+                dedup_total=int(len(pool_gp)),
+            )
+            return list(pool_gp), "hardcoded_adapt_vqe_pareto_lean_gate_pruned"
         if key == "uccsd_paop_lf_full":
             uccsd_lifted_pool = _build_hh_uccsd_fermion_lifted_pool(
                 int(num_sites),
@@ -2301,7 +2434,7 @@ def _run_hardcoded_adapt_vqe(
             return _build_full_hamiltonian_pool(h_poly, normalize_coeff=True), "hardcoded_adapt_vqe_full_hamiltonian_hh"
         raise ValueError(
             "For problem='hh', supported ADAPT pools are: "
-            "hva, full_meta, pareto_lean, pareto_lean_l2, uccsd_paop_lf_full, paop, paop_min, paop_std, paop_full, "
+            "hva, full_meta, pareto_lean, pareto_lean_l2, pareto_lean_gate_pruned, uccsd_paop_lf_full, paop, paop_min, paop_std, paop_full, "
             "paop_lf, paop_lf_std, paop_lf2_std, paop_lf_full, full_hamiltonian"
         )
 
@@ -2311,7 +2444,7 @@ def _run_hardcoded_adapt_vqe(
     phase1_residual_indices: set[int] = set()
     phase1_depth0_full_meta_override = False
     if continuation_mode in {"phase1_v1", "phase2_v1", "phase3_v1"} and problem_key == "hh":
-        if pool_key_input in ("full_meta", "pareto_lean", "pareto_lean_l2"):
+        if pool_key_input in ("full_meta", "pareto_lean", "pareto_lean_l2", "pareto_lean_gate_pruned"):
             phase1_depth0_full_meta_override = True
             pool, _pool_method = _build_hh_pool_by_key(str(pool_key_input))
             phase1_core_limit = int(len(pool))
@@ -6165,6 +6298,7 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
             "full_meta",
             "pareto_lean",
             "pareto_lean_l2",
+            "pareto_lean_gate_pruned",
             "uccsd_paop_lf_full",
             "paop",
             "paop_min",

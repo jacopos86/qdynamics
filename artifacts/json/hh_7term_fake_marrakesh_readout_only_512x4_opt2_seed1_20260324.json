@@ -1,0 +1,142 @@
+{
+  "generated_utc": "2026-03-24T16:22:56Z",
+  "pipeline": "hh_7term_fake_marrakesh_readout_only_v1",
+  "artifact_json": "artifacts/json/hh_prune_nighthawk_gate_pruned_7term.json",
+  "config": {
+    "backend_name": "FakeMarrakesh",
+    "shots": 512,
+    "oracle_repeats": 4,
+    "oracle_aggregate": "mean",
+    "mitigation_config": {
+      "mode": "readout",
+      "local_readout_strategy": "mthree"
+    },
+    "symmetry_mitigation_config": {
+      "mode": "off"
+    },
+    "seed": 7,
+    "seed_transpiler": 1,
+    "transpile_optimization_level": 2
+  },
+  "result": {
+    "noisy_mean": 0.4421866873744875,
+    "noisy_std": 0.07911695380981114,
+    "noisy_stdev": 0.07911695380981114,
+    "noisy_stderr": 0.03955847690490557,
+    "ideal_mean": 0.15909070323441615,
+    "ideal_std": 0.0,
+    "ideal_stdev": 0.0,
+    "ideal_stderr": 0.0,
+    "delta_mean": 0.28309598414007137,
+    "delta_stderr": 0.03955847690490557,
+    "backend_info": {
+      "noise_mode": "backend_scheduled",
+      "estimator_kind": "fake_backend.run(counts)",
+      "backend_name": "FakeMarrakesh",
+      "using_fake_backend": true,
+      "details": {
+        "shots": 512,
+        "compiled_mode": "backend_scheduled",
+        "transpile_optimization_level": 2,
+        "transpile_seed": 1,
+        "mitigation": {
+          "mode": "readout",
+          "zne_scales": [],
+          "dd_sequence": null,
+          "local_readout_strategy": "mthree"
+        },
+        "symmetry_mitigation": {
+          "requested_mode": "off",
+          "applied_mode": "off",
+          "executed": false,
+          "eligible": false,
+          "fallback_reason": "",
+          "retained_fraction_mean": null,
+          "retained_fraction_samples": [],
+          "sector_probability_mean": null,
+          "sector_probability_samples": [],
+          "sector_values": {
+            "sector_n_up": null,
+            "sector_n_dn": null
+          },
+          "estimator_form": "none"
+        },
+        "local_dynamical_decoupling": {
+          "requested": false,
+          "applied": false,
+          "sequence": null,
+          "reason": "disabled",
+          "scheduling_method": "alap",
+          "timing_supported": false
+        },
+        "aer_failed": false,
+        "fallback_used": false,
+        "layout_physical_qubits": [
+          14,
+          13,
+          11,
+          10,
+          12,
+          18
+        ],
+        "compiled_num_qubits": 156,
+        "compiled_depth": 52,
+        "compiled_size": 113,
+        "compiled_two_qubit_count": 23,
+        "compiled_cx_count": 0,
+        "compiled_ecr_count": 0,
+        "compiled_op_counts": {
+          "sx": 44,
+          "rz": 40,
+          "cz": 23,
+          "x": 6
+        },
+        "readout_mitigation": {
+          "mode": "readout",
+          "strategy": "mthree",
+          "applied": true,
+          "active_physical_qubits": [
+            11,
+            12
+          ],
+          "term_details": {
+            "active_logical_qubits": [
+              2,
+              4
+            ],
+            "active_physical_qubits": [
+              11,
+              12
+            ],
+            "pauli_weight": 2,
+            "compiled_depth": 54,
+            "compiled_size": 116,
+            "local_dynamical_decoupling": {
+              "requested": false,
+              "applied": false,
+              "sequence": null,
+              "reason": "disabled",
+              "scheduling_method": "alap",
+              "timing_supported": false
+            }
+          },
+          "solver_method": "direct",
+          "solver_time_s": 0.00021408312022686005,
+          "dimension": 4,
+          "mitigation_overhead": 1.0318072270352536,
+          "negative_mass": 0.0,
+          "shots": 512,
+          "calibration_cache_size": 14
+        },
+        "local_gate_twirling": {
+          "requested": false,
+          "applied": false,
+          "reason": "local_gate_twirling_disabled",
+          "engine": "none",
+          "seed": null
+        }
+      }
+    }
+  },
+  "elapsed_s": 197.52538394927979
+}

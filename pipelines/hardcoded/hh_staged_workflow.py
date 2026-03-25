@@ -41,6 +41,14 @@ from pipelines.hardcoded.hh_pareto_tracking import (
 )
 from pipelines.hardcoded import hh_vqe_from_adapt_family as replay_mod
 from pipelines.hardcoded import hubbard_pipeline as hc_pipeline
+from pipelines.hardcoded.hh_realtime_checkpoint_controller import (
+    RealtimeCheckpointController,
+)
+from pipelines.hardcoded.hh_realtime_checkpoint_types import (
+    RealtimeCheckpointConfig,
+    dataclass_to_payload,
+    validate_scaffold_acceptance,
+)
 from pipelines.hardcoded.handoff_state_bundle import (
     HandoffStateBundleConfig,
     write_handoff_state_bundle,
@@ -234,6 +242,7 @@ class StagedHHConfig:
     dynamics: DynamicsConfig
     artifacts: ArtifactConfig
     gates: GateConfig
+    realtime_checkpoint: RealtimeCheckpointConfig = field(default_factory=RealtimeCheckpointConfig)
     smoke_test_intentionally_weak: bool = False
     default_provenance: dict[str, str] = field(default_factory=dict)
 
@@ -823,6 +832,9 @@ def resolve_staged_hh_config(args: Any) -> StagedHHConfig:
             )
         ),
     )
+    realtime_checkpoint = RealtimeCheckpointConfig(
+        mode=str(getattr(args, "checkpoint_controller_mode", "off")),
+    )
     return StagedHHConfig(
         physics=physics,
         warm_start=warm_start,
@@ -831,6 +843,7 @@ def resolve_staged_hh_config(args: Any) -> StagedHHConfig:
         dynamics=dynamics,
         artifacts=artifacts,
         gates=gates,
+        realtime_checkpoint=realtime_checkpoint,
         smoke_test_intentionally_weak=bool(getattr(args, "smoke_test_intentionally_weak", False)),
         default_provenance=dict(provenance),
     )
@@ -1005,6 +1018,60 @@ def _write_adapt_handoff(
     )
 
 
+def _build_replay_run_config(cfg: StagedHHConfig) -> replay_mod.RunConfig:
+    return replay_mod.RunConfig(
+        adapt_input_json=Path(cfg.artifacts.handoff_json),
+        output_json=Path(cfg.artifacts.replay_output_json),
+        output_csv=Path(cfg.artifacts.replay_output_csv),
+        output_md=Path(cfg.artifacts.replay_output_md),
+        output_log=Path(cfg.artifacts.replay_output_log),
+        tag=f"{cfg.artifacts.tag}_replay",
+        generator_family=str(cfg.replay.generator_family),
+        fallback_family=str(cfg.replay.fallback_family),
+        legacy_paop_key=str(cfg.replay.legacy_paop_key),
+        replay_seed_policy=str(cfg.replay.replay_seed_policy),
+        replay_continuation_mode=str(cfg.replay.continuation_mode),
+        L=int(cfg.physics.L),
+        t=float(cfg.physics.t),
+        u=float(cfg.physics.u),
+        dv=float(cfg.physics.dv),
+        omega0=float(cfg.physics.omega0),
+        g_ep=float(cfg.physics.g_ep),
+        n_ph_max=int(cfg.physics.n_ph_max),
+        boson_encoding=str(cfg.physics.boson_encoding),
+        ordering=str(cfg.physics.ordering),
+        boundary=str(cfg.physics.boundary),
+        sector_n_up=int(cfg.physics.sector_n_up),
+        sector_n_dn=int(cfg.physics.sector_n_dn),
+        reps=int(cfg.replay.reps),
+        restarts=int(cfg.replay.restarts),
+        maxiter=int(cfg.replay.maxiter),
+        method=str(cfg.replay.method),
+        seed=int(cfg.replay.seed),
+        energy_backend=str(cfg.replay.energy_backend),
+        progress_every_s=float(cfg.replay.progress_every_s),
+        wallclock_cap_s=int(cfg.replay.wallclock_cap_s),
+        paop_r=int(cfg.replay.paop_r),
+        paop_split_paulis=bool(cfg.replay.paop_split_paulis),
+        paop_prune_eps=float(cfg.replay.paop_prune_eps),
+        paop_normalization=str(cfg.replay.paop_normalization),
+        spsa_a=float(cfg.replay.spsa_a),
+        spsa_c=float(cfg.replay.spsa_c),
+        spsa_alpha=float(cfg.replay.spsa_alpha),
+        spsa_gamma=float(cfg.replay.spsa_gamma),
+        spsa_A=float(cfg.replay.spsa_A),
+        spsa_avg_last=int(cfg.replay.spsa_avg_last),
+        spsa_eval_repeats=int(cfg.replay.spsa_eval_repeats),
+        spsa_eval_agg=str(cfg.replay.spsa_eval_agg),
+        replay_freeze_fraction=float(cfg.replay.replay_freeze_fraction),
+        replay_unfreeze_fraction=float(cfg.replay.replay_unfreeze_fraction),
+        replay_full_fraction=float(cfg.replay.replay_full_fraction),
+        replay_qn_spsa_refresh_every=int(cfg.replay.replay_qn_spsa_refresh_every),
+        replay_qn_spsa_refresh_mode=str(cfg.replay.replay_qn_spsa_refresh_mode),
+        phase3_symmetry_mitigation_mode=str(cfg.replay.phase3_symmetry_mitigation_mode),
+    )
+
+
 def run_stage_pipeline(cfg: StagedHHConfig) -> StageExecutionResult:
     h_poly, hmat, ordered_labels_exyz, coeff_map_exyz, psi_hf = _build_hh_context(cfg)
 
@@ -1110,57 +1177,7 @@ def run_stage_pipeline(cfg: StagedHHConfig) -> StageExecutionResult:
         np.asarray(psi_adapt, dtype=complex).reshape(-1),
         np.asarray(psi_warm, dtype=complex).reshape(-1),
     )
-    replay_cfg = replay_mod.RunConfig(
-        adapt_input_json=Path(cfg.artifacts.handoff_json),
-        output_json=Path(cfg.artifacts.replay_output_json),
-        output_csv=Path(cfg.artifacts.replay_output_csv),
-        output_md=Path(cfg.artifacts.replay_output_md),
-        output_log=Path(cfg.artifacts.replay_output_log),
-        tag=f"{cfg.artifacts.tag}_replay",
-        generator_family=str(cfg.replay.generator_family),
-        fallback_family=str(cfg.replay.fallback_family),
-        legacy_paop_key=str(cfg.replay.legacy_paop_key),
-        replay_seed_policy=str(cfg.replay.replay_seed_policy),
-        replay_continuation_mode=str(cfg.replay.continuation_mode),
-        L=int(cfg.physics.L),
-        t=float(cfg.physics.t),
-        u=float(cfg.physics.u),
-        dv=float(cfg.physics.dv),
-        omega0=float(cfg.physics.omega0),
-        g_ep=float(cfg.physics.g_ep),
-        n_ph_max=int(cfg.physics.n_ph_max),
-        boson_encoding=str(cfg.physics.boson_encoding),
-        ordering=str(cfg.physics.ordering),
-        boundary=str(cfg.physics.boundary),
-        sector_n_up=int(cfg.physics.sector_n_up),
-        sector_n_dn=int(cfg.physics.sector_n_dn),
-        reps=int(cfg.replay.reps),
-        restarts=int(cfg.replay.restarts),
-        maxiter=int(cfg.replay.maxiter),
-        method=str(cfg.replay.method),
-        seed=int(cfg.replay.seed),
-        energy_backend=str(cfg.replay.energy_backend),
-        progress_every_s=float(cfg.replay.progress_every_s),
-        wallclock_cap_s=int(cfg.replay.wallclock_cap_s),
-        paop_r=int(cfg.replay.paop_r),
-        paop_split_paulis=bool(cfg.replay.paop_split_paulis),
-        paop_prune_eps=float(cfg.replay.paop_prune_eps),
-        paop_normalization=str(cfg.replay.paop_normalization),
-        spsa_a=float(cfg.replay.spsa_a),
-        spsa_c=float(cfg.replay.spsa_c),
-        spsa_alpha=float(cfg.replay.spsa_alpha),
-        spsa_gamma=float(cfg.replay.spsa_gamma),
-        spsa_A=float(cfg.replay.spsa_A),
-        spsa_avg_last=int(cfg.replay.spsa_avg_last),
-        spsa_eval_repeats=int(cfg.replay.spsa_eval_repeats),
-        spsa_eval_agg=str(cfg.replay.spsa_eval_agg),
-        replay_freeze_fraction=float(cfg.replay.replay_freeze_fraction),
-        replay_unfreeze_fraction=float(cfg.replay.replay_unfreeze_fraction),
-        replay_full_fraction=float(cfg.replay.replay_full_fraction),
-        replay_qn_spsa_refresh_every=int(cfg.replay.replay_qn_spsa_refresh_every),
-        replay_qn_spsa_refresh_mode=str(cfg.replay.replay_qn_spsa_refresh_mode),
-        phase3_symmetry_mitigation_mode=str(cfg.replay.phase3_symmetry_mitigation_mode),
-    )
+    replay_cfg = _build_replay_run_config(cfg)
     replay_payload = replay_mod.run(replay_cfg)
     nq_total = _hh_nq_total(cfg.physics.L, cfg.physics.n_ph_max, cfg.physics.boson_encoding)
     best_state = replay_payload.get("best_state", {})
@@ -1377,6 +1394,72 @@ def run_noiseless_profiles(stage_result: StageExecutionResult, cfg: StagedHHConf
     return {"profiles": profiles}
 
 
+def _prepare_adaptive_realtime_checkpoint_inputs(
+    stage_result: StageExecutionResult,
+    cfg: StagedHHConfig,
+) -> tuple[Any, Any, Sequence[float]] | None:
+    if str(cfg.realtime_checkpoint.mode) == "off":
+        return None
+    if bool(cfg.dynamics.enable_drive):
+        raise ValueError(
+            "checkpoint controller exact_v1 currently supports only static Hamiltonians; disable --enable-drive."
+        )
+    replay_cfg = _build_replay_run_config(cfg)
+    replay_context = replay_mod.build_replay_scaffold_context(
+        replay_cfg,
+        h_poly=stage_result.h_poly,
+    )
+    acceptance = validate_scaffold_acceptance(replay_context.payload_in)
+    if not bool(acceptance.accepted):
+        raise ValueError(
+            f"checkpoint controller rejected scaffold ownership: {acceptance.reason} ({acceptance.source_kind})."
+        )
+    best_state = stage_result.replay_payload.get("best_state", {})
+    if not isinstance(best_state, Mapping):
+        raise ValueError("Replay payload missing best_state block.")
+    best_theta = best_state.get("best_theta", None)
+    if not isinstance(best_theta, Sequence):
+        raise ValueError(
+            "Replay payload missing best_state.best_theta; checkpoint controller exact_v1 requires replay runtime parameters."
+        )
+    return replay_context, acceptance, best_theta
+
+
+def run_adaptive_realtime_checkpoint_profile(
+    stage_result: StageExecutionResult,
+    cfg: StagedHHConfig,
+) -> dict[str, Any] | None:
+    if str(cfg.realtime_checkpoint.mode) == "oracle_v1":
+        raise ValueError(
+            "checkpoint controller oracle_v1 is only available through the staged noise workflow; use pipelines/hardcoded/hh_staged_noise.py."
+        )
+    prepared = _prepare_adaptive_realtime_checkpoint_inputs(stage_result, cfg)
+    if prepared is None:
+        return None
+    replay_context, acceptance, best_theta = prepared
+    controller = RealtimeCheckpointController(
+        cfg=cfg.realtime_checkpoint,
+        replay_context=replay_context,
+        h_poly=stage_result.h_poly,
+        hmat=stage_result.hmat,
+        psi_initial=stage_result.psi_final,
+        best_theta=best_theta,
+        allow_repeats=bool(cfg.adapt.allow_repeats),
+        t_final=float(cfg.dynamics.t_final),
+        num_times=int(cfg.dynamics.num_times),
+    )
+    artifacts = controller.run()
+    return {
+        "mode": str(cfg.realtime_checkpoint.mode),
+        "status": "completed",
+        "scaffold_acceptance": dataclass_to_payload(acceptance),
+        "reference": dict(artifacts.reference),
+        "trajectory": list(artifacts.trajectory),
+        "ledger": list(artifacts.ledger),
+        "summary": dict(artifacts.summary),
+    }
+
+
 def _stage_delta(payload: Mapping[str, Any], *, energy_key: str, exact_key: str) -> float:
     return float(abs(float(payload.get(energy_key, float("nan"))) - float(payload.get(exact_key, float("nan")))) )
 
@@ -1533,6 +1616,7 @@ def assemble_payload(
     cfg: StagedHHConfig,
     stage_result: StageExecutionResult,
     dynamics_noiseless: Mapping[str, Any],
+    adaptive_realtime_checkpoint: Mapping[str, Any] | None = None,
     run_command: str,
 ) -> dict[str, Any]:
     payload = {
@@ -1550,6 +1634,7 @@ def assemble_payload(
             "drive_default": "opt_in",
             "noiseless_energy_metric": "|E_method(t) - E_exact_sector_replay| with replay exact sector energy as baseline",
             "noiseless_fidelity_metric": "fidelity(method(t), exact-propagated psi_final)",
+            "adaptive_realtime_checkpoint_mode": str(cfg.realtime_checkpoint.mode),
         },
         "settings": _jsonable(asdict(cfg)),
         "default_provenance": dict(cfg.default_provenance),
@@ -1558,6 +1643,8 @@ def assemble_payload(
         "stage_pipeline": _stage_summary(stage_result, cfg),
         "dynamics_noiseless": dict(dynamics_noiseless),
     }
+    if adaptive_realtime_checkpoint is not None:
+        payload["adaptive_realtime_checkpoint"] = dict(adaptive_realtime_checkpoint)
     payload["comparisons"] = _compute_comparisons(payload)
     return payload
 
@@ -1605,6 +1692,7 @@ def write_staged_hh_pdf(payload: Mapping[str, Any], cfg: StagedHHConfig, run_com
     warm = stage_pipeline.get("warm_start", {}) if isinstance(stage_pipeline, Mapping) else {}
     adapt = stage_pipeline.get("adapt_vqe", {}) if isinstance(stage_pipeline, Mapping) else {}
     replay = stage_pipeline.get("conventional_replay", {}) if isinstance(stage_pipeline, Mapping) else {}
+    adaptive_rt = payload.get("adaptive_realtime_checkpoint", {}) if isinstance(payload, Mapping) else {}
 
     with PdfPages(pdf_path) as pdf:
         render_parameter_manifest(
@@ -1638,6 +1726,13 @@ def write_staged_hh_pdf(payload: Mapping[str, Any], cfg: StagedHHConfig, run_com
             f"Warm-start: E={warm.get('energy')} exact={warm.get('exact_energy')} delta={warm.get('delta_abs')} ecut_1={warm.get('ecut_1')}",
             f"ADAPT: depth={adapt.get('depth')} pool={adapt.get('pool_type')} delta={adapt.get('delta_abs')} stop={adapt.get('stop_reason')}",
             f"Replay: E={replay.get('energy')} exact={replay.get('exact_energy')} delta={replay.get('delta_abs')} ecut_2={replay.get('ecut_2')}",
+            (
+                "Checkpoint controller: disabled"
+                if not isinstance(adaptive_rt, Mapping)
+                else (
+                    f"Checkpoint controller: mode={adaptive_rt.get('mode')} append={adaptive_rt.get('summary', {}).get('append_count')} stay={adaptive_rt.get('summary', {}).get('stay_count')} final_fidelity={adaptive_rt.get('summary', {}).get('final_fidelity_exact')}"
+                )
+            ),
             "Dynamics metrics: energy uses replay exact-sector GS baseline; fidelity uses exact propagation from psi_final.",
             "",
             "Artifacts",
@@ -1713,12 +1808,20 @@ def run_staged_hh_noiseless(cfg: StagedHHConfig, *, run_command: str | None = No
     cfg.artifacts.replay_output_md.parent.mkdir(parents=True, exist_ok=True)
     cfg.artifacts.replay_output_log.parent.mkdir(parents=True, exist_ok=True)
 
+    if str(cfg.realtime_checkpoint.mode) == "oracle_v1":
+        raise ValueError(
+            "checkpoint controller oracle_v1 is only available through the staged noise workflow; use pipelines/hardcoded/hh_staged_noise.py."
+        )
     stage_result = run_stage_pipeline(cfg)
+    if str(cfg.realtime_checkpoint.mode) != "off":
+        _prepare_adaptive_realtime_checkpoint_inputs(stage_result, cfg)
     dynamics_noiseless = run_noiseless_profiles(stage_result, cfg)
+    adaptive_realtime_checkpoint = run_adaptive_realtime_checkpoint_profile(stage_result, cfg)
     payload = assemble_payload(
         cfg=cfg,
         stage_result=stage_result,
         dynamics_noiseless=dynamics_noiseless,
+        adaptive_realtime_checkpoint=adaptive_realtime_checkpoint,
         run_command=run_command_str,
     )
     pareto_rows = extract_staged_hh_pareto_rows(

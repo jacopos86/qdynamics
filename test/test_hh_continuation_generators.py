@@ -13,6 +13,7 @@ from pipelines.hardcoded.hh_continuation_generators import (
     build_runtime_split_child_sets,
     build_runtime_split_children,
     build_split_event,
+    rebuild_polynomial_from_serialized_terms,
 )
 from pipelines.hardcoded.hh_continuation_symmetry import build_symmetry_spec
 from src.quantum.pauli_polynomial_class import (
@@ -262,3 +263,13 @@ def test_build_split_event_records_probe_choice_details() -> None:
     assert event["chosen_representation"] == "parent"
     assert event["compiled_cost_parent"] == 2.0
     assert event["insertion_positions"] == [3]
+
+
+def test_rebuild_polynomial_from_serialized_terms_preserves_serialized_order() -> None:
+    poly = rebuild_polynomial_from_serialized_terms(
+        [
+            {"pauli_exyz": "eyezee", "coeff_re": 1.0, "coeff_im": 0.0, "nq": 6},
+            {"pauli_exyz": "eyeeez", "coeff_re": -1.0, "coeff_im": 0.0, "nq": 6},
+        ]
+    )
+    assert [term.pw2strng() for term in poly.return_polynomial()] == ["eyezee", "eyeeez"]

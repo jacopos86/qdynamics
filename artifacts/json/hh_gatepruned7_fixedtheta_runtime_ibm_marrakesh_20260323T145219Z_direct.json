@@ -1,0 +1,233 @@
+{
+  "generated_utc": "2026-03-23T14:54:59.392165+00:00",
+  "tag": "hh_gatepruned7_fixedtheta_runtime_ibm_marrakesh_20260323T145219Z_direct",
+  "artifact_json": "artifacts/json/hh_prune_nighthawk_gate_pruned_7term.json",
+  "backend_name": "ibm_marrakesh",
+  "noise_mode": "runtime",
+  "shots": 2048,
+  "oracle_repeats": 1,
+  "oracle_aggregate": "mean",
+  "mitigation_config": {
+    "mode": "readout",
+    "local_readout_strategy": "mthree",
+    "zne_scales": [],
+    "dd_sequence": null
+  },
+  "symmetry_mitigation_config": {
+    "mode": "off",
+    "num_sites": 2,
+    "ordering": "blocked",
+    "sector_n_up": 1,
+    "sector_n_dn": 1
+  },
+  "result": {
+    "success": true,
+    "noise_mode": "runtime",
+    "drive_enabled": false,
+    "drive_meta": null,
+    "time": 0.0,
+    "noise_config": {
+      "noise_mode": "runtime",
+      "shots": 2048,
+      "oracle_repeats": 1,
+      "oracle_aggregate": "mean",
+      "mitigation": {
+        "mode": "readout",
+        "zne_scales": [],
+        "dd_sequence": null,
+        "local_readout_strategy": "mthree"
+      },
+      "symmetry_mitigation": {
+        "mode": "off",
+        "num_sites": 2,
+        "ordering": "blocked",
+        "sector_n_up": 1,
+        "sector_n_dn": 1
+      }
+    },
+    "final_observables": {
+      "energy_static": {
+        "noisy_mean": 0.8817923546818464,
+        "noisy_std": 0.0,
+        "noisy_stdev": 0.0,
+        "noisy_stderr": 0.0,
+        "ideal_mean": 0.15909070323441615,
+        "ideal_std": 0.0,
+        "ideal_stdev": 0.0,
+        "ideal_stderr": 0.0,
+        "delta_mean": 0.7227016514474303,
+        "delta_stderr": 0.0
+      },
+      "energy_total": {
+        "noisy_mean": 1.061537913240308,
+        "noisy_std": 0.0,
+        "noisy_stdev": 0.0,
+        "noisy_stderr": 0.0,
+        "ideal_mean": 0.15909070323441615,
+        "ideal_std": 0.0,
+        "ideal_stdev": 0.0,
+        "ideal_stderr": 0.0,
+        "delta_mean": 0.9024472100058918,
+        "delta_stderr": 0.0
+      },
+      "n_up_site0": {
+        "noisy_mean": 0.5133045888512473,
+        "noisy_std": 0.0,
+        "noisy_stdev": 0.0,
+        "noisy_stderr": 0.0,
+        "ideal_mean": 0.5000012295386006,
+        "ideal_std": 0.0,
+        "ideal_stdev": 0.0,
+        "ideal_stderr": 0.0,
+        "delta_mean": 0.013303359312646701,
+        "delta_stderr": 0.0
+      },
+      "n_dn_site0": {
+        "noisy_mean": 0.5004964010920824,
+        "noisy_std": 0.0,
+        "noisy_stdev": 0.0,
+        "noisy_stderr": 0.0,
+        "ideal_mean": 0.4999991222503418,
+        "ideal_std": 0.0,
+        "ideal_stdev": 0.0,
+        "ideal_stderr": 0.0,
+        "delta_mean": 0.000497278841740556,
+        "delta_stderr": 0.0
+      },
+      "doublon": {
+        "noisy_mean": 0.11285350295402834,
+        "noisy_std": 0.0,
+        "noisy_stdev": 0.0,
+        "noisy_stderr": 0.0,
+        "ideal_mean": 0.07594884521290723,
+        "ideal_std": 0.0,
+        "ideal_stdev": 0.0,
+        "ideal_stderr": 0.0,
+        "delta_mean": 0.0369046577411211,
+        "delta_stderr": 0.0
+      },
+      "staggered": {
+        "noisy_mean": 0.00021816674289057729,
+        "noisy_std": 0.0,
+        "noisy_stdev": 0.0,
+        "noisy_stderr": 0.0,
+        "ideal_mean": 3.517889463257859e-07,
+        "ideal_std": 0.0,
+        "ideal_stdev": 0.0,
+        "ideal_stderr": 0.0,
+        "delta_mean": 0.0002178149539442515,
+        "delta_stderr": 0.0
+      }
+    },
+    "delta_uncertainty": {
+      "energy_static": {
+        "max_abs_delta": 0.7227016514474303,
+        "max_abs_delta_over_stderr": NaN,
+        "mean_abs_delta_over_stderr": NaN
+      },
+      "energy_total": {
+        "max_abs_delta": 0.9024472100058918,
+        "max_abs_delta_over_stderr": NaN,
+        "mean_abs_delta_over_stderr": NaN
+      },
+      "n_up_site0": {
+        "max_abs_delta": 0.013303359312646701,
+        "max_abs_delta_over_stderr": NaN,
+        "mean_abs_delta_over_stderr": NaN
+      },
+      "n_dn_site0": {
+        "max_abs_delta": 0.000497278841740556,
+        "max_abs_delta_over_stderr": NaN,
+        "mean_abs_delta_over_stderr": NaN
+      },
+      "doublon": {
+        "max_abs_delta": 0.0369046577411211,
+        "max_abs_delta_over_stderr": NaN,
+        "mean_abs_delta_over_stderr": NaN
+      },
+      "staggered": {
+        "max_abs_delta": 0.0002178149539442515,
+        "max_abs_delta_over_stderr": NaN,
+        "mean_abs_delta_over_stderr": NaN
+      }
+    },
+    "audit_source": {
+      "kind": "full_circuit_import",
+      "includes_ansatz_stateprep_noise": true,
+      "source_kind": "direct_adapt_artifact",
+      "artifact_json": "artifacts/json/hh_prune_nighthawk_gate_pruned_7term.json",
+      "reference_state_embedded": true,
+      "ansatz_input_state_source": "hf",
+      "ansatz_input_state_kind": "reference_state"
+    },
+    "extra_meta": {
+      "saved_artifact_energy": 0.15909070323441662,
+      "exact_energy": 0.15866790412572512,
+      "logical_parameter_count": 5,
+      "runtime_parameter_count": 7
+    },
+    "backend_info": {
+      "noise_mode": "runtime",
+      "estimator_kind": "qiskit_ibm_runtime.EstimatorV2",
+      "backend_name": "ibm_marrakesh",
+      "using_fake_backend": false,
+      "details": {
+        "shots": 2048,
+        "runtime_execution_mode": "backend",
+        "session_fallback_reason": "RequestsApiError: '400 Client Error: Bad Request for url: https://quantum.cloud.ibm.com/api/v1/sessions. {\"errors\":[{\"code\":1352,\"message\":\"You are not authorized to run a session when using the open plan.\",\"solution\":\"Create an instance of a different plan type or use a different [execution mode](https://quantum.cloud.ibm.com/docs/guides/execution-modes).\",\"more_info\":\"https://cloud.ibm.com/apidocs/quantum-computing#error-handling\"}],\"trace\":\"e692e5ff-a949-47a7-bc4d-29eadda5abc7\"}\\n'",
+        "mitigation": {
+          "mode": "readout",
+          "zne_scales": [],
+          "dd_sequence": null,
+          "local_readout_strategy": "mthree"
+        },
+        "runtime_mitigation": {
+          "mode": "readout",
+          "engine": "runtime_resilience.measure_mitigation",
+          "requested_local_readout_strategy": "mthree",
+          "applied": true,
+          "provider_strategy": "builtin_measure_mitigation"
+        },
+        "symmetry_mitigation": {
+          "requested_mode": "off",
+          "applied_mode": "off",
+          "executed": false,
+          "eligible": false,
+          "fallback_reason": "",
+          "retained_fraction_mean": null,
+          "retained_fraction_samples": [],
+          "sector_probability_mean": null,
+          "sector_probability_samples": [],
+          "sector_values": {
+            "sector_n_up": 1,
+            "sector_n_dn": 1
+          },
+          "estimator_form": "none"
+        },
+        "transpile_optimization_level": 1,
+        "transpile_seed": 42,
+        "layout_physical_qubits": [
+          6,
+          5,
+          3,
+          16,
+          4,
+          2
+        ],
+        "compiled_num_qubits": 156,
+        "isa_observable_num_qubits": 156,
+        "readout_mitigation": {
+          "mode": "readout",
+          "requested_strategy": "mthree",
+          "engine": "runtime_resilience.measure_mitigation",
+          "applied": true
+        }
+      }
+    },
+    "full_circuit_reference": {
+      "saved_artifact_energy": 0.15909070323441662,
+      "ideal_circuit_energy": 0.15909070323441615,
+      "ideal_circuit_minus_saved_artifact": -4.718447854656915e-16
+    }
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "generated_utc": "2026-03-23T16:01:42.903253+00:00",
+  "kind": "investigation_gatepruned7_local_baseline",
+  "artifact": "artifacts/json/hh_prune_nighthawk_gate_pruned_7term.json",
+  "replay_fidelity": 0.9999999999999962,
+  "exact_state_fidelity": 0.9997843651245608,
+  "exact_energy": 0.1586679041257258,
+  "rebuilt_energy": 0.15909070323441618,
+  "abs_delta_e": 0.0004227991086903915
+}

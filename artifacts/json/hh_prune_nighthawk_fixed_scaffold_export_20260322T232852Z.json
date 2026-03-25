@@ -1,0 +1,21 @@
+{
+  "generated_utc": "2026-03-22T23:28:52.605724+00:00",
+  "pipeline": "hh_prune_nighthawk_fixed_scaffold_export",
+  "source_artifact_json": "artifacts/json/hh_prune_nighthawk_aggressive_5op.json",
+  "variants": {
+    "hh_nighthawk_gate_pruned_7term_v1": {
+      "output_json": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/artifacts/json/hh_prune_nighthawk_gate_pruned_7term.json",
+      "abs_delta_e": 0.0004227991086915017,
+      "runtime_term_count": 7,
+      "operator_count": 5,
+      "term_order_id": "source_order"
+    },
+    "hh_nighthawk_circuit_optimized_7term_v1": {
+      "output_json": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/artifacts/json/hh_prune_nighthawk_circuit_optimized_7term.json",
+      "abs_delta_e": 0.33817523883795,
+      "runtime_term_count": 7,
+      "operator_count": 5,
+      "term_order_id": "disp_first"
+    }
+  }
+}

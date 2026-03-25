@@ -164,6 +164,17 @@ def add_staged_hh_base_args(p: argparse.ArgumentParser) -> argparse.ArgumentPars
     p.add_argument("--replay-qn-spsa-refresh-every", type=int, default=5)
     p.add_argument("--replay-qn-spsa-refresh-mode", choices=["diag_rms_grad"], default="diag_rms_grad")
 
+    # Post-replay adaptive realtime checkpoint controller (exact/noiseless v1)
+    p.add_argument(
+        "--checkpoint-controller-mode",
+        choices=["off", "exact_v1", "oracle_v1"],
+        default="off",
+        help=(
+            "Opt-in post-replay HH adaptive realtime checkpoint controller. "
+            "exact_v1 is exact/noiseless; oracle_v1 is the fresh-stage noisy/oracle scoring slice."
+        ),
+    )
+
     # Dynamics
     p.add_argument("--noiseless-methods", type=str, default="suzuki2,cfqm4")
     p.add_argument("--t-final", type=float, default=None)
@@ -226,15 +237,49 @@ def add_staged_hh_noise_args(p: argparse.ArgumentParser) -> argparse.ArgumentPar
         default="mthree",
         help="Local readout mitigation backend for compiled fake-backend audits.",
     )
+    p.set_defaults(local_gate_twirling=False)
+    p.add_argument(
+        "--local-gate-twirling",
+        dest="local_gate_twirling",
+        action="store_true",
+        help=(
+            "Opt-in local 2Q Pauli twirling for compiled fake-backend backend_scheduled audits. "
+            "This is a local heuristic analogue of Runtime gate twirling, not a full TREX implementation."
+        ),
+    )
+    p.add_argument(
+        "--no-local-gate-twirling",
+        dest="local_gate_twirling",
+        action="store_false",
+    )
     p.add_argument(
         "--symmetry-mitigation-mode",
         choices=["off", "verify_only", "postselect_diag_v1", "projector_renorm_v1"],
         default="off",
     )
     p.add_argument("--zne-scales", type=str, default=None)
-    p.add_argument("--dd-sequence", type=str, default=None)
+    p.add_argument(
+        "--dd-sequence",
+        type=str,
+        default=None,
+        help=(
+            "DD sequence selector. Runtime routes use this for Runtime DD where supported. "
+            "On local fixed-scaffold noisy replay, only XpXm is supported and it is treated as an additive "
+            "saved-theta DD probe rather than optimizer-loop mitigation."
+        ),
+    )
     p.add_argument("--noise-seed", type=int, default=7)
-    p.add_argument("--backend-name", type=str, default=None, help="Fake/runtime backend name. Imported full-circuit audits default to FakeGuadalupeV2 when omitted.")
+    p.add_argument(
+        "--backend-name",
+        type=str,
+        default=None,
+        help=(
+            "Fake/runtime backend name. Imported lean routes default to FakeGuadalupeV2; "
+            "fixed-scaffold local noisy replay defaults to FakeMarrakesh; fixed-scaffold Nighthawk compile-control "
+            "and attribution routes still default to FakeNighthawk when omitted, except compile-control scouts "
+            "which require an explicit backend name."
+        ),
+    )
     p.add_argument("--use-fake-backend", action="store_true")
     p.set_defaults(allow_aer_fallback=True)
     p.add_argument("--allow-aer-fallback", dest="allow_aer_fallback", action="store_true")
@@ -243,6 +288,15 @@ def add_staged_hh_noise_args(p: argparse.ArgumentParser) -> argparse.ArgumentPar
     p.add_argument("--omp-shm-workaround", dest="omp_shm_workaround", action="store_true")
     p.add_argument("--no-omp-shm-workaround", dest="omp_shm_workaround", action="store_false")
     p.add_argument("--noisy-mode-timeout-s", type=int, default=1200)
+    p.add_argument(
+        "--checkpoint-controller-noise-mode",
+        choices=["inherit", "ideal", "shots", "aer_noise", "runtime", "backend_scheduled"],
+        default="inherit",
+        help=(
+            "Noise/oracle execution mode for --checkpoint-controller-mode oracle_v1. "
+            "inherit uses the single configured noise mode, or backend_scheduled for local fake-backend runs."
+        ),
+    )
     p.add_argument("--include-final-audit", action="store_true")
     p.add_argument(
         "--include-full-circuit-audit",
@@ -269,12 +323,103 @@ def add_staged_hh_noise_args(p: argparse.ArgumentParser) -> argparse.ArgumentPar
         ),
     )
     p.add_argument(
+        "--include-fixed-lean-compile-control-scout",
+        action="store_true",
+        help=(
+            "Enable imported fixed-lean energy-only local compile-control scouting. "
+            "Keeps the locked pareto_lean_l2 circuit fixed, evaluates only the Hamiltonian energy, "
+            "and compares a small transpile seed / optimization-level grid under backend_scheduled + readout/mthree."
+        ),
+    )
+    p.add_argument(
+        "--include-fixed-scaffold-noisy-replay",
+        action="store_true",
+        help=(
+            "Enable imported fixed-scaffold conventional replay on the pinned local fake-backend noisy path. "
+            "Defaults to the exported Marrakesh/Heron gate-pruned 6-term scaffold when no import JSON is given, "
+            "initializes from the saved imported theta_runtime, runs SPSA/Powell under backend_scheduled + "
+            "readout/mthree, and treats --dd-sequence XpXm as an additive saved-theta DD probe rather than "
+            "an optimizer-loop mitigation mode."
+        ),
+    )
+    p.add_argument(
+        "--include-fixed-scaffold-compile-control-scout",
+        action="store_true",
+        help=(
+            "Enable imported fixed-scaffold energy-only local compile-control scouting. "
+            "Defaults to the exported Nighthawk gate-pruned 7-term scaffold when no import JSON is given, "
+            "keeps the locked imported circuit fixed, evaluates only the Hamiltonian energy, and compares a small "
+            "transpile seed / optimization-level grid under backend_scheduled + readout/mthree. "
+            "Requires an explicit --backend-name so the scout stays pinned to the intended local fake backend."
+        ),
+    )
+    p.add_argument(
+        "--include-fixed-scaffold-noise-attribution",
+        action="store_true",
+        help=(
+            "Enable imported fixed-scaffold gate-vs-readout attribution on the local fake-backend path. "
+            "Defaults to the exported Nighthawk gate-pruned 7-term scaffold when no import JSON is given, "
+            "runs the same locked imported circuit under readout_only, gate_stateprep_only, and full "
+            "backend_scheduled slices with one shared transpile; raw diagnostics only (mitigation none, symmetry off)."
+        ),
+    )
+    p.add_argument(
+        "--include-fixed-scaffold-runtime-energy-only-baseline",
+        action="store_true",
+        help=(
+            "Enable imported fixed-scaffold Runtime energy-only baseline on the real Runtime path. "
+            "Defaults to the Marrakesh/Heron gate-pruned 6-term runtime candidate when no import JSON is given, "
+            "uses EstimatorV2 with explicit runtime profiles plus required session batching, and writes a standalone "
+            "energy-only runtime sidecar for downstream follow-up tooling."
+        ),
+    )
+    p.add_argument(
+        "--fixed-scaffold-runtime-profile",
+        choices=[
+            "legacy_runtime_v0",
+            "main_twirled_readout_v1",
+            "dd_probe_twirled_readout_v1",
+            "final_audit_zne_twirled_readout_v1",
+        ],
+        default="main_twirled_readout_v1",
+        help="Explicit Runtime Estimator profile for imported fixed-scaffold real-runtime routes.",
+    )
+    p.add_argument(
+        "--fixed-scaffold-runtime-session-policy",
+        choices=["prefer_session", "require_session", "backend_only"],
+        default="require_session",
+        help="Runtime batching policy for imported fixed-scaffold real-runtime routes.",
+    )
+    p.add_argument(
+        "--fixed-scaffold-runtime-transpile-optimization-level",
+        type=int,
+        default=1,
+        help="Transpile optimization level for imported fixed-scaffold real-runtime routes.",
+    )
+    p.add_argument(
+        "--fixed-scaffold-runtime-seed-transpiler",
+        type=int,
+        default=0,
+        help="Transpile seed for imported fixed-scaffold real-runtime routes.",
+    )
+    p.add_argument(
+        "--include-fixed-scaffold-runtime-dd-probe",
+        action="store_true",
+        help="Add a DD probe phase on the best fixed-scaffold Runtime point using the dd_probe_twirled_readout_v1 profile.",
+    )
+    p.add_argument(
+        "--include-fixed-scaffold-runtime-final-zne-audit",
+        action="store_true",
+        help="Add a final ZNE audit phase on the best fixed-scaffold Runtime point using the final_audit_zne_twirled_readout_v1 profile.",
+    )
+    p.add_argument(
         "--fixed-final-state-json",
         type=Path,
         default=None,
         help=(
             "Import source for prepared-state/full-circuit audits, fixed-lean noisy replay, "
-            "and fixed-lean noise attribution. "
+            "fixed-lean noise attribution, fixed-lean compile-control scout, fixed-scaffold noisy replay, "
+            "fixed-scaffold compile-control scout, and fixed-scaffold noise attribution. "
             "May be a direct ADAPT artifact, handoff bundle, or staged workflow payload."
         ),
     )

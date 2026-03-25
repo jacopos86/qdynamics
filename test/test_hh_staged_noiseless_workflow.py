@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 import sys
+from types import SimpleNamespace
 
 import numpy as np
 import pytest
@@ -310,3 +311,122 @@ def test_workflow_runs_matched_family_replay_and_static_plus_drive_profiles(
     assert Path(payload["artifacts"]["pareto"]["rolling_frontier_json"]).exists()
     assert calls["propagators"] == ["suzuki2", "cfqm4", "suzuki2", "cfqm4"]
     assert Path(cfg.artifacts.output_json).exists()
+
+
+def test_run_staged_hh_noiseless_adds_checkpoint_controller_block_when_enabled(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    args = parse_args(
+        [
+            "--L",
+            "2",
+            "--skip-pdf",
+            "--checkpoint-controller-mode",
+            "exact_v1",
+            "--output-json",
+            str(tmp_path / "hh_staged.json"),
+            "--output-pdf",
+            str(tmp_path / "hh_staged.pdf"),
+        ]
+    )
+    cfg = resolve_staged_hh_config(args)
+    stage_result = wf.StageExecutionResult(
+        h_poly=object(),
+        hmat=np.eye(4, dtype=complex),
+        ordered_labels_exyz=["ee"],
+        coeff_map_exyz={"ee": 1.0 + 0.0j},
+        nq_total=2,
+        psi_hf=_basis(4, 0),
+        psi_warm=_basis(4, 1),
+        psi_adapt=_basis(4, 2),
+        psi_final=_basis(4, 3),
+        warm_payload={"energy": -1.0, "exact_filtered_energy": -1.1},
+        adapt_payload={"energy": -1.05, "exact_gs_energy": -1.1, "stop_reason": "eps_grad"},
+        replay_payload={
+            "vqe": {"energy": -1.09},
+            "exact": {"E_exact_sector": -1.1},
+            "best_state": {"best_theta": [0.1]},
+        },
+    )
+
+    fake_context = SimpleNamespace(payload_in={"adapt_vqe": {"pool_type": "phase3_v1"}})
+    monkeypatch.setattr(wf, "run_stage_pipeline", lambda _cfg: stage_result)
+    monkeypatch.setattr(wf.replay_mod, "build_replay_scaffold_context", lambda *_args, **_kwargs: fake_context)
+    monkeypatch.setattr(wf, "run_noiseless_profiles", lambda _stage, _cfg: {"profiles": {"static": {"methods": {}}}})
+    monkeypatch.setattr(
+        wf,
+        "run_adaptive_realtime_checkpoint_profile",
+        lambda _stage, _cfg: {"mode": "exact_v1", "status": "completed", "summary": {"append_count": 1, "stay_count": 1}},
+    )
+
+    payload = wf.run_staged_hh_noiseless(cfg, run_command="python staged.py --checkpoint-controller-mode exact_v1")
+
+    assert payload["workflow_contract"]["adaptive_realtime_checkpoint_mode"] == "exact_v1"
+    assert payload["adaptive_realtime_checkpoint"]["mode"] == "exact_v1"
+    assert "profiles" in payload["dynamics_noiseless"]
+
+
+def test_run_staged_hh_noiseless_rejects_oracle_v1(
+    tmp_path: Path,
+) -> None:
+    args = parse_args(
+        [
+            "--L",
+            "2",
+            "--skip-pdf",
+            "--checkpoint-controller-mode",
+            "oracle_v1",
+            "--output-json",
+            str(tmp_path / "hh_staged.json"),
+            "--output-pdf",
+            str(tmp_path / "hh_staged.pdf"),
+        ]
+    )
+    cfg = resolve_staged_hh_config(args)
+
+    with pytest.raises(ValueError, match="oracle_v1"):
+        wf.run_staged_hh_noiseless(cfg)
+
+
+def test_run_adaptive_realtime_checkpoint_profile_requires_best_theta_when_enabled(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    args = parse_args(
+        [
+            "--L",
+            "2",
+            "--skip-pdf",
+            "--checkpoint-controller-mode",
+            "exact_v1",
+            "--output-json",
+            str(tmp_path / "hh_staged.json"),
+            "--output-pdf",
+            str(tmp_path / "hh_staged.pdf"),
+        ]
+    )
+    cfg = resolve_staged_hh_config(args)
+    stage_result = wf.StageExecutionResult(
+        h_poly=object(),
+        hmat=np.eye(2, dtype=complex),
+        ordered_labels_exyz=["e"],
+        coeff_map_exyz={"e": 1.0 + 0.0j},
+        nq_total=1,
+        psi_hf=np.array([1.0 + 0.0j, 0.0 + 0.0j], dtype=complex),
+        psi_warm=np.array([1.0 + 0.0j, 0.0 + 0.0j], dtype=complex),
+        psi_adapt=np.array([1.0 + 0.0j, 0.0 + 0.0j], dtype=complex),
+        psi_final=np.array([1.0 + 0.0j, 0.0 + 0.0j], dtype=complex),
+        warm_payload={"energy": -1.0, "exact_filtered_energy": -1.0},
+        adapt_payload={"energy": -1.0, "exact_gs_energy": -1.0, "stop_reason": "eps_grad"},
+        replay_payload={
+            "vqe": {"energy": -1.0},
+            "exact": {"E_exact_sector": -1.0},
+            "best_state": {"amplitudes_qn_to_q0": {"0": {"re": 1.0, "im": 0.0}}},
+        },
+    )
+    fake_context = SimpleNamespace(payload_in={"adapt_vqe": {"pool_type": "phase3_v1"}})
+    monkeypatch.setattr(wf.replay_mod, "build_replay_scaffold_context", lambda *_args, **_kwargs: fake_context)
+
+    with pytest.raises(ValueError, match="best_state.best_theta"):
+        wf.run_adaptive_realtime_checkpoint_profile(stage_result, cfg)

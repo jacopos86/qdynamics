@@ -270,6 +270,25 @@ class RunConfig:
     phase3_symmetry_mitigation_mode: str
 
 
+@dataclass(frozen=True)
+class ReplayScaffoldContext:
+    cfg: RunConfig
+    h_poly: Any
+    psi_ref: np.ndarray
+    payload_in: dict[str, Any]
+    family_info: dict[str, Any]
+    family_pool: tuple[AnsatzTerm, ...]
+    pool_meta: dict[str, Any]
+    replay_terms: tuple[AnsatzTerm, ...]
+    base_layout: AnsatzParameterLayout
+    adapt_theta_runtime: np.ndarray
+    adapt_theta_logical: np.ndarray
+    adapt_depth: int
+    handoff_state_kind: str
+    provenance_source: str
+    family_terms_count: int
+
+
 class RunLogger:
     def __init__(self, path: Path) -> None:
         self.path = Path(path)
@@ -1211,12 +1230,99 @@ def _resolve_replay_continuation_mode(raw: str | None) -> str:
     return mode
 
 
+def build_replay_scaffold_context(
+    cfg: RunConfig,
+    *,
+    h_poly: Any | None = None,
+    psi_ref: np.ndarray | None = None,
+    payload_in: Mapping[str, Any] | None = None,
+) -> ReplayScaffoldContext:
+    payload_map: dict[str, Any]
+    psi_ref_arr: np.ndarray
+    if psi_ref is None or payload_in is None:
+        psi_ref_arr, payload_loaded = _read_input_state_and_payload(cfg.adapt_input_json)
+        if psi_ref is None:
+            psi_ref = psi_ref_arr
+        if payload_in is None:
+            payload_in = payload_loaded
+    psi_ref_arr = np.asarray(psi_ref, dtype=complex).reshape(-1)
+    payload_map = dict(payload_in)
+
+    family_info = _resolve_family(cfg, payload_map)
+    adapt_labels, adapt_theta_payload = _extract_adapt_operator_theta_sequence(payload_map)
+    payload_layout = _extract_payload_parameterization_layout(payload_map)
+
+    handoff_state_kind, provenance_source = _infer_handoff_state_kind(payload_map)
+    h_poly_local = _build_hh_hamiltonian(cfg) if h_poly is None else h_poly
+
+    family_resolved = str(family_info["resolved"])
+    family_pool: list[AnsatzTerm] = []
+    if family_resolved == "full_meta" and int(cfg.n_ph_max) >= 2:
+        replay_terms_list, pool_meta = _build_full_meta_replay_terms_sparse(
+            cfg,
+            h_poly=h_poly_local,
+            adapt_labels=adapt_labels,
+            payload=payload_map,
+        )
+        family_pool = list(replay_terms_list)
+        pool_meta = dict(pool_meta)
+        pool_meta["candidate_pool_complete"] = False
+        family_terms_count = int(pool_meta.get("raw_total", len(family_pool)))
+    else:
+        family_pool, pool_meta = _build_pool_for_family(cfg, family=family_resolved, h_poly=h_poly_local)
+        replay_terms_list = _build_replay_terms_from_adapt_labels(family_pool, adapt_labels, payload=payload_map)
+        pool_meta = dict(pool_meta)
+        pool_meta["candidate_pool_complete"] = True
+        family_terms_count = int(len(family_pool))
+
+    if payload_layout is not None:
+        adapt_theta_runtime = np.asarray(adapt_theta_payload, dtype=float)
+        if int(adapt_theta_runtime.size) != int(payload_layout.runtime_parameter_count):
+            raise ValueError(
+                f"parameterized replay payload runtime theta length {adapt_theta_runtime.size} != layout runtime count {payload_layout.runtime_parameter_count}."
+            )
+        adapt_theta_logical_raw = payload_map.get("adapt_vqe", {}).get("logical_optimal_point", None)
+        if isinstance(adapt_theta_logical_raw, Sequence):
+            adapt_theta_logical = np.asarray([float(x) for x in adapt_theta_logical_raw], dtype=float)
+        else:
+            adapt_theta_logical = np.asarray(project_runtime_theta_block_mean(adapt_theta_runtime, payload_layout), dtype=float)
+        base_layout = payload_layout
+    else:
+        base_layout = build_parameter_layout(
+            replay_terms_list,
+            ignore_identity=True,
+            coefficient_tolerance=1e-12,
+            sort_terms=True,
+        )
+        adapt_theta_logical = np.asarray(adapt_theta_payload, dtype=float)
+        adapt_theta_runtime = np.asarray(expand_legacy_logical_theta(adapt_theta_logical, base_layout), dtype=float)
+
+    return ReplayScaffoldContext(
+        cfg=cfg,
+        h_poly=h_poly_local,
+        psi_ref=np.asarray(psi_ref_arr, dtype=complex).reshape(-1),
+        payload_in=payload_map,
+        family_info=dict(family_info),
+        family_pool=tuple(family_pool),
+        pool_meta=dict(pool_meta),
+        replay_terms=tuple(replay_terms_list),
+        base_layout=base_layout,
+        adapt_theta_runtime=np.asarray(adapt_theta_runtime, dtype=float).reshape(-1),
+        adapt_theta_logical=np.asarray(adapt_theta_logical, dtype=float).reshape(-1),
+        adapt_depth=int(len(adapt_labels)),
+        handoff_state_kind=str(handoff_state_kind),
+        provenance_source=str(provenance_source),
+        family_terms_count=int(family_terms_count),
+    )
+
+
 def run(cfg: RunConfig) -> dict[str, Any]:
     logger = RunLogger(cfg.output_log)
     logger.log(f"Loading ADAPT input JSON: {cfg.adapt_input_json}")
-    psi_ref, payload_in = _read_input_state_and_payload(cfg.adapt_input_json)
-
-    family_info = _resolve_family(cfg, payload_in)
+    replay_context = build_replay_scaffold_context(cfg)
+    psi_ref = np.asarray(replay_context.psi_ref, dtype=complex).reshape(-1)
+    payload_in = dict(replay_context.payload_in)
+    family_info = dict(replay_context.family_info)
     if family_info.get("warning"):
         logger.log(f"FAMILY WARNING: {family_info['warning']}")
     logger.log(
@@ -1225,7 +1331,7 @@ def run(cfg: RunConfig) -> dict[str, Any]:
     )
 
     logger.log("Building HH Hamiltonian.")
-    h_poly = _build_hh_hamiltonian(cfg)
+    h_poly = replay_context.h_poly
     e_exact_payload = _resolve_exact_energy_from_payload(payload_in)
     if e_exact_payload is not None:
         e_exact = float(e_exact_payload)
@@ -1244,11 +1350,9 @@ def run(cfg: RunConfig) -> dict[str, Any]:
         )
         logger.log(f"Computed exact sector energy via ED: E_exact={e_exact:.12f}")
 
-    adapt_labels, adapt_theta_payload = _extract_adapt_operator_theta_sequence(payload_in)
-    payload_layout = _extract_payload_parameterization_layout(payload_in)
-
     # ── Provenance resolution ────────────────────────────────────────
-    handoff_state_kind, provenance_source = _infer_handoff_state_kind(payload_in)
+    handoff_state_kind = str(replay_context.handoff_state_kind)
+    provenance_source = str(replay_context.provenance_source)
     if provenance_source == "ambiguous" and str(cfg.replay_seed_policy) == "auto":
         raise ValueError(
             "Cannot resolve replay seed policy 'auto': input JSON has no "
@@ -1269,36 +1373,12 @@ def run(cfg: RunConfig) -> dict[str, Any]:
         f"replay_seed_policy={cfg.replay_seed_policy}"
     )
 
-    family_resolved = str(family_info["resolved"])
-    if family_resolved == "full_meta" and int(cfg.n_ph_max) >= 2:
-        replay_terms, pool_meta = _build_full_meta_replay_terms_sparse(
-            cfg,
-            h_poly=h_poly,
-            adapt_labels=adapt_labels,
-            payload=payload_in,
-        )
-        family_terms_count = int(pool_meta.get("raw_total", 0))
-    else:
-        pool, pool_meta = _build_pool_for_family(cfg, family=family_resolved, h_poly=h_poly)
-        replay_terms = _build_replay_terms_from_adapt_labels(pool, adapt_labels, payload=payload_in)
-        family_terms_count = int(len(pool))
-
-    if payload_layout is not None:
-        adapt_theta_runtime = np.asarray(adapt_theta_payload, dtype=float)
-        if int(adapt_theta_runtime.size) != int(payload_layout.runtime_parameter_count):
-            raise ValueError(
-                f"parameterized replay payload runtime theta length {adapt_theta_runtime.size} != layout runtime count {payload_layout.runtime_parameter_count}."
-            )
-        adapt_theta_logical_raw = payload_in.get("adapt_vqe", {}).get("logical_optimal_point", None)
-        if isinstance(adapt_theta_logical_raw, Sequence):
-            adapt_theta_logical = np.asarray([float(x) for x in adapt_theta_logical_raw], dtype=float)
-        else:
-            adapt_theta_logical = np.asarray(project_runtime_theta_block_mean(adapt_theta_runtime, payload_layout), dtype=float)
-        base_layout = payload_layout
-    else:
-        base_layout = build_parameter_layout(replay_terms, ignore_identity=True, coefficient_tolerance=1e-12, sort_terms=True)
-        adapt_theta_logical = np.asarray(adapt_theta_payload, dtype=float)
-        adapt_theta_runtime = np.asarray(expand_legacy_logical_theta(adapt_theta_logical, base_layout), dtype=float)
+    replay_terms = list(replay_context.replay_terms)
+    pool_meta = dict(replay_context.pool_meta)
+    family_terms_count = int(replay_context.family_terms_count)
+    base_layout = replay_context.base_layout
+    adapt_theta_runtime = np.asarray(replay_context.adapt_theta_runtime, dtype=float)
+    adapt_theta_logical = np.asarray(replay_context.adapt_theta_logical, dtype=float)
 
     seed_theta, resolved_seed_policy = _build_replay_seed_theta_policy(
         adapt_theta_runtime,
@@ -1322,7 +1402,7 @@ def run(cfg: RunConfig) -> dict[str, Any]:
         )
     logger.log(
         f"Pool built: family={family_info['resolved']} family_terms={family_terms_count} "
-        f"adapt_depth={len(adapt_labels)} replay_terms={len(replay_terms)} base_runtime_npar={base_layout.runtime_parameter_count} replay_npar={ansatz.num_parameters}"
+        f"adapt_depth={int(replay_context.adapt_depth)} replay_terms={len(replay_terms)} base_runtime_npar={base_layout.runtime_parameter_count} replay_npar={ansatz.num_parameters}"
     )
     psi_seed = np.asarray(ansatz.prepare_state(seed_theta, psi_ref), dtype=complex).reshape(-1)
     seed_energy = float(expval_pauli_polynomial(psi_seed, h_poly))
@@ -1589,7 +1669,7 @@ def run(cfg: RunConfig) -> dict[str, Any]:
             "seed_policy_resolved": str(resolved_seed_policy),
             "handoff_state_kind": str(handoff_state_kind),
             "provenance_source": str(provenance_source),
-            "adapt_depth": int(len(adapt_labels)),
+            "adapt_depth": int(replay_context.adapt_depth),
             "adapt_logical_num_parameters": int(base_layout.logical_parameter_count),
             "adapt_runtime_num_parameters": int(base_layout.runtime_parameter_count),
             "reps": int(cfg.reps),
@@ -1700,7 +1780,7 @@ def run(cfg: RunConfig) -> dict[str, Any]:
             f"- E_best: {e_best}",
             f"- abs_delta_e: {delta_abs}",
             f"- relative_error_abs: {rel_abs}",
-            f"- replay_adapt_depth: {len(adapt_labels)}",
+                f"- replay_adapt_depth: {int(replay_context.adapt_depth)}",
             f"- replay_logical_npar: {base_layout.logical_parameter_count}",
             f"- replay_runtime_npar_base: {base_layout.runtime_parameter_count}",
             f"- replay_reps: {cfg.reps}",

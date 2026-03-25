@@ -1,0 +1,317 @@
+{
+  "generated_utc": "2026-03-22T20:20:50.365238+00:00",
+  "pipeline": "hh_prune_marginal_analysis",
+  "input_json": "artifacts/json/hh_prune_nighthawk_pruned_scaffold.json",
+  "base_energy": 0.1587240823612887,
+  "exact_energy": 0.15866790412572512,
+  "leave_one_out": [
+    {
+      "removed_index": 3,
+      "removed_label": "hh_termwise_ham_quadrature_term(eyezee)",
+      "removed_theta": 0.02651650429449547,
+      "remaining_depth": 10,
+      "remaining_runtime_params": 20,
+      "energy_before": 0.1587240823612887,
+      "energy_after": 0.15872408236036623,
+      "delta_e_regression": -9.224843111610426e-13,
+      "abs_delta_e_before": 5.6178235563586476e-05,
+      "abs_delta_e_after": 5.6178234641102165e-05,
+      "nfev": 888,
+      "elapsed_s": 0.8205863749608397
+    },
+    {
+      "removed_index": 4,
+      "removed_label": "hh_termwise_ham_quadrature_term(eyezee)",
+      "removed_theta": -0.02648077576068365,
+      "remaining_depth": 10,
+      "remaining_runtime_params": 20,
+      "energy_before": 0.1587240823612887,
+      "energy_after": 0.15872408236036772,
+      "delta_e_regression": -9.209855100777986e-13,
+      "abs_delta_e_before": 5.6178235563586476e-05,
+      "abs_delta_e_after": 5.6178234642600966e-05,
+      "nfev": 901,
+      "elapsed_s": 0.8255988750606775
+    },
+    {
+      "removed_index": 2,
+      "removed_label": "hh_termwise_ham_quadrature_term(eyeeez)",
+      "removed_theta": 0.07638524017319208,
+      "remaining_depth": 10,
+      "remaining_runtime_params": 20,
+      "energy_before": 0.1587240823612887,
+      "energy_after": 0.15872408236036806,
+      "delta_e_regression": -9.20652443170411e-13,
+      "abs_delta_e_before": 5.6178235563586476e-05,
+      "abs_delta_e_after": 5.617823464293403e-05,
+      "nfev": 930,
+      "elapsed_s": 0.856320166029036
+    },
+    {
+      "removed_index": 0,
+      "removed_label": "hh_termwise_ham_quadrature_term(yezeee)",
+      "removed_theta": -1.5008934994303873,
+      "remaining_depth": 10,
+      "remaining_runtime_params": 20,
+      "energy_before": 0.1587240823612887,
+      "energy_after": 0.15872408236037247,
+      "delta_e_regression": -9.16239306647526e-13,
+      "abs_delta_e_before": 5.6178235563586476e-05,
+      "abs_delta_e_after": 5.617823464734717e-05,
+      "nfev": 899,
+      "elapsed_s": 0.852522250264883
+    },
+    {
+      "removed_index": 1,
+      "removed_label": "hh_termwise_ham_quadrature_term(yeeeze)",
+      "removed_theta": -1.3486050540453884,
+      "remaining_depth": 10,
+      "remaining_runtime_params": 20,
+      "energy_before": 0.1587240823612887,
+      "energy_after": 0.15872408236038726,
+      "delta_e_regression": -9.014455848443959e-13,
+      "abs_delta_e_before": 5.6178235563586476e-05,
+      "abs_delta_e_after": 5.617823466214089e-05,
+      "nfev": 797,
+      "elapsed_s": 0.7408586665987968
+    },
+    {
+      "removed_index": 7,
+      "removed_label": "paop_lf_full:paop_dbl_p(site=0->phonon=0)",
+      "removed_theta": -0.02255445012515648,
+      "remaining_depth": 10,
+      "remaining_runtime_params": 17,
+      "energy_before": 0.1587240823612887,
+      "energy_after": 0.15873801606294655,
+      "delta_e_regression": 1.3933701657836695e-05,
+      "abs_delta_e_before": 5.6178235563586476e-05,
+      "abs_delta_e_after": 7.011193722142317e-05,
+      "nfev": 929,
+      "elapsed_s": 0.8445910420268774
+    },
+    {
+      "removed_index": 10,
+      "removed_label": "paop_full:paop_disp(site=0)",
+      "removed_theta": -0.04345289514546051,
+      "remaining_depth": 10,
+      "remaining_runtime_params": 19,
+      "energy_before": 0.1587240823612887,
+      "energy_after": 0.16292242057494596,
+      "delta_e_regression": 0.0041983382136572545,
+      "abs_delta_e_before": 5.6178235563586476e-05,
+      "abs_delta_e_after": 0.004254516449220841,
+      "nfev": 785,
+      "elapsed_s": 0.7236622087657452
+    },
+    {
+      "removed_index": 9,
+      "removed_label": "paop_full:paop_hopdrag(0,1)::child_set[0,2]",
+      "removed_theta": -0.7853981590798342,
+      "remaining_depth": 10,
+      "remaining_runtime_params": 19,
+      "energy_before": 0.1587240823612887,
+      "energy_after": 0.4870030555480073,
+      "delta_e_regression": 0.3282789731867186,
+      "abs_delta_e_before": 5.6178235563586476e-05,
+      "abs_delta_e_after": 0.3283351514222822,
+      "nfev": 1334,
+      "elapsed_s": 1.259327083826065
+    },
+    {
+      "removed_index": 5,
+      "removed_label": "uccsd_ferm_lifted::uccsd_sing(alpha:0->1)",
+      "removed_theta": 0.785398166361581,
+      "remaining_depth": 10,
+      "remaining_runtime_params": 19,
+      "energy_before": 0.1587240823612887,
+      "energy_after": 0.757722358629948,
+      "delta_e_regression": 0.5989982762686592,
+      "abs_delta_e_before": 5.6178235563586476e-05,
+      "abs_delta_e_after": 0.5990544545042229,
+      "nfev": 705,
+      "elapsed_s": 0.6508952500298619
+    },
+    {
+      "removed_index": 6,
+      "removed_label": "uccsd_ferm_lifted::uccsd_sing(beta:2->3)",
+      "removed_theta": 0.8165399818483787,
+      "remaining_depth": 10,
+      "remaining_runtime_params": 19,
+      "energy_before": 0.1587240823612887,
+      "energy_after": 0.7577308806994839,
+      "delta_e_regression": 0.5990067983381953,
+      "abs_delta_e_before": 5.6178235563586476e-05,
+      "abs_delta_e_after": 0.5990629765737587,
+      "nfev": 935,
+      "elapsed_s": 0.8632012493908405
+    },
+    {
+      "removed_index": 8,
+      "removed_label": "paop_lf_full:paop_dbl_p(site=1->phonon=1)",
+      "removed_theta": -0.47167116520230457,
+      "remaining_depth": 10,
+      "remaining_runtime_params": 17,
+      "energy_before": 0.1587240823612887,
+      "energy_after": 0.9387281076433214,
+      "delta_e_regression": 0.7800040252820326,
+      "abs_delta_e_before": 5.6178235563586476e-05,
+      "abs_delta_e_after": 0.7800602035175963,
+      "nfev": 626,
+      "elapsed_s": 0.5743317902088165
+    }
+  ],
+  "greedy_multi_prune": [
+    {
+      "budget": 1e-06,
+      "removed_indices": [
+        3,
+        4,
+        2,
+        0,
+        1
+      ],
+      "removed_labels": [
+        "hh_termwise_ham_quadrature_term(eyezee)",
+        "hh_termwise_ham_quadrature_term(eyezee)",
+        "hh_termwise_ham_quadrature_term(eyeeez)",
+        "hh_termwise_ham_quadrature_term(yezeee)",
+        "hh_termwise_ham_quadrature_term(yeeeze)"
+      ],
+      "remaining_depth": 6,
+      "remaining_runtime_params": 16,
+      "energy_after": 0.15872408245703779,
+      "abs_delta_e_after": 5.617833131266181e-05,
+      "delta_e_regression_from_base": 9.574907533504984e-11,
+      "nfev": 223,
+      "elapsed_s": 0.20715062506496906
+    },
+    {
+      "budget": 1e-05,
+      "removed_indices": [
+        3,
+        4,
+        2,
+        0,
+        1
+      ],
+      "removed_labels": [
+        "hh_termwise_ham_quadrature_term(eyezee)",
+        "hh_termwise_ham_quadrature_term(eyezee)",
+        "hh_termwise_ham_quadrature_term(eyeeez)",
+        "hh_termwise_ham_quadrature_term(yezeee)",
+        "hh_termwise_ham_quadrature_term(yeeeze)"
+      ],
+      "remaining_depth": 6,
+      "remaining_runtime_params": 16,
+      "energy_after": 0.1587240823606509,
+      "abs_delta_e_after": 5.617823492576335e-05,
+      "delta_e_regression_from_base": -6.378231276471524e-13,
+      "nfev": 338,
+      "elapsed_s": 0.3113949578255415
+    },
+    {
+      "budget": 0.0001,
+      "removed_indices": [
+        3,
+        4,
+        2,
+        0,
+        1,
+        7
+      ],
+      "removed_labels": [
+        "hh_termwise_ham_quadrature_term(eyezee)",
+        "hh_termwise_ham_quadrature_term(eyezee)",
+        "hh_termwise_ham_quadrature_term(eyeeez)",
+        "hh_termwise_ham_quadrature_term(yezeee)",
+        "hh_termwise_ham_quadrature_term(yeeeze)",
+        "paop_lf_full:paop_dbl_p(site=0->phonon=0)"
+      ],
+      "remaining_depth": 5,
+      "remaining_runtime_params": 12,
+      "energy_after": 0.15873800435122343,
+      "abs_delta_e_after": 7.010022549830408e-05,
+      "delta_e_regression_from_base": 1.3921989934717605e-05,
+      "nfev": 229,
+      "elapsed_s": 0.2105804579332471
+    },
+    {
+      "budget": 0.0005,
+      "removed_indices": [
+        3,
+        4,
+        2,
+        0,
+        1,
+        7
+      ],
+      "removed_labels": [
+        "hh_termwise_ham_quadrature_term(eyezee)",
+        "hh_termwise_ham_quadrature_term(eyezee)",
+        "hh_termwise_ham_quadrature_term(eyeeez)",
+        "hh_termwise_ham_quadrature_term(yezeee)",
+        "hh_termwise_ham_quadrature_term(yeeeze)",
+        "paop_lf_full:paop_dbl_p(site=0->phonon=0)"
+      ],
+      "remaining_depth": 5,
+      "remaining_runtime_params": 12,
+      "energy_after": 0.15873800391157558,
+      "abs_delta_e_after": 7.009978585045817e-05,
+      "delta_e_regression_from_base": 1.3921550286871698e-05,
+      "nfev": 220,
+      "elapsed_s": 0.20486058294773102
+    },
+    {
+      "budget": 0.001,
+      "removed_indices": [
+        3,
+        4,
+        2,
+        0,
+        1,
+        7
+      ],
+      "removed_labels": [
+        "hh_termwise_ham_quadrature_term(eyezee)",
+        "hh_termwise_ham_quadrature_term(eyezee)",
+        "hh_termwise_ham_quadrature_term(eyeeez)",
+        "hh_termwise_ham_quadrature_term(yezeee)",
+        "hh_termwise_ham_quadrature_term(yeeeze)",
+        "paop_lf_full:paop_dbl_p(site=0->phonon=0)"
+      ],
+      "remaining_depth": 5,
+      "remaining_runtime_params": 12,
+      "energy_after": 0.15873800391156906,
+      "abs_delta_e_after": 7.009978584393561e-05,
+      "delta_e_regression_from_base": 1.3921550280349138e-05,
+      "nfev": 236,
+      "elapsed_s": 0.21372100058943033
+    },
+    {
+      "budget": 0.005,
+      "removed_indices": [
+        3,
+        4,
+        2,
+        0,
+        1,
+        7
+      ],
+      "removed_labels": [
+        "hh_termwise_ham_quadrature_term(eyezee)",
+        "hh_termwise_ham_quadrature_term(eyezee)",
+        "hh_termwise_ham_quadrature_term(eyeeez)",
+        "hh_termwise_ham_quadrature_term(yezeee)",
+        "hh_termwise_ham_quadrature_term(yeeeze)",
+        "paop_lf_full:paop_dbl_p(site=0->phonon=0)"
+      ],
+      "remaining_depth": 5,
+      "remaining_runtime_params": 12,
+      "energy_after": 0.15873800391171133,
+      "abs_delta_e_after": 7.00997859862107e-05,
+      "delta_e_regression_from_base": 1.3921550422624218e-05,
+      "nfev": 218,
+      "elapsed_s": 0.19688329193741083
+    }
+  ]
+}

@@ -269,8 +269,9 @@ def _symmetry_spec_with_runtime_gate(
 def rebuild_polynomial_from_serialized_terms(
     serialized_terms: Sequence[Mapping[str, Any]],
 ) -> PauliPolynomial:
-    pauli_terms: list[PauliTerm] = []
     nq_expected: int | None = None
+    coeffs_by_label: dict[str, complex] = {}
+    label_order: list[str] = []
     for raw in serialized_terms:
         if not isinstance(raw, Mapping):
             continue
@@ -283,10 +284,22 @@ def rebuild_polynomial_from_serialized_terms(
             nq_expected = int(nq)
         elif int(nq) != int(nq_expected):
             raise ValueError("Serialized runtime-split terms use inconsistent nq values.")
-        pauli_terms.append(PauliTerm(int(nq), ps=label, pc=coeff))
-    if nq_expected is None or not pauli_terms:
+        if label not in coeffs_by_label:
+            label_order.append(label)
+            coeffs_by_label[label] = complex(0.0)
+        coeffs_by_label[label] += coeff
+    if nq_expected is None or not label_order:
         raise ValueError("Serialized runtime-split terms are missing or invalid.")
-    return PauliPolynomial("JW", list(pauli_terms))
+
+    poly = PauliPolynomial("JW")
+    for label in label_order:
+        coeff = complex(coeffs_by_label[label])
+        if abs(coeff) < 1.0e-7:
+            continue
+        poly.add_term(PauliTerm(int(nq_expected), ps=label, pc=coeff))
+    if int(poly.count_number_terms()) <= 0:
+        raise ValueError("Serialized runtime-split terms cancel below tolerance.")
+    return poly
 
 
 def build_generator_metadata(

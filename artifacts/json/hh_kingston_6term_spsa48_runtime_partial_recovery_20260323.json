@@ -1,0 +1,223 @@
+{
+  "artifact_ground_truth": {
+    "exact_energy": 0.15866790412572512,
+    "runtime_parameter_count": 6,
+    "saved_energy": 0.1632809601258856
+  },
+  "artifact_json": "artifacts/json/hh_marrakesh_fixed_scaffold_6term_drop_eyezee_20260323T171528Z.json",
+  "best_so_far": {
+    "call_index": null,
+    "energy_noisy_mean": 0.3935622931602998,
+    "energy_noisy_stderr": 0.0,
+    "theta_logical": null,
+    "theta_runtime": null,
+    "trace_index": 3
+  },
+  "generated_utc": "2026-03-23T20:33:52Z",
+  "notes": [
+    "Legacy interrupted runs without a theta journal can still recover job-level best-so-far energy, but they do not prove optimizer objective-call boundaries or a faithful theta trace."
+  ],
+  "objective_trace": [
+    {
+      "call_index": null,
+      "elapsed_s": null,
+      "energy_noisy_mean": 0.5084349064875961,
+      "energy_noisy_stderr": 0.0,
+      "n_samples": 1,
+      "raw_values": [
+        0.5084349064875961
+      ],
+      "runtime_jobs": [
+        {
+          "backend_name": "ibm_kingston",
+          "call_path": "recovered_job_lookup",
+          "completed_utc": "2026-03-23T18:32:37.755163Z",
+          "created_utc": "2026-03-23T18:30:42.663506Z",
+          "error": null,
+          "expectation_value": 0.5084349064875961,
+          "job_id": "d70odkk69uic73ckjm20",
+          "repeat_index": 0,
+          "running_utc": "2026-03-23T18:31:55.675041Z",
+          "session_id": null,
+          "status": "DONE",
+          "usage_quantum_seconds": 12.0
+        }
+      ],
+      "status": "completed",
+      "theta_logical": null,
+      "theta_runtime": null,
+      "trace_index": 1
+    },
+    {
+      "call_index": null,
+      "elapsed_s": null,
+      "energy_noisy_mean": 0.5601757644768113,
+      "energy_noisy_stderr": 0.0,
+      "n_samples": 1,
+      "raw_values": [
+        0.5601757644768113
+      ],
+      "runtime_jobs": [
+        {
+          "backend_name": "ibm_kingston",
+          "call_path": "recovered_job_lookup",
+          "completed_utc": "2026-03-23T18:32:59.213944Z",
+          "created_utc": "2026-03-23T18:32:38.565534Z",
+          "error": null,
+          "expectation_value": 0.5601757644768113,
+          "job_id": "d70oehk69uic73ckjmvg",
+          "repeat_index": 0,
+          "running_utc": "2026-03-23T18:32:40.023022Z",
+          "session_id": null,
+          "status": "DONE",
+          "usage_quantum_seconds": 12.0
+        }
+      ],
+      "status": "completed",
+      "theta_logical": null,
+      "theta_runtime": null,
+      "trace_index": 2
+    },
+    {
+      "call_index": null,
+      "elapsed_s": null,
+      "energy_noisy_mean": 0.3935622931602998,
+      "energy_noisy_stderr": 0.0,
+      "n_samples": 1,
+      "raw_values": [
+        0.3935622931602998
+      ],
+      "runtime_jobs": [
+        {
+          "backend_name": "ibm_kingston",
+          "call_path": "recovered_job_lookup",
+          "completed_utc": "2026-03-23T18:33:37.267109Z",
+          "created_utc": "2026-03-23T18:33:17.845634Z",
+          "error": null,
+          "expectation_value": 0.3935622931602998,
+          "job_id": "d70oer8v5rlc73f6a69g",
+          "repeat_index": 0,
+          "running_utc": "2026-03-23T18:33:19.275922Z",
+          "session_id": null,
+          "status": "DONE",
+          "usage_quantum_seconds": 14.0
+        }
+      ],
+      "status": "completed",
+      "theta_logical": null,
+      "theta_runtime": null,
+      "trace_index": 3
+    },
+    {
+      "call_index": null,
+      "elapsed_s": null,
+      "energy_noisy_mean": 0.40928366247165343,
+      "energy_noisy_stderr": 0.0,
+      "n_samples": 1,
+      "raw_values": [
+        0.40928366247165343
+      ],
+      "runtime_jobs": [
+        {
+          "backend_name": "ibm_kingston",
+          "call_path": "recovered_job_lookup",
+          "completed_utc": "2026-03-23T18:33:55.89205Z",
+          "created_utc": "2026-03-23T18:33:38.251192Z",
+          "error": null,
+          "expectation_value": 0.40928366247165343,
+          "job_id": "d70of0itnsts73euh8u0",
+          "repeat_index": 0,
+          "running_utc": "2026-03-23T18:33:39.350688Z",
+          "session_id": null,
+          "status": "DONE",
+          "usage_quantum_seconds": 13.0
+        }
+      ],
+      "status": "completed",
+      "theta_logical": null,
+      "theta_runtime": null,
+      "trace_index": 4
+    },
+    {
+      "call_index": null,
+      "elapsed_s": null,
+      "energy_noisy_mean": 0.48312183871266,
+      "energy_noisy_stderr": 0.0,
+      "n_samples": 1,
+      "raw_values": [
+        0.48312183871266
+      ],
+      "runtime_jobs": [
+        {
+          "backend_name": "ibm_kingston",
+          "call_path": "recovered_job_lookup",
+          "completed_utc": "2026-03-23T18:37:30.407648Z",
+          "created_utc": "2026-03-23T18:37:13.518343Z",
+          "error": null,
+          "expectation_value": 0.48312183871266,
+          "job_id": "d70ogm8v5rlc73f6a850",
+          "repeat_index": 0,
+          "running_utc": "2026-03-23T18:37:14.377354Z",
+          "session_id": null,
+          "status": "DONE",
+          "usage_quantum_seconds": 12.0
+        }
+      ],
+      "status": "completed",
+      "theta_logical": null,
+      "theta_runtime": null,
+      "trace_index": 5
+    },
+    {
+      "call_index": null,
+      "elapsed_s": null,
+      "energy_noisy_mean": 0.4254176938065224,
+      "energy_noisy_stderr": 0.0,
+      "n_samples": 1,
+      "raw_values": [
+        0.4254176938065224
+      ],
+      "runtime_jobs": [
+        {
+          "backend_name": "ibm_kingston",
+          "call_path": "recovered_job_lookup",
+          "completed_utc": "2026-03-23T18:37:48.444513Z",
+          "created_utc": "2026-03-23T18:37:31.18492Z",
+          "error": null,
+          "expectation_value": 0.4254176938065224,
+          "job_id": "d70ogqov5rlc73f6a8a0",
+          "repeat_index": 0,
+          "running_utc": "2026-03-23T18:37:32.078796Z",
+          "session_id": null,
+          "status": "DONE",
+          "usage_quantum_seconds": 12.0
+        }
+      ],
+      "status": "completed",
+      "theta_logical": null,
+      "theta_runtime": null,
+      "trace_index": 6
+    }
+  ],
+  "partial": true,
+  "pipeline": "hh_fixed_scaffold_runtime_recovery_v1",
+  "reconstructed_from_runtime_jobs": true,
+  "recovery_granularity": "runtime_job",
+  "recovery_source_json": null,
+  "success": true,
+  "summary": {
+    "objective_calls_completed": null,
+    "objective_calls_failed": null,
+    "objective_calls_pending": null,
+    "objective_calls_total": null,
+    "runtime_jobs_completed": 6,
+    "runtime_jobs_failed": 0,
+    "runtime_jobs_pending": 0,
+    "runtime_jobs_total": 6,
+    "runtime_quantum_seconds_total": 75.0,
+    "trace_rows_completed": 6,
+    "trace_rows_failed": 0,
+    "trace_rows_pending": 0,
+    "trace_rows_total": 6
+  }
+}

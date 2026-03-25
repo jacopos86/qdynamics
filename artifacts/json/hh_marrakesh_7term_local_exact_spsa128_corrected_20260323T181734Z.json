@@ -1,0 +1,76 @@
+{
+  "generated_utc": "2026-03-23T18:17:35.389439+00:00",
+  "kind": "hh_marrakesh_7term_local_exact_spsa_corrected",
+  "candidate_artifact_json": "artifacts/json/hh_prune_nighthawk_gate_pruned_7term.json",
+  "note": "Exact local SPSA on 7-term artifact starting from stored theta; sector exact energy taken from artifact ground_state.exact_energy.",
+  "optimizer": {
+    "method": "SPSA",
+    "seed": 19,
+    "maxiter": 128,
+    "a": 0.2,
+    "c": 0.1,
+    "alpha": 0.602,
+    "gamma": 0.101,
+    "A": 10.0,
+    "nfev": 257,
+    "nit": 128,
+    "success": true,
+    "message": "spsa_completed(maxiter=128,a=0.2,c=0.1,alpha=0.602,gamma=0.101,A=10.0,eval_repeats=1,eval_agg=mean,avg_last=0)",
+    "elapsed_s": 0.4041502922773361
+  },
+  "exact_ground_energy_sector": 0.15866790412572512,
+  "initial": {
+    "theta_runtime": [
+      1.5707938677176911,
+      1.6400240536158577,
+      -3.1415852322533517,
+      -1.54485785098712,
+      -1.5707956982689952,
+      -0.08638170368796677,
+      -0.08646881746381309
+    ],
+    "energy": 0.15909070323441543,
+    "abs_delta_e": 0.00042279910869030823
+  },
+  "best_returned": {
+    "theta_runtime": [
+      1.5707938677176911,
+      1.6400240536158577,
+      -3.1415852322533517,
+      -1.54485785098712,
+      -1.5707956982689952,
+      -0.08638170368796677,
+      -0.08646881746381309
+    ],
+    "energy": 0.15909070323441543,
+    "abs_delta_e": 0.00042279910869030823
+  },
+  "improvement": {
+    "energy_drop": 0.0,
+    "abs_delta_e_drop": 0.0,
+    "theta_shift_l2": 0.0,
+    "best_seen_energy_in_log": 0.15909070323441543
+  },
+  "call_log_tail": [
+    0.17562262732497833,
+    0.176446672310361,
+    0.17464648635492375,
+    0.1756863648176873,
+    0.17726745178790243,
+    0.1764374509271458,
+    0.17450894054338228,
+    0.1752409551496833,
+    0.1778448189198476,
+    0.17662977339311295,
+    0.1737003597157926,
+    0.17254768976193519,
+    0.17485957605061422,
+    0.17352353734874795,
+    0.17498254833991836,
+    0.17378566362739464,
+    0.17833025127486876,
+    0.17678736084226068,
+    0.17422750707554596,
+    0.17582977832161817
+  ]
+}

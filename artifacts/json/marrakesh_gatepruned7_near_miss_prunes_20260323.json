@@ -1,0 +1,72 @@
+{
+  "generated_utc": "2026-03-23T16:15:00Z",
+  "kind": "marrakesh_gatepruned7_near_miss_prunes",
+  "rows": [
+    {
+      "name": "drop_runtime_5",
+      "dropped_pauli_exyz": [
+        "eyeeez"
+      ],
+      "runtime_terms_kept": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        6
+      ],
+      "abs_delta_e": 0.004995962462465364,
+      "exact_state_fidelity": 0.9979016221089313,
+      "best_compile": {
+        "compiled_count_2q": 14,
+        "compiled_depth": 48,
+        "compiled_size": 80,
+        "seed": 0
+      }
+    },
+    {
+      "name": "drop_runtime_6",
+      "dropped_pauli_exyz": [
+        "eyezee"
+      ],
+      "runtime_terms_kept": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "abs_delta_e": 0.004992106842087951,
+      "exact_state_fidelity": 0.997909151031,
+      "best_compile": {
+        "compiled_count_2q": 14,
+        "compiled_depth": 56,
+        "compiled_size": 80,
+        "seed": 0
+      }
+    },
+    {
+      "name": "drop_both_5_6",
+      "dropped_pauli_exyz": [
+        "eyeeez",
+        "eyezee"
+      ],
+      "runtime_terms_kept": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "abs_delta_e": 0.007013617030422525,
+      "exact_state_fidelity": 0.9986230507758485,
+      "best_compile": {
+        "compiled_count_2q": 12,
+        "compiled_depth": 48,
+        "compiled_size": 71,
+        "seed": 0
+      }
+    }
+  ]
+}

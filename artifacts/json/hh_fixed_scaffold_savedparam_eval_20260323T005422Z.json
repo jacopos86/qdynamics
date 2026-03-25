@@ -1,0 +1,179 @@
+{
+  "tag": "hh_fixed_scaffold_savedparam_eval_20260323T005422Z",
+  "artifact_json": "artifacts/json/hh_prune_nighthawk_circuit_optimized_7term.json",
+  "subject_kind": "hh_nighthawk_circuit_optimized_7term_v1",
+  "term_order_id": "disp_first",
+  "operator_count": 5,
+  "runtime_term_count": 7,
+  "saved_artifact_energy": 0.4968431429636751,
+  "exact_energy": 0.15866790412572512,
+  "unmitigated": {
+    "noisy_mean": 0.63641357421875,
+    "noisy_std": 0.043031225982320544,
+    "noisy_stdev": 0.043031225982320544,
+    "noisy_stderr": 0.015213835847434805,
+    "ideal_mean": 0.4968431429636737,
+    "ideal_std": 0.0,
+    "ideal_stdev": 0.0,
+    "ideal_stderr": 0.0,
+    "delta_mean": 0.1395704312550763,
+    "delta_stderr": 0.015213835847434805,
+    "backend_info": {
+      "noise_mode": "backend_scheduled",
+      "estimator_kind": "fake_backend.run(counts)",
+      "backend_name": "FakeNighthawk",
+      "using_fake_backend": true,
+      "details": {
+        "shots": 4096,
+        "compiled_mode": "backend_scheduled",
+        "transpile_optimization_level": 1,
+        "transpile_seed": 7,
+        "mitigation": {
+          "mode": "none",
+          "zne_scales": [],
+          "dd_sequence": null,
+          "local_readout_strategy": null
+        },
+        "symmetry_mitigation": {
+          "requested_mode": "off",
+          "applied_mode": "off",
+          "executed": false,
+          "eligible": false,
+          "fallback_reason": "",
+          "retained_fraction_mean": null,
+          "retained_fraction_samples": [],
+          "sector_probability_mean": null,
+          "sector_probability_samples": [],
+          "sector_values": {
+            "sector_n_up": null,
+            "sector_n_dn": null
+          },
+          "estimator_form": "none"
+        },
+        "aer_failed": false,
+        "fallback_used": false,
+        "layout_physical_qubits": [
+          57,
+          47,
+          38,
+          37,
+          48,
+          36
+        ],
+        "compiled_num_qubits": 120,
+        "readout_mitigation": {
+          "mode": "none",
+          "strategy": null,
+          "applied": false,
+          "active_physical_qubits": [
+            38,
+            48
+          ],
+          "term_details": {
+            "active_logical_qubits": [
+              2,
+              4
+            ],
+            "active_physical_qubits": [
+              38,
+              48
+            ],
+            "compiled_depth": 47,
+            "compiled_size": 96,
+            "pauli_weight": 2
+          }
+        }
+      }
+    },
+    "abs_delta_vs_exact": 0.4777456700930249,
+    "ideal_abs_delta_vs_exact": 0.3381752388379486
+  },
+  "mthree": {
+    "noisy_mean": 0.5809362788095314,
+    "noisy_std": 0.044934819145742544,
+    "noisy_stdev": 0.044934819145742544,
+    "noisy_stderr": 0.015886857664672828,
+    "ideal_mean": 0.4968431429636737,
+    "ideal_std": 0.0,
+    "ideal_stdev": 0.0,
+    "ideal_stderr": 0.0,
+    "delta_mean": 0.08409313584585765,
+    "delta_stderr": 0.015886857664672828,
+    "backend_info": {
+      "noise_mode": "backend_scheduled",
+      "estimator_kind": "fake_backend.run(counts)",
+      "backend_name": "FakeNighthawk",
+      "using_fake_backend": true,
+      "details": {
+        "shots": 4096,
+        "compiled_mode": "backend_scheduled",
+        "transpile_optimization_level": 1,
+        "transpile_seed": 7,
+        "mitigation": {
+          "mode": "readout",
+          "zne_scales": [],
+          "dd_sequence": null,
+          "local_readout_strategy": "mthree"
+        },
+        "symmetry_mitigation": {
+          "requested_mode": "off",
+          "applied_mode": "off",
+          "executed": false,
+          "eligible": false,
+          "fallback_reason": "",
+          "retained_fraction_mean": null,
+          "retained_fraction_samples": [],
+          "sector_probability_mean": null,
+          "sector_probability_samples": [],
+          "sector_values": {
+            "sector_n_up": null,
+            "sector_n_dn": null
+          },
+          "estimator_form": "none"
+        },
+        "aer_failed": false,
+        "fallback_used": false,
+        "layout_physical_qubits": [
+          57,
+          47,
+          38,
+          37,
+          48,
+          36
+        ],
+        "compiled_num_qubits": 120,
+        "readout_mitigation": {
+          "mode": "readout",
+          "strategy": "mthree",
+          "applied": true,
+          "active_physical_qubits": [
+            38,
+            48
+          ],
+          "term_details": {
+            "active_logical_qubits": [
+              2,
+              4
+            ],
+            "active_physical_qubits": [
+              38,
+              48
+            ],
+            "compiled_depth": 47,
+            "compiled_size": 96,
+            "pauli_weight": 2
+          },
+          "solver_method": "direct",
+          "solver_time_s": 0.00023175030946731567,
+          "dimension": 4,
+          "mitigation_overhead": 1.1582062098228145,
+          "negative_mass": 0.0,
+          "shots": 4096,
+          "calibration_cache_size": 14
+        }
+      }
+    },
+    "abs_delta_vs_exact": 0.42226837468380624,
+    "ideal_abs_delta_vs_exact": 0.3381752388379486
+  }
+}

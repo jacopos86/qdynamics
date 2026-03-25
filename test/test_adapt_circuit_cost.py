@@ -101,6 +101,34 @@ def test_resolve_runtime_layout_and_theta_accepts_serialized_parameterization() 
     assert np.allclose(restored_theta, theta_runtime)
 
 
+def test_resolve_runtime_layout_and_theta_preserves_serialized_block_order() -> None:
+    terms = [
+        AnsatzTerm(
+            label="gB",
+            polynomial=PauliPolynomial("JW", [PauliTerm(2, ps="xy", pc=1.0)]),
+        ),
+        AnsatzTerm(
+            label="gA",
+            polynomial=PauliPolynomial("JW", [PauliTerm(2, ps="zz", pc=1.0)]),
+        ),
+    ]
+    layout = build_parameter_layout(terms, sort_terms=False)
+    theta_runtime = np.array([0.3, -0.1], dtype=float)
+
+    restored_layout, restored_theta = _resolve_runtime_layout_and_theta(
+        {
+            "adapt_vqe": {
+                "optimal_point": theta_runtime.tolist(),
+                "parameterization": serialize_layout(layout),
+            }
+        },
+        list(reversed(terms)),
+    )
+
+    assert [block.candidate_label for block in restored_layout.blocks] == ["gB", "gA"]
+    assert np.allclose(restored_theta, theta_runtime)
+
+
 def test_normalize_adapt_payload_accepts_raw_top_level_adapt_json_shape() -> None:
     raw = {
         "settings": {"L": 2, "n_ph_max": 1, "boson_encoding": "binary"},

@@ -1,0 +1,183 @@
+{
+  "artifact_json": "artifacts/json/hh_marrakesh_fixed_scaffold_6term_drop_eyezee_20260323T171528Z.json",
+  "backend_name": "FakeMarrakesh",
+  "scout_grid": {
+    "opt_levels": [
+      1,
+      2
+    ],
+    "seed_transpilers": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      7
+    ]
+  },
+  "results": [
+    {
+      "opt_level": 1,
+      "seed_transpiler": 0,
+      "compiled_depth": 48,
+      "compiled_size": 80,
+      "compiled_two_qubit_count": 14,
+      "compiled_op_counts": {
+        "rz": 43,
+        "sx": 23,
+        "cz": 14
+      }
+    },
+    {
+      "opt_level": 1,
+      "seed_transpiler": 1,
+      "compiled_depth": 48,
+      "compiled_size": 80,
+      "compiled_two_qubit_count": 14,
+      "compiled_op_counts": {
+        "rz": 43,
+        "sx": 23,
+        "cz": 14
+      }
+    },
+    {
+      "opt_level": 1,
+      "seed_transpiler": 2,
+      "compiled_depth": 48,
+      "compiled_size": 80,
+      "compiled_two_qubit_count": 14,
+      "compiled_op_counts": {
+        "rz": 43,
+        "sx": 23,
+        "cz": 14
+      }
+    },
+    {
+      "opt_level": 1,
+      "seed_transpiler": 3,
+      "compiled_depth": 48,
+      "compiled_size": 80,
+      "compiled_two_qubit_count": 14,
+      "compiled_op_counts": {
+        "rz": 43,
+        "sx": 23,
+        "cz": 14
+      }
+    },
+    {
+      "opt_level": 1,
+      "seed_transpiler": 4,
+      "compiled_depth": 48,
+      "compiled_size": 80,
+      "compiled_two_qubit_count": 14,
+      "compiled_op_counts": {
+        "rz": 43,
+        "sx": 23,
+        "cz": 14
+      }
+    },
+    {
+      "opt_level": 1,
+      "seed_transpiler": 7,
+      "compiled_depth": 48,
+      "compiled_size": 80,
+      "compiled_two_qubit_count": 14,
+      "compiled_op_counts": {
+        "rz": 43,
+        "sx": 23,
+        "cz": 14
+      }
+    },
+    {
+      "opt_level": 2,
+      "seed_transpiler": 0,
+      "compiled_depth": 38,
+      "compiled_size": 76,
+      "compiled_two_qubit_count": 14,
+      "compiled_op_counts": {
+        "rz": 31,
+        "sx": 23,
+        "cz": 14,
+        "x": 8
+      }
+    },
+    {
+      "opt_level": 2,
+      "seed_transpiler": 1,
+      "compiled_depth": 38,
+      "compiled_size": 76,
+      "compiled_two_qubit_count": 14,
+      "compiled_op_counts": {
+        "rz": 31,
+        "sx": 23,
+        "cz": 14,
+        "x": 8
+      }
+    },
+    {
+      "opt_level": 2,
+      "seed_transpiler": 2,
+      "compiled_depth": 38,
+      "compiled_size": 76,
+      "compiled_two_qubit_count": 14,
+      "compiled_op_counts": {
+        "rz": 31,
+        "sx": 23,
+        "cz": 14,
+        "x": 8
+      }
+    },
+    {
+      "opt_level": 2,
+      "seed_transpiler": 3,
+      "compiled_depth": 38,
+      "compiled_size": 76,
+      "compiled_two_qubit_count": 14,
+      "compiled_op_counts": {
+        "rz": 31,
+        "sx": 23,
+        "cz": 14,
+        "x": 8
+      }
+    },
+    {
+      "opt_level": 2,
+      "seed_transpiler": 4,
+      "compiled_depth": 38,
+      "compiled_size": 76,
+      "compiled_two_qubit_count": 14,
+      "compiled_op_counts": {
+        "rz": 31,
+        "sx": 23,
+        "cz": 14,
+        "x": 8
+      }
+    },
+    {
+      "opt_level": 2,
+      "seed_transpiler": 7,
+      "compiled_depth": 38,
+      "compiled_size": 76,
+      "compiled_two_qubit_count": 14,
+      "compiled_op_counts": {
+        "rz": 31,
+        "sx": 23,
+        "cz": 14,
+        "x": 8
+      }
+    }
+  ],
+  "best_by_cost": {
+    "opt_level": 2,
+    "seed_transpiler": 0,
+    "compiled_depth": 38,
+    "compiled_size": 76,
+    "compiled_two_qubit_count": 14,
+    "compiled_op_counts": {
+      "rz": 31,
+      "sx": 23,
+      "cz": 14,
+      "x": 8
+    }
+  }
+}

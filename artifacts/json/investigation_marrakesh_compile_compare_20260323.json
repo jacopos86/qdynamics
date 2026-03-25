@@ -1,0 +1,340 @@
+{
+  "generated_utc": "2026-03-23T15:40:00Z",
+  "kind": "investigation_marrakesh_compile_compare",
+  "backend": "ibm_marrakesh",
+  "optimization_level": 1,
+  "seeds": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9
+  ],
+  "rows": [
+    {
+      "artifact": "artifacts/json/hh_prune_nighthawk_circuit_optimized_7term.json",
+      "saved_energy": 0.4968431429636751,
+      "exact_energy": 0.15866790412572512,
+      "saved_abs_delta": 0.33817523883795,
+      "logical_num_qubits": 6,
+      "logical_depth": 28,
+      "logical_size": 65,
+      "compiled_count_2q_min": 22,
+      "compiled_count_2q_max": 22,
+      "compiled_count_2q_mean": 22,
+      "compiled_depth_min": 52,
+      "compiled_depth_max": 52,
+      "compiled_depth_mean": 52,
+      "compiled_size_min": 107,
+      "compiled_size_max": 107,
+      "compiled_size_mean": 107,
+      "samples": [
+        {
+          "seed": 0,
+          "compiled_count_2q": 22,
+          "compiled_depth": 52,
+          "compiled_size": 107
+        },
+        {
+          "seed": 1,
+          "compiled_count_2q": 22,
+          "compiled_depth": 52,
+          "compiled_size": 107
+        },
+        {
+          "seed": 2,
+          "compiled_count_2q": 22,
+          "compiled_depth": 52,
+          "compiled_size": 107
+        },
+        {
+          "seed": 3,
+          "compiled_count_2q": 22,
+          "compiled_depth": 52,
+          "compiled_size": 107
+        },
+        {
+          "seed": 4,
+          "compiled_count_2q": 22,
+          "compiled_depth": 52,
+          "compiled_size": 107
+        },
+        {
+          "seed": 5,
+          "compiled_count_2q": 22,
+          "compiled_depth": 52,
+          "compiled_size": 107
+        },
+        {
+          "seed": 6,
+          "compiled_count_2q": 22,
+          "compiled_depth": 52,
+          "compiled_size": 107
+        },
+        {
+          "seed": 7,
+          "compiled_count_2q": 22,
+          "compiled_depth": 52,
+          "compiled_size": 107
+        },
+        {
+          "seed": 8,
+          "compiled_count_2q": 22,
+          "compiled_depth": 52,
+          "compiled_size": 107
+        },
+        {
+          "seed": 9,
+          "compiled_count_2q": 22,
+          "compiled_depth": 52,
+          "compiled_size": 107
+        }
+      ]
+    },
+    {
+      "artifact": "artifacts/json/hh_prune_nighthawk_gate_pruned_7term.json",
+      "saved_energy": 0.15909070323441662,
+      "exact_energy": 0.15866790412572512,
+      "saved_abs_delta": 0.0004227991086915017,
+      "logical_num_qubits": 6,
+      "logical_depth": 26,
+      "logical_size": 65,
+      "compiled_count_2q_min": 25,
+      "compiled_count_2q_max": 25,
+      "compiled_count_2q_mean": 25,
+      "compiled_depth_min": 63,
+      "compiled_depth_max": 75,
+      "compiled_depth_mean": 68.1,
+      "compiled_size_min": 110,
+      "compiled_size_max": 120,
+      "compiled_size_mean": 116.2,
+      "samples": [
+        {
+          "seed": 0,
+          "compiled_count_2q": 25,
+          "compiled_depth": 75,
+          "compiled_size": 112
+        },
+        {
+          "seed": 1,
+          "compiled_count_2q": 25,
+          "compiled_depth": 63,
+          "compiled_size": 120
+        },
+        {
+          "seed": 2,
+          "compiled_count_2q": 25,
+          "compiled_depth": 75,
+          "compiled_size": 110
+        },
+        {
+          "seed": 3,
+          "compiled_count_2q": 25,
+          "compiled_depth": 63,
+          "compiled_size": 120
+        },
+        {
+          "seed": 4,
+          "compiled_count_2q": 25,
+          "compiled_depth": 63,
+          "compiled_size": 120
+        },
+        {
+          "seed": 5,
+          "compiled_count_2q": 25,
+          "compiled_depth": 66,
+          "compiled_size": 116
+        },
+        {
+          "seed": 6,
+          "compiled_count_2q": 25,
+          "compiled_depth": 75,
+          "compiled_size": 112
+        },
+        {
+          "seed": 7,
+          "compiled_count_2q": 25,
+          "compiled_depth": 75,
+          "compiled_size": 112
+        },
+        {
+          "seed": 8,
+          "compiled_count_2q": 25,
+          "compiled_depth": 63,
+          "compiled_size": 120
+        },
+        {
+          "seed": 9,
+          "compiled_count_2q": 25,
+          "compiled_depth": 63,
+          "compiled_size": 120
+        }
+      ]
+    },
+    {
+      "artifact": "artifacts/json/hh_prune_nighthawk_aggressive_5op.json",
+      "saved_energy": 0.1587240823603705,
+      "exact_energy": 0.15866790412572512,
+      "saved_abs_delta": 5.6178234645376524e-05,
+      "logical_num_qubits": 6,
+      "logical_depth": 54,
+      "logical_size": 110,
+      "compiled_count_2q_min": 37,
+      "compiled_count_2q_max": 40,
+      "compiled_count_2q_mean": 37.6,
+      "compiled_depth_min": 110,
+      "compiled_depth_max": 135,
+      "compiled_depth_mean": 120.1,
+      "compiled_size_min": 161,
+      "compiled_size_max": 189,
+      "compiled_size_mean": 170.3,
+      "samples": [
+        {
+          "seed": 0,
+          "compiled_count_2q": 37,
+          "compiled_depth": 126,
+          "compiled_size": 164
+        },
+        {
+          "seed": 1,
+          "compiled_count_2q": 37,
+          "compiled_depth": 113,
+          "compiled_size": 161
+        },
+        {
+          "seed": 2,
+          "compiled_count_2q": 40,
+          "compiled_depth": 135,
+          "compiled_size": 185
+        },
+        {
+          "seed": 3,
+          "compiled_count_2q": 37,
+          "compiled_depth": 110,
+          "compiled_size": 169
+        },
+        {
+          "seed": 4,
+          "compiled_count_2q": 37,
+          "compiled_depth": 126,
+          "compiled_size": 164
+        },
+        {
+          "seed": 5,
+          "compiled_count_2q": 37,
+          "compiled_depth": 110,
+          "compiled_size": 169
+        },
+        {
+          "seed": 6,
+          "compiled_count_2q": 37,
+          "compiled_depth": 110,
+          "compiled_size": 169
+        },
+        {
+          "seed": 7,
+          "compiled_count_2q": 37,
+          "compiled_depth": 126,
+          "compiled_size": 164
+        },
+        {
+          "seed": 8,
+          "compiled_count_2q": 40,
+          "compiled_depth": 135,
+          "compiled_size": 189
+        },
+        {
+          "seed": 9,
+          "compiled_count_2q": 37,
+          "compiled_depth": 110,
+          "compiled_size": 169
+        }
+      ]
+    },
+    {
+      "artifact": "artifacts/json/hh_prune_nighthawk_readapt_5op.json",
+      "saved_energy": 0.15872408236129765,
+      "exact_energy": 0.15866790412572634,
+      "saved_abs_delta": 5.6178235571302526e-05,
+      "logical_num_qubits": 6,
+      "logical_depth": 54,
+      "logical_size": 110,
+      "compiled_count_2q_min": 37,
+      "compiled_count_2q_max": 40,
+      "compiled_count_2q_mean": 37.6,
+      "compiled_depth_min": 110,
+      "compiled_depth_max": 135,
+      "compiled_depth_mean": 120.1,
+      "compiled_size_min": 161,
+      "compiled_size_max": 189,
+      "compiled_size_mean": 170.3,
+      "samples": [
+        {
+          "seed": 0,
+          "compiled_count_2q": 37,
+          "compiled_depth": 126,
+          "compiled_size": 164
+        },
+        {
+          "seed": 1,
+          "compiled_count_2q": 37,
+          "compiled_depth": 113,
+          "compiled_size": 161
+        },
+        {
+          "seed": 2,
+          "compiled_count_2q": 40,
+          "compiled_depth": 135,
+          "compiled_size": 185
+        },
+        {
+          "seed": 3,
+          "compiled_count_2q": 37,
+          "compiled_depth": 110,
+          "compiled_size": 169
+        },
+        {
+          "seed": 4,
+          "compiled_count_2q": 37,
+          "compiled_depth": 126,
+          "compiled_size": 164
+        },
+        {
+          "seed": 5,
+          "compiled_count_2q": 37,
+          "compiled_depth": 110,
+          "compiled_size": 169
+        },
+        {
+          "seed": 6,
+          "compiled_count_2q": 37,
+          "compiled_depth": 110,
+          "compiled_size": 169
+        },
+        {
+          "seed": 7,
+          "compiled_count_2q": 37,
+          "compiled_depth": 126,
+          "compiled_size": 164
+        },
+        {
+          "seed": 8,
+          "compiled_count_2q": 40,
+          "compiled_depth": 135,
+          "compiled_size": 189
+        },
+        {
+          "seed": 9,
+          "compiled_count_2q": 37,
+          "compiled_depth": 110,
+          "compiled_size": 169
+        }
+      ]
+    }
+  ]
+}

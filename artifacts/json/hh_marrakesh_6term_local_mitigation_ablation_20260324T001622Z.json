@@ -1,0 +1,542 @@
+{
+  "generated_utc": "2026-03-24T00:25:45Z",
+  "artifact_json": "artifacts/json/hh_marrakesh_fixed_scaffold_6term_drop_eyezee_20260323T171528Z.json",
+  "subject": {
+    "subject_kind": "hh_marrakesh_gate_pruned_6term_drop_eyezee_v1",
+    "term_order_id": "source_order_pruned",
+    "operator_count": 5,
+    "runtime_term_count": 6
+  },
+  "run_config": {
+    "backend_name": "FakeMarrakesh",
+    "shots": 2048,
+    "oracle_repeats": 4,
+    "oracle_aggregate": "mean",
+    "seed": 7,
+    "seed_transpiler": 0,
+    "transpile_optimization_level": 1
+  },
+  "results": {
+    "none": {
+      "mitigation": {
+        "mode": "none"
+      },
+      "payload": {
+        "noisy_mean": 0.31488037109375,
+        "noisy_std": 0.09097361870940324,
+        "noisy_stdev": 0.09097361870940324,
+        "noisy_stderr": 0.04548680935470162,
+        "ideal_mean": 0.16328096012588605,
+        "ideal_std": 0.0,
+        "ideal_stdev": 0.0,
+        "ideal_stderr": 0.0,
+        "delta_mean": 0.15159941096786395,
+        "delta_stderr": 0.04548680935470162,
+        "backend_info": {
+          "noise_mode": "backend_scheduled",
+          "estimator_kind": "fake_backend.run(counts)",
+          "backend_name": "FakeMarrakesh",
+          "using_fake_backend": true,
+          "details": {
+            "shots": 2048,
+            "compiled_mode": "backend_scheduled",
+            "transpile_optimization_level": 1,
+            "transpile_seed": 0,
+            "mitigation": {
+              "mode": "none",
+              "zne_scales": [],
+              "dd_sequence": null,
+              "local_readout_strategy": null
+            },
+            "symmetry_mitigation": {
+              "requested_mode": "off",
+              "applied_mode": "off",
+              "executed": false,
+              "eligible": false,
+              "fallback_reason": "",
+              "retained_fraction_mean": null,
+              "retained_fraction_samples": [],
+              "sector_probability_mean": null,
+              "sector_probability_samples": [],
+              "sector_values": {
+                "sector_n_up": null,
+                "sector_n_dn": null
+              },
+              "estimator_form": "none"
+            },
+            "aer_failed": false,
+            "fallback_used": false,
+            "layout_physical_qubits": [
+              13,
+              12,
+              18,
+              11,
+              14,
+              10
+            ],
+            "compiled_num_qubits": 156,
+            "compiled_depth": 48,
+            "compiled_size": 80,
+            "compiled_two_qubit_count": 14,
+            "compiled_cx_count": 0,
+            "compiled_ecr_count": 0,
+            "compiled_op_counts": {
+              "rz": 43,
+              "sx": 23,
+              "cz": 14
+            },
+            "readout_mitigation": {
+              "mode": "none",
+              "strategy": null,
+              "applied": false,
+              "active_physical_qubits": [
+                18,
+                14
+              ],
+              "term_details": {
+                "active_logical_qubits": [
+                  2,
+                  4
+                ],
+                "active_physical_qubits": [
+                  18,
+                  14
+                ],
+                "compiled_depth": 49,
+                "compiled_size": 83,
+                "pauli_weight": 2
+              }
+            },
+            "local_gate_twirling": {
+              "requested": false,
+              "applied": false,
+              "reason": "local_gate_twirling_disabled",
+              "engine": "none",
+              "seed": null
+            }
+          }
+        }
+      },
+      "summary": {
+        "noisy_mean": 0.31488037109375,
+        "ideal_mean": 0.16328096012588605,
+        "delta_mean": 0.15159941096786395,
+        "delta_stderr": 0.04548680935470162,
+        "compiled_two_qubit_count": 14,
+        "compiled_depth": 48,
+        "compiled_size": 80,
+        "compiled_cx_count": 0,
+        "compiled_ecr_count": 0,
+        "readout_mitigation": {
+          "mode": "none",
+          "strategy": null,
+          "applied": false,
+          "active_physical_qubits": [
+            18,
+            14
+          ],
+          "term_details": {
+            "active_logical_qubits": [
+              2,
+              4
+            ],
+            "active_physical_qubits": [
+              18,
+              14
+            ],
+            "compiled_depth": 49,
+            "compiled_size": 83,
+            "pauli_weight": 2
+          }
+        },
+        "local_gate_twirling": {
+          "requested": false,
+          "applied": false,
+          "reason": "local_gate_twirling_disabled",
+          "engine": "none",
+          "seed": null
+        },
+        "elapsed_s": 157.70353529043496
+      }
+    },
+    "readout_only": {
+      "mitigation": {
+        "mode": "readout",
+        "local_readout_strategy": "mthree"
+      },
+      "payload": {
+        "noisy_mean": 0.2560556968091987,
+        "noisy_std": 0.09394926716416513,
+        "noisy_stdev": 0.09394926716416513,
+        "noisy_stderr": 0.046974633582082564,
+        "ideal_mean": 0.16328096012588605,
+        "ideal_std": 0.0,
+        "ideal_stdev": 0.0,
+        "ideal_stderr": 0.0,
+        "delta_mean": 0.09277473668331265,
+        "delta_stderr": 0.046974633582082564,
+        "backend_info": {
+          "noise_mode": "backend_scheduled",
+          "estimator_kind": "fake_backend.run(counts)",
+          "backend_name": "FakeMarrakesh",
+          "using_fake_backend": true,
+          "details": {
+            "shots": 2048,
+            "compiled_mode": "backend_scheduled",
+            "transpile_optimization_level": 1,
+            "transpile_seed": 0,
+            "mitigation": {
+              "mode": "readout",
+              "zne_scales": [],
+              "dd_sequence": null,
+              "local_readout_strategy": "mthree"
+            },
+            "symmetry_mitigation": {
+              "requested_mode": "off",
+              "applied_mode": "off",
+              "executed": false,
+              "eligible": false,
+              "fallback_reason": "",
+              "retained_fraction_mean": null,
+              "retained_fraction_samples": [],
+              "sector_probability_mean": null,
+              "sector_probability_samples": [],
+              "sector_values": {
+                "sector_n_up": null,
+                "sector_n_dn": null
+              },
+              "estimator_form": "none"
+            },
+            "aer_failed": false,
+            "fallback_used": false,
+            "layout_physical_qubits": [
+              13,
+              12,
+              18,
+              11,
+              14,
+              10
+            ],
+            "compiled_num_qubits": 156,
+            "compiled_depth": 48,
+            "compiled_size": 80,
+            "compiled_two_qubit_count": 14,
+            "compiled_cx_count": 0,
+            "compiled_ecr_count": 0,
+            "compiled_op_counts": {
+              "rz": 43,
+              "sx": 23,
+              "cz": 14
+            },
+            "readout_mitigation": {
+              "mode": "readout",
+              "strategy": "mthree",
+              "applied": true,
+              "active_physical_qubits": [
+                18,
+                14
+              ],
+              "term_details": {
+                "active_logical_qubits": [
+                  2,
+                  4
+                ],
+                "active_physical_qubits": [
+                  18,
+                  14
+                ],
+                "compiled_depth": 49,
+                "compiled_size": 83,
+                "pauli_weight": 2
+              },
+              "solver_method": "direct",
+              "solver_time_s": 0.00024674925953149796,
+              "dimension": 4,
+              "mitigation_overhead": 1.0583722019130464,
+              "negative_mass": 0.0,
+              "shots": 2048,
+              "calibration_cache_size": 14
+            },
+            "local_gate_twirling": {
+              "requested": false,
+              "applied": false,
+              "reason": "local_gate_twirling_disabled",
+              "engine": "none",
+              "seed": null
+            }
+          }
+        }
+      },
+      "summary": {
+        "noisy_mean": 0.2560556968091987,
+        "ideal_mean": 0.16328096012588605,
+        "delta_mean": 0.09277473668331265,
+        "delta_stderr": 0.046974633582082564,
+        "compiled_two_qubit_count": 14,
+        "compiled_depth": 48,
+        "compiled_size": 80,
+        "compiled_cx_count": 0,
+        "compiled_ecr_count": 0,
+        "readout_mitigation": {
+          "mode": "readout",
+          "strategy": "mthree",
+          "applied": true,
+          "active_physical_qubits": [
+            18,
+            14
+          ],
+          "term_details": {
+            "active_logical_qubits": [
+              2,
+              4
+            ],
+            "active_physical_qubits": [
+              18,
+              14
+            ],
+            "compiled_depth": 49,
+            "compiled_size": 83,
+            "pauli_weight": 2
+          },
+          "solver_method": "direct",
+          "solver_time_s": 0.00024674925953149796,
+          "dimension": 4,
+          "mitigation_overhead": 1.0583722019130464,
+          "negative_mass": 0.0,
+          "shots": 2048,
+          "calibration_cache_size": 14
+        },
+        "local_gate_twirling": {
+          "requested": false,
+          "applied": false,
+          "reason": "local_gate_twirling_disabled",
+          "engine": "none",
+          "seed": null
+        },
+        "elapsed_s": 200.02486899960786
+      }
+    },
+    "readout_plus_gate_twirling": {
+      "mitigation": {
+        "mode": "readout",
+        "local_readout_strategy": "mthree",
+        "local_gate_twirling": true
+      },
+      "payload": {
+        "noisy_mean": 0.27687271060131025,
+        "noisy_std": 0.10166773653083229,
+        "noisy_stdev": 0.10166773653083229,
+        "noisy_stderr": 0.050833868265416145,
+        "ideal_mean": 0.16328096012588605,
+        "ideal_std": 0.0,
+        "ideal_stdev": 0.0,
+        "ideal_stderr": 0.0,
+        "delta_mean": 0.11359175047542419,
+        "delta_stderr": 0.050833868265416145,
+        "backend_info": {
+          "noise_mode": "backend_scheduled",
+          "estimator_kind": "fake_backend.run(counts)",
+          "backend_name": "FakeMarrakesh",
+          "using_fake_backend": true,
+          "details": {
+            "shots": 2048,
+            "compiled_mode": "backend_scheduled",
+            "transpile_optimization_level": 1,
+            "transpile_seed": 0,
+            "mitigation": {
+              "mode": "readout",
+              "zne_scales": [],
+              "dd_sequence": null,
+              "local_readout_strategy": "mthree",
+              "local_gate_twirling": true
+            },
+            "symmetry_mitigation": {
+              "requested_mode": "off",
+              "applied_mode": "off",
+              "executed": false,
+              "eligible": false,
+              "fallback_reason": "",
+              "retained_fraction_mean": null,
+              "retained_fraction_samples": [],
+              "sector_probability_mean": null,
+              "sector_probability_samples": [],
+              "sector_values": {
+                "sector_n_up": null,
+                "sector_n_dn": null
+              },
+              "estimator_form": "none"
+            },
+            "aer_failed": false,
+            "fallback_used": false,
+            "layout_physical_qubits": [
+              13,
+              12,
+              18,
+              11,
+              14,
+              10
+            ],
+            "compiled_num_qubits": 156,
+            "compiled_depth": 48,
+            "compiled_size": 80,
+            "compiled_two_qubit_count": 14,
+            "compiled_cx_count": 0,
+            "compiled_ecr_count": 0,
+            "compiled_op_counts": {
+              "rz": 43,
+              "sx": 23,
+              "cz": 14
+            },
+            "readout_mitigation": {
+              "mode": "readout",
+              "strategy": "mthree",
+              "applied": true,
+              "active_physical_qubits": [
+                18,
+                14
+              ],
+              "term_details": {
+                "active_logical_qubits": [
+                  2,
+                  4
+                ],
+                "active_physical_qubits": [
+                  18,
+                  14
+                ],
+                "compiled_depth": 49,
+                "compiled_size": 94,
+                "pauli_weight": 2
+              },
+              "solver_method": "direct",
+              "solver_time_s": 0.0002343328669667244,
+              "dimension": 4,
+              "mitigation_overhead": 1.0856986532278325,
+              "negative_mass": 0.0,
+              "shots": 2048,
+              "calibration_cache_size": 14
+            },
+            "local_gate_twirling": {
+              "requested": true,
+              "applied": true,
+              "reason": "",
+              "engine": "qiskit.circuit.pauli_twirl_2q_gates",
+              "seed": 10,
+              "gate_set": [
+                "cx",
+                "cz",
+                "ecr",
+                "iswap"
+              ],
+              "base_metrics": {
+                "compiled_depth": 48,
+                "compiled_size": 80,
+                "compiled_two_qubit_count": 14,
+                "compiled_cx_count": 0,
+                "compiled_ecr_count": 0,
+                "compiled_op_counts": {
+                  "rz": 43,
+                  "sx": 23,
+                  "cz": 14
+                }
+              },
+              "twirled_metrics": {
+                "compiled_depth": 48,
+                "compiled_size": 91,
+                "compiled_two_qubit_count": 14,
+                "compiled_cx_count": 0,
+                "compiled_ecr_count": 0,
+                "compiled_op_counts": {
+                  "rz": 46,
+                  "sx": 23,
+                  "cz": 14,
+                  "x": 8
+                }
+              }
+            }
+          }
+        }
+      },
+      "summary": {
+        "noisy_mean": 0.27687271060131025,
+        "ideal_mean": 0.16328096012588605,
+        "delta_mean": 0.11359175047542419,
+        "delta_stderr": 0.050833868265416145,
+        "compiled_two_qubit_count": 14,
+        "compiled_depth": 48,
+        "compiled_size": 80,
+        "compiled_cx_count": 0,
+        "compiled_ecr_count": 0,
+        "readout_mitigation": {
+          "mode": "readout",
+          "strategy": "mthree",
+          "applied": true,
+          "active_physical_qubits": [
+            18,
+            14
+          ],
+          "term_details": {
+            "active_logical_qubits": [
+              2,
+              4
+            ],
+            "active_physical_qubits": [
+              18,
+              14
+            ],
+            "compiled_depth": 49,
+            "compiled_size": 94,
+            "pauli_weight": 2
+          },
+          "solver_method": "direct",
+          "solver_time_s": 0.0002343328669667244,
+          "dimension": 4,
+          "mitigation_overhead": 1.0856986532278325,
+          "negative_mass": 0.0,
+          "shots": 2048,
+          "calibration_cache_size": 14
+        },
+        "local_gate_twirling": {
+          "requested": true,
+          "applied": true,
+          "reason": "",
+          "engine": "qiskit.circuit.pauli_twirl_2q_gates",
+          "seed": 10,
+          "gate_set": [
+            "cx",
+            "cz",
+            "ecr",
+            "iswap"
+          ],
+          "base_metrics": {
+            "compiled_depth": 48,
+            "compiled_size": 80,
+            "compiled_two_qubit_count": 14,
+            "compiled_cx_count": 0,
+            "compiled_ecr_count": 0,
+            "compiled_op_counts": {
+              "rz": 43,
+              "sx": 23,
+              "cz": 14
+            }
+          },
+          "twirled_metrics": {
+            "compiled_depth": 48,
+            "compiled_size": 91,
+            "compiled_two_qubit_count": 14,
+            "compiled_cx_count": 0,
+            "compiled_ecr_count": 0,
+            "compiled_op_counts": {
+              "rz": 46,
+              "sx": 23,
+              "cz": 14,
+              "x": 8
+            }
+          }
+        },
+        "elapsed_s": 205.39793295878917
+      }
+    }
+  },
+  "elapsed_s_total": 563.1267898753285
+}

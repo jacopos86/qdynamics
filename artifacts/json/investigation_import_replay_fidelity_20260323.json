@@ -1,0 +1,38 @@
+{
+  "generated_utc": "2026-03-23T15:40:00Z",
+  "kind": "investigation_import_replay_fidelity",
+  "rows": [
+    {
+      "artifact": "artifacts/json/hh_prune_nighthawk_gate_pruned_7term.json",
+      "rebuilt_vs_saved_initial_state_fidelity": 0.9999999999999962,
+      "rebuilt_vs_ansatz_input_state_fidelity": 0.0748783805406994,
+      "rebuilt_norm": 0.9999999999999961,
+      "saved_energy": 0.15909070323441662,
+      "exact_energy": 0.15866790412572512
+    },
+    {
+      "artifact": "artifacts/json/hh_prune_nighthawk_circuit_optimized_7term.json",
+      "rebuilt_vs_saved_initial_state_fidelity": 0.9999999999999969,
+      "rebuilt_vs_ansatz_input_state_fidelity": 0.06280406602409072,
+      "rebuilt_norm": 0.9999999999999967,
+      "saved_energy": 0.4968431429636751,
+      "exact_energy": 0.15866790412572512
+    },
+    {
+      "artifact": "artifacts/json/hh_prune_nighthawk_aggressive_5op.json",
+      "rebuilt_vs_saved_initial_state_fidelity": 0.5717004606776915,
+      "rebuilt_vs_ansatz_input_state_fidelity": 0.03695231267348616,
+      "rebuilt_norm": 0.9999999999999934,
+      "saved_energy": 0.1587240823603705,
+      "exact_energy": 0.15866790412572512
+    },
+    {
+      "artifact": "artifacts/json/hh_prune_nighthawk_readapt_5op.json",
+      "rebuilt_vs_saved_initial_state_fidelity": 0.5717004521592476,
+      "rebuilt_vs_ansatz_input_state_fidelity": 0.03695231152348752,
+      "rebuilt_norm": 0.9999999999999927,
+      "saved_energy": 0.15872408236129765,
+      "exact_energy": 0.15866790412572634
+    }
+  ]
+}

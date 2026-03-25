@@ -1,0 +1,103 @@
+{
+  "generated_utc": "2026-03-23T17:15:28.384778+00:00",
+  "pipeline": "hh_fixed_scaffold_energy_only_runtime_eval_v1",
+  "candidate_artifact_json": "artifacts/json/hh_marrakesh_fixed_scaffold_6term_drop_eyezee_20260323T171528Z.json",
+  "source_artifact_json": "artifacts/json/hh_prune_nighthawk_gate_pruned_7term.json",
+  "candidate_selection": "recommended_6term_drop_eyezee",
+  "expected_local_exact_energy": 0.1632809601258856,
+  "expected_local_abs_delta_e": 0.004613056000159821,
+  "expected_local_exact_state_fidelity": 0.9984850798203946,
+  "noise_contract": {
+    "backend_name": "ibm_marrakesh",
+    "use_fake_backend": false,
+    "shots": 8192,
+    "oracle_repeats": 1,
+    "oracle_aggregate": "mean",
+    "mitigation": {
+      "mode": "readout",
+      "local_readout_strategy": "mthree"
+    },
+    "symmetry_mitigation": {
+      "mode": "off"
+    },
+    "parameter_optimization": false,
+    "observables": [
+      "energy_only"
+    ]
+  },
+  "success": true,
+  "runtime_eval": {
+    "noisy_mean": 0.4485848928785605,
+    "noisy_std": 0.0,
+    "noisy_stdev": 0.0,
+    "noisy_stderr": 0.0,
+    "ideal_mean": 0.16328096012588605,
+    "ideal_std": 0.0,
+    "ideal_stdev": 0.0,
+    "ideal_stderr": 0.0,
+    "delta_mean": 0.28530393275267446,
+    "delta_stderr": 0.0,
+    "backend_info": {
+      "noise_mode": "runtime",
+      "estimator_kind": "qiskit_ibm_runtime.EstimatorV2",
+      "backend_name": "ibm_marrakesh",
+      "using_fake_backend": false,
+      "details": {
+        "shots": 8192,
+        "runtime_execution_mode": "backend",
+        "session_fallback_reason": "RequestsApiError: '400 Client Error: Bad Request for url: https://quantum.cloud.ibm.com/api/v1/sessions. {\"errors\":[{\"code\":1352,\"message\":\"You are not authorized to run a session when using the open plan.\",\"solution\":\"Create an instance of a different plan type or use a different [execution mode](https://quantum.cloud.ibm.com/docs/guides/execution-modes).\",\"more_info\":\"https://cloud.ibm.com/apidocs/quantum-computing#error-handling\"}],\"trace\":\"d118359f-97f5-4ccc-bc05-442548107e45\"}\\n'",
+        "mitigation": {
+          "mode": "readout",
+          "zne_scales": [],
+          "dd_sequence": null,
+          "local_readout_strategy": "mthree"
+        },
+        "runtime_mitigation": {
+          "mode": "readout",
+          "engine": "runtime_resilience.measure_mitigation",
+          "requested_local_readout_strategy": "mthree",
+          "applied": true,
+          "provider_strategy": "builtin_measure_mitigation"
+        },
+        "symmetry_mitigation": {
+          "requested_mode": "off",
+          "applied_mode": "off",
+          "executed": false,
+          "eligible": false,
+          "fallback_reason": "",
+          "retained_fraction_mean": null,
+          "retained_fraction_samples": [],
+          "sector_probability_mean": null,
+          "sector_probability_samples": [],
+          "sector_values": {
+            "sector_n_up": null,
+            "sector_n_dn": null
+          },
+          "estimator_form": "none"
+        },
+        "transpile_optimization_level": 1,
+        "transpile_seed": 7,
+        "layout_physical_qubits": [
+          5,
+          4,
+          16,
+          3,
+          6,
+          2
+        ],
+        "compiled_num_qubits": 156,
+        "isa_observable_num_qubits": 156,
+        "readout_mitigation": {
+          "mode": "readout",
+          "requested_strategy": "mthree",
+          "engine": "runtime_resilience.measure_mitigation",
+          "applied": true
+        }
+      }
+    }
+  },
+  "qpu_job_ids": [
+    "d70naditnsts73eug040",
+    "44eafddc-004d-4fa2-bed9-f03702e6e13a"
+  ]
+}

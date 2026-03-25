@@ -1,0 +1,212 @@
+{
+  "generated_utc": "2026-03-23T18:28:49.237593+00:00",
+  "kind": "hh_marrakesh_7term_local_exact_spsa_perturbed_starts",
+  "candidate_artifact_json": "artifacts/json/hh_prune_nighthawk_gate_pruned_7term.json",
+  "reference": {
+    "theta_runtime": [
+      1.5707938677176911,
+      1.6400240536158577,
+      -3.1415852322533517,
+      -1.54485785098712,
+      -1.5707956982689952,
+      -0.08638170368796677,
+      -0.08646881746381309
+    ],
+    "energy": 0.15909070323441543,
+    "abs_delta_e": 0.00042279910869030823
+  },
+  "rows": [
+    {
+      "perturb_sigma": 0.05,
+      "perturb_seed": 101,
+      "start_theta_shift_l2": 0.1486461293384588,
+      "start": {
+        "energy": 0.17838165814605167,
+        "abs_delta_e": 0.019713754020326546
+      },
+      "final": {
+        "energy": 0.17106365403475723,
+        "abs_delta_e": 0.012395749909032111
+      },
+      "relative_to_reference": {
+        "final_minus_reference_energy": 0.011972950800341803,
+        "final_minus_reference_abs_delta_e": 0.011972950800341803
+      },
+      "optimizer": {
+        "method": "SPSA",
+        "seed": 19,
+        "maxiter": 128,
+        "nfev": 257,
+        "nit": 128,
+        "success": true,
+        "elapsed_s": 0.4071718333289027
+      },
+      "recovery": {
+        "energy_drop_from_start": 0.007318004111294435,
+        "abs_delta_drop_from_start": 0.007318004111294435,
+        "final_theta_shift_from_reference_l2": 0.14026857975089316,
+        "best_seen_energy_in_log": 0.17106365403475723
+      }
+    },
+    {
+      "perturb_sigma": 0.05,
+      "perturb_seed": 102,
+      "start_theta_shift_l2": 0.14363042886682553,
+      "start": {
+        "energy": 0.178565034268029,
+        "abs_delta_e": 0.019897130142303876
+      },
+      "final": {
+        "energy": 0.17074220716945468,
+        "abs_delta_e": 0.012074303043729556
+      },
+      "relative_to_reference": {
+        "final_minus_reference_energy": 0.011651503935039248,
+        "final_minus_reference_abs_delta_e": 0.011651503935039248
+      },
+      "optimizer": {
+        "method": "SPSA",
+        "seed": 19,
+        "maxiter": 128,
+        "nfev": 257,
+        "nit": 128,
+        "success": true,
+        "elapsed_s": 0.3953218748793006
+      },
+      "recovery": {
+        "energy_drop_from_start": 0.00782282709857432,
+        "abs_delta_drop_from_start": 0.00782282709857432,
+        "final_theta_shift_from_reference_l2": 0.14784017580373282,
+        "best_seen_energy_in_log": 0.17074220716945468
+      }
+    },
+    {
+      "perturb_sigma": 0.05,
+      "perturb_seed": 103,
+      "start_theta_shift_l2": 0.14823367293632628,
+      "start": {
+        "energy": 0.17214098655636786,
+        "abs_delta_e": 0.013473082430642741
+      },
+      "final": {
+        "energy": 0.17028601338433852,
+        "abs_delta_e": 0.011618109258613396
+      },
+      "relative_to_reference": {
+        "final_minus_reference_energy": 0.011195310149923088,
+        "final_minus_reference_abs_delta_e": 0.011195310149923088
+      },
+      "optimizer": {
+        "method": "SPSA",
+        "seed": 19,
+        "maxiter": 128,
+        "nfev": 257,
+        "nit": 128,
+        "success": true,
+        "elapsed_s": 0.4118702495470643
+      },
+      "recovery": {
+        "energy_drop_from_start": 0.001854973172029345,
+        "abs_delta_drop_from_start": 0.001854973172029345,
+        "final_theta_shift_from_reference_l2": 0.11444455704502277,
+        "best_seen_energy_in_log": 0.17028601338433852
+      }
+    },
+    {
+      "perturb_sigma": 0.1,
+      "perturb_seed": 201,
+      "start_theta_shift_l2": 0.34878351284341114,
+      "start": {
+        "energy": 0.2107079944252665,
+        "abs_delta_e": 0.052040090299541375
+      },
+      "final": {
+        "energy": 0.17033144989435361,
+        "abs_delta_e": 0.011663545768628492
+      },
+      "relative_to_reference": {
+        "final_minus_reference_energy": 0.011240746659938183,
+        "final_minus_reference_abs_delta_e": 0.011240746659938183
+      },
+      "optimizer": {
+        "method": "SPSA",
+        "seed": 19,
+        "maxiter": 128,
+        "nfev": 257,
+        "nit": 128,
+        "success": true,
+        "elapsed_s": 0.3907627919688821
+      },
+      "recovery": {
+        "energy_drop_from_start": 0.04037654453091288,
+        "abs_delta_drop_from_start": 0.04037654453091288,
+        "final_theta_shift_from_reference_l2": 0.1561061429380298,
+        "best_seen_energy_in_log": 0.17033144989435361
+      }
+    },
+    {
+      "perturb_sigma": 0.1,
+      "perturb_seed": 202,
+      "start_theta_shift_l2": 0.30872969554223123,
+      "start": {
+        "energy": 0.20549416159892903,
+        "abs_delta_e": 0.0468262574732039
+      },
+      "final": {
+        "energy": 0.16899260372839472,
+        "abs_delta_e": 0.010324699602669601
+      },
+      "relative_to_reference": {
+        "final_minus_reference_energy": 0.009901900493979293,
+        "final_minus_reference_abs_delta_e": 0.009901900493979293
+      },
+      "optimizer": {
+        "method": "SPSA",
+        "seed": 19,
+        "maxiter": 128,
+        "nfev": 257,
+        "nit": 128,
+        "success": true,
+        "elapsed_s": 0.4047131659463048
+      },
+      "recovery": {
+        "energy_drop_from_start": 0.0365015578705343,
+        "abs_delta_drop_from_start": 0.0365015578705343,
+        "final_theta_shift_from_reference_l2": 0.10322427015538102,
+        "best_seen_energy_in_log": 0.16899260372839472
+      }
+    },
+    {
+      "perturb_sigma": 0.1,
+      "perturb_seed": 203,
+      "start_theta_shift_l2": 0.3280940217204243,
+      "start": {
+        "energy": 0.21473003564301896,
+        "abs_delta_e": 0.056062131517293834
+      },
+      "final": {
+        "energy": 0.16736618936455253,
+        "abs_delta_e": 0.008698285238827402
+      },
+      "relative_to_reference": {
+        "final_minus_reference_energy": 0.008275486130137094,
+        "final_minus_reference_abs_delta_e": 0.008275486130137094
+      },
+      "optimizer": {
+        "method": "SPSA",
+        "seed": 19,
+        "maxiter": 128,
+        "nfev": 257,
+        "nit": 128,
+        "success": true,
+        "elapsed_s": 0.3925546249374747
+      },
+      "recovery": {
+        "energy_drop_from_start": 0.04736384627846643,
+        "abs_delta_drop_from_start": 0.04736384627846643,
+        "final_theta_shift_from_reference_l2": 0.10796932018580788,
+        "best_seen_energy_in_log": 0.16736618936455253
+      }
+    }
+  ]
+}

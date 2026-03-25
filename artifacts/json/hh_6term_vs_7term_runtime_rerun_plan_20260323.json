@@ -1,0 +1,190 @@
+{
+  "anchor": {
+    "compile_row": {
+      "artifact": "artifacts/json/hh_prune_nighthawk_gate_pruned_7term.json",
+      "compiled_count_2q_max": 25,
+      "compiled_count_2q_mean": 25,
+      "compiled_count_2q_min": 25,
+      "compiled_depth_max": 75,
+      "compiled_depth_mean": 68.1,
+      "compiled_depth_min": 63,
+      "compiled_size_max": 120,
+      "compiled_size_mean": 116.2,
+      "compiled_size_min": 110,
+      "exact_energy": 0.15866790412572512,
+      "logical_depth": 26,
+      "logical_num_qubits": 6,
+      "logical_size": 65,
+      "samples": [
+        {
+          "compiled_count_2q": 25,
+          "compiled_depth": 75,
+          "compiled_size": 112,
+          "seed": 0
+        },
+        {
+          "compiled_count_2q": 25,
+          "compiled_depth": 63,
+          "compiled_size": 120,
+          "seed": 1
+        },
+        {
+          "compiled_count_2q": 25,
+          "compiled_depth": 75,
+          "compiled_size": 110,
+          "seed": 2
+        },
+        {
+          "compiled_count_2q": 25,
+          "compiled_depth": 63,
+          "compiled_size": 120,
+          "seed": 3
+        },
+        {
+          "compiled_count_2q": 25,
+          "compiled_depth": 63,
+          "compiled_size": 120,
+          "seed": 4
+        },
+        {
+          "compiled_count_2q": 25,
+          "compiled_depth": 66,
+          "compiled_size": 116,
+          "seed": 5
+        },
+        {
+          "compiled_count_2q": 25,
+          "compiled_depth": 75,
+          "compiled_size": 112,
+          "seed": 6
+        },
+        {
+          "compiled_count_2q": 25,
+          "compiled_depth": 75,
+          "compiled_size": 112,
+          "seed": 7
+        },
+        {
+          "compiled_count_2q": 25,
+          "compiled_depth": 63,
+          "compiled_size": 120,
+          "seed": 8
+        },
+        {
+          "compiled_count_2q": 25,
+          "compiled_depth": 63,
+          "compiled_size": 120,
+          "seed": 9
+        }
+      ],
+      "saved_abs_delta": 0.0004227991086915017,
+      "saved_energy": 0.15909070323441662
+    },
+    "energy_only_runtime_eval_json": null,
+    "fallback_runtime_eval_json": "artifacts/json/hh_gatepruned7_fixedtheta_runtime_ibm_marrakesh_20260323T145219Z_reconstructed.json",
+    "fixed_scaffold_kind": "hh_nighthawk_gate_pruned_7term_v1",
+    "local_abs_delta_e": 0.0004227991086915017,
+    "local_exact_energy": 0.15909070323441662,
+    "local_exact_state_fidelity": 0.9997843651245608,
+    "logical_parameter_count": 5,
+    "runtime_backend": null,
+    "runtime_contract": "full_circuit_audit",
+    "runtime_parameter_count": 7
+  },
+  "anchor_artifact_json": "artifacts/json/hh_prune_nighthawk_gate_pruned_7term.json",
+  "budget_plan": {
+    "anchor_screen": {
+      "screen_maxiter": 7,
+      "screen_objective_calls": 15,
+      "screen_optimizer_runtime_jobs": 15,
+      "screen_post_validation_runtime_jobs": 2,
+      "screen_total_runtime_jobs": 17
+    },
+    "backend_selection_required": true,
+    "budget_unit": "runtime_estimator_jobs",
+    "candidate_resume_start_theta_source": "saved_runtime_theta",
+    "candidate_screen": {
+      "screen_maxiter": 6,
+      "screen_objective_calls": 13,
+      "screen_optimizer_runtime_jobs": 13,
+      "screen_post_validation_runtime_jobs": 2,
+      "screen_total_runtime_jobs": 15
+    },
+    "candidate_screen_runtime_jobs_remaining": 9,
+    "completed_candidate_objective_calls": null,
+    "completed_candidate_runtime_jobs": 6,
+    "completed_candidate_trace_rows": 6,
+    "recommended_next_optimizer_submission": "select_backend_then_candidate_6term_runtime_spsa_screen",
+    "recommended_next_submission": "select_backend_then_anchor_7term_energy_only_fixedtheta_baseline"
+  },
+  "candidate": {
+    "compile_row": null,
+    "fixed_scaffold_kind": "hh_marrakesh_gate_pruned_6term_drop_eyezee_v1",
+    "fixedtheta_runtime_backend": "ibm_marrakesh",
+    "fixedtheta_runtime_delta_mean": 0.28530393275267446,
+    "fixedtheta_runtime_eval_json": "artifacts/json/hh_gatepruned6_fixedtheta_runtime_ibm_marrakesh_20260323T171528Z.json",
+    "local_abs_delta_e": 0.004613056000159821,
+    "local_exact_energy": 0.1632809601258856,
+    "local_exact_state_fidelity": null,
+    "logical_parameter_count": 5,
+    "runtime_parameter_count": 6
+  },
+  "candidate_artifact_json": "artifacts/json/hh_marrakesh_fixed_scaffold_6term_drop_eyezee_20260323T171528Z.json",
+  "decision_context": {
+    "stateprep_gate_noise_note": "Existing anchor attribution evidence indicates the dominant residual is gate/state-prep rather than readout.",
+    "target_backend": "ibm_kingston"
+  },
+  "evidence_gaps": [
+    "anchor_energy_only_runtime_baseline_missing",
+    "candidate_runtime_backend_mismatch"
+  ],
+  "generated_utc": "2026-03-23T20:34:06Z",
+  "noise_evidence": {
+    "attribution_json": "artifacts/json/hh_gate_pruned_fixed_scaffold_attr_20260323T013814Z.json",
+    "dominant_residual_noise_source": "gate_stateprep",
+    "full_delta_mean": 0.17849474598433385,
+    "gate_stateprep_only_delta_mean": 0.11921435047652135,
+    "mthree_alignment_target": "gate_stateprep_only",
+    "mthree_savedparam_delta_mean": 0.11868750301318737,
+    "readout_not_primary_limit": true,
+    "readout_only_delta_mean": 0.04855089832808385,
+    "savedparam_eval_json": "artifacts/json/hh_gate_pruned_savedparam_eval_20260323T011240Z.json"
+  },
+  "pipeline": "hh_fixed_scaffold_rerun_plan_v1",
+  "recovery_context": {
+    "recovered_best_so_far": {
+      "call_index": null,
+      "energy_noisy_mean": 0.3935622931602998,
+      "energy_noisy_stderr": 0.0,
+      "theta_logical": null,
+      "theta_runtime": null,
+      "trace_index": 3
+    },
+    "recovery_json": "artifacts/json/hh_kingston_6term_spsa48_runtime_partial_recovery_20260323.json"
+  },
+  "runtime_contracts": {
+    "anchor_runtime_backend": null,
+    "anchor_runtime_contract": "full_circuit_audit",
+    "candidate_runtime_backend": "ibm_marrakesh",
+    "candidate_runtime_contract": "energy_only_runtime",
+    "requires_matched_anchor_energy_only_baseline": true,
+    "runtime_contract_match": false
+  },
+  "structural_diff": {
+    "affected_logical_blocks": [
+      "paop_full:paop_disp(site=0)"
+    ],
+    "anchor_logical_parameter_count": 5,
+    "anchor_runtime_parameter_count": 7,
+    "candidate_logical_parameter_count": 5,
+    "candidate_runtime_parameter_count": 6,
+    "omitted_runtime_terms_exyz": [
+      "eyezee"
+    ],
+    "runtime_parameter_delta": -1
+  },
+  "summary": {
+    "noise_takeaway": "Readout mitigation is helpful, but the surviving residual is better explained by gate/state-prep error than by readout alone.",
+    "pareto_takeaway": "6-term is the lighter executable candidate, but the current backend evidence is not matched against a 7-term energy-only baseline on the same backend."
+  }
+}

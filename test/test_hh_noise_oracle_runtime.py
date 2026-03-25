@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from pathlib import Path
+import sys
 from types import SimpleNamespace
 
 import numpy as np
@@ -8,20 +10,29 @@ import pytest
 from qiskit import QuantumCircuit
 from qiskit.quantum_info import SparsePauliOp, Statevector
 
+REPO_ROOT = Path(__file__).resolve().parent.parent
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
 import pipelines.exact_bench.noise_oracle_runtime as nor
 from pipelines.exact_bench.noise_oracle_runtime import (
     ExpectationOracle,
     OracleConfig,
     _ansatz_to_circuit,
     _pauli_poly_to_sparse_pauli_op,
+    build_runtime_layout_circuit,
     compile_circuit_for_local_backend,
     normalize_ideal_reference_symmetry_mitigation,
+    normalize_runtime_estimator_profile_config,
+    normalize_runtime_session_policy_config,
     normalize_symmetry_mitigation_config,
 )
+from src.quantum.ansatz_parameterization import build_parameter_layout
+from src.quantum.compiled_ansatz import CompiledAnsatzExecutor
 from src.quantum.hartree_fock_reference_state import hubbard_holstein_reference_state
 from src.quantum.qubitization_module import PauliTerm
 from src.quantum.pauli_polynomial_class import PauliPolynomial
-from src.quantum.vqe_latex_python_pairs import HubbardHolsteinTermwiseAnsatz
+from src.quantum.vqe_latex_python_pairs import AnsatzTerm, HubbardHolsteinTermwiseAnsatz
 
 
 def test_pauli_poly_to_sparse_pauli_op_preserves_exyz_to_ixyz_mapping() -> None:
@@ -78,6 +89,26 @@ def test_ansatz_to_circuit_matches_prepare_state_for_hh_termwise_small_case() ->
     assert fidelity > 1.0 - 1e-10
 
 
+def test_build_runtime_layout_circuit_matches_compiled_executor_small_case() -> None:
+    term = AnsatzTerm(
+        label="op_x",
+        polynomial=PauliPolynomial("JW", [PauliTerm(1, ps="x", pc=1.0)]),
+    )
+    layout = build_parameter_layout([term], ignore_identity=True, coefficient_tolerance=1e-12, sort_terms=True)
+    theta = np.asarray([0.2], dtype=float)
+    psi_ref = np.asarray([1.0 + 0.0j, 0.0 + 0.0j], dtype=complex)
+    qc = build_runtime_layout_circuit(layout, theta, 1, reference_state=psi_ref)
+    psi_circuit = np.asarray(Statevector.from_instruction(qc).data, dtype=complex).reshape(-1)
+    executor = CompiledAnsatzExecutor(
+        [term],
+        parameterization_mode="per_pauli_term",
+        parameterization_layout=layout,
+    )
+    psi_expected = np.asarray(executor.prepare_state(theta, psi_ref), dtype=complex).reshape(-1)
+    fidelity = float(abs(np.vdot(psi_expected, psi_circuit)) ** 2)
+    assert fidelity > 1.0 - 1e-10
+
+
 def test_ideal_oracle_matches_statevector_expectation() -> None:
     qc = QuantumCircuit(1)
     qc.h(0)
@@ -114,6 +145,20 @@ def test_oracle_mitigation_config_is_normalized_and_recorded() -> None:
         assert mit["dd_sequence"] == "XY4"
         assert mit["local_readout_strategy"] is None
         assert dict(oracle.backend_info.details.get("mitigation", {})) == mit
+
+
+def test_normalize_mitigation_config_accepts_local_gate_twirling_flag() -> None:
+    cfg = nor.normalize_mitigation_config(
+        {
+            "mode": "readout",
+            "local_readout_strategy": "mthree",
+            "local_gate_twirling": True,
+        }
+    )
+
+    assert cfg["mode"] == "readout"
+    assert cfg["local_readout_strategy"] == "mthree"
+    assert cfg["local_gate_twirling"] is True
 
 
 def test_backend_scheduled_rejects_active_symmetry_with_readout() -> None:
@@ -185,6 +230,349 @@ def test_backend_scheduled_mthree_readout_records_details() -> None:
     assert details.get("strategy") == "mthree"
     assert details.get("applied") is True
     assert int(details.get("calibration_cache_size", 0)) >= 1
+
+
+def test_backend_scheduled_local_gate_twirling_records_details() -> None:
+    qc = QuantumCircuit(2)
+    qc.h(0)
+    qc.cx(0, 1)
+    obs = SparsePauliOp.from_list([("ZZ", 1.0)])
+    with ExpectationOracle(
+        OracleConfig(
+            noise_mode="backend_scheduled",
+            shots=128,
+            seed=7,
+            oracle_repeats=2,
+            backend_name="FakeGuadalupeV2",
+            use_fake_backend=True,
+            mitigation={"mode": "none", "local_gate_twirling": True},
+        )
+    ) as oracle:
+        est = oracle.evaluate(qc, obs)
+        details = dict(oracle.backend_info.details.get("local_gate_twirling", {}))
+
+    assert np.isfinite(est.mean)
+    assert details.get("requested") is True
+    assert details.get("applied") is True
+    assert details.get("engine") == "qiskit.circuit.pauli_twirl_2q_gates"
+    assert int(details.get("seed")) == 8
+    assert int(details.get("twirled_metrics", {}).get("compiled_two_qubit_count", 0)) >= 1
+
+
+def test_backend_scheduled_rejects_local_dd_with_gate_twirling() -> None:
+    pytest.importorskip("mthree")
+    with pytest.raises(ValueError, match="not combinable with local gate twirling"):
+        ExpectationOracle(
+            OracleConfig(
+                noise_mode="backend_scheduled",
+                shots=64,
+                seed=7,
+                oracle_repeats=1,
+                backend_name="FakeGuadalupeV2",
+                use_fake_backend=True,
+                mitigation={
+                    "mode": "readout",
+                    "local_readout_strategy": "mthree",
+                    "local_gate_twirling": True,
+                    "dd_sequence": "XpXm",
+                },
+            )
+        )
+
+
+def test_backend_scheduled_rejects_unsupported_local_dd_sequence() -> None:
+    pytest.importorskip("mthree")
+    with pytest.raises(ValueError, match="only dd_sequence='XpXm'"):
+        ExpectationOracle(
+            OracleConfig(
+                noise_mode="backend_scheduled",
+                shots=64,
+                seed=7,
+                oracle_repeats=1,
+                backend_name="FakeGuadalupeV2",
+                use_fake_backend=True,
+                mitigation={
+                    "mode": "readout",
+                    "local_readout_strategy": "mthree",
+                    "dd_sequence": "XY4",
+                },
+            )
+        )
+
+
+def test_backend_scheduled_local_dd_records_details() -> None:
+    pytest.importorskip("mthree")
+    qc = QuantumCircuit(2)
+    qc.h(0)
+    qc.cx(0, 1)
+    obs = SparsePauliOp.from_list([("ZZ", 1.0)])
+    with ExpectationOracle(
+        OracleConfig(
+            noise_mode="backend_scheduled",
+            shots=64,
+            seed=7,
+            oracle_repeats=1,
+            backend_name="FakeGuadalupeV2",
+            use_fake_backend=True,
+            mitigation={
+                "mode": "readout",
+                "local_readout_strategy": "mthree",
+                "dd_sequence": "XpXm",
+            },
+        )
+    ) as oracle:
+        est = oracle.evaluate(qc, obs)
+        details = dict(oracle.backend_info.details.get("local_dynamical_decoupling", {}))
+
+    assert np.isfinite(est.mean)
+    assert details.get("requested") is True
+    assert details.get("sequence") == "XPXM"
+    assert details.get("scheduling_method") == "alap"
+    assert "applied" in details
+
+
+def test_backend_scheduled_local_dd_invalid_t2_retries_with_sanitized_target(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class _Backend:
+        target = object()
+        name = "FakeUnit"
+
+    class _FailingTarget:
+        def __init__(self) -> None:
+            self.calls = 0
+
+        def run(self, circuit, *, shots=None, seed_simulator=None):
+            self.calls += 1
+            raise RuntimeError(
+                "NoiseError: 'Invalid T_2 relaxation time parameter: T_2 greater than 2 * T_1.'"
+            )
+
+    class _Job:
+        def __init__(self, counts: dict[str, int]) -> None:
+            self._counts = counts
+
+        def result(self):
+            return self
+
+        def get_counts(self):
+            return dict(self._counts)
+
+    class _SuccessTarget:
+        def __init__(self) -> None:
+            self.calls = 0
+
+        def run(self, circuit, *, shots=None, seed_simulator=None):
+            self.calls += 1
+            return _Job({"0": int(shots or 0)})
+
+    failing_target = _FailingTarget()
+    success_target = _SuccessTarget()
+    monkeypatch.setattr(nor, "_resolve_mthree", lambda: object())
+    monkeypatch.setattr(
+        nor,
+        "_resolve_noise_backend",
+        lambda cfg: (_Backend(), "FakeUnit", True),
+    )
+    monkeypatch.setattr(
+        nor,
+        "_apply_mthree_readout_correction",
+        lambda **kwargs: (
+            {"0": 1.0},
+            {
+                "method": "stub",
+                "time": 0.0,
+                "dimension": 1,
+                "mitigation_overhead": 1.0,
+                "negative_mass": 0.0,
+                "shots": 64,
+            },
+        ),
+    )
+
+    qc = QuantumCircuit(1)
+    obs = SparsePauliOp.from_list([("Z", 1.0)])
+    with ExpectationOracle(
+        OracleConfig(
+            noise_mode="backend_scheduled",
+            shots=64,
+            seed=7,
+            oracle_repeats=1,
+            backend_name="FakeUnit",
+            use_fake_backend=True,
+            mitigation={
+                "mode": "readout",
+                "local_readout_strategy": "mthree",
+                "dd_sequence": "XpXm",
+            },
+        )
+    ) as oracle:
+        oracle._backend_target = failing_target
+        monkeypatch.setattr(
+            oracle,
+            "_get_backend_scheduled_base",
+            lambda circuit: {"compiled": QuantumCircuit(1), "logical_to_physical": (0,)},
+        )
+        monkeypatch.setattr(oracle, "_ensure_mthree_calibration", lambda active_physical_qubits: None)
+        monkeypatch.setattr(
+            oracle,
+            "_maybe_apply_local_dd_to_measured_term_circuit",
+            lambda circuit, *, logical_to_physical, dd_sequence: (
+                circuit,
+                {
+                    "requested": True,
+                    "applied": True,
+                    "sequence": "XPXM",
+                    "reason": "",
+                    "scheduling_method": "alap",
+                    "timing_supported": True,
+                    "dd_qubits": [0],
+                    "added_x": 2,
+                    "added_y": 0,
+                },
+            ),
+        )
+        monkeypatch.setattr(
+            oracle,
+            "_get_backend_scheduled_local_dd_retry_target",
+            lambda: (
+                success_target,
+                {
+                    "execution_target_kind": "aer_sanitized_from_backend",
+                    "noise_model_sanitization": {
+                        "applied": True,
+                        "strategy": "clamp_t2_to_2t1",
+                        "affected_qubits": [100],
+                        "retry_trigger": "invalid_t2_gt_2t1",
+                    },
+                },
+            ),
+        )
+        est = oracle.evaluate(qc, obs)
+        details = dict(oracle.backend_info.details.get("local_dynamical_decoupling", {}))
+
+    assert np.isfinite(est.mean)
+    assert est.mean == pytest.approx(1.0, abs=1e-12)
+    assert failing_target.calls == 1
+    assert success_target.calls == 1
+    assert details.get("execution_target_kind") == "aer_sanitized_from_backend"
+    assert dict(details.get("noise_model_sanitization", {})).get("applied") is True
+
+
+def test_backend_scheduled_non_dd_path_does_not_invoke_local_dd_retry_helper(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class _Backend:
+        target = object()
+        name = "FakeUnit"
+
+    class _Job:
+        def __init__(self, counts: dict[str, int]) -> None:
+            self._counts = counts
+
+        def result(self):
+            return self
+
+        def get_counts(self):
+            return dict(self._counts)
+
+    class _SuccessTarget:
+        def __init__(self) -> None:
+            self.calls = 0
+
+        def run(self, circuit, *, shots=None, seed_simulator=None):
+            self.calls += 1
+            return _Job({"0": int(shots or 0)})
+
+    success_target = _SuccessTarget()
+    helper_calls = {"count": 0}
+    monkeypatch.setattr(nor, "_resolve_mthree", lambda: object())
+    monkeypatch.setattr(
+        nor,
+        "_resolve_noise_backend",
+        lambda cfg: (_Backend(), "FakeUnit", True),
+    )
+    monkeypatch.setattr(
+        nor,
+        "_apply_mthree_readout_correction",
+        lambda **kwargs: (
+            {"0": 1.0},
+            {
+                "method": "stub",
+                "time": 0.0,
+                "dimension": 1,
+                "mitigation_overhead": 1.0,
+                "negative_mass": 0.0,
+                "shots": 64,
+            },
+        ),
+    )
+
+    qc = QuantumCircuit(1)
+    obs = SparsePauliOp.from_list([("Z", 1.0)])
+    with ExpectationOracle(
+        OracleConfig(
+            noise_mode="backend_scheduled",
+            shots=64,
+            seed=7,
+            oracle_repeats=1,
+            backend_name="FakeUnit",
+            use_fake_backend=True,
+            mitigation={"mode": "readout", "local_readout_strategy": "mthree"},
+        )
+    ) as oracle:
+        oracle._backend_target = success_target
+        monkeypatch.setattr(
+            oracle,
+            "_get_backend_scheduled_base",
+            lambda circuit: {"compiled": QuantumCircuit(1), "logical_to_physical": (0,)},
+        )
+        monkeypatch.setattr(oracle, "_ensure_mthree_calibration", lambda active_physical_qubits: None)
+        monkeypatch.setattr(
+            oracle,
+            "_maybe_apply_local_dd_to_measured_term_circuit",
+            lambda circuit, *, logical_to_physical, dd_sequence: (
+                circuit,
+                {
+                    "requested": False,
+                    "applied": False,
+                    "sequence": None,
+                    "reason": "disabled",
+                    "scheduling_method": "alap",
+                    "timing_supported": False,
+                },
+            ),
+        )
+
+        def _unexpected_retry():
+            helper_calls["count"] += 1
+            raise AssertionError("DD retry helper should not be called for non-DD path.")
+
+        monkeypatch.setattr(oracle, "_get_backend_scheduled_local_dd_retry_target", _unexpected_retry)
+        est = oracle.evaluate(qc, obs)
+
+    assert np.isfinite(est.mean)
+    assert est.mean == pytest.approx(1.0, abs=1e-12)
+    assert success_target.calls == 1
+    assert helper_calls["count"] == 0
+
+
+def test_backend_scheduled_attribution_rejects_local_gate_twirling() -> None:
+    qc = QuantumCircuit(1)
+    obs = SparsePauliOp.from_list([("Z", 1.0)])
+    with ExpectationOracle(
+        OracleConfig(
+            noise_mode="backend_scheduled",
+            shots=64,
+            seed=7,
+            oracle_repeats=1,
+            backend_name="FakeGuadalupeV2",
+            use_fake_backend=True,
+            mitigation={"mode": "none", "local_gate_twirling": True},
+        )
+    ) as oracle:
+        with pytest.raises(ValueError, match="local gate twirling off"):
+            oracle.evaluate_backend_scheduled_attribution(qc, obs)
 
 
 def test_backend_scheduled_attribution_reuses_single_compile(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -346,6 +734,54 @@ def test_backend_scheduled_base_uses_shared_compile_helper(monkeypatch: pytest.M
     assert calls[0]["seed_transpiler"] == 13
     assert calls[0]["optimization_level"] == 1
     assert first["logical_to_physical"] == (2,)
+
+
+def test_backend_scheduled_base_honors_explicit_compile_controls(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(nor, "_load_fake_backend", lambda name: (object(), str(name or "FakeGuadalupeV2")))
+    calls: list[dict[str, object]] = []
+
+    def _fake_compile(circuit: QuantumCircuit, backend: object, *, seed_transpiler: int, optimization_level: int = 1) -> dict[str, object]:
+        compiled = QuantumCircuit(1)
+        compiled.x(0)
+        calls.append(
+            {
+                "seed_transpiler": seed_transpiler,
+                "optimization_level": optimization_level,
+                "compiled": compiled,
+            }
+        )
+        return {
+            "compiled": compiled,
+            "logical_to_physical": (4,),
+            "compiled_num_qubits": 7,
+        }
+
+    monkeypatch.setattr(nor, "compile_circuit_for_local_backend", _fake_compile)
+    qc = QuantumCircuit(1)
+    with ExpectationOracle(
+        OracleConfig(
+            noise_mode="backend_scheduled",
+            shots=64,
+            seed=13,
+            seed_transpiler=29,
+            transpile_optimization_level=2,
+            oracle_repeats=2,
+            backend_name="FakeGuadalupeV2",
+            use_fake_backend=True,
+        )
+    ) as oracle:
+        base = oracle._get_backend_scheduled_base(qc)
+        details = dict(oracle.backend_info.details)
+
+    assert len(calls) == 1
+    assert calls[0]["seed_transpiler"] == 29
+    assert calls[0]["optimization_level"] == 2
+    assert base["logical_to_physical"] == (4,)
+    assert details["transpile_seed"] == 29
+    assert details["transpile_optimization_level"] == 2
+    assert details["compiled_num_qubits"] == 7
+    assert details["compiled_two_qubit_count"] == 0
+    assert details["compiled_depth"] >= 1
 
 
 def test_symmetry_mitigation_config_is_normalized() -> None:
@@ -611,3 +1047,109 @@ def test_sampler_fallback_deterministic_with_fixed_seed(monkeypatch: pytest.Monk
 
     assert ea.raw_values == pytest.approx(eb.raw_values)
     assert ea.mean == pytest.approx(eb.mean)
+
+
+def test_runtime_profile_main_twirled_readout_v1_defaults() -> None:
+    cfg = normalize_runtime_estimator_profile_config("main_twirled_readout_v1")
+
+    assert cfg["name"] == "main_twirled_readout_v1"
+    assert cfg["resilience_level"] == 1
+    assert cfg["measure_mitigation"] is True
+    assert cfg["measure_twirling"] is True
+    assert cfg["gate_twirling"] is True
+    assert cfg["twirling_strategy"] == "active-accum"
+    assert cfg["dd_enable"] is False
+    assert cfg["zne_mitigation"] is False
+    assert cfg["pec_mitigation"] is False
+
+
+def test_runtime_profile_dd_probe_defaults() -> None:
+    cfg = normalize_runtime_estimator_profile_config("dd_probe_twirled_readout_v1")
+
+    assert cfg["name"] == "dd_probe_twirled_readout_v1"
+    assert cfg["measure_mitigation"] is True
+    assert cfg["measure_twirling"] is True
+    assert cfg["gate_twirling"] is False
+    assert cfg["dd_enable"] is True
+    assert cfg["dd_sequence"] == "XpXm"
+    assert cfg["zne_mitigation"] is False
+
+
+def test_runtime_profile_final_audit_zne_defaults() -> None:
+    cfg = normalize_runtime_estimator_profile_config("final_audit_zne_twirled_readout_v1")
+
+    assert cfg["name"] == "final_audit_zne_twirled_readout_v1"
+    assert cfg["measure_mitigation"] is True
+    assert cfg["measure_twirling"] is True
+    assert cfg["gate_twirling"] is True
+    assert cfg["dd_enable"] is False
+    assert cfg["zne_mitigation"] is True
+    assert cfg["zne_noise_factors"] == [1.0, 3.0, 5.0]
+    assert cfg["zne_extrapolator"] == ["exponential", "linear"]
+    assert cfg["pec_mitigation"] is False
+
+
+def test_runtime_session_policy_defaults() -> None:
+    assert normalize_runtime_session_policy_config(None) == {"mode": "prefer_session"}
+    assert normalize_runtime_session_policy_config("require_session") == {
+        "mode": "require_session"
+    }
+
+
+def test_configure_runtime_estimator_options_applies_explicit_profile() -> None:
+    class _Node:
+        pass
+
+    class _Estimator:
+        def __init__(self) -> None:
+            self.options = _Node()
+            self.options.execution = _Node()
+            self.options.resilience = _Node()
+            self.options.resilience.zne = _Node()
+            self.options.twirling = _Node()
+            self.options.dynamical_decoupling = _Node()
+            self.options.default_shots = None
+            self.options.default_precision = None
+            self.options.max_execution_time = None
+            self.options.seed_estimator = None
+            self.options.resilience_level = None
+            self.options.execution.init_qubits = None
+            self.options.resilience.measure_mitigation = None
+            self.options.resilience.zne_mitigation = None
+            self.options.resilience.pec_mitigation = None
+            self.options.twirling.enable_measure = None
+            self.options.twirling.enable_gates = None
+            self.options.twirling.strategy = None
+            self.options.dynamical_decoupling.enable = None
+            self.options.dynamical_decoupling.sequence_type = None
+            self.options.resilience.zne.noise_factors = None
+            self.options.resilience.zne.extrapolator = None
+
+    estimator = _Estimator()
+    cfg = OracleConfig(noise_mode="runtime", shots=4096, seed=7)
+    mitigation_cfg = nor.normalize_mitigation_config({"mode": "readout"})
+    runtime_profile_cfg = normalize_runtime_estimator_profile_config(
+        "main_twirled_readout_v1"
+    )
+
+    details = nor._configure_runtime_estimator_options(
+        estimator,
+        cfg=cfg,
+        mitigation_cfg=mitigation_cfg,
+        runtime_profile_cfg=runtime_profile_cfg,
+    )
+
+    assert estimator.options.default_shots == 4096
+    assert estimator.options.seed_estimator == 7
+    assert estimator.options.execution.init_qubits is True
+    assert estimator.options.resilience_level == 1
+    assert estimator.options.resilience.measure_mitigation is True
+    assert estimator.options.resilience.zne_mitigation is False
+    assert estimator.options.resilience.pec_mitigation is False
+    assert estimator.options.twirling.enable_measure is True
+    assert estimator.options.twirling.enable_gates is True
+    assert estimator.options.twirling.strategy == "active-accum"
+    assert estimator.options.dynamical_decoupling.enable is False
+    assert details["engine"] == "runtime_profile"
+    assert details["provider_strategy"] == "explicit_profile"
+    assert details["applied"] is True

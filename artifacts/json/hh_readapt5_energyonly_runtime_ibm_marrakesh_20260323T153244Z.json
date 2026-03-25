@@ -1,0 +1,94 @@
+{
+  "generated_utc": "2026-03-23T15:32:44.498521+00:00",
+  "tag": "hh_readapt5_energyonly_runtime_ibm_marrakesh_20260323T153244Z",
+  "artifact_json": "artifacts/json/hh_prune_nighthawk_readapt_5op.json",
+  "backend_name": "ibm_marrakesh",
+  "mode": "energy_only_runtime",
+  "shots": 2048,
+  "oracle_repeats": 1,
+  "mitigation": {
+    "mode": "readout",
+    "local_readout_strategy": "mthree"
+  },
+  "symmetry_mitigation": {
+    "mode": "off"
+  },
+  "saved_energy": 0.15872408236129765,
+  "exact_energy": 0.15866790412572634,
+  "result": {
+    "noisy_mean": 1.5520503131938677,
+    "noisy_std": 0.0,
+    "noisy_stdev": 0.0,
+    "noisy_stderr": 0.0,
+    "ideal_mean": 0.6007677586325756,
+    "ideal_std": 0.0,
+    "ideal_stdev": 0.0,
+    "ideal_stderr": 0.0,
+    "delta_mean": 0.9512825545612921,
+    "delta_stderr": 0.0,
+    "backend_info": {
+      "noise_mode": "runtime",
+      "estimator_kind": "qiskit_ibm_runtime.EstimatorV2",
+      "backend_name": "ibm_marrakesh",
+      "using_fake_backend": false,
+      "details": {
+        "shots": 2048,
+        "runtime_execution_mode": "backend",
+        "session_fallback_reason": "RequestsApiError: '400 Client Error: Bad Request for url: https://quantum.cloud.ibm.com/api/v1/sessions. {\"errors\":[{\"code\":1352,\"message\":\"You are not authorized to run a session when using the open plan.\",\"solution\":\"Create an instance of a different plan type or use a different [execution mode](https://quantum.cloud.ibm.com/docs/guides/execution-modes).\",\"more_info\":\"https://cloud.ibm.com/apidocs/quantum-computing#error-handling\"}],\"trace\":\"7d726f22-ae71-4979-8b31-a9b2080b110a\"}\\n'",
+        "mitigation": {
+          "mode": "readout",
+          "zne_scales": [],
+          "dd_sequence": null,
+          "local_readout_strategy": "mthree"
+        },
+        "runtime_mitigation": {
+          "mode": "readout",
+          "engine": "runtime_resilience.measure_mitigation",
+          "requested_local_readout_strategy": "mthree",
+          "applied": true,
+          "provider_strategy": "builtin_measure_mitigation"
+        },
+        "symmetry_mitigation": {
+          "requested_mode": "off",
+          "applied_mode": "off",
+          "executed": false,
+          "eligible": false,
+          "fallback_reason": "",
+          "retained_fraction_mean": null,
+          "retained_fraction_samples": [],
+          "sector_probability_mean": null,
+          "sector_probability_samples": [],
+          "sector_values": {
+            "sector_n_up": null,
+            "sector_n_dn": null
+          },
+          "estimator_form": "none"
+        },
+        "transpile_optimization_level": 1,
+        "transpile_seed": 7,
+        "layout_physical_qubits": [
+          4,
+          16,
+          5,
+          3,
+          6,
+          2
+        ],
+        "compiled_num_qubits": 156,
+        "isa_observable_num_qubits": 156,
+        "readout_mitigation": {
+          "mode": "readout",
+          "requested_strategy": "mthree",
+          "engine": "runtime_resilience.measure_mitigation",
+          "applied": true
+        }
+      }
+    }
+  },
+  "derived": {
+    "saved_abs_delta_to_exact": 5.6178235571302526e-05,
+    "ideal_abs_delta_to_exact": 0.44209985450684924,
+    "noisy_abs_delta_to_exact": 1.3933824090681413,
+    "noise_shift_vs_ideal": 0.9512825545612921
+  }
+}

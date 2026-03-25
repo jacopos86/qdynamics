@@ -1,0 +1,110 @@
+{
+  "generated_utc": "2026-03-22T20:15:19.299138+00:00",
+  "pipeline": "hh_prune_nighthawk",
+  "input_json": "artifacts/json/hh_backend_adapt_fullhorse_powell_20260322T194155Z_fakenighthawk.json",
+  "prune_threshold": 0.0001,
+  "mode": "readapt",
+  "prune_candidates": [
+    {
+      "logical_index": 0,
+      "label": "hh_termwise_ham_quadrature_term(yezeee)",
+      "theta": 1.4574119916461081e-19,
+      "abs_theta": 1.4574119916461081e-19,
+      "runtime_count": 1
+    },
+    {
+      "logical_index": 2,
+      "label": "hh_termwise_ham_quadrature_term(yeeeze)",
+      "theta": -4.675211438101176e-10,
+      "abs_theta": 4.675211438101176e-10,
+      "runtime_count": 1
+    },
+    {
+      "logical_index": 13,
+      "label": "hh_termwise_ham_quadrature_term(eyezee)",
+      "theta": 3.4077288152832735e-10,
+      "abs_theta": 3.4077288152832735e-10,
+      "runtime_count": 1
+    },
+    {
+      "logical_index": 14,
+      "label": "paop_full:paop_disp(site=1)",
+      "theta": 6.121832268151682e-07,
+      "abs_theta": 6.121832268151682e-07,
+      "runtime_count": 2
+    },
+    {
+      "logical_index": 15,
+      "label": "hh_termwise_ham_quadrature_term(yezeee)",
+      "theta": 0.0,
+      "abs_theta": 0.0,
+      "runtime_count": 1
+    }
+  ],
+  "prune_result": {
+    "removed_indices": [
+      0,
+      2,
+      13,
+      14,
+      15
+    ],
+    "removed_labels": [
+      "hh_termwise_ham_quadrature_term(yezeee)",
+      "hh_termwise_ham_quadrature_term(yeeeze)",
+      "hh_termwise_ham_quadrature_term(eyezee)",
+      "paop_full:paop_disp(site=1)",
+      "hh_termwise_ham_quadrature_term(yezeee)"
+    ],
+    "surviving_indices": [
+      1,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12
+    ],
+    "surviving_labels": [
+      "hh_termwise_ham_quadrature_term(yezeee)",
+      "hh_termwise_ham_quadrature_term(yeeeze)",
+      "hh_termwise_ham_quadrature_term(eyeeez)",
+      "hh_termwise_ham_quadrature_term(eyezee)",
+      "hh_termwise_ham_quadrature_term(eyezee)",
+      "uccsd_ferm_lifted::uccsd_sing(alpha:0->1)",
+      "uccsd_ferm_lifted::uccsd_sing(beta:2->3)",
+      "paop_lf_full:paop_dbl_p(site=0->phonon=0)",
+      "paop_lf_full:paop_dbl_p(site=1->phonon=1)",
+      "paop_full:paop_hopdrag(0,1)::child_set[0,2]",
+      "paop_full:paop_disp(site=0)"
+    ],
+    "original_depth": 16,
+    "pruned_depth": 11,
+    "layers_removed": 5
+  },
+  "original_metrics": {
+    "logical_depth": 16,
+    "logical_params": 16,
+    "runtime_params": 27,
+    "compiled_count_2q": 50,
+    "compiled_depth": 125,
+    "compiled_size": 234,
+    "abs_delta_e": 5.6178234645376524e-05,
+    "pareto_score": 1.1235646929075305e-06
+  },
+  "path_b_readapt_metrics": {
+    "logical_depth": 10,
+    "logical_params": 10,
+    "runtime_params": 20,
+    "compiled_count_2q": 62,
+    "compiled_depth": 137,
+    "compiled_size": 279,
+    "abs_delta_e": 5.6178235571302526e-05,
+    "pareto_score": 9.061005737306859e-07
+  },
+  "path_b_readapt_output_json": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/artifacts/json/hh_prune_readapt_nighthawk_20260322T201452Z.json"
+}

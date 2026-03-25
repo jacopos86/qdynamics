@@ -1,0 +1,140 @@
+{
+  "artifacts": {
+    "output_json": "artifacts/json/hh_prune_readapt_nighthawk_20260322T201452Z_compile_scout.json"
+  },
+  "config": {
+    "candidate_backends": [],
+    "optimization_level": 1,
+    "output_json": null,
+    "requested_backend_name": "FakeNighthawk",
+    "seed_transpiler": 7,
+    "source": {
+      "default_subject": false,
+      "mode": "imported_artifact",
+      "requested_json": "artifacts/json/hh_prune_readapt_nighthawk_20260322T201452Z.json",
+      "resolved_json": "artifacts/json/hh_prune_readapt_nighthawk_20260322T201452Z.json",
+      "source_kind": "direct_payload"
+    },
+    "sweep_backends": false
+  },
+  "generated_utc": "2026-03-22T20:15:52.015818+00:00",
+  "import_source": {
+    "default_subject": false,
+    "mode": "imported_artifact",
+    "requested_json": "artifacts/json/hh_prune_readapt_nighthawk_20260322T201452Z.json",
+    "resolved_json": "artifacts/json/hh_prune_readapt_nighthawk_20260322T201452Z.json",
+    "source_kind": "direct_payload"
+  },
+  "logical_circuit": {
+    "abstract_depth": 64,
+    "abstract_size": 166,
+    "ansatz_input_state_kind": "reference_state",
+    "ansatz_input_state_source": "hf",
+    "exact_energy": 0.15866790412572634,
+    "logical_parameter_count": 10,
+    "num_qubits": 6,
+    "operator_count": 10,
+    "reference_state_embedded": true,
+    "runtime_parameter_count": 20,
+    "saved_artifact_energy": 0.15872408236129765
+  },
+  "measurement_cost": {
+    "hamiltonian_terms": 17,
+    "qwc_groups": 4,
+    "shots_per_group_mha": [
+      2539063,
+      195313,
+      195313,
+      97657
+    ],
+    "total_shots_mha": 3027346
+  },
+  "pipeline": "adapt_circuit_compile_scout",
+  "requested_backend": {
+    "error": null,
+    "fallback_to_sweep": false,
+    "name": "FakeNighthawk",
+    "resolved_name": "FakeNighthawk",
+    "supported_locally": true
+  },
+  "rows": [
+    {
+      "backend_kind": "local_fake",
+      "backend_num_qubits": 120,
+      "compiled_count_2q": 53,
+      "compiled_cx_count": 0,
+      "compiled_depth": 133,
+      "compiled_ecr_count": 0,
+      "compiled_num_qubits": 120,
+      "compiled_op_counts": {
+        "cz": 53,
+        "rz": 102,
+        "sx": 76,
+        "x": 2
+      },
+      "compiled_size": 233,
+      "error": null,
+      "layout_physical_qubits": [
+        37,
+        47,
+        58,
+        48,
+        57,
+        38
+      ],
+      "logical_qubits_required": 6,
+      "requested_backend_name": "FakeNighthawk",
+      "transpile_backend": "FakeNighthawk",
+      "transpile_status": "ok"
+    }
+  ],
+  "selected_backend": {
+    "backend_kind": "local_fake",
+    "backend_num_qubits": 120,
+    "compiled_count_2q": 53,
+    "compiled_cx_count": 0,
+    "compiled_depth": 133,
+    "compiled_ecr_count": 0,
+    "compiled_num_qubits": 120,
+    "compiled_op_counts": {
+      "cz": 53,
+      "rz": 102,
+      "sx": 76,
+      "x": 2
+    },
+    "compiled_size": 233,
+    "error": null,
+    "layout_physical_qubits": [
+      37,
+      47,
+      58,
+      48,
+      57,
+      38
+    ],
+    "logical_qubits_required": 6,
+    "requested_backend_name": "FakeNighthawk",
+    "transpile_backend": "FakeNighthawk",
+    "transpile_status": "ok"
+  },
+  "success": true,
+  "summary": {
+    "candidate_count": 1,
+    "reference_state_embedded": true,
+    "requested_backend_supported_locally": true,
+    "selected_backend": "FakeNighthawk",
+    "successful_candidates": 1,
+    "warnings": []
+  },
+  "workflow_contract": {
+    "requested_backend_policy": "local_fake_only_then_sweep",
+    "runtime_lookup": false,
+    "scope": "local_fake_backend_transpile_only",
+    "selection_metric": [
+      "compiled_count_2q",
+      "compiled_depth",
+      "compiled_size",
+      "transpile_backend"
+    ]
+  }
+}

@@ -10,22 +10,29 @@ from __future__ import annotations
 
 import json
 import os
+import inspect
 import subprocess
 import sys
-from dataclasses import dataclass, field
-from typing import Any, Mapping, Sequence
+import copy
+from dataclasses import asdict, dataclass, field
+from datetime import datetime, timezone
+from typing import Any, Callable, Mapping, Sequence
 
 import numpy as np
 
 from qiskit import ClassicalRegister, QuantumCircuit, transpile
+from qiskit.circuit import pauli_twirl_2q_gates
 from pipelines.qiskit_backend_tools import (
     compile_circuit_for_backend as _compile_circuit_for_backend_shared,
+    compiled_gate_stats as _compiled_gate_stats_shared,
     list_local_fake_backend_names as _list_local_fake_backend_names_shared,
     load_local_fake_backend as _load_local_fake_backend_shared,
+    safe_circuit_depth as _safe_circuit_depth_shared,
 )
 from qiskit.circuit.library import PauliEvolutionGate
 from qiskit.quantum_info import SparsePauliOp, Statevector
 from qiskit.synthesis import SuzukiTrotter
+from src.quantum.ansatz_parameterization import AnsatzParameterLayout
 
 
 @dataclass(frozen=True)
@@ -33,6 +40,8 @@ class OracleConfig:
     noise_mode: str = "ideal"  # ideal | shots | aer_noise | runtime | backend_scheduled
     shots: int = 2048
     seed: int = 7
+    seed_transpiler: int | None = None
+    transpile_optimization_level: int = 1
     oracle_repeats: int = 1
     oracle_aggregate: str = "mean"  # mean | median
     backend_name: str | None = None
@@ -44,6 +53,8 @@ class OracleConfig:
     omp_shm_workaround: bool = True
     mitigation: dict[str, Any] | str = "none"
     symmetry_mitigation: dict[str, Any] | str = "off"
+    runtime_profile: dict[str, Any] | str = "legacy_runtime_v0"
+    runtime_session: dict[str, Any] | str = "prefer_session"
 
 
 @dataclass(frozen=True)
@@ -52,6 +63,32 @@ class MitigationConfig:
     zne_scales: tuple[float, ...] = ()
     dd_sequence: str | None = None
     local_readout_strategy: str | None = None
+    local_gate_twirling: bool | None = None
+
+
+@dataclass(frozen=True)
+class RuntimeEstimatorProfileConfig:
+    name: str = "legacy_runtime_v0"
+    resilience_level: int | None = None
+    default_shots: int | None = None
+    default_precision: float | None = None
+    max_execution_time: int | None = None
+    init_qubits: bool | None = True
+    measure_mitigation: bool | None = None
+    measure_twirling: bool | None = None
+    gate_twirling: bool | None = None
+    twirling_strategy: str | None = None
+    zne_mitigation: bool | None = None
+    zne_noise_factors: tuple[float, ...] = ()
+    zne_extrapolator: tuple[str, ...] = ()
+    pec_mitigation: bool | None = None
+    dd_enable: bool | None = None
+    dd_sequence: str | None = None
+
+
+@dataclass(frozen=True)
+class RuntimeSessionPolicyConfig:
+    mode: str = "prefer_session"  # prefer_session | require_session | backend_only
 
 
 @dataclass(frozen=True)
@@ -77,6 +114,13 @@ class SymmetryMitigationConfig:
 _MITIGATION_MODES = {"none", "readout", "zne", "dd"}
 _SYMMETRY_MITIGATION_MODES = {"off", "verify_only", "postselect_diag_v1", "projector_renorm_v1"}
 _LOCAL_READOUT_STRATEGIES = {"mthree"}
+_RUNTIME_PROFILE_NAMES = {
+    "legacy_runtime_v0",
+    "main_twirled_readout_v1",
+    "dd_probe_twirled_readout_v1",
+    "final_audit_zne_twirled_readout_v1",
+}
+_RUNTIME_SESSION_POLICY_MODES = {"prefer_session", "require_session", "backend_only"}
 
 
 def _parse_zne_scales(raw: Any) -> list[float]:
@@ -99,11 +143,31 @@ def _parse_zne_scales(raw: Any) -> list[float]:
     return out
 
 
+def _coerce_optional_bool(raw: Any, *, field_name: str) -> bool | None:
+    if raw is None:
+        return None
+    if isinstance(raw, (bool, np.bool_)):
+        return bool(raw)
+    if isinstance(raw, (int, np.integer)):
+        return bool(raw)
+    token = str(raw).strip().lower()
+    if token in {"", "none", "null"}:
+        return None
+    if token in {"1", "true", "yes", "on"}:
+        return True
+    if token in {"0", "false", "no", "off"}:
+        return False
+    raise ValueError(
+        f"Unsupported boolean value for {field_name}: {raw!r}; expected true/false."
+    )
+
+
 def normalize_mitigation_config(mitigation: Any) -> dict[str, Any]:
     mode = "none"
     zne_scales: list[float] = []
     dd_sequence: str | None = None
     local_readout_strategy: str | None = None
+    local_gate_twirling: bool | None = None
 
     if mitigation is None:
         pass
@@ -115,6 +179,10 @@ def normalize_mitigation_config(mitigation: Any) -> dict[str, Any]:
             None
             if mitigation.local_readout_strategy is None
             else str(mitigation.local_readout_strategy).strip().lower() or None
+        )
+        local_gate_twirling = _coerce_optional_bool(
+            mitigation.local_gate_twirling,
+            field_name="local_gate_twirling",
         )
     elif isinstance(mitigation, str):
         mode = str(mitigation).strip().lower() or "none"
@@ -130,6 +198,13 @@ def normalize_mitigation_config(mitigation: Any) -> dict[str, Any]:
         )
         local_readout_strategy = (
             None if local_raw is None else str(local_raw).strip().lower() or None
+        )
+        local_gate_twirling = _coerce_optional_bool(
+            mitigation.get(
+                "local_gate_twirling",
+                mitigation.get("localGateTwirling", mitigation.get("gate_twirling", mitigation.get("gateTwirling", None))),
+            ),
+            field_name="local_gate_twirling",
         )
     else:
         raise ValueError(
@@ -148,12 +223,201 @@ def normalize_mitigation_config(mitigation: Any) -> dict[str, Any]:
             f"{local_readout_strategy!r}; expected one of {sorted(_LOCAL_READOUT_STRATEGIES)}."
         )
 
-    return {
+    out = {
         "mode": str(mode),
         "zne_scales": [float(x) for x in zne_scales],
         "dd_sequence": dd_sequence,
         "local_readout_strategy": local_readout_strategy,
     }
+    if bool(local_gate_twirling):
+        out["local_gate_twirling"] = True
+    return out
+
+
+def _parse_string_tuple(raw: Any) -> list[str]:
+    if raw is None:
+        return []
+    if isinstance(raw, str):
+        vals = [tok.strip() for tok in str(raw).split(",") if tok.strip()]
+    elif isinstance(raw, Sequence):
+        vals = [str(v).strip() for v in raw if str(v).strip()]
+    else:
+        vals = [str(raw).strip()]
+    return [str(v) for v in vals if str(v)]
+
+
+def normalize_runtime_estimator_profile_config(profile: Any) -> dict[str, Any]:
+    raw_name = "legacy_runtime_v0"
+    overrides: dict[str, Any] = {}
+    if profile is None:
+        pass
+    elif isinstance(profile, RuntimeEstimatorProfileConfig):
+        raw_name = str(profile.name).strip().lower() or "legacy_runtime_v0"
+        overrides = {
+            "resilience_level": profile.resilience_level,
+            "default_shots": profile.default_shots,
+            "default_precision": profile.default_precision,
+            "max_execution_time": profile.max_execution_time,
+            "init_qubits": profile.init_qubits,
+            "measure_mitigation": profile.measure_mitigation,
+            "measure_twirling": profile.measure_twirling,
+            "gate_twirling": profile.gate_twirling,
+            "twirling_strategy": profile.twirling_strategy,
+            "zne_mitigation": profile.zne_mitigation,
+            "zne_noise_factors": list(profile.zne_noise_factors),
+            "zne_extrapolator": list(profile.zne_extrapolator),
+            "pec_mitigation": profile.pec_mitigation,
+            "dd_enable": profile.dd_enable,
+            "dd_sequence": profile.dd_sequence,
+        }
+    elif isinstance(profile, str):
+        raw_name = str(profile).strip().lower() or "legacy_runtime_v0"
+    elif isinstance(profile, Mapping):
+        raw_name = str(profile.get("name", profile.get("profile", "legacy_runtime_v0"))).strip().lower() or "legacy_runtime_v0"
+        overrides = dict(profile)
+    else:
+        raise ValueError(
+            "Unsupported runtime profile config type; expected str, dict, RuntimeEstimatorProfileConfig, or None."
+        )
+
+    if raw_name not in _RUNTIME_PROFILE_NAMES:
+        raise ValueError(
+            f"Unsupported runtime profile {raw_name!r}; expected one of {sorted(_RUNTIME_PROFILE_NAMES)}."
+        )
+
+    if raw_name == "legacy_runtime_v0":
+        cfg: dict[str, Any] = {
+            "name": str(raw_name),
+            "resilience_level": None,
+            "default_shots": None,
+            "default_precision": None,
+            "max_execution_time": None,
+            "init_qubits": None,
+            "measure_mitigation": None,
+            "measure_twirling": None,
+            "gate_twirling": None,
+            "twirling_strategy": None,
+            "zne_mitigation": None,
+            "zne_noise_factors": [],
+            "zne_extrapolator": [],
+            "pec_mitigation": None,
+            "dd_enable": None,
+            "dd_sequence": None,
+        }
+    elif raw_name == "main_twirled_readout_v1":
+        cfg = {
+            "name": str(raw_name),
+            "resilience_level": 1,
+            "default_shots": None,
+            "default_precision": None,
+            "max_execution_time": None,
+            "init_qubits": True,
+            "measure_mitigation": True,
+            "measure_twirling": True,
+            "gate_twirling": True,
+            "twirling_strategy": "active-accum",
+            "zne_mitigation": False,
+            "zne_noise_factors": [],
+            "zne_extrapolator": [],
+            "pec_mitigation": False,
+            "dd_enable": False,
+            "dd_sequence": None,
+        }
+    elif raw_name == "dd_probe_twirled_readout_v1":
+        cfg = {
+            "name": str(raw_name),
+            "resilience_level": 1,
+            "default_shots": None,
+            "default_precision": None,
+            "max_execution_time": None,
+            "init_qubits": True,
+            "measure_mitigation": True,
+            "measure_twirling": True,
+            "gate_twirling": False,
+            "twirling_strategy": "active-accum",
+            "zne_mitigation": False,
+            "zne_noise_factors": [],
+            "zne_extrapolator": [],
+            "pec_mitigation": False,
+            "dd_enable": True,
+            "dd_sequence": "XpXm",
+        }
+    else:
+        cfg = {
+            "name": str(raw_name),
+            "resilience_level": 1,
+            "default_shots": None,
+            "default_precision": None,
+            "max_execution_time": None,
+            "init_qubits": True,
+            "measure_mitigation": True,
+            "measure_twirling": True,
+            "gate_twirling": True,
+            "twirling_strategy": "active-accum",
+            "zne_mitigation": True,
+            "zne_noise_factors": [1.0, 3.0, 5.0],
+            "zne_extrapolator": ["exponential", "linear"],
+            "pec_mitigation": False,
+            "dd_enable": False,
+            "dd_sequence": None,
+        }
+
+    if overrides:
+        if "resilience_level" in overrides and overrides.get("resilience_level", None) is not None:
+            cfg["resilience_level"] = int(overrides["resilience_level"])
+        if "default_shots" in overrides and overrides.get("default_shots", None) is not None:
+            cfg["default_shots"] = int(overrides["default_shots"])
+        if "default_precision" in overrides and overrides.get("default_precision", None) is not None:
+            cfg["default_precision"] = float(overrides["default_precision"])
+        if "max_execution_time" in overrides and overrides.get("max_execution_time", None) is not None:
+            cfg["max_execution_time"] = int(overrides["max_execution_time"])
+        for key in (
+            "init_qubits",
+            "measure_mitigation",
+            "measure_twirling",
+            "gate_twirling",
+            "zne_mitigation",
+            "pec_mitigation",
+            "dd_enable",
+        ):
+            if key in overrides and overrides.get(key, None) is not None:
+                cfg[key] = bool(overrides[key])
+        if "twirling_strategy" in overrides and overrides.get("twirling_strategy", None) not in {None, ""}:
+            cfg["twirling_strategy"] = str(overrides["twirling_strategy"])
+        if "dd_sequence" in overrides and overrides.get("dd_sequence", None) not in {None, ""}:
+            cfg["dd_sequence"] = str(overrides["dd_sequence"])
+        if "zne_noise_factors" in overrides:
+            cfg["zne_noise_factors"] = _parse_zne_scales(overrides.get("zne_noise_factors", None))
+        if "zne_extrapolator" in overrides:
+            cfg["zne_extrapolator"] = _parse_string_tuple(overrides.get("zne_extrapolator", None))
+
+    if not bool(cfg.get("zne_mitigation", False)):
+        cfg["zne_noise_factors"] = []
+        cfg["zne_extrapolator"] = []
+    if not bool(cfg.get("dd_enable", False)):
+        cfg["dd_sequence"] = None
+    return cfg
+
+
+def normalize_runtime_session_policy_config(session_policy: Any) -> dict[str, Any]:
+    mode = "prefer_session"
+    if session_policy is None:
+        pass
+    elif isinstance(session_policy, RuntimeSessionPolicyConfig):
+        mode = str(session_policy.mode).strip().lower() or "prefer_session"
+    elif isinstance(session_policy, str):
+        mode = str(session_policy).strip().lower() or "prefer_session"
+    elif isinstance(session_policy, Mapping):
+        mode = str(session_policy.get("mode", session_policy.get("session_policy", "prefer_session"))).strip().lower() or "prefer_session"
+    else:
+        raise ValueError(
+            "Unsupported runtime session policy config type; expected str, dict, RuntimeSessionPolicyConfig, or None."
+        )
+    if mode not in _RUNTIME_SESSION_POLICY_MODES:
+        raise ValueError(
+            f"Unsupported runtime session policy {mode!r}; expected one of {sorted(_RUNTIME_SESSION_POLICY_MODES)}."
+        )
+    return {"mode": str(mode)}
 
 
 def normalize_symmetry_mitigation_config(symmetry_mitigation: Any) -> dict[str, Any]:
@@ -230,6 +494,218 @@ class NoiseBackendInfo:
     backend_name: str | None = None
     using_fake_backend: bool = False
     details: dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass(frozen=True)
+class RuntimeJobRecord:
+    job_id: str | None
+    repeat_index: int
+    call_path: str
+    status: str
+    created_utc: str | None = None
+    running_utc: str | None = None
+    completed_utc: str | None = None
+    expectation_value: float | None = None
+    error: str | None = None
+    backend_name: str | None = None
+    session_id: str | None = None
+    usage_quantum_seconds: float | None = None
+
+
+@dataclass(frozen=True)
+class EstimatorExecutionResult:
+    expectation_value: float
+    job_records: tuple[RuntimeJobRecord, ...]
+    used_call_path: str
+
+
+class SubmittedRuntimeJobError(RuntimeError):
+    """A Runtime job was submitted, then failed before returning an estimate."""
+
+    def __init__(
+        self,
+        message: str,
+        *,
+        record: RuntimeJobRecord,
+        original: Exception,
+    ) -> None:
+        super().__init__(message)
+        self.record = record
+        self.original = original
+
+
+class LocalDDSupportError(RuntimeError):
+    """Local backend_scheduled DD could not be applied honestly."""
+
+
+def _iter_exception_chain(exc: BaseException | None) -> list[BaseException]:
+    chain: list[BaseException] = []
+    seen: set[int] = set()
+    current = exc
+    while isinstance(current, BaseException) and id(current) not in seen:
+        chain.append(current)
+        seen.add(id(current))
+        next_exc = current.__cause__ if current.__cause__ is not None else current.__context__
+        current = next_exc if isinstance(next_exc, BaseException) else None
+    return chain
+
+
+def _is_invalid_t2_relaxation_error(exc: BaseException) -> bool:
+    required = (
+        "Invalid T_2 relaxation time parameter",
+        "T_2 greater than 2 * T_1",
+    )
+    for item in _iter_exception_chain(exc):
+        text = str(item)
+        if all(token in text for token in required):
+            return True
+    return False
+
+
+class _BackendPropertiesOverrideWrapper:
+    """BackendV1-style wrapper exposing overridden BackendProperties only."""
+
+    def __init__(self, backend: Any, properties: Any) -> None:
+        self._backend = backend
+        self._properties = properties
+        self.version = 1
+
+    def properties(self) -> Any:
+        return self._properties
+
+    def configuration(self) -> Any:
+        return self._backend.configuration()
+
+    def __getattr__(self, name: str) -> Any:
+        return getattr(self._backend, name)
+
+
+class _RelaxationPropertiesProxy:
+    """Minimal BackendProperties-like proxy for Aer V1 noise construction."""
+
+    _TIME_UNIT_SCALE = {
+        "s": 1.0,
+        "ms": 1e-3,
+        "us": 1e-6,
+        "ns": 1e-9,
+        "ps": 1e-12,
+    }
+    _FREQ_UNIT_SCALE = {
+        "hz": 1.0,
+        "khz": 1e3,
+        "mhz": 1e6,
+        "ghz": 1e9,
+        "thz": 1e12,
+    }
+
+    def __init__(self, properties: Any) -> None:
+        self._properties = properties
+        self.qubits = copy.deepcopy(getattr(properties, "qubits", []))
+        self.gates = copy.deepcopy(getattr(properties, "gates", []))
+
+    def _find_qubit_item(self, qubit: int, name: str) -> Any | None:
+        if qubit < 0 or qubit >= len(self.qubits):
+            return None
+        for item in list(self.qubits[int(qubit)]):
+            if getattr(item, "name", None) == str(name):
+                return item
+        return None
+
+    @classmethod
+    def _scaled_value(cls, item: Any | None, unit_scale: Mapping[str, float]) -> float | None:
+        if item is None or not hasattr(item, "value"):
+            return None
+        try:
+            value = float(getattr(item, "value"))
+        except Exception:
+            return None
+        unit = str(getattr(item, "unit", "") or "").strip().lower()
+        if unit:
+            value *= float(unit_scale.get(unit, 1.0))
+        return float(value)
+
+    def t1(self, qubit: int) -> float | None:
+        return self._scaled_value(self._find_qubit_item(int(qubit), "T1"), self._TIME_UNIT_SCALE)
+
+    def t2(self, qubit: int) -> float | None:
+        return self._scaled_value(self._find_qubit_item(int(qubit), "T2"), self._TIME_UNIT_SCALE)
+
+    def frequency(self, qubit: int) -> float | None:
+        return self._scaled_value(
+            self._find_qubit_item(int(qubit), "frequency"),
+            self._FREQ_UNIT_SCALE,
+        )
+
+    def __getattr__(self, name: str) -> Any:
+        return getattr(self._properties, name)
+
+
+def _sanitize_backend_relaxation_properties_for_local_dd(
+    backend: Any,
+) -> tuple[Any, dict[str, Any]]:
+    if backend is None or not hasattr(backend, "properties"):
+        raise LocalDDSupportError("backend_scheduled backend properties are unavailable for local DD retry.")
+    try:
+        properties = _RelaxationPropertiesProxy(backend.properties())
+    except Exception as exc:
+        raise LocalDDSupportError(
+            f"Failed to copy backend properties for local DD retry: {type(exc).__name__}: {exc}"
+        ) from exc
+    qubits = getattr(properties, "qubits", None)
+    if qubits is None:
+        raise LocalDDSupportError("backend properties do not expose qubit relaxation metadata.")
+
+    affected_qubits: list[int] = []
+    for qubit_index, qubit_props in enumerate(list(qubits)):
+        t1_item = None
+        t2_item = None
+        for item in list(qubit_props):
+            name = getattr(item, "name", None)
+            if name == "T1":
+                t1_item = item
+            elif name == "T2":
+                t2_item = item
+        if t1_item is None or t2_item is None:
+            continue
+        try:
+            t1_value = float(getattr(t1_item, "value"))
+            t2_value = float(getattr(t2_item, "value"))
+        except Exception:
+            continue
+        if (not np.isfinite(t1_value)) or (not np.isfinite(t2_value)) or t1_value <= 0.0:
+            continue
+        upper = 2.0 * float(t1_value)
+        if float(t2_value) > float(upper):
+            t2_item.value = float(np.nextafter(float(upper), 0.0))
+            affected_qubits.append(int(qubit_index))
+
+    return properties, {
+        "applied": bool(affected_qubits),
+        "strategy": "clamp_t2_to_2t1",
+        "affected_qubits": [int(q) for q in affected_qubits],
+        "retry_trigger": "invalid_t2_gt_2t1",
+    }
+
+
+def _rewrite_local_dd_measurement_basis_ops(circuit: QuantumCircuit) -> QuantumCircuit:
+    """Rewrite DD-path measurement basis changes into timed target-friendly gates."""
+    rewritten = QuantumCircuit(*circuit.qregs, *circuit.cregs, name=circuit.name)
+    rewritten.global_phase = circuit.global_phase
+    for inst in circuit.data:
+        op = inst.operation
+        qargs = list(inst.qubits)
+        cargs = list(inst.clbits)
+        if len(qargs) == 1 and not cargs:
+            if op.name == "h":
+                rewritten.rz(np.pi / 2.0, qargs[0])
+                rewritten.sx(qargs[0])
+                rewritten.rz(np.pi / 2.0, qargs[0])
+                continue
+            if op.name == "sdg":
+                rewritten.rz(-np.pi / 2.0, qargs[0])
+                continue
+        rewritten.append(op, qargs, cargs)
+    return rewritten
 
 
 def _to_ixyz(label_exyz: str) -> str:
@@ -328,6 +804,79 @@ def _append_reference_state(circuit: QuantumCircuit, reference_state: np.ndarray
     circuit.initialize(ref, list(range(circuit.num_qubits)))
 
 
+def _append_pauli_rotation_exyz(circuit: QuantumCircuit, *, label_exyz: str, angle: float) -> None:
+    label = str(label_exyz).strip().lower()
+    nq = int(circuit.num_qubits)
+    if len(label) != nq:
+        raise ValueError(f"Pauli label length mismatch: got {len(label)}, expected {nq}.")
+    active: list[tuple[int, str]] = []
+    for idx, ch in enumerate(label):
+        if ch == "e":
+            continue
+        qubit = int(nq - 1 - idx)
+        active.append((qubit, ch))
+    if not active:
+        return
+    active.sort(key=lambda item: item[0])
+    for qubit, ch in active:
+        if ch == "x":
+            circuit.h(qubit)
+        elif ch == "y":
+            circuit.sdg(qubit)
+            circuit.h(qubit)
+        elif ch == "z":
+            pass
+        else:
+            raise ValueError(f"Unsupported Pauli letter {ch!r} in {label_exyz!r}.")
+    active_qubits = [q for q, _ in active]
+    if len(active_qubits) == 1:
+        circuit.rz(float(angle), active_qubits[0])
+    else:
+        for control, target in zip(active_qubits[:-1], active_qubits[1:]):
+            circuit.cx(control, target)
+        circuit.rz(float(angle), active_qubits[-1])
+        for control, target in reversed(list(zip(active_qubits[:-1], active_qubits[1:]))):
+            circuit.cx(control, target)
+    for qubit, ch in reversed(active):
+        if ch == "x":
+            circuit.h(qubit)
+        elif ch == "y":
+            circuit.h(qubit)
+            circuit.s(qubit)
+
+
+"""
+U(theta_runtime) = Π_b Π_j exp(-i theta_bj c_bj P_bj), using serialized runtime layout order.
+"""
+def build_runtime_layout_circuit(
+    layout: AnsatzParameterLayout,
+    theta_runtime: np.ndarray | Sequence[float],
+    num_qubits: int,
+    *,
+    reference_state: np.ndarray | None = None,
+) -> QuantumCircuit:
+    qc = QuantumCircuit(int(num_qubits))
+    if reference_state is not None:
+        _append_reference_state(qc, np.asarray(reference_state, dtype=complex).reshape(-1))
+    theta_arr = np.asarray(theta_runtime, dtype=float).reshape(-1)
+    if int(theta_arr.size) != int(layout.runtime_parameter_count):
+        raise ValueError(
+            f"theta_runtime length mismatch: got {theta_arr.size}, expected {layout.runtime_parameter_count}."
+        )
+    for block in layout.blocks:
+        if int(block.runtime_count) <= 0:
+            continue
+        block_theta = theta_arr[int(block.runtime_start):int(block.runtime_stop)]
+        for local_idx, spec in enumerate(block.terms):
+            angle = 2.0 * float(block_theta[int(local_idx)]) * float(spec.coeff_real)
+            _append_pauli_rotation_exyz(qc, label_exyz=str(spec.pauli_exyz), angle=float(angle))
+    return qc
+
+
+def pauli_poly_to_sparse_pauli_op(poly: Any, tol: float = 1e-12) -> SparsePauliOp:
+    return _pauli_poly_to_sparse_pauli_op(poly, tol=tol)
+
+
 def _ansatz_to_circuit(
     ansatz: Any,
     theta: np.ndarray,
@@ -412,6 +961,18 @@ def _resolve_noise_backend(cfg: OracleConfig) -> tuple[Any, str, bool]:
             f"Unable to resolve runtime backend '{cfg.backend_name}'. "
             "Check IBM Runtime credentials, backend name, or pass --use-fake-backend."
         ) from exc
+
+
+def _compiled_metrics_payload(compiled: QuantumCircuit) -> dict[str, Any]:
+    stats = dict(_compiled_gate_stats_shared(compiled))
+    return {
+        "compiled_depth": int(_safe_circuit_depth_shared(compiled)),
+        "compiled_size": int(compiled.size()),
+        "compiled_two_qubit_count": int(stats.get("compiled_count_2q", 0)),
+        "compiled_cx_count": int(stats.get("compiled_cx_count", 0)),
+        "compiled_ecr_count": int(stats.get("compiled_ecr_count", 0)),
+        "compiled_op_counts": dict(stats.get("compiled_op_counts", {})),
+    }
 
 
 _OMP_SHM_MARKERS = (
@@ -539,7 +1100,7 @@ print("AER_PREFLIGHT_OK")
 
 def _build_estimator(
     cfg: OracleConfig,
-) -> tuple[Any, Any | None, NoiseBackendInfo]:
+) -> tuple[Any, Any | None, NoiseBackendInfo, Any | None]:
     mode = str(cfg.noise_mode).strip().lower()
     mitigation_cfg = normalize_mitigation_config(getattr(cfg, "mitigation", "none"))
     symmetry_cfg = normalize_symmetry_mitigation_config(getattr(cfg, "symmetry_mitigation", "off"))
@@ -565,7 +1126,7 @@ def _build_estimator(
                 "symmetry_mitigation": dict(symmetry_cfg),
             },
         )
-        return estimator, None, info
+        return estimator, None, info, None
 
     if mode in {"shots", "aer_noise"}:
         if str(os.environ.get("HH_FORCE_SAMPLER_FALLBACK", "0")).strip() == "1":
@@ -624,7 +1185,7 @@ def _build_estimator(
             using_fake_backend=using_fake,
             details=details,
         )
-        return estimator, None, info
+        return estimator, None, info, None
 
     # mode == "runtime"
     try:
@@ -643,11 +1204,45 @@ def _build_estimator(
             "runtime mode requires --backend-name <ibm_backend>."
         )
 
+    runtime_profile_cfg = normalize_runtime_estimator_profile_config(
+        getattr(cfg, "runtime_profile", "legacy_runtime_v0")
+    )
+    runtime_session_cfg = normalize_runtime_session_policy_config(
+        getattr(cfg, "runtime_session", "prefer_session")
+    )
     try:
         service = QiskitRuntimeService()
         backend = service.backend(str(cfg.backend_name))
-        session = Session(service=service, backend=backend)
-        estimator = RuntimeEstimatorV2(mode=session)
+        session = None
+        runtime_mode = backend
+        runtime_mode_kind = "backend"
+        session_init_error = None
+        session_policy = str(runtime_session_cfg.get("mode", "prefer_session"))
+        if session_policy != "backend_only":
+            try:
+                try:
+                    session = Session(service=service, backend=backend)
+                except TypeError:
+                    session = Session(backend=backend)
+                runtime_mode = session
+                runtime_mode_kind = "session"
+            except Exception as session_exc:
+                session = None
+                session_init_error = f"{type(session_exc).__name__}: {session_exc}"
+                if session_policy == "require_session":
+                    raise RuntimeError(
+                        "Runtime session initialization failed while session batching was required. "
+                        f"Details: {session_init_error}"
+                    ) from session_exc
+        else:
+            session_init_error = "backend_only_requested"
+        estimator = RuntimeEstimatorV2(mode=runtime_mode)
+        runtime_mitigation_details = _configure_runtime_estimator_options(
+            estimator,
+            cfg=cfg,
+            mitigation_cfg=mitigation_cfg,
+            runtime_profile_cfg=runtime_profile_cfg,
+        )
         info = NoiseBackendInfo(
             noise_mode=mode,
             estimator_kind="qiskit_ibm_runtime.EstimatorV2",
@@ -655,16 +1250,171 @@ def _build_estimator(
             using_fake_backend=False,
             details={
                 "shots": int(cfg.shots),
+                "runtime_execution_mode": str(runtime_mode_kind),
+                "runtime_session_policy": dict(runtime_session_cfg),
+                "runtime_profile": dict(runtime_profile_cfg),
+                "session_fallback_reason": session_init_error,
                 "mitigation": dict(mitigation_cfg),
+                "runtime_mitigation": dict(runtime_mitigation_details),
                 "symmetry_mitigation": dict(symmetry_cfg),
             },
         )
-        return estimator, session, info
+        return estimator, session, info, backend
     except Exception as exc:
         raise RuntimeError(
             "Failed to initialize IBM Runtime Estimator. "
-            "Verify IBM credentials (`QISKIT_IBM_TOKEN`), backend availability, and account access."
+            "Verify IBM credentials (`QISKIT_IBM_TOKEN`), backend availability, account access, and session policy."
         ) from exc
+
+
+def _configure_runtime_estimator_options(
+    estimator: Any,
+    *,
+    cfg: OracleConfig,
+    mitigation_cfg: Mapping[str, Any],
+    runtime_profile_cfg: Mapping[str, Any],
+) -> dict[str, Any]:
+    mitigation_mode = str(mitigation_cfg.get("mode", "none")).strip().lower() or "none"
+    profile_name = str(runtime_profile_cfg.get("name", "legacy_runtime_v0"))
+    runtime_details: dict[str, Any] = {
+        "mode": str(mitigation_mode),
+        "engine": "none",
+        "requested_local_readout_strategy": mitigation_cfg.get("local_readout_strategy", None),
+        "profile_name": str(profile_name),
+        "applied": False,
+        "explicit_profile": bool(profile_name != "legacy_runtime_v0"),
+        "requested_profile": dict(runtime_profile_cfg),
+    }
+    options = getattr(estimator, "options", None)
+    if options is None:
+        return runtime_details
+
+    def _require_path(root: Any, *attrs: str) -> Any:
+        cur = root
+        traversed: list[str] = []
+        for attr in attrs:
+            traversed.append(str(attr))
+            if not hasattr(cur, attr):
+                raise RuntimeError(
+                    "Installed qiskit-ibm-runtime does not support requested Runtime option path "
+                    f"{'.'.join(traversed)!r} for profile {profile_name!r}."
+                )
+            cur = getattr(cur, attr)
+        return cur
+
+    def _maybe_set(attr_root: Any, attr_name: str, value: Any, *, required: bool) -> None:
+        if value is None:
+            return
+        if required:
+            _require_path(attr_root, attr_name)
+        if hasattr(attr_root, attr_name):
+            setattr(attr_root, attr_name, value)
+
+    try:
+        if hasattr(options, "default_shots"):
+            options.default_shots = int(
+                cfg.shots if runtime_profile_cfg.get("default_shots", None) is None else runtime_profile_cfg["default_shots"]
+            )
+        if runtime_profile_cfg.get("default_precision", None) is not None and hasattr(options, "default_precision"):
+            options.default_precision = float(runtime_profile_cfg["default_precision"])
+        if runtime_profile_cfg.get("max_execution_time", None) is not None and hasattr(options, "max_execution_time"):
+            options.max_execution_time = int(runtime_profile_cfg["max_execution_time"])
+        if cfg.seed is not None and hasattr(options, "seed_estimator"):
+            options.seed_estimator = int(cfg.seed)
+        if runtime_profile_cfg.get("init_qubits", None) is not None:
+            _maybe_set(getattr(options, "execution", None), "init_qubits", bool(runtime_profile_cfg["init_qubits"]), required=bool(profile_name != "legacy_runtime_v0"))
+        if runtime_profile_cfg.get("resilience_level", None) is not None:
+            _maybe_set(options, "resilience_level", int(runtime_profile_cfg["resilience_level"]), required=bool(profile_name != "legacy_runtime_v0"))
+
+        explicit_profile = bool(profile_name != "legacy_runtime_v0")
+        if explicit_profile:
+            _maybe_set(getattr(options, "resilience", None), "measure_mitigation", bool(runtime_profile_cfg.get("measure_mitigation", False)), required=True)
+            _maybe_set(getattr(options, "resilience", None), "zne_mitigation", bool(runtime_profile_cfg.get("zne_mitigation", False)), required=True)
+            _maybe_set(getattr(options, "resilience", None), "pec_mitigation", bool(runtime_profile_cfg.get("pec_mitigation", False)), required=True)
+            _maybe_set(getattr(options, "twirling", None), "enable_measure", bool(runtime_profile_cfg.get("measure_twirling", False)), required=True)
+            _maybe_set(getattr(options, "twirling", None), "enable_gates", bool(runtime_profile_cfg.get("gate_twirling", False)), required=True)
+            _maybe_set(getattr(options, "twirling", None), "strategy", runtime_profile_cfg.get("twirling_strategy", None), required=True)
+            _maybe_set(getattr(options, "dynamical_decoupling", None), "enable", bool(runtime_profile_cfg.get("dd_enable", False)), required=True)
+            if runtime_profile_cfg.get("dd_enable", False):
+                _maybe_set(getattr(options, "dynamical_decoupling", None), "sequence_type", runtime_profile_cfg.get("dd_sequence", None), required=True)
+            if runtime_profile_cfg.get("zne_mitigation", False):
+                zne_obj = _require_path(options, "resilience", "zne")
+                if runtime_profile_cfg.get("zne_noise_factors", None):
+                    _maybe_set(zne_obj, "noise_factors", tuple(float(x) for x in runtime_profile_cfg.get("zne_noise_factors", [])), required=True)
+                if runtime_profile_cfg.get("zne_extrapolator", None):
+                    _maybe_set(zne_obj, "extrapolator", tuple(str(x) for x in runtime_profile_cfg.get("zne_extrapolator", [])), required=True)
+            runtime_details.update(
+                {
+                    "engine": "runtime_profile",
+                    "provider_strategy": "explicit_profile",
+                    "applied": True,
+                    "measure_mitigation": bool(runtime_profile_cfg.get("measure_mitigation", False)),
+                    "measure_twirling": bool(runtime_profile_cfg.get("measure_twirling", False)),
+                    "gate_twirling": bool(runtime_profile_cfg.get("gate_twirling", False)),
+                    "twirling_strategy": runtime_profile_cfg.get("twirling_strategy", None),
+                    "zne_mitigation": bool(runtime_profile_cfg.get("zne_mitigation", False)),
+                    "zne_noise_factors": [float(x) for x in runtime_profile_cfg.get("zne_noise_factors", [])],
+                    "zne_extrapolator": [str(x) for x in runtime_profile_cfg.get("zne_extrapolator", [])],
+                    "dd_enable": bool(runtime_profile_cfg.get("dd_enable", False)),
+                    "dd_sequence": runtime_profile_cfg.get("dd_sequence", None),
+                }
+            )
+            return runtime_details
+
+        if hasattr(options, "resilience") and hasattr(options.resilience, "measure_mitigation"):
+            options.resilience.measure_mitigation = bool(mitigation_mode == "readout")
+        if hasattr(options, "resilience") and hasattr(options.resilience, "zne_mitigation"):
+            options.resilience.zne_mitigation = bool(mitigation_mode == "zne")
+        if (
+            mitigation_mode == "zne"
+            and hasattr(options, "resilience")
+            and hasattr(options.resilience, "zne")
+            and mitigation_cfg.get("zne_scales")
+        ):
+            options.resilience.zne.noise_factors = tuple(
+                float(x) for x in mitigation_cfg.get("zne_scales", [])
+            )
+        if hasattr(options, "dynamical_decoupling") and hasattr(options.dynamical_decoupling, "enable"):
+            options.dynamical_decoupling.enable = bool(mitigation_mode == "dd")
+        if (
+            mitigation_mode == "dd"
+            and mitigation_cfg.get("dd_sequence") is not None
+            and hasattr(options, "dynamical_decoupling")
+            and hasattr(options.dynamical_decoupling, "sequence_type")
+        ):
+            options.dynamical_decoupling.sequence_type = str(mitigation_cfg.get("dd_sequence"))
+    except Exception:
+        if profile_name != "legacy_runtime_v0":
+            raise
+        return runtime_details
+
+    if mitigation_mode == "readout":
+        runtime_details.update(
+            {
+                "engine": "runtime_resilience.measure_mitigation",
+                "provider_strategy": "builtin_measure_mitigation",
+                "applied": True,
+            }
+        )
+    elif mitigation_mode == "zne":
+        runtime_details.update(
+            {
+                "engine": "runtime_resilience.zne_mitigation",
+                "noise_factors": [float(x) for x in mitigation_cfg.get("zne_scales", [])],
+                "applied": True,
+            }
+        )
+    elif mitigation_mode == "dd":
+        runtime_details.update(
+            {
+                "engine": "runtime_dynamical_decoupling",
+                "sequence_type": (
+                    None if mitigation_cfg.get("dd_sequence") is None else str(mitigation_cfg.get("dd_sequence"))
+                ),
+                "applied": True,
+            }
+        )
+    return runtime_details
 
 
 def _extract_expectation_value(result: Any) -> float:
@@ -701,31 +1451,334 @@ def _extract_expectation_value(result: Any) -> float:
     )
 
 
-def _run_estimator_job(estimator: Any, circuit: QuantumCircuit, observable: SparsePauliOp) -> float:
+def _datetime_to_utc_str(value: Any) -> str | None:
+    if value is None:
+        return None
+    if isinstance(value, str):
+        return str(value)
+    if isinstance(value, datetime):
+        dt = value
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return dt.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    try:
+        return str(value)
+    except Exception:
+        return None
+
+
+def _runtime_job_record_from_job(
+    job: Any,
+    *,
+    repeat_index: int,
+    call_path: str,
+    expectation_value: float | None = None,
+    error: str | None = None,
+) -> RuntimeJobRecord:
+    status_val = None
+    try:
+        status_attr = getattr(job, "status", None)
+        status_val = status_attr() if callable(status_attr) else status_attr
+    except Exception as exc:  # pragma: no cover - defensive only
+        status_val = f"STATUS_ERROR:{type(exc).__name__}"
+
+    metrics_payload: Mapping[str, Any] = {}
+    try:
+        metrics_attr = getattr(job, "metrics", None)
+        metrics_val = metrics_attr() if callable(metrics_attr) else metrics_attr
+        if isinstance(metrics_val, Mapping):
+            metrics_payload = metrics_val
+    except Exception:
+        metrics_payload = {}
+    timestamps = metrics_payload.get("timestamps", {}) if isinstance(metrics_payload, Mapping) else {}
+    usage_payload = metrics_payload.get("usage", {}) if isinstance(metrics_payload, Mapping) else {}
+    if not isinstance(usage_payload, Mapping):
+        usage_payload = {}
+
+    try:
+        job_id_attr = getattr(job, "job_id", None)
+        job_id = job_id_attr() if callable(job_id_attr) else job_id_attr
+    except Exception:
+        job_id = None
+    try:
+        backend_attr = getattr(job, "backend", None)
+        backend_obj = backend_attr() if callable(backend_attr) else backend_attr
+        backend_name = getattr(backend_obj, "name", None)
+        if callable(backend_name):
+            backend_name = backend_name()
+        if backend_name is None:
+            backend_name = getattr(backend_obj, "_instance", None)
+    except Exception:
+        backend_name = None
+    try:
+        session_attr = getattr(job, "session_id", None)
+        session_id = session_attr() if callable(session_attr) else session_attr
+    except Exception:
+        session_id = None
+    try:
+        usage_attr = getattr(job, "usage", None)
+        usage_direct = usage_attr() if callable(usage_attr) else usage_attr
+    except Exception:
+        usage_direct = None
+    usage_quantum_seconds = usage_payload.get("quantum_seconds", usage_direct)
+    try:
+        usage_quantum_seconds = (
+            None if usage_quantum_seconds is None else float(usage_quantum_seconds)
+        )
+    except Exception:
+        usage_quantum_seconds = None
+
+    return RuntimeJobRecord(
+        job_id=(None if job_id in {None, ""} else str(job_id)),
+        repeat_index=int(repeat_index),
+        call_path=str(call_path),
+        status=("unknown" if status_val in {None, ""} else str(status_val)),
+        created_utc=_datetime_to_utc_str(
+            timestamps.get("created", None)
+            if isinstance(timestamps, Mapping)
+            else getattr(job, "creation_date", None)
+        ),
+        running_utc=_datetime_to_utc_str(
+            timestamps.get("running", None) if isinstance(timestamps, Mapping) else None
+        ),
+        completed_utc=_datetime_to_utc_str(
+            timestamps.get("finished", None) if isinstance(timestamps, Mapping) else None
+        ),
+        expectation_value=(
+            None if expectation_value is None else float(np.real(expectation_value))
+        ),
+        error=(None if error in {None, ""} else str(error)),
+        backend_name=(None if backend_name in {None, ""} else str(backend_name)),
+        session_id=(None if session_id in {None, ""} else str(session_id)),
+        usage_quantum_seconds=usage_quantum_seconds,
+    )
+
+
+def _emit_runtime_job_event(
+    observer: Callable[[dict[str, Any]], None] | None,
+    *,
+    event: str,
+    record: RuntimeJobRecord,
+    context: Mapping[str, Any] | None = None,
+) -> None:
+    if observer is None:
+        return
+    payload = {"event": str(event), "job": asdict(record)}
+    if context is not None:
+        payload.update({str(k): v for k, v in dict(context).items()})
+    observer(payload)
+
+
+def _oracle_estimate_from_samples(values: Sequence[float], *, aggregate: str) -> OracleEstimate:
+    arr = np.asarray(list(values), dtype=float)
+    stdev = float(np.std(arr, ddof=1)) if arr.size > 1 else 0.0
+    stderr = float(stdev / np.sqrt(float(arr.size))) if arr.size > 0 else float("nan")
+    if str(aggregate).strip().lower() == "median":
+        agg = float(np.median(arr))
+    else:
+        agg = float(np.mean(arr))
+    return OracleEstimate(
+        mean=agg,
+        std=stdev,
+        stdev=stdev,
+        stderr=stderr,
+        n_samples=int(arr.size),
+        raw_values=[float(x) for x in arr.tolist()],
+        aggregate=str(aggregate).strip().lower(),
+    )
+
+
+def _run_estimator_job(
+    estimator: Any,
+    circuit: QuantumCircuit,
+    observable: SparsePauliOp,
+    *,
+    repeat_index: int = 0,
+    job_observer: Callable[[dict[str, Any]], None] | None = None,
+    job_context: Mapping[str, Any] | None = None,
+) -> EstimatorExecutionResult:
     errors: list[Exception] = []
 
     # V2-style tuple(pub) invocation
-    for pub in (
-        [(circuit, observable)],
-        [(circuit, [observable])],
+    for call_path, pub in (
+        ("v2_single_observable", [(circuit, observable)]),
+        ("v2_list_observable", [(circuit, [observable])]),
     ):
+        job = None
         try:
             job = estimator.run(pub)
+            submitted = _runtime_job_record_from_job(
+                job,
+                repeat_index=int(repeat_index),
+                call_path=str(call_path),
+            )
+            _emit_runtime_job_event(
+                job_observer,
+                event="submitted",
+                record=submitted,
+                context=job_context,
+            )
             result = job.result()
-            return float(np.real(_extract_expectation_value(result)))
+            value = float(np.real(_extract_expectation_value(result)))
+            completed = _runtime_job_record_from_job(
+                job,
+                repeat_index=int(repeat_index),
+                call_path=str(call_path),
+                expectation_value=value,
+            )
+            _emit_runtime_job_event(
+                job_observer,
+                event="completed",
+                record=completed,
+                context=job_context,
+            )
+            return EstimatorExecutionResult(
+                expectation_value=value,
+                job_records=(completed,),
+                used_call_path=str(call_path),
+            )
         except Exception as exc:
+            if job is not None:
+                failed = _runtime_job_record_from_job(
+                    job,
+                    repeat_index=int(repeat_index),
+                    call_path=str(call_path),
+                    error=f"{type(exc).__name__}: {exc}",
+                )
+                _emit_runtime_job_event(
+                    job_observer,
+                    event="failed",
+                    record=failed,
+                    context=job_context,
+                )
+                raise SubmittedRuntimeJobError(
+                    "Estimator execution failed after a Runtime job was already submitted. "
+                    "Refusing alternate call-path retries to avoid duplicate hardware jobs.",
+                    record=failed,
+                    original=exc,
+                ) from exc
             errors.append(exc)
 
-    # V1-style invocation
+    supports_v1_style = True
     try:
-        job = estimator.run([circuit], [observable])
-        result = job.result()
-        return float(np.real(_extract_expectation_value(result)))
-    except Exception as exc:
-        errors.append(exc)
+        run_sig = inspect.signature(estimator.run)
+        positional_names = [
+            p.name
+            for p in run_sig.parameters.values()
+            if p.kind in (inspect.Parameter.POSITIONAL_ONLY, inspect.Parameter.POSITIONAL_OR_KEYWORD)
+        ]
+        supports_v1_style = "observables" in positional_names or len(positional_names) >= 2
+    except Exception:
+        supports_v1_style = True
+
+    # V1-style invocation
+    if supports_v1_style:
+        job = None
+        try:
+            job = estimator.run([circuit], [observable])
+            submitted = _runtime_job_record_from_job(
+                job,
+                repeat_index=int(repeat_index),
+                call_path="v1_lists",
+            )
+            _emit_runtime_job_event(
+                job_observer,
+                event="submitted",
+                record=submitted,
+                context=job_context,
+            )
+            result = job.result()
+            value = float(np.real(_extract_expectation_value(result)))
+            completed = _runtime_job_record_from_job(
+                job,
+                repeat_index=int(repeat_index),
+                call_path="v1_lists",
+                expectation_value=value,
+            )
+            _emit_runtime_job_event(
+                job_observer,
+                event="completed",
+                record=completed,
+                context=job_context,
+            )
+            return EstimatorExecutionResult(
+                expectation_value=value,
+                job_records=(completed,),
+                used_call_path="v1_lists",
+            )
+        except Exception as exc:
+            if job is not None:
+                failed = _runtime_job_record_from_job(
+                    job,
+                    repeat_index=int(repeat_index),
+                    call_path="v1_lists",
+                    error=f"{type(exc).__name__}: {exc}",
+                )
+                _emit_runtime_job_event(
+                    job_observer,
+                    event="failed",
+                    record=failed,
+                    context=job_context,
+                )
+                raise SubmittedRuntimeJobError(
+                    "Estimator execution failed after a Runtime job was already submitted. "
+                    "Refusing alternate call-path retries to avoid duplicate hardware jobs.",
+                    record=failed,
+                    original=exc,
+                ) from exc
+            errors.append(exc)
 
     msg = "; ".join(f"{type(e).__name__}: {e}" for e in errors)
     raise RuntimeError(f"Estimator execution failed across known call paths. Details: {msg}")
+
+
+def _fetch_runtime_job_record(
+    job_id: str,
+    *,
+    require_result: bool,
+) -> RuntimeJobRecord:
+    from qiskit_ibm_runtime import QiskitRuntimeService
+
+    job_id_s = str(job_id).strip()
+    if not job_id_s:
+        raise ValueError("job_id must be non-empty for runtime job refresh.")
+    try:
+        svc = QiskitRuntimeService()
+        job = svc.job(job_id_s)
+    except Exception as exc:  # pragma: no cover - network/runtime variability
+        return RuntimeJobRecord(
+            job_id=job_id_s,
+            repeat_index=0,
+            call_path="recovered_job_lookup",
+            status="lookup_failed",
+            error=f"{type(exc).__name__}: {exc}",
+        )
+
+    value = None
+    error = None
+    status_str = "unknown"
+    try:
+        status_obj = job.status()
+        status_str = str(getattr(status_obj, "name", status_obj))
+    except Exception as exc:  # pragma: no cover - network/runtime variability
+        error = f"{type(exc).__name__}: {exc}"
+
+    terminal_success = {"DONE", "COMPLETED"}
+    if bool(require_result) and str(status_str).upper() in terminal_success:
+        try:
+            result = job.result()
+            value = float(np.real(_extract_expectation_value(result)))
+        except Exception as exc:  # pragma: no cover - network/runtime variability
+            error = f"{type(exc).__name__}: {exc}"
+    elif bool(require_result) and str(status_str).upper() not in terminal_success and error is None:
+        error = f"Skipped result lookup because job status is {status_str}."
+    return _runtime_job_record_from_job(
+        job,
+        repeat_index=0,
+        call_path="recovered_job_lookup",
+        expectation_value=value,
+        error=error,
+    )
 
 
 def _term_measurement_circuit(base: QuantumCircuit, pauli_label_ixyz: str) -> QuantumCircuit:
@@ -929,6 +1982,21 @@ def _sample_measurement_counts(
     raise RuntimeError(f"Counts-based symmetry mitigation is unavailable for noise_mode={mode!r}.")
 
 
+def _apply_observable_layout_for_compiled_circuit(
+    observable: SparsePauliOp,
+    compiled_circuit: QuantumCircuit,
+) -> SparsePauliOp:
+    layout = getattr(compiled_circuit, "layout", None)
+    if layout is None:
+        return observable
+    try:
+        return observable.apply_layout(layout).simplify(atol=1e-12)
+    except Exception as exc:
+        raise RuntimeError(
+            "Failed to apply transpiled circuit layout to observable for Runtime execution."
+        ) from exc
+
+
 def _logical_to_physical_qubits(compiled: QuantumCircuit, logical_qubits: int) -> tuple[int, ...]:
     layout = getattr(compiled, "layout", None)
     if layout is None or not hasattr(layout, "final_index_layout"):
@@ -1058,6 +2126,54 @@ def _apply_mthree_readout_correction(
     return quasi_map, out_details
 
 
+def _local_gate_twirling_enabled(mitigation_cfg: Mapping[str, Any]) -> bool:
+    return bool(mitigation_cfg.get("local_gate_twirling", False))
+
+
+def _twirl_compiled_two_qubit_base(
+    compiled_base: QuantumCircuit,
+    *,
+    backend_target: Any | None,
+    seed: int,
+) -> tuple[QuantumCircuit, dict[str, Any]]:
+    base_metrics = _compiled_metrics_payload(compiled_base)
+    base_two_qubit = int(base_metrics.get("compiled_two_qubit_count", 0))
+    if base_two_qubit <= 0:
+        return compiled_base, {
+            "requested": True,
+            "applied": False,
+            "reason": "no_two_qubit_gates",
+            "engine": "qiskit.circuit.pauli_twirl_2q_gates",
+            "seed": int(seed),
+            "gate_set": ["cx", "cz", "ecr", "iswap"],
+            "base_metrics": dict(base_metrics),
+            "twirled_metrics": dict(base_metrics),
+        }
+
+    twirled = pauli_twirl_2q_gates(
+        compiled_base,
+        seed=int(seed),
+        target=(None if backend_target is None else getattr(backend_target, "target", None)),
+    )
+    if isinstance(twirled, list):
+        if not twirled:
+            raise RuntimeError("Local gate twirling returned an empty circuit list.")
+        twirled_circuit = twirled[0]
+    else:
+        twirled_circuit = twirled
+    twirled_metrics = _compiled_metrics_payload(twirled_circuit)
+    return twirled_circuit, {
+        "requested": True,
+        "applied": True,
+        "reason": "",
+        "engine": "qiskit.circuit.pauli_twirl_2q_gates",
+        "seed": int(seed),
+        "gate_set": ["cx", "cz", "ecr", "iswap"],
+        "base_metrics": dict(base_metrics),
+        "twirled_metrics": dict(twirled_metrics),
+    }
+
+
 def _postselected_counts_and_fraction(
     counts: Mapping[str, int],
     *,
@@ -1148,10 +2264,17 @@ class ExpectationOracle:
     """Shared expectation-value oracle for ideal/noisy/runtime execution."""
 
     def __init__(self, config: OracleConfig):
+        transpile_seed_raw = getattr(config, "seed_transpiler", None)
+        transpile_seed = None if transpile_seed_raw is None else int(transpile_seed_raw)
+        transpile_opt_level = int(getattr(config, "transpile_optimization_level", 1))
+        if transpile_opt_level < 0 or transpile_opt_level > 3:
+            raise ValueError("transpile_optimization_level must be between 0 and 3 inclusive.")
         self.config = OracleConfig(
             noise_mode=str(config.noise_mode).strip().lower(),
             shots=int(config.shots),
             seed=int(config.seed),
+            seed_transpiler=transpile_seed,
+            transpile_optimization_level=int(transpile_opt_level),
             oracle_repeats=max(1, int(config.oracle_repeats)),
             oracle_aggregate=str(config.oracle_aggregate).strip().lower(),
             backend_name=(None if config.backend_name is None else str(config.backend_name)),
@@ -1165,11 +2288,21 @@ class ExpectationOracle:
             symmetry_mitigation=normalize_symmetry_mitigation_config(
                 getattr(config, "symmetry_mitigation", "off")
             ),
+            runtime_profile=normalize_runtime_estimator_profile_config(
+                getattr(config, "runtime_profile", "legacy_runtime_v0")
+            ),
+            runtime_session=normalize_runtime_session_policy_config(
+                getattr(config, "runtime_session", "prefer_session")
+            ),
         )
         self._backend_target = None
         self._compiled_base_cache: dict[int, dict[str, Any]] = {}
+        self._backend_scheduled_repeat_base_cache: dict[tuple[int, int], dict[str, Any]] = {}
         self._backend_scheduled_attribution_targets: dict[str, dict[str, Any]] = {}
         self._backend_scheduled_noise_model = None
+        self._backend_scheduled_local_dd_retry_target = None
+        self._backend_scheduled_local_dd_retry_details: dict[str, Any] | None = None
+        self._backend_scheduled_local_dd_retry_engaged = False
         self._mthree_module = None
         self._mthree_mitigator = None
         self._mthree_calibrated_qubits: set[tuple[int, ...]] = set()
@@ -1192,6 +2325,21 @@ class ExpectationOracle:
                 raise ValueError(
                     "backend_scheduled currently supports only mitigation modes 'none' or 'readout'."
                 )
+            dd_sequence = mitigation_cfg.get("dd_sequence", None)
+            if dd_sequence not in {None, "", "none"}:
+                dd_sequence_norm = str(dd_sequence).strip().upper()
+                if str(mitigation_cfg.get("mode", "none")) != "readout":
+                    raise ValueError(
+                        "backend_scheduled local DD requires mitigation mode 'readout'."
+                    )
+                if dd_sequence_norm != "XPXM":
+                    raise ValueError(
+                        "backend_scheduled local DD currently supports only dd_sequence='XpXm'."
+                    )
+                if bool(mitigation_cfg.get("local_gate_twirling", False)):
+                    raise ValueError(
+                        "backend_scheduled local DD is not combinable with local gate twirling."
+                    )
             if str(mitigation_cfg.get("mode", "none")) == "readout":
                 if str(symmetry_cfg.get("mode", "off")) not in {"off", "verify_only"}:
                     raise ValueError(
@@ -1241,13 +2389,21 @@ class ExpectationOracle:
                     "transpile_seed": int(self.config.seed),
                     "mitigation": dict(mitigation_cfg),
                     "symmetry_mitigation": dict(symmetry_cfg),
+                    "local_dynamical_decoupling": {
+                        "requested": bool(mitigation_cfg.get("dd_sequence")),
+                        "applied": False,
+                        "sequence": mitigation_cfg.get("dd_sequence", None),
+                        "reason": "not_evaluated",
+                        "scheduling_method": "alap",
+                        "timing_supported": False,
+                    },
                     "aer_failed": False,
                     "fallback_used": False,
                 },
             )
         else:
             try:
-                self._estimator, self._session, self.backend_info = _build_estimator(self.config)
+                self._estimator, self._session, self.backend_info, self._backend_target = _build_estimator(self.config)
             except Exception as exc:
                 if self._can_fallback_from_error(exc):
                     self._activate_sampler_fallback(reason=str(exc), aer_failed=True)
@@ -1427,16 +2583,79 @@ class ExpectationOracle:
             return cached
         if self._backend_target is None:
             raise RuntimeError("backend_scheduled backend target is unavailable.")
+        transpile_seed = int(self.config.seed if self.config.seed_transpiler is None else self.config.seed_transpiler)
+        optimization_level = int(self.config.transpile_optimization_level)
         cached = compile_circuit_for_local_backend(
             circuit,
             self._backend_target,
-            seed_transpiler=int(self.config.seed),
-            optimization_level=1,
+            seed_transpiler=transpile_seed,
+            optimization_level=optimization_level,
         )
         self._compiled_base_cache[cache_key] = cached
+        compiled = cached["compiled"]
         self._update_backend_details(
+            transpile_optimization_level=int(optimization_level),
+            transpile_seed=int(transpile_seed),
             layout_physical_qubits=[int(x) for x in cached["logical_to_physical"]],
             compiled_num_qubits=int(cached["compiled_num_qubits"]),
+            **_compiled_metrics_payload(compiled),
+        )
+        return cached
+
+    def _get_backend_scheduled_repeat_base(
+        self,
+        compiled_base: QuantumCircuit,
+        *,
+        repeat_idx: int,
+    ) -> tuple[QuantumCircuit, dict[str, Any]]:
+        mitigation_cfg = normalize_mitigation_config(getattr(self.config, "mitigation", "none"))
+        if not _local_gate_twirling_enabled(mitigation_cfg):
+            return compiled_base, {
+                "requested": False,
+                "applied": False,
+                "reason": "local_gate_twirling_disabled",
+                "engine": "none",
+                "seed": None,
+            }
+        cache_key = (int(id(compiled_base)), int(repeat_idx))
+        cached = self._backend_scheduled_repeat_base_cache.get(cache_key, None)
+        if cached is not None:
+            return cached["compiled"], dict(cached["details"])
+        twirl_seed = int(self.config.seed) + int(repeat_idx)
+        twirled_base, details = _twirl_compiled_two_qubit_base(
+            compiled_base,
+            backend_target=self._backend_target,
+            seed=int(twirl_seed),
+        )
+        self._backend_scheduled_repeat_base_cache[cache_key] = {
+            "compiled": twirled_base,
+            "details": dict(details),
+        }
+        return twirled_base, dict(details)
+
+    def _get_runtime_isa_base(self, circuit: QuantumCircuit) -> dict[str, Any]:
+        cache_key = int(id(circuit))
+        cached = self._compiled_base_cache.get(cache_key, None)
+        if cached is not None:
+            return cached
+        if self._backend_target is None:
+            raise RuntimeError("runtime backend target is unavailable.")
+        transpile_seed = int(self.config.seed if self.config.seed_transpiler is None else self.config.seed_transpiler)
+        optimization_level = int(self.config.transpile_optimization_level)
+        cached = compile_circuit_for_local_backend(
+            circuit,
+            self._backend_target,
+            seed_transpiler=transpile_seed,
+            optimization_level=optimization_level,
+        )
+        self._compiled_base_cache[cache_key] = cached
+        compiled = cached["compiled"]
+        self._update_backend_details(
+            transpile_optimization_level=int(optimization_level),
+            transpile_seed=int(transpile_seed),
+            layout_physical_qubits=[int(x) for x in cached["logical_to_physical"]],
+            compiled_num_qubits=int(cached["compiled_num_qubits"]),
+            **_compiled_metrics_payload(compiled),
         )
         return cached
 
@@ -1465,6 +2684,39 @@ class ExpectationOracle:
 
             self._backend_scheduled_noise_model = NoiseModel.from_backend(self._backend_target)
         return self._backend_scheduled_noise_model
+
+    def _get_backend_scheduled_local_dd_retry_target(self) -> tuple[Any, dict[str, Any]]:
+        if self._backend_scheduled_local_dd_retry_target is not None:
+            return self._backend_scheduled_local_dd_retry_target, dict(
+                self._backend_scheduled_local_dd_retry_details or {}
+            )
+        if self._backend_target is None:
+            raise LocalDDSupportError("backend_scheduled backend target is unavailable.")
+        from qiskit_aer import AerSimulator
+        from qiskit_aer.noise import NoiseModel
+
+        properties, sanitization = _sanitize_backend_relaxation_properties_for_local_dd(
+            self._backend_target
+        )
+        wrapped_backend = _BackendPropertiesOverrideWrapper(self._backend_target, properties)
+        try:
+            noise_model = NoiseModel.from_backend(wrapped_backend)
+        except Exception as exc:
+            raise LocalDDSupportError(
+                f"Failed to build sanitized local DD retry noise model: {type(exc).__name__}: {exc}"
+            ) from exc
+        target = AerSimulator(
+            noise_model=noise_model,
+            seed_simulator=int(self.config.seed),
+        )
+        details = {
+            "execution_target_kind": "aer_sanitized_from_backend",
+            "noise_model_basis_gates": list(getattr(noise_model, "basis_gates", []) or []),
+            "noise_model_sanitization": dict(sanitization),
+        }
+        self._backend_scheduled_local_dd_retry_target = target
+        self._backend_scheduled_local_dd_retry_details = dict(details)
+        return target, dict(details)
 
     def _get_backend_scheduled_attribution_target(
         self,
@@ -1528,18 +2780,12 @@ class ExpectationOracle:
         }
         return target, dict(details)
 
-    def _backend_scheduled_term_counts(
+    def _build_backend_scheduled_measured_term_circuit(
         self,
         compiled_base: QuantumCircuit,
         logical_to_physical: Sequence[int],
         pauli_label_ixyz: str,
-        *,
-        repeat_idx: int,
-        execution_target: Any | None = None,
-    ) -> tuple[dict[str, int], tuple[int, ...], dict[str, Any]]:
-        target = self._backend_target if execution_target is None else execution_target
-        if target is None:
-            raise RuntimeError("backend_scheduled backend target is unavailable.")
+    ) -> tuple[QuantumCircuit, tuple[int, ...], dict[str, Any]]:
         label = str(pauli_label_ixyz).upper()
         active_logical = _active_logical_qubits_for_label(label)
         active_physical = tuple(int(logical_to_physical[q]) for q in active_logical)
@@ -1561,21 +2807,147 @@ class ExpectationOracle:
                     raise ValueError(f"Unsupported Pauli op '{op}' in '{label}'")
             for idx, phys in enumerate(active_physical):
                 qc.measure(int(phys), creg[int(idx)])
-        result = target.run(
-            qc,
-            shots=int(self.config.shots),
-            seed_simulator=int(self.config.seed) + int(repeat_idx),
-        ).result()
-        counts = result.get_counts()
-        if isinstance(counts, list):
-            counts = counts[0]
         details = {
             "active_logical_qubits": [int(x) for x in active_logical],
             "active_physical_qubits": [int(x) for x in active_physical],
-            "compiled_depth": int(qc.depth() or 0),
-            "compiled_size": int(qc.size()),
             "pauli_weight": int(_active_pauli_weight(label)),
         }
+        return qc, active_physical, details
+
+    def _maybe_apply_local_dd_to_measured_term_circuit(
+        self,
+        circuit: QuantumCircuit,
+        *,
+        logical_to_physical: Sequence[int],
+        dd_sequence: str | None,
+    ) -> tuple[QuantumCircuit, dict[str, Any]]:
+        sequence = None if dd_sequence in {None, "", "none"} else str(dd_sequence).strip().upper()
+        base_details = {
+            "requested": bool(sequence),
+            "applied": False,
+            "sequence": sequence,
+            "reason": "disabled" if sequence is None else "not_applied",
+            "scheduling_method": "alap",
+            "timing_supported": False,
+        }
+        if sequence is None:
+            return circuit, base_details
+        if sequence != "XPXM":
+            raise LocalDDSupportError(
+                f"Unsupported local backend_scheduled DD sequence {sequence!r}; expected 'XpXm'."
+            )
+        if self._backend_target is None:
+            raise LocalDDSupportError("backend_scheduled backend target is unavailable.")
+        target = getattr(self._backend_target, "target", None)
+        if target is None:
+            raise LocalDDSupportError("backend target timing metadata is unavailable for local DD.")
+        try:
+            from qiskit.circuit.library import XGate
+            from qiskit.transpiler import PassManager
+            from qiskit.transpiler.passes import ALAPScheduleAnalysis, PadDynamicalDecoupling
+        except Exception as exc:
+            raise LocalDDSupportError(
+                "Qiskit scheduling/DD passes are unavailable for local backend_scheduled DD."
+            ) from exc
+
+        dd_qubits = [int(q) for q in tuple(logical_to_physical)]
+        circuit_for_dd = _rewrite_local_dd_measurement_basis_ops(circuit)
+        base_counts = dict(circuit_for_dd.count_ops())
+        try:
+            pm = PassManager(
+                [
+                    ALAPScheduleAnalysis(target=target),
+                    PadDynamicalDecoupling(
+                        target=target,
+                        dd_sequence=[XGate(), XGate()],
+                        qubits=list(dd_qubits),
+                    ),
+                ]
+            )
+            dd_circuit = pm.run(circuit_for_dd)
+        except Exception as exc:
+            raise LocalDDSupportError(
+                f"Failed to schedule/apply local DD on measured term circuit: {type(exc).__name__}: {exc}"
+            ) from exc
+
+        dd_counts = dict(dd_circuit.count_ops())
+        added_x = int(dd_counts.get("x", 0)) - int(base_counts.get("x", 0))
+        applied = bool(added_x > 0)
+        details = {
+            "requested": True,
+            "applied": bool(applied),
+            "sequence": str(sequence),
+            "reason": ("" if applied else "no_idle_windows_or_insertions"),
+            "scheduling_method": "alap",
+            "timing_supported": True,
+            "dd_qubits": [int(q) for q in dd_qubits],
+            "added_x": int(max(0, added_x)),
+            "added_y": 0,
+        }
+        return dd_circuit, details
+
+    def _backend_scheduled_term_counts(
+        self,
+        compiled_base: QuantumCircuit,
+        logical_to_physical: Sequence[int],
+        pauli_label_ixyz: str,
+        *,
+        repeat_idx: int,
+        execution_target: Any | None = None,
+    ) -> tuple[dict[str, int], tuple[int, ...], dict[str, Any]]:
+        target = self._backend_target if execution_target is None else execution_target
+        if target is None:
+            raise RuntimeError("backend_scheduled backend target is unavailable.")
+        mitigation_cfg = normalize_mitigation_config(getattr(self.config, "mitigation", "none"))
+        qc, active_physical, details = self._build_backend_scheduled_measured_term_circuit(
+            compiled_base,
+            logical_to_physical,
+            pauli_label_ixyz,
+        )
+        qc, dd_details = self._maybe_apply_local_dd_to_measured_term_circuit(
+            qc,
+            logical_to_physical=logical_to_physical,
+            dd_sequence=mitigation_cfg.get("dd_sequence", None),
+        )
+        dd_requested = bool(dd_details.get("requested", False))
+        seed_simulator = int(self.config.seed) + int(repeat_idx)
+        dd_retry_details: dict[str, Any] | None = None
+        if dd_requested and execution_target is None and self._backend_scheduled_local_dd_retry_engaged:
+            target, dd_retry_details = self._get_backend_scheduled_local_dd_retry_target()
+        try:
+            result = target.run(
+                qc,
+                shots=int(self.config.shots),
+                seed_simulator=int(seed_simulator),
+            ).result()
+        except Exception as exc:
+            if not (dd_requested and execution_target is None and _is_invalid_t2_relaxation_error(exc)):
+                raise
+            try:
+                target, dd_retry_details = self._get_backend_scheduled_local_dd_retry_target()
+                self._backend_scheduled_local_dd_retry_engaged = True
+                result = target.run(
+                    qc,
+                    shots=int(self.config.shots),
+                    seed_simulator=int(seed_simulator),
+                ).result()
+            except Exception as retry_exc:
+                raise LocalDDSupportError(
+                    "Failed to execute backend_scheduled local DD with sanitized retry target: "
+                    f"{type(retry_exc).__name__}: {retry_exc}"
+                ) from retry_exc
+        counts = result.get_counts()
+        if isinstance(counts, list):
+            counts = counts[0]
+        if dd_retry_details is not None:
+            dd_details = {**dict(dd_details), **dict(dd_retry_details)}
+        details.update(
+            {
+                "compiled_depth": int(qc.depth() or 0),
+                "compiled_size": int(qc.size()),
+                "local_dynamical_decoupling": dict(dd_details),
+            }
+        )
         return dict(counts), active_physical, details
 
     def _evaluate_backend_scheduled_with_target(
@@ -1591,12 +2963,32 @@ class ExpectationOracle:
         mitigation_cfg = normalize_mitigation_config(getattr(self.config, "mitigation", "none"))
         mitigation_mode = str(mitigation_cfg.get("mode", "none"))
         vals: list[float] = []
+        last_twirling_details: dict[str, Any] = {
+            "requested": bool(_local_gate_twirling_enabled(mitigation_cfg)),
+            "applied": False,
+            "reason": "not_evaluated",
+            "engine": "none",
+            "seed": None,
+        }
         last_readout_details: dict[str, Any] = {
             "mode": str(mitigation_mode),
             "strategy": mitigation_cfg.get("local_readout_strategy", None),
             "applied": False,
         }
+        last_dd_details: dict[str, Any] = {
+            "requested": bool(mitigation_cfg.get("dd_sequence")),
+            "applied": False,
+            "sequence": mitigation_cfg.get("dd_sequence", None),
+            "reason": "not_evaluated",
+            "scheduling_method": "alap",
+            "timing_supported": False,
+        }
         for rep in range(max(1, int(self.config.oracle_repeats))):
+            repeat_base, twirling_details = self._get_backend_scheduled_repeat_base(
+                compiled_base,
+                repeat_idx=int(rep),
+            )
+            last_twirling_details = dict(twirling_details)
             total = 0.0 + 0.0j
             for label, coeff in observable.to_list():
                 coeff_c = complex(coeff)
@@ -1605,12 +2997,13 @@ class ExpectationOracle:
                     total += coeff_c
                     continue
                 counts, active_physical, term_details = self._backend_scheduled_term_counts(
-                    compiled_base,
+                    repeat_base,
                     logical_to_physical,
                     label_s,
                     repeat_idx=int(rep),
                     execution_target=execution_target,
                 )
+                last_dd_details = dict(term_details.get("local_dynamical_decoupling", {}))
                 if mitigation_mode == "readout":
                     self._ensure_mthree_calibration(active_physical)
                     quasi, mitigation_details = _apply_mthree_readout_correction(
@@ -1652,6 +3045,8 @@ class ExpectationOracle:
         agg = float(np.median(arr)) if self.config.oracle_aggregate == "median" else float(np.mean(arr))
         details = {
             "readout_mitigation": dict(last_readout_details),
+            "local_gate_twirling": dict(last_twirling_details),
+            "local_dynamical_decoupling": dict(last_dd_details),
         }
         if attribution_slice is not None:
             details["attribution_slice"] = str(attribution_slice)
@@ -1681,6 +3076,71 @@ class ExpectationOracle:
         self._update_backend_details(**details)
         return estimate
 
+    def _evaluate_runtime(
+        self,
+        circuit: QuantumCircuit,
+        observable: SparsePauliOp,
+        *,
+        runtime_job_observer: Callable[[dict[str, Any]], None] | None = None,
+        runtime_trace_context: Mapping[str, Any] | None = None,
+    ) -> OracleEstimate:
+        base = self._get_runtime_isa_base(circuit)
+        isa_circuit = base["compiled"]
+        isa_observable = _apply_observable_layout_for_compiled_circuit(observable, isa_circuit)
+
+        mitigation_cfg = normalize_mitigation_config(getattr(self.config, "mitigation", "none"))
+        runtime_readout_details = {
+            "mode": str(mitigation_cfg.get("mode", "none")),
+            "requested_strategy": mitigation_cfg.get("local_readout_strategy", None),
+            "engine": self.backend_info.details.get("runtime_mitigation", {}).get("engine", "none"),
+            "applied": bool(self.backend_info.details.get("runtime_mitigation", {}).get("applied", False)),
+        }
+
+        vals: list[float] = []
+        runtime_jobs: list[dict[str, Any]] = []
+        repeats = max(1, int(self.config.oracle_repeats))
+        for rep in range(repeats):
+            if self._sampler_fallback is not None:
+                val = _run_sampler_fallback_job(self._sampler_fallback, circuit, observable)
+                vals.append(float(np.real(val)))
+                continue
+            try:
+                execution = _run_estimator_job(
+                    self._estimator,
+                    isa_circuit,
+                    isa_observable,
+                    repeat_index=int(rep),
+                    job_observer=runtime_job_observer,
+                    job_context=runtime_trace_context,
+                )
+                vals.append(float(np.real(execution.expectation_value)))
+                runtime_jobs.extend(asdict(rec) for rec in execution.job_records)
+            except SubmittedRuntimeJobError as exc:
+                runtime_jobs.append(asdict(exc.record))
+                raise
+            except Exception as exc:
+                if self._can_fallback_from_error(exc):
+                    self._activate_sampler_fallback(reason=str(exc), aer_failed=True)
+                    val = _run_sampler_fallback_job(self._sampler_fallback, circuit, observable)
+                    vals.append(float(np.real(val)))
+                else:
+                    raise
+
+        self._update_backend_details(
+            isa_observable_num_qubits=int(isa_observable.num_qubits),
+            readout_mitigation=dict(runtime_readout_details),
+            runtime_job_ids=[
+                str(rec.get("job_id"))
+                for rec in runtime_jobs
+                if isinstance(rec, Mapping) and rec.get("job_id", None) not in {None, ""}
+            ],
+            runtime_jobs=list(runtime_jobs),
+            last_runtime_trace_context=(
+                {} if runtime_trace_context is None else {str(k): v for k, v in dict(runtime_trace_context).items()}
+            ),
+        )
+        return _oracle_estimate_from_samples(vals, aggregate=str(self.config.oracle_aggregate))
+
     def evaluate_backend_scheduled_attribution(
         self,
         circuit: QuantumCircuit,
@@ -1700,6 +3160,10 @@ class ExpectationOracle:
         )
         if str(mitigation_cfg.get("mode", "none")) != "none":
             raise ValueError("backend_scheduled attribution requires mitigation mode 'none'.")
+        if bool(mitigation_cfg.get("local_gate_twirling", False)):
+            raise ValueError("backend_scheduled attribution requires local gate twirling off.")
+        if mitigation_cfg.get("dd_sequence", None) not in {None, "", "none"}:
+            raise ValueError("backend_scheduled attribution requires local DD off.")
         if str(symmetry_cfg.get("mode", "off")) != "off":
             raise ValueError("backend_scheduled attribution requires symmetry mitigation 'off'.")
 
@@ -1804,7 +3268,14 @@ class ExpectationOracle:
         )
         self._estimator = None
 
-    def evaluate(self, circuit: QuantumCircuit, observable: SparsePauliOp) -> OracleEstimate:
+    def evaluate(
+        self,
+        circuit: QuantumCircuit,
+        observable: SparsePauliOp,
+        *,
+        runtime_job_observer: Callable[[dict[str, Any]], None] | None = None,
+        runtime_trace_context: Mapping[str, Any] | None = None,
+    ) -> OracleEstimate:
         if self._closed:
             raise RuntimeError("ExpectationOracle is closed.")
 
@@ -1813,6 +3284,13 @@ class ExpectationOracle:
             return symmetry_est
         if str(self.config.noise_mode) == "backend_scheduled":
             return self._evaluate_backend_scheduled(circuit, observable)
+        if str(self.config.noise_mode) == "runtime":
+            return self._evaluate_runtime(
+                circuit,
+                observable,
+                runtime_job_observer=runtime_job_observer,
+                runtime_trace_context=runtime_trace_context,
+            )
 
         vals: list[float] = []
         repeats = max(1, int(self.config.oracle_repeats))
@@ -1822,8 +3300,8 @@ class ExpectationOracle:
                 vals.append(float(np.real(val)))
                 continue
             try:
-                val = _run_estimator_job(self._estimator, circuit, observable)
-                vals.append(float(np.real(val)))
+                execution = _run_estimator_job(self._estimator, circuit, observable)
+                vals.append(float(np.real(execution.expectation_value)))
             except Exception as exc:
                 if self._can_fallback_from_error(exc):
                     self._activate_sampler_fallback(reason=str(exc), aer_failed=True)
@@ -1831,24 +3309,7 @@ class ExpectationOracle:
                     vals.append(float(np.real(val)))
                 else:
                     raise
-
-        arr = np.asarray(vals, dtype=float)
-        stdev = float(np.std(arr, ddof=1)) if arr.size > 1 else 0.0
-        stderr = float(stdev / np.sqrt(float(arr.size))) if arr.size > 0 else float("nan")
-        if self.config.oracle_aggregate == "median":
-            agg = float(np.median(arr))
-        else:
-            agg = float(np.mean(arr))
-
-        return OracleEstimate(
-            mean=agg,
-            std=stdev,
-            stdev=stdev,
-            stderr=stderr,
-            n_samples=int(arr.size),
-            raw_values=[float(x) for x in arr.tolist()],
-            aggregate=self.config.oracle_aggregate,
-        )
+        return _oracle_estimate_from_samples(vals, aggregate=str(self.config.oracle_aggregate))
 
 
 _NUMBER_OPERATOR_MATH = "n_p = (I - Z_p) / 2"

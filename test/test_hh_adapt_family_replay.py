@@ -4,6 +4,7 @@ from dataclasses import replace
 from pathlib import Path
 import sys
 
+import numpy as np
 import pytest
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -12,12 +13,15 @@ if str(REPO_ROOT) not in sys.path:
 
 from pipelines.hardcoded.hh_vqe_from_adapt_family import (
     RunConfig,
+    build_replay_scaffold_context,
     _build_pool_for_family,
     _resolve_family,
     _resolve_family_from_metadata,
     parse_args,
 )
+from src.quantum.ansatz_parameterization import build_parameter_layout, serialize_layout
 from src.quantum.hubbard_latex_python_pairs import build_hubbard_holstein_hamiltonian
+from src.quantum.vqe_latex_python_pairs import AnsatzTerm, PauliPolynomial, PauliTerm
 
 
 def _mk_cfg(tmp_path: Path, *, generator_family: str = "match_adapt", fallback_family: str = "full_meta") -> RunConfig:
@@ -182,3 +186,106 @@ def test_build_pool_for_family_pareto_lean_l2_rejects_nphmax_not_1(tmp_path: Pat
     cfg = replace(_mk_cfg(tmp_path, generator_family="pareto_lean_l2"), n_ph_max=2)
     with pytest.raises(ValueError, match="only valid for n_ph_max=1"):
         _build_pool_for_family(cfg, family="pareto_lean_l2", h_poly=_hh_h_poly(n_ph_max=2))
+
+
+def test_build_replay_scaffold_context_honors_payload_layout(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    cfg = _mk_cfg(tmp_path, generator_family="match_adapt", fallback_family="full_meta")
+    pool = [
+        AnsatzTerm(
+            label="op_1",
+            polynomial=PauliPolynomial(
+                "JW",
+                [PauliTerm(2, ps="xx", pc=1.0), PauliTerm(2, ps="zz", pc=0.5)],
+            ),
+        ),
+        AnsatzTerm(
+            label="op_2",
+            polynomial=PauliPolynomial("JW", [PauliTerm(2, ps="yy", pc=1.0)]),
+        ),
+    ]
+    wf_layout = build_parameter_layout(
+        pool,
+        ignore_identity=True,
+        coefficient_tolerance=1e-12,
+        sort_terms=True,
+    )
+    payload_layout = serialize_layout(wf_layout)
+    payload = {
+        "adapt_vqe": {
+            "pool_type": "pareto_lean_l2",
+            "operators": ["op_1", "op_2"],
+            "optimal_point": [0.1, 0.15, -0.2],
+            "logical_optimal_point": [0.125, -0.2],
+            "parameterization": payload_layout,
+        },
+        "initial_state": {
+            "handoff_state_kind": "prepared_state",
+            "amplitudes_qn_to_q0": {"00": {"re": 1.0, "im": 0.0}},
+            "nq_total": 2,
+        },
+    }
+    psi_ref = np.array([1.0 + 0.0j, 0.0, 0.0, 0.0], dtype=complex)
+
+    monkeypatch.setattr(
+        "pipelines.hardcoded.hh_vqe_from_adapt_family._build_pool_for_family",
+        lambda *_args, **_kwargs: (list(pool), {"family": "pareto_lean_l2", "dedup_total": len(pool)}),
+    )
+
+    ctx = build_replay_scaffold_context(
+        cfg,
+        h_poly=object(),
+        psi_ref=psi_ref,
+        payload_in=payload,
+    )
+
+    assert ctx.family_info["resolved"] == "pareto_lean_l2"
+    assert tuple(term.label for term in ctx.replay_terms) == ("op_1", "op_2")
+    assert int(ctx.base_layout.runtime_parameter_count) == int(wf_layout.runtime_parameter_count)
+    assert np.allclose(ctx.adapt_theta_runtime, np.array([0.1, 0.15, -0.2], dtype=float))
+    assert np.allclose(ctx.adapt_theta_logical, np.array([0.125, -0.2], dtype=float))
+    assert bool(ctx.pool_meta["candidate_pool_complete"]) is True
+
+
+def test_build_replay_scaffold_context_uses_metadata_resolution(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    cfg = _mk_cfg(tmp_path, generator_family="match_adapt", fallback_family="full_meta")
+    pool = [
+        AnsatzTerm(
+            label="op_1",
+            polynomial=PauliPolynomial("JW", [PauliTerm(2, ps="xx", pc=1.0)]),
+        )
+    ]
+    payload = {
+        "adapt_vqe": {
+            "pool_type": "pareto_lean_l2",
+            "operators": ["op_1"],
+            "optimal_point": [0.2],
+        },
+        "initial_state": {
+            "handoff_state_kind": "prepared_state",
+            "amplitudes_qn_to_q0": {"00": {"re": 1.0, "im": 0.0}},
+            "nq_total": 2,
+        },
+    }
+    psi_ref = np.array([1.0 + 0.0j, 0.0, 0.0, 0.0], dtype=complex)
+
+    monkeypatch.setattr(
+        "pipelines.hardcoded.hh_vqe_from_adapt_family._build_pool_for_family",
+        lambda *_args, **_kwargs: (list(pool), {"family": "pareto_lean_l2", "dedup_total": len(pool)}),
+    )
+
+    ctx = build_replay_scaffold_context(
+        cfg,
+        h_poly=object(),
+        psi_ref=psi_ref,
+        payload_in=payload,
+    )
+
+    assert ctx.family_info["requested"] == "match_adapt"
+    assert ctx.family_info["resolved"] == "pareto_lean_l2"
+    assert ctx.family_info["resolution_source"] == "adapt_vqe.pool_type"

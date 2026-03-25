@@ -1,0 +1,95 @@
+{
+  "generated_utc": "2026-03-23T02:30:56.466418+00:00",
+  "pipeline": "hh_noisy_vqe_7term",
+  "settings": {
+    "shots": 4096,
+    "maxiter": 5,
+    "reps": 1,
+    "seed": 42,
+    "mthree": true,
+    "spsa_a": 0.05,
+    "spsa_c": 0.1,
+    "spsa_A": 10.0,
+    "transpiler_seed": 17,
+    "opt_level": 2,
+    "backend": "FakeNighthawk"
+  },
+  "circuit": {
+    "n_qubits": 6,
+    "n_terms": 7,
+    "n_params": 7,
+    "cz_count": 16,
+    "depth": 40,
+    "size": 86,
+    "layout": [
+      36,
+      58,
+      37,
+      38,
+      47,
+      48
+    ],
+    "ordering": "disp_first"
+  },
+  "results": {
+    "exact_energy": 0.15866790413,
+    "sv_energy_7term": 0.15909086912385775,
+    "sv_energy_at_noisy_opt": 0.16046389862972255,
+    "noisy_best_energy": 1.8464591966476291,
+    "noisy_abs_delta_e": 1.687791292517629,
+    "sv_abs_delta_e_at_noisy_opt": 0.0017959944997225363,
+    "noisy_energy_at_sv_opt": 1.825633775210008,
+    "optimal_theta": [
+      1.5399016924872249,
+      1.6454329453743717,
+      -3.1267959786522654,
+      -1.524330551198647,
+      -1.555045090460334,
+      -0.1217138512798821,
+      -0.09589799025554292
+    ],
+    "sv_optimal_theta": [
+      1.570323338304012,
+      1.6400414351359132,
+      -3.140174017460166,
+      -1.5448434289589728,
+      -1.5706603327728683,
+      -0.08639457001530329,
+      -0.08648309698974883
+    ],
+    "nfev": 10,
+    "elapsed_s": 165.53488154057413
+  },
+  "history": [
+    {
+      "iter": 0,
+      "energy_est": 1.9361558203818277,
+      "best_energy": 1.9361558203818277,
+      "nfev": 2
+    },
+    {
+      "iter": 1,
+      "energy_est": 1.918092796462588,
+      "best_energy": 1.918092796462588,
+      "nfev": 4
+    },
+    {
+      "iter": 2,
+      "energy_est": 1.8655570156406611,
+      "best_energy": 1.8655570156406611,
+      "nfev": 6
+    },
+    {
+      "iter": 3,
+      "energy_est": 1.8764563943259418,
+      "best_energy": 1.8655570156406611,
+      "nfev": 8
+    },
+    {
+      "iter": 4,
+      "energy_est": 1.8464591966476291,
+      "best_energy": 1.8464591966476291,
+      "nfev": 10
+    }
+  ]
+}

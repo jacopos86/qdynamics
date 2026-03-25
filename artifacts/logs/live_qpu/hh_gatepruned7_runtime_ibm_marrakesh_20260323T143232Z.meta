@@ -1,0 +1,37 @@
+TAG=hh_gatepruned7_runtime_ibm_marrakesh_20260323T143232Z
+LOG=artifacts/logs/live_qpu/hh_gatepruned7_runtime_ibm_marrakesh_20260323T143232Z.log
+CMD=python TAG=-u
+LOG=pipelines/hardcoded/hh_staged_noise.py
+CMD=--include-fixed-scaffold-noisy-replay TAG=--fixed-final-state-json
+LOG=artifacts/json/hh_prune_nighthawk_gate_pruned_7term.json
+CMD=--L TAG=2
+LOG=--t
+CMD=1.0 TAG=--u
+LOG=4.0
+CMD=--omega0 TAG=1.0
+LOG=--g-ep
+CMD=0.5 TAG=--n-ph-max
+LOG=1
+CMD=--boson-encoding TAG=binary
+LOG=--ordering
+CMD=blocked TAG=--boundary
+LOG=open
+CMD=--backend-name TAG=ibm_marrakesh
+LOG=--noise-modes
+CMD=runtime TAG=--shots
+LOG=2048
+CMD=--oracle-repeats TAG=1
+LOG=--oracle-aggregate
+CMD=mean TAG=--mitigation
+LOG=readout
+CMD=--local-readout-strategy TAG=mthree
+LOG=--symmetry-mitigation-mode
+CMD=off TAG=--final-method
+LOG=SPSA
+CMD=--final-maxiter TAG=1778
+LOG=--final-seed
+CMD=42 TAG=--noise-seed
+LOG=42
+CMD=--tag TAG=hh_gatepruned7_runtime_ibm_marrakesh_20260323T143232Z
+LOG=--skip-pdf
+CMD= 

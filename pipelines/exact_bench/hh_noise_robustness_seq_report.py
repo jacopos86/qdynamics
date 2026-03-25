@@ -21,6 +21,7 @@ import os
 import re
 import sys
 import time
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Mapping, Sequence
@@ -110,6 +111,8 @@ from pipelines.exact_bench.noise_oracle_runtime import (
     _number_operator_qop,
     normalize_ideal_reference_symmetry_mitigation,
     normalize_mitigation_config,
+    normalize_runtime_estimator_profile_config,
+    normalize_runtime_session_policy_config,
     normalize_symmetry_mitigation_config,
 )
 from pipelines.hardcoded.adapt_circuit_cost import (
@@ -326,11 +329,75 @@ def _imported_pool_type(ctx: Mapping[str, Any]) -> str | None:
     return None
 
 
-def _resolve_locked_imported_lean_context(
+@dataclass(frozen=True)
+class LockedImportedSubject:
+    family: str
+    pool_type: str | None
+    subject_kind: str | None
+    structure_locked: bool
+    term_order_id: str | None
+    operator_count: int | None
+    runtime_term_count: int | None
+
+
+def _detect_locked_imported_subject(ctx: Mapping[str, Any]) -> LockedImportedSubject | None:
+    payload = ctx.get("payload", {}) if isinstance(ctx, Mapping) else {}
+    adapt_vqe = payload.get("adapt_vqe", {}) if isinstance(payload, Mapping) else {}
+    if isinstance(adapt_vqe, Mapping):
+        fixed_meta = adapt_vqe.get("fixed_scaffold_metadata", {})
+        route_family = None
+        if isinstance(fixed_meta, Mapping):
+            route_family = fixed_meta.get("route_family", None)
+        if (
+            bool(adapt_vqe.get("structure_locked", False))
+            and str(adapt_vqe.get("fixed_scaffold_kind", "")).strip() != ""
+            and str(route_family or "") == "locked_imported_scaffold_v1"
+        ):
+            return LockedImportedSubject(
+                family="fixed_scaffold",
+                pool_type=(
+                    None
+                    if adapt_vqe.get("pool_type", None) is None
+                    else str(adapt_vqe.get("pool_type")).strip().lower()
+                ),
+                subject_kind=str(adapt_vqe.get("fixed_scaffold_kind")),
+                structure_locked=True,
+                term_order_id=(
+                    None
+                    if not isinstance(fixed_meta, Mapping) or fixed_meta.get("term_order_id", None) is None
+                    else str(fixed_meta.get("term_order_id"))
+                ),
+                operator_count=(
+                    None
+                    if not isinstance(fixed_meta, Mapping) or fixed_meta.get("operator_count", None) is None
+                    else int(fixed_meta.get("operator_count"))
+                ),
+                runtime_term_count=(
+                    None
+                    if not isinstance(fixed_meta, Mapping) or fixed_meta.get("runtime_term_count", None) is None
+                    else int(fixed_meta.get("runtime_term_count"))
+                ),
+            )
+    pool_type = _imported_pool_type(ctx)
+    if str(pool_type) == "pareto_lean_l2":
+        return LockedImportedSubject(
+            family="legacy_pareto_lean_l2",
+            pool_type=str(pool_type),
+            subject_kind=None,
+            structure_locked=True,
+            term_order_id=None,
+            operator_count=None,
+            runtime_term_count=None,
+        )
+    return None
+
+
+def _resolve_locked_imported_subject_context(
     artifact_json: str | Path,
     *,
-    nonlean_reason: str,
-) -> tuple[dict[str, Any] | None, dict[str, Any], str | None, dict[str, Any] | None]:
+    required_family: str,
+    nonmatch_reason: str,
+) -> tuple[dict[str, Any] | None, dict[str, Any], LockedImportedSubject | None, dict[str, Any] | None]:
     ctx = _load_imported_artifact_context(artifact_json)
     ansatz_input_state_meta = dict(ctx.get("ansatz_input_state_meta", {}))
     if not bool(ansatz_input_state_meta.get("available", False)):
@@ -349,23 +416,49 @@ def _resolve_locked_imported_lean_context(
                 "structure_locked": False,
             },
         )
-    pool_type = _imported_pool_type(ctx)
-    if str(pool_type) != "pareto_lean_l2":
+    subject = _detect_locked_imported_subject(ctx)
+    if subject is None or str(subject.family) != str(required_family):
         return (
             None,
             ansatz_input_state_meta,
-            pool_type,
+            subject,
             {
                 "success": False,
                 "available": False,
-                "reason": str(nonlean_reason),
+                "reason": str(nonmatch_reason),
                 "source_kind": str(ctx.get("source_kind", "unknown")),
                 "artifact_json": str(ctx["path"]),
-                "pool_type": pool_type,
-                "structure_locked": False,
+                "pool_type": (None if subject is None else subject.pool_type),
+                "subject_kind": (None if subject is None else subject.subject_kind),
+                "structure_locked": bool(subject.structure_locked) if subject is not None else False,
             },
         )
-    return ctx, ansatz_input_state_meta, str(pool_type), None
+    return ctx, ansatz_input_state_meta, subject, None
+
+
+def _resolve_locked_imported_lean_context(
+    artifact_json: str | Path,
+    *,
+    nonlean_reason: str,
+) -> tuple[dict[str, Any] | None, dict[str, Any], str | None, dict[str, Any] | None]:
+    ctx, ansatz_input_state_meta, subject, error_payload = _resolve_locked_imported_subject_context(
+        artifact_json,
+        required_family="legacy_pareto_lean_l2",
+        nonmatch_reason=str(nonlean_reason),
+    )
+    return ctx, ansatz_input_state_meta, (None if subject is None else subject.pool_type), error_payload
+
+
+def _resolve_locked_imported_fixed_scaffold_context(
+    artifact_json: str | Path,
+    *,
+    nonfixed_reason: str,
+) -> tuple[dict[str, Any] | None, dict[str, Any], LockedImportedSubject | None, dict[str, Any] | None]:
+    return _resolve_locked_imported_subject_context(
+        artifact_json,
+        required_family="fixed_scaffold",
+        nonmatch_reason=str(nonfixed_reason),
+    )
 
 
 def _bounded_append(history: list[dict[str, Any]], row: dict[str, Any], *, limit: int = 400) -> None:
@@ -389,16 +482,25 @@ def _evaluate_locked_imported_circuit_energy(
     use_fake_backend: bool,
     allow_aer_fallback: bool,
     omp_shm_workaround: bool,
+    seed_transpiler: int | None = None,
+    transpile_optimization_level: int = 1,
+    runtime_profile_config: Mapping[str, Any] | None = None,
+    runtime_session_config: Mapping[str, Any] | None = None,
+    runtime_job_observer: Any | None = None,
+    runtime_trace_context: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     qop = build_time_dependent_sparse_qop(
         ordered_labels_exyz=list(ordered_labels_exyz),
         static_coeff_map_exyz=dict(static_coeff_map_exyz),
         drive_coeff_map_exyz=None,
     )
+    noisy_mode = "backend_scheduled" if bool(use_fake_backend) else "runtime"
     noisy_cfg = OracleConfig(
-        noise_mode="backend_scheduled",
+        noise_mode=str(noisy_mode),
         shots=int(shots),
         seed=int(seed),
+        seed_transpiler=(None if seed_transpiler is None else int(seed_transpiler)),
+        transpile_optimization_level=int(transpile_optimization_level),
         oracle_repeats=int(oracle_repeats),
         oracle_aggregate=str(oracle_aggregate),
         backend_name=(None if backend_name is None else str(backend_name)),
@@ -408,6 +510,12 @@ def _evaluate_locked_imported_circuit_energy(
         omp_shm_workaround=bool(omp_shm_workaround),
         mitigation=dict(normalize_mitigation_config(mitigation_config)),
         symmetry_mitigation=dict(normalize_symmetry_mitigation_config(symmetry_mitigation_config)),
+        runtime_profile=dict(
+            normalize_runtime_estimator_profile_config(runtime_profile_config)
+        ),
+        runtime_session=dict(
+            normalize_runtime_session_policy_config(runtime_session_config)
+        ),
     )
     ideal_cfg = OracleConfig(
         noise_mode="ideal",
@@ -421,7 +529,12 @@ def _evaluate_locked_imported_circuit_energy(
         symmetry_mitigation={"mode": "off"},
     )
     with ExpectationOracle(noisy_cfg) as noisy_oracle, ExpectationOracle(ideal_cfg) as ideal_oracle:
-        noisy = noisy_oracle.evaluate(circuit, qop)
+        noisy = noisy_oracle.evaluate(
+            circuit,
+            qop,
+            runtime_job_observer=runtime_job_observer,
+            runtime_trace_context=runtime_trace_context,
+        )
         ideal = ideal_oracle.evaluate(circuit, qop)
         backend_info = {
             "noise_mode": str(noisy_oracle.backend_info.noise_mode),
@@ -443,6 +556,183 @@ def _evaluate_locked_imported_circuit_energy(
         "delta_stderr": float(_combine_stderr(noisy.stderr, ideal.stderr)),
         "backend_info": backend_info,
     }
+
+
+def _extract_compile_metrics_from_backend_info(backend_info: Mapping[str, Any] | None) -> dict[str, Any]:
+    details = (
+        backend_info.get("details", {})
+        if isinstance(backend_info, Mapping)
+        and isinstance(backend_info.get("details", {}), Mapping)
+        else {}
+    )
+    return {
+        "transpile_seed": (
+            None if details.get("transpile_seed", None) is None else int(details.get("transpile_seed"))
+        ),
+        "transpile_optimization_level": int(details.get("transpile_optimization_level", 1)),
+        "compiled_two_qubit_count": int(details.get("compiled_two_qubit_count", 0)),
+        "compiled_cx_count": int(details.get("compiled_cx_count", 0)),
+        "compiled_ecr_count": int(details.get("compiled_ecr_count", 0)),
+        "compiled_depth": int(details.get("compiled_depth", 0)),
+        "compiled_size": int(details.get("compiled_size", 0)),
+        "layout_physical_qubits": [
+            int(x) for x in list(details.get("layout_physical_qubits", []))
+        ],
+        "compiled_num_qubits": int(details.get("compiled_num_qubits", 0)),
+        "compiled_op_counts": (
+            dict(details.get("compiled_op_counts", {}))
+            if isinstance(details.get("compiled_op_counts", {}), Mapping)
+            else {}
+        ),
+    }
+
+
+def _rank_imported_compile_control_candidates(
+    candidates: Sequence[Mapping[str, Any]],
+    *,
+    rank_policy: str,
+) -> list[dict[str, Any]]:
+    ranked: list[dict[str, Any]] = [dict(x) for x in candidates if isinstance(x, Mapping)]
+    policy = str(rank_policy).strip().lower()
+    if policy != "delta_mean_then_two_qubit_then_depth_then_size":
+        raise ValueError(
+            "Unsupported fixed lean compile-control scout rank policy "
+            f"{rank_policy!r}."
+        )
+
+    def _sort_key(rec: Mapping[str, Any]) -> tuple[float, int, int, int, int, int]:
+        delta_mean = rec.get("delta_mean", float("inf"))
+        delta_abs = abs(float(delta_mean)) if delta_mean is not None else float("inf")
+        return (
+            float(delta_abs),
+            int(rec.get("compiled_two_qubit_count", 10**9)),
+            int(rec.get("compiled_depth", 10**9)),
+            int(rec.get("compiled_size", 10**9)),
+            int(rec.get("transpile_optimization_level", 10**9)),
+            int(rec.get("transpile_seed", 10**9)),
+        )
+
+    ranked.sort(key=_sort_key)
+    return ranked
+
+
+def _runtime_compile_signature(backend_info: Mapping[str, Any] | None) -> dict[str, Any]:
+    metrics = _extract_compile_metrics_from_backend_info(backend_info)
+    return {
+        "transpile_seed": metrics.get("transpile_seed", None),
+        "transpile_optimization_level": metrics.get("transpile_optimization_level", None),
+        "layout_physical_qubits": [int(x) for x in metrics.get("layout_physical_qubits", [])],
+        "compiled_num_qubits": int(metrics.get("compiled_num_qubits", 0)),
+        "compiled_two_qubit_count": int(metrics.get("compiled_two_qubit_count", 0)),
+        "compiled_depth": int(metrics.get("compiled_depth", 0)),
+        "compiled_size": int(metrics.get("compiled_size", 0)),
+    }
+
+
+def _runtime_compile_signature_matches(
+    lhs: Mapping[str, Any] | None,
+    rhs: Mapping[str, Any] | None,
+) -> bool:
+    return dict(_runtime_compile_signature(lhs)) == dict(_runtime_compile_signature(rhs))
+
+
+def _run_locked_imported_runtime_phase_evals(
+    *,
+    circuit: QuantumCircuit,
+    ordered_labels_exyz: Sequence[str],
+    static_coeff_map_exyz: Mapping[str, complex],
+    shots: int,
+    seed: int,
+    oracle_repeats: int,
+    oracle_aggregate: str,
+    mitigation_config: Mapping[str, Any],
+    symmetry_mitigation_config: Mapping[str, Any],
+    backend_name: str | None,
+    allow_aer_fallback: bool,
+    omp_shm_workaround: bool,
+    seed_transpiler: int | None,
+    transpile_optimization_level: int,
+    runtime_session_config: Mapping[str, Any] | None,
+    main_runtime_profile_config: Mapping[str, Any],
+    dd_probe_runtime_profile_config: Mapping[str, Any] | None = None,
+    final_audit_runtime_profile_config: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    main_eval = _evaluate_locked_imported_circuit_energy(
+        circuit=circuit,
+        ordered_labels_exyz=ordered_labels_exyz,
+        static_coeff_map_exyz=static_coeff_map_exyz,
+        shots=int(shots),
+        seed=int(seed),
+        oracle_repeats=int(oracle_repeats),
+        oracle_aggregate=str(oracle_aggregate),
+        mitigation_config=mitigation_config,
+        symmetry_mitigation_config=symmetry_mitigation_config,
+        backend_name=backend_name,
+        use_fake_backend=False,
+        allow_aer_fallback=bool(allow_aer_fallback),
+        omp_shm_workaround=bool(omp_shm_workaround),
+        seed_transpiler=seed_transpiler,
+        transpile_optimization_level=int(transpile_optimization_level),
+        runtime_profile_config=main_runtime_profile_config,
+        runtime_session_config=runtime_session_config,
+    )
+    baseline_backend = dict(main_eval.get("backend_info", {}))
+    baseline_signature = _runtime_compile_signature(baseline_backend)
+    payload: dict[str, Any] = {
+        "main": {
+            "success": True,
+            "profile": dict(normalize_runtime_estimator_profile_config(main_runtime_profile_config)),
+            "evaluation": dict(main_eval),
+            "compile_signature": dict(baseline_signature),
+        }
+    }
+    for phase_name, profile_cfg in (
+        ("dd_probe", dd_probe_runtime_profile_config),
+        ("final_audit_zne", final_audit_runtime_profile_config),
+    ):
+        if profile_cfg is None:
+            payload[phase_name] = {"enabled": False, "success": False, "reason": f"{phase_name}_disabled"}
+            continue
+        phase_eval = _evaluate_locked_imported_circuit_energy(
+            circuit=circuit,
+            ordered_labels_exyz=ordered_labels_exyz,
+            static_coeff_map_exyz=static_coeff_map_exyz,
+            shots=int(shots),
+            seed=int(seed),
+            oracle_repeats=int(oracle_repeats),
+            oracle_aggregate=str(oracle_aggregate),
+            mitigation_config=mitigation_config,
+            symmetry_mitigation_config=symmetry_mitigation_config,
+            backend_name=backend_name,
+            use_fake_backend=False,
+            allow_aer_fallback=bool(allow_aer_fallback),
+            omp_shm_workaround=bool(omp_shm_workaround),
+            seed_transpiler=seed_transpiler,
+            transpile_optimization_level=int(transpile_optimization_level),
+            runtime_profile_config=profile_cfg,
+            runtime_session_config=runtime_session_config,
+        )
+        phase_backend = dict(phase_eval.get("backend_info", {}))
+        phase_signature = _runtime_compile_signature(phase_backend)
+        if not _runtime_compile_signature_matches(baseline_backend, phase_backend):
+            payload[phase_name] = {
+                "enabled": True,
+                "success": False,
+                "reason": "compile_layout_drift",
+                "profile": dict(normalize_runtime_estimator_profile_config(profile_cfg)),
+                "expected_compile_signature": dict(baseline_signature),
+                "observed_compile_signature": dict(phase_signature),
+                "evaluation": dict(phase_eval),
+            }
+            continue
+        payload[phase_name] = {
+            "enabled": True,
+            "success": True,
+            "profile": dict(normalize_runtime_estimator_profile_config(profile_cfg)),
+            "evaluation": dict(phase_eval),
+            "compile_signature": dict(phase_signature),
+        }
+    return payload
 
 
 def _build_reference_state(args: argparse.Namespace, num_particles: tuple[int, int]) -> np.ndarray:
@@ -2140,8 +2430,9 @@ def _run_imported_fixed_lean_noisy_replay(
         drive_coeff_map_exyz=None,
     )
 
+    noisy_mode = "backend_scheduled" if bool(use_fake_backend) else "runtime"
     noisy_cfg = OracleConfig(
-        noise_mode="backend_scheduled",
+        noise_mode=str(noisy_mode),
         shots=int(shots),
         seed=int(seed),
         oracle_repeats=int(oracle_repeats),
@@ -2165,6 +2456,13 @@ def _run_imported_fixed_lean_noisy_replay(
     wallclock_hit = False
     optimizer_exception: Exception | None = None
     res = None
+    seed_transpiler: int | None = None
+    transpile_optimization_level = 1
+    runtime_profile_cfg = normalize_runtime_estimator_profile_config(None)
+    runtime_session_cfg = normalize_runtime_session_policy_config(None)
+
+    def _emit_replay_log(*_args: Any, **_kwargs: Any) -> None:
+        return
 
     with ExpectationOracle(noisy_cfg) as noisy_oracle:
         def _objective(theta: np.ndarray) -> float:
@@ -2244,6 +2542,13 @@ def _run_imported_fixed_lean_noisy_replay(
         }
 
     if optimizer_exception is not None:
+        _emit_replay_log(
+            "fixed_scaffold_replay_failed",
+            reason="optimizer_exception",
+            error=f"{type(optimizer_exception).__name__}: {optimizer_exception}",
+            objective_calls_total=int(objective_calls_total),
+            elapsed_s=float(time.perf_counter() - t0),
+        )
         return {
             "success": False,
             "available": False,
@@ -2254,6 +2559,12 @@ def _run_imported_fixed_lean_noisy_replay(
             "pool_type": str(pool_type),
         }
     if wallclock_hit and best_eval is None:
+        _emit_replay_log(
+            "fixed_scaffold_replay_failed",
+            reason="wallclock_cap_before_first_eval",
+            objective_calls_total=int(objective_calls_total),
+            elapsed_s=float(time.perf_counter() - t0),
+        )
         return {
             "success": False,
             "available": False,
@@ -2293,7 +2604,12 @@ def _run_imported_fixed_lean_noisy_replay(
         use_fake_backend=bool(use_fake_backend),
         allow_aer_fallback=bool(allow_aer_fallback),
         omp_shm_workaround=bool(omp_shm_workaround),
+        seed_transpiler=(None if seed_transpiler is None else int(seed_transpiler)),
+        transpile_optimization_level=int(transpile_optimization_level),
+        runtime_profile_config=runtime_profile_cfg,
+        runtime_session_config=runtime_session_cfg,
     )
+    best_runtime_energy_audits: dict[str, Any] | None = None
     best_eval_final = _evaluate_locked_imported_circuit_energy(
         circuit=best_circuit,
         ordered_labels_exyz=ordered_labels_exyz,
@@ -2308,8 +2624,11 @@ def _run_imported_fixed_lean_noisy_replay(
         use_fake_backend=bool(use_fake_backend),
         allow_aer_fallback=bool(allow_aer_fallback),
         omp_shm_workaround=bool(omp_shm_workaround),
+        seed_transpiler=(None if seed_transpiler is None else int(seed_transpiler)),
+        transpile_optimization_level=int(transpile_optimization_level),
+        runtime_profile_config=runtime_profile_cfg,
+        runtime_session_config=runtime_session_cfg,
     )
-
     theta0_logical = np.asarray(project_runtime_theta_block_mean(theta0, layout), dtype=float)
     theta_best_logical = np.asarray(project_runtime_theta_block_mean(theta_best, layout), dtype=float)
     return {
@@ -2342,12 +2661,19 @@ def _run_imported_fixed_lean_noisy_replay(
             "message": str(optimizer_message),
         },
         "noise_config": {
-            "noise_mode": "backend_scheduled",
+            "noise_mode": str(noisy_mode),
             "shots": int(shots),
             "oracle_repeats": int(oracle_repeats),
             "oracle_aggregate": str(oracle_aggregate),
             "mitigation": dict(mitigation_cfg),
             "symmetry_mitigation": dict(symmetry_cfg),
+            "runtime_profile": dict(runtime_profile_cfg),
+            "runtime_session": dict(runtime_session_cfg),
+        },
+        "compile_control": {
+            "transpile_optimization_level": int(transpile_optimization_level),
+            "seed_transpiler": (None if seed_transpiler is None else int(seed_transpiler)),
+            "source": ("runtime_profile_cli" if str(noisy_mode) == "runtime" else "legacy_route"),
         },
         "theta": {
             "initial_runtime": [float(x) for x in theta0.tolist()],
@@ -2424,8 +2750,9 @@ def _run_imported_fixed_lean_noise_attribution(
         static_coeff_map_exyz=dict(ctx["static_coeff_map_exyz"]),
         drive_coeff_map_exyz=None,
     )
+    noisy_mode = "backend_scheduled"
     noisy_cfg = OracleConfig(
-        noise_mode="backend_scheduled",
+        noise_mode=str(noisy_mode),
         shots=int(shots),
         seed=int(seed),
         oracle_repeats=int(oracle_repeats),
@@ -2553,7 +2880,7 @@ def _run_imported_fixed_lean_noise_attribution(
             "theta_source": "imported_artifact_runtime_theta",
         },
         "noise_config": {
-            "noise_mode": "backend_scheduled",
+            "noise_mode": str(noisy_mode),
             "shots": int(shots),
             "oracle_repeats": int(oracle_repeats),
             "oracle_aggregate": str(oracle_aggregate),
@@ -2573,6 +2900,1449 @@ def _run_imported_fixed_lean_noise_attribution(
             ),
         },
         "elapsed_s": float(time.perf_counter() - t0),
+    }
+
+
+def _locked_subject_payload_fields(subject: LockedImportedSubject) -> dict[str, Any]:
+    return {
+        "subject_kind": subject.subject_kind,
+        "term_order_id": subject.term_order_id,
+        "operator_count": subject.operator_count,
+        "runtime_term_count": subject.runtime_term_count,
+    }
+
+
+def _extract_fixed_scaffold_compile_recommendation(ctx: Mapping[str, Any]) -> dict[str, Any] | None:
+    payload = ctx.get("payload", {}) if isinstance(ctx, Mapping) else {}
+    adapt_vqe = payload.get("adapt_vqe", {}) if isinstance(payload, Mapping) else {}
+    fixed_meta = adapt_vqe.get("fixed_scaffold_metadata", {}) if isinstance(adapt_vqe, Mapping) else {}
+    raw = fixed_meta.get("compile_recommendation", None) if isinstance(fixed_meta, Mapping) else None
+    if not isinstance(raw, Mapping):
+        return None
+    return {
+        "backend_name": None if raw.get("backend_name", None) is None else str(raw.get("backend_name")),
+        "optimization_level": (
+            None if raw.get("optimization_level", None) is None else int(raw.get("optimization_level"))
+        ),
+        "seed_transpiler": (
+            None if raw.get("seed_transpiler", None) is None else int(raw.get("seed_transpiler"))
+        ),
+    }
+
+
+def _run_imported_compile_control_scout_core(
+    *,
+    ctx: Mapping[str, Any],
+    ansatz_input_state_meta: Mapping[str, Any],
+    route: str,
+    reason_prefix: str,
+    pool_type: str | None,
+    shots: int,
+    seed: int,
+    oracle_repeats: int,
+    oracle_aggregate: str,
+    backend_name: str | None,
+    use_fake_backend: bool,
+    allow_aer_fallback: bool,
+    omp_shm_workaround: bool,
+    mitigation_config: dict[str, Any],
+    symmetry_mitigation_config: dict[str, Any],
+    baseline_transpile_optimization_level: int,
+    baseline_seed_transpiler: int,
+    scout_transpile_optimization_levels: Sequence[int],
+    scout_seed_transpilers: Sequence[int],
+    rank_policy: str,
+    extra_payload: Mapping[str, Any] | None = None,
+    artifact_compile_recommendation: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    mitigation_cfg = dict(normalize_mitigation_config(mitigation_config))
+    symmetry_cfg = dict(normalize_symmetry_mitigation_config(symmetry_mitigation_config))
+    if str(mitigation_cfg.get("mode", "none")) != "readout":
+        return {
+            "success": False,
+            "available": False,
+            "reason": f"{reason_prefix}_requires_readout_mitigation",
+            "artifact_json": str(ctx["path"]),
+        }
+    strategy = str(mitigation_cfg.get("local_readout_strategy") or "mthree")
+    if strategy != "mthree":
+        return {
+            "success": False,
+            "available": False,
+            "reason": f"{reason_prefix}_requires_mthree",
+            "artifact_json": str(ctx["path"]),
+        }
+    mitigation_cfg["local_readout_strategy"] = "mthree"
+    if str(symmetry_cfg.get("mode", "off")) != "off":
+        return {
+            "success": False,
+            "available": False,
+            "reason": f"{reason_prefix}_requires_symmetry_off",
+            "artifact_json": str(ctx["path"]),
+        }
+    if not bool(use_fake_backend):
+        return {
+            "success": False,
+            "available": False,
+            "reason": f"{reason_prefix}_requires_local_fake_backend",
+            "artifact_json": str(ctx["path"]),
+        }
+    backend_name_norm = None if backend_name in {None, "", "none"} else str(backend_name)
+    if backend_name_norm is None:
+        return {
+            "success": False,
+            "available": False,
+            "reason": f"{reason_prefix}_requires_backend_name",
+            "artifact_json": str(ctx["path"]),
+        }
+
+    candidate_specs: list[dict[str, Any]] = []
+    seen_specs: set[tuple[int, int]] = set()
+    raw_specs = [
+        (int(baseline_transpile_optimization_level), int(baseline_seed_transpiler), True),
+        *[
+            (int(opt_level), int(seed_trans), False)
+            for opt_level in scout_transpile_optimization_levels
+            for seed_trans in scout_seed_transpilers
+        ],
+    ]
+    for opt_level, seed_trans, is_baseline in raw_specs:
+        spec_key = (int(opt_level), int(seed_trans))
+        if spec_key in seen_specs:
+            continue
+        seen_specs.add(spec_key)
+        candidate_specs.append(
+            {
+                "transpile_optimization_level": int(opt_level),
+                "seed_transpiler": int(seed_trans),
+                "is_baseline": bool(is_baseline),
+                "label": f"opt{int(opt_level)}_seed{int(seed_trans)}",
+            }
+        )
+
+    t0 = time.perf_counter()
+    candidates: list[dict[str, Any]] = []
+    for idx, spec in enumerate(candidate_specs):
+        try:
+            eval_payload = _evaluate_locked_imported_circuit_energy(
+                circuit=ctx["circuit"],
+                ordered_labels_exyz=list(ctx["ordered_labels_exyz"]),
+                static_coeff_map_exyz=dict(ctx["static_coeff_map_exyz"]),
+                shots=int(shots),
+                seed=int(seed),
+                oracle_repeats=int(oracle_repeats),
+                oracle_aggregate=str(oracle_aggregate),
+                mitigation_config=mitigation_cfg,
+                symmetry_mitigation_config=symmetry_cfg,
+                backend_name=backend_name_norm,
+                use_fake_backend=bool(use_fake_backend),
+                allow_aer_fallback=bool(allow_aer_fallback),
+                omp_shm_workaround=bool(omp_shm_workaround),
+                seed_transpiler=int(spec["seed_transpiler"]),
+                transpile_optimization_level=int(spec["transpile_optimization_level"]),
+            )
+            backend_info = (
+                dict(eval_payload.get("backend_info", {}))
+                if isinstance(eval_payload.get("backend_info", {}), Mapping)
+                else {}
+            )
+            compile_metrics = _extract_compile_metrics_from_backend_info(backend_info)
+            candidates.append(
+                {
+                    "success": True,
+                    "candidate_index": int(idx),
+                    "label": str(spec["label"]),
+                    "is_baseline": bool(spec["is_baseline"]),
+                    "transpile_seed": int(spec["seed_transpiler"]),
+                    "transpile_optimization_level": int(spec["transpile_optimization_level"]),
+                    "noisy_mean": float(eval_payload["noisy_mean"]),
+                    "noisy_stderr": float(eval_payload["noisy_stderr"]),
+                    "ideal_mean": float(eval_payload["ideal_mean"]),
+                    "ideal_stderr": float(eval_payload["ideal_stderr"]),
+                    "delta_mean": float(eval_payload["delta_mean"]),
+                    "delta_stderr": float(eval_payload["delta_stderr"]),
+                    "delta_abs": abs(float(eval_payload["delta_mean"])),
+                    "backend_info": backend_info,
+                    **compile_metrics,
+                }
+            )
+        except Exception as exc:
+            candidates.append(
+                {
+                    "success": False,
+                    "candidate_index": int(idx),
+                    "label": str(spec["label"]),
+                    "is_baseline": bool(spec["is_baseline"]),
+                    "transpile_seed": int(spec["seed_transpiler"]),
+                    "transpile_optimization_level": int(spec["transpile_optimization_level"]),
+                    "reason": "candidate_exception",
+                    "error": f"{type(exc).__name__}: {exc}",
+                }
+            )
+
+    successful_candidates = [dict(rec) for rec in candidates if bool(rec.get("success", False))]
+    if not successful_candidates:
+        return {
+            "success": False,
+            "available": False,
+            "reason": f"{reason_prefix}_no_successful_candidates",
+            "artifact_json": str(ctx["path"]),
+            "pool_type": None if pool_type is None else str(pool_type),
+            "candidates": candidates,
+        }
+
+    ranked_candidates = _rank_imported_compile_control_candidates(
+        successful_candidates,
+        rank_policy=str(rank_policy),
+    )
+    best_candidate = dict(ranked_candidates[0])
+    baseline_candidate = next(
+        (dict(rec) for rec in candidates if bool(rec.get("is_baseline", False))),
+        None,
+    )
+    baseline_success = bool(isinstance(baseline_candidate, Mapping) and baseline_candidate.get("success", False))
+
+    baseline_delta_abs = (
+        None
+        if not baseline_success or baseline_candidate is None
+        else abs(float(baseline_candidate.get("delta_mean", float("nan"))))
+    )
+    best_delta_abs = abs(float(best_candidate.get("delta_mean", float("nan"))))
+
+    def _maybe_delta_int(a: Any, b: Any) -> int | None:
+        if a is None or b is None:
+            return None
+        return int(a) - int(b)
+
+    ranking_summary = {
+        "policy": str(rank_policy),
+        "candidate_labels_ranked": [str(rec.get("label", "")) for rec in ranked_candidates],
+        "best_label": str(best_candidate.get("label", "")),
+        "baseline_label": (
+            None if baseline_candidate is None else str(baseline_candidate.get("label", ""))
+        ),
+        "best_vs_baseline_delta_abs_improvement": (
+            None
+            if baseline_delta_abs is None
+            else float(baseline_delta_abs) - float(best_delta_abs)
+        ),
+        "best_vs_baseline_two_qubit_delta": _maybe_delta_int(
+            best_candidate.get("compiled_two_qubit_count", None),
+            None if baseline_candidate is None else baseline_candidate.get("compiled_two_qubit_count", None),
+        ),
+        "best_vs_baseline_depth_delta": _maybe_delta_int(
+            best_candidate.get("compiled_depth", None),
+            None if baseline_candidate is None else baseline_candidate.get("compiled_depth", None),
+        ),
+        "best_vs_baseline_size_delta": _maybe_delta_int(
+            best_candidate.get("compiled_size", None),
+            None if baseline_candidate is None else baseline_candidate.get("compiled_size", None),
+        ),
+    }
+
+    payload = {
+        "success": bool(baseline_success),
+        "available": True,
+        "route": str(route),
+        "artifact_json": str(ctx["path"]),
+        "source_kind": str(ctx.get("source_kind", "unknown")),
+        "pool_type": None if pool_type is None else str(pool_type),
+        "structure_locked": True,
+        "matched_family_replay": False,
+        "parameter_optimization": False,
+        "reference_state_embedded": True,
+        "ansatz_input_state_source": ansatz_input_state_meta.get("source", None),
+        "ansatz_input_state_kind": ansatz_input_state_meta.get("handoff_state_kind", None),
+        "parameterization": {
+            "mode": "per_pauli_term_v1",
+            "logical_parameter_count": int(ctx["layout"].logical_parameter_count),
+            "runtime_parameter_count": int(ctx["layout"].runtime_parameter_count),
+            "theta_source": "imported_artifact_runtime_theta",
+        },
+        "noise_config": {
+            "noise_mode": "backend_scheduled",
+            "shots": int(shots),
+            "oracle_repeats": int(oracle_repeats),
+            "oracle_aggregate": str(oracle_aggregate),
+            "backend_name": str(backend_name_norm),
+            "use_fake_backend": True,
+            "mitigation": dict(mitigation_cfg),
+            "symmetry_mitigation": dict(symmetry_cfg),
+        },
+        "compile_control_config": {
+            "baseline_transpile_optimization_level": int(baseline_transpile_optimization_level),
+            "baseline_seed_transpiler": int(baseline_seed_transpiler),
+            "scout_transpile_optimization_levels": [
+                int(x) for x in scout_transpile_optimization_levels
+            ],
+            "scout_seed_transpilers": [int(x) for x in scout_seed_transpilers],
+            "rank_policy": str(rank_policy),
+        },
+        "candidate_counts": {
+            "total": int(len(candidates)),
+            "successful": int(len(successful_candidates)),
+            "failed": int(len(candidates) - len(successful_candidates)),
+        },
+        "baseline_candidate": baseline_candidate,
+        "best_candidate": best_candidate,
+        "candidates": candidates,
+        "ranking": ranking_summary,
+        "elapsed_s": float(time.perf_counter() - t0),
+    }
+    if artifact_compile_recommendation is not None:
+        payload["artifact_compile_recommendation"] = dict(artifact_compile_recommendation)
+    if isinstance(extra_payload, Mapping):
+        payload.update(dict(extra_payload))
+    return payload
+
+
+def _run_imported_fixed_lean_compile_control_scout(
+    *,
+    artifact_json: str,
+    shots: int,
+    seed: int,
+    oracle_repeats: int,
+    oracle_aggregate: str,
+    backend_name: str | None,
+    use_fake_backend: bool,
+    allow_aer_fallback: bool,
+    omp_shm_workaround: bool,
+    mitigation_config: dict[str, Any],
+    symmetry_mitigation_config: dict[str, Any],
+    baseline_transpile_optimization_level: int,
+    baseline_seed_transpiler: int,
+    scout_transpile_optimization_levels: Sequence[int],
+    scout_seed_transpilers: Sequence[int],
+    rank_policy: str,
+) -> dict[str, Any]:
+    ctx, ansatz_input_state_meta, pool_type, error_payload = _resolve_locked_imported_lean_context(
+        artifact_json,
+        nonlean_reason="fixed_lean_compile_control_scout_requires_pareto_lean_l2_source",
+    )
+    if error_payload is not None or ctx is None:
+        return dict(error_payload or {})
+    return _run_imported_compile_control_scout_core(
+        ctx=ctx,
+        ansatz_input_state_meta=ansatz_input_state_meta,
+        route="fixed_lean_compile_control_scout",
+        reason_prefix="fixed_lean_compile_control_scout",
+        pool_type=(None if pool_type is None else str(pool_type)),
+        shots=int(shots),
+        seed=int(seed),
+        oracle_repeats=int(oracle_repeats),
+        oracle_aggregate=str(oracle_aggregate),
+        backend_name=backend_name,
+        use_fake_backend=bool(use_fake_backend),
+        allow_aer_fallback=bool(allow_aer_fallback),
+        omp_shm_workaround=bool(omp_shm_workaround),
+        mitigation_config=dict(mitigation_config),
+        symmetry_mitigation_config=dict(symmetry_mitigation_config),
+        baseline_transpile_optimization_level=int(baseline_transpile_optimization_level),
+        baseline_seed_transpiler=int(baseline_seed_transpiler),
+        scout_transpile_optimization_levels=list(scout_transpile_optimization_levels),
+        scout_seed_transpilers=list(scout_seed_transpilers),
+        rank_policy=str(rank_policy),
+    )
+
+
+def _run_imported_fixed_scaffold_compile_control_scout(
+    *,
+    artifact_json: str,
+    shots: int,
+    seed: int,
+    oracle_repeats: int,
+    oracle_aggregate: str,
+    backend_name: str | None,
+    use_fake_backend: bool,
+    allow_aer_fallback: bool,
+    omp_shm_workaround: bool,
+    mitigation_config: dict[str, Any],
+    symmetry_mitigation_config: dict[str, Any],
+    baseline_transpile_optimization_level: int,
+    baseline_seed_transpiler: int,
+    scout_transpile_optimization_levels: Sequence[int],
+    scout_seed_transpilers: Sequence[int],
+    rank_policy: str,
+) -> dict[str, Any]:
+    ctx, ansatz_input_state_meta, subject, error_payload = _resolve_locked_imported_fixed_scaffold_context(
+        artifact_json,
+        nonfixed_reason="fixed_scaffold_compile_control_scout_requires_locked_fixed_scaffold_source",
+    )
+    if error_payload is not None or ctx is None or subject is None:
+        return dict(error_payload or {})
+    return _run_imported_compile_control_scout_core(
+        ctx=ctx,
+        ansatz_input_state_meta=ansatz_input_state_meta,
+        route="fixed_scaffold_compile_control_scout",
+        reason_prefix="fixed_scaffold_compile_control_scout",
+        pool_type=(None if subject.pool_type is None else str(subject.pool_type)),
+        shots=int(shots),
+        seed=int(seed),
+        oracle_repeats=int(oracle_repeats),
+        oracle_aggregate=str(oracle_aggregate),
+        backend_name=backend_name,
+        use_fake_backend=bool(use_fake_backend),
+        allow_aer_fallback=bool(allow_aer_fallback),
+        omp_shm_workaround=bool(omp_shm_workaround),
+        mitigation_config=dict(mitigation_config),
+        symmetry_mitigation_config=dict(symmetry_mitigation_config),
+        baseline_transpile_optimization_level=int(baseline_transpile_optimization_level),
+        baseline_seed_transpiler=int(baseline_seed_transpiler),
+        scout_transpile_optimization_levels=list(scout_transpile_optimization_levels),
+        scout_seed_transpilers=list(scout_seed_transpilers),
+        rank_policy=str(rank_policy),
+        extra_payload=_locked_subject_payload_fields(subject),
+        artifact_compile_recommendation=_extract_fixed_scaffold_compile_recommendation(ctx),
+    )
+
+
+def _run_imported_fixed_scaffold_runtime_energy_only(
+    *,
+    artifact_json: str,
+    shots: int,
+    seed: int,
+    oracle_repeats: int,
+    oracle_aggregate: str,
+    backend_name: str | None,
+    use_fake_backend: bool,
+    allow_aer_fallback: bool,
+    omp_shm_workaround: bool,
+    mitigation_config: dict[str, Any],
+    symmetry_mitigation_config: dict[str, Any],
+    runtime_profile_config: dict[str, Any],
+    runtime_session_config: dict[str, Any],
+    transpile_optimization_level: int,
+    seed_transpiler: int | None,
+    include_dd_probe: bool,
+    include_final_zne_audit: bool,
+) -> dict[str, Any]:
+    ctx, ansatz_input_state_meta, subject, error_payload = _resolve_locked_imported_fixed_scaffold_context(
+        artifact_json,
+        nonfixed_reason="fixed_scaffold_runtime_energy_only_requires_locked_fixed_scaffold_source",
+    )
+    if error_payload is not None or ctx is None or subject is None:
+        return dict(error_payload or {})
+    if bool(use_fake_backend):
+        return {
+            "success": False,
+            "available": False,
+            "reason": "fixed_scaffold_runtime_energy_only_requires_runtime_backend",
+            "artifact_json": str(ctx["path"]),
+            **_locked_subject_payload_fields(subject),
+        }
+    if backend_name in {None, ""}:
+        return {
+            "success": False,
+            "available": False,
+            "reason": "fixed_scaffold_runtime_energy_only_requires_backend_name",
+            "artifact_json": str(ctx["path"]),
+            **_locked_subject_payload_fields(subject),
+        }
+
+    mitigation_cfg = dict(normalize_mitigation_config(mitigation_config))
+    symmetry_cfg = dict(normalize_symmetry_mitigation_config(symmetry_mitigation_config))
+    if str(mitigation_cfg.get("mode", "none")) != "readout":
+        return {
+            "success": False,
+            "available": False,
+            "reason": "fixed_scaffold_runtime_energy_only_requires_readout_mitigation",
+            "artifact_json": str(ctx["path"]),
+            **_locked_subject_payload_fields(subject),
+        }
+    mitigation_cfg["local_readout_strategy"] = "mthree"
+    if str(symmetry_cfg.get("mode", "off")) != "off":
+        return {
+            "success": False,
+            "available": False,
+            "reason": "fixed_scaffold_runtime_energy_only_requires_symmetry_off",
+            "artifact_json": str(ctx["path"]),
+            **_locked_subject_payload_fields(subject),
+        }
+
+    runtime_profile_cfg = dict(normalize_runtime_estimator_profile_config(runtime_profile_config))
+    runtime_session_cfg = dict(normalize_runtime_session_policy_config(runtime_session_config))
+    layout = ctx["layout"]
+    nq = int(ctx["num_qubits"])
+    theta_runtime = np.asarray(ctx["theta_runtime"], dtype=float).reshape(-1)
+    ref_state = np.asarray(ctx["ansatz_input_state"], dtype=complex).reshape(-1)
+    ordered_labels_exyz = list(ctx["ordered_labels_exyz"])
+    static_coeff_map_exyz = dict(ctx["static_coeff_map_exyz"])
+    circuit = _build_ansatz_circuit(layout, theta_runtime, int(nq), ref_state=ref_state)
+    phase_evals = _run_locked_imported_runtime_phase_evals(
+        circuit=circuit,
+        ordered_labels_exyz=ordered_labels_exyz,
+        static_coeff_map_exyz=static_coeff_map_exyz,
+        shots=int(shots),
+        seed=int(seed),
+        oracle_repeats=int(oracle_repeats),
+        oracle_aggregate=str(oracle_aggregate),
+        mitigation_config=mitigation_cfg,
+        symmetry_mitigation_config=symmetry_cfg,
+        backend_name=str(backend_name),
+        allow_aer_fallback=bool(allow_aer_fallback),
+        omp_shm_workaround=bool(omp_shm_workaround),
+        seed_transpiler=(None if seed_transpiler is None else int(seed_transpiler)),
+        transpile_optimization_level=int(transpile_optimization_level),
+        runtime_session_config=runtime_session_cfg,
+        main_runtime_profile_config=runtime_profile_cfg,
+        dd_probe_runtime_profile_config=(
+            normalize_runtime_estimator_profile_config("dd_probe_twirled_readout_v1")
+            if bool(include_dd_probe)
+            else None
+        ),
+        final_audit_runtime_profile_config=(
+            normalize_runtime_estimator_profile_config("final_audit_zne_twirled_readout_v1")
+            if bool(include_final_zne_audit)
+            else None
+        ),
+    )
+    main_eval = phase_evals.get("main", {}) if isinstance(phase_evals, Mapping) else {}
+    main_eval_payload = main_eval.get("evaluation", {}) if isinstance(main_eval, Mapping) else {}
+    return {
+        "success": bool(isinstance(main_eval, Mapping) and main_eval.get("success", False)),
+        "available": True,
+        "route": "fixed_scaffold_runtime_energy_only",
+        "artifact_json": str(ctx["path"]),
+        "candidate_artifact_json": str(ctx["path"]),
+        "source_kind": str(ctx.get("source_kind", "unknown")),
+        "pool_type": str(subject.pool_type),
+        "structure_locked": True,
+        "reference_state_embedded": True,
+        "ansatz_input_state_source": ansatz_input_state_meta.get("source", None),
+        "ansatz_input_state_kind": ansatz_input_state_meta.get("handoff_state_kind", None),
+        "noise_config": {
+            "noise_mode": "runtime",
+            "shots": int(shots),
+            "oracle_repeats": int(oracle_repeats),
+            "oracle_aggregate": str(oracle_aggregate),
+            "backend_name": str(backend_name),
+            "mitigation": dict(mitigation_cfg),
+            "symmetry_mitigation": dict(symmetry_cfg),
+            "runtime_profile": dict(runtime_profile_cfg),
+            "runtime_session": dict(runtime_session_cfg),
+        },
+        "compile_control": {
+            "transpile_optimization_level": int(transpile_optimization_level),
+            "seed_transpiler": (None if seed_transpiler is None else int(seed_transpiler)),
+            "source": "runtime_profile_cli",
+        },
+        "energy_audits": dict(phase_evals),
+        "backend_info": dict(main_eval_payload.get("backend_info", {})) if isinstance(main_eval_payload, Mapping) else {},
+        **_locked_subject_payload_fields(subject),
+    }
+
+
+def _run_saved_theta_local_mitigation_ablation(
+    *,
+    circuit: QuantumCircuit,
+    artifact_json: str,
+    subject: LockedImportedSubject,
+    ordered_labels_exyz: Sequence[str],
+    static_coeff_map_exyz: Mapping[str, complex],
+    shots: int,
+    seed: int,
+    oracle_repeats: int,
+    oracle_aggregate: str,
+    backend_name: str | None,
+    allow_aer_fallback: bool,
+    omp_shm_workaround: bool,
+    seed_transpiler: int | None,
+    transpile_optimization_level: int,
+    local_dd_probe_sequence: str | None,
+) -> dict[str, Any]:
+    phases: list[tuple[str, dict[str, Any]]] = [
+        (
+            "readout_only",
+            normalize_mitigation_config(
+                {
+                    "mode": "readout",
+                    "local_readout_strategy": "mthree",
+                }
+            ),
+        ),
+        (
+            "readout_plus_gate_twirling",
+            normalize_mitigation_config(
+                {
+                    "mode": "readout",
+                    "local_readout_strategy": "mthree",
+                    "local_gate_twirling": True,
+                }
+            ),
+        ),
+    ]
+    if local_dd_probe_sequence not in {None, "", "none"}:
+        phases.append(
+            (
+                "readout_plus_local_dd",
+                normalize_mitigation_config(
+                    {
+                        "mode": "readout",
+                        "local_readout_strategy": "mthree",
+                        "dd_sequence": str(local_dd_probe_sequence),
+                    }
+                ),
+            )
+        )
+
+    results: dict[str, Any] = {}
+    for label, mitigation_cfg in phases:
+        try:
+            evaluation = _evaluate_locked_imported_circuit_energy(
+                circuit=circuit,
+                ordered_labels_exyz=ordered_labels_exyz,
+                static_coeff_map_exyz=static_coeff_map_exyz,
+                shots=int(shots),
+                seed=int(seed),
+                oracle_repeats=int(oracle_repeats),
+                oracle_aggregate=str(oracle_aggregate),
+                mitigation_config=dict(mitigation_cfg),
+                symmetry_mitigation_config={"mode": "off"},
+                backend_name=backend_name,
+                use_fake_backend=True,
+                allow_aer_fallback=bool(allow_aer_fallback),
+                omp_shm_workaround=bool(omp_shm_workaround),
+                seed_transpiler=(None if seed_transpiler is None else int(seed_transpiler)),
+                transpile_optimization_level=int(transpile_optimization_level),
+            )
+            results[str(label)] = {
+                "success": True,
+                "available": True,
+                "mitigation_config": dict(mitigation_cfg),
+                **dict(evaluation),
+            }
+        except Exception as exc:
+            results[str(label)] = {
+                "success": False,
+                "available": False,
+                "reason": "saved_theta_local_probe_exception",
+                "error": f"{type(exc).__name__}: {exc}",
+                "mitigation_config": dict(mitigation_cfg),
+            }
+
+    return {
+        "success": True,
+        "available": True,
+        "route": "fixed_scaffold_saved_theta_local_mitigation_ablation",
+        "artifact_json": str(artifact_json),
+        "theta_source": "imported_theta_runtime",
+        "circuit_scope": "saved_theta_energy_probe",
+        "execution_mode": "backend_scheduled",
+        "backend_name": (None if backend_name is None else str(backend_name)),
+        "subject_kind": str(subject.subject_kind),
+        "term_order_id": str(subject.term_order_id),
+        "operator_count": int(subject.operator_count),
+        "runtime_term_count": int(subject.runtime_term_count),
+        "run_config": {
+            "shots": int(shots),
+            "seed": int(seed),
+            "oracle_repeats": int(oracle_repeats),
+            "oracle_aggregate": str(oracle_aggregate),
+            "seed_transpiler": (None if seed_transpiler is None else int(seed_transpiler)),
+            "transpile_optimization_level": int(transpile_optimization_level),
+        },
+        "results": results,
+    }
+
+
+def _run_imported_fixed_scaffold_noisy_replay(
+    *,
+    artifact_json: str,
+    shots: int,
+    seed: int,
+    oracle_repeats: int,
+    oracle_aggregate: str,
+    backend_name: str | None,
+    use_fake_backend: bool,
+    allow_aer_fallback: bool,
+    omp_shm_workaround: bool,
+    optimizer_method: str,
+    optimizer_seed: int,
+    optimizer_maxiter: int,
+    optimizer_wallclock_cap_s: int,
+    spsa_a: float,
+    spsa_c: float,
+    spsa_alpha: float,
+    spsa_gamma: float,
+    spsa_A: float,
+    spsa_avg_last: int,
+    spsa_eval_repeats: int,
+    spsa_eval_agg: str,
+    mitigation_config: dict[str, Any],
+    symmetry_mitigation_config: dict[str, Any],
+    runtime_profile_config: dict[str, Any] | None = None,
+    runtime_session_config: dict[str, Any] | None = None,
+    transpile_optimization_level: int = 1,
+    seed_transpiler: int | None = None,
+    include_dd_probe: bool = False,
+    include_final_zne_audit: bool = False,
+    progress_every_s: float = 60.0,
+    local_dd_probe_sequence: str | None = None,
+) -> dict[str, Any]:
+    ctx, ansatz_input_state_meta, subject, error_payload = _resolve_locked_imported_fixed_scaffold_context(
+        artifact_json,
+        nonfixed_reason="fixed_scaffold_replay_requires_locked_fixed_scaffold_source",
+    )
+    if error_payload is not None or ctx is None or subject is None:
+        return dict(error_payload or {})
+    expected_subject_kind = "hh_marrakesh_gate_pruned_6term_drop_eyezee_v1"
+    if str(subject.subject_kind) != str(expected_subject_kind):
+        payload = {
+            "success": False,
+            "available": False,
+            "reason": "fixed_scaffold_replay_local_requires_marrakesh_6term_subject",
+            "artifact_json": str(ctx["path"]),
+            "expected_subject_kind": str(expected_subject_kind),
+            "observed_subject_kind": str(subject.subject_kind),
+            "structure_locked": True,
+            "pool_type": str(subject.pool_type),
+            **_locked_subject_payload_fields(subject),
+        }
+        _ai_log(
+            "fixed_scaffold_replay_failed",
+            route="fixed_scaffold_noisy_replay",
+            reason=str(payload["reason"]),
+            artifact_json=str(ctx["path"]),
+            expected_subject_kind=str(expected_subject_kind),
+            observed_subject_kind=str(subject.subject_kind),
+        )
+        return payload
+    if not bool(use_fake_backend):
+        payload = {
+            "success": False,
+            "available": False,
+            "reason": "fixed_scaffold_replay_local_fake_backend_required",
+            "artifact_json": str(ctx["path"]),
+            "structure_locked": True,
+            "pool_type": str(subject.pool_type),
+            **_locked_subject_payload_fields(subject),
+        }
+        _ai_log(
+            "fixed_scaffold_replay_failed",
+            route="fixed_scaffold_noisy_replay",
+            reason=str(payload["reason"]),
+            artifact_json=str(ctx["path"]),
+            subject_kind=str(subject.subject_kind),
+        )
+        return payload
+
+    mitigation_cfg = dict(normalize_mitigation_config(mitigation_config))
+    symmetry_cfg = dict(normalize_symmetry_mitigation_config(symmetry_mitigation_config))
+    if str(mitigation_cfg.get("mode", "none")) != "readout":
+        return {
+            "success": False,
+            "available": False,
+            "reason": "fixed_scaffold_replay_requires_readout_mitigation",
+            "artifact_json": str(ctx["path"]),
+        }
+    if bool(use_fake_backend):
+        strategy = str(mitigation_cfg.get("local_readout_strategy") or "mthree")
+        if strategy != "mthree":
+            return {
+                "success": False,
+                "available": False,
+                "reason": "fixed_scaffold_replay_requires_mthree_for_backend_scheduled",
+                "artifact_json": str(ctx["path"]),
+            }
+        mitigation_cfg["local_readout_strategy"] = "mthree"
+    else:
+        mitigation_cfg["local_readout_strategy"] = None
+    if str(symmetry_cfg.get("mode", "off")) != "off":
+        return {
+            "success": False,
+            "available": False,
+            "reason": "fixed_scaffold_replay_requires_symmetry_off",
+            "artifact_json": str(ctx["path"]),
+        }
+    if bool(mitigation_cfg.get("dd_sequence")):
+        return {
+            "success": False,
+            "available": False,
+            "reason": "fixed_scaffold_replay_keeps_dd_out_of_optimizer_loop",
+            "artifact_json": str(ctx["path"]),
+        }
+    optimizer_method_key = str(optimizer_method).strip().lower()
+    if optimizer_method_key not in {"spsa", "powell"}:
+        return {
+            "success": False,
+            "available": False,
+            "reason": "fixed_scaffold_replay_requires_spsa_or_powell",
+            "artifact_json": str(ctx["path"]),
+            "optimizer_method": str(optimizer_method),
+        }
+
+    layout = ctx["layout"]
+    nq = int(ctx["num_qubits"])
+    theta0 = np.asarray(ctx["theta_runtime"], dtype=float).reshape(-1)
+    ref_state = np.asarray(ctx["ansatz_input_state"], dtype=complex).reshape(-1)
+    ordered_labels_exyz = list(ctx["ordered_labels_exyz"])
+    static_coeff_map_exyz = dict(ctx["static_coeff_map_exyz"])
+    qop = build_time_dependent_sparse_qop(
+        ordered_labels_exyz=ordered_labels_exyz,
+        static_coeff_map_exyz=static_coeff_map_exyz,
+        drive_coeff_map_exyz=None,
+    )
+
+    noisy_mode = "backend_scheduled"
+    local_mitigation_label = (
+        "readout_plus_gate_twirling"
+        if bool(mitigation_cfg.get("local_gate_twirling", False))
+        else "readout_only"
+    )
+    runtime_profile_cfg = dict(normalize_runtime_estimator_profile_config(runtime_profile_config))
+    runtime_session_cfg = dict(normalize_runtime_session_policy_config(runtime_session_config))
+    noisy_cfg = OracleConfig(
+        noise_mode=str(noisy_mode),
+        shots=int(shots),
+        seed=int(seed),
+        seed_transpiler=(None if seed_transpiler is None else int(seed_transpiler)),
+        transpile_optimization_level=int(transpile_optimization_level),
+        oracle_repeats=int(oracle_repeats),
+        oracle_aggregate=str(oracle_aggregate),
+        backend_name=(None if backend_name is None else str(backend_name)),
+        use_fake_backend=bool(use_fake_backend),
+        allow_aer_fallback=bool(allow_aer_fallback),
+        aer_fallback_mode="sampler_shots",
+        omp_shm_workaround=bool(omp_shm_workaround),
+        mitigation=dict(mitigation_cfg),
+        symmetry_mitigation=dict(symmetry_cfg),
+        runtime_profile=dict(runtime_profile_cfg),
+        runtime_session=dict(runtime_session_cfg),
+    )
+
+    class _WallclockStop(RuntimeError):
+        pass
+
+    t0 = time.perf_counter()
+    objective_history_tail: list[dict[str, Any]] = []
+    objective_trace: list[dict[str, Any]] = []
+    runtime_job_ids: list[str] = []
+    objective_calls_total = 0
+    best_eval: dict[str, Any] | None = None
+    wallclock_hit = False
+    optimizer_exception: Exception | None = None
+    res = None
+    progress_interval_s = float(max(1.0, progress_every_s))
+    last_progress_emit_s = -progress_interval_s
+    last_spsa_payload: dict[str, Any] | None = None
+
+    def _emit_replay_log(event: str, **fields: Any) -> None:
+        try:
+            _ai_log(
+                event,
+                route="fixed_scaffold_noisy_replay",
+                artifact_json=str(ctx["path"]),
+                subject_kind=str(subject.subject_kind),
+                theta_source="imported_theta_runtime",
+                execution_mode="backend_scheduled",
+                backend_name=(None if backend_name is None else str(backend_name)),
+                local_mitigation_label=str(local_mitigation_label),
+                **fields,
+            )
+        except Exception:
+            return
+
+    def _maybe_emit_progress(
+        *,
+        call_index: int,
+        elapsed_s: float,
+        current_energy: float | None = None,
+    ) -> None:
+        nonlocal last_progress_emit_s
+        if float(elapsed_s) < float(last_progress_emit_s + progress_interval_s):
+            return
+        payload: dict[str, Any] = {
+            "call_index": int(call_index),
+            "elapsed_s": float(elapsed_s),
+            "best_call_index": (None if best_eval is None else int(best_eval["call_index"])),
+            "best_energy_noisy_mean": (
+                None if best_eval is None else float(best_eval["energy_noisy_mean"])
+            ),
+            "current_energy_noisy_mean": (None if current_energy is None else float(current_energy)),
+        }
+        if isinstance(last_spsa_payload, Mapping):
+            payload.update(
+                {
+                    "iter": int(last_spsa_payload.get("iter", 0)),
+                    "nfev_so_far": int(last_spsa_payload.get("nfev_so_far", 0)),
+                    "grad_norm": float(last_spsa_payload.get("grad_norm", float("nan"))),
+                }
+            )
+        _emit_replay_log("fixed_scaffold_replay_heartbeat", **payload)
+        last_progress_emit_s = float(elapsed_s)
+
+    _emit_replay_log(
+        "fixed_scaffold_replay_started",
+        optimizer_method=("SPSA" if optimizer_method_key == "spsa" else "Powell"),
+        optimizer_seed=int(optimizer_seed),
+        optimizer_maxiter=int(optimizer_maxiter),
+        optimizer_wallclock_cap_s=int(optimizer_wallclock_cap_s),
+        shots=int(shots),
+        oracle_repeats=int(oracle_repeats),
+        oracle_aggregate=str(oracle_aggregate),
+        transpile_optimization_level=int(transpile_optimization_level),
+        seed_transpiler=(None if seed_transpiler is None else int(seed_transpiler)),
+        runtime_parameter_count=int(theta0.size),
+        term_order_id=str(subject.term_order_id),
+    )
+
+    with ExpectationOracle(noisy_cfg) as noisy_oracle:
+        def _objective(theta: np.ndarray) -> float:
+            nonlocal objective_calls_total, best_eval, wallclock_hit
+            elapsed_s = float(time.perf_counter() - t0)
+            if elapsed_s >= float(optimizer_wallclock_cap_s) and objective_calls_total > 0:
+                wallclock_hit = True
+                raise _WallclockStop("fixed scaffold noisy replay wallclock cap reached")
+            theta_arr = np.asarray(theta, dtype=float).reshape(-1)
+            qc = _build_ansatz_circuit(layout, theta_arr, int(nq), ref_state=ref_state)
+            next_call_index = int(objective_calls_total + 1)
+            job_events: list[dict[str, Any]] = []
+            est = noisy_oracle.evaluate(
+                qc,
+                qop,
+                runtime_job_observer=job_events.append,
+                runtime_trace_context={
+                    "call_index": int(next_call_index),
+                    "phase": "optimizer",
+                    "route": "fixed_scaffold_noisy_replay",
+                },
+            )
+            objective_calls_total += 1
+            job_records_by_id: dict[str, dict[str, Any]] = {}
+            for evt in job_events:
+                if not isinstance(evt, Mapping):
+                    continue
+                job = evt.get("job", {})
+                if not isinstance(job, Mapping):
+                    continue
+                job_id = str(job.get("job_id", "")).strip()
+                if job_id:
+                    job_records_by_id[job_id] = dict(job)
+            runtime_jobs = list(job_records_by_id.values())
+            for rec in runtime_jobs:
+                job_id = str(rec.get("job_id", "")).strip()
+                if job_id and job_id not in runtime_job_ids:
+                    runtime_job_ids.append(job_id)
+            row = {
+                "call_index": int(objective_calls_total),
+                "elapsed_s": float(time.perf_counter() - t0),
+                "energy_noisy_mean": float(est.mean),
+                "energy_noisy_stderr": float(est.stderr),
+                "theta_runtime": [float(x) for x in theta_arr.tolist()],
+                "theta_logical": [
+                    float(x)
+                    for x in np.asarray(
+                        project_runtime_theta_block_mean(theta_arr, layout), dtype=float
+                    ).tolist()
+                ],
+                "runtime_jobs": runtime_jobs,
+            }
+            _bounded_append(objective_history_tail, row)
+            _bounded_append(objective_trace, row, limit=2000)
+            if (
+                best_eval is None
+                or float(est.mean) < float(best_eval["energy_noisy_mean"])
+                or (
+                    float(est.mean) == float(best_eval["energy_noisy_mean"])
+                    and float(est.stderr) < float(best_eval["energy_noisy_stderr"])
+                )
+            ):
+                best_eval = {
+                    "energy_noisy_mean": float(est.mean),
+                    "energy_noisy_stderr": float(est.stderr),
+                    "theta_runtime": np.asarray(theta_arr, dtype=float),
+                    "call_index": int(objective_calls_total),
+                }
+                _emit_replay_log(
+                    "fixed_scaffold_replay_best_update",
+                    call_index=int(objective_calls_total),
+                    elapsed_s=float(row["elapsed_s"]),
+                    best_energy_noisy_mean=float(est.mean),
+                    best_energy_noisy_stderr=float(est.stderr),
+                )
+            _maybe_emit_progress(
+                call_index=int(objective_calls_total),
+                elapsed_s=float(row["elapsed_s"]),
+                current_energy=float(est.mean),
+            )
+            return float(est.mean)
+
+        try:
+            if optimizer_method_key == "spsa":
+                def _spsa_callback(payload: dict[str, Any]) -> None:
+                    nonlocal last_spsa_payload
+                    last_spsa_payload = dict(payload)
+                    _maybe_emit_progress(
+                        call_index=int(objective_calls_total),
+                        elapsed_s=float(time.perf_counter() - t0),
+                    )
+
+                res = spsa_minimize(
+                    fun=_objective,
+                    x0=theta0,
+                    maxiter=int(optimizer_maxiter),
+                    seed=int(optimizer_seed),
+                    a=float(spsa_a),
+                    c=float(spsa_c),
+                    alpha=float(spsa_alpha),
+                    gamma=float(spsa_gamma),
+                    A=float(spsa_A),
+                    bounds=None,
+                    project="none",
+                    eval_repeats=int(spsa_eval_repeats),
+                    eval_agg=str(spsa_eval_agg),
+                    avg_last=int(spsa_avg_last),
+                    callback=_spsa_callback,
+                    callback_every=1,
+                )
+            else:
+                try:
+                    from scipy.optimize import minimize as scipy_minimize  # type: ignore
+                except Exception as exc:
+                    raise RuntimeError("SciPy minimize is unavailable for Powell fixed scaffold noisy replay.") from exc
+                res = scipy_minimize(
+                    _objective,
+                    theta0,
+                    method="Powell",
+                    options={"maxiter": int(optimizer_maxiter)},
+                )
+        except _WallclockStop:
+            wallclock_hit = True
+        except Exception as exc:
+            optimizer_exception = exc
+
+        backend_info = {
+            "noise_mode": str(noisy_oracle.backend_info.noise_mode),
+            "estimator_kind": str(noisy_oracle.backend_info.estimator_kind),
+            "backend_name": noisy_oracle.backend_info.backend_name,
+            "using_fake_backend": bool(noisy_oracle.backend_info.using_fake_backend),
+            "details": dict(noisy_oracle.backend_info.details),
+        }
+
+    if optimizer_exception is not None:
+        return {
+            "success": False,
+            "available": False,
+            "reason": "optimizer_exception",
+            "error": f"{type(optimizer_exception).__name__}: {optimizer_exception}",
+            "artifact_json": str(ctx["path"]),
+            "structure_locked": True,
+            "pool_type": str(subject.pool_type),
+            **_locked_subject_payload_fields(subject),
+        }
+    if wallclock_hit and best_eval is None:
+        return {
+            "success": False,
+            "available": False,
+            "reason": "wallclock_cap_before_first_eval",
+            "artifact_json": str(ctx["path"]),
+            "structure_locked": True,
+            "pool_type": str(subject.pool_type),
+            **_locked_subject_payload_fields(subject),
+        }
+
+    theta_best = (
+        np.asarray(best_eval["theta_runtime"], dtype=float)
+        if wallclock_hit and best_eval is not None
+        else np.asarray(res.x if res is not None else theta0, dtype=float).reshape(-1)
+    )
+    stop_reason = "wallclock_cap" if wallclock_hit else "optimizer_complete"
+    optimizer_success = bool(wallclock_hit or (res is not None and bool(res.success)))
+    optimizer_message = "best-so-far returned at wallclock cap"
+    optimizer_nfev = int(objective_calls_total)
+    optimizer_nit = 0 if res is None else int(res.nit)
+    if res is not None:
+        optimizer_message = str(res.message)
+        optimizer_nfev = int(res.nfev)
+
+    initial_circuit = _build_ansatz_circuit(layout, theta0, int(nq), ref_state=ref_state)
+    best_circuit = _build_ansatz_circuit(layout, theta_best, int(nq), ref_state=ref_state)
+    initial_eval = _evaluate_locked_imported_circuit_energy(
+        circuit=initial_circuit,
+        ordered_labels_exyz=ordered_labels_exyz,
+        static_coeff_map_exyz=static_coeff_map_exyz,
+        shots=int(shots),
+        seed=int(seed),
+        oracle_repeats=int(oracle_repeats),
+        oracle_aggregate=str(oracle_aggregate),
+        mitigation_config=mitigation_cfg,
+        symmetry_mitigation_config=symmetry_cfg,
+        backend_name=backend_name,
+        use_fake_backend=bool(use_fake_backend),
+        allow_aer_fallback=bool(allow_aer_fallback),
+        omp_shm_workaround=bool(omp_shm_workaround),
+        seed_transpiler=(None if seed_transpiler is None else int(seed_transpiler)),
+        transpile_optimization_level=int(transpile_optimization_level),
+        runtime_profile_config=runtime_profile_cfg,
+        runtime_session_config=runtime_session_cfg,
+    )
+    best_runtime_energy_audits: dict[str, Any] | None = None
+    if str(noisy_mode) == "runtime":
+        best_runtime_energy_audits = _run_locked_imported_runtime_phase_evals(
+            circuit=best_circuit,
+            ordered_labels_exyz=ordered_labels_exyz,
+            static_coeff_map_exyz=static_coeff_map_exyz,
+            shots=int(shots),
+            seed=int(seed),
+            oracle_repeats=int(oracle_repeats),
+            oracle_aggregate=str(oracle_aggregate),
+            mitigation_config=mitigation_cfg,
+            symmetry_mitigation_config=symmetry_cfg,
+            backend_name=backend_name,
+            allow_aer_fallback=bool(allow_aer_fallback),
+            omp_shm_workaround=bool(omp_shm_workaround),
+            seed_transpiler=(None if seed_transpiler is None else int(seed_transpiler)),
+            transpile_optimization_level=int(transpile_optimization_level),
+            runtime_session_config=runtime_session_cfg,
+            main_runtime_profile_config=runtime_profile_cfg,
+            dd_probe_runtime_profile_config=(
+                normalize_runtime_estimator_profile_config("dd_probe_twirled_readout_v1")
+                if bool(include_dd_probe)
+                else None
+            ),
+            final_audit_runtime_profile_config=(
+                normalize_runtime_estimator_profile_config("final_audit_zne_twirled_readout_v1")
+                if bool(include_final_zne_audit)
+                else None
+            ),
+        )
+        best_main = (
+            best_runtime_energy_audits.get("main", {})
+            if isinstance(best_runtime_energy_audits, Mapping)
+            else {}
+        )
+        best_eval_final = (
+            dict(best_main.get("evaluation", {})) if isinstance(best_main, Mapping) else {}
+        )
+    else:
+        best_eval_final = _evaluate_locked_imported_circuit_energy(
+            circuit=best_circuit,
+            ordered_labels_exyz=ordered_labels_exyz,
+            static_coeff_map_exyz=static_coeff_map_exyz,
+            shots=int(shots),
+            seed=int(seed),
+            oracle_repeats=int(oracle_repeats),
+            oracle_aggregate=str(oracle_aggregate),
+            mitigation_config=mitigation_cfg,
+            symmetry_mitigation_config=symmetry_cfg,
+            backend_name=backend_name,
+            use_fake_backend=bool(use_fake_backend),
+            allow_aer_fallback=bool(allow_aer_fallback),
+            omp_shm_workaround=bool(omp_shm_workaround),
+            seed_transpiler=(None if seed_transpiler is None else int(seed_transpiler)),
+            transpile_optimization_level=int(transpile_optimization_level),
+            runtime_profile_config=runtime_profile_cfg,
+            runtime_session_config=runtime_session_cfg,
+        )
+
+    saved_theta_local_mitigation_ablation = _run_saved_theta_local_mitigation_ablation(
+        circuit=initial_circuit,
+        artifact_json=str(ctx["path"]),
+        subject=subject,
+        ordered_labels_exyz=ordered_labels_exyz,
+        static_coeff_map_exyz=static_coeff_map_exyz,
+        shots=int(shots),
+        seed=int(seed),
+        oracle_repeats=int(oracle_repeats),
+        oracle_aggregate=str(oracle_aggregate),
+        backend_name=backend_name,
+        allow_aer_fallback=bool(allow_aer_fallback),
+        omp_shm_workaround=bool(omp_shm_workaround),
+        seed_transpiler=(None if seed_transpiler is None else int(seed_transpiler)),
+        transpile_optimization_level=int(transpile_optimization_level),
+        local_dd_probe_sequence=local_dd_probe_sequence,
+    )
+
+    theta0_logical = np.asarray(project_runtime_theta_block_mean(theta0, layout), dtype=float)
+    theta_best_logical = np.asarray(project_runtime_theta_block_mean(theta_best, layout), dtype=float)
+    _emit_replay_log(
+        "fixed_scaffold_replay_completed",
+        stop_reason=str(stop_reason),
+        objective_calls_total=int(objective_calls_total),
+        best_call_index=(None if best_eval is None else int(best_eval["call_index"])),
+        best_noisy_minus_ideal=float(best_eval_final["delta_mean"]),
+        elapsed_s=float(time.perf_counter() - t0),
+    )
+    return {
+        "success": bool(optimizer_success),
+        "available": True,
+        "route": "fixed_scaffold_noisy_replay",
+        "artifact_json": str(ctx["path"]),
+        "source_kind": str(ctx.get("source_kind", "unknown")),
+        "pool_type": str(subject.pool_type),
+        "structure_locked": True,
+        "matched_family_replay": False,
+        "full_circuit_import_audit": False,
+        "reps": 1,
+        "theta_source": "imported_theta_runtime",
+        "execution_mode": "backend_scheduled",
+        "local_mitigation_label": str(local_mitigation_label),
+        "reference_state_embedded": True,
+        "ansatz_input_state_source": ansatz_input_state_meta.get("source", None),
+        "ansatz_input_state_kind": ansatz_input_state_meta.get("handoff_state_kind", None),
+        "parameterization": {
+            "mode": "per_pauli_term_v1",
+            "logical_parameter_count": int(layout.logical_parameter_count),
+            "runtime_parameter_count": int(layout.runtime_parameter_count),
+        },
+        "optimizer": {
+            "method": ("SPSA" if optimizer_method_key == "spsa" else "Powell"),
+            "seed": int(optimizer_seed),
+            "maxiter": int(optimizer_maxiter),
+            "wallclock_cap_s": int(optimizer_wallclock_cap_s),
+            "stop_reason": str(stop_reason),
+            "iterations_completed": int(optimizer_nit),
+            "objective_calls_total": int(optimizer_nfev),
+            "message": str(optimizer_message),
+        },
+        "noise_config": {
+            "noise_mode": str(noisy_mode),
+            "shots": int(shots),
+            "oracle_repeats": int(oracle_repeats),
+            "oracle_aggregate": str(oracle_aggregate),
+            "mitigation": dict(mitigation_cfg),
+            "symmetry_mitigation": dict(symmetry_cfg),
+            "runtime_profile": dict(runtime_profile_cfg),
+            "runtime_session": dict(runtime_session_cfg),
+        },
+        "compile_control": {
+            "transpile_optimization_level": int(transpile_optimization_level),
+            "seed_transpiler": (None if seed_transpiler is None else int(seed_transpiler)),
+            "source": "fake_backend_cli",
+        },
+        "theta": {
+            "initial_runtime": [float(x) for x in theta0.tolist()],
+            "best_runtime": [float(x) for x in theta_best.tolist()],
+            "initial_logical": [float(x) for x in theta0_logical.tolist()],
+            "best_logical": [float(x) for x in theta_best_logical.tolist()],
+        },
+        "energies": {
+            "saved_artifact_energy": ctx.get("saved_energy", None),
+            "initial_noisy_mean": float(initial_eval["noisy_mean"]),
+            "initial_noisy_stderr": float(initial_eval["noisy_stderr"]),
+            "initial_ideal_mean": float(initial_eval["ideal_mean"]),
+            "initial_ideal_stderr": float(initial_eval["ideal_stderr"]),
+            "best_noisy_mean": float(best_eval_final["noisy_mean"]),
+            "best_noisy_stderr": float(best_eval_final["noisy_stderr"]),
+            "best_ideal_mean": float(best_eval_final["ideal_mean"]),
+            "best_ideal_stderr": float(best_eval_final["ideal_stderr"]),
+            "best_noisy_minus_ideal": float(best_eval_final["delta_mean"]),
+            "best_noisy_minus_ideal_stderr": float(best_eval_final["delta_stderr"]),
+            "best_ideal_minus_saved_artifact": (
+                None
+                if ctx.get("saved_energy", None) is None
+                else float(best_eval_final["ideal_mean"]) - float(ctx["saved_energy"])
+            ),
+        },
+        "objective_history_tail": list(objective_history_tail),
+        "objective_trace": list(objective_trace),
+        "runtime_job_ids": [str(x) for x in runtime_job_ids],
+        "best_runtime_energy_audits": (
+            dict(best_runtime_energy_audits) if isinstance(best_runtime_energy_audits, Mapping) else {}
+        ),
+        "backend_info": dict(best_eval_final.get("backend_info", backend_info)),
+        "saved_theta_local_mitigation_ablation": dict(saved_theta_local_mitigation_ablation),
+        "elapsed_s": float(time.perf_counter() - t0),
+        **_locked_subject_payload_fields(subject),
+    }
+
+
+def _run_imported_fixed_scaffold_noise_attribution(
+    *,
+    artifact_json: str,
+    shots: int,
+    seed: int,
+    oracle_repeats: int,
+    oracle_aggregate: str,
+    backend_name: str | None,
+    use_fake_backend: bool,
+    allow_aer_fallback: bool,
+    omp_shm_workaround: bool,
+    mitigation_config: dict[str, Any],
+    symmetry_mitigation_config: dict[str, Any],
+    slices: Sequence[str] = BACKEND_SCHEDULED_ATTRIBUTION_SLICES,
+) -> dict[str, Any]:
+    ctx, ansatz_input_state_meta, subject, error_payload = _resolve_locked_imported_fixed_scaffold_context(
+        artifact_json,
+        nonfixed_reason="fixed_scaffold_attribution_requires_locked_fixed_scaffold_source",
+    )
+    if error_payload is not None or ctx is None or subject is None:
+        return dict(error_payload or {})
+
+    mitigation_cfg = dict(normalize_mitigation_config(mitigation_config))
+    symmetry_cfg = dict(normalize_symmetry_mitigation_config(symmetry_mitigation_config))
+    if str(mitigation_cfg.get("mode", "none")) != "none":
+        return {
+            "success": False,
+            "available": False,
+            "reason": "fixed_scaffold_attribution_requires_mitigation_none",
+            "artifact_json": str(ctx["path"]),
+        }
+    if str(symmetry_cfg.get("mode", "off")) != "off":
+        return {
+            "success": False,
+            "available": False,
+            "reason": "fixed_scaffold_attribution_requires_symmetry_off",
+            "artifact_json": str(ctx["path"]),
+        }
+
+    requested_slices = tuple(str(x).strip().lower() for x in slices)
+    qop = build_time_dependent_sparse_qop(
+        ordered_labels_exyz=list(ctx["ordered_labels_exyz"]),
+        static_coeff_map_exyz=dict(ctx["static_coeff_map_exyz"]),
+        drive_coeff_map_exyz=None,
+    )
+    noisy_mode = "backend_scheduled"
+    noisy_cfg = OracleConfig(
+        noise_mode=str(noisy_mode),
+        shots=int(shots),
+        seed=int(seed),
+        oracle_repeats=int(oracle_repeats),
+        oracle_aggregate=str(oracle_aggregate),
+        backend_name=(None if backend_name is None else str(backend_name)),
+        use_fake_backend=bool(use_fake_backend),
+        allow_aer_fallback=bool(allow_aer_fallback),
+        aer_fallback_mode="sampler_shots",
+        omp_shm_workaround=bool(omp_shm_workaround),
+        mitigation={"mode": "none", "zne_scales": [], "dd_sequence": None, "local_readout_strategy": None},
+        symmetry_mitigation={"mode": "off"},
+    )
+    ideal_cfg = OracleConfig(
+        noise_mode="ideal",
+        shots=int(shots),
+        seed=int(seed),
+        oracle_repeats=int(oracle_repeats),
+        oracle_aggregate=str(oracle_aggregate),
+        backend_name=None,
+        use_fake_backend=False,
+        mitigation={"mode": "none", "zne_scales": [], "dd_sequence": None, "local_readout_strategy": None},
+        symmetry_mitigation={"mode": "off"},
+    )
+
+    t0 = time.perf_counter()
+    with ExpectationOracle(noisy_cfg) as noisy_oracle, ExpectationOracle(ideal_cfg) as ideal_oracle:
+        ideal_est = ideal_oracle.evaluate(ctx["circuit"], qop)
+        attribution = noisy_oracle.evaluate_backend_scheduled_attribution(
+            ctx["circuit"],
+            qop,
+            slices=requested_slices,
+        )
+
+    ideal_reference = {
+        "mean": float(ideal_est.mean),
+        "std": float(ideal_est.std),
+        "stdev": float(ideal_est.stdev),
+        "stderr": float(ideal_est.stderr),
+        "n_samples": int(ideal_est.n_samples),
+        "raw_values": [float(x) for x in ideal_est.raw_values],
+        "aggregate": str(ideal_est.aggregate),
+    }
+    slice_payloads: dict[str, Any] = {}
+    successful_slices: list[str] = []
+    for slice_name in requested_slices:
+        rec = attribution.get("slices", {}).get(str(slice_name), {})
+        if not isinstance(rec, Mapping):
+            slice_payloads[str(slice_name)] = {
+                "success": False,
+                "slice": str(slice_name),
+                "components": {},
+                "noisy_mean": None,
+                "noisy_std": None,
+                "noisy_stdev": None,
+                "noisy_stderr": None,
+                "ideal_mean": float(ideal_est.mean),
+                "ideal_std": float(ideal_est.std),
+                "ideal_stdev": float(ideal_est.stdev),
+                "ideal_stderr": float(ideal_est.stderr),
+                "delta_mean": None,
+                "delta_stderr": None,
+                "backend_info": None,
+                "reason": "missing_slice_payload",
+                "error": None,
+            }
+            continue
+        est = rec.get("estimate", None)
+        success = bool(rec.get("success", False) and est is not None)
+        if success:
+            successful_slices.append(str(slice_name))
+        noisy_mean = None if est is None else float(est.mean)
+        noisy_std = None if est is None else float(est.std)
+        noisy_stdev = None if est is None else float(est.stdev)
+        noisy_stderr = None if est is None else float(est.stderr)
+        delta_mean = None if est is None else float(est.mean - ideal_est.mean)
+        delta_stderr = None if est is None else float(_combine_stderr(est.stderr, ideal_est.stderr))
+        slice_payloads[str(slice_name)] = {
+            "success": bool(success),
+            "slice": str(slice_name),
+            "components": dict(rec.get("components", {})) if isinstance(rec.get("components", {}), Mapping) else {},
+            "noisy_mean": noisy_mean,
+            "noisy_std": noisy_std,
+            "noisy_stdev": noisy_stdev,
+            "noisy_stderr": noisy_stderr,
+            "ideal_mean": float(ideal_est.mean),
+            "ideal_std": float(ideal_est.std),
+            "ideal_stdev": float(ideal_est.stdev),
+            "ideal_stderr": float(ideal_est.stderr),
+            "delta_mean": delta_mean,
+            "delta_stderr": delta_stderr,
+            "backend_info": dict(rec.get("backend_info", {})) if isinstance(rec.get("backend_info", {}), Mapping) else None,
+            "reason": rec.get("reason", None),
+            "error": rec.get("error", None),
+        }
+
+    full_delta = slice_payloads.get("full", {}).get("delta_mean", None)
+    readout_delta = slice_payloads.get("readout_only", {}).get("delta_mean", None)
+    gate_delta = slice_payloads.get("gate_stateprep_only", {}).get("delta_mean", None)
+    full_noisy = slice_payloads.get("full", {}).get("noisy_mean", None)
+    readout_noisy = slice_payloads.get("readout_only", {}).get("noisy_mean", None)
+    gate_noisy = slice_payloads.get("gate_stateprep_only", {}).get("noisy_mean", None)
+
+    def _maybe_diff(a: Any, b: Any) -> float | None:
+        if a is None or b is None:
+            return None
+        return float(a) - float(b)
+
+    return {
+        "success": bool(len(successful_slices) == len(requested_slices)),
+        "available": True,
+        "route": "fixed_scaffold_noise_attribution",
+        "artifact_json": str(ctx["path"]),
+        "source_kind": str(ctx.get("source_kind", "unknown")),
+        "pool_type": str(subject.pool_type),
+        "structure_locked": True,
+        "matched_family_replay": False,
+        "parameter_optimization": False,
+        "reference_state_embedded": True,
+        "ansatz_input_state_source": ansatz_input_state_meta.get("source", None),
+        "ansatz_input_state_kind": ansatz_input_state_meta.get("handoff_state_kind", None),
+        "parameterization": {
+            "mode": "per_pauli_term_v1",
+            "logical_parameter_count": int(ctx["layout"].logical_parameter_count),
+            "runtime_parameter_count": int(ctx["layout"].runtime_parameter_count),
+            "theta_source": "imported_artifact_runtime_theta",
+        },
+        "noise_config": {
+            "noise_mode": str(noisy_mode),
+            "shots": int(shots),
+            "oracle_repeats": int(oracle_repeats),
+            "oracle_aggregate": str(oracle_aggregate),
+            "mitigation": dict(mitigation_cfg),
+            "symmetry_mitigation": dict(symmetry_cfg),
+        },
+        "shared_compile": dict(attribution.get("shared_compile", {})),
+        "ideal_reference": ideal_reference,
+        "slices": slice_payloads,
+        "slice_comparisons": {
+            "full_minus_readout_only": _maybe_diff(full_noisy, readout_noisy),
+            "full_minus_gate_stateprep_only": _maybe_diff(full_noisy, gate_noisy),
+            "component_additivity_residual": (
+                None
+                if full_delta is None or readout_delta is None or gate_delta is None
+                else float(full_delta) - float(readout_delta) - float(gate_delta)
+            ),
+        },
+        "elapsed_s": float(time.perf_counter() - t0),
+        **_locked_subject_payload_fields(subject),
     }
 
 
@@ -2669,6 +4439,46 @@ def _imported_fixed_lean_noisy_replay_worker_entry(queue: Any, kwargs: dict[str,
 def _imported_fixed_lean_noise_attribution_worker_entry(queue: Any, kwargs: dict[str, Any]) -> None:
     try:
         payload = _run_imported_fixed_lean_noise_attribution(**kwargs)
+        queue.put({"ok": True, "payload": payload})
+    except Exception as exc:  # pragma: no cover - subprocess fault path
+        queue.put({"ok": False, "error": f"{type(exc).__name__}: {exc}"})
+
+
+def _imported_fixed_lean_compile_control_scout_worker_entry(queue: Any, kwargs: dict[str, Any]) -> None:
+    try:
+        payload = _run_imported_fixed_lean_compile_control_scout(**kwargs)
+        queue.put({"ok": True, "payload": payload})
+    except Exception as exc:  # pragma: no cover - subprocess fault path
+        queue.put({"ok": False, "error": f"{type(exc).__name__}: {exc}"})
+
+
+def _imported_fixed_scaffold_compile_control_scout_worker_entry(queue: Any, kwargs: dict[str, Any]) -> None:
+    try:
+        payload = _run_imported_fixed_scaffold_compile_control_scout(**kwargs)
+        queue.put({"ok": True, "payload": payload})
+    except Exception as exc:  # pragma: no cover - subprocess fault path
+        queue.put({"ok": False, "error": f"{type(exc).__name__}: {exc}"})
+
+
+def _imported_fixed_scaffold_runtime_energy_only_worker_entry(queue: Any, kwargs: dict[str, Any]) -> None:
+    try:
+        payload = _run_imported_fixed_scaffold_runtime_energy_only(**kwargs)
+        queue.put({"ok": True, "payload": payload})
+    except Exception as exc:  # pragma: no cover - subprocess fault path
+        queue.put({"ok": False, "error": f"{type(exc).__name__}: {exc}"})
+
+
+def _imported_fixed_scaffold_noisy_replay_worker_entry(queue: Any, kwargs: dict[str, Any]) -> None:
+    try:
+        payload = _run_imported_fixed_scaffold_noisy_replay(**kwargs)
+        queue.put({"ok": True, "payload": payload})
+    except Exception as exc:  # pragma: no cover - subprocess fault path
+        queue.put({"ok": False, "error": f"{type(exc).__name__}: {exc}"})
+
+
+def _imported_fixed_scaffold_noise_attribution_worker_entry(queue: Any, kwargs: dict[str, Any]) -> None:
+    try:
+        payload = _run_imported_fixed_scaffold_noise_attribution(**kwargs)
         queue.put({"ok": True, "payload": payload})
     except Exception as exc:  # pragma: no cover - subprocess fault path
         queue.put({"ok": False, "error": f"{type(exc).__name__}: {exc}"})
@@ -2867,6 +4677,247 @@ def _run_imported_fixed_lean_noise_attribution_mode_isolated(
     queue = ctx.Queue()
     proc = ctx.Process(
         target=_imported_fixed_lean_noise_attribution_worker_entry,
+        args=(queue, kwargs),
+        daemon=False,
+    )
+    proc.start()
+    proc.join(timeout=float(timeout_s))
+    if proc.is_alive():
+        proc.terminate()
+        proc.join(5.0)
+        return {
+            "success": False,
+            "env_blocked": True,
+            "reason": f"timeout_after_{int(timeout_s)}s",
+            "exitcode": proc.exitcode,
+        }
+    if int(proc.exitcode or 0) != 0:
+        return {
+            "success": False,
+            "env_blocked": True,
+            "reason": "subprocess_nonzero_exit",
+            "exitcode": int(proc.exitcode or 0),
+        }
+    if queue.empty():
+        return {
+            "success": False,
+            "env_blocked": True,
+            "reason": "subprocess_completed_without_payload",
+            "exitcode": int(proc.exitcode or 0),
+        }
+    msg = queue.get()
+    if not bool(msg.get("ok", False)):
+        return {
+            "success": False,
+            "env_blocked": True,
+            "reason": "worker_exception",
+            "error": str(msg.get("error", "unknown")),
+            "exitcode": int(proc.exitcode or 0),
+        }
+    return dict(msg.get("payload", {}))
+
+
+def _run_imported_fixed_lean_compile_control_scout_mode_isolated(
+    *,
+    kwargs: dict[str, Any],
+    timeout_s: int,
+) -> dict[str, Any]:
+    ctx = mp.get_context("spawn")
+    queue = ctx.Queue()
+    proc = ctx.Process(
+        target=_imported_fixed_lean_compile_control_scout_worker_entry,
+        args=(queue, kwargs),
+        daemon=False,
+    )
+    proc.start()
+    proc.join(timeout=float(timeout_s))
+    if proc.is_alive():
+        proc.terminate()
+        proc.join(5.0)
+        return {
+            "success": False,
+            "env_blocked": True,
+            "reason": f"timeout_after_{int(timeout_s)}s",
+            "exitcode": proc.exitcode,
+        }
+    if int(proc.exitcode or 0) != 0:
+        return {
+            "success": False,
+            "env_blocked": True,
+            "reason": "subprocess_nonzero_exit",
+            "exitcode": int(proc.exitcode or 0),
+        }
+    if queue.empty():
+        return {
+            "success": False,
+            "env_blocked": True,
+            "reason": "subprocess_completed_without_payload",
+            "exitcode": int(proc.exitcode or 0),
+        }
+    msg = queue.get()
+    if not bool(msg.get("ok", False)):
+        return {
+            "success": False,
+            "env_blocked": True,
+            "reason": "worker_exception",
+            "error": str(msg.get("error", "unknown")),
+            "exitcode": int(proc.exitcode or 0),
+        }
+    return dict(msg.get("payload", {}))
+
+
+def _run_imported_fixed_scaffold_compile_control_scout_mode_isolated(
+    *,
+    kwargs: dict[str, Any],
+    timeout_s: int,
+) -> dict[str, Any]:
+    ctx = mp.get_context("spawn")
+    queue = ctx.Queue()
+    proc = ctx.Process(
+        target=_imported_fixed_scaffold_compile_control_scout_worker_entry,
+        args=(queue, kwargs),
+        daemon=False,
+    )
+    proc.start()
+    proc.join(timeout=float(timeout_s))
+    if proc.is_alive():
+        proc.terminate()
+        proc.join(5.0)
+        return {
+            "success": False,
+            "env_blocked": True,
+            "reason": f"timeout_after_{int(timeout_s)}s",
+            "exitcode": proc.exitcode,
+        }
+    if int(proc.exitcode or 0) != 0:
+        return {
+            "success": False,
+            "env_blocked": True,
+            "reason": "subprocess_nonzero_exit",
+            "exitcode": int(proc.exitcode or 0),
+        }
+    if queue.empty():
+        return {
+            "success": False,
+            "env_blocked": True,
+            "reason": "subprocess_completed_without_payload",
+            "exitcode": int(proc.exitcode or 0),
+        }
+    msg = queue.get()
+    if not bool(msg.get("ok", False)):
+        return {
+            "success": False,
+            "env_blocked": True,
+            "reason": "worker_exception",
+            "error": str(msg.get("error", "unknown")),
+            "exitcode": int(proc.exitcode or 0),
+        }
+    return dict(msg.get("payload", {}))
+
+
+def _run_imported_fixed_scaffold_runtime_energy_only_mode_isolated(
+    *,
+    kwargs: dict[str, Any],
+    timeout_s: int,
+) -> dict[str, Any]:
+    ctx = mp.get_context("spawn")
+    queue = ctx.Queue()
+    proc = ctx.Process(
+        target=_imported_fixed_scaffold_runtime_energy_only_worker_entry,
+        args=(queue, kwargs),
+        daemon=False,
+    )
+    proc.start()
+    proc.join(timeout=float(timeout_s))
+    if proc.is_alive():
+        proc.terminate()
+        proc.join(5.0)
+        return {
+            "success": False,
+            "env_blocked": True,
+            "reason": f"timeout_after_{int(timeout_s)}s",
+            "exitcode": proc.exitcode,
+        }
+    if int(proc.exitcode or 0) != 0:
+        return {
+            "success": False,
+            "env_blocked": True,
+            "reason": "subprocess_nonzero_exit",
+            "exitcode": int(proc.exitcode or 0),
+        }
+    if queue.empty():
+        return {
+            "success": False,
+            "env_blocked": True,
+            "reason": "subprocess_completed_without_payload",
+            "exitcode": int(proc.exitcode or 0),
+        }
+    msg = queue.get()
+    if not bool(msg.get("ok", False)):
+        return {
+            "success": False,
+            "env_blocked": True,
+            "reason": "worker_exception",
+            "error": str(msg.get("error", "unknown")),
+            "exitcode": int(proc.exitcode or 0),
+        }
+    return dict(msg.get("payload", {}))
+
+
+def _run_imported_fixed_scaffold_noisy_replay_mode_isolated(
+    *,
+    kwargs: dict[str, Any],
+    timeout_s: int,
+) -> dict[str, Any]:
+    ctx = mp.get_context("spawn")
+    queue = ctx.Queue()
+    proc = ctx.Process(target=_imported_fixed_scaffold_noisy_replay_worker_entry, args=(queue, kwargs), daemon=False)
+    proc.start()
+    proc.join(timeout=float(timeout_s))
+    if proc.is_alive():
+        proc.terminate()
+        proc.join(5.0)
+        return {
+            "success": False,
+            "env_blocked": True,
+            "reason": f"timeout_after_{int(timeout_s)}s",
+            "exitcode": proc.exitcode,
+        }
+    if int(proc.exitcode or 0) != 0:
+        return {
+            "success": False,
+            "env_blocked": True,
+            "reason": "subprocess_nonzero_exit",
+            "exitcode": int(proc.exitcode or 0),
+        }
+    if queue.empty():
+        return {
+            "success": False,
+            "env_blocked": True,
+            "reason": "subprocess_completed_without_payload",
+            "exitcode": int(proc.exitcode or 0),
+        }
+    msg = queue.get()
+    if not bool(msg.get("ok", False)):
+        return {
+            "success": False,
+            "env_blocked": True,
+            "reason": "worker_exception",
+            "error": str(msg.get("error", "unknown")),
+            "exitcode": int(proc.exitcode or 0),
+        }
+    return dict(msg.get("payload", {}))
+
+
+def _run_imported_fixed_scaffold_noise_attribution_mode_isolated(
+    *,
+    kwargs: dict[str, Any],
+    timeout_s: int,
+) -> dict[str, Any]:
+    ctx = mp.get_context("spawn")
+    queue = ctx.Queue()
+    proc = ctx.Process(
+        target=_imported_fixed_scaffold_noise_attribution_worker_entry,
         args=(queue, kwargs),
         daemon=False,
     )

@@ -1,0 +1,270 @@
+{
+  "generated_utc": "2026-03-23T16:20:27.947279+00:00",
+  "kind": "marrakesh_aggressive_reoptimized_probe_menu",
+  "source_artifact": "artifacts/json/hh_prune_nighthawk_gate_pruned_7term.json",
+  "exact_energy": 0.1586679041257258,
+  "rows": [
+    {
+      "name": "4term_best_delta_zero_drop",
+      "runtime_term_count": 4,
+      "kept_runtime_indices": [
+        0,
+        1,
+        3,
+        4
+      ],
+      "kept_pauli_exyz": [
+        "eeeexy",
+        "eeyxee",
+        "yezeze",
+        "yeyyee"
+      ],
+      "dropped_runtime_indices": [
+        2,
+        5,
+        6
+      ],
+      "dropped_pauli_exyz": [
+        "yeeeee",
+        "eyeeez",
+        "eyezee"
+      ],
+      "initial_abs_delta_e": 0.5182011911635558,
+      "initial_exact_state_fidelity": 0.49931176567715974,
+      "optimized_abs_delta_e": 0.45950190901883053,
+      "optimized_exact_state_fidelity": 0.5960183494931536,
+      "optimized_energy": 0.6181698131445563,
+      "optimized_theta_runtime": [
+        1.4257458587513625,
+        1.6337675611195521,
+        -1.447181562422036,
+        -1.2820353390207155
+      ],
+      "optimizer": {
+        "method": "Powell",
+        "restarts": 4,
+        "selected_restart_index": 1,
+        "nfev": 156,
+        "success": true,
+        "message": "Optimization terminated successfully.",
+        "elapsed_s": 0.18227787502110004
+      },
+      "marrakesh_compile_best": {
+        "seed": 0,
+        "compiled_count_2q": 12,
+        "compiled_depth": 48,
+        "compiled_size": 68
+      },
+      "marrakesh_compile_ranges": {
+        "count_2q": [
+          12,
+          12
+        ],
+        "depth": [
+          48,
+          48
+        ],
+        "size": [
+          68,
+          68
+        ]
+      }
+    },
+    {
+      "name": "4term_best_fidelity_zero_drop",
+      "runtime_term_count": 4,
+      "kept_runtime_indices": [
+        0,
+        1,
+        5,
+        6
+      ],
+      "kept_pauli_exyz": [
+        "eeeexy",
+        "eeyxee",
+        "eyeeez",
+        "eyezee"
+      ],
+      "dropped_runtime_indices": [
+        2,
+        3,
+        4
+      ],
+      "dropped_pauli_exyz": [
+        "yeeeee",
+        "yezeze",
+        "yeyyee"
+      ],
+      "initial_abs_delta_e": 0.8119103775911172,
+      "initial_exact_state_fidelity": 0.856309111901515,
+      "optimized_abs_delta_e": 0.335002982779208,
+      "optimized_exact_state_fidelity": 0.6255150270941071,
+      "optimized_energy": 0.49367088690493377,
+      "optimized_theta_runtime": [
+        0.5338270912168801,
+        2.607734123438091,
+        -0.0996671349574467,
+        -0.099655477541418
+      ],
+      "optimizer": {
+        "method": "Powell",
+        "restarts": 4,
+        "selected_restart_index": 3,
+        "nfev": 167,
+        "success": true,
+        "message": "Optimization terminated successfully.",
+        "elapsed_s": 0.15019370708614588
+      },
+      "marrakesh_compile_best": {
+        "seed": 0,
+        "compiled_count_2q": 8,
+        "compiled_depth": 28,
+        "compiled_size": 44
+      },
+      "marrakesh_compile_ranges": {
+        "count_2q": [
+          8,
+          8
+        ],
+        "depth": [
+          28,
+          28
+        ],
+        "size": [
+          44,
+          44
+        ]
+      }
+    },
+    {
+      "name": "3term_best_delta_zero_drop",
+      "runtime_term_count": 3,
+      "kept_runtime_indices": [
+        0,
+        1,
+        6
+      ],
+      "kept_pauli_exyz": [
+        "eeeexy",
+        "eeyxee",
+        "eyezee"
+      ],
+      "dropped_runtime_indices": [
+        2,
+        3,
+        4,
+        5
+      ],
+      "dropped_pauli_exyz": [
+        "yeeeee",
+        "yezeze",
+        "yeyyee",
+        "eyeeez"
+      ],
+      "initial_abs_delta_e": 0.8277319654678381,
+      "initial_exact_state_fidelity": 0.8547033471603681,
+      "optimized_abs_delta_e": 0.33935690453488815,
+      "optimized_exact_state_fidelity": 0.6223542786469384,
+      "optimized_energy": 0.49802480866061394,
+      "optimized_theta_runtime": [
+        0.5279560098207035,
+        2.614328362422208,
+        -0.06308773093650348
+      ],
+      "optimizer": {
+        "method": "Powell",
+        "restarts": 4,
+        "selected_restart_index": 3,
+        "nfev": 119,
+        "success": true,
+        "message": "Optimization terminated successfully.",
+        "elapsed_s": 0.08701129164546728
+      },
+      "marrakesh_compile_best": {
+        "seed": 0,
+        "compiled_count_2q": 6,
+        "compiled_depth": 21,
+        "compiled_size": 37
+      },
+      "marrakesh_compile_ranges": {
+        "count_2q": [
+          6,
+          6
+        ],
+        "depth": [
+          21,
+          21
+        ],
+        "size": [
+          37,
+          37
+        ]
+      }
+    },
+    {
+      "name": "3term_best_fidelity_zero_drop",
+      "runtime_term_count": 3,
+      "kept_runtime_indices": [
+        0,
+        1,
+        5
+      ],
+      "kept_pauli_exyz": [
+        "eeeexy",
+        "eeyxee",
+        "eyeeez"
+      ],
+      "dropped_runtime_indices": [
+        2,
+        3,
+        4,
+        6
+      ],
+      "dropped_pauli_exyz": [
+        "yeeeee",
+        "yezeze",
+        "yeyyee",
+        "eyezee"
+      ],
+      "initial_abs_delta_e": 0.8277513324436752,
+      "initial_exact_state_fidelity": 0.8547046478236215,
+      "optimized_abs_delta_e": 0.33935694998140153,
+      "optimized_exact_state_fidelity": 0.6224144663619501,
+      "optimized_energy": 0.4980248541071273,
+      "optimized_theta_runtime": [
+        0.5273716506228919,
+        2.6134211306709494,
+        -0.06310701264200158
+      ],
+      "optimizer": {
+        "method": "Powell",
+        "restarts": 4,
+        "selected_restart_index": 2,
+        "nfev": 128,
+        "success": true,
+        "message": "Optimization terminated successfully.",
+        "elapsed_s": 0.0928107500076294
+      },
+      "marrakesh_compile_best": {
+        "seed": 0,
+        "compiled_count_2q": 6,
+        "compiled_depth": 21,
+        "compiled_size": 37
+      },
+      "marrakesh_compile_ranges": {
+        "count_2q": [
+          6,
+          6
+        ],
+        "depth": [
+          21,
+          21
+        ],
+        "size": [
+          37,
+          37
+        ]
+      }
+    }
+  ]
+}

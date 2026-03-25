@@ -1,0 +1,65 @@
+{
+  "pipeline": "hh_marrakesh_6term_local_dd_only_eval_reduced_v1",
+  "config": {
+    "backend_name": "FakeMarrakesh",
+    "shots": 128,
+    "oracle_repeats": 1,
+    "oracle_aggregate": "mean",
+    "mitigation_config": {
+      "mode": "readout",
+      "local_readout_strategy": "mthree",
+      "dd_sequence": "XpXm"
+    },
+    "seed": 7,
+    "seed_transpiler": 0,
+    "transpile_optimization_level": 1
+  },
+  "dd_only": {
+    "delta_mean": -0.26498441766019926,
+    "noisy_mean": -0.1017034575343132,
+    "ideal_mean": 0.16328096012588605,
+    "elapsed_s": 177.94153499603271,
+    "local_dynamical_decoupling": {
+      "requested": true,
+      "applied": true,
+      "sequence": "XPXM",
+      "reason": "",
+      "scheduling_method": "alap",
+      "timing_supported": true,
+      "dd_qubits": [
+        13,
+        12,
+        18,
+        11,
+        14,
+        10
+      ],
+      "added_x": 18,
+      "added_y": 0,
+      "execution_target_kind": "aer_sanitized_from_backend",
+      "noise_model_basis_gates": [
+        "cz",
+        "id",
+        "rx",
+        "rz",
+        "rzz",
+        "sx",
+        "x"
+      ],
+      "noise_model_sanitization": {
+        "applied": true,
+        "strategy": "clamp_t2_to_2t1",
+        "affected_qubits": [
+          100
+        ],
+        "retry_trigger": "invalid_t2_gt_2t1"
+      }
+    }
+  },
+  "reference_existing_readout_only_2048x4": {
+    "source": "artifacts/json/hh_marrakesh_6term_local_dd_probe_only_20260324T140754Z.json",
+    "delta_mean": 0.10332744209441341,
+    "noisy_mean": 0.26660840222029947,
+    "ideal_mean": 0.16328096012588605
+  }
+}

@@ -1,0 +1,318 @@
+{
+  "generated_utc": "2026-03-23T14:57:55.863153+00:00",
+  "tag": "hh_gatepruned7_fixedtheta_runtime_ibm_marrakesh_20260323T145219Z_reconstructed",
+  "artifact_json": "artifacts/json/hh_prune_nighthawk_gate_pruned_7term.json",
+  "result": {
+    "success": true,
+    "reconstructed_from_runtime_jobs": true,
+    "reason": null,
+    "noise_mode": "runtime",
+    "final_observables": {
+      "energy_static": {
+        "noisy_mean": 0.8817923546818464,
+        "noisy_std": 0.0,
+        "noisy_stdev": 0.0,
+        "noisy_stderr": 0.0,
+        "ideal_mean": 0.15909070323441615,
+        "ideal_std": 0.0,
+        "ideal_stdev": 0.0,
+        "ideal_stderr": 0.0,
+        "delta_mean": 0.7227016514474303,
+        "delta_stderr": 0.0,
+        "backend_info": {
+          "noise_mode": "runtime",
+          "estimator_kind": "qiskit_ibm_runtime.EstimatorV2",
+          "backend_name": "ibm_marrakesh",
+          "using_fake_backend": false,
+          "details": {
+            "shots": 2048,
+            "runtime_execution_mode": "backend",
+            "mitigation": {
+              "mode": "readout",
+              "local_readout_strategy": "mthree",
+              "zne_scales": [],
+              "dd_sequence": null
+            },
+            "runtime_mitigation": {
+              "mode": "readout",
+              "engine": "runtime_resilience.measure_mitigation",
+              "requested_local_readout_strategy": "mthree",
+              "applied": true,
+              "provider_strategy": "builtin_measure_mitigation"
+            },
+            "symmetry_mitigation": {
+              "requested_mode": "off",
+              "applied_mode": "off",
+              "executed": false,
+              "eligible": false
+            },
+            "runtime_job_ids": [
+              "d70l8i2tnsts73eudf60",
+              "d70l8ms69uic73ckfu8g",
+              "d70l8rs69uic73ckfuf0",
+              "d70l90gv5rlc73f669s0",
+              "d70l95atnsts73eudfsg",
+              "d70l9ac69uic73ckfuvg"
+            ]
+          }
+        }
+      },
+      "energy_total": {
+        "noisy_mean": 1.061537913240308,
+        "noisy_std": 0.0,
+        "noisy_stdev": 0.0,
+        "noisy_stderr": 0.0,
+        "ideal_mean": 0.15909070323441615,
+        "ideal_std": 0.0,
+        "ideal_stdev": 0.0,
+        "ideal_stderr": 0.0,
+        "delta_mean": 0.9024472100058918,
+        "delta_stderr": 0.0,
+        "backend_info": {
+          "noise_mode": "runtime",
+          "estimator_kind": "qiskit_ibm_runtime.EstimatorV2",
+          "backend_name": "ibm_marrakesh",
+          "using_fake_backend": false,
+          "details": {
+            "shots": 2048,
+            "runtime_execution_mode": "backend",
+            "mitigation": {
+              "mode": "readout",
+              "local_readout_strategy": "mthree",
+              "zne_scales": [],
+              "dd_sequence": null
+            },
+            "runtime_mitigation": {
+              "mode": "readout",
+              "engine": "runtime_resilience.measure_mitigation",
+              "requested_local_readout_strategy": "mthree",
+              "applied": true,
+              "provider_strategy": "builtin_measure_mitigation"
+            },
+            "symmetry_mitigation": {
+              "requested_mode": "off",
+              "applied_mode": "off",
+              "executed": false,
+              "eligible": false
+            },
+            "runtime_job_ids": [
+              "d70l8i2tnsts73eudf60",
+              "d70l8ms69uic73ckfu8g",
+              "d70l8rs69uic73ckfuf0",
+              "d70l90gv5rlc73f669s0",
+              "d70l95atnsts73eudfsg",
+              "d70l9ac69uic73ckfuvg"
+            ]
+          }
+        }
+      },
+      "n_up_site0": {
+        "noisy_mean": 0.5133045888512473,
+        "noisy_std": 0.0,
+        "noisy_stdev": 0.0,
+        "noisy_stderr": 0.0,
+        "ideal_mean": 0.5000012295386006,
+        "ideal_std": 0.0,
+        "ideal_stdev": 0.0,
+        "ideal_stderr": 0.0,
+        "delta_mean": 0.013303359312646701,
+        "delta_stderr": 0.0,
+        "backend_info": {
+          "noise_mode": "runtime",
+          "estimator_kind": "qiskit_ibm_runtime.EstimatorV2",
+          "backend_name": "ibm_marrakesh",
+          "using_fake_backend": false,
+          "details": {
+            "shots": 2048,
+            "runtime_execution_mode": "backend",
+            "mitigation": {
+              "mode": "readout",
+              "local_readout_strategy": "mthree",
+              "zne_scales": [],
+              "dd_sequence": null
+            },
+            "runtime_mitigation": {
+              "mode": "readout",
+              "engine": "runtime_resilience.measure_mitigation",
+              "requested_local_readout_strategy": "mthree",
+              "applied": true,
+              "provider_strategy": "builtin_measure_mitigation"
+            },
+            "symmetry_mitigation": {
+              "requested_mode": "off",
+              "applied_mode": "off",
+              "executed": false,
+              "eligible": false
+            },
+            "runtime_job_ids": [
+              "d70l8i2tnsts73eudf60",
+              "d70l8ms69uic73ckfu8g",
+              "d70l8rs69uic73ckfuf0",
+              "d70l90gv5rlc73f669s0",
+              "d70l95atnsts73eudfsg",
+              "d70l9ac69uic73ckfuvg"
+            ]
+          }
+        }
+      },
+      "n_dn_site0": {
+        "noisy_mean": 0.5004964010920824,
+        "noisy_std": 0.0,
+        "noisy_stdev": 0.0,
+        "noisy_stderr": 0.0,
+        "ideal_mean": 0.4999991222503418,
+        "ideal_std": 0.0,
+        "ideal_stdev": 0.0,
+        "ideal_stderr": 0.0,
+        "delta_mean": 0.000497278841740556,
+        "delta_stderr": 0.0,
+        "backend_info": {
+          "noise_mode": "runtime",
+          "estimator_kind": "qiskit_ibm_runtime.EstimatorV2",
+          "backend_name": "ibm_marrakesh",
+          "using_fake_backend": false,
+          "details": {
+            "shots": 2048,
+            "runtime_execution_mode": "backend",
+            "mitigation": {
+              "mode": "readout",
+              "local_readout_strategy": "mthree",
+              "zne_scales": [],
+              "dd_sequence": null
+            },
+            "runtime_mitigation": {
+              "mode": "readout",
+              "engine": "runtime_resilience.measure_mitigation",
+              "requested_local_readout_strategy": "mthree",
+              "applied": true,
+              "provider_strategy": "builtin_measure_mitigation"
+            },
+            "symmetry_mitigation": {
+              "requested_mode": "off",
+              "applied_mode": "off",
+              "executed": false,
+              "eligible": false
+            },
+            "runtime_job_ids": [
+              "d70l8i2tnsts73eudf60",
+              "d70l8ms69uic73ckfu8g",
+              "d70l8rs69uic73ckfuf0",
+              "d70l90gv5rlc73f669s0",
+              "d70l95atnsts73eudfsg",
+              "d70l9ac69uic73ckfuvg"
+            ]
+          }
+        }
+      },
+      "doublon": {
+        "noisy_mean": 0.11285350295402834,
+        "noisy_std": 0.0,
+        "noisy_stdev": 0.0,
+        "noisy_stderr": 0.0,
+        "ideal_mean": 0.07594884521290723,
+        "ideal_std": 0.0,
+        "ideal_stdev": 0.0,
+        "ideal_stderr": 0.0,
+        "delta_mean": 0.0369046577411211,
+        "delta_stderr": 0.0,
+        "backend_info": {
+          "noise_mode": "runtime",
+          "estimator_kind": "qiskit_ibm_runtime.EstimatorV2",
+          "backend_name": "ibm_marrakesh",
+          "using_fake_backend": false,
+          "details": {
+            "shots": 2048,
+            "runtime_execution_mode": "backend",
+            "mitigation": {
+              "mode": "readout",
+              "local_readout_strategy": "mthree",
+              "zne_scales": [],
+              "dd_sequence": null
+            },
+            "runtime_mitigation": {
+              "mode": "readout",
+              "engine": "runtime_resilience.measure_mitigation",
+              "requested_local_readout_strategy": "mthree",
+              "applied": true,
+              "provider_strategy": "builtin_measure_mitigation"
+            },
+            "symmetry_mitigation": {
+              "requested_mode": "off",
+              "applied_mode": "off",
+              "executed": false,
+              "eligible": false
+            },
+            "runtime_job_ids": [
+              "d70l8i2tnsts73eudf60",
+              "d70l8ms69uic73ckfu8g",
+              "d70l8rs69uic73ckfuf0",
+              "d70l90gv5rlc73f669s0",
+              "d70l95atnsts73eudfsg",
+              "d70l9ac69uic73ckfuvg"
+            ]
+          }
+        }
+      },
+      "staggered": {
+        "noisy_mean": 0.00021816674289057729,
+        "noisy_std": 0.0,
+        "noisy_stdev": 0.0,
+        "noisy_stderr": 0.0,
+        "ideal_mean": 3.517889463257859e-07,
+        "ideal_std": 0.0,
+        "ideal_stdev": 0.0,
+        "ideal_stderr": 0.0,
+        "delta_mean": 0.0002178149539442515,
+        "delta_stderr": 0.0,
+        "backend_info": {
+          "noise_mode": "runtime",
+          "estimator_kind": "qiskit_ibm_runtime.EstimatorV2",
+          "backend_name": "ibm_marrakesh",
+          "using_fake_backend": false,
+          "details": {
+            "shots": 2048,
+            "runtime_execution_mode": "backend",
+            "mitigation": {
+              "mode": "readout",
+              "local_readout_strategy": "mthree",
+              "zne_scales": [],
+              "dd_sequence": null
+            },
+            "runtime_mitigation": {
+              "mode": "readout",
+              "engine": "runtime_resilience.measure_mitigation",
+              "requested_local_readout_strategy": "mthree",
+              "applied": true,
+              "provider_strategy": "builtin_measure_mitigation"
+            },
+            "symmetry_mitigation": {
+              "requested_mode": "off",
+              "applied_mode": "off",
+              "executed": false,
+              "eligible": false
+            },
+            "runtime_job_ids": [
+              "d70l8i2tnsts73eudf60",
+              "d70l8ms69uic73ckfu8g",
+              "d70l8rs69uic73ckfuf0",
+              "d70l90gv5rlc73f669s0",
+              "d70l95atnsts73eudfsg",
+              "d70l9ac69uic73ckfuvg"
+            ]
+          }
+        }
+      }
+    },
+    "audit_source": {
+      "kind": "full_circuit_import",
+      "artifact_json": "artifacts/json/hh_prune_nighthawk_gate_pruned_7term.json",
+      "reference_state_embedded": true
+    },
+    "extra_meta": {
+      "saved_artifact_energy": 0.15909070323441662,
+      "exact_energy": 0.15866790412572512,
+      "logical_parameter_count": 5,
+      "runtime_parameter_count": 7
+    }
+  }
+}

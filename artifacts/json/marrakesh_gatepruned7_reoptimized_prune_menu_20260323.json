@@ -1,0 +1,7341 @@
+{
+  "generated_utc": "2026-03-23T16:19:33.644929+00:00",
+  "kind": "marrakesh_gatepruned7_reoptimized_prune_menu",
+  "source_artifact": "artifacts/json/hh_prune_nighthawk_gate_pruned_7term.json",
+  "exact_energy": 0.1586679041257258,
+  "runtime_terms": [
+    {
+      "runtime_index": 0,
+      "candidate_label": "uccsd_ferm_lifted::uccsd_sing(alpha:0->1)",
+      "pauli_exyz": "eeeexy",
+      "theta0": 1.5707938677176911,
+      "coeff_re": -0.5,
+      "effective_angle0": -1.5707938677176911
+    },
+    {
+      "runtime_index": 1,
+      "candidate_label": "uccsd_ferm_lifted::uccsd_sing(beta:2->3)",
+      "pauli_exyz": "eeyxee",
+      "theta0": 1.6400240536158577,
+      "coeff_re": 0.5,
+      "effective_angle0": 1.6400240536158577
+    },
+    {
+      "runtime_index": 2,
+      "candidate_label": "paop_lf_full:paop_dbl_p(site=1->phonon=1)",
+      "pauli_exyz": "yeeeee",
+      "theta0": -3.1415852322533517,
+      "coeff_re": 0.25,
+      "effective_angle0": -1.5707926161266759
+    },
+    {
+      "runtime_index": 3,
+      "candidate_label": "paop_lf_full:paop_dbl_p(site=1->phonon=1)",
+      "pauli_exyz": "yezeze",
+      "theta0": -1.54485785098712,
+      "coeff_re": 0.25,
+      "effective_angle0": -0.77242892549356
+    },
+    {
+      "runtime_index": 4,
+      "candidate_label": "paop_full:paop_hopdrag(0,1)::child_set[0,2]",
+      "pauli_exyz": "yeyyee",
+      "theta0": -1.5707956982689952,
+      "coeff_re": -0.5,
+      "effective_angle0": 1.5707956982689952
+    },
+    {
+      "runtime_index": 5,
+      "candidate_label": "paop_full:paop_disp(site=0)",
+      "pauli_exyz": "eyeeez",
+      "theta0": -0.08638170368796677,
+      "coeff_re": -0.5,
+      "effective_angle0": 0.08638170368796677
+    },
+    {
+      "runtime_index": 6,
+      "candidate_label": "paop_full:paop_disp(site=0)",
+      "pauli_exyz": "eyezee",
+      "theta0": -0.08646881746381309,
+      "coeff_re": -0.5,
+      "effective_angle0": 0.08646881746381309
+    }
+  ],
+  "rows": [
+    {
+      "runtime_term_count": 6,
+      "kept_runtime_indices": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "kept_pauli_exyz": [
+        "eeeexy",
+        "eeyxee",
+        "yeeeee",
+        "yezeze",
+        "yeyyee",
+        "eyeeez"
+      ],
+      "dropped_runtime_indices": [
+        6
+      ],
+      "dropped_pauli_exyz": [
+        "eyezee"
+      ],
+      "theta0_runtime": [
+        1.5707938677176911,
+        1.6400240536158577,
+        -3.1415852322533517,
+        -1.54485785098712,
+        -1.5707956982689952,
+        -0.08638170368796677
+      ],
+      "initial_energy": 0.16366386658819115,
+      "initial_abs_delta_e": 0.004995962462465364,
+      "initial_exact_state_fidelity": 0.9979016221089313,
+      "optimized_energy": 0.1632809601258856,
+      "optimized_abs_delta_e": 0.004613056000159821,
+      "optimized_exact_state_fidelity": 0.9984850798203946,
+      "optimized_theta_runtime": [
+        1.5706750259320321,
+        1.6391181488233113,
+        -3.1412182018263546,
+        -1.5543158928131178,
+        -1.5707609863100893,
+        -0.06183417453124048
+      ],
+      "optimizer": {
+        "method": "Powell",
+        "restarts": 3,
+        "selected_restart_index": 2,
+        "nfev": 230,
+        "success": true,
+        "message": "Optimization terminated successfully.",
+        "elapsed_s": 0.33059975039213896
+      },
+      "marrakesh_compile_best": {
+        "seed": 0,
+        "compiled_count_2q": 14,
+        "compiled_depth": 48,
+        "compiled_size": 80,
+        "layout_physical_qubits": [
+          109,
+          110,
+          98,
+          111,
+          118,
+          112
+        ]
+      },
+      "marrakesh_compile_ranges": {
+        "count_2q": [
+          14,
+          14
+        ],
+        "depth": [
+          48,
+          48
+        ],
+        "size": [
+          80,
+          80
+        ]
+      }
+    },
+    {
+      "runtime_term_count": 6,
+      "kept_runtime_indices": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        6
+      ],
+      "kept_pauli_exyz": [
+        "eeeexy",
+        "eeyxee",
+        "yeeeee",
+        "yezeze",
+        "yeyyee",
+        "eyezee"
+      ],
+      "dropped_runtime_indices": [
+        5
+      ],
+      "dropped_pauli_exyz": [
+        "eyeeez"
+      ],
+      "theta0_runtime": [
+        1.5707938677176911,
+        1.6400240536158577,
+        -3.1415852322533517,
+        -1.54485785098712,
+        -1.5707956982689952,
+        -0.08646881746381309
+      ],
+      "initial_energy": 0.16366001096781374,
+      "initial_abs_delta_e": 0.004992106842087951,
+      "initial_exact_state_fidelity": 0.997909151031,
+      "optimized_energy": 0.16327777313193625,
+      "optimized_abs_delta_e": 0.004609869006210465,
+      "optimized_exact_state_fidelity": 0.998490590463693,
+      "optimized_theta_runtime": [
+        1.5709068720143538,
+        1.6391549995122405,
+        -3.1419250699470096,
+        -1.5542996609447908,
+        -1.5708276776683492,
+        -0.06192021434530125
+      ],
+      "optimizer": {
+        "method": "Powell",
+        "restarts": 3,
+        "selected_restart_index": 1,
+        "nfev": 225,
+        "success": true,
+        "message": "Optimization terminated successfully.",
+        "elapsed_s": 0.3236374594271183
+      },
+      "marrakesh_compile_best": {
+        "seed": 0,
+        "compiled_count_2q": 14,
+        "compiled_depth": 56,
+        "compiled_size": 80,
+        "layout_physical_qubits": [
+          109,
+          110,
+          98,
+          111,
+          91,
+          112
+        ]
+      },
+      "marrakesh_compile_ranges": {
+        "count_2q": [
+          14,
+          14
+        ],
+        "depth": [
+          56,
+          56
+        ],
+        "size": [
+          80,
+          80
+        ]
+      }
+    },
+    {
+      "runtime_term_count": 6,
+      "kept_runtime_indices": [
+        0,
+        1,
+        2,
+        3,
+        5,
+        6
+      ],
+      "kept_pauli_exyz": [
+        "eeeexy",
+        "eeyxee",
+        "yeeeee",
+        "yezeze",
+        "eyeeez",
+        "eyezee"
+      ],
+      "dropped_runtime_indices": [
+        4
+      ],
+      "dropped_pauli_exyz": [
+        "yeyyee"
+      ],
+      "theta0_runtime": [
+        1.5707938677176911,
+        1.6400240536158577,
+        -3.1415852322533517,
+        -1.54485785098712,
+        -0.08638170368796677,
+        -0.08646881746381309
+      ],
+      "initial_energy": 2.022960727919032,
+      "initial_abs_delta_e": 1.8642928237933063,
+      "initial_exact_state_fidelity": 0.4998935003369378,
+      "optimized_energy": 0.493670935993195,
+      "optimized_abs_delta_e": 0.3350030318674692,
+      "optimized_exact_state_fidelity": 0.6255054760413477,
+      "optimized_theta_runtime": [
+        0.5338324565278364,
+        2.6077922668585645,
+        -0.0008139127627497052,
+        -0.0001914216728835986,
+        -0.09959954381868331,
+        -0.09947860863226853
+      ],
+      "optimizer": {
+        "method": "Powell",
+        "restarts": 3,
+        "selected_restart_index": 0,
+        "nfev": 343,
+        "success": true,
+        "message": "Optimization terminated successfully.",
+        "elapsed_s": 0.4231305839493871
+      },
+      "marrakesh_compile_best": {
+        "seed": 4,
+        "compiled_count_2q": 18,
+        "compiled_depth": 38,
+        "compiled_size": 88,
+        "layout_physical_qubits": [
+          4,
+          16,
+          6,
+          3,
+          5,
+          2
+        ]
+      },
+      "marrakesh_compile_ranges": {
+        "count_2q": [
+          18,
+          18
+        ],
+        "depth": [
+          38,
+          55
+        ],
+        "size": [
+          88,
+          93
+        ]
+      }
+    },
+    {
+      "runtime_term_count": 6,
+      "kept_runtime_indices": [
+        0,
+        1,
+        2,
+        4,
+        5,
+        6
+      ],
+      "kept_pauli_exyz": [
+        "eeeexy",
+        "eeyxee",
+        "yeeeee",
+        "yeyyee",
+        "eyeeez",
+        "eyezee"
+      ],
+      "dropped_runtime_indices": [
+        3
+      ],
+      "dropped_pauli_exyz": [
+        "yezeze"
+      ],
+      "theta0_runtime": [
+        1.5707938677176911,
+        1.6400240536158577,
+        -3.1415852322533517,
+        -1.5707956982689952,
+        -0.08638170368796677,
+        -0.08646881746381309
+      ],
+      "initial_energy": 0.9544831451888807,
+      "initial_abs_delta_e": 0.7958152410631549,
+      "initial_exact_state_fidelity": 0.8578537792457341,
+      "optimized_energy": 0.4903405745735258,
+      "optimized_abs_delta_e": 0.3316726704478,
+      "optimized_exact_state_fidelity": 0.6277042905141508,
+      "optimized_theta_runtime": [
+        2.6054053164419226,
+        2.6022315885989893,
+        -6.221001088630346,
+        -3.080608634024237,
+        -0.10061095427231842,
+        -0.10026654471676802
+      ],
+      "optimizer": {
+        "method": "Powell",
+        "restarts": 3,
+        "selected_restart_index": 2,
+        "nfev": 476,
+        "success": true,
+        "message": "Optimization terminated successfully.",
+        "elapsed_s": 0.6666280832141638
+      },
+      "marrakesh_compile_best": {
+        "seed": 0,
+        "compiled_count_2q": 12,
+        "compiled_depth": 39,
+        "compiled_size": 67,
+        "layout_physical_qubits": [
+          6,
+          7,
+          4,
+          3,
+          5,
+          2
+        ]
+      },
+      "marrakesh_compile_ranges": {
+        "count_2q": [
+          12,
+          12
+        ],
+        "depth": [
+          39,
+          39
+        ],
+        "size": [
+          67,
+          67
+        ]
+      }
+    },
+    {
+      "runtime_term_count": 6,
+      "kept_runtime_indices": [
+        0,
+        1,
+        3,
+        4,
+        5,
+        6
+      ],
+      "kept_pauli_exyz": [
+        "eeeexy",
+        "eeyxee",
+        "yezeze",
+        "yeyyee",
+        "eyeeez",
+        "eyezee"
+      ],
+      "dropped_runtime_indices": [
+        2
+      ],
+      "dropped_pauli_exyz": [
+        "yeeeee"
+      ],
+      "theta0_runtime": [
+        1.5707938677176911,
+        1.6400240536158577,
+        -1.54485785098712,
+        -1.5707956982689952,
+        -0.08638170368796677,
+        -0.08646881746381309
+      ],
+      "initial_energy": 0.670278277367549,
+      "initial_abs_delta_e": 0.5116103732418231,
+      "initial_exact_state_fidelity": 0.4998924235504198,
+      "optimized_energy": 0.6091206628019001,
+      "optimized_abs_delta_e": 0.45045275867617435,
+      "optimized_exact_state_fidelity": 0.6017285124521629,
+      "optimized_theta_runtime": [
+        1.4200894056477447,
+        1.63855384769898,
+        -1.4215440281459102,
+        -1.2677224856891551,
+        -0.09841005330553505,
+        -0.09797199032094546
+      ],
+      "optimizer": {
+        "method": "Powell",
+        "restarts": 3,
+        "selected_restart_index": 2,
+        "nfev": 284,
+        "success": true,
+        "message": "Optimization terminated successfully.",
+        "elapsed_s": 0.4245531242340803
+      },
+      "marrakesh_compile_best": {
+        "seed": 1,
+        "compiled_count_2q": 25,
+        "compiled_depth": 63,
+        "compiled_size": 117,
+        "layout_physical_qubits": [
+          118,
+          109,
+          111,
+          112,
+          110,
+          98
+        ]
+      },
+      "marrakesh_compile_ranges": {
+        "count_2q": [
+          25,
+          25
+        ],
+        "depth": [
+          63,
+          75
+        ],
+        "size": [
+          107,
+          117
+        ]
+      }
+    },
+    {
+      "runtime_term_count": 6,
+      "kept_runtime_indices": [
+        0,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "kept_pauli_exyz": [
+        "eeeexy",
+        "yeeeee",
+        "yezeze",
+        "yeyyee",
+        "eyeeez",
+        "eyezee"
+      ],
+      "dropped_runtime_indices": [
+        1
+      ],
+      "dropped_pauli_exyz": [
+        "eeyxee"
+      ],
+      "theta0_runtime": [
+        1.5707938677176911,
+        -3.1415852322533517,
+        -1.54485785098712,
+        -1.5707956982689952,
+        -0.08638170368796677,
+        -0.08646881746381309
+      ],
+      "initial_energy": 2.926234807812953,
+      "initial_abs_delta_e": 2.7675669036872272,
+      "initial_exact_state_fidelity": 0.4685043675919916,
+      "optimized_energy": 0.7577308207833282,
+      "optimized_abs_delta_e": 0.5990629166576025,
+      "optimized_exact_state_fidelity": 0.48673610713033233,
+      "optimized_theta_runtime": [
+        0.48123868589518887,
+        -6.557507754612469,
+        0.18430704130263087,
+        -3.1415926498027145,
+        -0.09216740485701104,
+        -0.13713229645089609
+      ],
+      "optimizer": {
+        "method": "Powell",
+        "restarts": 3,
+        "selected_restart_index": 2,
+        "nfev": 311,
+        "success": true,
+        "message": "Optimization terminated successfully.",
+        "elapsed_s": 0.4400130417197943
+      },
+      "marrakesh_compile_best": {
+        "seed": 0,
+        "compiled_count_2q": 20,
+        "compiled_depth": 60,
+        "compiled_size": 90,
+        "layout_physical_qubits": [
+          3,
+          16,
+          2,
+          4,
+          1,
+          5
+        ]
+      },
+      "marrakesh_compile_ranges": {
+        "count_2q": [
+          20,
+          23
+        ],
+        "depth": [
+          58,
+          63
+        ],
+        "size": [
+          90,
+          109
+        ]
+      }
+    },
+    {
+      "runtime_term_count": 6,
+      "kept_runtime_indices": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "kept_pauli_exyz": [
+        "eeyxee",
+        "yeeeee",
+        "yezeze",
+        "yeyyee",
+        "eyeeez",
+        "eyezee"
+      ],
+      "dropped_runtime_indices": [
+        0
+      ],
+      "dropped_pauli_exyz": [
+        "eeeexy"
+      ],
+      "theta0_runtime": [
+        1.6400240536158577,
+        -3.1415852322533517,
+        -1.54485785098712,
+        -1.5707956982689952,
+        -0.08638170368796677,
+        -0.08646881746381309
+      ],
+      "initial_energy": 0.8726376552631164,
+      "initial_abs_delta_e": 0.7139697511373906,
+      "initial_exact_state_fidelity": 0.4998922048234508,
+      "optimized_energy": 0.7577308910004158,
+      "optimized_abs_delta_e": 0.59906298687469,
+      "optimized_exact_state_fidelity": 0.486733389688078,
+      "optimized_theta_runtime": [
+        1.6473873592447703,
+        -2.995423669874979,
+        -2.1807014806652365,
+        -1.5324513326013476,
+        -0.13639984893142343,
+        -0.09180899716121296
+      ],
+      "optimizer": {
+        "method": "Powell",
+        "restarts": 3,
+        "selected_restart_index": 0,
+        "nfev": 166,
+        "success": true,
+        "message": "Optimization terminated successfully.",
+        "elapsed_s": 0.234245290979743
+      },
+      "marrakesh_compile_best": {
+        "seed": 0,
+        "compiled_count_2q": 14,
+        "compiled_depth": 56,
+        "compiled_size": 75,
+        "layout_physical_qubits": [
+          6,
+          16,
+          4,
+          3,
+          5,
+          2
+        ]
+      },
+      "marrakesh_compile_ranges": {
+        "count_2q": [
+          14,
+          14
+        ],
+        "depth": [
+          56,
+          56
+        ],
+        "size": [
+          75,
+          75
+        ]
+      }
+    },
+    {
+      "runtime_term_count": 5,
+      "kept_runtime_indices": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "kept_pauli_exyz": [
+        "eeeexy",
+        "eeyxee",
+        "yeeeee",
+        "yezeze",
+        "yeyyee"
+      ],
+      "dropped_runtime_indices": [
+        5,
+        6
+      ],
+      "dropped_pauli_exyz": [
+        "eyeeez",
+        "eyezee"
+      ],
+      "theta0_runtime": [
+        1.5707938677176911,
+        1.6400240536158577,
+        -3.1415852322533517,
+        -1.54485785098712,
+        -1.5707956982689952
+      ],
+      "initial_energy": 0.16568152115614831,
+      "initial_abs_delta_e": 0.007013617030422525,
+      "initial_exact_state_fidelity": 0.9986230507758485,
+      "optimized_energy": 0.165586560516765,
+      "optimized_abs_delta_e": 0.006918656391039224,
+      "optimized_exact_state_fidelity": 0.9986227659012741,
+      "optimized_theta_runtime": [
+        1.570796279564962,
+        1.6385413524658687,
+        -3.1415925094192056,
+        -1.5612119144270669,
+        -1.570796310630546
+      ],
+      "optimizer": {
+        "method": "Powell",
+        "restarts": 3,
+        "selected_restart_index": 0,
+        "nfev": 112,
+        "success": true,
+        "message": "Optimization terminated successfully.",
+        "elapsed_s": 0.14317708369344473
+      },
+      "marrakesh_compile_best": {
+        "seed": 0,
+        "compiled_count_2q": 12,
+        "compiled_depth": 48,
+        "compiled_size": 71,
+        "layout_physical_qubits": [
+          109,
+          110,
+          98,
+          111,
+          5,
+          112
+        ]
+      },
+      "marrakesh_compile_ranges": {
+        "count_2q": [
+          12,
+          12
+        ],
+        "depth": [
+          48,
+          48
+        ],
+        "size": [
+          71,
+          71
+        ]
+      }
+    },
+    {
+      "runtime_term_count": 5,
+      "kept_runtime_indices": [
+        0,
+        1,
+        2,
+        3,
+        5
+      ],
+      "kept_pauli_exyz": [
+        "eeeexy",
+        "eeyxee",
+        "yeeeee",
+        "yezeze",
+        "eyeeez"
+      ],
+      "dropped_runtime_indices": [
+        4,
+        6
+      ],
+      "dropped_pauli_exyz": [
+        "yeyyee",
+        "eyezee"
+      ],
+      "theta0_runtime": [
+        1.5707938677176911,
+        1.6400240536158577,
+        -3.1415852322533517,
+        -1.54485785098712,
+        -0.08638170368796677
+      ],
+      "initial_energy": 2.0398593821270863,
+      "initial_abs_delta_e": 1.8811914780013606,
+      "initial_exact_state_fidelity": 0.49895212643410025,
+      "optimized_energy": 0.4980248990661322,
+      "optimized_abs_delta_e": 0.3393569949404064,
+      "optimized_exact_state_fidelity": 0.6223481310170992,
+      "optimized_theta_runtime": [
+        0.5271873155672375,
+        2.6135942901133613,
+        -0.0008008936352789398,
+        -7.353206494630375e-05,
+        -0.06304815027199366
+      ],
+      "optimizer": {
+        "method": "Powell",
+        "restarts": 3,
+        "selected_restart_index": 1,
+        "nfev": 241,
+        "success": true,
+        "message": "Optimization terminated successfully.",
+        "elapsed_s": 0.2549124574288726
+      },
+      "marrakesh_compile_best": {
+        "seed": 0,
+        "compiled_count_2q": 10,
+        "compiled_depth": 31,
+        "compiled_size": 62,
+        "layout_physical_qubits": [
+          5,
+          4,
+          16,
+          3,
+          6,
+          2
+        ]
+      },
+      "marrakesh_compile_ranges": {
+        "count_2q": [
+          10,
+          10
+        ],
+        "depth": [
+          31,
+          31
+        ],
+        "size": [
+          62,
+          62
+        ]
+      }
+    },
+    {
+      "runtime_term_count": 5,
+      "kept_runtime_indices": [
+        0,
+        1,
+        2,
+        3,
+        6
+      ],
+      "kept_pauli_exyz": [
+        "eeeexy",
+        "eeyxee",
+        "yeeeee",
+        "yezeze",
+        "eyezee"
+      ],
+      "dropped_runtime_indices": [
+        4,
+        5
+      ],
+      "dropped_pauli_exyz": [
+        "yeyyee",
+        "eyeeez"
+      ],
+      "theta0_runtime": [
+        1.5707938677176911,
+        1.6400240536158577,
+        -3.1415852322533517,
+        -1.54485785098712,
+        -0.08646881746381309
+      ],
+      "initial_energy": 2.0398404208325216,
+      "initial_abs_delta_e": 1.8811725167067959,
+      "initial_exact_state_fidelity": 0.4989558910573715,
+      "optimized_energy": 0.4980251031085286,
+      "optimized_abs_delta_e": 0.3393571989828028,
+      "optimized_exact_state_fidelity": 0.6222733217617875,
+      "optimized_theta_runtime": [
+        0.5279328804470284,
+        2.614738266839595,
+        -0.0026752078875174673,
+        -0.0008397478536627369,
+        -0.06306188279896371
+      ],
+      "optimizer": {
+        "method": "Powell",
+        "restarts": 3,
+        "selected_restart_index": 2,
+        "nfev": 224,
+        "success": true,
+        "message": "Optimization terminated successfully.",
+        "elapsed_s": 0.23655283357948065
+      },
+      "marrakesh_compile_best": {
+        "seed": 0,
+        "compiled_count_2q": 10,
+        "compiled_depth": 31,
+        "compiled_size": 62,
+        "layout_physical_qubits": [
+          91,
+          98,
+          110,
+          111,
+          109,
+          112
+        ]
+      },
+      "marrakesh_compile_ranges": {
+        "count_2q": [
+          10,
+          10
+        ],
+        "depth": [
+          31,
+          31
+        ],
+        "size": [
+          62,
+          62
+        ]
+      }
+    },
+    {
+      "runtime_term_count": 5,
+      "kept_runtime_indices": [
+        0,
+        1,
+        2,
+        4,
+        5
+      ],
+      "kept_pauli_exyz": [
+        "eeeexy",
+        "eeyxee",
+        "yeeeee",
+        "yeyyee",
+        "eyeeez"
+      ],
+      "dropped_runtime_indices": [
+        3,
+        6
+      ],
+      "dropped_pauli_exyz": [
+        "yezeze",
+        "eyezee"
+      ],
+      "theta0_runtime": [
+        1.5707938677176911,
+        1.6400240536158577,
+        -3.1415852322533517,
+        -1.5707956982689952,
+        -0.08638170368796677
+      ],
+      "initial_energy": 0.9703241030528642,
+      "initial_abs_delta_e": 0.8116561989271385,
+      "initial_exact_state_fidelity": 0.8562314869035393,
+      "optimized_energy": 0.958547490239581,
+      "optimized_abs_delta_e": 0.7998795861138552,
+      "optimized_exact_state_fidelity": 0.8509848486814089,
+      "optimized_theta_runtime": [
+        1.5851761754764735,
+        1.7366007350900354,
+        -3.2272805294203217,
+        -1.6163860722589924,
+        -0.16515797358581094
+      ],
+      "optimizer": {
+        "method": "Powell",
+        "restarts": 3,
+        "selected_restart_index": 1,
+        "nfev": 146,
+        "success": true,
+        "message": "Optimization terminated successfully.",
+        "elapsed_s": 0.1799134574830532
+      },
+      "marrakesh_compile_best": {
+        "seed": 0,
+        "compiled_count_2q": 10,
+        "compiled_depth": 31,
+        "compiled_size": 60,
+        "layout_physical_qubits": [
+          3,
+          4,
+          13,
+          14,
+          2,
+          15
+        ]
+      },
+      "marrakesh_compile_ranges": {
+        "count_2q": [
+          10,
+          10
+        ],
+        "depth": [
+          31,
+          31
+        ],
+        "size": [
+          60,
+          60
+        ]
+      }
+    },
+    {
+      "runtime_term_count": 5,
+      "kept_runtime_indices": [
+        0,
+        1,
+        2,
+        4,
+        6
+      ],
+      "kept_pauli_exyz": [
+        "eeeexy",
+        "eeyxee",
+        "yeeeee",
+        "yeyyee",
+        "eyezee"
+      ],
+      "dropped_runtime_indices": [
+        3,
+        5
+      ],
+      "dropped_pauli_exyz": [
+        "yezeze",
+        "eyeeez"
+      ],
+      "theta0_runtime": [
+        1.5707938677176911,
+        1.6400240536158577,
+        -3.1415852322533517,
+        -1.5707956982689952,
+        -0.08646881746381309
+      ],
+      "initial_energy": 0.9703047360733366,
+      "initial_abs_delta_e": 0.8116368319476108,
+      "initial_exact_state_fidelity": 0.8562472674844903,
+      "optimized_energy": 0.9583762286878783,
+      "optimized_abs_delta_e": 0.7997083245621526,
+      "optimized_exact_state_fidelity": 0.850933550376676,
+      "optimized_theta_runtime": [
+        1.558541758345705,
+        1.737954575893096,
+        -3.067152100860942,
+        -1.5311890629615024,
+        -0.16665564296454585
+      ],
+      "optimizer": {
+        "method": "Powell",
+        "restarts": 3,
+        "selected_restart_index": 1,
+        "nfev": 148,
+        "success": true,
+        "message": "Optimization terminated successfully.",
+        "elapsed_s": 0.18377166707068682
+      },
+      "marrakesh_compile_best": {
+        "seed": 0,
+        "compiled_count_2q": 10,
+        "compiled_depth": 39,
+        "compiled_size": 60,
+        "layout_physical_qubits": [
+          5,
+          6,
+          13,
+          14,
+          12,
+          15
+        ]
+      },
+      "marrakesh_compile_ranges": {
+        "count_2q": [
+          10,
+          10
+        ],
+        "depth": [
+          39,
+          39
+        ],
+        "size": [
+          60,
+          60
+        ]
+      }
+    },
+    {
+      "runtime_term_count": 5,
+      "kept_runtime_indices": [
+        0,
+        1,
+        2,
+        5,
+        6
+      ],
+      "kept_pauli_exyz": [
+        "eeeexy",
+        "eeyxee",
+        "yeeeee",
+        "eyeeez",
+        "eyezee"
+      ],
+      "dropped_runtime_indices": [
+        3,
+        4
+      ],
+      "dropped_pauli_exyz": [
+        "yezeze",
+        "yeyyee"
+      ],
+      "theta0_runtime": [
+        1.5707938677176911,
+        1.6400240536158577,
+        -3.1415852322533517,
+        -0.08638170368796677,
+        -0.08646881746381309
+      ],
+      "initial_energy": 1.4532839299834688,
+      "initial_abs_delta_e": 1.294616025857743,
+      "initial_exact_state_fidelity": 0.42892846574929283,
+      "optimized_energy": 0.49367099685736693,
+      "optimized_abs_delta_e": 0.33500309273164114,
+      "optimized_exact_state_fidelity": 0.6255344200417056,
+      "optimized_theta_runtime": [
+        0.533870038375847,
+        2.6076680671394654,
+        2.9782965616267423e-05,
+        -0.09984824227355577,
+        -0.10016091046297998
+      ],
+      "optimizer": {
+        "method": "Powell",
+        "restarts": 3,
+        "selected_restart_index": 0,
+        "nfev": 239,
+        "success": true,
+        "message": "Optimization terminated successfully.",
+        "elapsed_s": 0.24337325058877468
+      },
+      "marrakesh_compile_best": {
+        "seed": 0,
+        "compiled_count_2q": 8,
+        "compiled_depth": 28,
+        "compiled_size": 48,
+        "layout_physical_qubits": [
+          5,
+          6,
+          3,
+          2,
+          4,
+          15
+        ]
+      },
+      "marrakesh_compile_ranges": {
+        "count_2q": [
+          8,
+          8
+        ],
+        "depth": [
+          28,
+          28
+        ],
+        "size": [
+          48,
+          48
+        ]
+      }
+    },
+    {
+      "runtime_term_count": 5,
+      "kept_runtime_indices": [
+        0,
+        1,
+        3,
+        4,
+        5
+      ],
+      "kept_pauli_exyz": [
+        "eeeexy",
+        "eeyxee",
+        "yezeze",
+        "yeyyee",
+        "eyeeez"
+      ],
+      "dropped_runtime_indices": [
+        2,
+        6
+      ],
+      "dropped_pauli_exyz": [
+        "yeeeee",
+        "eyezee"
+      ],
+      "theta0_runtime": [
+        1.5707938677176911,
+        1.6400240536158577,
+        -1.54485785098712,
+        -1.5707956982689952,
+        -0.08638170368796677
+      ],
+      "initial_energy": 0.674851440721324,
+      "initial_abs_delta_e": 0.5161835365955982,
+      "initial_exact_state_fidelity": 0.49895105173787524,
+      "optimized_energy": 0.6147974292247242,
+      "optimized_abs_delta_e": 0.45612952509899846,
+      "optimized_exact_state_fidelity": 0.5980022860743046,
+      "optimized_theta_runtime": [
+        1.42319676002698,
+        1.6357176675025158,
+        -1.4358825865211469,
+        -1.275988513124067,
+        -0.07405169439050953
+      ],
+      "optimizer": {
+        "method": "Powell",
+        "restarts": 3,
+        "selected_restart_index": 1,
+        "nfev": 191,
+        "success": true,
+        "message": "Optimization terminated successfully.",
+        "elapsed_s": 0.25385366659611464
+      },
+      "marrakesh_compile_best": {
+        "seed": 0,
+        "compiled_count_2q": 14,
+        "compiled_depth": 48,
+        "compiled_size": 77,
+        "layout_physical_qubits": [
+          109,
+          110,
+          98,
+          111,
+          118,
+          112
+        ]
+      },
+      "marrakesh_compile_ranges": {
+        "count_2q": [
+          14,
+          14
+        ],
+        "depth": [
+          48,
+          48
+        ],
+        "size": [
+          77,
+          77
+        ]
+      }
+    },
+    {
+      "runtime_term_count": 5,
+      "kept_runtime_indices": [
+        0,
+        1,
+        3,
+        4,
+        6
+      ],
+      "kept_pauli_exyz": [
+        "eeeexy",
+        "eeyxee",
+        "yezeze",
+        "yeyyee",
+        "eyezee"
+      ],
+      "dropped_runtime_indices": [
+        2,
+        5
+      ],
+      "dropped_pauli_exyz": [
+        "yeeeee",
+        "eyeeez"
+      ],
+      "theta0_runtime": [
+        1.5707938677176911,
+        1.6400240536158577,
+        -1.54485785098712,
+        -1.5707956982689952,
+        -0.08646881746381309
+      ],
+      "initial_energy": 0.6748475851009466,
+      "initial_abs_delta_e": 0.5161796809752208,
+      "initial_exact_state_fidelity": 0.4989548157697024,
+      "optimized_energy": 0.6148153100731185,
+      "optimized_abs_delta_e": 0.4561474059473927,
+      "optimized_exact_state_fidelity": 0.59797434633023,
+      "optimized_theta_runtime": [
+        1.4236719386124992,
+        1.635630885726866,
+        -1.4359918149192046,
+        -1.2760807382015749,
+        -0.07366344548149377
+      ],
+      "optimizer": {
+        "method": "Powell",
+        "restarts": 3,
+        "selected_restart_index": 1,
+        "nfev": 192,
+        "success": true,
+        "message": "Optimization terminated successfully.",
+        "elapsed_s": 0.25571625027805567
+      },
+      "marrakesh_compile_best": {
+        "seed": 0,
+        "compiled_count_2q": 14,
+        "compiled_depth": 56,
+        "compiled_size": 77,
+        "layout_physical_qubits": [
+          109,
+          110,
+          98,
+          111,
+          91,
+          112
+        ]
+      },
+      "marrakesh_compile_ranges": {
+        "count_2q": [
+          14,
+          14
+        ],
+        "depth": [
+          56,
+          56
+        ],
+        "size": [
+          77,
+          77
+        ]
+      }
+    },
+    {
+      "runtime_term_count": 5,
+      "kept_runtime_indices": [
+        0,
+        1,
+        3,
+        5,
+        6
+      ],
+      "kept_pauli_exyz": [
+        "eeeexy",
+        "eeyxee",
+        "yezeze",
+        "eyeeez",
+        "eyezee"
+      ],
+      "dropped_runtime_indices": [
+        2,
+        4
+      ],
+      "dropped_pauli_exyz": [
+        "yeeeee",
+        "yeyyee"
+      ],
+      "theta0_runtime": [
+        1.5707938677176911,
+        1.6400240536158577,
+        -1.54485785098712,
+        -0.08638170368796677,
+        -0.08646881746381309
+      ],
+      "initial_energy": 1.6651704719056637,
+      "initial_abs_delta_e": 1.506502567779938,
+      "initial_exact_state_fidelity": 0.7353452591810236,
+      "optimized_energy": 0.49367088626237055,
+      "optimized_abs_delta_e": 0.33500298213664476,
+      "optimized_exact_state_fidelity": 0.6255200985267819,
+      "optimized_theta_runtime": [
+        2.6077327886440433,
+        0.5338527883832701,
+        5.883104413724116e-06,
+        -0.09966252186297332,
+        -0.0996514565237048
+      ],
+      "optimizer": {
+        "method": "Powell",
+        "restarts": 3,
+        "selected_restart_index": 2,
+        "nfev": 314,
+        "success": true,
+        "message": "Optimization terminated successfully.",
+        "elapsed_s": 0.34830050077289343
+      },
+      "marrakesh_compile_best": {
+        "seed": 4,
+        "compiled_count_2q": 18,
+        "compiled_depth": 38,
+        "compiled_size": 85,
+        "layout_physical_qubits": [
+          4,
+          16,
+          6,
+          3,
+          5,
+          2
+        ]
+      },
+      "marrakesh_compile_ranges": {
+        "count_2q": [
+          18,
+          18
+        ],
+        "depth": [
+          38,
+          55
+        ],
+        "size": [
+          85,
+          90
+        ]
+      }
+    },
+    {
+      "runtime_term_count": 5,
+      "kept_runtime_indices": [
+        0,
+        1,
+        4,
+        5,
+        6
+      ],
+      "kept_pauli_exyz": [
+        "eeeexy",
+        "eeyxee",
+        "yeyyee",
+        "eyeeez",
+        "eyezee"
+      ],
+      "dropped_runtime_indices": [
+        2,
+        3
+      ],
+      "dropped_pauli_exyz": [
+        "yeeeee",
+        "yezeze"
+      ],
+      "theta0_runtime": [
+        1.5707938677176911,
+        1.6400240536158577,
+        -1.5707956982689952,
+        -0.08638170368796677,
+        -0.08646881746381309
+      ],
+      "initial_energy": 1.4705776876774377,
+      "initial_abs_delta_e": 1.311909783551712,
+      "initial_exact_state_fidelity": 0.4289272009893353,
+      "optimized_energy": 0.4905605682779481,
+      "optimized_abs_delta_e": 0.3318926641522223,
+      "optimized_exact_state_fidelity": 0.6271989844143536,
+      "optimized_theta_runtime": [
+        0.5344371884699449,
+        2.6015927375959382,
+        -0.05674983120350388,
+        -0.10053710816511936,
+        -0.1000947571525219
+      ],
+      "optimizer": {
+        "method": "Powell",
+        "restarts": 3,
+        "selected_restart_index": 1,
+        "nfev": 332,
+        "success": true,
+        "message": "Optimization terminated successfully.",
+        "elapsed_s": 0.42702029272913933
+      },
+      "marrakesh_compile_best": {
+        "seed": 0,
+        "compiled_count_2q": 12,
+        "compiled_depth": 39,
+        "compiled_size": 64,
+        "layout_physical_qubits": [
+          6,
+          7,
+          4,
+          3,
+          5,
+          2
+        ]
+      },
+      "marrakesh_compile_ranges": {
+        "count_2q": [
+          12,
+          12
+        ],
+        "depth": [
+          39,
+          39
+        ],
+        "size": [
+          64,
+          64
+        ]
+      }
+    },
+    {
+      "runtime_term_count": 5,
+      "kept_runtime_indices": [
+        0,
+        2,
+        3,
+        4,
+        5
+      ],
+      "kept_pauli_exyz": [
+        "eeeexy",
+        "yeeeee",
+        "yezeze",
+        "yeyyee",
+        "eyeeez"
+      ],
+      "dropped_runtime_indices": [
+        1,
+        6
+      ],
+      "dropped_pauli_exyz": [
+        "eeyxee",
+        "eyezee"
+      ],
+      "theta0_runtime": [
+        1.5707938677176911,
+        -3.1415852322533517,
+        -1.54485785098712,
+        -1.5707956982689952,
+        -0.08638170368796677
+      ],
+      "initial_energy": 2.9458029161339443,
+      "initial_abs_delta_e": 2.7871350120082186,
+      "initial_exact_state_fidelity": 0.46782546341222725,
+      "optimized_energy": 0.7605241876162723,
+      "optimized_abs_delta_e": 0.6018562834905465,
+      "optimized_exact_state_fidelity": 0.48605345205807693,
+      "optimized_theta_runtime": [
+        0.4734680442283734,
+        6.014126499637044,
+        0.1815772726498868,
+        -3.141592653492435,
+        -0.02881708555947182
+      ],
+      "optimizer": {
+        "method": "Powell",
+        "restarts": 3,
+        "selected_restart_index": 0,
+        "nfev": 262,
+        "success": true,
+        "message": "Optimization terminated successfully.",
+        "elapsed_s": 0.32442125026136637
+      },
+      "marrakesh_compile_best": {
+        "seed": 0,
+        "compiled_count_2q": 12,
+        "compiled_depth": 45,
+        "compiled_size": 69,
+        "layout_physical_qubits": [
+          109,
+          110,
+          98,
+          111,
+          118,
+          112
+        ]
+      },
+      "marrakesh_compile_ranges": {
+        "count_2q": [
+          12,
+          12
+        ],
+        "depth": [
+          45,
+          45
+        ],
+        "size": [
+          69,
+          69
+        ]
+      }
+    },
+    {
+      "runtime_term_count": 5,
+      "kept_runtime_indices": [
+        0,
+        2,
+        3,
+        4,
+        6
+      ],
+      "kept_pauli_exyz": [
+        "eeeexy",
+        "yeeeee",
+        "yezeze",
+        "yeyyee",
+        "eyezee"
+      ],
+      "dropped_runtime_indices": [
+        1,
+        5
+      ],
+      "dropped_pauli_exyz": [
+        "eeyxee",
+        "eyeeez"
+      ],
+      "theta0_runtime": [
+        1.5707938677176911,
+        -3.1415852322533517,
+        -1.54485785098712,
+        -1.5707956982689952,
+        -0.08646881746381309
+      ],
+      "initial_energy": 2.943114503734206,
+      "initial_abs_delta_e": 2.78444659960848,
+      "initial_exact_state_fidelity": 0.46768229103352765,
+      "optimized_energy": 0.7601753408800783,
+      "optimized_abs_delta_e": 0.6015074367543525,
+      "optimized_exact_state_fidelity": 0.4859931619885282,
+      "optimized_theta_runtime": [
+        0.4740123268930401,
+        6.031720790371115,
+        0.17350735339858236,
+        -3.1415926535930203,
+        -0.05507226085940183
+      ],
+      "optimizer": {
+        "method": "Powell",
+        "restarts": 3,
+        "selected_restart_index": 0,
+        "nfev": 196,
+        "success": true,
+        "message": "Optimization terminated successfully.",
+        "elapsed_s": 0.24253408331423998
+      },
+      "marrakesh_compile_best": {
+        "seed": 0,
+        "compiled_count_2q": 12,
+        "compiled_depth": 53,
+        "compiled_size": 69,
+        "layout_physical_qubits": [
+          109,
+          110,
+          98,
+          111,
+          91,
+          112
+        ]
+      },
+      "marrakesh_compile_ranges": {
+        "count_2q": [
+          12,
+          12
+        ],
+        "depth": [
+          53,
+          53
+        ],
+        "size": [
+          69,
+          69
+        ]
+      }
+    },
+    {
+      "runtime_term_count": 5,
+      "kept_runtime_indices": [
+        0,
+        2,
+        3,
+        5,
+        6
+      ],
+      "kept_pauli_exyz": [
+        "eeeexy",
+        "yeeeee",
+        "yezeze",
+        "eyeeez",
+        "eyezee"
+      ],
+      "dropped_runtime_indices": [
+        1,
+        4
+      ],
+      "dropped_pauli_exyz": [
+        "eeyxee",
+        "yeyyee"
+      ],
+      "theta0_runtime": [
+        1.5707938677176911,
+        -3.1415852322533517,
+        -1.54485785098712,
+        -0.08638170368796677,
+        -0.08646881746381309
+      ],
+      "initial_energy": 2.9262402463396935,
+      "initial_abs_delta_e": 2.7675723422139678,
+      "initial_exact_state_fidelity": 0.23425240508773446,
+      "optimized_energy": 0.7577309504436387,
+      "optimized_abs_delta_e": 0.599063046317913,
+      "optimized_exact_state_fidelity": 0.48675712165830637,
+      "optimized_theta_runtime": [
+        2.660160094217003,
+        0.2743342816016545,
+        0.1846417162250238,
+        -0.09186077175612685,
+        -0.13649632811945597
+      ],
+      "optimizer": {
+        "method": "Powell",
+        "restarts": 3,
+        "selected_restart_index": 0,
+        "nfev": 245,
+        "success": true,
+        "message": "Optimization terminated successfully.",
+        "elapsed_s": 0.24674129206687212
+      },
+      "marrakesh_compile_best": {
+        "seed": 0,
+        "compiled_count_2q": 10,
+        "compiled_depth": 28,
+        "compiled_size": 56,
+        "layout_physical_qubits": [
+          13,
+          12,
+          15,
+          11,
+          14,
+          10
+        ]
+      },
+      "marrakesh_compile_ranges": {
+        "count_2q": [
+          10,
+          10
+        ],
+        "depth": [
+          28,
+          28
+        ],
+        "size": [
+          56,
+          56
+        ]
+      }
+    },
+    {
+      "runtime_term_count": 5,
+      "kept_runtime_indices": [
+        0,
+        2,
+        4,
+        5,
+        6
+      ],
+      "kept_pauli_exyz": [
+        "eeeexy",
+        "yeeeee",
+        "yeyyee",
+        "eyeeez",
+        "eyezee"
+      ],
+      "dropped_runtime_indices": [
+        1,
+        3
+      ],
+      "dropped_pauli_exyz": [
+        "eeyxee",
+        "yezeze"
+      ],
+      "theta0_runtime": [
+        1.5707938677176911,
+        -3.1415852322533517,
+        -1.5707956982689952,
+        -0.08638170368796677,
+        -0.08646881746381309
+      ],
+      "initial_energy": 2.7144561825412596,
+      "initial_abs_delta_e": 2.555788278415534,
+      "initial_exact_state_fidelity": 0.40663745856080247,
+      "optimized_energy": 0.7601620831068928,
+      "optimized_abs_delta_e": 0.601494178981167,
+      "optimized_exact_state_fidelity": 0.4860149401007962,
+      "optimized_theta_runtime": [
+        0.4750557329693983,
+        -6.393805536339766,
+        -3.141592657040918,
+        -0.09097422722136178,
+        -0.1349791992434649
+      ],
+      "optimizer": {
+        "method": "Powell",
+        "restarts": 3,
+        "selected_restart_index": 2,
+        "nfev": 272,
+        "success": true,
+        "message": "Optimization terminated successfully.",
+        "elapsed_s": 0.32187541760504246
+      },
+      "marrakesh_compile_best": {
+        "seed": 0,
+        "compiled_count_2q": 10,
+        "compiled_depth": 29,
+        "compiled_size": 57,
+        "layout_physical_qubits": [
+          6,
+          7,
+          4,
+          3,
+          5,
+          2
+        ]
+      },
+      "marrakesh_compile_ranges": {
+        "count_2q": [
+          10,
+          10
+        ],
+        "depth": [
+          29,
+          29
+        ],
+        "size": [
+          57,
+          57
+        ]
+      }
+    },
+    {
+      "runtime_term_count": 5,
+      "kept_runtime_indices": [
+        0,
+        3,
+        4,
+        5,
+        6
+      ],
+      "kept_pauli_exyz": [
+        "eeeexy",
+        "yezeze",
+        "yeyyee",
+        "eyeeez",
+        "eyezee"
+      ],
+      "dropped_runtime_indices": [
+        1,
+        2
+      ],
+      "dropped_pauli_exyz": [
+        "eeyxee",
+        "yeeeee"
+      ],
+      "theta0_runtime": [
+        1.5707938677176911,
+        -1.54485785098712,
+        -1.5707956982689952,
+        -0.08638170368796677,
+        -0.08646881746381309
+      ],
+      "initial_energy": 2.7471806981919604,
+      "initial_abs_delta_e": 2.5885127940662347,
+      "initial_exact_state_fidelity": 0.23425230282166415,
+      "optimized_energy": 0.7605241876804182,
+      "optimized_abs_delta_e": 0.6018562835546923,
+      "optimized_exact_state_fidelity": 0.48605375150104013,
+      "optimized_theta_runtime": [
+        2.6681204037021153,
+        0.05763434624120752,
+        9.979621349646503e-10,
+        -0.09079185287306869,
+        -0.1345353418546688
+      ],
+      "optimizer": {
+        "method": "Powell",
+        "restarts": 3,
+        "selected_restart_index": 2,
+        "nfev": 244,
+        "success": true,
+        "message": "Optimization terminated successfully.",
+        "elapsed_s": 0.31223425082862377
+      },
+      "marrakesh_compile_best": {
+        "seed": 0,
+        "compiled_count_2q": 20,
+        "compiled_depth": 60,
+        "compiled_size": 87,
+        "layout_physical_qubits": [
+          3,
+          16,
+          4,
+          2,
+          5,
+          1
+        ]
+      },
+      "marrakesh_compile_ranges": {
+        "count_2q": [
+          20,
+          23
+        ],
+        "depth": [
+          58,
+          63
+        ],
+        "size": [
+          87,
+          106
+        ]
+      }
+    },
+    {
+      "runtime_term_count": 5,
+      "kept_runtime_indices": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "kept_pauli_exyz": [
+        "eeyxee",
+        "yeeeee",
+        "yezeze",
+        "yeyyee",
+        "eyeeez"
+      ],
+      "dropped_runtime_indices": [
+        0,
+        6
+      ],
+      "dropped_pauli_exyz": [
+        "eeeexy",
+        "eyezee"
+      ],
+      "theta0_runtime": [
+        1.6400240536158577,
+        -3.1415852322533517,
+        -1.54485785098712,
+        -1.5707956982689952,
+        -0.08638170368796677
+      ],
+      "initial_energy": 0.8772108178471907,
+      "initial_abs_delta_e": 0.718542913721465,
+      "initial_exact_state_fidelity": 0.49895083351228786,
+      "optimized_energy": 0.7601620832540126,
+      "optimized_abs_delta_e": 0.6014941791282868,
+      "optimized_exact_state_fidelity": 0.48601332537130654,
+      "optimized_theta_runtime": [
+        1.6411444935391215,
+        -3.0038786201348873,
+        -2.1932236610303213,
+        -1.53844503271827,
+        -0.055306497082032724
+      ],
+      "optimizer": {
+        "method": "Powell",
+        "restarts": 3,
+        "selected_restart_index": 2,
+        "nfev": 137,
+        "success": true,
+        "message": "Optimization terminated successfully.",
+        "elapsed_s": 0.16877037566155195
+      },
+      "marrakesh_compile_best": {
+        "seed": 0,
+        "compiled_count_2q": 12,
+        "compiled_depth": 48,
+        "compiled_size": 68,
+        "layout_physical_qubits": [
+          6,
+          137,
+          148,
+          147,
+          5,
+          146
+        ]
+      },
+      "marrakesh_compile_ranges": {
+        "count_2q": [
+          12,
+          12
+        ],
+        "depth": [
+          48,
+          48
+        ],
+        "size": [
+          68,
+          68
+        ]
+      }
+    },
+    {
+      "runtime_term_count": 5,
+      "kept_runtime_indices": [
+        1,
+        2,
+        3,
+        4,
+        6
+      ],
+      "kept_pauli_exyz": [
+        "eeyxee",
+        "yeeeee",
+        "yezeze",
+        "yeyyee",
+        "eyezee"
+      ],
+      "dropped_runtime_indices": [
+        0,
+        5
+      ],
+      "dropped_pauli_exyz": [
+        "eeeexy",
+        "eyeeez"
+      ],
+      "theta0_runtime": [
+        1.6400240536158577,
+        -3.1415852322533517,
+        -1.54485785098712,
+        -1.5707956982689952,
+        -0.08646881746381309
+      ],
+      "initial_energy": 0.8798774371989347,
+      "initial_abs_delta_e": 0.7212095330732089,
+      "initial_exact_state_fidelity": 0.49895459737596104,
+      "optimized_energy": 0.7605241876207846,
+      "optimized_abs_delta_e": 0.6018562834950587,
+      "optimized_exact_state_fidelity": 0.48605300082346814,
+      "optimized_theta_runtime": [
+        1.5457670944908521,
+        -3.1018987586415867,
+        -2.19856236312423,
+        -1.6453057752718048,
+        -0.02881673343170333
+      ],
+      "optimizer": {
+        "method": "Powell",
+        "restarts": 3,
+        "selected_restart_index": 1,
+        "nfev": 141,
+        "success": true,
+        "message": "Optimization terminated successfully.",
+        "elapsed_s": 0.17408183310180902
+      },
+      "marrakesh_compile_best": {
+        "seed": 0,
+        "compiled_count_2q": 12,
+        "compiled_depth": 56,
+        "compiled_size": 68,
+        "layout_physical_qubits": [
+          15,
+          16,
+          4,
+          3,
+          5,
+          2
+        ]
+      },
+      "marrakesh_compile_ranges": {
+        "count_2q": [
+          12,
+          12
+        ],
+        "depth": [
+          56,
+          56
+        ],
+        "size": [
+          68,
+          68
+        ]
+      }
+    },
+    {
+      "runtime_term_count": 5,
+      "kept_runtime_indices": [
+        1,
+        2,
+        3,
+        5,
+        6
+      ],
+      "kept_pauli_exyz": [
+        "eeyxee",
+        "yeeeee",
+        "yezeze",
+        "eyeeez",
+        "eyezee"
+      ],
+      "dropped_runtime_indices": [
+        0,
+        4
+      ],
+      "dropped_pauli_exyz": [
+        "eeeexy",
+        "yeyyee"
+      ],
+      "theta0_runtime": [
+        1.6400240536158577,
+        -3.1415852322533517,
+        -1.54485785098712,
+        -0.08638170368796677,
+        -0.08646881746381309
+      ],
+      "initial_energy": 2.755797720750037,
+      "initial_abs_delta_e": 2.597129816624311,
+      "initial_exact_state_fidelity": 0.2463280621914463,
+      "optimized_energy": 0.7577310769965722,
+      "optimized_abs_delta_e": 0.5990631728708464,
+      "optimized_exact_state_fidelity": 0.48675538513404093,
+      "optimized_theta_runtime": [
+        2.6601300728313855,
+        0.2745020723227456,
+        0.18490296114154958,
+        -0.1365424319212689,
+        -0.09142320670280409
+      ],
+      "optimizer": {
+        "method": "Powell",
+        "restarts": 3,
+        "selected_restart_index": 0,
+        "nfev": 244,
+        "success": true,
+        "message": "Optimization terminated successfully.",
+        "elapsed_s": 0.24744758289307356
+      },
+      "marrakesh_compile_best": {
+        "seed": 0,
+        "compiled_count_2q": 10,
+        "compiled_depth": 31,
+        "compiled_size": 57,
+        "layout_physical_qubits": [
+          6,
+          16,
+          4,
+          3,
+          5,
+          2
+        ]
+      },
+      "marrakesh_compile_ranges": {
+        "count_2q": [
+          10,
+          10
+        ],
+        "depth": [
+          31,
+          31
+        ],
+        "size": [
+          57,
+          57
+        ]
+      }
+    },
+    {
+      "runtime_term_count": 5,
+      "kept_runtime_indices": [
+        1,
+        2,
+        4,
+        5,
+        6
+      ],
+      "kept_pauli_exyz": [
+        "eeyxee",
+        "yeeeee",
+        "yeyyee",
+        "eyeeez",
+        "eyezee"
+      ],
+      "dropped_runtime_indices": [
+        0,
+        3
+      ],
+      "dropped_pauli_exyz": [
+        "eeeexy",
+        "yezeze"
+      ],
+      "theta0_runtime": [
+        1.6400240536158577,
+        -3.1415852322533517,
+        -1.5707956982689952,
+        -0.08638170368796677,
+        -0.08646881746381309
+      ],
+      "initial_energy": 1.9507537116205398,
+      "initial_abs_delta_e": 1.792085807494814,
+      "initial_exact_state_fidelity": 0.42892695016794513,
+      "optimized_energy": 0.7577310297217252,
+      "optimized_abs_delta_e": 0.5990631255959995,
+      "optimized_exact_state_fidelity": 0.4867171066831277,
+      "optimized_theta_runtime": [
+        2.662846243465352,
+        0.06639629953564188,
+        -0.04761910923144008,
+        -0.13699297854768838,
+        -0.09220418071813233
+      ],
+      "optimizer": {
+        "method": "Powell",
+        "restarts": 3,
+        "selected_restart_index": 0,
+        "nfev": 242,
+        "success": true,
+        "message": "Optimization terminated successfully.",
+        "elapsed_s": 0.293333875015378
+      },
+      "marrakesh_compile_best": {
+        "seed": 0,
+        "compiled_count_2q": 10,
+        "compiled_depth": 39,
+        "compiled_size": 55,
+        "layout_physical_qubits": [
+          19,
+          5,
+          14,
+          13,
+          15,
+          12
+        ]
+      },
+      "marrakesh_compile_ranges": {
+        "count_2q": [
+          10,
+          10
+        ],
+        "depth": [
+          39,
+          39
+        ],
+        "size": [
+          55,
+          55
+        ]
+      }
+    },
+    {
+      "runtime_term_count": 5,
+      "kept_runtime_indices": [
+        1,
+        3,
+        4,
+        5,
+        6
+      ],
+      "kept_pauli_exyz": [
+        "eeyxee",
+        "yezeze",
+        "yeyyee",
+        "eyeeez",
+        "eyezee"
+      ],
+      "dropped_runtime_indices": [
+        0,
+        2
+      ],
+      "dropped_pauli_exyz": [
+        "eeeexy",
+        "yeeeee"
+      ],
+      "theta0_runtime": [
+        1.6400240536158577,
+        -1.54485785098712,
+        -1.5707956982689952,
+        -0.08638170368796677,
+        -0.08646881746381309
+      ],
+      "initial_energy": 1.3088936486356477,
+      "initial_abs_delta_e": 1.150225744509922,
+      "initial_exact_state_fidelity": 0.2566041825117068,
+      "optimized_energy": 0.7577359567301326,
+      "optimized_abs_delta_e": 0.5990680526044068,
+      "optimized_exact_state_fidelity": 0.4867278883023937,
+      "optimized_theta_runtime": [
+        2.662439672898694,
+        -0.058565887942126936,
+        -0.06352384278989896,
+        -0.14060163454434874,
+        -0.09625584352116821
+      ],
+      "optimizer": {
+        "method": "Powell",
+        "restarts": 3,
+        "selected_restart_index": 2,
+        "nfev": 249,
+        "success": true,
+        "message": "Optimization terminated successfully.",
+        "elapsed_s": 0.31889958400279284
+      },
+      "marrakesh_compile_best": {
+        "seed": 0,
+        "compiled_count_2q": 14,
+        "compiled_depth": 56,
+        "compiled_size": 72,
+        "layout_physical_qubits": [
+          6,
+          16,
+          4,
+          3,
+          5,
+          2
+        ]
+      },
+      "marrakesh_compile_ranges": {
+        "count_2q": [
+          14,
+          14
+        ],
+        "depth": [
+          56,
+          56
+        ],
+        "size": [
+          72,
+          72
+        ]
+      }
+    },
+    {
+      "runtime_term_count": 5,
+      "kept_runtime_indices": [
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "kept_pauli_exyz": [
+        "yeeeee",
+        "yezeze",
+        "yeyyee",
+        "eyeeez",
+        "eyezee"
+      ],
+      "dropped_runtime_indices": [
+        0,
+        1
+      ],
+      "dropped_pauli_exyz": [
+        "eeeexy",
+        "eeyxee"
+      ],
+      "theta0_runtime": [
+        -3.1415852322533517,
+        -1.54485785098712,
+        -1.5707956982689952,
+        -0.08638170368796677,
+        -0.08646881746381309
+      ],
+      "initial_energy": 3.639784237382136,
+      "initial_abs_delta_e": 3.48111633325641,
+      "initial_exact_state_fidelity": 0.234252085192753,
+      "optimized_energy": 0.9999999999999976,
+      "optimized_abs_delta_e": 0.8413320958742718,
+      "optimized_exact_state_fidelity": 0.42383495106330554,
+      "optimized_theta_runtime": [
+        -4.717599986410039,
+        -1.5655853166136733,
+        -3.1415926536105188,
+        -0.08646991758170526,
+        -0.0864699190073031
+      ],
+      "optimizer": {
+        "method": "Powell",
+        "restarts": 3,
+        "selected_restart_index": 0,
+        "nfev": 202,
+        "success": true,
+        "message": "Optimization terminated successfully.",
+        "elapsed_s": 0.2440278334543109
+      },
+      "marrakesh_compile_best": {
+        "seed": 0,
+        "compiled_count_2q": 12,
+        "compiled_depth": 46,
+        "compiled_size": 64,
+        "layout_physical_qubits": [
+          6,
+          16,
+          4,
+          3,
+          5,
+          2
+        ]
+      },
+      "marrakesh_compile_ranges": {
+        "count_2q": [
+          12,
+          12
+        ],
+        "depth": [
+          46,
+          46
+        ],
+        "size": [
+          64,
+          64
+        ]
+      }
+    }
+  ],
+  "summary": {
+    "count_total": 28,
+    "count_within_1e3": 0,
+    "count_within_5e3": 2,
+    "best_by_energy_per_size": {
+      "6": {
+        "runtime_term_count": 6,
+        "kept_runtime_indices": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          6
+        ],
+        "kept_pauli_exyz": [
+          "eeeexy",
+          "eeyxee",
+          "yeeeee",
+          "yezeze",
+          "yeyyee",
+          "eyezee"
+        ],
+        "dropped_runtime_indices": [
+          5
+        ],
+        "dropped_pauli_exyz": [
+          "eyeeez"
+        ],
+        "theta0_runtime": [
+          1.5707938677176911,
+          1.6400240536158577,
+          -3.1415852322533517,
+          -1.54485785098712,
+          -1.5707956982689952,
+          -0.08646881746381309
+        ],
+        "initial_energy": 0.16366001096781374,
+        "initial_abs_delta_e": 0.004992106842087951,
+        "initial_exact_state_fidelity": 0.997909151031,
+        "optimized_energy": 0.16327777313193625,
+        "optimized_abs_delta_e": 0.004609869006210465,
+        "optimized_exact_state_fidelity": 0.998490590463693,
+        "optimized_theta_runtime": [
+          1.5709068720143538,
+          1.6391549995122405,
+          -3.1419250699470096,
+          -1.5542996609447908,
+          -1.5708276776683492,
+          -0.06192021434530125
+        ],
+        "optimizer": {
+          "method": "Powell",
+          "restarts": 3,
+          "selected_restart_index": 1,
+          "nfev": 225,
+          "success": true,
+          "message": "Optimization terminated successfully.",
+          "elapsed_s": 0.3236374594271183
+        },
+        "marrakesh_compile_best": {
+          "seed": 0,
+          "compiled_count_2q": 14,
+          "compiled_depth": 56,
+          "compiled_size": 80,
+          "layout_physical_qubits": [
+            109,
+            110,
+            98,
+            111,
+            91,
+            112
+          ]
+        },
+        "marrakesh_compile_ranges": {
+          "count_2q": [
+            14,
+            14
+          ],
+          "depth": [
+            56,
+            56
+          ],
+          "size": [
+            80,
+            80
+          ]
+        }
+      },
+      "5": {
+        "runtime_term_count": 5,
+        "kept_runtime_indices": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ],
+        "kept_pauli_exyz": [
+          "eeeexy",
+          "eeyxee",
+          "yeeeee",
+          "yezeze",
+          "yeyyee"
+        ],
+        "dropped_runtime_indices": [
+          5,
+          6
+        ],
+        "dropped_pauli_exyz": [
+          "eyeeez",
+          "eyezee"
+        ],
+        "theta0_runtime": [
+          1.5707938677176911,
+          1.6400240536158577,
+          -3.1415852322533517,
+          -1.54485785098712,
+          -1.5707956982689952
+        ],
+        "initial_energy": 0.16568152115614831,
+        "initial_abs_delta_e": 0.007013617030422525,
+        "initial_exact_state_fidelity": 0.9986230507758485,
+        "optimized_energy": 0.165586560516765,
+        "optimized_abs_delta_e": 0.006918656391039224,
+        "optimized_exact_state_fidelity": 0.9986227659012741,
+        "optimized_theta_runtime": [
+          1.570796279564962,
+          1.6385413524658687,
+          -3.1415925094192056,
+          -1.5612119144270669,
+          -1.570796310630546
+        ],
+        "optimizer": {
+          "method": "Powell",
+          "restarts": 3,
+          "selected_restart_index": 0,
+          "nfev": 112,
+          "success": true,
+          "message": "Optimization terminated successfully.",
+          "elapsed_s": 0.14317708369344473
+        },
+        "marrakesh_compile_best": {
+          "seed": 0,
+          "compiled_count_2q": 12,
+          "compiled_depth": 48,
+          "compiled_size": 71,
+          "layout_physical_qubits": [
+            109,
+            110,
+            98,
+            111,
+            5,
+            112
+          ]
+        },
+        "marrakesh_compile_ranges": {
+          "count_2q": [
+            12,
+            12
+          ],
+          "depth": [
+            48,
+            48
+          ],
+          "size": [
+            71,
+            71
+          ]
+        }
+      }
+    },
+    "best_by_cost_per_size": {
+      "6": {
+        "runtime_term_count": 6,
+        "kept_runtime_indices": [
+          0,
+          1,
+          2,
+          4,
+          5,
+          6
+        ],
+        "kept_pauli_exyz": [
+          "eeeexy",
+          "eeyxee",
+          "yeeeee",
+          "yeyyee",
+          "eyeeez",
+          "eyezee"
+        ],
+        "dropped_runtime_indices": [
+          3
+        ],
+        "dropped_pauli_exyz": [
+          "yezeze"
+        ],
+        "theta0_runtime": [
+          1.5707938677176911,
+          1.6400240536158577,
+          -3.1415852322533517,
+          -1.5707956982689952,
+          -0.08638170368796677,
+          -0.08646881746381309
+        ],
+        "initial_energy": 0.9544831451888807,
+        "initial_abs_delta_e": 0.7958152410631549,
+        "initial_exact_state_fidelity": 0.8578537792457341,
+        "optimized_energy": 0.4903405745735258,
+        "optimized_abs_delta_e": 0.3316726704478,
+        "optimized_exact_state_fidelity": 0.6277042905141508,
+        "optimized_theta_runtime": [
+          2.6054053164419226,
+          2.6022315885989893,
+          -6.221001088630346,
+          -3.080608634024237,
+          -0.10061095427231842,
+          -0.10026654471676802
+        ],
+        "optimizer": {
+          "method": "Powell",
+          "restarts": 3,
+          "selected_restart_index": 2,
+          "nfev": 476,
+          "success": true,
+          "message": "Optimization terminated successfully.",
+          "elapsed_s": 0.6666280832141638
+        },
+        "marrakesh_compile_best": {
+          "seed": 0,
+          "compiled_count_2q": 12,
+          "compiled_depth": 39,
+          "compiled_size": 67,
+          "layout_physical_qubits": [
+            6,
+            7,
+            4,
+            3,
+            5,
+            2
+          ]
+        },
+        "marrakesh_compile_ranges": {
+          "count_2q": [
+            12,
+            12
+          ],
+          "depth": [
+            39,
+            39
+          ],
+          "size": [
+            67,
+            67
+          ]
+        }
+      },
+      "5": {
+        "runtime_term_count": 5,
+        "kept_runtime_indices": [
+          0,
+          1,
+          2,
+          5,
+          6
+        ],
+        "kept_pauli_exyz": [
+          "eeeexy",
+          "eeyxee",
+          "yeeeee",
+          "eyeeez",
+          "eyezee"
+        ],
+        "dropped_runtime_indices": [
+          3,
+          4
+        ],
+        "dropped_pauli_exyz": [
+          "yezeze",
+          "yeyyee"
+        ],
+        "theta0_runtime": [
+          1.5707938677176911,
+          1.6400240536158577,
+          -3.1415852322533517,
+          -0.08638170368796677,
+          -0.08646881746381309
+        ],
+        "initial_energy": 1.4532839299834688,
+        "initial_abs_delta_e": 1.294616025857743,
+        "initial_exact_state_fidelity": 0.42892846574929283,
+        "optimized_energy": 0.49367099685736693,
+        "optimized_abs_delta_e": 0.33500309273164114,
+        "optimized_exact_state_fidelity": 0.6255344200417056,
+        "optimized_theta_runtime": [
+          0.533870038375847,
+          2.6076680671394654,
+          2.9782965616267423e-05,
+          -0.09984824227355577,
+          -0.10016091046297998
+        ],
+        "optimizer": {
+          "method": "Powell",
+          "restarts": 3,
+          "selected_restart_index": 0,
+          "nfev": 239,
+          "success": true,
+          "message": "Optimization terminated successfully.",
+          "elapsed_s": 0.24337325058877468
+        },
+        "marrakesh_compile_best": {
+          "seed": 0,
+          "compiled_count_2q": 8,
+          "compiled_depth": 28,
+          "compiled_size": 48,
+          "layout_physical_qubits": [
+            5,
+            6,
+            3,
+            2,
+            4,
+            15
+          ]
+        },
+        "marrakesh_compile_ranges": {
+          "count_2q": [
+            8,
+            8
+          ],
+          "depth": [
+            28,
+            28
+          ],
+          "size": [
+            48,
+            48
+          ]
+        }
+      }
+    },
+    "rows_sorted_by_energy": [
+      {
+        "runtime_term_count": 5,
+        "kept_runtime_indices": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ],
+        "kept_pauli_exyz": [
+          "eeeexy",
+          "eeyxee",
+          "yeeeee",
+          "yezeze",
+          "yeyyee"
+        ],
+        "dropped_runtime_indices": [
+          5,
+          6
+        ],
+        "dropped_pauli_exyz": [
+          "eyeeez",
+          "eyezee"
+        ],
+        "theta0_runtime": [
+          1.5707938677176911,
+          1.6400240536158577,
+          -3.1415852322533517,
+          -1.54485785098712,
+          -1.5707956982689952
+        ],
+        "initial_energy": 0.16568152115614831,
+        "initial_abs_delta_e": 0.007013617030422525,
+        "initial_exact_state_fidelity": 0.9986230507758485,
+        "optimized_energy": 0.165586560516765,
+        "optimized_abs_delta_e": 0.006918656391039224,
+        "optimized_exact_state_fidelity": 0.9986227659012741,
+        "optimized_theta_runtime": [
+          1.570796279564962,
+          1.6385413524658687,
+          -3.1415925094192056,
+          -1.5612119144270669,
+          -1.570796310630546
+        ],
+        "optimizer": {
+          "method": "Powell",
+          "restarts": 3,
+          "selected_restart_index": 0,
+          "nfev": 112,
+          "success": true,
+          "message": "Optimization terminated successfully.",
+          "elapsed_s": 0.14317708369344473
+        },
+        "marrakesh_compile_best": {
+          "seed": 0,
+          "compiled_count_2q": 12,
+          "compiled_depth": 48,
+          "compiled_size": 71,
+          "layout_physical_qubits": [
+            109,
+            110,
+            98,
+            111,
+            5,
+            112
+          ]
+        },
+        "marrakesh_compile_ranges": {
+          "count_2q": [
+            12,
+            12
+          ],
+          "depth": [
+            48,
+            48
+          ],
+          "size": [
+            71,
+            71
+          ]
+        }
+      },
+      {
+        "runtime_term_count": 5,
+        "kept_runtime_indices": [
+          0,
+          1,
+          4,
+          5,
+          6
+        ],
+        "kept_pauli_exyz": [
+          "eeeexy",
+          "eeyxee",
+          "yeyyee",
+          "eyeeez",
+          "eyezee"
+        ],
+        "dropped_runtime_indices": [
+          2,
+          3
+        ],
+        "dropped_pauli_exyz": [
+          "yeeeee",
+          "yezeze"
+        ],
+        "theta0_runtime": [
+          1.5707938677176911,
+          1.6400240536158577,
+          -1.5707956982689952,
+          -0.08638170368796677,
+          -0.08646881746381309
+        ],
+        "initial_energy": 1.4705776876774377,
+        "initial_abs_delta_e": 1.311909783551712,
+        "initial_exact_state_fidelity": 0.4289272009893353,
+        "optimized_energy": 0.4905605682779481,
+        "optimized_abs_delta_e": 0.3318926641522223,
+        "optimized_exact_state_fidelity": 0.6271989844143536,
+        "optimized_theta_runtime": [
+          0.5344371884699449,
+          2.6015927375959382,
+          -0.05674983120350388,
+          -0.10053710816511936,
+          -0.1000947571525219
+        ],
+        "optimizer": {
+          "method": "Powell",
+          "restarts": 3,
+          "selected_restart_index": 1,
+          "nfev": 332,
+          "success": true,
+          "message": "Optimization terminated successfully.",
+          "elapsed_s": 0.42702029272913933
+        },
+        "marrakesh_compile_best": {
+          "seed": 0,
+          "compiled_count_2q": 12,
+          "compiled_depth": 39,
+          "compiled_size": 64,
+          "layout_physical_qubits": [
+            6,
+            7,
+            4,
+            3,
+            5,
+            2
+          ]
+        },
+        "marrakesh_compile_ranges": {
+          "count_2q": [
+            12,
+            12
+          ],
+          "depth": [
+            39,
+            39
+          ],
+          "size": [
+            64,
+            64
+          ]
+        }
+      },
+      {
+        "runtime_term_count": 5,
+        "kept_runtime_indices": [
+          0,
+          1,
+          3,
+          5,
+          6
+        ],
+        "kept_pauli_exyz": [
+          "eeeexy",
+          "eeyxee",
+          "yezeze",
+          "eyeeez",
+          "eyezee"
+        ],
+        "dropped_runtime_indices": [
+          2,
+          4
+        ],
+        "dropped_pauli_exyz": [
+          "yeeeee",
+          "yeyyee"
+        ],
+        "theta0_runtime": [
+          1.5707938677176911,
+          1.6400240536158577,
+          -1.54485785098712,
+          -0.08638170368796677,
+          -0.08646881746381309
+        ],
+        "initial_energy": 1.6651704719056637,
+        "initial_abs_delta_e": 1.506502567779938,
+        "initial_exact_state_fidelity": 0.7353452591810236,
+        "optimized_energy": 0.49367088626237055,
+        "optimized_abs_delta_e": 0.33500298213664476,
+        "optimized_exact_state_fidelity": 0.6255200985267819,
+        "optimized_theta_runtime": [
+          2.6077327886440433,
+          0.5338527883832701,
+          5.883104413724116e-06,
+          -0.09966252186297332,
+          -0.0996514565237048
+        ],
+        "optimizer": {
+          "method": "Powell",
+          "restarts": 3,
+          "selected_restart_index": 2,
+          "nfev": 314,
+          "success": true,
+          "message": "Optimization terminated successfully.",
+          "elapsed_s": 0.34830050077289343
+        },
+        "marrakesh_compile_best": {
+          "seed": 4,
+          "compiled_count_2q": 18,
+          "compiled_depth": 38,
+          "compiled_size": 85,
+          "layout_physical_qubits": [
+            4,
+            16,
+            6,
+            3,
+            5,
+            2
+          ]
+        },
+        "marrakesh_compile_ranges": {
+          "count_2q": [
+            18,
+            18
+          ],
+          "depth": [
+            38,
+            55
+          ],
+          "size": [
+            85,
+            90
+          ]
+        }
+      },
+      {
+        "runtime_term_count": 5,
+        "kept_runtime_indices": [
+          0,
+          1,
+          2,
+          5,
+          6
+        ],
+        "kept_pauli_exyz": [
+          "eeeexy",
+          "eeyxee",
+          "yeeeee",
+          "eyeeez",
+          "eyezee"
+        ],
+        "dropped_runtime_indices": [
+          3,
+          4
+        ],
+        "dropped_pauli_exyz": [
+          "yezeze",
+          "yeyyee"
+        ],
+        "theta0_runtime": [
+          1.5707938677176911,
+          1.6400240536158577,
+          -3.1415852322533517,
+          -0.08638170368796677,
+          -0.08646881746381309
+        ],
+        "initial_energy": 1.4532839299834688,
+        "initial_abs_delta_e": 1.294616025857743,
+        "initial_exact_state_fidelity": 0.42892846574929283,
+        "optimized_energy": 0.49367099685736693,
+        "optimized_abs_delta_e": 0.33500309273164114,
+        "optimized_exact_state_fidelity": 0.6255344200417056,
+        "optimized_theta_runtime": [
+          0.533870038375847,
+          2.6076680671394654,
+          2.9782965616267423e-05,
+          -0.09984824227355577,
+          -0.10016091046297998
+        ],
+        "optimizer": {
+          "method": "Powell",
+          "restarts": 3,
+          "selected_restart_index": 0,
+          "nfev": 239,
+          "success": true,
+          "message": "Optimization terminated successfully.",
+          "elapsed_s": 0.24337325058877468
+        },
+        "marrakesh_compile_best": {
+          "seed": 0,
+          "compiled_count_2q": 8,
+          "compiled_depth": 28,
+          "compiled_size": 48,
+          "layout_physical_qubits": [
+            5,
+            6,
+            3,
+            2,
+            4,
+            15
+          ]
+        },
+        "marrakesh_compile_ranges": {
+          "count_2q": [
+            8,
+            8
+          ],
+          "depth": [
+            28,
+            28
+          ],
+          "size": [
+            48,
+            48
+          ]
+        }
+      },
+      {
+        "runtime_term_count": 5,
+        "kept_runtime_indices": [
+          0,
+          1,
+          2,
+          3,
+          5
+        ],
+        "kept_pauli_exyz": [
+          "eeeexy",
+          "eeyxee",
+          "yeeeee",
+          "yezeze",
+          "eyeeez"
+        ],
+        "dropped_runtime_indices": [
+          4,
+          6
+        ],
+        "dropped_pauli_exyz": [
+          "yeyyee",
+          "eyezee"
+        ],
+        "theta0_runtime": [
+          1.5707938677176911,
+          1.6400240536158577,
+          -3.1415852322533517,
+          -1.54485785098712,
+          -0.08638170368796677
+        ],
+        "initial_energy": 2.0398593821270863,
+        "initial_abs_delta_e": 1.8811914780013606,
+        "initial_exact_state_fidelity": 0.49895212643410025,
+        "optimized_energy": 0.4980248990661322,
+        "optimized_abs_delta_e": 0.3393569949404064,
+        "optimized_exact_state_fidelity": 0.6223481310170992,
+        "optimized_theta_runtime": [
+          0.5271873155672375,
+          2.6135942901133613,
+          -0.0008008936352789398,
+          -7.353206494630375e-05,
+          -0.06304815027199366
+        ],
+        "optimizer": {
+          "method": "Powell",
+          "restarts": 3,
+          "selected_restart_index": 1,
+          "nfev": 241,
+          "success": true,
+          "message": "Optimization terminated successfully.",
+          "elapsed_s": 0.2549124574288726
+        },
+        "marrakesh_compile_best": {
+          "seed": 0,
+          "compiled_count_2q": 10,
+          "compiled_depth": 31,
+          "compiled_size": 62,
+          "layout_physical_qubits": [
+            5,
+            4,
+            16,
+            3,
+            6,
+            2
+          ]
+        },
+        "marrakesh_compile_ranges": {
+          "count_2q": [
+            10,
+            10
+          ],
+          "depth": [
+            31,
+            31
+          ],
+          "size": [
+            62,
+            62
+          ]
+        }
+      },
+      {
+        "runtime_term_count": 5,
+        "kept_runtime_indices": [
+          0,
+          1,
+          2,
+          3,
+          6
+        ],
+        "kept_pauli_exyz": [
+          "eeeexy",
+          "eeyxee",
+          "yeeeee",
+          "yezeze",
+          "eyezee"
+        ],
+        "dropped_runtime_indices": [
+          4,
+          5
+        ],
+        "dropped_pauli_exyz": [
+          "yeyyee",
+          "eyeeez"
+        ],
+        "theta0_runtime": [
+          1.5707938677176911,
+          1.6400240536158577,
+          -3.1415852322533517,
+          -1.54485785098712,
+          -0.08646881746381309
+        ],
+        "initial_energy": 2.0398404208325216,
+        "initial_abs_delta_e": 1.8811725167067959,
+        "initial_exact_state_fidelity": 0.4989558910573715,
+        "optimized_energy": 0.4980251031085286,
+        "optimized_abs_delta_e": 0.3393571989828028,
+        "optimized_exact_state_fidelity": 0.6222733217617875,
+        "optimized_theta_runtime": [
+          0.5279328804470284,
+          2.614738266839595,
+          -0.0026752078875174673,
+          -0.0008397478536627369,
+          -0.06306188279896371
+        ],
+        "optimizer": {
+          "method": "Powell",
+          "restarts": 3,
+          "selected_restart_index": 2,
+          "nfev": 224,
+          "success": true,
+          "message": "Optimization terminated successfully.",
+          "elapsed_s": 0.23655283357948065
+        },
+        "marrakesh_compile_best": {
+          "seed": 0,
+          "compiled_count_2q": 10,
+          "compiled_depth": 31,
+          "compiled_size": 62,
+          "layout_physical_qubits": [
+            91,
+            98,
+            110,
+            111,
+            109,
+            112
+          ]
+        },
+        "marrakesh_compile_ranges": {
+          "count_2q": [
+            10,
+            10
+          ],
+          "depth": [
+            31,
+            31
+          ],
+          "size": [
+            62,
+            62
+          ]
+        }
+      },
+      {
+        "runtime_term_count": 5,
+        "kept_runtime_indices": [
+          0,
+          1,
+          3,
+          4,
+          5
+        ],
+        "kept_pauli_exyz": [
+          "eeeexy",
+          "eeyxee",
+          "yezeze",
+          "yeyyee",
+          "eyeeez"
+        ],
+        "dropped_runtime_indices": [
+          2,
+          6
+        ],
+        "dropped_pauli_exyz": [
+          "yeeeee",
+          "eyezee"
+        ],
+        "theta0_runtime": [
+          1.5707938677176911,
+          1.6400240536158577,
+          -1.54485785098712,
+          -1.5707956982689952,
+          -0.08638170368796677
+        ],
+        "initial_energy": 0.674851440721324,
+        "initial_abs_delta_e": 0.5161835365955982,
+        "initial_exact_state_fidelity": 0.49895105173787524,
+        "optimized_energy": 0.6147974292247242,
+        "optimized_abs_delta_e": 0.45612952509899846,
+        "optimized_exact_state_fidelity": 0.5980022860743046,
+        "optimized_theta_runtime": [
+          1.42319676002698,
+          1.6357176675025158,
+          -1.4358825865211469,
+          -1.275988513124067,
+          -0.07405169439050953
+        ],
+        "optimizer": {
+          "method": "Powell",
+          "restarts": 3,
+          "selected_restart_index": 1,
+          "nfev": 191,
+          "success": true,
+          "message": "Optimization terminated successfully.",
+          "elapsed_s": 0.25385366659611464
+        },
+        "marrakesh_compile_best": {
+          "seed": 0,
+          "compiled_count_2q": 14,
+          "compiled_depth": 48,
+          "compiled_size": 77,
+          "layout_physical_qubits": [
+            109,
+            110,
+            98,
+            111,
+            118,
+            112
+          ]
+        },
+        "marrakesh_compile_ranges": {
+          "count_2q": [
+            14,
+            14
+          ],
+          "depth": [
+            48,
+            48
+          ],
+          "size": [
+            77,
+            77
+          ]
+        }
+      },
+      {
+        "runtime_term_count": 5,
+        "kept_runtime_indices": [
+          0,
+          1,
+          3,
+          4,
+          6
+        ],
+        "kept_pauli_exyz": [
+          "eeeexy",
+          "eeyxee",
+          "yezeze",
+          "yeyyee",
+          "eyezee"
+        ],
+        "dropped_runtime_indices": [
+          2,
+          5
+        ],
+        "dropped_pauli_exyz": [
+          "yeeeee",
+          "eyeeez"
+        ],
+        "theta0_runtime": [
+          1.5707938677176911,
+          1.6400240536158577,
+          -1.54485785098712,
+          -1.5707956982689952,
+          -0.08646881746381309
+        ],
+        "initial_energy": 0.6748475851009466,
+        "initial_abs_delta_e": 0.5161796809752208,
+        "initial_exact_state_fidelity": 0.4989548157697024,
+        "optimized_energy": 0.6148153100731185,
+        "optimized_abs_delta_e": 0.4561474059473927,
+        "optimized_exact_state_fidelity": 0.59797434633023,
+        "optimized_theta_runtime": [
+          1.4236719386124992,
+          1.635630885726866,
+          -1.4359918149192046,
+          -1.2760807382015749,
+          -0.07366344548149377
+        ],
+        "optimizer": {
+          "method": "Powell",
+          "restarts": 3,
+          "selected_restart_index": 1,
+          "nfev": 192,
+          "success": true,
+          "message": "Optimization terminated successfully.",
+          "elapsed_s": 0.25571625027805567
+        },
+        "marrakesh_compile_best": {
+          "seed": 0,
+          "compiled_count_2q": 14,
+          "compiled_depth": 56,
+          "compiled_size": 77,
+          "layout_physical_qubits": [
+            109,
+            110,
+            98,
+            111,
+            91,
+            112
+          ]
+        },
+        "marrakesh_compile_ranges": {
+          "count_2q": [
+            14,
+            14
+          ],
+          "depth": [
+            56,
+            56
+          ],
+          "size": [
+            77,
+            77
+          ]
+        }
+      },
+      {
+        "runtime_term_count": 5,
+        "kept_runtime_indices": [
+          0,
+          2,
+          3,
+          5,
+          6
+        ],
+        "kept_pauli_exyz": [
+          "eeeexy",
+          "yeeeee",
+          "yezeze",
+          "eyeeez",
+          "eyezee"
+        ],
+        "dropped_runtime_indices": [
+          1,
+          4
+        ],
+        "dropped_pauli_exyz": [
+          "eeyxee",
+          "yeyyee"
+        ],
+        "theta0_runtime": [
+          1.5707938677176911,
+          -3.1415852322533517,
+          -1.54485785098712,
+          -0.08638170368796677,
+          -0.08646881746381309
+        ],
+        "initial_energy": 2.9262402463396935,
+        "initial_abs_delta_e": 2.7675723422139678,
+        "initial_exact_state_fidelity": 0.23425240508773446,
+        "optimized_energy": 0.7577309504436387,
+        "optimized_abs_delta_e": 0.599063046317913,
+        "optimized_exact_state_fidelity": 0.48675712165830637,
+        "optimized_theta_runtime": [
+          2.660160094217003,
+          0.2743342816016545,
+          0.1846417162250238,
+          -0.09186077175612685,
+          -0.13649632811945597
+        ],
+        "optimizer": {
+          "method": "Powell",
+          "restarts": 3,
+          "selected_restart_index": 0,
+          "nfev": 245,
+          "success": true,
+          "message": "Optimization terminated successfully.",
+          "elapsed_s": 0.24674129206687212
+        },
+        "marrakesh_compile_best": {
+          "seed": 0,
+          "compiled_count_2q": 10,
+          "compiled_depth": 28,
+          "compiled_size": 56,
+          "layout_physical_qubits": [
+            13,
+            12,
+            15,
+            11,
+            14,
+            10
+          ]
+        },
+        "marrakesh_compile_ranges": {
+          "count_2q": [
+            10,
+            10
+          ],
+          "depth": [
+            28,
+            28
+          ],
+          "size": [
+            56,
+            56
+          ]
+        }
+      },
+      {
+        "runtime_term_count": 5,
+        "kept_runtime_indices": [
+          1,
+          2,
+          4,
+          5,
+          6
+        ],
+        "kept_pauli_exyz": [
+          "eeyxee",
+          "yeeeee",
+          "yeyyee",
+          "eyeeez",
+          "eyezee"
+        ],
+        "dropped_runtime_indices": [
+          0,
+          3
+        ],
+        "dropped_pauli_exyz": [
+          "eeeexy",
+          "yezeze"
+        ],
+        "theta0_runtime": [
+          1.6400240536158577,
+          -3.1415852322533517,
+          -1.5707956982689952,
+          -0.08638170368796677,
+          -0.08646881746381309
+        ],
+        "initial_energy": 1.9507537116205398,
+        "initial_abs_delta_e": 1.792085807494814,
+        "initial_exact_state_fidelity": 0.42892695016794513,
+        "optimized_energy": 0.7577310297217252,
+        "optimized_abs_delta_e": 0.5990631255959995,
+        "optimized_exact_state_fidelity": 0.4867171066831277,
+        "optimized_theta_runtime": [
+          2.662846243465352,
+          0.06639629953564188,
+          -0.04761910923144008,
+          -0.13699297854768838,
+          -0.09220418071813233
+        ],
+        "optimizer": {
+          "method": "Powell",
+          "restarts": 3,
+          "selected_restart_index": 0,
+          "nfev": 242,
+          "success": true,
+          "message": "Optimization terminated successfully.",
+          "elapsed_s": 0.293333875015378
+        },
+        "marrakesh_compile_best": {
+          "seed": 0,
+          "compiled_count_2q": 10,
+          "compiled_depth": 39,
+          "compiled_size": 55,
+          "layout_physical_qubits": [
+            19,
+            5,
+            14,
+            13,
+            15,
+            12
+          ]
+        },
+        "marrakesh_compile_ranges": {
+          "count_2q": [
+            10,
+            10
+          ],
+          "depth": [
+            39,
+            39
+          ],
+          "size": [
+            55,
+            55
+          ]
+        }
+      },
+      {
+        "runtime_term_count": 5,
+        "kept_runtime_indices": [
+          1,
+          2,
+          3,
+          5,
+          6
+        ],
+        "kept_pauli_exyz": [
+          "eeyxee",
+          "yeeeee",
+          "yezeze",
+          "eyeeez",
+          "eyezee"
+        ],
+        "dropped_runtime_indices": [
+          0,
+          4
+        ],
+        "dropped_pauli_exyz": [
+          "eeeexy",
+          "yeyyee"
+        ],
+        "theta0_runtime": [
+          1.6400240536158577,
+          -3.1415852322533517,
+          -1.54485785098712,
+          -0.08638170368796677,
+          -0.08646881746381309
+        ],
+        "initial_energy": 2.755797720750037,
+        "initial_abs_delta_e": 2.597129816624311,
+        "initial_exact_state_fidelity": 0.2463280621914463,
+        "optimized_energy": 0.7577310769965722,
+        "optimized_abs_delta_e": 0.5990631728708464,
+        "optimized_exact_state_fidelity": 0.48675538513404093,
+        "optimized_theta_runtime": [
+          2.6601300728313855,
+          0.2745020723227456,
+          0.18490296114154958,
+          -0.1365424319212689,
+          -0.09142320670280409
+        ],
+        "optimizer": {
+          "method": "Powell",
+          "restarts": 3,
+          "selected_restart_index": 0,
+          "nfev": 244,
+          "success": true,
+          "message": "Optimization terminated successfully.",
+          "elapsed_s": 0.24744758289307356
+        },
+        "marrakesh_compile_best": {
+          "seed": 0,
+          "compiled_count_2q": 10,
+          "compiled_depth": 31,
+          "compiled_size": 57,
+          "layout_physical_qubits": [
+            6,
+            16,
+            4,
+            3,
+            5,
+            2
+          ]
+        },
+        "marrakesh_compile_ranges": {
+          "count_2q": [
+            10,
+            10
+          ],
+          "depth": [
+            31,
+            31
+          ],
+          "size": [
+            57,
+            57
+          ]
+        }
+      },
+      {
+        "runtime_term_count": 5,
+        "kept_runtime_indices": [
+          1,
+          3,
+          4,
+          5,
+          6
+        ],
+        "kept_pauli_exyz": [
+          "eeyxee",
+          "yezeze",
+          "yeyyee",
+          "eyeeez",
+          "eyezee"
+        ],
+        "dropped_runtime_indices": [
+          0,
+          2
+        ],
+        "dropped_pauli_exyz": [
+          "eeeexy",
+          "yeeeee"
+        ],
+        "theta0_runtime": [
+          1.6400240536158577,
+          -1.54485785098712,
+          -1.5707956982689952,
+          -0.08638170368796677,
+          -0.08646881746381309
+        ],
+        "initial_energy": 1.3088936486356477,
+        "initial_abs_delta_e": 1.150225744509922,
+        "initial_exact_state_fidelity": 0.2566041825117068,
+        "optimized_energy": 0.7577359567301326,
+        "optimized_abs_delta_e": 0.5990680526044068,
+        "optimized_exact_state_fidelity": 0.4867278883023937,
+        "optimized_theta_runtime": [
+          2.662439672898694,
+          -0.058565887942126936,
+          -0.06352384278989896,
+          -0.14060163454434874,
+          -0.09625584352116821
+        ],
+        "optimizer": {
+          "method": "Powell",
+          "restarts": 3,
+          "selected_restart_index": 2,
+          "nfev": 249,
+          "success": true,
+          "message": "Optimization terminated successfully.",
+          "elapsed_s": 0.31889958400279284
+        },
+        "marrakesh_compile_best": {
+          "seed": 0,
+          "compiled_count_2q": 14,
+          "compiled_depth": 56,
+          "compiled_size": 72,
+          "layout_physical_qubits": [
+            6,
+            16,
+            4,
+            3,
+            5,
+            2
+          ]
+        },
+        "marrakesh_compile_ranges": {
+          "count_2q": [
+            14,
+            14
+          ],
+          "depth": [
+            56,
+            56
+          ],
+          "size": [
+            72,
+            72
+          ]
+        }
+      },
+      {
+        "runtime_term_count": 5,
+        "kept_runtime_indices": [
+          0,
+          2,
+          4,
+          5,
+          6
+        ],
+        "kept_pauli_exyz": [
+          "eeeexy",
+          "yeeeee",
+          "yeyyee",
+          "eyeeez",
+          "eyezee"
+        ],
+        "dropped_runtime_indices": [
+          1,
+          3
+        ],
+        "dropped_pauli_exyz": [
+          "eeyxee",
+          "yezeze"
+        ],
+        "theta0_runtime": [
+          1.5707938677176911,
+          -3.1415852322533517,
+          -1.5707956982689952,
+          -0.08638170368796677,
+          -0.08646881746381309
+        ],
+        "initial_energy": 2.7144561825412596,
+        "initial_abs_delta_e": 2.555788278415534,
+        "initial_exact_state_fidelity": 0.40663745856080247,
+        "optimized_energy": 0.7601620831068928,
+        "optimized_abs_delta_e": 0.601494178981167,
+        "optimized_exact_state_fidelity": 0.4860149401007962,
+        "optimized_theta_runtime": [
+          0.4750557329693983,
+          -6.393805536339766,
+          -3.141592657040918,
+          -0.09097422722136178,
+          -0.1349791992434649
+        ],
+        "optimizer": {
+          "method": "Powell",
+          "restarts": 3,
+          "selected_restart_index": 2,
+          "nfev": 272,
+          "success": true,
+          "message": "Optimization terminated successfully.",
+          "elapsed_s": 0.32187541760504246
+        },
+        "marrakesh_compile_best": {
+          "seed": 0,
+          "compiled_count_2q": 10,
+          "compiled_depth": 29,
+          "compiled_size": 57,
+          "layout_physical_qubits": [
+            6,
+            7,
+            4,
+            3,
+            5,
+            2
+          ]
+        },
+        "marrakesh_compile_ranges": {
+          "count_2q": [
+            10,
+            10
+          ],
+          "depth": [
+            29,
+            29
+          ],
+          "size": [
+            57,
+            57
+          ]
+        }
+      },
+      {
+        "runtime_term_count": 5,
+        "kept_runtime_indices": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "kept_pauli_exyz": [
+          "eeyxee",
+          "yeeeee",
+          "yezeze",
+          "yeyyee",
+          "eyeeez"
+        ],
+        "dropped_runtime_indices": [
+          0,
+          6
+        ],
+        "dropped_pauli_exyz": [
+          "eeeexy",
+          "eyezee"
+        ],
+        "theta0_runtime": [
+          1.6400240536158577,
+          -3.1415852322533517,
+          -1.54485785098712,
+          -1.5707956982689952,
+          -0.08638170368796677
+        ],
+        "initial_energy": 0.8772108178471907,
+        "initial_abs_delta_e": 0.718542913721465,
+        "initial_exact_state_fidelity": 0.49895083351228786,
+        "optimized_energy": 0.7601620832540126,
+        "optimized_abs_delta_e": 0.6014941791282868,
+        "optimized_exact_state_fidelity": 0.48601332537130654,
+        "optimized_theta_runtime": [
+          1.6411444935391215,
+          -3.0038786201348873,
+          -2.1932236610303213,
+          -1.53844503271827,
+          -0.055306497082032724
+        ],
+        "optimizer": {
+          "method": "Powell",
+          "restarts": 3,
+          "selected_restart_index": 2,
+          "nfev": 137,
+          "success": true,
+          "message": "Optimization terminated successfully.",
+          "elapsed_s": 0.16877037566155195
+        },
+        "marrakesh_compile_best": {
+          "seed": 0,
+          "compiled_count_2q": 12,
+          "compiled_depth": 48,
+          "compiled_size": 68,
+          "layout_physical_qubits": [
+            6,
+            137,
+            148,
+            147,
+            5,
+            146
+          ]
+        },
+        "marrakesh_compile_ranges": {
+          "count_2q": [
+            12,
+            12
+          ],
+          "depth": [
+            48,
+            48
+          ],
+          "size": [
+            68,
+            68
+          ]
+        }
+      },
+      {
+        "runtime_term_count": 5,
+        "kept_runtime_indices": [
+          0,
+          2,
+          3,
+          4,
+          6
+        ],
+        "kept_pauli_exyz": [
+          "eeeexy",
+          "yeeeee",
+          "yezeze",
+          "yeyyee",
+          "eyezee"
+        ],
+        "dropped_runtime_indices": [
+          1,
+          5
+        ],
+        "dropped_pauli_exyz": [
+          "eeyxee",
+          "eyeeez"
+        ],
+        "theta0_runtime": [
+          1.5707938677176911,
+          -3.1415852322533517,
+          -1.54485785098712,
+          -1.5707956982689952,
+          -0.08646881746381309
+        ],
+        "initial_energy": 2.943114503734206,
+        "initial_abs_delta_e": 2.78444659960848,
+        "initial_exact_state_fidelity": 0.46768229103352765,
+        "optimized_energy": 0.7601753408800783,
+        "optimized_abs_delta_e": 0.6015074367543525,
+        "optimized_exact_state_fidelity": 0.4859931619885282,
+        "optimized_theta_runtime": [
+          0.4740123268930401,
+          6.031720790371115,
+          0.17350735339858236,
+          -3.1415926535930203,
+          -0.05507226085940183
+        ],
+        "optimizer": {
+          "method": "Powell",
+          "restarts": 3,
+          "selected_restart_index": 0,
+          "nfev": 196,
+          "success": true,
+          "message": "Optimization terminated successfully.",
+          "elapsed_s": 0.24253408331423998
+        },
+        "marrakesh_compile_best": {
+          "seed": 0,
+          "compiled_count_2q": 12,
+          "compiled_depth": 53,
+          "compiled_size": 69,
+          "layout_physical_qubits": [
+            109,
+            110,
+            98,
+            111,
+            91,
+            112
+          ]
+        },
+        "marrakesh_compile_ranges": {
+          "count_2q": [
+            12,
+            12
+          ],
+          "depth": [
+            53,
+            53
+          ],
+          "size": [
+            69,
+            69
+          ]
+        }
+      },
+      {
+        "runtime_term_count": 5,
+        "kept_runtime_indices": [
+          0,
+          2,
+          3,
+          4,
+          5
+        ],
+        "kept_pauli_exyz": [
+          "eeeexy",
+          "yeeeee",
+          "yezeze",
+          "yeyyee",
+          "eyeeez"
+        ],
+        "dropped_runtime_indices": [
+          1,
+          6
+        ],
+        "dropped_pauli_exyz": [
+          "eeyxee",
+          "eyezee"
+        ],
+        "theta0_runtime": [
+          1.5707938677176911,
+          -3.1415852322533517,
+          -1.54485785098712,
+          -1.5707956982689952,
+          -0.08638170368796677
+        ],
+        "initial_energy": 2.9458029161339443,
+        "initial_abs_delta_e": 2.7871350120082186,
+        "initial_exact_state_fidelity": 0.46782546341222725,
+        "optimized_energy": 0.7605241876162723,
+        "optimized_abs_delta_e": 0.6018562834905465,
+        "optimized_exact_state_fidelity": 0.48605345205807693,
+        "optimized_theta_runtime": [
+          0.4734680442283734,
+          6.014126499637044,
+          0.1815772726498868,
+          -3.141592653492435,
+          -0.02881708555947182
+        ],
+        "optimizer": {
+          "method": "Powell",
+          "restarts": 3,
+          "selected_restart_index": 0,
+          "nfev": 262,
+          "success": true,
+          "message": "Optimization terminated successfully.",
+          "elapsed_s": 0.32442125026136637
+        },
+        "marrakesh_compile_best": {
+          "seed": 0,
+          "compiled_count_2q": 12,
+          "compiled_depth": 45,
+          "compiled_size": 69,
+          "layout_physical_qubits": [
+            109,
+            110,
+            98,
+            111,
+            118,
+            112
+          ]
+        },
+        "marrakesh_compile_ranges": {
+          "count_2q": [
+            12,
+            12
+          ],
+          "depth": [
+            45,
+            45
+          ],
+          "size": [
+            69,
+            69
+          ]
+        }
+      },
+      {
+        "runtime_term_count": 5,
+        "kept_runtime_indices": [
+          1,
+          2,
+          3,
+          4,
+          6
+        ],
+        "kept_pauli_exyz": [
+          "eeyxee",
+          "yeeeee",
+          "yezeze",
+          "yeyyee",
+          "eyezee"
+        ],
+        "dropped_runtime_indices": [
+          0,
+          5
+        ],
+        "dropped_pauli_exyz": [
+          "eeeexy",
+          "eyeeez"
+        ],
+        "theta0_runtime": [
+          1.6400240536158577,
+          -3.1415852322533517,
+          -1.54485785098712,
+          -1.5707956982689952,
+          -0.08646881746381309
+        ],
+        "initial_energy": 0.8798774371989347,
+        "initial_abs_delta_e": 0.7212095330732089,
+        "initial_exact_state_fidelity": 0.49895459737596104,
+        "optimized_energy": 0.7605241876207846,
+        "optimized_abs_delta_e": 0.6018562834950587,
+        "optimized_exact_state_fidelity": 0.48605300082346814,
+        "optimized_theta_runtime": [
+          1.5457670944908521,
+          -3.1018987586415867,
+          -2.19856236312423,
+          -1.6453057752718048,
+          -0.02881673343170333
+        ],
+        "optimizer": {
+          "method": "Powell",
+          "restarts": 3,
+          "selected_restart_index": 1,
+          "nfev": 141,
+          "success": true,
+          "message": "Optimization terminated successfully.",
+          "elapsed_s": 0.17408183310180902
+        },
+        "marrakesh_compile_best": {
+          "seed": 0,
+          "compiled_count_2q": 12,
+          "compiled_depth": 56,
+          "compiled_size": 68,
+          "layout_physical_qubits": [
+            15,
+            16,
+            4,
+            3,
+            5,
+            2
+          ]
+        },
+        "marrakesh_compile_ranges": {
+          "count_2q": [
+            12,
+            12
+          ],
+          "depth": [
+            56,
+            56
+          ],
+          "size": [
+            68,
+            68
+          ]
+        }
+      },
+      {
+        "runtime_term_count": 5,
+        "kept_runtime_indices": [
+          0,
+          3,
+          4,
+          5,
+          6
+        ],
+        "kept_pauli_exyz": [
+          "eeeexy",
+          "yezeze",
+          "yeyyee",
+          "eyeeez",
+          "eyezee"
+        ],
+        "dropped_runtime_indices": [
+          1,
+          2
+        ],
+        "dropped_pauli_exyz": [
+          "eeyxee",
+          "yeeeee"
+        ],
+        "theta0_runtime": [
+          1.5707938677176911,
+          -1.54485785098712,
+          -1.5707956982689952,
+          -0.08638170368796677,
+          -0.08646881746381309
+        ],
+        "initial_energy": 2.7471806981919604,
+        "initial_abs_delta_e": 2.5885127940662347,
+        "initial_exact_state_fidelity": 0.23425230282166415,
+        "optimized_energy": 0.7605241876804182,
+        "optimized_abs_delta_e": 0.6018562835546923,
+        "optimized_exact_state_fidelity": 0.48605375150104013,
+        "optimized_theta_runtime": [
+          2.6681204037021153,
+          0.05763434624120752,
+          9.979621349646503e-10,
+          -0.09079185287306869,
+          -0.1345353418546688
+        ],
+        "optimizer": {
+          "method": "Powell",
+          "restarts": 3,
+          "selected_restart_index": 2,
+          "nfev": 244,
+          "success": true,
+          "message": "Optimization terminated successfully.",
+          "elapsed_s": 0.31223425082862377
+        },
+        "marrakesh_compile_best": {
+          "seed": 0,
+          "compiled_count_2q": 20,
+          "compiled_depth": 60,
+          "compiled_size": 87,
+          "layout_physical_qubits": [
+            3,
+            16,
+            4,
+            2,
+            5,
+            1
+          ]
+        },
+        "marrakesh_compile_ranges": {
+          "count_2q": [
+            20,
+            23
+          ],
+          "depth": [
+            58,
+            63
+          ],
+          "size": [
+            87,
+            106
+          ]
+        }
+      },
+      {
+        "runtime_term_count": 5,
+        "kept_runtime_indices": [
+          0,
+          1,
+          2,
+          4,
+          6
+        ],
+        "kept_pauli_exyz": [
+          "eeeexy",
+          "eeyxee",
+          "yeeeee",
+          "yeyyee",
+          "eyezee"
+        ],
+        "dropped_runtime_indices": [
+          3,
+          5
+        ],
+        "dropped_pauli_exyz": [
+          "yezeze",
+          "eyeeez"
+        ],
+        "theta0_runtime": [
+          1.5707938677176911,
+          1.6400240536158577,
+          -3.1415852322533517,
+          -1.5707956982689952,
+          -0.08646881746381309
+        ],
+        "initial_energy": 0.9703047360733366,
+        "initial_abs_delta_e": 0.8116368319476108,
+        "initial_exact_state_fidelity": 0.8562472674844903,
+        "optimized_energy": 0.9583762286878783,
+        "optimized_abs_delta_e": 0.7997083245621526,
+        "optimized_exact_state_fidelity": 0.850933550376676,
+        "optimized_theta_runtime": [
+          1.558541758345705,
+          1.737954575893096,
+          -3.067152100860942,
+          -1.5311890629615024,
+          -0.16665564296454585
+        ],
+        "optimizer": {
+          "method": "Powell",
+          "restarts": 3,
+          "selected_restart_index": 1,
+          "nfev": 148,
+          "success": true,
+          "message": "Optimization terminated successfully.",
+          "elapsed_s": 0.18377166707068682
+        },
+        "marrakesh_compile_best": {
+          "seed": 0,
+          "compiled_count_2q": 10,
+          "compiled_depth": 39,
+          "compiled_size": 60,
+          "layout_physical_qubits": [
+            5,
+            6,
+            13,
+            14,
+            12,
+            15
+          ]
+        },
+        "marrakesh_compile_ranges": {
+          "count_2q": [
+            10,
+            10
+          ],
+          "depth": [
+            39,
+            39
+          ],
+          "size": [
+            60,
+            60
+          ]
+        }
+      },
+      {
+        "runtime_term_count": 5,
+        "kept_runtime_indices": [
+          0,
+          1,
+          2,
+          4,
+          5
+        ],
+        "kept_pauli_exyz": [
+          "eeeexy",
+          "eeyxee",
+          "yeeeee",
+          "yeyyee",
+          "eyeeez"
+        ],
+        "dropped_runtime_indices": [
+          3,
+          6
+        ],
+        "dropped_pauli_exyz": [
+          "yezeze",
+          "eyezee"
+        ],
+        "theta0_runtime": [
+          1.5707938677176911,
+          1.6400240536158577,
+          -3.1415852322533517,
+          -1.5707956982689952,
+          -0.08638170368796677
+        ],
+        "initial_energy": 0.9703241030528642,
+        "initial_abs_delta_e": 0.8116561989271385,
+        "initial_exact_state_fidelity": 0.8562314869035393,
+        "optimized_energy": 0.958547490239581,
+        "optimized_abs_delta_e": 0.7998795861138552,
+        "optimized_exact_state_fidelity": 0.8509848486814089,
+        "optimized_theta_runtime": [
+          1.5851761754764735,
+          1.7366007350900354,
+          -3.2272805294203217,
+          -1.6163860722589924,
+          -0.16515797358581094
+        ],
+        "optimizer": {
+          "method": "Powell",
+          "restarts": 3,
+          "selected_restart_index": 1,
+          "nfev": 146,
+          "success": true,
+          "message": "Optimization terminated successfully.",
+          "elapsed_s": 0.1799134574830532
+        },
+        "marrakesh_compile_best": {
+          "seed": 0,
+          "compiled_count_2q": 10,
+          "compiled_depth": 31,
+          "compiled_size": 60,
+          "layout_physical_qubits": [
+            3,
+            4,
+            13,
+            14,
+            2,
+            15
+          ]
+        },
+        "marrakesh_compile_ranges": {
+          "count_2q": [
+            10,
+            10
+          ],
+          "depth": [
+            31,
+            31
+          ],
+          "size": [
+            60,
+            60
+          ]
+        }
+      },
+      {
+        "runtime_term_count": 5,
+        "kept_runtime_indices": [
+          2,
+          3,
+          4,
+          5,
+          6
+        ],
+        "kept_pauli_exyz": [
+          "yeeeee",
+          "yezeze",
+          "yeyyee",
+          "eyeeez",
+          "eyezee"
+        ],
+        "dropped_runtime_indices": [
+          0,
+          1
+        ],
+        "dropped_pauli_exyz": [
+          "eeeexy",
+          "eeyxee"
+        ],
+        "theta0_runtime": [
+          -3.1415852322533517,
+          -1.54485785098712,
+          -1.5707956982689952,
+          -0.08638170368796677,
+          -0.08646881746381309
+        ],
+        "initial_energy": 3.639784237382136,
+        "initial_abs_delta_e": 3.48111633325641,
+        "initial_exact_state_fidelity": 0.234252085192753,
+        "optimized_energy": 0.9999999999999976,
+        "optimized_abs_delta_e": 0.8413320958742718,
+        "optimized_exact_state_fidelity": 0.42383495106330554,
+        "optimized_theta_runtime": [
+          -4.717599986410039,
+          -1.5655853166136733,
+          -3.1415926536105188,
+          -0.08646991758170526,
+          -0.0864699190073031
+        ],
+        "optimizer": {
+          "method": "Powell",
+          "restarts": 3,
+          "selected_restart_index": 0,
+          "nfev": 202,
+          "success": true,
+          "message": "Optimization terminated successfully.",
+          "elapsed_s": 0.2440278334543109
+        },
+        "marrakesh_compile_best": {
+          "seed": 0,
+          "compiled_count_2q": 12,
+          "compiled_depth": 46,
+          "compiled_size": 64,
+          "layout_physical_qubits": [
+            6,
+            16,
+            4,
+            3,
+            5,
+            2
+          ]
+        },
+        "marrakesh_compile_ranges": {
+          "count_2q": [
+            12,
+            12
+          ],
+          "depth": [
+            46,
+            46
+          ],
+          "size": [
+            64,
+            64
+          ]
+        }
+      },
+      {
+        "runtime_term_count": 6,
+        "kept_runtime_indices": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          6
+        ],
+        "kept_pauli_exyz": [
+          "eeeexy",
+          "eeyxee",
+          "yeeeee",
+          "yezeze",
+          "yeyyee",
+          "eyezee"
+        ],
+        "dropped_runtime_indices": [
+          5
+        ],
+        "dropped_pauli_exyz": [
+          "eyeeez"
+        ],
+        "theta0_runtime": [
+          1.5707938677176911,
+          1.6400240536158577,
+          -3.1415852322533517,
+          -1.54485785098712,
+          -1.5707956982689952,
+          -0.08646881746381309
+        ],
+        "initial_energy": 0.16366001096781374,
+        "initial_abs_delta_e": 0.004992106842087951,
+        "initial_exact_state_fidelity": 0.997909151031,
+        "optimized_energy": 0.16327777313193625,
+        "optimized_abs_delta_e": 0.004609869006210465,
+        "optimized_exact_state_fidelity": 0.998490590463693,
+        "optimized_theta_runtime": [
+          1.5709068720143538,
+          1.6391549995122405,
+          -3.1419250699470096,
+          -1.5542996609447908,
+          -1.5708276776683492,
+          -0.06192021434530125
+        ],
+        "optimizer": {
+          "method": "Powell",
+          "restarts": 3,
+          "selected_restart_index": 1,
+          "nfev": 225,
+          "success": true,
+          "message": "Optimization terminated successfully.",
+          "elapsed_s": 0.3236374594271183
+        },
+        "marrakesh_compile_best": {
+          "seed": 0,
+          "compiled_count_2q": 14,
+          "compiled_depth": 56,
+          "compiled_size": 80,
+          "layout_physical_qubits": [
+            109,
+            110,
+            98,
+            111,
+            91,
+            112
+          ]
+        },
+        "marrakesh_compile_ranges": {
+          "count_2q": [
+            14,
+            14
+          ],
+          "depth": [
+            56,
+            56
+          ],
+          "size": [
+            80,
+            80
+          ]
+        }
+      },
+      {
+        "runtime_term_count": 6,
+        "kept_runtime_indices": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "kept_pauli_exyz": [
+          "eeeexy",
+          "eeyxee",
+          "yeeeee",
+          "yezeze",
+          "yeyyee",
+          "eyeeez"
+        ],
+        "dropped_runtime_indices": [
+          6
+        ],
+        "dropped_pauli_exyz": [
+          "eyezee"
+        ],
+        "theta0_runtime": [
+          1.5707938677176911,
+          1.6400240536158577,
+          -3.1415852322533517,
+          -1.54485785098712,
+          -1.5707956982689952,
+          -0.08638170368796677
+        ],
+        "initial_energy": 0.16366386658819115,
+        "initial_abs_delta_e": 0.004995962462465364,
+        "initial_exact_state_fidelity": 0.9979016221089313,
+        "optimized_energy": 0.1632809601258856,
+        "optimized_abs_delta_e": 0.004613056000159821,
+        "optimized_exact_state_fidelity": 0.9984850798203946,
+        "optimized_theta_runtime": [
+          1.5706750259320321,
+          1.6391181488233113,
+          -3.1412182018263546,
+          -1.5543158928131178,
+          -1.5707609863100893,
+          -0.06183417453124048
+        ],
+        "optimizer": {
+          "method": "Powell",
+          "restarts": 3,
+          "selected_restart_index": 2,
+          "nfev": 230,
+          "success": true,
+          "message": "Optimization terminated successfully.",
+          "elapsed_s": 0.33059975039213896
+        },
+        "marrakesh_compile_best": {
+          "seed": 0,
+          "compiled_count_2q": 14,
+          "compiled_depth": 48,
+          "compiled_size": 80,
+          "layout_physical_qubits": [
+            109,
+            110,
+            98,
+            111,
+            118,
+            112
+          ]
+        },
+        "marrakesh_compile_ranges": {
+          "count_2q": [
+            14,
+            14
+          ],
+          "depth": [
+            48,
+            48
+          ],
+          "size": [
+            80,
+            80
+          ]
+        }
+      },
+      {
+        "runtime_term_count": 6,
+        "kept_runtime_indices": [
+          0,
+          1,
+          2,
+          4,
+          5,
+          6
+        ],
+        "kept_pauli_exyz": [
+          "eeeexy",
+          "eeyxee",
+          "yeeeee",
+          "yeyyee",
+          "eyeeez",
+          "eyezee"
+        ],
+        "dropped_runtime_indices": [
+          3
+        ],
+        "dropped_pauli_exyz": [
+          "yezeze"
+        ],
+        "theta0_runtime": [
+          1.5707938677176911,
+          1.6400240536158577,
+          -3.1415852322533517,
+          -1.5707956982689952,
+          -0.08638170368796677,
+          -0.08646881746381309
+        ],
+        "initial_energy": 0.9544831451888807,
+        "initial_abs_delta_e": 0.7958152410631549,
+        "initial_exact_state_fidelity": 0.8578537792457341,
+        "optimized_energy": 0.4903405745735258,
+        "optimized_abs_delta_e": 0.3316726704478,
+        "optimized_exact_state_fidelity": 0.6277042905141508,
+        "optimized_theta_runtime": [
+          2.6054053164419226,
+          2.6022315885989893,
+          -6.221001088630346,
+          -3.080608634024237,
+          -0.10061095427231842,
+          -0.10026654471676802
+        ],
+        "optimizer": {
+          "method": "Powell",
+          "restarts": 3,
+          "selected_restart_index": 2,
+          "nfev": 476,
+          "success": true,
+          "message": "Optimization terminated successfully.",
+          "elapsed_s": 0.6666280832141638
+        },
+        "marrakesh_compile_best": {
+          "seed": 0,
+          "compiled_count_2q": 12,
+          "compiled_depth": 39,
+          "compiled_size": 67,
+          "layout_physical_qubits": [
+            6,
+            7,
+            4,
+            3,
+            5,
+            2
+          ]
+        },
+        "marrakesh_compile_ranges": {
+          "count_2q": [
+            12,
+            12
+          ],
+          "depth": [
+            39,
+            39
+          ],
+          "size": [
+            67,
+            67
+          ]
+        }
+      },
+      {
+        "runtime_term_count": 6,
+        "kept_runtime_indices": [
+          0,
+          1,
+          2,
+          3,
+          5,
+          6
+        ],
+        "kept_pauli_exyz": [
+          "eeeexy",
+          "eeyxee",
+          "yeeeee",
+          "yezeze",
+          "eyeeez",
+          "eyezee"
+        ],
+        "dropped_runtime_indices": [
+          4
+        ],
+        "dropped_pauli_exyz": [
+          "yeyyee"
+        ],
+        "theta0_runtime": [
+          1.5707938677176911,
+          1.6400240536158577,
+          -3.1415852322533517,
+          -1.54485785098712,
+          -0.08638170368796677,
+          -0.08646881746381309
+        ],
+        "initial_energy": 2.022960727919032,
+        "initial_abs_delta_e": 1.8642928237933063,
+        "initial_exact_state_fidelity": 0.4998935003369378,
+        "optimized_energy": 0.493670935993195,
+        "optimized_abs_delta_e": 0.3350030318674692,
+        "optimized_exact_state_fidelity": 0.6255054760413477,
+        "optimized_theta_runtime": [
+          0.5338324565278364,
+          2.6077922668585645,
+          -0.0008139127627497052,
+          -0.0001914216728835986,
+          -0.09959954381868331,
+          -0.09947860863226853
+        ],
+        "optimizer": {
+          "method": "Powell",
+          "restarts": 3,
+          "selected_restart_index": 0,
+          "nfev": 343,
+          "success": true,
+          "message": "Optimization terminated successfully.",
+          "elapsed_s": 0.4231305839493871
+        },
+        "marrakesh_compile_best": {
+          "seed": 4,
+          "compiled_count_2q": 18,
+          "compiled_depth": 38,
+          "compiled_size": 88,
+          "layout_physical_qubits": [
+            4,
+            16,
+            6,
+            3,
+            5,
+            2
+          ]
+        },
+        "marrakesh_compile_ranges": {
+          "count_2q": [
+            18,
+            18
+          ],
+          "depth": [
+            38,
+            55
+          ],
+          "size": [
+            88,
+            93
+          ]
+        }
+      },
+      {
+        "runtime_term_count": 6,
+        "kept_runtime_indices": [
+          0,
+          1,
+          3,
+          4,
+          5,
+          6
+        ],
+        "kept_pauli_exyz": [
+          "eeeexy",
+          "eeyxee",
+          "yezeze",
+          "yeyyee",
+          "eyeeez",
+          "eyezee"
+        ],
+        "dropped_runtime_indices": [
+          2
+        ],
+        "dropped_pauli_exyz": [
+          "yeeeee"
+        ],
+        "theta0_runtime": [
+          1.5707938677176911,
+          1.6400240536158577,
+          -1.54485785098712,
+          -1.5707956982689952,
+          -0.08638170368796677,
+          -0.08646881746381309
+        ],
+        "initial_energy": 0.670278277367549,
+        "initial_abs_delta_e": 0.5116103732418231,
+        "initial_exact_state_fidelity": 0.4998924235504198,
+        "optimized_energy": 0.6091206628019001,
+        "optimized_abs_delta_e": 0.45045275867617435,
+        "optimized_exact_state_fidelity": 0.6017285124521629,
+        "optimized_theta_runtime": [
+          1.4200894056477447,
+          1.63855384769898,
+          -1.4215440281459102,
+          -1.2677224856891551,
+          -0.09841005330553505,
+          -0.09797199032094546
+        ],
+        "optimizer": {
+          "method": "Powell",
+          "restarts": 3,
+          "selected_restart_index": 2,
+          "nfev": 284,
+          "success": true,
+          "message": "Optimization terminated successfully.",
+          "elapsed_s": 0.4245531242340803
+        },
+        "marrakesh_compile_best": {
+          "seed": 1,
+          "compiled_count_2q": 25,
+          "compiled_depth": 63,
+          "compiled_size": 117,
+          "layout_physical_qubits": [
+            118,
+            109,
+            111,
+            112,
+            110,
+            98
+          ]
+        },
+        "marrakesh_compile_ranges": {
+          "count_2q": [
+            25,
+            25
+          ],
+          "depth": [
+            63,
+            75
+          ],
+          "size": [
+            107,
+            117
+          ]
+        }
+      },
+      {
+        "runtime_term_count": 6,
+        "kept_runtime_indices": [
+          0,
+          2,
+          3,
+          4,
+          5,
+          6
+        ],
+        "kept_pauli_exyz": [
+          "eeeexy",
+          "yeeeee",
+          "yezeze",
+          "yeyyee",
+          "eyeeez",
+          "eyezee"
+        ],
+        "dropped_runtime_indices": [
+          1
+        ],
+        "dropped_pauli_exyz": [
+          "eeyxee"
+        ],
+        "theta0_runtime": [
+          1.5707938677176911,
+          -3.1415852322533517,
+          -1.54485785098712,
+          -1.5707956982689952,
+          -0.08638170368796677,
+          -0.08646881746381309
+        ],
+        "initial_energy": 2.926234807812953,
+        "initial_abs_delta_e": 2.7675669036872272,
+        "initial_exact_state_fidelity": 0.4685043675919916,
+        "optimized_energy": 0.7577308207833282,
+        "optimized_abs_delta_e": 0.5990629166576025,
+        "optimized_exact_state_fidelity": 0.48673610713033233,
+        "optimized_theta_runtime": [
+          0.48123868589518887,
+          -6.557507754612469,
+          0.18430704130263087,
+          -3.1415926498027145,
+          -0.09216740485701104,
+          -0.13713229645089609
+        ],
+        "optimizer": {
+          "method": "Powell",
+          "restarts": 3,
+          "selected_restart_index": 2,
+          "nfev": 311,
+          "success": true,
+          "message": "Optimization terminated successfully.",
+          "elapsed_s": 0.4400130417197943
+        },
+        "marrakesh_compile_best": {
+          "seed": 0,
+          "compiled_count_2q": 20,
+          "compiled_depth": 60,
+          "compiled_size": 90,
+          "layout_physical_qubits": [
+            3,
+            16,
+            2,
+            4,
+            1,
+            5
+          ]
+        },
+        "marrakesh_compile_ranges": {
+          "count_2q": [
+            20,
+            23
+          ],
+          "depth": [
+            58,
+            63
+          ],
+          "size": [
+            90,
+            109
+          ]
+        }
+      },
+      {
+        "runtime_term_count": 6,
+        "kept_runtime_indices": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+        ],
+        "kept_pauli_exyz": [
+          "eeyxee",
+          "yeeeee",
+          "yezeze",
+          "yeyyee",
+          "eyeeez",
+          "eyezee"
+        ],
+        "dropped_runtime_indices": [
+          0
+        ],
+        "dropped_pauli_exyz": [
+          "eeeexy"
+        ],
+        "theta0_runtime": [
+          1.6400240536158577,
+          -3.1415852322533517,
+          -1.54485785098712,
+          -1.5707956982689952,
+          -0.08638170368796677,
+          -0.08646881746381309
+        ],
+        "initial_energy": 0.8726376552631164,
+        "initial_abs_delta_e": 0.7139697511373906,
+        "initial_exact_state_fidelity": 0.4998922048234508,
+        "optimized_energy": 0.7577308910004158,
+        "optimized_abs_delta_e": 0.59906298687469,
+        "optimized_exact_state_fidelity": 0.486733389688078,
+        "optimized_theta_runtime": [
+          1.6473873592447703,
+          -2.995423669874979,
+          -2.1807014806652365,
+          -1.5324513326013476,
+          -0.13639984893142343,
+          -0.09180899716121296
+        ],
+        "optimizer": {
+          "method": "Powell",
+          "restarts": 3,
+          "selected_restart_index": 0,
+          "nfev": 166,
+          "success": true,
+          "message": "Optimization terminated successfully.",
+          "elapsed_s": 0.234245290979743
+        },
+        "marrakesh_compile_best": {
+          "seed": 0,
+          "compiled_count_2q": 14,
+          "compiled_depth": 56,
+          "compiled_size": 75,
+          "layout_physical_qubits": [
+            6,
+            16,
+            4,
+            3,
+            5,
+            2
+          ]
+        },
+        "marrakesh_compile_ranges": {
+          "count_2q": [
+            14,
+            14
+          ],
+          "depth": [
+            56,
+            56
+          ],
+          "size": [
+            75,
+            75
+          ]
+        }
+      }
+    ],
+    "rows_sorted_by_cost": [
+      {
+        "runtime_term_count": 5,
+        "kept_runtime_indices": [
+          0,
+          1,
+          2,
+          5,
+          6
+        ],
+        "kept_pauli_exyz": [
+          "eeeexy",
+          "eeyxee",
+          "yeeeee",
+          "eyeeez",
+          "eyezee"
+        ],
+        "dropped_runtime_indices": [
+          3,
+          4
+        ],
+        "dropped_pauli_exyz": [
+          "yezeze",
+          "yeyyee"
+        ],
+        "theta0_runtime": [
+          1.5707938677176911,
+          1.6400240536158577,
+          -3.1415852322533517,
+          -0.08638170368796677,
+          -0.08646881746381309
+        ],
+        "initial_energy": 1.4532839299834688,
+        "initial_abs_delta_e": 1.294616025857743,
+        "initial_exact_state_fidelity": 0.42892846574929283,
+        "optimized_energy": 0.49367099685736693,
+        "optimized_abs_delta_e": 0.33500309273164114,
+        "optimized_exact_state_fidelity": 0.6255344200417056,
+        "optimized_theta_runtime": [
+          0.533870038375847,
+          2.6076680671394654,
+          2.9782965616267423e-05,
+          -0.09984824227355577,
+          -0.10016091046297998
+        ],
+        "optimizer": {
+          "method": "Powell",
+          "restarts": 3,
+          "selected_restart_index": 0,
+          "nfev": 239,
+          "success": true,
+          "message": "Optimization terminated successfully.",
+          "elapsed_s": 0.24337325058877468
+        },
+        "marrakesh_compile_best": {
+          "seed": 0,
+          "compiled_count_2q": 8,
+          "compiled_depth": 28,
+          "compiled_size": 48,
+          "layout_physical_qubits": [
+            5,
+            6,
+            3,
+            2,
+            4,
+            15
+          ]
+        },
+        "marrakesh_compile_ranges": {
+          "count_2q": [
+            8,
+            8
+          ],
+          "depth": [
+            28,
+            28
+          ],
+          "size": [
+            48,
+            48
+          ]
+        }
+      },
+      {
+        "runtime_term_count": 5,
+        "kept_runtime_indices": [
+          0,
+          1,
+          2,
+          3,
+          5
+        ],
+        "kept_pauli_exyz": [
+          "eeeexy",
+          "eeyxee",
+          "yeeeee",
+          "yezeze",
+          "eyeeez"
+        ],
+        "dropped_runtime_indices": [
+          4,
+          6
+        ],
+        "dropped_pauli_exyz": [
+          "yeyyee",
+          "eyezee"
+        ],
+        "theta0_runtime": [
+          1.5707938677176911,
+          1.6400240536158577,
+          -3.1415852322533517,
+          -1.54485785098712,
+          -0.08638170368796677
+        ],
+        "initial_energy": 2.0398593821270863,
+        "initial_abs_delta_e": 1.8811914780013606,
+        "initial_exact_state_fidelity": 0.49895212643410025,
+        "optimized_energy": 0.4980248990661322,
+        "optimized_abs_delta_e": 0.3393569949404064,
+        "optimized_exact_state_fidelity": 0.6223481310170992,
+        "optimized_theta_runtime": [
+          0.5271873155672375,
+          2.6135942901133613,
+          -0.0008008936352789398,
+          -7.353206494630375e-05,
+          -0.06304815027199366
+        ],
+        "optimizer": {
+          "method": "Powell",
+          "restarts": 3,
+          "selected_restart_index": 1,
+          "nfev": 241,
+          "success": true,
+          "message": "Optimization terminated successfully.",
+          "elapsed_s": 0.2549124574288726
+        },
+        "marrakesh_compile_best": {
+          "seed": 0,
+          "compiled_count_2q": 10,
+          "compiled_depth": 31,
+          "compiled_size": 62,
+          "layout_physical_qubits": [
+            5,
+            4,
+            16,
+            3,
+            6,
+            2
+          ]
+        },
+        "marrakesh_compile_ranges": {
+          "count_2q": [
+            10,
+            10
+          ],
+          "depth": [
+            31,
+            31
+          ],
+          "size": [
+            62,
+            62
+          ]
+        }
+      },
+      {
+        "runtime_term_count": 5,
+        "kept_runtime_indices": [
+          0,
+          1,
+          2,
+          3,
+          6
+        ],
+        "kept_pauli_exyz": [
+          "eeeexy",
+          "eeyxee",
+          "yeeeee",
+          "yezeze",
+          "eyezee"
+        ],
+        "dropped_runtime_indices": [
+          4,
+          5
+        ],
+        "dropped_pauli_exyz": [
+          "yeyyee",
+          "eyeeez"
+        ],
+        "theta0_runtime": [
+          1.5707938677176911,
+          1.6400240536158577,
+          -3.1415852322533517,
+          -1.54485785098712,
+          -0.08646881746381309
+        ],
+        "initial_energy": 2.0398404208325216,
+        "initial_abs_delta_e": 1.8811725167067959,
+        "initial_exact_state_fidelity": 0.4989558910573715,
+        "optimized_energy": 0.4980251031085286,
+        "optimized_abs_delta_e": 0.3393571989828028,
+        "optimized_exact_state_fidelity": 0.6222733217617875,
+        "optimized_theta_runtime": [
+          0.5279328804470284,
+          2.614738266839595,
+          -0.0026752078875174673,
+          -0.0008397478536627369,
+          -0.06306188279896371
+        ],
+        "optimizer": {
+          "method": "Powell",
+          "restarts": 3,
+          "selected_restart_index": 2,
+          "nfev": 224,
+          "success": true,
+          "message": "Optimization terminated successfully.",
+          "elapsed_s": 0.23655283357948065
+        },
+        "marrakesh_compile_best": {
+          "seed": 0,
+          "compiled_count_2q": 10,
+          "compiled_depth": 31,
+          "compiled_size": 62,
+          "layout_physical_qubits": [
+            91,
+            98,
+            110,
+            111,
+            109,
+            112
+          ]
+        },
+        "marrakesh_compile_ranges": {
+          "count_2q": [
+            10,
+            10
+          ],
+          "depth": [
+            31,
+            31
+          ],
+          "size": [
+            62,
+            62
+          ]
+        }
+      },
+      {
+        "runtime_term_count": 5,
+        "kept_runtime_indices": [
+          0,
+          2,
+          3,
+          5,
+          6
+        ],
+        "kept_pauli_exyz": [
+          "eeeexy",
+          "yeeeee",
+          "yezeze",
+          "eyeeez",
+          "eyezee"
+        ],
+        "dropped_runtime_indices": [
+          1,
+          4
+        ],
+        "dropped_pauli_exyz": [
+          "eeyxee",
+          "yeyyee"
+        ],
+        "theta0_runtime": [
+          1.5707938677176911,
+          -3.1415852322533517,
+          -1.54485785098712,
+          -0.08638170368796677,
+          -0.08646881746381309
+        ],
+        "initial_energy": 2.9262402463396935,
+        "initial_abs_delta_e": 2.7675723422139678,
+        "initial_exact_state_fidelity": 0.23425240508773446,
+        "optimized_energy": 0.7577309504436387,
+        "optimized_abs_delta_e": 0.599063046317913,
+        "optimized_exact_state_fidelity": 0.48675712165830637,
+        "optimized_theta_runtime": [
+          2.660160094217003,
+          0.2743342816016545,
+          0.1846417162250238,
+          -0.09186077175612685,
+          -0.13649632811945597
+        ],
+        "optimizer": {
+          "method": "Powell",
+          "restarts": 3,
+          "selected_restart_index": 0,
+          "nfev": 245,
+          "success": true,
+          "message": "Optimization terminated successfully.",
+          "elapsed_s": 0.24674129206687212
+        },
+        "marrakesh_compile_best": {
+          "seed": 0,
+          "compiled_count_2q": 10,
+          "compiled_depth": 28,
+          "compiled_size": 56,
+          "layout_physical_qubits": [
+            13,
+            12,
+            15,
+            11,
+            14,
+            10
+          ]
+        },
+        "marrakesh_compile_ranges": {
+          "count_2q": [
+            10,
+            10
+          ],
+          "depth": [
+            28,
+            28
+          ],
+          "size": [
+            56,
+            56
+          ]
+        }
+      },
+      {
+        "runtime_term_count": 5,
+        "kept_runtime_indices": [
+          1,
+          2,
+          4,
+          5,
+          6
+        ],
+        "kept_pauli_exyz": [
+          "eeyxee",
+          "yeeeee",
+          "yeyyee",
+          "eyeeez",
+          "eyezee"
+        ],
+        "dropped_runtime_indices": [
+          0,
+          3
+        ],
+        "dropped_pauli_exyz": [
+          "eeeexy",
+          "yezeze"
+        ],
+        "theta0_runtime": [
+          1.6400240536158577,
+          -3.1415852322533517,
+          -1.5707956982689952,
+          -0.08638170368796677,
+          -0.08646881746381309
+        ],
+        "initial_energy": 1.9507537116205398,
+        "initial_abs_delta_e": 1.792085807494814,
+        "initial_exact_state_fidelity": 0.42892695016794513,
+        "optimized_energy": 0.7577310297217252,
+        "optimized_abs_delta_e": 0.5990631255959995,
+        "optimized_exact_state_fidelity": 0.4867171066831277,
+        "optimized_theta_runtime": [
+          2.662846243465352,
+          0.06639629953564188,
+          -0.04761910923144008,
+          -0.13699297854768838,
+          -0.09220418071813233
+        ],
+        "optimizer": {
+          "method": "Powell",
+          "restarts": 3,
+          "selected_restart_index": 0,
+          "nfev": 242,
+          "success": true,
+          "message": "Optimization terminated successfully.",
+          "elapsed_s": 0.293333875015378
+        },
+        "marrakesh_compile_best": {
+          "seed": 0,
+          "compiled_count_2q": 10,
+          "compiled_depth": 39,
+          "compiled_size": 55,
+          "layout_physical_qubits": [
+            19,
+            5,
+            14,
+            13,
+            15,
+            12
+          ]
+        },
+        "marrakesh_compile_ranges": {
+          "count_2q": [
+            10,
+            10
+          ],
+          "depth": [
+            39,
+            39
+          ],
+          "size": [
+            55,
+            55
+          ]
+        }
+      },
+      {
+        "runtime_term_count": 5,
+        "kept_runtime_indices": [
+          1,
+          2,
+          3,
+          5,
+          6
+        ],
+        "kept_pauli_exyz": [
+          "eeyxee",
+          "yeeeee",
+          "yezeze",
+          "eyeeez",
+          "eyezee"
+        ],
+        "dropped_runtime_indices": [
+          0,
+          4
+        ],
+        "dropped_pauli_exyz": [
+          "eeeexy",
+          "yeyyee"
+        ],
+        "theta0_runtime": [
+          1.6400240536158577,
+          -3.1415852322533517,
+          -1.54485785098712,
+          -0.08638170368796677,
+          -0.08646881746381309
+        ],
+        "initial_energy": 2.755797720750037,
+        "initial_abs_delta_e": 2.597129816624311,
+        "initial_exact_state_fidelity": 0.2463280621914463,
+        "optimized_energy": 0.7577310769965722,
+        "optimized_abs_delta_e": 0.5990631728708464,
+        "optimized_exact_state_fidelity": 0.48675538513404093,
+        "optimized_theta_runtime": [
+          2.6601300728313855,
+          0.2745020723227456,
+          0.18490296114154958,
+          -0.1365424319212689,
+          -0.09142320670280409
+        ],
+        "optimizer": {
+          "method": "Powell",
+          "restarts": 3,
+          "selected_restart_index": 0,
+          "nfev": 244,
+          "success": true,
+          "message": "Optimization terminated successfully.",
+          "elapsed_s": 0.24744758289307356
+        },
+        "marrakesh_compile_best": {
+          "seed": 0,
+          "compiled_count_2q": 10,
+          "compiled_depth": 31,
+          "compiled_size": 57,
+          "layout_physical_qubits": [
+            6,
+            16,
+            4,
+            3,
+            5,
+            2
+          ]
+        },
+        "marrakesh_compile_ranges": {
+          "count_2q": [
+            10,
+            10
+          ],
+          "depth": [
+            31,
+            31
+          ],
+          "size": [
+            57,
+            57
+          ]
+        }
+      },
+      {
+        "runtime_term_count": 5,
+        "kept_runtime_indices": [
+          0,
+          2,
+          4,
+          5,
+          6
+        ],
+        "kept_pauli_exyz": [
+          "eeeexy",
+          "yeeeee",
+          "yeyyee",
+          "eyeeez",
+          "eyezee"
+        ],
+        "dropped_runtime_indices": [
+          1,
+          3
+        ],
+        "dropped_pauli_exyz": [
+          "eeyxee",
+          "yezeze"
+        ],
+        "theta0_runtime": [
+          1.5707938677176911,
+          -3.1415852322533517,
+          -1.5707956982689952,
+          -0.08638170368796677,
+          -0.08646881746381309
+        ],
+        "initial_energy": 2.7144561825412596,
+        "initial_abs_delta_e": 2.555788278415534,
+        "initial_exact_state_fidelity": 0.40663745856080247,
+        "optimized_energy": 0.7601620831068928,
+        "optimized_abs_delta_e": 0.601494178981167,
+        "optimized_exact_state_fidelity": 0.4860149401007962,
+        "optimized_theta_runtime": [
+          0.4750557329693983,
+          -6.393805536339766,
+          -3.141592657040918,
+          -0.09097422722136178,
+          -0.1349791992434649
+        ],
+        "optimizer": {
+          "method": "Powell",
+          "restarts": 3,
+          "selected_restart_index": 2,
+          "nfev": 272,
+          "success": true,
+          "message": "Optimization terminated successfully.",
+          "elapsed_s": 0.32187541760504246
+        },
+        "marrakesh_compile_best": {
+          "seed": 0,
+          "compiled_count_2q": 10,
+          "compiled_depth": 29,
+          "compiled_size": 57,
+          "layout_physical_qubits": [
+            6,
+            7,
+            4,
+            3,
+            5,
+            2
+          ]
+        },
+        "marrakesh_compile_ranges": {
+          "count_2q": [
+            10,
+            10
+          ],
+          "depth": [
+            29,
+            29
+          ],
+          "size": [
+            57,
+            57
+          ]
+        }
+      },
+      {
+        "runtime_term_count": 5,
+        "kept_runtime_indices": [
+          0,
+          1,
+          2,
+          4,
+          6
+        ],
+        "kept_pauli_exyz": [
+          "eeeexy",
+          "eeyxee",
+          "yeeeee",
+          "yeyyee",
+          "eyezee"
+        ],
+        "dropped_runtime_indices": [
+          3,
+          5
+        ],
+        "dropped_pauli_exyz": [
+          "yezeze",
+          "eyeeez"
+        ],
+        "theta0_runtime": [
+          1.5707938677176911,
+          1.6400240536158577,
+          -3.1415852322533517,
+          -1.5707956982689952,
+          -0.08646881746381309
+        ],
+        "initial_energy": 0.9703047360733366,
+        "initial_abs_delta_e": 0.8116368319476108,
+        "initial_exact_state_fidelity": 0.8562472674844903,
+        "optimized_energy": 0.9583762286878783,
+        "optimized_abs_delta_e": 0.7997083245621526,
+        "optimized_exact_state_fidelity": 0.850933550376676,
+        "optimized_theta_runtime": [
+          1.558541758345705,
+          1.737954575893096,
+          -3.067152100860942,
+          -1.5311890629615024,
+          -0.16665564296454585
+        ],
+        "optimizer": {
+          "method": "Powell",
+          "restarts": 3,
+          "selected_restart_index": 1,
+          "nfev": 148,
+          "success": true,
+          "message": "Optimization terminated successfully.",
+          "elapsed_s": 0.18377166707068682
+        },
+        "marrakesh_compile_best": {
+          "seed": 0,
+          "compiled_count_2q": 10,
+          "compiled_depth": 39,
+          "compiled_size": 60,
+          "layout_physical_qubits": [
+            5,
+            6,
+            13,
+            14,
+            12,
+            15
+          ]
+        },
+        "marrakesh_compile_ranges": {
+          "count_2q": [
+            10,
+            10
+          ],
+          "depth": [
+            39,
+            39
+          ],
+          "size": [
+            60,
+            60
+          ]
+        }
+      },
+      {
+        "runtime_term_count": 5,
+        "kept_runtime_indices": [
+          0,
+          1,
+          2,
+          4,
+          5
+        ],
+        "kept_pauli_exyz": [
+          "eeeexy",
+          "eeyxee",
+          "yeeeee",
+          "yeyyee",
+          "eyeeez"
+        ],
+        "dropped_runtime_indices": [
+          3,
+          6
+        ],
+        "dropped_pauli_exyz": [
+          "yezeze",
+          "eyezee"
+        ],
+        "theta0_runtime": [
+          1.5707938677176911,
+          1.6400240536158577,
+          -3.1415852322533517,
+          -1.5707956982689952,
+          -0.08638170368796677
+        ],
+        "initial_energy": 0.9703241030528642,
+        "initial_abs_delta_e": 0.8116561989271385,
+        "initial_exact_state_fidelity": 0.8562314869035393,
+        "optimized_energy": 0.958547490239581,
+        "optimized_abs_delta_e": 0.7998795861138552,
+        "optimized_exact_state_fidelity": 0.8509848486814089,
+        "optimized_theta_runtime": [
+          1.5851761754764735,
+          1.7366007350900354,
+          -3.2272805294203217,
+          -1.6163860722589924,
+          -0.16515797358581094
+        ],
+        "optimizer": {
+          "method": "Powell",
+          "restarts": 3,
+          "selected_restart_index": 1,
+          "nfev": 146,
+          "success": true,
+          "message": "Optimization terminated successfully.",
+          "elapsed_s": 0.1799134574830532
+        },
+        "marrakesh_compile_best": {
+          "seed": 0,
+          "compiled_count_2q": 10,
+          "compiled_depth": 31,
+          "compiled_size": 60,
+          "layout_physical_qubits": [
+            3,
+            4,
+            13,
+            14,
+            2,
+            15
+          ]
+        },
+        "marrakesh_compile_ranges": {
+          "count_2q": [
+            10,
+            10
+          ],
+          "depth": [
+            31,
+            31
+          ],
+          "size": [
+            60,
+            60
+          ]
+        }
+      },
+      {
+        "runtime_term_count": 5,
+        "kept_runtime_indices": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ],
+        "kept_pauli_exyz": [
+          "eeeexy",
+          "eeyxee",
+          "yeeeee",
+          "yezeze",
+          "yeyyee"
+        ],
+        "dropped_runtime_indices": [
+          5,
+          6
+        ],
+        "dropped_pauli_exyz": [
+          "eyeeez",
+          "eyezee"
+        ],
+        "theta0_runtime": [
+          1.5707938677176911,
+          1.6400240536158577,
+          -3.1415852322533517,
+          -1.54485785098712,
+          -1.5707956982689952
+        ],
+        "initial_energy": 0.16568152115614831,
+        "initial_abs_delta_e": 0.007013617030422525,
+        "initial_exact_state_fidelity": 0.9986230507758485,
+        "optimized_energy": 0.165586560516765,
+        "optimized_abs_delta_e": 0.006918656391039224,
+        "optimized_exact_state_fidelity": 0.9986227659012741,
+        "optimized_theta_runtime": [
+          1.570796279564962,
+          1.6385413524658687,
+          -3.1415925094192056,
+          -1.5612119144270669,
+          -1.570796310630546
+        ],
+        "optimizer": {
+          "method": "Powell",
+          "restarts": 3,
+          "selected_restart_index": 0,
+          "nfev": 112,
+          "success": true,
+          "message": "Optimization terminated successfully.",
+          "elapsed_s": 0.14317708369344473
+        },
+        "marrakesh_compile_best": {
+          "seed": 0,
+          "compiled_count_2q": 12,
+          "compiled_depth": 48,
+          "compiled_size": 71,
+          "layout_physical_qubits": [
+            109,
+            110,
+            98,
+            111,
+            5,
+            112
+          ]
+        },
+        "marrakesh_compile_ranges": {
+          "count_2q": [
+            12,
+            12
+          ],
+          "depth": [
+            48,
+            48
+          ],
+          "size": [
+            71,
+            71
+          ]
+        }
+      },
+      {
+        "runtime_term_count": 5,
+        "kept_runtime_indices": [
+          0,
+          1,
+          4,
+          5,
+          6
+        ],
+        "kept_pauli_exyz": [
+          "eeeexy",
+          "eeyxee",
+          "yeyyee",
+          "eyeeez",
+          "eyezee"
+        ],
+        "dropped_runtime_indices": [
+          2,
+          3
+        ],
+        "dropped_pauli_exyz": [
+          "yeeeee",
+          "yezeze"
+        ],
+        "theta0_runtime": [
+          1.5707938677176911,
+          1.6400240536158577,
+          -1.5707956982689952,
+          -0.08638170368796677,
+          -0.08646881746381309
+        ],
+        "initial_energy": 1.4705776876774377,
+        "initial_abs_delta_e": 1.311909783551712,
+        "initial_exact_state_fidelity": 0.4289272009893353,
+        "optimized_energy": 0.4905605682779481,
+        "optimized_abs_delta_e": 0.3318926641522223,
+        "optimized_exact_state_fidelity": 0.6271989844143536,
+        "optimized_theta_runtime": [
+          0.5344371884699449,
+          2.6015927375959382,
+          -0.05674983120350388,
+          -0.10053710816511936,
+          -0.1000947571525219
+        ],
+        "optimizer": {
+          "method": "Powell",
+          "restarts": 3,
+          "selected_restart_index": 1,
+          "nfev": 332,
+          "success": true,
+          "message": "Optimization terminated successfully.",
+          "elapsed_s": 0.42702029272913933
+        },
+        "marrakesh_compile_best": {
+          "seed": 0,
+          "compiled_count_2q": 12,
+          "compiled_depth": 39,
+          "compiled_size": 64,
+          "layout_physical_qubits": [
+            6,
+            7,
+            4,
+            3,
+            5,
+            2
+          ]
+        },
+        "marrakesh_compile_ranges": {
+          "count_2q": [
+            12,
+            12
+          ],
+          "depth": [
+            39,
+            39
+          ],
+          "size": [
+            64,
+            64
+          ]
+        }
+      },
+      {
+        "runtime_term_count": 5,
+        "kept_runtime_indices": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "kept_pauli_exyz": [
+          "eeyxee",
+          "yeeeee",
+          "yezeze",
+          "yeyyee",
+          "eyeeez"
+        ],
+        "dropped_runtime_indices": [
+          0,
+          6
+        ],
+        "dropped_pauli_exyz": [
+          "eeeexy",
+          "eyezee"
+        ],
+        "theta0_runtime": [
+          1.6400240536158577,
+          -3.1415852322533517,
+          -1.54485785098712,
+          -1.5707956982689952,
+          -0.08638170368796677
+        ],
+        "initial_energy": 0.8772108178471907,
+        "initial_abs_delta_e": 0.718542913721465,
+        "initial_exact_state_fidelity": 0.49895083351228786,
+        "optimized_energy": 0.7601620832540126,
+        "optimized_abs_delta_e": 0.6014941791282868,
+        "optimized_exact_state_fidelity": 0.48601332537130654,
+        "optimized_theta_runtime": [
+          1.6411444935391215,
+          -3.0038786201348873,
+          -2.1932236610303213,
+          -1.53844503271827,
+          -0.055306497082032724
+        ],
+        "optimizer": {
+          "method": "Powell",
+          "restarts": 3,
+          "selected_restart_index": 2,
+          "nfev": 137,
+          "success": true,
+          "message": "Optimization terminated successfully.",
+          "elapsed_s": 0.16877037566155195
+        },
+        "marrakesh_compile_best": {
+          "seed": 0,
+          "compiled_count_2q": 12,
+          "compiled_depth": 48,
+          "compiled_size": 68,
+          "layout_physical_qubits": [
+            6,
+            137,
+            148,
+            147,
+            5,
+            146
+          ]
+        },
+        "marrakesh_compile_ranges": {
+          "count_2q": [
+            12,
+            12
+          ],
+          "depth": [
+            48,
+            48
+          ],
+          "size": [
+            68,
+            68
+          ]
+        }
+      },
+      {
+        "runtime_term_count": 5,
+        "kept_runtime_indices": [
+          0,
+          2,
+          3,
+          4,
+          6
+        ],
+        "kept_pauli_exyz": [
+          "eeeexy",
+          "yeeeee",
+          "yezeze",
+          "yeyyee",
+          "eyezee"
+        ],
+        "dropped_runtime_indices": [
+          1,
+          5
+        ],
+        "dropped_pauli_exyz": [
+          "eeyxee",
+          "eyeeez"
+        ],
+        "theta0_runtime": [
+          1.5707938677176911,
+          -3.1415852322533517,
+          -1.54485785098712,
+          -1.5707956982689952,
+          -0.08646881746381309
+        ],
+        "initial_energy": 2.943114503734206,
+        "initial_abs_delta_e": 2.78444659960848,
+        "initial_exact_state_fidelity": 0.46768229103352765,
+        "optimized_energy": 0.7601753408800783,
+        "optimized_abs_delta_e": 0.6015074367543525,
+        "optimized_exact_state_fidelity": 0.4859931619885282,
+        "optimized_theta_runtime": [
+          0.4740123268930401,
+          6.031720790371115,
+          0.17350735339858236,
+          -3.1415926535930203,
+          -0.05507226085940183
+        ],
+        "optimizer": {
+          "method": "Powell",
+          "restarts": 3,
+          "selected_restart_index": 0,
+          "nfev": 196,
+          "success": true,
+          "message": "Optimization terminated successfully.",
+          "elapsed_s": 0.24253408331423998
+        },
+        "marrakesh_compile_best": {
+          "seed": 0,
+          "compiled_count_2q": 12,
+          "compiled_depth": 53,
+          "compiled_size": 69,
+          "layout_physical_qubits": [
+            109,
+            110,
+            98,
+            111,
+            91,
+            112
+          ]
+        },
+        "marrakesh_compile_ranges": {
+          "count_2q": [
+            12,
+            12
+          ],
+          "depth": [
+            53,
+            53
+          ],
+          "size": [
+            69,
+            69
+          ]
+        }
+      },
+      {
+        "runtime_term_count": 5,
+        "kept_runtime_indices": [
+          0,
+          2,
+          3,
+          4,
+          5
+        ],
+        "kept_pauli_exyz": [
+          "eeeexy",
+          "yeeeee",
+          "yezeze",
+          "yeyyee",
+          "eyeeez"
+        ],
+        "dropped_runtime_indices": [
+          1,
+          6
+        ],
+        "dropped_pauli_exyz": [
+          "eeyxee",
+          "eyezee"
+        ],
+        "theta0_runtime": [
+          1.5707938677176911,
+          -3.1415852322533517,
+          -1.54485785098712,
+          -1.5707956982689952,
+          -0.08638170368796677
+        ],
+        "initial_energy": 2.9458029161339443,
+        "initial_abs_delta_e": 2.7871350120082186,
+        "initial_exact_state_fidelity": 0.46782546341222725,
+        "optimized_energy": 0.7605241876162723,
+        "optimized_abs_delta_e": 0.6018562834905465,
+        "optimized_exact_state_fidelity": 0.48605345205807693,
+        "optimized_theta_runtime": [
+          0.4734680442283734,
+          6.014126499637044,
+          0.1815772726498868,
+          -3.141592653492435,
+          -0.02881708555947182
+        ],
+        "optimizer": {
+          "method": "Powell",
+          "restarts": 3,
+          "selected_restart_index": 0,
+          "nfev": 262,
+          "success": true,
+          "message": "Optimization terminated successfully.",
+          "elapsed_s": 0.32442125026136637
+        },
+        "marrakesh_compile_best": {
+          "seed": 0,
+          "compiled_count_2q": 12,
+          "compiled_depth": 45,
+          "compiled_size": 69,
+          "layout_physical_qubits": [
+            109,
+            110,
+            98,
+            111,
+            118,
+            112
+          ]
+        },
+        "marrakesh_compile_ranges": {
+          "count_2q": [
+            12,
+            12
+          ],
+          "depth": [
+            45,
+            45
+          ],
+          "size": [
+            69,
+            69
+          ]
+        }
+      },
+      {
+        "runtime_term_count": 5,
+        "kept_runtime_indices": [
+          1,
+          2,
+          3,
+          4,
+          6
+        ],
+        "kept_pauli_exyz": [
+          "eeyxee",
+          "yeeeee",
+          "yezeze",
+          "yeyyee",
+          "eyezee"
+        ],
+        "dropped_runtime_indices": [
+          0,
+          5
+        ],
+        "dropped_pauli_exyz": [
+          "eeeexy",
+          "eyeeez"
+        ],
+        "theta0_runtime": [
+          1.6400240536158577,
+          -3.1415852322533517,
+          -1.54485785098712,
+          -1.5707956982689952,
+          -0.08646881746381309
+        ],
+        "initial_energy": 0.8798774371989347,
+        "initial_abs_delta_e": 0.7212095330732089,
+        "initial_exact_state_fidelity": 0.49895459737596104,
+        "optimized_energy": 0.7605241876207846,
+        "optimized_abs_delta_e": 0.6018562834950587,
+        "optimized_exact_state_fidelity": 0.48605300082346814,
+        "optimized_theta_runtime": [
+          1.5457670944908521,
+          -3.1018987586415867,
+          -2.19856236312423,
+          -1.6453057752718048,
+          -0.02881673343170333
+        ],
+        "optimizer": {
+          "method": "Powell",
+          "restarts": 3,
+          "selected_restart_index": 1,
+          "nfev": 141,
+          "success": true,
+          "message": "Optimization terminated successfully.",
+          "elapsed_s": 0.17408183310180902
+        },
+        "marrakesh_compile_best": {
+          "seed": 0,
+          "compiled_count_2q": 12,
+          "compiled_depth": 56,
+          "compiled_size": 68,
+          "layout_physical_qubits": [
+            15,
+            16,
+            4,
+            3,
+            5,
+            2
+          ]
+        },
+        "marrakesh_compile_ranges": {
+          "count_2q": [
+            12,
+            12
+          ],
+          "depth": [
+            56,
+            56
+          ],
+          "size": [
+            68,
+            68
+          ]
+        }
+      },
+      {
+        "runtime_term_count": 5,
+        "kept_runtime_indices": [
+          2,
+          3,
+          4,
+          5,
+          6
+        ],
+        "kept_pauli_exyz": [
+          "yeeeee",
+          "yezeze",
+          "yeyyee",
+          "eyeeez",
+          "eyezee"
+        ],
+        "dropped_runtime_indices": [
+          0,
+          1
+        ],
+        "dropped_pauli_exyz": [
+          "eeeexy",
+          "eeyxee"
+        ],
+        "theta0_runtime": [
+          -3.1415852322533517,
+          -1.54485785098712,
+          -1.5707956982689952,
+          -0.08638170368796677,
+          -0.08646881746381309
+        ],
+        "initial_energy": 3.639784237382136,
+        "initial_abs_delta_e": 3.48111633325641,
+        "initial_exact_state_fidelity": 0.234252085192753,
+        "optimized_energy": 0.9999999999999976,
+        "optimized_abs_delta_e": 0.8413320958742718,
+        "optimized_exact_state_fidelity": 0.42383495106330554,
+        "optimized_theta_runtime": [
+          -4.717599986410039,
+          -1.5655853166136733,
+          -3.1415926536105188,
+          -0.08646991758170526,
+          -0.0864699190073031
+        ],
+        "optimizer": {
+          "method": "Powell",
+          "restarts": 3,
+          "selected_restart_index": 0,
+          "nfev": 202,
+          "success": true,
+          "message": "Optimization terminated successfully.",
+          "elapsed_s": 0.2440278334543109
+        },
+        "marrakesh_compile_best": {
+          "seed": 0,
+          "compiled_count_2q": 12,
+          "compiled_depth": 46,
+          "compiled_size": 64,
+          "layout_physical_qubits": [
+            6,
+            16,
+            4,
+            3,
+            5,
+            2
+          ]
+        },
+        "marrakesh_compile_ranges": {
+          "count_2q": [
+            12,
+            12
+          ],
+          "depth": [
+            46,
+            46
+          ],
+          "size": [
+            64,
+            64
+          ]
+        }
+      },
+      {
+        "runtime_term_count": 5,
+        "kept_runtime_indices": [
+          0,
+          1,
+          3,
+          4,
+          5
+        ],
+        "kept_pauli_exyz": [
+          "eeeexy",
+          "eeyxee",
+          "yezeze",
+          "yeyyee",
+          "eyeeez"
+        ],
+        "dropped_runtime_indices": [
+          2,
+          6
+        ],
+        "dropped_pauli_exyz": [
+          "yeeeee",
+          "eyezee"
+        ],
+        "theta0_runtime": [
+          1.5707938677176911,
+          1.6400240536158577,
+          -1.54485785098712,
+          -1.5707956982689952,
+          -0.08638170368796677
+        ],
+        "initial_energy": 0.674851440721324,
+        "initial_abs_delta_e": 0.5161835365955982,
+        "initial_exact_state_fidelity": 0.49895105173787524,
+        "optimized_energy": 0.6147974292247242,
+        "optimized_abs_delta_e": 0.45612952509899846,
+        "optimized_exact_state_fidelity": 0.5980022860743046,
+        "optimized_theta_runtime": [
+          1.42319676002698,
+          1.6357176675025158,
+          -1.4358825865211469,
+          -1.275988513124067,
+          -0.07405169439050953
+        ],
+        "optimizer": {
+          "method": "Powell",
+          "restarts": 3,
+          "selected_restart_index": 1,
+          "nfev": 191,
+          "success": true,
+          "message": "Optimization terminated successfully.",
+          "elapsed_s": 0.25385366659611464
+        },
+        "marrakesh_compile_best": {
+          "seed": 0,
+          "compiled_count_2q": 14,
+          "compiled_depth": 48,
+          "compiled_size": 77,
+          "layout_physical_qubits": [
+            109,
+            110,
+            98,
+            111,
+            118,
+            112
+          ]
+        },
+        "marrakesh_compile_ranges": {
+          "count_2q": [
+            14,
+            14
+          ],
+          "depth": [
+            48,
+            48
+          ],
+          "size": [
+            77,
+            77
+          ]
+        }
+      },
+      {
+        "runtime_term_count": 5,
+        "kept_runtime_indices": [
+          0,
+          1,
+          3,
+          4,
+          6
+        ],
+        "kept_pauli_exyz": [
+          "eeeexy",
+          "eeyxee",
+          "yezeze",
+          "yeyyee",
+          "eyezee"
+        ],
+        "dropped_runtime_indices": [
+          2,
+          5
+        ],
+        "dropped_pauli_exyz": [
+          "yeeeee",
+          "eyeeez"
+        ],
+        "theta0_runtime": [
+          1.5707938677176911,
+          1.6400240536158577,
+          -1.54485785098712,
+          -1.5707956982689952,
+          -0.08646881746381309
+        ],
+        "initial_energy": 0.6748475851009466,
+        "initial_abs_delta_e": 0.5161796809752208,
+        "initial_exact_state_fidelity": 0.4989548157697024,
+        "optimized_energy": 0.6148153100731185,
+        "optimized_abs_delta_e": 0.4561474059473927,
+        "optimized_exact_state_fidelity": 0.59797434633023,
+        "optimized_theta_runtime": [
+          1.4236719386124992,
+          1.635630885726866,
+          -1.4359918149192046,
+          -1.2760807382015749,
+          -0.07366344548149377
+        ],
+        "optimizer": {
+          "method": "Powell",
+          "restarts": 3,
+          "selected_restart_index": 1,
+          "nfev": 192,
+          "success": true,
+          "message": "Optimization terminated successfully.",
+          "elapsed_s": 0.25571625027805567
+        },
+        "marrakesh_compile_best": {
+          "seed": 0,
+          "compiled_count_2q": 14,
+          "compiled_depth": 56,
+          "compiled_size": 77,
+          "layout_physical_qubits": [
+            109,
+            110,
+            98,
+            111,
+            91,
+            112
+          ]
+        },
+        "marrakesh_compile_ranges": {
+          "count_2q": [
+            14,
+            14
+          ],
+          "depth": [
+            56,
+            56
+          ],
+          "size": [
+            77,
+            77
+          ]
+        }
+      },
+      {
+        "runtime_term_count": 5,
+        "kept_runtime_indices": [
+          1,
+          3,
+          4,
+          5,
+          6
+        ],
+        "kept_pauli_exyz": [
+          "eeyxee",
+          "yezeze",
+          "yeyyee",
+          "eyeeez",
+          "eyezee"
+        ],
+        "dropped_runtime_indices": [
+          0,
+          2
+        ],
+        "dropped_pauli_exyz": [
+          "eeeexy",
+          "yeeeee"
+        ],
+        "theta0_runtime": [
+          1.6400240536158577,
+          -1.54485785098712,
+          -1.5707956982689952,
+          -0.08638170368796677,
+          -0.08646881746381309
+        ],
+        "initial_energy": 1.3088936486356477,
+        "initial_abs_delta_e": 1.150225744509922,
+        "initial_exact_state_fidelity": 0.2566041825117068,
+        "optimized_energy": 0.7577359567301326,
+        "optimized_abs_delta_e": 0.5990680526044068,
+        "optimized_exact_state_fidelity": 0.4867278883023937,
+        "optimized_theta_runtime": [
+          2.662439672898694,
+          -0.058565887942126936,
+          -0.06352384278989896,
+          -0.14060163454434874,
+          -0.09625584352116821
+        ],
+        "optimizer": {
+          "method": "Powell",
+          "restarts": 3,
+          "selected_restart_index": 2,
+          "nfev": 249,
+          "success": true,
+          "message": "Optimization terminated successfully.",
+          "elapsed_s": 0.31889958400279284
+        },
+        "marrakesh_compile_best": {
+          "seed": 0,
+          "compiled_count_2q": 14,
+          "compiled_depth": 56,
+          "compiled_size": 72,
+          "layout_physical_qubits": [
+            6,
+            16,
+            4,
+            3,
+            5,
+            2
+          ]
+        },
+        "marrakesh_compile_ranges": {
+          "count_2q": [
+            14,
+            14
+          ],
+          "depth": [
+            56,
+            56
+          ],
+          "size": [
+            72,
+            72
+          ]
+        }
+      },
+      {
+        "runtime_term_count": 5,
+        "kept_runtime_indices": [
+          0,
+          1,
+          3,
+          5,
+          6
+        ],
+        "kept_pauli_exyz": [
+          "eeeexy",
+          "eeyxee",
+          "yezeze",
+          "eyeeez",
+          "eyezee"
+        ],
+        "dropped_runtime_indices": [
+          2,
+          4
+        ],
+        "dropped_pauli_exyz": [
+          "yeeeee",
+          "yeyyee"
+        ],
+        "theta0_runtime": [
+          1.5707938677176911,
+          1.6400240536158577,
+          -1.54485785098712,
+          -0.08638170368796677,
+          -0.08646881746381309
+        ],
+        "initial_energy": 1.6651704719056637,
+        "initial_abs_delta_e": 1.506502567779938,
+        "initial_exact_state_fidelity": 0.7353452591810236,
+        "optimized_energy": 0.49367088626237055,
+        "optimized_abs_delta_e": 0.33500298213664476,
+        "optimized_exact_state_fidelity": 0.6255200985267819,
+        "optimized_theta_runtime": [
+          2.6077327886440433,
+          0.5338527883832701,
+          5.883104413724116e-06,
+          -0.09966252186297332,
+          -0.0996514565237048
+        ],
+        "optimizer": {
+          "method": "Powell",
+          "restarts": 3,
+          "selected_restart_index": 2,
+          "nfev": 314,
+          "success": true,
+          "message": "Optimization terminated successfully.",
+          "elapsed_s": 0.34830050077289343
+        },
+        "marrakesh_compile_best": {
+          "seed": 4,
+          "compiled_count_2q": 18,
+          "compiled_depth": 38,
+          "compiled_size": 85,
+          "layout_physical_qubits": [
+            4,
+            16,
+            6,
+            3,
+            5,
+            2
+          ]
+        },
+        "marrakesh_compile_ranges": {
+          "count_2q": [
+            18,
+            18
+          ],
+          "depth": [
+            38,
+            55
+          ],
+          "size": [
+            85,
+            90
+          ]
+        }
+      },
+      {
+        "runtime_term_count": 5,
+        "kept_runtime_indices": [
+          0,
+          3,
+          4,
+          5,
+          6
+        ],
+        "kept_pauli_exyz": [
+          "eeeexy",
+          "yezeze",
+          "yeyyee",
+          "eyeeez",
+          "eyezee"
+        ],
+        "dropped_runtime_indices": [
+          1,
+          2
+        ],
+        "dropped_pauli_exyz": [
+          "eeyxee",
+          "yeeeee"
+        ],
+        "theta0_runtime": [
+          1.5707938677176911,
+          -1.54485785098712,
+          -1.5707956982689952,
+          -0.08638170368796677,
+          -0.08646881746381309
+        ],
+        "initial_energy": 2.7471806981919604,
+        "initial_abs_delta_e": 2.5885127940662347,
+        "initial_exact_state_fidelity": 0.23425230282166415,
+        "optimized_energy": 0.7605241876804182,
+        "optimized_abs_delta_e": 0.6018562835546923,
+        "optimized_exact_state_fidelity": 0.48605375150104013,
+        "optimized_theta_runtime": [
+          2.6681204037021153,
+          0.05763434624120752,
+          9.979621349646503e-10,
+          -0.09079185287306869,
+          -0.1345353418546688
+        ],
+        "optimizer": {
+          "method": "Powell",
+          "restarts": 3,
+          "selected_restart_index": 2,
+          "nfev": 244,
+          "success": true,
+          "message": "Optimization terminated successfully.",
+          "elapsed_s": 0.31223425082862377
+        },
+        "marrakesh_compile_best": {
+          "seed": 0,
+          "compiled_count_2q": 20,
+          "compiled_depth": 60,
+          "compiled_size": 87,
+          "layout_physical_qubits": [
+            3,
+            16,
+            4,
+            2,
+            5,
+            1
+          ]
+        },
+        "marrakesh_compile_ranges": {
+          "count_2q": [
+            20,
+            23
+          ],
+          "depth": [
+            58,
+            63
+          ],
+          "size": [
+            87,
+            106
+          ]
+        }
+      },
+      {
+        "runtime_term_count": 6,
+        "kept_runtime_indices": [
+          0,
+          1,
+          2,
+          4,
+          5,
+          6
+        ],
+        "kept_pauli_exyz": [
+          "eeeexy",
+          "eeyxee",
+          "yeeeee",
+          "yeyyee",
+          "eyeeez",
+          "eyezee"
+        ],
+        "dropped_runtime_indices": [
+          3
+        ],
+        "dropped_pauli_exyz": [
+          "yezeze"
+        ],
+        "theta0_runtime": [
+          1.5707938677176911,
+          1.6400240536158577,
+          -3.1415852322533517,
+          -1.5707956982689952,
+          -0.08638170368796677,
+          -0.08646881746381309
+        ],
+        "initial_energy": 0.9544831451888807,
+        "initial_abs_delta_e": 0.7958152410631549,
+        "initial_exact_state_fidelity": 0.8578537792457341,
+        "optimized_energy": 0.4903405745735258,
+        "optimized_abs_delta_e": 0.3316726704478,
+        "optimized_exact_state_fidelity": 0.6277042905141508,
+        "optimized_theta_runtime": [
+          2.6054053164419226,
+          2.6022315885989893,
+          -6.221001088630346,
+          -3.080608634024237,
+          -0.10061095427231842,
+          -0.10026654471676802
+        ],
+        "optimizer": {
+          "method": "Powell",
+          "restarts": 3,
+          "selected_restart_index": 2,
+          "nfev": 476,
+          "success": true,
+          "message": "Optimization terminated successfully.",
+          "elapsed_s": 0.6666280832141638
+        },
+        "marrakesh_compile_best": {
+          "seed": 0,
+          "compiled_count_2q": 12,
+          "compiled_depth": 39,
+          "compiled_size": 67,
+          "layout_physical_qubits": [
+            6,
+            7,
+            4,
+            3,
+            5,
+            2
+          ]
+        },
+        "marrakesh_compile_ranges": {
+          "count_2q": [
+            12,
+            12
+          ],
+          "depth": [
+            39,
+            39
+          ],
+          "size": [
+            67,
+            67
+          ]
+        }
+      },
+      {
+        "runtime_term_count": 6,
+        "kept_runtime_indices": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          6
+        ],
+        "kept_pauli_exyz": [
+          "eeeexy",
+          "eeyxee",
+          "yeeeee",
+          "yezeze",
+          "yeyyee",
+          "eyezee"
+        ],
+        "dropped_runtime_indices": [
+          5
+        ],
+        "dropped_pauli_exyz": [
+          "eyeeez"
+        ],
+        "theta0_runtime": [
+          1.5707938677176911,
+          1.6400240536158577,
+          -3.1415852322533517,
+          -1.54485785098712,
+          -1.5707956982689952,
+          -0.08646881746381309
+        ],
+        "initial_energy": 0.16366001096781374,
+        "initial_abs_delta_e": 0.004992106842087951,
+        "initial_exact_state_fidelity": 0.997909151031,
+        "optimized_energy": 0.16327777313193625,
+        "optimized_abs_delta_e": 0.004609869006210465,
+        "optimized_exact_state_fidelity": 0.998490590463693,
+        "optimized_theta_runtime": [
+          1.5709068720143538,
+          1.6391549995122405,
+          -3.1419250699470096,
+          -1.5542996609447908,
+          -1.5708276776683492,
+          -0.06192021434530125
+        ],
+        "optimizer": {
+          "method": "Powell",
+          "restarts": 3,
+          "selected_restart_index": 1,
+          "nfev": 225,
+          "success": true,
+          "message": "Optimization terminated successfully.",
+          "elapsed_s": 0.3236374594271183
+        },
+        "marrakesh_compile_best": {
+          "seed": 0,
+          "compiled_count_2q": 14,
+          "compiled_depth": 56,
+          "compiled_size": 80,
+          "layout_physical_qubits": [
+            109,
+            110,
+            98,
+            111,
+            91,
+            112
+          ]
+        },
+        "marrakesh_compile_ranges": {
+          "count_2q": [
+            14,
+            14
+          ],
+          "depth": [
+            56,
+            56
+          ],
+          "size": [
+            80,
+            80
+          ]
+        }
+      },
+      {
+        "runtime_term_count": 6,
+        "kept_runtime_indices": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "kept_pauli_exyz": [
+          "eeeexy",
+          "eeyxee",
+          "yeeeee",
+          "yezeze",
+          "yeyyee",
+          "eyeeez"
+        ],
+        "dropped_runtime_indices": [
+          6
+        ],
+        "dropped_pauli_exyz": [
+          "eyezee"
+        ],
+        "theta0_runtime": [
+          1.5707938677176911,
+          1.6400240536158577,
+          -3.1415852322533517,
+          -1.54485785098712,
+          -1.5707956982689952,
+          -0.08638170368796677
+        ],
+        "initial_energy": 0.16366386658819115,
+        "initial_abs_delta_e": 0.004995962462465364,
+        "initial_exact_state_fidelity": 0.9979016221089313,
+        "optimized_energy": 0.1632809601258856,
+        "optimized_abs_delta_e": 0.004613056000159821,
+        "optimized_exact_state_fidelity": 0.9984850798203946,
+        "optimized_theta_runtime": [
+          1.5706750259320321,
+          1.6391181488233113,
+          -3.1412182018263546,
+          -1.5543158928131178,
+          -1.5707609863100893,
+          -0.06183417453124048
+        ],
+        "optimizer": {
+          "method": "Powell",
+          "restarts": 3,
+          "selected_restart_index": 2,
+          "nfev": 230,
+          "success": true,
+          "message": "Optimization terminated successfully.",
+          "elapsed_s": 0.33059975039213896
+        },
+        "marrakesh_compile_best": {
+          "seed": 0,
+          "compiled_count_2q": 14,
+          "compiled_depth": 48,
+          "compiled_size": 80,
+          "layout_physical_qubits": [
+            109,
+            110,
+            98,
+            111,
+            118,
+            112
+          ]
+        },
+        "marrakesh_compile_ranges": {
+          "count_2q": [
+            14,
+            14
+          ],
+          "depth": [
+            48,
+            48
+          ],
+          "size": [
+            80,
+            80
+          ]
+        }
+      },
+      {
+        "runtime_term_count": 6,
+        "kept_runtime_indices": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+        ],
+        "kept_pauli_exyz": [
+          "eeyxee",
+          "yeeeee",
+          "yezeze",
+          "yeyyee",
+          "eyeeez",
+          "eyezee"
+        ],
+        "dropped_runtime_indices": [
+          0
+        ],
+        "dropped_pauli_exyz": [
+          "eeeexy"
+        ],
+        "theta0_runtime": [
+          1.6400240536158577,
+          -3.1415852322533517,
+          -1.54485785098712,
+          -1.5707956982689952,
+          -0.08638170368796677,
+          -0.08646881746381309
+        ],
+        "initial_energy": 0.8726376552631164,
+        "initial_abs_delta_e": 0.7139697511373906,
+        "initial_exact_state_fidelity": 0.4998922048234508,
+        "optimized_energy": 0.7577308910004158,
+        "optimized_abs_delta_e": 0.59906298687469,
+        "optimized_exact_state_fidelity": 0.486733389688078,
+        "optimized_theta_runtime": [
+          1.6473873592447703,
+          -2.995423669874979,
+          -2.1807014806652365,
+          -1.5324513326013476,
+          -0.13639984893142343,
+          -0.09180899716121296
+        ],
+        "optimizer": {
+          "method": "Powell",
+          "restarts": 3,
+          "selected_restart_index": 0,
+          "nfev": 166,
+          "success": true,
+          "message": "Optimization terminated successfully.",
+          "elapsed_s": 0.234245290979743
+        },
+        "marrakesh_compile_best": {
+          "seed": 0,
+          "compiled_count_2q": 14,
+          "compiled_depth": 56,
+          "compiled_size": 75,
+          "layout_physical_qubits": [
+            6,
+            16,
+            4,
+            3,
+            5,
+            2
+          ]
+        },
+        "marrakesh_compile_ranges": {
+          "count_2q": [
+            14,
+            14
+          ],
+          "depth": [
+            56,
+            56
+          ],
+          "size": [
+            75,
+            75
+          ]
+        }
+      },
+      {
+        "runtime_term_count": 6,
+        "kept_runtime_indices": [
+          0,
+          1,
+          2,
+          3,
+          5,
+          6
+        ],
+        "kept_pauli_exyz": [
+          "eeeexy",
+          "eeyxee",
+          "yeeeee",
+          "yezeze",
+          "eyeeez",
+          "eyezee"
+        ],
+        "dropped_runtime_indices": [
+          4
+        ],
+        "dropped_pauli_exyz": [
+          "yeyyee"
+        ],
+        "theta0_runtime": [
+          1.5707938677176911,
+          1.6400240536158577,
+          -3.1415852322533517,
+          -1.54485785098712,
+          -0.08638170368796677,
+          -0.08646881746381309
+        ],
+        "initial_energy": 2.022960727919032,
+        "initial_abs_delta_e": 1.8642928237933063,
+        "initial_exact_state_fidelity": 0.4998935003369378,
+        "optimized_energy": 0.493670935993195,
+        "optimized_abs_delta_e": 0.3350030318674692,
+        "optimized_exact_state_fidelity": 0.6255054760413477,
+        "optimized_theta_runtime": [
+          0.5338324565278364,
+          2.6077922668585645,
+          -0.0008139127627497052,
+          -0.0001914216728835986,
+          -0.09959954381868331,
+          -0.09947860863226853
+        ],
+        "optimizer": {
+          "method": "Powell",
+          "restarts": 3,
+          "selected_restart_index": 0,
+          "nfev": 343,
+          "success": true,
+          "message": "Optimization terminated successfully.",
+          "elapsed_s": 0.4231305839493871
+        },
+        "marrakesh_compile_best": {
+          "seed": 4,
+          "compiled_count_2q": 18,
+          "compiled_depth": 38,
+          "compiled_size": 88,
+          "layout_physical_qubits": [
+            4,
+            16,
+            6,
+            3,
+            5,
+            2
+          ]
+        },
+        "marrakesh_compile_ranges": {
+          "count_2q": [
+            18,
+            18
+          ],
+          "depth": [
+            38,
+            55
+          ],
+          "size": [
+            88,
+            93
+          ]
+        }
+      },
+      {
+        "runtime_term_count": 6,
+        "kept_runtime_indices": [
+          0,
+          2,
+          3,
+          4,
+          5,
+          6
+        ],
+        "kept_pauli_exyz": [
+          "eeeexy",
+          "yeeeee",
+          "yezeze",
+          "yeyyee",
+          "eyeeez",
+          "eyezee"
+        ],
+        "dropped_runtime_indices": [
+          1
+        ],
+        "dropped_pauli_exyz": [
+          "eeyxee"
+        ],
+        "theta0_runtime": [
+          1.5707938677176911,
+          -3.1415852322533517,
+          -1.54485785098712,
+          -1.5707956982689952,
+          -0.08638170368796677,
+          -0.08646881746381309
+        ],
+        "initial_energy": 2.926234807812953,
+        "initial_abs_delta_e": 2.7675669036872272,
+        "initial_exact_state_fidelity": 0.4685043675919916,
+        "optimized_energy": 0.7577308207833282,
+        "optimized_abs_delta_e": 0.5990629166576025,
+        "optimized_exact_state_fidelity": 0.48673610713033233,
+        "optimized_theta_runtime": [
+          0.48123868589518887,
+          -6.557507754612469,
+          0.18430704130263087,
+          -3.1415926498027145,
+          -0.09216740485701104,
+          -0.13713229645089609
+        ],
+        "optimizer": {
+          "method": "Powell",
+          "restarts": 3,
+          "selected_restart_index": 2,
+          "nfev": 311,
+          "success": true,
+          "message": "Optimization terminated successfully.",
+          "elapsed_s": 0.4400130417197943
+        },
+        "marrakesh_compile_best": {
+          "seed": 0,
+          "compiled_count_2q": 20,
+          "compiled_depth": 60,
+          "compiled_size": 90,
+          "layout_physical_qubits": [
+            3,
+            16,
+            2,
+            4,
+            1,
+            5
+          ]
+        },
+        "marrakesh_compile_ranges": {
+          "count_2q": [
+            20,
+            23
+          ],
+          "depth": [
+            58,
+            63
+          ],
+          "size": [
+            90,
+            109
+          ]
+        }
+      },
+      {
+        "runtime_term_count": 6,
+        "kept_runtime_indices": [
+          0,
+          1,
+          3,
+          4,
+          5,
+          6
+        ],
+        "kept_pauli_exyz": [
+          "eeeexy",
+          "eeyxee",
+          "yezeze",
+          "yeyyee",
+          "eyeeez",
+          "eyezee"
+        ],
+        "dropped_runtime_indices": [
+          2
+        ],
+        "dropped_pauli_exyz": [
+          "yeeeee"
+        ],
+        "theta0_runtime": [
+          1.5707938677176911,
+          1.6400240536158577,
+          -1.54485785098712,
+          -1.5707956982689952,
+          -0.08638170368796677,
+          -0.08646881746381309
+        ],
+        "initial_energy": 0.670278277367549,
+        "initial_abs_delta_e": 0.5116103732418231,
+        "initial_exact_state_fidelity": 0.4998924235504198,
+        "optimized_energy": 0.6091206628019001,
+        "optimized_abs_delta_e": 0.45045275867617435,
+        "optimized_exact_state_fidelity": 0.6017285124521629,
+        "optimized_theta_runtime": [
+          1.4200894056477447,
+          1.63855384769898,
+          -1.4215440281459102,
+          -1.2677224856891551,
+          -0.09841005330553505,
+          -0.09797199032094546
+        ],
+        "optimizer": {
+          "method": "Powell",
+          "restarts": 3,
+          "selected_restart_index": 2,
+          "nfev": 284,
+          "success": true,
+          "message": "Optimization terminated successfully.",
+          "elapsed_s": 0.4245531242340803
+        },
+        "marrakesh_compile_best": {
+          "seed": 1,
+          "compiled_count_2q": 25,
+          "compiled_depth": 63,
+          "compiled_size": 117,
+          "layout_physical_qubits": [
+            118,
+            109,
+            111,
+            112,
+            110,
+            98
+          ]
+        },
+        "marrakesh_compile_ranges": {
+          "count_2q": [
+            25,
+            25
+          ],
+          "depth": [
+            63,
+            75
+          ],
+          "size": [
+            107,
+            117
+          ]
+        }
+      }
+    ]
+  }
+}

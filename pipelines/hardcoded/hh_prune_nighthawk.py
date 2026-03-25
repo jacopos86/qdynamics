@@ -43,6 +43,8 @@ from src.quantum.ansatz_parameterization import (
     AnsatzParameterLayout,
     build_parameter_layout,
     expand_legacy_logical_theta,
+    project_runtime_theta_block_mean,
+    serialize_layout,
 )
 from src.quantum.compiled_ansatz import CompiledAnsatzExecutor
 from src.quantum.compiled_polynomial import (
@@ -69,6 +71,7 @@ from pipelines.hardcoded.adapt_circuit_cost import (
     _resolve_scaffold_ops,
     _resolve_total_qubits,
 )
+from pipelines.hardcoded.handoff_state_bundle import build_statevector_manifest
 from pipelines.hardcoded.hh_continuation_generators import (
     rebuild_polynomial_from_serialized_terms,
 )
@@ -116,6 +119,33 @@ class ScaffoldVQEResult:
     elapsed_s: float
 
 
+@dataclass(frozen=True)
+class FixedScaffoldVariantSpec:
+    kind: str
+    output_json: Path
+    term_order_id: str
+    block_order_labels: tuple[str, ...]
+    source_order_runtime_indices: tuple[int, ...]
+    recommended_backend_name: str
+    recommended_optimization_level: int
+    recommended_seed_transpiler: int
+
+
+@dataclass
+class LockedScaffoldOptimizationResult:
+    layout: AnsatzParameterLayout
+    theta_runtime: list[float]
+    theta_logical: list[float]
+    energy: float
+    exact_energy: float
+    abs_delta_e: float
+    success: bool
+    message: str
+    nfev: int
+    method: str
+    elapsed_s: float
+
+
 @dataclass
 class CostMetrics:
     logical_depth: int
@@ -131,6 +161,57 @@ class CostMetrics:
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
+
+_FIXED_SCAFFOLD_KEEP_TERMS: dict[str, tuple[str, ...]] = {
+    "uccsd_ferm_lifted::uccsd_sing(alpha:0->1)": ("eeeexy",),
+    "uccsd_ferm_lifted::uccsd_sing(beta:2->3)": ("eeyxee",),
+    "paop_lf_full:paop_dbl_p(site=1->phonon=1)": ("yeeeee", "yezeze"),
+    "paop_full:paop_hopdrag(0,1)::child_set[0,2]": ("yeyyee",),
+    "paop_full:paop_disp(site=0)": ("eyeeez", "eyezee"),
+}
+_FIXED_SCAFFOLD_SOURCE_ORDER_BLOCKS: tuple[str, ...] = tuple(_FIXED_SCAFFOLD_KEEP_TERMS.keys())
+_FIXED_SCAFFOLD_SOURCE_ORDER_RUNTIME_LABELS: tuple[str, ...] = (
+    "eeeexy",
+    "eeyxee",
+    "yeeeee",
+    "yezeze",
+    "yeyyee",
+    "eyeeez",
+    "eyezee",
+)
+_FIXED_SCAFFOLD_DISP_FIRST_BLOCKS: tuple[str, ...] = (
+    "paop_full:paop_disp(site=0)",
+    "paop_lf_full:paop_dbl_p(site=1->phonon=1)",
+    "paop_full:paop_hopdrag(0,1)::child_set[0,2]",
+    "uccsd_ferm_lifted::uccsd_sing(alpha:0->1)",
+    "uccsd_ferm_lifted::uccsd_sing(beta:2->3)",
+)
+_FIXED_SCAFFOLD_DEFAULT_SOURCE_JSON = REPO_ROOT / "artifacts" / "json" / "hh_prune_nighthawk_aggressive_5op.json"
+_FIXED_SCAFFOLD_GATE_PRUNED_OUTPUT_JSON = REPO_ROOT / "artifacts" / "json" / "hh_prune_nighthawk_gate_pruned_7term.json"
+_FIXED_SCAFFOLD_CIRCUIT_OPT_OUTPUT_JSON = REPO_ROOT / "artifacts" / "json" / "hh_prune_nighthawk_circuit_optimized_7term.json"
+_FIXED_SCAFFOLD_VARIANTS: tuple[FixedScaffoldVariantSpec, ...] = (
+    FixedScaffoldVariantSpec(
+        kind="hh_nighthawk_gate_pruned_7term_v1",
+        output_json=_FIXED_SCAFFOLD_GATE_PRUNED_OUTPUT_JSON,
+        term_order_id="source_order",
+        block_order_labels=_FIXED_SCAFFOLD_SOURCE_ORDER_BLOCKS,
+        source_order_runtime_indices=(0, 1, 2, 3, 4, 5, 6),
+        recommended_backend_name="FakeNighthawk",
+        recommended_optimization_level=2,
+        recommended_seed_transpiler=7,
+    ),
+    FixedScaffoldVariantSpec(
+        kind="hh_nighthawk_circuit_optimized_7term_v1",
+        output_json=_FIXED_SCAFFOLD_CIRCUIT_OPT_OUTPUT_JSON,
+        term_order_id="disp_first",
+        block_order_labels=_FIXED_SCAFFOLD_DISP_FIRST_BLOCKS,
+        source_order_runtime_indices=(5, 6, 2, 3, 4, 0, 1),
+        recommended_backend_name="FakeNighthawk",
+        recommended_optimization_level=2,
+        recommended_seed_transpiler=7,
+    ),
+)
 
 
 def _now_utc() -> str:
@@ -183,6 +264,397 @@ def _extract_parameterization_blocks(adapt_vqe: Mapping[str, Any]) -> list[dict]
     if isinstance(param, Mapping):
         return list(param.get("blocks", []))
     return []
+
+
+def _runtime_labels_from_layout(layout: AnsatzParameterLayout) -> list[str]:
+    return [
+        str(spec.pauli_exyz)
+        for block in layout.blocks
+        for spec in block.terms
+    ]
+
+
+def _minimal_export_settings(settings: Mapping[str, Any]) -> dict[str, Any]:
+    keys = (
+        "L",
+        "problem",
+        "t",
+        "u",
+        "dv",
+        "omega0",
+        "g_ep",
+        "n_ph_max",
+        "boson_encoding",
+        "ordering",
+        "boundary",
+        "sector_n_up",
+        "sector_n_dn",
+    )
+    out = {str(k): settings[k] for k in keys if k in settings}
+    out["adapt_pool"] = "fixed_scaffold_locked"
+    return out
+
+
+def _ground_state_payload(source_payload: Mapping[str, Any], *, exact_energy: float) -> dict[str, Any]:
+    gs = source_payload.get("ground_state", {}) if isinstance(source_payload, Mapping) else {}
+    if not isinstance(gs, Mapping):
+        gs = {}
+    return {
+        "exact_energy": float(exact_energy),
+        "exact_energy_source": str(gs.get("exact_energy_source", "source_artifact")),
+        "method": str(gs.get("method", "source_artifact")),
+    }
+
+
+def _require_nonzero_theta(theta_runtime: np.ndarray, *, label: str) -> None:
+    if int(theta_runtime.size) <= 0:
+        raise ValueError(f"{label} runtime theta is empty.")
+    if bool(np.allclose(theta_runtime, 0.0, atol=1e-14, rtol=0.0)):
+        raise ValueError(f"{label} runtime theta is all zeros; refusing to export untrustworthy scaffold.")
+
+
+def _resolve_source_serialized_blocks(
+    source_payload: Mapping[str, Any],
+) -> tuple[dict[str, Any], list[dict[str, Any]], np.ndarray]:
+    adapt_vqe = _extract_adapt_vqe(source_payload)
+    blocks = _extract_parameterization_blocks(adapt_vqe)
+    if not blocks:
+        raise ValueError("Source artifact is missing adapt_vqe.parameterization.blocks.")
+    theta_runtime = np.asarray(adapt_vqe.get("optimal_point", []), dtype=float).reshape(-1)
+    _require_nonzero_theta(theta_runtime, label="source artifact")
+    return adapt_vqe, blocks, theta_runtime
+
+
+def _build_source_order_kept_blocks(
+    source_payload: Mapping[str, Any],
+) -> tuple[dict[str, list[dict[str, Any]]], dict[str, list[float]], dict[str, Any], np.ndarray]:
+    adapt_vqe, blocks, theta_runtime = _resolve_source_serialized_blocks(source_payload)
+    block_map = {str(block.get("candidate_label", "")): dict(block) for block in blocks}
+    kept_terms_by_block: dict[str, list[dict[str, Any]]] = {}
+    kept_theta_by_block: dict[str, list[float]] = {}
+    for block_label in _FIXED_SCAFFOLD_SOURCE_ORDER_BLOCKS:
+        block = block_map.get(str(block_label))
+        if block is None:
+            raise ValueError(f"Source artifact is missing expected block {block_label!r}.")
+        runtime_terms = block.get("runtime_terms_exyz", [])
+        if not isinstance(runtime_terms, Sequence):
+            raise ValueError(f"Block {block_label!r} runtime_terms_exyz is invalid.")
+        start = int(block.get("runtime_start", 0))
+        keep_labels = _FIXED_SCAFFOLD_KEEP_TERMS[str(block_label)]
+        kept_terms: list[dict[str, Any]] = []
+        kept_theta: list[float] = []
+        seen: set[str] = set()
+        for offset, raw_term in enumerate(runtime_terms):
+            if not isinstance(raw_term, Mapping):
+                raise ValueError(f"Block {block_label!r} contains invalid runtime term payload.")
+            label = str(raw_term.get("pauli_exyz", "")).strip()
+            if label in keep_labels:
+                kept_terms.append(dict(raw_term))
+                kept_theta.append(float(theta_runtime[start + offset]))
+                seen.add(label)
+        missing = [label for label in keep_labels if label not in seen]
+        if missing:
+            raise ValueError(
+                f"Block {block_label!r} is missing expected kept runtime labels: {missing}"
+            )
+        kept_terms_by_block[str(block_label)] = kept_terms
+        kept_theta_by_block[str(block_label)] = kept_theta
+    flattened_labels = [
+        str(term["pauli_exyz"])
+        for block_label in _FIXED_SCAFFOLD_SOURCE_ORDER_BLOCKS
+        for term in kept_terms_by_block[str(block_label)]
+    ]
+    if flattened_labels != list(_FIXED_SCAFFOLD_SOURCE_ORDER_RUNTIME_LABELS):
+        raise ValueError(
+            "7-term source-order runtime labels do not match the report-defined contract. "
+            f"Got {flattened_labels!r}."
+        )
+    return kept_terms_by_block, kept_theta_by_block, adapt_vqe, theta_runtime
+
+
+def _build_variant_scaffold(
+    *,
+    source_payload: Mapping[str, Any],
+    spec: FixedScaffoldVariantSpec,
+) -> tuple[list[AnsatzTerm], np.ndarray, list[str]]:
+    kept_terms_by_block, kept_theta_by_block, _adapt_vqe, _theta_source = _build_source_order_kept_blocks(source_payload)
+    source_index_by_label = {
+        label: idx for idx, label in enumerate(_FIXED_SCAFFOLD_SOURCE_ORDER_RUNTIME_LABELS)
+    }
+    scaffold_ops: list[AnsatzTerm] = []
+    theta_runtime: list[float] = []
+    runtime_labels: list[str] = []
+    source_order_runtime_indices: list[int] = []
+    for block_label in spec.block_order_labels:
+        block_terms = kept_terms_by_block[str(block_label)]
+        poly = rebuild_polynomial_from_serialized_terms(block_terms)
+        scaffold_ops.append(AnsatzTerm(label=str(block_label), polynomial=poly))
+        theta_vals = kept_theta_by_block[str(block_label)]
+        theta_runtime.extend(float(x) for x in theta_vals)
+        labels_here = [str(term["pauli_exyz"]) for term in block_terms]
+        runtime_labels.extend(labels_here)
+        source_order_runtime_indices.extend(int(source_index_by_label[label]) for label in labels_here)
+    if source_order_runtime_indices != list(spec.source_order_runtime_indices):
+        raise ValueError(
+            f"{spec.kind} source-order runtime index map mismatch: "
+            f"expected {list(spec.source_order_runtime_indices)}, got {source_order_runtime_indices}."
+        )
+    return scaffold_ops, np.asarray(theta_runtime, dtype=float), runtime_labels
+
+
+def _optimize_locked_scaffold(
+    *,
+    scaffold_ops: Sequence[AnsatzTerm],
+    theta0_runtime: np.ndarray,
+    h_poly: Any,
+    psi_ref: np.ndarray,
+    exact_energy: float,
+    method: str = "POWELL",
+    maxiter: int = 2000,
+) -> LockedScaffoldOptimizationResult:
+    executor = CompiledAnsatzExecutor(
+        list(scaffold_ops),
+        parameterization_mode="per_pauli_term",
+        sort_terms=False,
+    )
+    theta0 = np.asarray(theta0_runtime, dtype=float).reshape(-1)
+    if int(theta0.size) != int(executor.runtime_parameter_count):
+        raise ValueError(
+            f"Locked scaffold theta size {theta0.size} does not match runtime parameter count "
+            f"{executor.runtime_parameter_count}."
+        )
+
+    best_theta = np.asarray(theta0, dtype=float)
+    best_energy = float(expval_pauli_polynomial(executor.prepare_state(best_theta, psi_ref), h_poly))
+    best_message = "best-so-far retained"
+    nfev = 0
+
+    def _energy(theta_runtime: np.ndarray) -> float:
+        nonlocal best_theta, best_energy, nfev
+        theta_arr = np.asarray(theta_runtime, dtype=float).reshape(-1)
+        energy = float(expval_pauli_polynomial(executor.prepare_state(theta_arr, psi_ref), h_poly))
+        nfev += 1
+        if float(energy) < float(best_energy):
+            best_energy = float(energy)
+            best_theta = np.asarray(theta_arr, dtype=float)
+        return float(energy)
+
+    from scipy.optimize import minimize as scipy_minimize
+
+    t0 = time.monotonic()
+    result = None
+    success = False
+    message = "optimizer_not_run"
+    try:
+        result = scipy_minimize(
+            _energy,
+            theta0,
+            method=str(method),
+            options={"maxiter": int(maxiter), "maxfev": int(maxiter) * 10},
+        )
+        success = bool(result.success)
+        message = str(result.message)
+        theta_best = np.asarray(result.x, dtype=float).reshape(-1)
+        best_energy = float(result.fun)
+        best_theta = theta_best
+        nfev = int(getattr(result, "nfev", nfev))
+    except Exception as exc:
+        message = f"{type(exc).__name__}: {exc}"
+        best_message = message
+    elapsed = float(time.monotonic() - t0)
+
+    theta_best_logical = np.asarray(
+        project_runtime_theta_block_mean(best_theta, executor.layout),
+        dtype=float,
+    )
+    return LockedScaffoldOptimizationResult(
+        layout=executor.layout,
+        theta_runtime=[float(x) for x in best_theta.tolist()],
+        theta_logical=[float(x) for x in theta_best_logical.tolist()],
+        energy=float(best_energy),
+        exact_energy=float(exact_energy),
+        abs_delta_e=float(abs(float(best_energy) - float(exact_energy))),
+        success=bool(success),
+        message=str(message if success else best_message),
+        nfev=int(nfev),
+        method=str(method),
+        elapsed_s=float(elapsed),
+    )
+
+
+def _build_export_payload(
+    *,
+    source_payload: Mapping[str, Any],
+    spec: FixedScaffoldVariantSpec,
+    settings: Mapping[str, Any],
+    exact_energy: float,
+    optimization: LockedScaffoldOptimizationResult,
+    scaffold_ops: Sequence[AnsatzTerm],
+    runtime_labels: Sequence[str],
+    source_artifact_json: Path,
+) -> dict[str, Any]:
+    num_particles = tuple(half_filled_num_particles(int(settings.get("L", 2))))
+    psi_ref = np.asarray(
+        hubbard_holstein_reference_state(
+            dims=int(settings.get("L", 2)),
+            num_particles=num_particles,
+            n_ph_max=int(settings.get("n_ph_max", 1)),
+            boson_encoding=str(settings.get("boson_encoding", "binary")),
+            indexing=str(settings.get("ordering", "blocked")),
+        ),
+        dtype=complex,
+    ).reshape(-1)
+    executor = CompiledAnsatzExecutor(
+        list(scaffold_ops),
+        parameterization_mode="per_pauli_term",
+        sort_terms=False,
+    )
+    psi_final = executor.prepare_state(np.asarray(optimization.theta_runtime, dtype=float), psi_ref)
+    parameterization = serialize_layout(optimization.layout)
+    serialized_runtime_labels = [
+        str(term["pauli_exyz"])
+        for block in parameterization.get("blocks", [])
+        for term in block.get("runtime_terms_exyz", [])
+    ]
+    if serialized_runtime_labels != list(runtime_labels):
+        raise ValueError(
+            f"Serialized runtime labels for {spec.kind} do not match expected order. "
+            f"Expected {list(runtime_labels)}, got {serialized_runtime_labels}."
+        )
+    source_ground_state = _ground_state_payload(source_payload, exact_energy=float(exact_energy))
+    operators = [str(block.candidate_label) for block in optimization.layout.blocks]
+    stop_reason = "optimizer_complete" if bool(optimization.success) else "optimizer_best_seen_after_failure"
+    return {
+        "generated_utc": _now_utc(),
+        "pipeline": "hh_prune_nighthawk_fixed_scaffold_export",
+        "source_artifact_json": str(source_artifact_json),
+        "settings": _minimal_export_settings(settings),
+        "ground_state": source_ground_state,
+        "adapt_vqe": {
+            "success": bool(optimization.success),
+            "method": "hh_fixed_scaffold_vqe_export_v1",
+            "energy": float(optimization.energy),
+            "exact_gs_energy": float(exact_energy),
+            "delta_e": float(optimization.energy - float(exact_energy)),
+            "abs_delta_e": float(optimization.abs_delta_e),
+            "num_particles": {"n_up": int(num_particles[0]), "n_dn": int(num_particles[1])},
+            "ansatz_depth": int(len(optimization.layout.blocks)),
+            "num_parameters": int(optimization.layout.runtime_parameter_count),
+            "logical_num_parameters": int(optimization.layout.logical_parameter_count),
+            "optimal_point": [float(x) for x in optimization.theta_runtime],
+            "logical_optimal_point": [float(x) for x in optimization.theta_logical],
+            "parameterization": parameterization,
+            "operators": operators,
+            "pool_type": "fixed_scaffold_locked",
+            "structure_locked": True,
+            "fixed_scaffold_kind": str(spec.kind),
+            "fixed_scaffold_metadata": {
+                "schema_version": 1,
+                "route_family": "locked_imported_scaffold_v1",
+                "subject_kind": str(spec.kind),
+                "structure_locked": True,
+                "operator_count": int(len(optimization.layout.blocks)),
+                "runtime_term_count": int(optimization.layout.runtime_parameter_count),
+                "term_order_id": str(spec.term_order_id),
+                "term_order_basis": "gate_pruned_source_order_7term",
+                "source_order_runtime_indices": [int(x) for x in spec.source_order_runtime_indices],
+                "source_order_runtime_term_labels_exyz": list(_FIXED_SCAFFOLD_SOURCE_ORDER_RUNTIME_LABELS),
+                "runtime_term_labels_exyz": list(runtime_labels),
+                "source_artifact_json": str(source_artifact_json),
+                "source_pool_type": str(_extract_adapt_vqe(source_payload).get("pool_type", "")) or None,
+                "compile_recommendation": {
+                    "backend_name": str(spec.recommended_backend_name),
+                    "optimization_level": int(spec.recommended_optimization_level),
+                    "seed_transpiler": int(spec.recommended_seed_transpiler),
+                },
+            },
+            "stop_reason": str(stop_reason),
+            "nfev_total": int(optimization.nfev),
+            "adapt_inner_optimizer": str(optimization.method),
+            "elapsed_s": float(optimization.elapsed_s),
+        },
+        "ansatz_input_state": build_statevector_manifest(
+            psi_state=psi_ref,
+            source="hf",
+            handoff_state_kind="reference_state",
+            amplitude_cutoff=1e-12,
+        ),
+        "initial_state": build_statevector_manifest(
+            psi_state=psi_final,
+            source="fixed_scaffold_vqe",
+            handoff_state_kind="prepared_state",
+            amplitude_cutoff=1e-12,
+        ),
+    }
+
+
+def export_fixed_scaffold_variants(
+    *,
+    source_artifact_json: Path,
+    method: str,
+    maxiter: int,
+) -> dict[str, Any]:
+    source_payload = _load_payload(source_artifact_json)
+    settings = dict(source_payload.get("settings", {}))
+    h_poly = _build_hamiltonian(settings)
+    exact_energy = float(
+        source_payload.get("ground_state", {}).get(
+            "exact_energy",
+            _extract_adapt_vqe(source_payload).get("exact_gs_energy", 0.0),
+        )
+    )
+    outputs: dict[str, Any] = {
+        "generated_utc": _now_utc(),
+        "pipeline": "hh_prune_nighthawk_fixed_scaffold_export",
+        "source_artifact_json": str(source_artifact_json),
+        "variants": {},
+    }
+    for spec in _FIXED_SCAFFOLD_VARIANTS:
+        scaffold_ops, theta0_runtime, runtime_labels = _build_variant_scaffold(
+            source_payload=source_payload,
+            spec=spec,
+        )
+        psi_ref = np.asarray(
+            hubbard_holstein_reference_state(
+                dims=int(settings.get("L", 2)),
+                num_particles=tuple(half_filled_num_particles(int(settings.get("L", 2)))),
+                n_ph_max=int(settings.get("n_ph_max", 1)),
+                boson_encoding=str(settings.get("boson_encoding", "binary")),
+                indexing=str(settings.get("ordering", "blocked")),
+            ),
+            dtype=complex,
+        ).reshape(-1)
+        optimization = _optimize_locked_scaffold(
+            scaffold_ops=scaffold_ops,
+            theta0_runtime=theta0_runtime,
+            h_poly=h_poly,
+            psi_ref=psi_ref,
+            exact_energy=float(exact_energy),
+            method=str(method),
+            maxiter=int(maxiter),
+        )
+        payload = _build_export_payload(
+            source_payload=source_payload,
+            spec=spec,
+            settings=settings,
+            exact_energy=float(exact_energy),
+            optimization=optimization,
+            scaffold_ops=scaffold_ops,
+            runtime_labels=runtime_labels,
+            source_artifact_json=source_artifact_json,
+        )
+        spec.output_json.parent.mkdir(parents=True, exist_ok=True)
+        tmp_path = spec.output_json.with_suffix(spec.output_json.suffix + ".tmp")
+        tmp_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+        tmp_path.replace(spec.output_json)
+        outputs["variants"][str(spec.kind)] = {
+            "output_json": str(spec.output_json),
+            "abs_delta_e": float(payload["adapt_vqe"]["abs_delta_e"]),
+            "runtime_term_count": int(payload["adapt_vqe"]["num_parameters"]),
+            "operator_count": int(payload["adapt_vqe"]["logical_num_parameters"]),
+            "term_order_id": str(spec.term_order_id),
+        }
+    return outputs
 
 
 # ---------------------------------------------------------------------------
@@ -349,7 +821,11 @@ def run_readapt_phase3(
     adapt_drop_min_depth: int = 6,
     phase3_backend_name: str = "FakeNighthawk",
 ) -> dict[str, Any] | None:
-    """Invoke adapt_pipeline.py with aggressive termination seeded from the pruned state.
+    """Invoke adapt_pipeline.py from HF state with aggressive termination.
+
+    Starts fresh from HF (not warm-started from the fullhorse converged
+    state) so the ADAPT search can discover a leaner circuit that reaches
+    the same accuracy with fewer backend gates.
 
     Returns the result payload or None on failure.
     """
@@ -379,7 +855,7 @@ def run_readapt_phase3(
         "--adapt-window-topk", "999999",
         "--adapt-full-refit-every", "8",
         "--adapt-final-full-refit", "true",
-        # Aggressive termination
+        # Aggressive termination — tighter than the fullhorse run
         "--adapt-max-depth", str(adapt_max_depth),
         "--adapt-drop-floor", str(adapt_drop_floor),
         "--adapt-drop-patience", str(adapt_drop_patience),
@@ -387,7 +863,7 @@ def run_readapt_phase3(
         "--adapt-eps-grad", "5e-7",
         "--adapt-eps-energy", "1e-9",
         "--adapt-seed", "7",
-        # Phase 1 pruning
+        # Phase 1 pruning — more aggressive than fullhorse defaults
         "--phase1-prune-enabled",
         "--phase1-prune-fraction", "0.25",
         "--phase1-prune-max-candidates", "6",
@@ -399,15 +875,14 @@ def run_readapt_phase3(
         "--phase2-enable-batching",
         "--phase2-batch-target-size", "8",
         "--phase2-batch-size-cap", "16",
-        # Phase 3 backend cost
+        # Phase 3 backend cost — Nighthawk-conditioned
         "--phase3-backend-cost-mode", "transpile_single_v1",
         "--phase3-backend-name", phase3_backend_name,
         "--phase3-runtime-split-mode", "shortlist_pauli_children_v1",
         "--phase3-lifetime-cost-mode", "phase3_v1",
         "--phase3-enable-rescue",
         "--phase3-symmetry-mitigation-mode", "verify_only",
-        # Warm-start from fullhorse
-        "--adapt-ref-json", str(input_json_path),
+        # NO --adapt-ref-json: start from HF state, not warm start
         # Output
         "--output-json", str(output_json_path),
         "--skip-pdf",
@@ -685,13 +1160,19 @@ def format_report(
 
 def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     p = argparse.ArgumentParser(description="Prune fullhorse Nighthawk ADAPT circuit.")
-    p.add_argument("--input-json", type=Path, required=True,
+    p.add_argument("--input-json", type=Path, default=None,
                     help="Path to fullhorse Nighthawk ADAPT JSON artifact.")
+    p.add_argument(
+        "--source-artifact-json",
+        type=Path,
+        default=_FIXED_SCAFFOLD_DEFAULT_SOURCE_JSON,
+        help="Healthy 5-op source artifact used to export the locked 7-term fixed-scaffold variants.",
+    )
     p.add_argument("--output-json", type=Path, default=None,
                     help="Output JSON path for combined results.")
     p.add_argument("--output-md", type=Path, default=None,
                     help="Output markdown report path.")
-    p.add_argument("--mode", choices=["scaffold", "readapt", "both"], default="both",
+    p.add_argument("--mode", choices=["scaffold", "readapt", "both", "export_fixed_scaffolds"], default="both",
                     help="Which optimization path(s) to run.")
     p.add_argument("--prune-threshold", type=float, default=1e-4,
                     help="Absolute theta threshold below which layers are pruned.")
@@ -710,6 +1191,18 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
                     help="Min depth before drop policy in re-ADAPT.")
     p.add_argument("--backend-name", type=str, default="FakeNighthawk",
                     help="Backend for transpilation cost evaluation.")
+    p.add_argument(
+        "--gate-pruned-output-json",
+        type=Path,
+        default=_FIXED_SCAFFOLD_GATE_PRUNED_OUTPUT_JSON,
+        help="Output path for the corrected 7-term gate-pruned fixed-scaffold artifact.",
+    )
+    p.add_argument(
+        "--circuit-optimized-output-json",
+        type=Path,
+        default=_FIXED_SCAFFOLD_CIRCUIT_OPT_OUTPUT_JSON,
+        help="Output path for the circuit-optimized 7-term fixed-scaffold artifact.",
+    )
     p.add_argument("--seed", type=int, default=7)
     return p.parse_args(argv)
 
@@ -717,6 +1210,49 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
 def main(argv: Sequence[str] | None = None) -> int:
     args = parse_args(argv)
     ts = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+
+    global _FIXED_SCAFFOLD_VARIANTS
+    _FIXED_SCAFFOLD_VARIANTS = (
+        FixedScaffoldVariantSpec(
+            kind="hh_nighthawk_gate_pruned_7term_v1",
+            output_json=Path(args.gate_pruned_output_json),
+            term_order_id="source_order",
+            block_order_labels=_FIXED_SCAFFOLD_SOURCE_ORDER_BLOCKS,
+            source_order_runtime_indices=(0, 1, 2, 3, 4, 5, 6),
+            recommended_backend_name="FakeNighthawk",
+            recommended_optimization_level=2,
+            recommended_seed_transpiler=7,
+        ),
+        FixedScaffoldVariantSpec(
+            kind="hh_nighthawk_circuit_optimized_7term_v1",
+            output_json=Path(args.circuit_optimized_output_json),
+            term_order_id="disp_first",
+            block_order_labels=_FIXED_SCAFFOLD_DISP_FIRST_BLOCKS,
+            source_order_runtime_indices=(5, 6, 2, 3, 4, 0, 1),
+            recommended_backend_name="FakeNighthawk",
+            recommended_optimization_level=2,
+            recommended_seed_transpiler=7,
+        ),
+    )
+
+    if str(args.mode) == "export_fixed_scaffolds":
+        export_payload = export_fixed_scaffold_variants(
+            source_artifact_json=Path(args.source_artifact_json),
+            method=str(args.scaffold_method),
+            maxiter=int(args.scaffold_maxiter),
+        )
+        summary_json = args.output_json or (
+            REPO_ROOT / "artifacts" / "json" / f"hh_prune_nighthawk_fixed_scaffold_export_{ts}.json"
+        )
+        summary_json.parent.mkdir(parents=True, exist_ok=True)
+        summary_json.write_text(json.dumps(export_payload, indent=2), encoding="utf-8")
+        print(f"Fixed-scaffold export summary saved: {summary_json}")
+        for kind, rec in export_payload.get("variants", {}).items():
+            print(f"  {kind}: {rec.get('output_json')}")
+        return 0
+
+    if args.input_json is None:
+        raise ValueError("--input-json is required unless --mode export_fixed_scaffolds is used.")
 
     print(f"=== Nighthawk Pruning Pipeline ===")
     print(f"Input: {args.input_json}")
