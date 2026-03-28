@@ -15,3 +15,21 @@ artifacts/json/adapt_hh_L3_pareto_lean_phase3_powell.json
 .deps/
 .venv/
 .claude/
+
+# Generated experiment outputs / backups
+artifacts/agent_runs/
+artifacts/runstate/
+artifacts/logs/
+artifacts/csv/
+artifacts/pdf/
+artifacts/json/**/*.json
+artifacts/json/**/*.jsonl
+artifacts/json/**/*.csv
+artifacts/reports/**/*.pdf
+artifacts/reports/**/*.png
+artifacts/reports/**/*.jpg
+artifacts/reports/**/*.jpeg
+artifacts/reports/**/*.svg
+artifacts/reports/**/*.md
+artifacts/useful/**/*.md
+prompt-exports/
