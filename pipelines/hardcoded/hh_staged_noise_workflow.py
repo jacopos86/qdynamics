@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import multiprocessing as mp
 from dataclasses import asdict, dataclass, replace
 from pathlib import Path
 from typing import Any, Mapping, Sequence
@@ -154,6 +155,22 @@ class FixedScaffoldRuntimeEnergyOnlyConfig:
 
 
 @dataclass(frozen=True)
+class FixedScaffoldRuntimeRawBaselineConfig:
+    enabled: bool
+    subject_kind: str
+    noise_mode: str
+    mitigation_config: dict[str, Any]
+    symmetry_mitigation_config: dict[str, Any]
+    runtime_profile_config: dict[str, Any]
+    runtime_session_config: dict[str, Any]
+    transpile_optimization_level: int
+    seed_transpiler: int | None
+    raw_transport: str
+    raw_store_memory: bool
+    raw_artifact_path: str | None
+
+
+@dataclass(frozen=True)
 class FixedScaffoldCompileControlScoutConfig:
     enabled: bool
     subject_kind: str
@@ -197,6 +214,7 @@ class StagedHHNoiseConfig:
     fixed_lean_compile_control_scout: FixedLeanCompileControlScoutConfig
     fixed_scaffold_replay: FixedScaffoldNoisyReplayConfig
     fixed_scaffold_runtime_energy_only: FixedScaffoldRuntimeEnergyOnlyConfig
+    fixed_scaffold_runtime_raw_baseline: FixedScaffoldRuntimeRawBaselineConfig
     fixed_scaffold_compile_control_scout: FixedScaffoldCompileControlScoutConfig
     fixed_scaffold_attribution: FixedScaffoldNoiseAttributionConfig
 
@@ -335,6 +353,9 @@ def resolve_staged_hh_noise_config(args: Any) -> StagedHHNoiseConfig:
     include_fixed_scaffold_runtime_energy_only = bool(
         getattr(args, "include_fixed_scaffold_runtime_energy_only_baseline", False)
     )
+    include_fixed_scaffold_runtime_raw_baseline = bool(
+        getattr(args, "include_fixed_scaffold_runtime_raw_baseline", False)
+    )
     include_fixed_scaffold_compile_control_scout = bool(
         getattr(args, "include_fixed_scaffold_compile_control_scout", False)
     )
@@ -349,16 +370,26 @@ def resolve_staged_hh_noise_config(args: Any) -> StagedHHNoiseConfig:
     any_fixed_scaffold_route = bool(
         include_fixed_scaffold_noisy_replay
         or include_fixed_scaffold_runtime_energy_only
+        or include_fixed_scaffold_runtime_raw_baseline
         or include_fixed_scaffold_compile_control_scout
         or include_fixed_scaffold_noise_attribution
     )
+    if bool(include_fixed_scaffold_runtime_energy_only) and bool(include_fixed_scaffold_runtime_raw_baseline):
+        raise ValueError(
+            "fixed scaffold runtime energy-only and raw-baseline routes cannot be enabled together in one invocation."
+        )
     if any_fixed_lean_route and any_fixed_scaffold_route:
         raise ValueError(
             "fixed lean imported routes and fixed scaffold imported routes cannot be enabled together "
             "in one invocation."
         )
     default_subject_kind = None
-    if bool(include_fixed_scaffold_runtime_energy_only or include_fixed_scaffold_noisy_replay):
+    if bool(
+        include_fixed_scaffold_runtime_energy_only
+        or include_fixed_scaffold_runtime_raw_baseline
+        or include_fixed_scaffold_noisy_replay
+        or include_fixed_scaffold_compile_control_scout
+    ):
         default_subject_kind = "hh_marrakesh_gate_pruned_6term_drop_eyezee_v1"
     elif any_fixed_scaffold_route:
         default_subject_kind = "hh_nighthawk_gate_pruned_7term_v1"
@@ -373,6 +404,7 @@ def resolve_staged_hh_noise_config(args: Any) -> StagedHHNoiseConfig:
             or include_fixed_lean_compile_control_scout
             or include_fixed_scaffold_noisy_replay
             or include_fixed_scaffold_runtime_energy_only
+            or include_fixed_scaffold_runtime_raw_baseline
             or include_fixed_scaffold_compile_control_scout
             or include_fixed_scaffold_noise_attribution
         ),
@@ -401,6 +433,13 @@ def resolve_staged_hh_noise_config(args: Any) -> StagedHHNoiseConfig:
         raise ValueError(
             "adaptive realtime checkpoint controller is currently supported only for fresh-stage noisy runs; disable --checkpoint-controller-mode for imported-artifact routes."
         )
+    if (
+        str(source_cfg.mode) == "imported_artifact"
+        and staged_cfg.adapt.phase3_oracle_gradient_config is not None
+    ):
+        raise ValueError(
+            "phase3 oracle-gradient knobs are only valid for fresh-stage staged noise runs; imported-artifact routes do not execute ADAPT."
+        )
     imported_requires_fake_backend = bool(
         str(source_cfg.mode) == "imported_artifact"
         and (
@@ -408,6 +447,7 @@ def resolve_staged_hh_noise_config(args: Any) -> StagedHHNoiseConfig:
             or bool(any_fixed_lean_route)
             or bool(include_fixed_scaffold_compile_control_scout)
             or bool(include_fixed_scaffold_noise_attribution)
+            or (bool(include_fixed_scaffold_runtime_raw_baseline) and bool(use_fake_backend))
             or (bool(include_fixed_scaffold_noisy_replay) and bool(use_fake_backend))
         )
     )
@@ -423,7 +463,10 @@ def resolve_staged_hh_noise_config(args: Any) -> StagedHHNoiseConfig:
         if backend_name is None:
             backend_name = (
                 "FakeMarrakesh"
-                if bool(include_fixed_scaffold_noisy_replay)
+                if bool(
+                    include_fixed_scaffold_noisy_replay
+                    or include_fixed_scaffold_runtime_raw_baseline
+                )
                 else ("FakeNighthawk" if bool(any_fixed_scaffold_route) else "FakeGuadalupeV2")
             )
         use_fake_backend = True
@@ -566,6 +609,9 @@ def resolve_staged_hh_noise_config(args: Any) -> StagedHHNoiseConfig:
     runtime_profile_cfg = noise_report.normalize_runtime_estimator_profile_config(
         {"name": str(getattr(args, "fixed_scaffold_runtime_profile"))}
     )
+    runtime_raw_profile_cfg = noise_report.normalize_runtime_estimator_profile_config(
+        {"name": "legacy_runtime_v0"}
+    )
     runtime_session_cfg = noise_report.normalize_runtime_session_policy_config(
         {"mode": str(getattr(args, "fixed_scaffold_runtime_session_policy"))}
     )
@@ -573,6 +619,7 @@ def resolve_staged_hh_noise_config(args: Any) -> StagedHHNoiseConfig:
     runtime_seed_transpiler = int(getattr(args, "fixed_scaffold_runtime_seed_transpiler"))
     fixed_scaffold_runtime_subject_kind = "hh_marrakesh_gate_pruned_6term_drop_eyezee_v1"
     fixed_scaffold_runtime_energy_only_enabled = bool(include_fixed_scaffold_runtime_energy_only)
+    fixed_scaffold_runtime_raw_baseline_enabled = bool(include_fixed_scaffold_runtime_raw_baseline)
     if fixed_scaffold_runtime_energy_only_enabled:
         if str(source_cfg.mode) != "imported_artifact":
             raise ValueError(
@@ -587,6 +634,49 @@ def resolve_staged_hh_noise_config(args: Any) -> StagedHHNoiseConfig:
             raise ValueError(
                 "fixed scaffold runtime energy-only baseline requires --backend-name <ibm_backend>."
             )
+    if fixed_scaffold_runtime_raw_baseline_enabled:
+        if str(source_cfg.mode) != "imported_artifact":
+            raise ValueError(
+                "fixed scaffold runtime raw baseline requires an imported artifact source; pass "
+                "--fixed-final-state-json or enable the default Marrakesh/Heron runtime candidate."
+            )
+        if not bool(noise_cfg.use_fake_backend) and backend_name is None:
+            raise ValueError(
+                "fixed scaffold runtime raw baseline requires --backend-name <ibm_backend>."
+            )
+        if bool(getattr(args, "include_fixed_scaffold_runtime_dd_probe", False)):
+            raise ValueError(
+                "fixed scaffold runtime raw baseline does not support the legacy Runtime DD probe flag."
+            )
+        if bool(getattr(args, "include_fixed_scaffold_runtime_final_zne_audit", False)):
+            raise ValueError(
+                "fixed scaffold runtime raw baseline does not support the legacy Runtime final ZNE audit flag."
+            )
+        if bool(noise_cfg.use_fake_backend) and bool(include_full_circuit_audit):
+            requested_local_postprocessing = (
+                str(noise_cfg.mitigation_config.get("mode", "none")) != "none"
+                or str(noise_cfg.symmetry_mitigation_config.get("mode", "off")) != "off"
+            )
+            if requested_local_postprocessing:
+                raise ValueError(
+                    "fixed scaffold runtime raw baseline local diagonal postprocessing cannot be combined "
+                    "with full-circuit audit in one imported-artifact invocation."
+                )
+    if bool(noise_cfg.use_fake_backend) and bool(fixed_scaffold_runtime_raw_baseline_enabled):
+        runtime_raw_mitigation_cfg = dict(noise_cfg.mitigation_config)
+        runtime_raw_symmetry_cfg = dict(noise_cfg.symmetry_mitigation_config)
+        if str(runtime_raw_mitigation_cfg.get("mode", "none")) == "readout" and runtime_raw_mitigation_cfg.get(
+            "local_readout_strategy", None
+        ) in {None, "", "none"}:
+            runtime_raw_mitigation_cfg = normalize_mitigation_config(
+                {
+                    **dict(runtime_raw_mitigation_cfg),
+                    "local_readout_strategy": "mthree",
+                }
+            )
+    else:
+        runtime_raw_mitigation_cfg = normalize_mitigation_config({"mode": "none"})
+        runtime_raw_symmetry_cfg = normalize_symmetry_mitigation_config({"mode": "off"})
     fixed_scaffold_runtime_energy_only_cfg = FixedScaffoldRuntimeEnergyOnlyConfig(
         enabled=bool(fixed_scaffold_runtime_energy_only_enabled),
         subject_kind="hh_marrakesh_gate_pruned_6term_drop_eyezee_v1",
@@ -600,6 +690,24 @@ def resolve_staged_hh_noise_config(args: Any) -> StagedHHNoiseConfig:
         include_dd_probe=bool(getattr(args, "include_fixed_scaffold_runtime_dd_probe", False)),
         include_final_zne_audit=bool(
             getattr(args, "include_fixed_scaffold_runtime_final_zne_audit", False)
+        ),
+    )
+    fixed_scaffold_runtime_raw_baseline_cfg = FixedScaffoldRuntimeRawBaselineConfig(
+        enabled=bool(fixed_scaffold_runtime_raw_baseline_enabled),
+        subject_kind="hh_marrakesh_gate_pruned_6term_drop_eyezee_v1",
+        noise_mode=("backend_scheduled" if bool(noise_cfg.use_fake_backend) else "runtime"),
+        mitigation_config=dict(runtime_raw_mitigation_cfg),
+        symmetry_mitigation_config=dict(runtime_raw_symmetry_cfg),
+        runtime_profile_config=dict(runtime_raw_profile_cfg),
+        runtime_session_config=dict(runtime_session_cfg),
+        transpile_optimization_level=int(runtime_transpile_opt),
+        seed_transpiler=int(runtime_seed_transpiler),
+        raw_transport=str(getattr(args, "fixed_scaffold_runtime_raw_transport")),
+        raw_store_memory=bool(getattr(args, "fixed_scaffold_runtime_raw_store_memory", False)),
+        raw_artifact_path=(
+            None
+            if getattr(args, "fixed_scaffold_runtime_raw_artifact_path", None) in {None, ""}
+            else str(getattr(args, "fixed_scaffold_runtime_raw_artifact_path"))
         ),
     )
     fixed_scaffold_replay_enabled = bool(include_fixed_scaffold_noisy_replay)
@@ -635,9 +743,52 @@ def resolve_staged_hh_noise_config(args: Any) -> StagedHHNoiseConfig:
                 raise ValueError(
                     "fixed scaffold noisy replay local DD probe currently supports only --dd-sequence XpXm."
                 )
+        fixed_scaffold_requested_mitigation = dict(noise_cfg.mitigation_config)
+        fixed_scaffold_requested_symmetry = dict(noise_cfg.symmetry_mitigation_config)
+        if str(fixed_scaffold_requested_mitigation.get("mode", "none")).strip().lower() == "dd":
+            raise ValueError(
+                "fixed scaffold noisy replay keeps DD as a saved-theta local probe only; use --dd-sequence XpXm with readout / zne / none."
+            )
+        fixed_scaffold_is_compat_default = (
+            str(fixed_scaffold_requested_mitigation.get("mode", "none")).strip().lower() == "none"
+            and not bool(fixed_scaffold_requested_mitigation.get("zne_scales", []))
+            and fixed_scaffold_requested_mitigation.get("dd_sequence", None) in {None, "", "none"}
+            and fixed_scaffold_requested_mitigation.get("local_readout_strategy", None) in {None, "", "none"}
+            and str(fixed_scaffold_requested_symmetry.get("mode", "off")).strip().lower() == "off"
+        )
+        if fixed_scaffold_is_compat_default:
+            fixed_scaffold_replay_mitigation_cfg = normalize_mitigation_config(
+                {
+                    "mode": "readout",
+                    "local_readout_strategy": "mthree",
+                    "local_gate_twirling": bool(getattr(args, "local_gate_twirling", False)),
+                }
+            )
+        else:
+            fixed_scaffold_replay_mitigation_payload = dict(fixed_scaffold_requested_mitigation)
+            fixed_scaffold_replay_mitigation_payload["dd_sequence"] = None
+            if (
+                str(fixed_scaffold_replay_mitigation_payload.get("mode", "none")).strip().lower() == "readout"
+                and fixed_scaffold_replay_mitigation_payload.get("local_readout_strategy", None) in {None, "", "none"}
+            ):
+                fixed_scaffold_replay_mitigation_payload["local_readout_strategy"] = "mthree"
+            fixed_scaffold_replay_mitigation_cfg = normalize_mitigation_config(
+                fixed_scaffold_replay_mitigation_payload
+            )
+        fixed_scaffold_replay_symmetry_cfg = normalize_symmetry_mitigation_config(
+            fixed_scaffold_requested_symmetry
+        )
     else:
         fixed_scaffold_method = str(staged_cfg.replay.method)
         fixed_scaffold_local_dd_probe_sequence = None
+        fixed_scaffold_replay_mitigation_cfg = normalize_mitigation_config(
+            {
+                "mode": "readout",
+                "local_readout_strategy": "mthree",
+                "local_gate_twirling": bool(getattr(args, "local_gate_twirling", False)),
+            }
+        )
+        fixed_scaffold_replay_symmetry_cfg = normalize_symmetry_mitigation_config({"mode": "off"})
     fixed_scaffold_replay_cfg = FixedScaffoldNoisyReplayConfig(
         enabled=bool(fixed_scaffold_replay_enabled),
         subject_kind=str(fixed_scaffold_runtime_subject_kind),
@@ -659,14 +810,8 @@ def resolve_staged_hh_noise_config(args: Any) -> StagedHHNoiseConfig:
             None if fixed_scaffold_local_dd_probe_sequence is None else str(fixed_scaffold_local_dd_probe_sequence)
         ),
         noise_mode=("backend_scheduled" if bool(noise_cfg.use_fake_backend) else "runtime"),
-        mitigation_config=normalize_mitigation_config(
-            {
-                "mode": "readout",
-                "local_readout_strategy": "mthree",
-                "local_gate_twirling": bool(getattr(args, "local_gate_twirling", False)),
-            }
-        ),
-        symmetry_mitigation_config=normalize_symmetry_mitigation_config({"mode": "off"}),
+        mitigation_config=dict(fixed_scaffold_replay_mitigation_cfg),
+        symmetry_mitigation_config=dict(fixed_scaffold_replay_symmetry_cfg),
         runtime_profile_config=dict(runtime_profile_cfg),
         runtime_session_config=dict(runtime_session_cfg),
         transpile_optimization_level=int(runtime_transpile_opt),
@@ -678,13 +823,13 @@ def resolve_staged_hh_noise_config(args: Any) -> StagedHHNoiseConfig:
     if fixed_scaffold_compile_control_scout_enabled and str(source_cfg.mode) != "imported_artifact":
         raise ValueError(
             "fixed scaffold compile-control scout requires an imported artifact source; pass "
-            "--fixed-final-state-json or enable the default Nighthawk gate-pruned scaffold."
+            "--fixed-final-state-json or enable the default Marrakesh/Heron runtime candidate."
         )
     fixed_scaffold_compile_control_scout_cfg = FixedScaffoldCompileControlScoutConfig(
         enabled=bool(fixed_scaffold_compile_control_scout_enabled),
-        subject_kind="hh_nighthawk_gate_pruned_7term_v1",
-        baseline_transpile_optimization_level=2,
-        baseline_seed_transpiler=7,
+        subject_kind="hh_marrakesh_gate_pruned_6term_drop_eyezee_v1",
+        baseline_transpile_optimization_level=int(runtime_transpile_opt),
+        baseline_seed_transpiler=int(runtime_seed_transpiler),
         scout_transpile_optimization_levels=(1, 2),
         scout_seed_transpilers=(0, 1, 2, 3, 4),
         noise_mode="backend_scheduled",
@@ -731,6 +876,7 @@ def resolve_staged_hh_noise_config(args: Any) -> StagedHHNoiseConfig:
         fixed_lean_compile_control_scout=fixed_lean_compile_control_scout_cfg,
         fixed_scaffold_replay=fixed_scaffold_replay_cfg,
         fixed_scaffold_runtime_energy_only=fixed_scaffold_runtime_energy_only_cfg,
+        fixed_scaffold_runtime_raw_baseline=fixed_scaffold_runtime_raw_baseline_cfg,
         fixed_scaffold_compile_control_scout=fixed_scaffold_compile_control_scout_cfg,
         fixed_scaffold_attribution=fixed_scaffold_attribution_cfg,
     )
@@ -771,6 +917,155 @@ def _controller_oracle_config_from_noise_cfg(noise_cfg: NoiseConfig) -> OracleCo
     )
 
 
+def _adaptive_realtime_checkpoint_env_blocked_payload(
+    *,
+    mode: str,
+    scaffold_acceptance_payload: Mapping[str, Any],
+    decision_noise_mode: str | None,
+    reason: str,
+    exitcode: int | None = None,
+    error: str | None = None,
+) -> dict[str, Any]:
+    summary = {
+        "mode": str(mode),
+        "status": "env_blocked",
+        "requested_decision_backend": ("oracle" if str(mode) == "oracle_v1" else "exact"),
+        "decision_backend": "env_blocked",
+        "executed_decision_backends": [],
+        "decision_noise_mode": (None if decision_noise_mode is None else str(decision_noise_mode)),
+        "oracle_estimate_kind": (
+            None if decision_noise_mode is None else f"oracle_{str(decision_noise_mode).strip().lower()}"
+        ),
+        "append_count": 0,
+        "stay_count": 0,
+        "exact_decision_checkpoints": 0,
+        "oracle_decision_checkpoints": 0,
+        "oracle_attempted_checkpoints": 0,
+        "degraded_checkpoints": 0,
+        "final_logical_block_count": 0,
+        "final_runtime_parameter_count": 0,
+        "final_fidelity_exact": float("nan"),
+        "final_abs_energy_total_error": float("nan"),
+        "planning_audit": {},
+        "temporal_measurement_ledger": {},
+        "env_blocked": True,
+        "env_blocked_reason": str(reason),
+        "exitcode": (None if exitcode is None else int(exitcode)),
+        "error": (None if error is None else str(error)),
+    }
+    return {
+        "mode": str(mode),
+        "status": "env_blocked",
+        "reason": str(reason),
+        "exitcode": (None if exitcode is None else int(exitcode)),
+        "error": (None if error is None else str(error)),
+        "scaffold_acceptance": dict(scaffold_acceptance_payload),
+        "reference": {},
+        "trajectory": [],
+        "ledger": [],
+        "summary": summary,
+    }
+
+
+def _adaptive_realtime_checkpoint_oracle_worker_entry(queue: Any, kwargs: dict[str, Any]) -> None:
+    try:
+        controller = RealtimeCheckpointController(**kwargs)
+        artifacts = controller.run()
+        queue.put(
+            {
+                "ok": True,
+                "payload": {
+                    "trajectory": list(artifacts.trajectory),
+                    "ledger": list(artifacts.ledger),
+                    "summary": dict(artifacts.summary),
+                    "reference": dict(artifacts.reference),
+                },
+            }
+        )
+    except Exception as exc:  # pragma: no cover - subprocess fault path
+        queue.put({"ok": False, "error": f"{type(exc).__name__}: {exc}"})
+
+
+def _run_adaptive_realtime_checkpoint_profile_noisy_isolated(
+    *,
+    controller_kwargs: dict[str, Any],
+    mode: str,
+    scaffold_acceptance_payload: Mapping[str, Any],
+    decision_noise_mode: str | None,
+    timeout_s: int,
+) -> dict[str, Any]:
+    ctx = mp.get_context("spawn")
+    queue = ctx.Queue()
+    proc = ctx.Process(
+        target=_adaptive_realtime_checkpoint_oracle_worker_entry,
+        args=(queue, controller_kwargs),
+        daemon=False,
+    )
+    try:
+        proc.start()
+    except Exception as exc:
+        return _adaptive_realtime_checkpoint_env_blocked_payload(
+            mode=str(mode),
+            scaffold_acceptance_payload=scaffold_acceptance_payload,
+            decision_noise_mode=decision_noise_mode,
+            reason="subprocess_start_failed",
+            error=f"{type(exc).__name__}: {exc}",
+        )
+    proc.join(timeout=float(timeout_s))
+
+    if proc.is_alive():
+        proc.terminate()
+        proc.join(5.0)
+        return _adaptive_realtime_checkpoint_env_blocked_payload(
+            mode=str(mode),
+            scaffold_acceptance_payload=scaffold_acceptance_payload,
+            decision_noise_mode=decision_noise_mode,
+            reason=f"timeout_after_{int(timeout_s)}s",
+            exitcode=proc.exitcode,
+        )
+
+    if int(proc.exitcode or 0) != 0:
+        return _adaptive_realtime_checkpoint_env_blocked_payload(
+            mode=str(mode),
+            scaffold_acceptance_payload=scaffold_acceptance_payload,
+            decision_noise_mode=decision_noise_mode,
+            reason="subprocess_nonzero_exit",
+            exitcode=int(proc.exitcode or 0),
+        )
+
+    if queue.empty():
+        return _adaptive_realtime_checkpoint_env_blocked_payload(
+            mode=str(mode),
+            scaffold_acceptance_payload=scaffold_acceptance_payload,
+            decision_noise_mode=decision_noise_mode,
+            reason="subprocess_completed_without_payload",
+            exitcode=int(proc.exitcode or 0),
+        )
+
+    msg = queue.get()
+    if not bool(msg.get("ok", False)):
+        return _adaptive_realtime_checkpoint_env_blocked_payload(
+            mode=str(mode),
+            scaffold_acceptance_payload=scaffold_acceptance_payload,
+            decision_noise_mode=decision_noise_mode,
+            reason="worker_exception",
+            exitcode=int(proc.exitcode or 0),
+            error=str(msg.get("error", "unknown")),
+        )
+
+    payload = dict(msg.get("payload", {}))
+    summary = dict(payload.get("summary", {}) or {})
+    return {
+        "mode": str(mode),
+        "status": str(summary.get("status", "completed")),
+        "scaffold_acceptance": dict(scaffold_acceptance_payload),
+        "reference": dict(payload.get("reference", {}) or {}),
+        "trajectory": list(payload.get("trajectory", []) or []),
+        "ledger": list(payload.get("ledger", []) or []),
+        "summary": summary,
+    }
+
+
 def run_adaptive_realtime_checkpoint_profile_noisy(
     stage_result: base_wf.StageExecutionResult,
     cfg: StagedHHNoiseConfig,
@@ -786,29 +1081,28 @@ def run_adaptive_realtime_checkpoint_profile_noisy(
     if prepared is None:
         return None
     replay_context, acceptance, best_theta = prepared
-    controller = RealtimeCheckpointController(
-        cfg=cfg.staged.realtime_checkpoint,
-        replay_context=replay_context,
-        h_poly=stage_result.h_poly,
-        hmat=stage_result.hmat,
-        psi_initial=stage_result.psi_final,
-        best_theta=best_theta,
-        allow_repeats=bool(cfg.staged.adapt.allow_repeats),
-        t_final=float(cfg.staged.dynamics.t_final),
-        num_times=int(cfg.staged.dynamics.num_times),
-        oracle_base_config=_controller_oracle_config_from_noise_cfg(cfg.noise),
-        wallclock_cap_s=int(cfg.noise.noisy_mode_timeout_s),
-    )
-    artifacts = controller.run()
-    return {
-        "mode": str(cfg.staged.realtime_checkpoint.mode),
-        "status": str(artifacts.summary.get("status", "completed")),
-        "scaffold_acceptance": base_wf._jsonable(asdict(acceptance)),
-        "reference": dict(artifacts.reference),
-        "trajectory": list(artifacts.trajectory),
-        "ledger": list(artifacts.ledger),
-        "summary": dict(artifacts.summary),
+    scaffold_acceptance_payload = base_wf._jsonable(asdict(acceptance))
+    controller_kwargs = {
+        "cfg": cfg.staged.realtime_checkpoint,
+        "replay_context": replay_context,
+        "h_poly": stage_result.h_poly,
+        "hmat": np.asarray(stage_result.hmat, dtype=complex),
+        "psi_initial": np.asarray(stage_result.psi_final, dtype=complex).reshape(-1),
+        "best_theta": np.asarray(best_theta, dtype=float).reshape(-1),
+        "allow_repeats": bool(cfg.staged.adapt.allow_repeats),
+        "t_final": float(cfg.staged.dynamics.t_final),
+        "num_times": int(cfg.staged.dynamics.num_times),
+        "drive_config": base_wf._controller_drive_config_from_cfg(cfg.staged),
+        "oracle_base_config": _controller_oracle_config_from_noise_cfg(cfg.noise),
+        "wallclock_cap_s": int(cfg.noise.noisy_mode_timeout_s),
     }
+    return _run_adaptive_realtime_checkpoint_profile_noisy_isolated(
+        controller_kwargs=controller_kwargs,
+        mode=str(cfg.staged.realtime_checkpoint.mode),
+        scaffold_acceptance_payload=scaffold_acceptance_payload,
+        decision_noise_mode=cfg.noise.controller_noise_mode,
+        timeout_s=int(cfg.noise.noisy_mode_timeout_s),
+    )
 
 
 def _run_single_noisy_mode(
@@ -972,6 +1266,9 @@ def _run_imported_full_circuit_audit_mode(
     source_cfg: StagedNoiseSourceConfig,
     noise_cfg: NoiseConfig,
     mode: str,
+    seed_transpiler: int | None = None,
+    transpile_optimization_level: int | None = None,
+    compile_request_source: str | None = None,
 ) -> dict[str, Any]:
     if source_cfg.resolved_json is None:
         return {"success": False, "available": False, "reason": "missing_import_source"}
@@ -988,6 +1285,13 @@ def _run_imported_full_circuit_audit_mode(
         "use_fake_backend": bool(noise_cfg.use_fake_backend),
         "allow_aer_fallback": bool(noise_cfg.allow_aer_fallback),
         "omp_shm_workaround": bool(noise_cfg.omp_shm_workaround),
+        "seed_transpiler": (None if seed_transpiler is None else int(seed_transpiler)),
+        "transpile_optimization_level": (
+            None if transpile_optimization_level is None else int(transpile_optimization_level)
+        ),
+        "compile_request_source": (
+            None if compile_request_source in {None, ""} else str(compile_request_source)
+        ),
     }
     return noise_report._run_imported_full_circuit_audit_mode_isolated(
         kwargs=kwargs,
@@ -1177,6 +1481,46 @@ def _run_fixed_scaffold_runtime_energy_only_mode(
     )
 
 
+def _run_fixed_scaffold_runtime_raw_baseline_mode(
+    *,
+    source_cfg: StagedNoiseSourceConfig,
+    noise_cfg: NoiseConfig,
+    runtime_cfg: FixedScaffoldRuntimeRawBaselineConfig,
+) -> dict[str, Any]:
+    if source_cfg.resolved_json is None:
+        return {"success": False, "available": False, "reason": "missing_import_source"}
+    if not bool(runtime_cfg.enabled):
+        return {
+            "success": False,
+            "available": False,
+            "reason": "fixed_scaffold_runtime_raw_baseline_disabled",
+        }
+    kwargs = {
+        "artifact_json": str(source_cfg.resolved_json),
+        "shots": int(noise_cfg.shots),
+        "seed": int(noise_cfg.seed),
+        "oracle_repeats": int(noise_cfg.oracle_repeats),
+        "oracle_aggregate": str(noise_cfg.oracle_aggregate),
+        "backend_name": noise_cfg.backend_name,
+        "use_fake_backend": bool(noise_cfg.use_fake_backend),
+        "allow_aer_fallback": bool(noise_cfg.allow_aer_fallback),
+        "omp_shm_workaround": bool(noise_cfg.omp_shm_workaround),
+        "mitigation_config": dict(runtime_cfg.mitigation_config),
+        "symmetry_mitigation_config": dict(runtime_cfg.symmetry_mitigation_config),
+        "runtime_profile_config": dict(runtime_cfg.runtime_profile_config),
+        "runtime_session_config": dict(runtime_cfg.runtime_session_config),
+        "transpile_optimization_level": int(runtime_cfg.transpile_optimization_level),
+        "seed_transpiler": runtime_cfg.seed_transpiler,
+        "raw_transport": str(runtime_cfg.raw_transport),
+        "raw_store_memory": bool(runtime_cfg.raw_store_memory),
+        "raw_artifact_path": runtime_cfg.raw_artifact_path,
+    }
+    return noise_report._run_imported_fixed_scaffold_runtime_raw_baseline_mode_isolated(
+        kwargs=kwargs,
+        timeout_s=int(noise_cfg.noisy_mode_timeout_s),
+    )
+
+
 def _run_fixed_scaffold_noisy_replay_mode(
     *,
     source_cfg: StagedNoiseSourceConfig,
@@ -1283,6 +1627,9 @@ def _build_noise_summary(payload: Mapping[str, Any]) -> dict[str, Any]:
     )
     fixed_scaffold_runtime_energy_only = (
         payload.get("fixed_scaffold_runtime_energy_only", {}) if isinstance(payload, Mapping) else {}
+    )
+    fixed_scaffold_runtime_raw_baseline = (
+        payload.get("fixed_scaffold_runtime_raw_baseline", {}) if isinstance(payload, Mapping) else {}
     )
     fixed_scaffold_replay = payload.get("fixed_scaffold_noisy_replay", {}) if isinstance(payload, Mapping) else {}
     fixed_scaffold_compile_control_scout = (
@@ -1461,6 +1808,122 @@ def _build_noise_summary(payload: Mapping[str, Any]) -> dict[str, Any]:
             fixed_scaffold_runtime_energy_only_main_delta = float(
                 evaluation.get("delta_mean", float("nan"))
             )
+    fixed_scaffold_runtime_raw_baseline_success = bool(
+        isinstance(fixed_scaffold_runtime_raw_baseline, Mapping)
+        and fixed_scaffold_runtime_raw_baseline.get("success", False)
+    )
+    if (
+        isinstance(fixed_scaffold_runtime_raw_baseline, Mapping)
+        and not fixed_scaffold_runtime_raw_baseline_success
+        and bool(fixed_scaffold_runtime_raw_baseline)
+    ):
+        failures.append(
+            "fixed_scaffold_runtime_raw_baseline:"
+            + str(
+                fixed_scaffold_runtime_raw_baseline.get(
+                    "reason",
+                    fixed_scaffold_runtime_raw_baseline.get("error", "unknown"),
+                )
+            )
+        )
+    fixed_scaffold_runtime_raw_baseline_main_delta = float("nan")
+    fixed_scaffold_runtime_raw_baseline_noise_mode: str | None = None
+    fixed_scaffold_runtime_raw_baseline_execution_surface: str | None = None
+    fixed_scaffold_runtime_raw_baseline_raw_transport: str | None = None
+    fixed_scaffold_runtime_raw_baseline_raw_artifact_path: str | None = None
+    fixed_scaffold_runtime_raw_baseline_raw_store_memory = False
+    fixed_scaffold_runtime_raw_baseline_diagonal_postprocessing_available = False
+    fixed_scaffold_runtime_raw_baseline_requested_seed_transpiler: int | None = None
+    fixed_scaffold_runtime_raw_baseline_requested_transpile_optimization_level: int | None = None
+    fixed_scaffold_runtime_raw_baseline_observed_seed_transpiler: int | None = None
+    fixed_scaffold_runtime_raw_baseline_observed_transpile_optimization_level: int | None = None
+    fixed_scaffold_runtime_raw_baseline_compile_request_matched: bool | None = None
+    if isinstance(fixed_scaffold_runtime_raw_baseline, Mapping):
+        audits = fixed_scaffold_runtime_raw_baseline.get("energy_audits", {}) 
+        main = audits.get("main", {}) if isinstance(audits, Mapping) else {}
+        evaluation = main.get("evaluation", {}) if isinstance(main, Mapping) else {}
+        if isinstance(evaluation, Mapping):
+            fixed_scaffold_runtime_raw_baseline_main_delta = float(
+                evaluation.get("delta_mean", float("nan"))
+            )
+        noise_config = (
+            fixed_scaffold_runtime_raw_baseline.get("noise_config", {})
+            if isinstance(fixed_scaffold_runtime_raw_baseline.get("noise_config", {}), Mapping)
+            else {}
+        )
+        fixed_scaffold_runtime_raw_baseline_noise_mode = (
+            None
+            if noise_config.get("noise_mode", None) in {None, ""}
+            else str(noise_config.get("noise_mode"))
+        )
+        backend_info = (
+            fixed_scaffold_runtime_raw_baseline.get("backend_info", {})
+            if isinstance(fixed_scaffold_runtime_raw_baseline.get("backend_info", {}), Mapping)
+            else {}
+        )
+        backend_details = (
+            backend_info.get("details", {})
+            if isinstance(backend_info.get("details", {}), Mapping)
+            else {}
+        )
+        fixed_scaffold_runtime_raw_baseline_execution_surface = (
+            None
+            if backend_details.get("execution_surface", noise_config.get("execution_surface")) in {None, ""}
+            else str(backend_details.get("execution_surface", noise_config.get("execution_surface")))
+        )
+        fixed_scaffold_runtime_raw_baseline_raw_transport = (
+            None
+            if backend_details.get("transport", noise_config.get("raw_transport")) in {None, ""}
+            else str(backend_details.get("transport", noise_config.get("raw_transport")))
+        )
+        fixed_scaffold_runtime_raw_baseline_raw_artifact_path = (
+            None
+            if backend_details.get("raw_artifact_path", noise_config.get("raw_artifact_path")) in {None, ""}
+            else str(backend_details.get("raw_artifact_path", noise_config.get("raw_artifact_path")))
+        )
+        fixed_scaffold_runtime_raw_baseline_raw_store_memory = bool(
+            noise_config.get("raw_store_memory", False)
+        )
+        fixed_scaffold_runtime_raw_baseline_diagonal_postprocessing_available = bool(
+            main.get("diagonal_postprocessing", {}).get("available", False)
+            if isinstance(main.get("diagonal_postprocessing", {}), Mapping)
+            else False
+        )
+        compile_control = (
+            fixed_scaffold_runtime_raw_baseline.get("compile_control", {})
+            if isinstance(fixed_scaffold_runtime_raw_baseline.get("compile_control", {}), Mapping)
+            else {}
+        )
+        compile_observation = (
+            fixed_scaffold_runtime_raw_baseline.get("compile_observation", {})
+            if isinstance(fixed_scaffold_runtime_raw_baseline.get("compile_observation", {}), Mapping)
+            else {}
+        )
+        observed_compile = (
+            compile_observation.get("observed", {})
+            if isinstance(compile_observation.get("observed", {}), Mapping)
+            else {}
+        )
+        if compile_control.get("seed_transpiler", None) is not None:
+            fixed_scaffold_runtime_raw_baseline_requested_seed_transpiler = int(
+                compile_control.get("seed_transpiler")
+            )
+        if compile_control.get("transpile_optimization_level", None) is not None:
+            fixed_scaffold_runtime_raw_baseline_requested_transpile_optimization_level = int(
+                compile_control.get("transpile_optimization_level")
+            )
+        if observed_compile.get("seed_transpiler", None) is not None:
+            fixed_scaffold_runtime_raw_baseline_observed_seed_transpiler = int(
+                observed_compile.get("seed_transpiler")
+            )
+        if observed_compile.get("transpile_optimization_level", None) is not None:
+            fixed_scaffold_runtime_raw_baseline_observed_transpile_optimization_level = int(
+                observed_compile.get("transpile_optimization_level")
+            )
+        if compile_observation.get("matches_requested", None) is not None:
+            fixed_scaffold_runtime_raw_baseline_compile_request_matched = bool(
+                compile_observation.get("matches_requested")
+            )
     fixed_scaffold_attribution_success = bool(
         isinstance(fixed_scaffold_attribution, Mapping) and fixed_scaffold_attribution.get("success", False)
     )
@@ -1546,6 +2009,16 @@ def _build_noise_summary(payload: Mapping[str, Any]) -> dict[str, Any]:
         "warm_delta_abs": float(warm.get("delta_abs", float("nan"))),
         "adapt_delta_abs": float(adapt.get("delta_abs", float("nan"))),
         "final_delta_abs": float(final.get("delta_abs", float("nan"))),
+        "adapt_oracle_execution_surface": (
+            None if adapt.get("oracle_execution_surface") in {None, "", "off"} else str(adapt.get("oracle_execution_surface"))
+        ) if isinstance(adapt, Mapping) else None,
+        "adapt_oracle_raw_transport": (
+            None if adapt.get("oracle_raw_transport") in {None, ""} else str(adapt.get("oracle_raw_transport"))
+        ) if isinstance(adapt, Mapping) else None,
+        "adapt_oracle_raw_artifact_path": (
+            None if adapt.get("oracle_gradient_raw_artifact_path") in {None, ""} else str(adapt.get("oracle_gradient_raw_artifact_path"))
+        ) if isinstance(adapt, Mapping) else None,
+        "adapt_oracle_raw_records_total": int(adapt.get("oracle_gradient_raw_records_total", 0)) if isinstance(adapt, Mapping) else 0,
         "noisy_method_modes_completed": int(completed),
         "noisy_method_modes_total": int(total),
         "imported_prepared_state_audit_completed": int(imported_prepared_completed),
@@ -1612,6 +2085,48 @@ def _build_noise_summary(payload: Mapping[str, Any]) -> dict[str, Any]:
         ),
         "fixed_scaffold_runtime_energy_only_main_delta_mean": float(
             fixed_scaffold_runtime_energy_only_main_delta
+        ),
+        "fixed_scaffold_runtime_raw_baseline_completed": int(
+            1 if fixed_scaffold_runtime_raw_baseline_success else 0
+        ),
+        "fixed_scaffold_runtime_raw_baseline_total": int(
+            1 if bool(fixed_scaffold_runtime_raw_baseline) else 0
+        ),
+        "fixed_scaffold_runtime_raw_baseline_main_delta_mean": float(
+            fixed_scaffold_runtime_raw_baseline_main_delta
+        ),
+        "fixed_scaffold_runtime_raw_baseline_noise_mode": (
+            fixed_scaffold_runtime_raw_baseline_noise_mode
+        ),
+        "fixed_scaffold_runtime_raw_baseline_execution_surface": (
+            fixed_scaffold_runtime_raw_baseline_execution_surface
+        ),
+        "fixed_scaffold_runtime_raw_baseline_raw_transport": (
+            fixed_scaffold_runtime_raw_baseline_raw_transport
+        ),
+        "fixed_scaffold_runtime_raw_baseline_raw_store_memory": bool(
+            fixed_scaffold_runtime_raw_baseline_raw_store_memory
+        ),
+        "fixed_scaffold_runtime_raw_baseline_raw_artifact_path": (
+            fixed_scaffold_runtime_raw_baseline_raw_artifact_path
+        ),
+        "fixed_scaffold_runtime_raw_baseline_diagonal_postprocessing_available": bool(
+            fixed_scaffold_runtime_raw_baseline_diagonal_postprocessing_available
+        ),
+        "fixed_scaffold_runtime_raw_baseline_requested_seed_transpiler": (
+            fixed_scaffold_runtime_raw_baseline_requested_seed_transpiler
+        ),
+        "fixed_scaffold_runtime_raw_baseline_requested_transpile_optimization_level": (
+            fixed_scaffold_runtime_raw_baseline_requested_transpile_optimization_level
+        ),
+        "fixed_scaffold_runtime_raw_baseline_observed_seed_transpiler": (
+            fixed_scaffold_runtime_raw_baseline_observed_seed_transpiler
+        ),
+        "fixed_scaffold_runtime_raw_baseline_observed_transpile_optimization_level": (
+            fixed_scaffold_runtime_raw_baseline_observed_transpile_optimization_level
+        ),
+        "fixed_scaffold_runtime_raw_baseline_compile_request_matched": (
+            fixed_scaffold_runtime_raw_baseline_compile_request_matched
         ),
         "fixed_scaffold_compile_control_scout_completed": int(
             1 if fixed_scaffold_compile_control_success else 0
@@ -1691,12 +2206,17 @@ def write_staged_hh_noise_pdf(payload: Mapping[str, Any], cfg: StagedHHNoiseConf
         payload.get("fixed_lean_compile_control_scout", {}) if isinstance(payload, Mapping) else {}
     )
     fixed_scaffold_replay = payload.get("fixed_scaffold_noisy_replay", {}) if isinstance(payload, Mapping) else {}
+    fixed_scaffold_runtime_raw_baseline = (
+        payload.get("fixed_scaffold_runtime_raw_baseline", {}) if isinstance(payload, Mapping) else {}
+    )
     fixed_scaffold_compile_control_scout = (
         payload.get("fixed_scaffold_compile_control_scout", {}) if isinstance(payload, Mapping) else {}
     )
     fixed_scaffold_attribution = payload.get("fixed_scaffold_noise_attribution", {}) if isinstance(payload, Mapping) else {}
     import_mode = bool(isinstance(import_source, Mapping) and str(import_source.get("mode", "")) == "imported_artifact")
-    if bool(payload.get("fixed_scaffold_runtime_energy_only", {})):
+    if bool(fixed_scaffold_runtime_raw_baseline):
+        ansatz_label = "imported fixed-scaffold Marrakesh/Heron 6-term Runtime raw-shot baseline"
+    elif bool(payload.get("fixed_scaffold_runtime_energy_only", {})):
         ansatz_label = "imported fixed-scaffold Marrakesh/Heron 6-term Runtime audit"
     elif bool(fixed_scaffold_replay) or bool(fixed_scaffold_compile_control_scout) or bool(fixed_scaffold_attribution):
         ansatz_label = "imported fixed-scaffold Marrakesh/Heron 6-term local replay / scout"
@@ -1738,6 +2258,7 @@ def write_staged_hh_noise_pdf(payload: Mapping[str, Any], cfg: StagedHHNoiseConf
                 "",
                 f"Warm |ΔE|: {summary.get('warm_delta_abs')}",
                 f"ADAPT |ΔE|: {summary.get('adapt_delta_abs')}",
+                f"ADAPT oracle surface/transport/path/records: {summary.get('adapt_oracle_execution_surface')} / {summary.get('adapt_oracle_raw_transport')} / {summary.get('adapt_oracle_raw_artifact_path')} / {summary.get('adapt_oracle_raw_records_total')}",
                 f"Replay |ΔE|: {summary.get('final_delta_abs')}",
                 f"Checkpoint controller: mode={summary.get('adaptive_realtime_checkpoint_mode')} status={summary.get('adaptive_realtime_checkpoint_status')} append={summary.get('adaptive_realtime_checkpoint_append_count')} stay={summary.get('adaptive_realtime_checkpoint_stay_count')} decision_noise_mode={summary.get('adaptive_realtime_checkpoint_decision_noise_mode')} degraded={summary.get('adaptive_realtime_checkpoint_degraded_checkpoints')}",
                 f"Noisy method/mode completion: {summary.get('noisy_method_modes_completed')} / {summary.get('noisy_method_modes_total')}",
@@ -1764,6 +2285,9 @@ def write_staged_hh_noise_pdf(payload: Mapping[str, Any], cfg: StagedHHNoiseConf
                 f"Saved-theta probe DD available / Δ(noisy-ideal): {summary.get('fixed_scaffold_saved_theta_probe_local_dd_available')} / {summary.get('fixed_scaffold_saved_theta_probe_local_dd_delta_mean')}",
                 f"Fixed scaffold runtime energy-only: {summary.get('fixed_scaffold_runtime_energy_only_completed')} / {summary.get('fixed_scaffold_runtime_energy_only_total')}",
                 f"Fixed scaffold runtime main Δ(noisy-ideal): {summary.get('fixed_scaffold_runtime_energy_only_main_delta_mean')}",
+                f"Fixed scaffold runtime raw baseline: {summary.get('fixed_scaffold_runtime_raw_baseline_completed')} / {summary.get('fixed_scaffold_runtime_raw_baseline_total')}",
+                f"Fixed scaffold runtime raw baseline Δ(surface/transport/store/path): {summary.get('fixed_scaffold_runtime_raw_baseline_main_delta_mean')} / {summary.get('fixed_scaffold_runtime_raw_baseline_execution_surface')} / {summary.get('fixed_scaffold_runtime_raw_baseline_raw_transport')} / {summary.get('fixed_scaffold_runtime_raw_baseline_raw_store_memory')} / {summary.get('fixed_scaffold_runtime_raw_baseline_raw_artifact_path')}",
+                f"Fixed scaffold runtime raw baseline compile request/observed/match: {summary.get('fixed_scaffold_runtime_raw_baseline_requested_transpile_optimization_level')}:{summary.get('fixed_scaffold_runtime_raw_baseline_requested_seed_transpiler')} / {summary.get('fixed_scaffold_runtime_raw_baseline_observed_transpile_optimization_level')}:{summary.get('fixed_scaffold_runtime_raw_baseline_observed_seed_transpiler')} / {summary.get('fixed_scaffold_runtime_raw_baseline_compile_request_matched')}",
                 f"Fixed scaffold compile-control scout: {summary.get('fixed_scaffold_compile_control_scout_completed')} / {summary.get('fixed_scaffold_compile_control_scout_total')}",
                 f"Fixed scaffold compile-control successful candidates: {summary.get('fixed_scaffold_compile_control_scout_candidates_successful')} / {summary.get('fixed_scaffold_compile_control_scout_candidates_total')}",
                 f"Fixed scaffold compile-control best Δ(noisy-ideal): {summary.get('fixed_scaffold_compile_control_scout_best_delta_mean')}",
@@ -1887,6 +2411,17 @@ def write_staged_hh_noise_pdf(payload: Mapping[str, Any], cfg: StagedHHNoiseConf
                 str(bool(runtime_energy_only.get("success", False))),
                 f"{float(evaluation.get('delta_mean', float('nan'))):.3e}",
             ])
+        if isinstance(fixed_scaffold_runtime_raw_baseline, Mapping) and fixed_scaffold_runtime_raw_baseline:
+            audits = fixed_scaffold_runtime_raw_baseline.get("energy_audits", {}) if isinstance(fixed_scaffold_runtime_raw_baseline, Mapping) else {}
+            main = audits.get("main", {}) if isinstance(audits, Mapping) else {}
+            evaluation = main.get("evaluation", {}) if isinstance(main, Mapping) else {}
+            noisy_rows.append([
+                "fixed_scaffold_runtime_raw_baseline",
+                "imported_locked_scaffold",
+                str(summary.get("fixed_scaffold_runtime_raw_baseline_raw_transport") or "runtime_raw"),
+                str(bool(fixed_scaffold_runtime_raw_baseline.get("success", False))),
+                f"{float(evaluation.get('delta_mean', float('nan'))):.3e}",
+            ])
         if isinstance(fixed_scaffold_compile_control_scout, Mapping) and fixed_scaffold_compile_control_scout:
             best = (
                 fixed_scaffold_compile_control_scout.get("best_candidate", {})
@@ -1968,6 +2503,9 @@ def run_staged_hh_noise(cfg: StagedHHNoiseConfig, *, run_command: str | None = N
                         source_cfg=cfg.source,
                         noise_cfg=cfg.noise,
                         mode=str(mode),
+                        seed_transpiler=cfg.fixed_scaffold_runtime_raw_baseline.seed_transpiler,
+                        transpile_optimization_level=cfg.fixed_scaffold_runtime_raw_baseline.transpile_optimization_level,
+                        compile_request_source="fixed_scaffold_runtime_transpile_cli",
                     )
                     for mode in cfg.noise.audit_modes
                 }
@@ -2020,6 +2558,15 @@ def run_staged_hh_noise(cfg: StagedHHNoiseConfig, *, run_command: str | None = N
             if bool(cfg.fixed_scaffold_runtime_energy_only.enabled)
             else {}
         )
+        fixed_scaffold_runtime_raw_baseline = (
+            _run_fixed_scaffold_runtime_raw_baseline_mode(
+                source_cfg=cfg.source,
+                noise_cfg=cfg.noise,
+                runtime_cfg=cfg.fixed_scaffold_runtime_raw_baseline,
+            )
+            if bool(cfg.fixed_scaffold_runtime_raw_baseline.enabled)
+            else {}
+        )
         fixed_scaffold_noisy_replay = (
             _run_fixed_scaffold_noisy_replay_mode(
                 source_cfg=cfg.source,
@@ -2041,6 +2588,9 @@ def run_staged_hh_noise(cfg: StagedHHNoiseConfig, *, run_command: str | None = N
         fixed_scaffold_runtime_energy_only_sidecar_json = staged_cfg.artifacts.output_json.with_name(
             f"{staged_cfg.artifacts.tag}_fixed_scaffold_runtime_energy_only.json"
         )
+        fixed_scaffold_runtime_raw_baseline_sidecar_json = staged_cfg.artifacts.output_json.with_name(
+            f"{staged_cfg.artifacts.tag}_fixed_scaffold_runtime_raw_baseline.json"
+        )
         payload = {
             "generated_utc": base_wf._now_utc(),
             "pipeline": "hh_staged_noise",
@@ -2061,6 +2611,9 @@ def run_staged_hh_noise(cfg: StagedHHNoiseConfig, *, run_command: str | None = N
                     ),
                     "fixed_scaffold_runtime_energy_only": bool(
                         cfg.fixed_scaffold_runtime_energy_only.enabled
+                    ),
+                    "fixed_scaffold_runtime_raw_baseline": bool(
+                        cfg.fixed_scaffold_runtime_raw_baseline.enabled
                     ),
                     "fixed_scaffold_noisy_replay": bool(cfg.fixed_scaffold_replay.enabled),
                     "fixed_scaffold_compile_control_scout": bool(
@@ -2159,6 +2712,38 @@ def run_staged_hh_noise(cfg: StagedHHNoiseConfig, *, run_command: str | None = N
                     if bool(cfg.fixed_scaffold_runtime_energy_only.enabled)
                     else {}
                 ),
+                "fixed_scaffold_runtime_raw_baseline_contract": (
+                    {
+                        "matched_family_replay": False,
+                        "structure_locked": True,
+                        "subject_kind": str(cfg.fixed_scaffold_runtime_raw_baseline.subject_kind),
+                        "parameter_optimization": False,
+                        "objective": "energy_only",
+                        "noise_mode": str(cfg.fixed_scaffold_runtime_raw_baseline.noise_mode),
+                        "execution_surface": "raw_measurement_v1",
+                        "mitigation": "none",
+                        "symmetry": "off",
+                        "requested_diagonal_postprocessing": {
+                            "mitigation": dict(
+                                cfg.fixed_scaffold_runtime_raw_baseline.mitigation_config
+                            ),
+                            "symmetry_mitigation": dict(
+                                cfg.fixed_scaffold_runtime_raw_baseline.symmetry_mitigation_config
+                            ),
+                            "order": "readout_then_symmetry",
+                            "observable_scope": "full_register_diagonal_only",
+                        },
+                        "session_policy": dict(cfg.fixed_scaffold_runtime_raw_baseline.runtime_session_config),
+                        "runtime_profile": dict(cfg.fixed_scaffold_runtime_raw_baseline.runtime_profile_config),
+                        "raw_transport": str(cfg.fixed_scaffold_runtime_raw_baseline.raw_transport),
+                        "raw_store_memory": bool(cfg.fixed_scaffold_runtime_raw_baseline.raw_store_memory),
+                        "raw_artifact_path": cfg.fixed_scaffold_runtime_raw_baseline.raw_artifact_path,
+                        "dd_probe": False,
+                        "final_audit_zne": False,
+                    }
+                    if bool(cfg.fixed_scaffold_runtime_raw_baseline.enabled)
+                    else {}
+                ),
                 "fixed_scaffold_compile_control_scout_contract": (
                     {
                         "matched_family_replay": False,
@@ -2220,6 +2805,9 @@ def run_staged_hh_noise(cfg: StagedHHNoiseConfig, *, run_command: str | None = N
                 "fixed_scaffold_runtime_energy_only": base_wf._jsonable(
                     asdict(cfg.fixed_scaffold_runtime_energy_only)
                 ),
+                "fixed_scaffold_runtime_raw_baseline": base_wf._jsonable(
+                    asdict(cfg.fixed_scaffold_runtime_raw_baseline)
+                ),
                 "fixed_scaffold_compile_control_scout": base_wf._jsonable(
                     asdict(cfg.fixed_scaffold_compile_control_scout)
                 ),
@@ -2233,6 +2821,11 @@ def run_staged_hh_noise(cfg: StagedHHNoiseConfig, *, run_command: str | None = N
                 "fixed_scaffold_runtime_energy_only_json": (
                     str(fixed_scaffold_runtime_energy_only_sidecar_json)
                     if bool(cfg.fixed_scaffold_runtime_energy_only.enabled)
+                    else None
+                ),
+                "fixed_scaffold_runtime_raw_baseline_json": (
+                    str(fixed_scaffold_runtime_raw_baseline_sidecar_json)
+                    if bool(cfg.fixed_scaffold_runtime_raw_baseline.enabled)
                     else None
                 ),
             },
@@ -2249,6 +2842,7 @@ def run_staged_hh_noise(cfg: StagedHHNoiseConfig, *, run_command: str | None = N
             "fixed_lean_compile_control_scout": fixed_lean_compile_control_scout,
             "fixed_scaffold_noisy_replay": fixed_scaffold_noisy_replay,
             "fixed_scaffold_runtime_energy_only": fixed_scaffold_runtime_energy_only,
+            "fixed_scaffold_runtime_raw_baseline": fixed_scaffold_runtime_raw_baseline,
             "fixed_scaffold_compile_control_scout": fixed_scaffold_compile_control_scout,
             "fixed_scaffold_noise_attribution": fixed_scaffold_noise_attribution,
             "comparisons": {},
@@ -2267,6 +2861,21 @@ def run_staged_hh_noise(cfg: StagedHHNoiseConfig, *, run_command: str | None = N
                 },
             }
             base_wf._write_json(fixed_scaffold_runtime_energy_only_sidecar_json, sidecar_payload)
+        if bool(cfg.fixed_scaffold_runtime_raw_baseline.enabled):
+            sidecar_payload = {
+                "generated_utc": base_wf._now_utc(),
+                "pipeline": "hh_fixed_scaffold_runtime_raw_baseline_eval_v1",
+                "candidate_artifact_json": _repo_relative_str(cfg.source.resolved_json),
+                "workflow_json": str(staged_cfg.artifacts.output_json),
+                "backend_name": cfg.noise.backend_name,
+                "result": base_wf._jsonable(fixed_scaffold_runtime_raw_baseline),
+                "settings": {
+                    "runtime_raw_baseline": base_wf._jsonable(
+                        asdict(cfg.fixed_scaffold_runtime_raw_baseline)
+                    ),
+                },
+            }
+            base_wf._write_json(fixed_scaffold_runtime_raw_baseline_sidecar_json, sidecar_payload)
         base_wf._write_json(staged_cfg.artifacts.output_json, payload)
         write_staged_hh_noise_pdf(payload, cfg, run_command_str)
         return payload
@@ -2293,6 +2902,7 @@ def run_staged_hh_noise(cfg: StagedHHNoiseConfig, *, run_command: str | None = N
             "fixed_lean_compile_control_scout": False,
             "fixed_scaffold_noisy_replay": False,
             "fixed_scaffold_runtime_energy_only": False,
+            "fixed_scaffold_runtime_raw_baseline": False,
             "fixed_scaffold_compile_control_scout": False,
             "fixed_scaffold_noise_attribution": False,
         }
@@ -2307,6 +2917,9 @@ def run_staged_hh_noise(cfg: StagedHHNoiseConfig, *, run_command: str | None = N
         payload["settings"]["fixed_scaffold_runtime_energy_only"] = base_wf._jsonable(
             asdict(cfg.fixed_scaffold_runtime_energy_only)
         )
+        payload["settings"]["fixed_scaffold_runtime_raw_baseline"] = base_wf._jsonable(
+            asdict(cfg.fixed_scaffold_runtime_raw_baseline)
+        )
         payload["settings"]["fixed_scaffold_compile_control_scout"] = base_wf._jsonable(
             asdict(cfg.fixed_scaffold_compile_control_scout)
         )
@@ -2320,6 +2933,7 @@ def run_staged_hh_noise(cfg: StagedHHNoiseConfig, *, run_command: str | None = N
     payload["fixed_lean_compile_control_scout"] = {}
     payload["fixed_scaffold_noisy_replay"] = {}
     payload["fixed_scaffold_runtime_energy_only"] = {}
+    payload["fixed_scaffold_runtime_raw_baseline"] = {}
     payload["fixed_scaffold_compile_control_scout"] = {}
     payload["fixed_scaffold_noise_attribution"] = {}
     payload["comparisons"] = {

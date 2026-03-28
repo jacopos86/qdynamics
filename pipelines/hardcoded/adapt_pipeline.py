@@ -16,15 +16,20 @@ No dependency on Qiskit in the core path.
 from __future__ import annotations
 
 import argparse
+import copy
+import errno
 import hashlib
 import json
 import math
 import os
+import re
 import sys
 import time
+import weakref
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any, Mapping, Sequence
 
 import numpy as np
@@ -60,6 +65,7 @@ PdfPages = get_PdfPages() if HAS_MATPLOTLIB else type("PdfPages", (), {})  # typ
 # Imports from the active repo quantum modules (no pydephasing fallback).
 # ---------------------------------------------------------------------------
 from src.quantum.hubbard_latex_python_pairs import (
+    bravais_nearest_neighbor_edges,
     build_hubbard_hamiltonian,
     build_hubbard_holstein_hamiltonian,
     boson_qubits_per_site,
@@ -152,8 +158,10 @@ from pipelines.hardcoded.hh_continuation_scoring import (
     SimpleScoreConfig,
     build_candidate_features,
     build_full_candidate_features,
+    family_repeat_cost_from_history,
     greedy_batch_select,
     measurement_group_keys_for_term,
+    raw_f_metric_from_state,
     shortlist_records,
 )
 from pipelines.hardcoded.hh_continuation_pruning import (
@@ -175,9 +183,20 @@ except Exception as exc:  # pragma: no cover - defensive fallback
 else:
     _PAOP_IMPORT_ERROR = ""
 
+try:
+    from src.quantum.operator_pools.polaron_paop import make_phonon_motifs
+except Exception:  # pragma: no cover - optional legacy product-family seam
+    make_phonon_motifs = None
+
+try:
+    from src.quantum.operator_pools.vlf_sq import build_vlf_sq_pool as build_vlf_sq_family
+except Exception:  # pragma: no cover - optional VLF/SQ family seam
+    build_vlf_sq_family = None
+
 EXACT_LABEL = "Exact_Hardcode"
 EXACT_METHOD = "python_matrix_eigendecomposition"
 _ADAPT_GRADIENT_PARITY_RTOL = 1e-8
+_STDOUT_PIPE_BROKEN = False
 
 PAULI_MATS = {
     "e": np.array([[1.0, 0.0], [0.0, 1.0]], dtype=complex),
@@ -187,13 +206,30 @@ PAULI_MATS = {
 }
 
 
+def _safe_stdout_print(*args: Any, **kwargs: Any) -> bool:
+    global _STDOUT_PIPE_BROKEN
+    if _STDOUT_PIPE_BROKEN:
+        return False
+    try:
+        print(*args, **kwargs)
+        return True
+    except BrokenPipeError:
+        _STDOUT_PIPE_BROKEN = True
+        return False
+    except OSError as exc:
+        if getattr(exc, "errno", None) == errno.EPIPE:
+            _STDOUT_PIPE_BROKEN = True
+            return False
+        raise
+
+
 def _ai_log(event: str, **fields: Any) -> None:
     payload = {
         "event": str(event),
         "ts_utc": datetime.now(timezone.utc).isoformat(),
         **fields,
     }
-    print(f"AI_LOG {json.dumps(payload, sort_keys=True, default=str)}", flush=True)
+    _safe_stdout_print(f"AI_LOG {json.dumps(payload, sort_keys=True, default=str)}", flush=True)
 
 
 # ---------------------------------------------------------------------------
@@ -441,6 +477,40 @@ def _default_adapt_input_state(
 
 
 _HH_STAGED_CONTINUATION_MODES = frozenset({"phase1_v1", "phase2_v1", "phase3_v1"})
+_HH_UCCSD_PAOP_PRODUCT_SPECS: dict[str, dict[str, Any]] = {
+    "uccsd_otimes_paop_lf_std": {
+        "motif_family": "paop_lf_std",
+        "parameterization": "single_product",
+        "adapt_visible": True,
+    },
+    "uccsd_otimes_paop_lf2_std": {
+        "motif_family": "paop_lf2_std",
+        "parameterization": "single_product",
+        "adapt_visible": True,
+    },
+    "uccsd_otimes_paop_bond_disp_std": {
+        "motif_family": "paop_bond_disp_std",
+        "parameterization": "single_product",
+        "adapt_visible": True,
+    },
+    "uccsd_otimes_paop_lf_std_seq2p": {
+        "motif_family": "paop_lf_std",
+        "parameterization": "double_sequential",
+        "adapt_visible": True,
+    },
+    "uccsd_otimes_paop_lf2_std_seq2p": {
+        "motif_family": "paop_lf2_std",
+        "parameterization": "double_sequential",
+        "adapt_visible": True,
+    },
+    "uccsd_otimes_paop_bond_disp_std_seq2p": {
+        "motif_family": "paop_bond_disp_std",
+        "parameterization": "double_sequential",
+        "adapt_visible": True,
+    },
+}
+_UCCSD_SINGLE_LABEL_RE = re.compile(r"^uccsd_sing\((alpha|beta):(\d+)->(\d+)\)$")
+_UCCSD_DOUBLE_LABEL_RE = re.compile(r"^uccsd_dbl\((aa|bb|ab):(\d+),(\d+)->(\d+),(\d+)\)$")
 
 
 def _extract_nested(payload: Mapping[str, Any], *keys: str) -> Any:
@@ -555,6 +625,197 @@ class AdaptVQEResult:
     history: list[dict[str, Any]]
     stop_reason: str
     nfev_total: int
+
+
+@dataclass(frozen=True)
+class _ADAPTLogicalCandidate:
+    """Private ADAPT selection unit for multi-parameter logical pool elements."""
+    logical_label: str
+    pool_indices: tuple[int, ...]
+    parameterization: str
+    family_id: str
+
+
+@dataclass
+class _BeamBranchState:
+    branch_id: int
+    parent_branch_id: int | None
+    depth_local: int
+    terminated: bool
+    stop_reason: str | None
+    selected_ops: list[AnsatzTerm]
+    theta: np.ndarray
+    energy_current: float
+    available_indices: set[int]
+    selection_counts: np.ndarray
+    history: list[dict[str, Any]]
+    phase1_stage: StageController
+    phase1_residual_opened: bool
+    phase1_last_probe_reason: str
+    phase1_last_positions_considered: list[int]
+    phase1_last_trough_detected: bool
+    phase1_last_trough_probe_triggered: bool
+    phase1_last_selected_score: float | None
+    phase1_features_history: list[dict[str, Any]]
+    phase1_stage_events: list[dict[str, Any]]
+    phase1_measure_cache: MeasurementCacheAudit
+    phase2_optimizer_memory: dict[str, Any]
+    phase2_last_shortlist_records: list[dict[str, Any]]
+    phase2_last_batch_selected: bool
+    phase2_last_batch_penalty_total: float
+    phase2_last_optimizer_memory_reused: bool
+    phase2_last_optimizer_memory_source: str
+    phase2_last_shortlist_eval_records: list[dict[str, Any]]
+    drop_prev_delta_abs: float
+    drop_plateau_hits: int
+    eps_energy_low_streak: int
+    phase3_split_events: list[dict[str, Any]]
+    phase3_runtime_split_summary: dict[str, Any]
+    phase3_motif_usage: dict[str, Any]
+    phase3_rescue_history: list[dict[str, Any]]
+    nfev_total_local: int
+
+    def clone_for_child(self, *, branch_id: int) -> "_BeamBranchState":
+        return _BeamBranchState(
+            branch_id=int(branch_id),
+            parent_branch_id=int(self.branch_id),
+            depth_local=int(self.depth_local),
+            terminated=bool(self.terminated),
+            stop_reason=(None if self.stop_reason is None else str(self.stop_reason)),
+            selected_ops=list(self.selected_ops),
+            theta=np.asarray(self.theta, dtype=float).copy(),
+            energy_current=float(self.energy_current),
+            available_indices=set(int(x) for x in self.available_indices),
+            selection_counts=np.asarray(self.selection_counts, dtype=np.int64).copy(),
+            history=copy.deepcopy(self.history),
+            phase1_stage=self.phase1_stage.clone(),
+            phase1_residual_opened=bool(self.phase1_residual_opened),
+            phase1_last_probe_reason=str(self.phase1_last_probe_reason),
+            phase1_last_positions_considered=[int(x) for x in self.phase1_last_positions_considered],
+            phase1_last_trough_detected=bool(self.phase1_last_trough_detected),
+            phase1_last_trough_probe_triggered=bool(self.phase1_last_trough_probe_triggered),
+            phase1_last_selected_score=(
+                None if self.phase1_last_selected_score is None else float(self.phase1_last_selected_score)
+            ),
+            phase1_features_history=copy.deepcopy(self.phase1_features_history),
+            phase1_stage_events=copy.deepcopy(self.phase1_stage_events),
+            phase1_measure_cache=self.phase1_measure_cache.clone(),
+            phase2_optimizer_memory=copy.deepcopy(self.phase2_optimizer_memory),
+            phase2_last_shortlist_records=copy.deepcopy(self.phase2_last_shortlist_records),
+            phase2_last_batch_selected=bool(self.phase2_last_batch_selected),
+            phase2_last_batch_penalty_total=float(self.phase2_last_batch_penalty_total),
+            phase2_last_optimizer_memory_reused=bool(self.phase2_last_optimizer_memory_reused),
+            phase2_last_optimizer_memory_source=str(self.phase2_last_optimizer_memory_source),
+            phase2_last_shortlist_eval_records=copy.deepcopy(self.phase2_last_shortlist_eval_records),
+            drop_prev_delta_abs=float(self.drop_prev_delta_abs),
+            drop_plateau_hits=int(self.drop_plateau_hits),
+            eps_energy_low_streak=int(self.eps_energy_low_streak),
+            phase3_split_events=copy.deepcopy(self.phase3_split_events),
+            phase3_runtime_split_summary=copy.deepcopy(self.phase3_runtime_split_summary),
+            phase3_motif_usage=copy.deepcopy(self.phase3_motif_usage),
+            phase3_rescue_history=copy.deepcopy(self.phase3_rescue_history),
+            nfev_total_local=int(self.nfev_total_local),
+        )
+
+
+@dataclass(frozen=True)
+class _BranchExpansionPlan:
+    candidate_pool_index: int
+    position_id: int
+    selection_mode: str
+    candidate_label: str
+    candidate_term: AnsatzTerm
+    feature_row: dict[str, Any] | None
+    init_theta: float = 0.0
+
+
+@dataclass
+class _BranchStepScratch:
+    energy_current: float
+    psi_current: np.ndarray
+    hpsi_current: np.ndarray
+    gradients: np.ndarray
+    grad_magnitudes: np.ndarray
+    max_grad: float
+    gradient_eval_elapsed_s: float
+    append_position: int
+    best_idx: int
+    selected_position: int
+    selection_mode: str
+    stage_name: str
+    phase1_feature_selected: dict[str, Any] | None
+    phase1_stage_transition_reason: str
+    phase1_stage_now: str
+    phase1_stage_after_transition: StageController
+    phase1_last_probe_reason: str
+    phase1_last_positions_considered: list[int]
+    phase1_last_trough_detected: bool
+    phase1_last_trough_probe_triggered: bool
+    phase1_last_selected_score: float | None
+    phase2_last_shortlist_records: list[dict[str, Any]]
+    phase2_last_batch_selected: bool
+    phase2_last_batch_penalty_total: float
+    phase2_last_optimizer_memory_reused: bool
+    phase2_last_optimizer_memory_source: str
+    phase2_last_shortlist_eval_records: list[dict[str, Any]]
+    phase1_residual_opened: bool
+    available_indices_after_transition: set[int]
+    phase1_stage_events_after_transition: list[dict[str, Any]]
+    phase3_runtime_split_summary_after_eval: dict[str, Any]
+    proposals: list[_BranchExpansionPlan]
+    stop_reason: str | None
+    fallback_scan_size: int
+    fallback_best_probe_delta_e: float | None
+    fallback_best_probe_theta: float | None
+
+
+def _parse_seq2p_step_label(label: str) -> tuple[str, str] | None:
+    raw = str(label).strip()
+    for step_name in ("ferm", "motif"):
+        suffix = f"::step={step_name}"
+        if raw.endswith(suffix):
+            return raw[: -len(suffix)], step_name
+    return None
+
+
+def _build_seq2p_logical_candidates(
+    pool: Sequence[AnsatzTerm],
+    *,
+    family_id: str,
+) -> list[_ADAPTLogicalCandidate]:
+    candidates: list[_ADAPTLogicalCandidate] = []
+    idx = 0
+    while idx < len(pool):
+        if idx + 1 >= len(pool):
+            raise ValueError("Malformed seq2p pool: trailing unpaired flat term.")
+        lhs = _parse_seq2p_step_label(str(pool[idx].label))
+        rhs = _parse_seq2p_step_label(str(pool[idx + 1].label))
+        if lhs is None or rhs is None:
+            raise ValueError("Malformed seq2p pool: expected paired ::step=ferm/::step=motif labels.")
+        lhs_base, lhs_step = lhs
+        rhs_base, rhs_step = rhs
+        if lhs_step != "ferm" or rhs_step != "motif" or lhs_base != rhs_base:
+            raise ValueError("Malformed seq2p pool: expected adjacent ferm/motif terms for each logical pair.")
+        candidates.append(
+            _ADAPTLogicalCandidate(
+                logical_label=str(lhs_base),
+                pool_indices=(int(idx), int(idx + 1)),
+                parameterization="double_sequential",
+                family_id=str(family_id),
+            )
+        )
+        idx += 2
+    return candidates
+
+
+def _logical_candidate_gradient_summary(
+    candidate: _ADAPTLogicalCandidate,
+    gradients: np.ndarray,
+) -> tuple[float, list[float], list[float]]:
+    signed_components = [float(gradients[int(idx)]) for idx in candidate.pool_indices]
+    abs_components = [abs(float(val)) for val in signed_components]
+    score = math.sqrt(sum(float(val) * float(val) for val in abs_components))
+    return float(score), signed_components, abs_components
 
 
 def _build_uccsd_pool(
@@ -828,6 +1089,258 @@ def _build_paop_pool(
     return [AnsatzTerm(label=label, polynomial=poly) for label, poly in pool_specs]
 
 
+def _build_vlf_sq_pool(
+    num_sites: int,
+    n_ph_max: int,
+    boson_encoding: str,
+    ordering: str,
+    boundary: str,
+    pool_key: str,
+    paop_r: int,
+    paop_split_paulis: bool,
+    paop_prune_eps: float,
+    paop_normalization: str,
+    num_particles: tuple[int, int],
+) -> tuple[list[AnsatzTerm], dict[str, Any]]:
+    if build_vlf_sq_family is None:
+        raise RuntimeError(f"VLF/SQ pool requested but operator_pools module unavailable: {_PAOP_IMPORT_ERROR}")
+    if bool(paop_split_paulis):
+        raise ValueError("VLF/SQ macro families do not support --paop-split-paulis; keep grouped macro generators intact.")
+    pool_specs, meta = build_vlf_sq_family(
+        pool_key,
+        num_sites=int(num_sites),
+        num_particles=tuple(num_particles),
+        n_ph_max=int(n_ph_max),
+        boson_encoding=str(boson_encoding),
+        ordering=str(ordering),
+        boundary=str(boundary),
+        shell_radius=None,
+        prune_eps=float(paop_prune_eps),
+        normalization=str(paop_normalization),
+    )
+    return [AnsatzTerm(label=label, polynomial=poly) for label, poly in pool_specs], dict(meta)
+
+
+def _clean_real_pool_polynomial(poly: Any, prune_eps: float = 0.0) -> PauliPolynomial:
+    terms = poly.return_polynomial()
+    if not terms:
+        return PauliPolynomial("JW")
+    nq = int(terms[0].nqubit())
+    cleaned = PauliPolynomial("JW")
+    for term in terms:
+        coeff = complex(term.p_coeff)
+        if abs(coeff) <= float(prune_eps):
+            continue
+        if abs(coeff.imag) > 1e-10:
+            raise ValueError(f"Non-negligible imaginary coefficient in product-family pool term: {coeff}")
+        cleaned.add_term(PauliTerm(nq, ps=str(term.pw2strng()), pc=float(coeff.real)))
+    cleaned._reduce()
+    return cleaned
+
+
+def _fermion_mode_to_site(mode: int, *, num_sites: int, ordering: str) -> int:
+    mode_i = int(mode)
+    n_sites = int(num_sites)
+    ordering_key = str(ordering).strip().lower()
+    if mode_i < 0 or mode_i >= 2 * n_sites:
+        raise ValueError(f"Fermion mode {mode_i} out of range for num_sites={n_sites}")
+    if ordering_key == "interleaved":
+        return mode_i // 2
+    if ordering_key == "blocked":
+        if mode_i < n_sites:
+            return mode_i
+        return mode_i - n_sites
+    raise ValueError(f"Unsupported fermion ordering '{ordering}'.")
+
+
+def _parse_lifted_uccsd_support(
+    label: str,
+    *,
+    num_sites: int,
+    ordering: str,
+) -> tuple[str, tuple[int, ...]]:
+    raw = str(label).strip()
+    prefix = "uccsd_ferm_lifted::"
+    if not raw.startswith(prefix):
+        raise ValueError(f"Unsupported lifted UCCSD label '{raw}'.")
+    body = raw[len(prefix):]
+
+    m_single = _UCCSD_SINGLE_LABEL_RE.match(body)
+    if m_single is not None:
+        modes = [int(m_single.group(2)), int(m_single.group(3))]
+        kind = "single"
+    else:
+        m_double = _UCCSD_DOUBLE_LABEL_RE.match(body)
+        if m_double is None:
+            raise ValueError(f"Could not parse lifted UCCSD label '{raw}'.")
+        modes = [
+            int(m_double.group(2)),
+            int(m_double.group(3)),
+            int(m_double.group(4)),
+            int(m_double.group(5)),
+        ]
+        kind = "double"
+
+    sites = tuple(
+        sorted(
+            {
+                _fermion_mode_to_site(mode, num_sites=int(num_sites), ordering=str(ordering))
+                for mode in modes
+            }
+        )
+    )
+    return kind, sites
+
+
+def _motif_matches_excitation_support(
+    *,
+    motif: Any,
+    motif_family: str,
+    support_sites: tuple[int, ...],
+    nearest_neighbor_bonds: set[tuple[int, int]],
+) -> bool:
+    support_set = {int(site) for site in support_sites}
+    motif_sites = {int(site) for site in getattr(motif, "sites", ())}
+    motif_bonds = tuple(tuple(sorted((int(i), int(j)))) for i, j in getattr(motif, "bonds", ()))
+    if not motif_sites:
+        return False
+    if not motif_bonds:
+        return bool(motif_sites & support_set)
+
+    if str(motif_family).strip().lower() == "paop_bond_disp_std":
+        for bond in motif_bonds:
+            if set(bond).issubset(support_set):
+                return True
+            if bond in nearest_neighbor_bonds and bond[0] in support_set and bond[1] in support_set:
+                return True
+        return False
+
+    return bool(motif_sites & support_set)
+
+
+def _build_hh_uccsd_paop_product_pool(
+    num_sites: int,
+    n_ph_max: int,
+    boson_encoding: str,
+    ordering: str,
+    boundary: str,
+    family_key: str,
+    paop_r: int,
+    paop_split_paulis: bool,
+    paop_prune_eps: float,
+    paop_normalization: str,
+    num_particles: tuple[int, int],
+) -> tuple[list[AnsatzTerm], dict[str, Any]]:
+    del paop_r  # reserved for future locality extensions
+    if make_phonon_motifs is None:
+        raise RuntimeError(f"PAOP product pool requested but operator_pools module unavailable: {_PAOP_IMPORT_ERROR}")
+
+    family_key_norm = str(family_key).strip().lower()
+    spec = _HH_UCCSD_PAOP_PRODUCT_SPECS.get(family_key_norm)
+    if spec is None:
+        raise ValueError(f"Unsupported HH UCCSD⊗PAOP product family '{family_key}'.")
+    if bool(paop_split_paulis):
+        raise ValueError("UCCSD⊗PAOP product families do not support --paop-split-paulis; keep grouped logical generators intact.")
+
+    motif_family = str(spec["motif_family"])
+    parameterization = str(spec["parameterization"])
+    seq2p = parameterization == "double_sequential"
+    family_label_prefix = "uccsd_otimes_paop_seq2p" if seq2p else "uccsd_otimes_paop"
+
+    uccsd_lifted_pool = _build_hh_uccsd_fermion_lifted_pool(
+        int(num_sites),
+        int(n_ph_max),
+        str(boson_encoding),
+        str(ordering),
+        str(boundary),
+        num_particles=tuple(num_particles),
+    )
+    motifs = make_phonon_motifs(
+        motif_family,
+        num_sites=int(num_sites),
+        n_ph_max=int(n_ph_max),
+        boson_encoding=str(boson_encoding),
+        boundary=str(boundary),
+        prune_eps=float(paop_prune_eps),
+        normalization=str(paop_normalization),
+    )
+    nearest_neighbor_bonds = {
+        tuple(sorted((int(i), int(j))))
+        for i, j in bravais_nearest_neighbor_edges(
+            int(num_sites),
+            pbc=(str(boundary).strip().lower() == "periodic"),
+        )
+    }
+
+    sorted_uccsd = sorted(
+        list(uccsd_lifted_pool),
+        key=lambda op: (
+            0 if _parse_lifted_uccsd_support(str(op.label), num_sites=int(num_sites), ordering=str(ordering))[0] == "single" else 1,
+            str(op.label),
+        ),
+    )
+    ordered_motifs = sorted(list(motifs), key=lambda motif: (str(motif.family), str(motif.label)))
+
+    raw_pool: list[AnsatzTerm] = []
+    raw_pair_count = 0
+    for op in sorted_uccsd:
+        _kind, support_sites = _parse_lifted_uccsd_support(
+            str(op.label),
+            num_sites=int(num_sites),
+            ordering=str(ordering),
+        )
+        for motif in ordered_motifs:
+            if not _motif_matches_excitation_support(
+                motif=motif,
+                motif_family=motif_family,
+                support_sites=support_sites,
+                nearest_neighbor_bonds=nearest_neighbor_bonds,
+            ):
+                continue
+            raw_pair_count += 1
+            base_label = f"{family_label_prefix}::{op.label}::{motif.family}::{motif.label}"
+            if seq2p:
+                raw_pool.append(AnsatzTerm(label=f"{base_label}::step=ferm", polynomial=op.polynomial))
+                raw_pool.append(AnsatzTerm(label=f"{base_label}::step=motif", polynomial=motif.poly))
+                continue
+            product_poly = _clean_real_pool_polynomial(op.polynomial * motif.poly, float(paop_prune_eps))
+            if not product_poly.return_polynomial():
+                continue
+            raw_pool.append(AnsatzTerm(label=base_label, polynomial=product_poly))
+
+    if seq2p:
+        pool = list(raw_pool)
+        dedup_strategy = "disabled_pair_label_preserving"
+    elif int(n_ph_max) >= 2:
+        pool = _deduplicate_pool_terms_lightweight(raw_pool)
+        dedup_strategy = "signature_digest"
+    else:
+        pool = _deduplicate_pool_terms(raw_pool)
+        dedup_strategy = "signature"
+
+    return list(pool), {
+        "family": family_key_norm,
+        "family_kind": "uccsd_paop_product",
+        "parameterization": parameterization,
+        "motif_family": motif_family,
+        "locality_rule": (
+            "lf_overlap"
+            if motif_family in {"paop_lf_std", "paop_lf2_std"}
+            else "bond_disp_local_compatible"
+        ),
+        "raw_sizes": {
+            "raw_uccsd_lifted": int(len(uccsd_lifted_pool)),
+            "raw_phonon_motifs": int(len(motifs)),
+            "raw_logical_pairs": int(raw_pair_count),
+            "raw_emitted_terms": int(len(raw_pool)),
+        },
+        "logical_element_count": int(raw_pair_count),
+        "expanded_term_count": int(len(pool)),
+        "dedup_strategy": dedup_strategy,
+        "dedup_total": int(len(pool)),
+    }
+
+
 def _deduplicate_pool_terms(pool: list[AnsatzTerm]) -> list[AnsatzTerm]:
     """Deduplicate pool operators by canonical polynomial signature."""
     seen: set[tuple[tuple[str, float], ...]] = set()
@@ -891,7 +1404,7 @@ def _build_hh_full_meta_pool(
     paop_normalization: str,
     num_particles: tuple[int, int],
 ) -> tuple[list[AnsatzTerm], dict[str, int]]:
-    """Build HH full meta-pool: uccsd_lifted + hva + paop_full + paop_lf_full."""
+    """Build HH full meta-pool: uccsd_lifted + hva + hh_termwise_augmented + paop_full + paop_lf_full."""
     uccsd_lifted_pool = _build_hh_uccsd_fermion_lifted_pool(
         int(num_sites),
         int(n_ph_max),
@@ -966,6 +1479,189 @@ def _build_hh_full_meta_pool(
     else:
         dedup_pool = _deduplicate_pool_terms(merged)
     return dedup_pool, meta
+
+
+_HH_FULL_META_CLASSIFIER_VERSION = "hh_full_meta_v1"
+_HH_FULL_META_ALLOWED_CLASSES = (
+    "hh_termwise_unit",
+    "hh_termwise_quadrature",
+    "uccsd_sing",
+    "uccsd_dbl",
+    "hva_layer",
+    "paop_cloud_p",
+    "paop_cloud_x",
+    "paop_disp",
+    "paop_dbl",
+    "paop_hopdrag",
+    "paop_dbl_p",
+    "paop_dbl_x",
+    "paop_curdrag",
+    "paop_hop2",
+)
+
+
+@dataclass(frozen=True)
+class HHFullMetaClassFilterSpec:
+    keep_classes: tuple[str, ...]
+    classifier_version: str = _HH_FULL_META_CLASSIFIER_VERSION
+    source_pool: str = "full_meta"
+    source_problem: str = "hh"
+    source_num_sites: int | None = None
+    source_n_ph_max: int | None = None
+    source_json: str | None = None
+
+
+def _classify_hh_full_meta_label(label: str) -> str | None:
+    """Map a deduplicated full_meta label onto a stable operator-class name."""
+    label_str = str(label)
+    if any(
+        label_str.startswith(prefix)
+        for prefix in ("hop_layer", "onsite_layer", "phonon_layer", "eph_layer")
+    ):
+        return "hva_layer"
+    if label_str.startswith("hh_termwise_ham_unit_term("):
+        return "hh_termwise_unit"
+    if label_str.startswith("hh_termwise_ham_quadrature_term("):
+        return "hh_termwise_quadrature"
+    if label_str.startswith("uccsd_ferm_lifted::uccsd_sing("):
+        return "uccsd_sing"
+    if label_str.startswith("uccsd_ferm_lifted::uccsd_dbl("):
+        return "uccsd_dbl"
+    if label_str.startswith("paop_full:paop_cloud_p("):
+        return "paop_cloud_p"
+    if label_str.startswith("paop_full:paop_cloud_x("):
+        return "paop_cloud_x"
+    if label_str.startswith("paop_full:paop_disp("):
+        return "paop_disp"
+    if label_str.startswith("paop_full:paop_dbl("):
+        return "paop_dbl"
+    if label_str.startswith("paop_full:paop_hopdrag("):
+        return "paop_hopdrag"
+    if label_str.startswith("paop_lf_full:paop_dbl_p("):
+        return "paop_dbl_p"
+    if label_str.startswith("paop_lf_full:paop_dbl_x("):
+        return "paop_dbl_x"
+    if label_str.startswith("paop_lf_full:paop_curdrag("):
+        return "paop_curdrag"
+    if label_str.startswith("paop_lf_full:paop_hop2("):
+        return "paop_hop2"
+    return None
+
+
+def _normalize_hh_full_meta_keep_classes(classes: Sequence[Any]) -> tuple[str, ...]:
+    keep_classes: list[str] = []
+    seen: set[str] = set()
+    for raw in classes:
+        name = str(raw).strip()
+        if name == "":
+            continue
+        if name not in _HH_FULL_META_ALLOWED_CLASSES:
+            raise ValueError(
+                "Unknown HH full_meta class "
+                f"{name!r}; allowed classes are {list(_HH_FULL_META_ALLOWED_CLASSES)}."
+            )
+        if name in seen:
+            continue
+        seen.add(name)
+        keep_classes.append(name)
+    if not keep_classes:
+        raise ValueError("HH full_meta class filter must keep at least one class.")
+    return tuple(keep_classes)
+
+
+def _load_hh_full_meta_class_filter_spec(path: Path) -> HHFullMetaClassFilterSpec:
+    """Load a keep-spec JSON for filtering the HH full_meta pool by class."""
+    raw = json.loads(Path(path).read_text(encoding="utf-8"))
+    if not isinstance(raw, Mapping):
+        raise ValueError("HH full_meta class filter JSON must be an object with keep_classes.")
+    keep_raw = raw.get("keep_classes")
+    if not isinstance(keep_raw, list):
+        raise ValueError("HH full_meta class filter JSON must contain list field 'keep_classes'.")
+    classifier_version = str(raw.get("classifier_version", _HH_FULL_META_CLASSIFIER_VERSION)).strip()
+    if classifier_version != _HH_FULL_META_CLASSIFIER_VERSION:
+        raise ValueError(
+            "HH full_meta class filter classifier_version mismatch: "
+            f"got {classifier_version!r}, expected {_HH_FULL_META_CLASSIFIER_VERSION!r}."
+        )
+    source_pool = str(raw.get("source_pool", "")).strip().lower()
+    if source_pool != "full_meta":
+        raise ValueError(
+            "HH full_meta class filter JSON must declare source_pool='full_meta'."
+        )
+    source_problem = str(raw.get("source_problem", "hh")).strip().lower()
+    if source_problem != "hh":
+        raise ValueError(
+            "HH full_meta class filter JSON must declare source_problem='hh'."
+        )
+    source_num_sites_raw = raw.get("source_num_sites")
+    source_n_ph_max_raw = raw.get("source_n_ph_max")
+    return HHFullMetaClassFilterSpec(
+        keep_classes=_normalize_hh_full_meta_keep_classes(keep_raw),
+        classifier_version=str(classifier_version),
+        source_pool=str(source_pool),
+        source_problem=str(source_problem),
+        source_num_sites=(
+            None if source_num_sites_raw is None else int(source_num_sites_raw)
+        ),
+        source_n_ph_max=(
+            None if source_n_ph_max_raw is None else int(source_n_ph_max_raw)
+        ),
+        source_json=str(path),
+    )
+
+
+def _summarize_hh_full_meta_pool_classes(pool: Sequence[AnsatzTerm]) -> dict[str, int]:
+    counts: dict[str, int] = {}
+    for term in pool:
+        family = _classify_hh_full_meta_label(str(term.label))
+        if family is None:
+            raise ValueError(f"Unable to classify HH full_meta operator label {term.label!r}.")
+        counts[family] = int(counts.get(family, 0) + 1)
+    return {
+        family: int(counts[family])
+        for family in _HH_FULL_META_ALLOWED_CLASSES
+        if family in counts
+    }
+
+
+def _filter_hh_full_meta_pool_by_class(
+    pool: Sequence[AnsatzTerm],
+    spec: HHFullMetaClassFilterSpec,
+) -> tuple[list[AnsatzTerm], dict[str, Any]]:
+    """Filter a deduplicated HH full_meta pool down to the requested classes."""
+    counts_before = _summarize_hh_full_meta_pool_classes(pool)
+    keep_set = set(spec.keep_classes)
+    filtered_pool = [
+        term
+        for term in pool
+        if _classify_hh_full_meta_label(str(term.label)) in keep_set
+    ]
+    if not filtered_pool:
+        raise ValueError("HH full_meta class filter removed every operator from the pool.")
+    counts_after = _summarize_hh_full_meta_pool_classes(filtered_pool)
+    dropped_classes = [
+        family for family in counts_before.keys()
+        if family not in keep_set
+    ]
+    meta = {
+        "classifier_version": str(spec.classifier_version),
+        "source_pool": str(spec.source_pool),
+        "source_problem": str(spec.source_problem),
+        "source_num_sites": (
+            int(spec.source_num_sites) if spec.source_num_sites is not None else None
+        ),
+        "source_n_ph_max": (
+            int(spec.source_n_ph_max) if spec.source_n_ph_max is not None else None
+        ),
+        "source_json": str(spec.source_json) if spec.source_json is not None else None,
+        "keep_classes": [str(x) for x in spec.keep_classes],
+        "dropped_classes": [str(x) for x in dropped_classes],
+        "class_counts_before": dict(counts_before),
+        "class_counts_after": dict(counts_after),
+        "dedup_total_before": int(len(pool)),
+        "dedup_total_after": int(len(filtered_pool)),
+    }
+    return filtered_pool, meta
 
 
 # ---------------------------------------------------------------------------
@@ -1616,6 +2312,41 @@ def _exact_reference_state_for_hh(
 # ---------------------------------------------------------------------------
 
 _VALID_REOPT_POLICIES = {"append_only", "full", "windowed"}
+_VALID_ADAPT_INNER_OPTIMIZERS = frozenset({"COBYLA", "POWELL", "SPSA"})
+
+
+def _scipy_adapt_heartbeat_event(method_key: str) -> str:
+    method = str(method_key).strip().upper()
+    if method == "COBYLA":
+        return "hardcoded_adapt_cobyla_heartbeat"
+    return "hardcoded_adapt_scipy_heartbeat"
+
+
+def _scipy_adapt_optimizer_options(*, method_key: str, maxiter: int) -> dict[str, Any]:
+    method = str(method_key).strip().upper()
+    options: dict[str, Any] = {"maxiter": int(maxiter)}
+    if method == "COBYLA":
+        options["rhobeg"] = 0.3
+    return options
+
+
+def _run_scipy_adapt_optimizer(
+    *,
+    method_key: str,
+    objective: Any,
+    x0: np.ndarray,
+    maxiter: int,
+    context_label: str,
+    scipy_minimize_fn: Any,
+) -> Any:
+    if scipy_minimize_fn is None:
+        raise RuntimeError(f"SciPy minimize is unavailable for {method_key} {context_label}.")
+    return scipy_minimize_fn(
+        objective,
+        x0,
+        method=str(method_key),
+        options=_scipy_adapt_optimizer_options(method_key=str(method_key), maxiter=int(maxiter)),
+    )
 
 
 def _resolve_reopt_active_indices(
@@ -1710,12 +2441,248 @@ def _make_reduced_objective(
 
 
 def _resolve_adapt_continuation_mode(*, problem: str, requested_mode: str | None) -> str:
-    mode_raw = "legacy" if requested_mode is None else str(requested_mode).strip().lower()
+    mode_raw = "phase3_v1" if requested_mode is None else str(requested_mode).strip().lower()
     if mode_raw == "":
-        return "legacy"
+        return "phase3_v1"
     if mode_raw not in {"legacy", "phase1_v1", "phase2_v1", "phase3_v1"}:
         raise ValueError("adapt_continuation_mode must be one of {'legacy','phase1_v1','phase2_v1','phase3_v1'}.")
     return str(mode_raw)
+
+
+def _resolve_cli_adapt_continuation_mode(*, problem: str, requested_mode: str | None) -> str:
+    if requested_mode is None or str(requested_mode).strip() == "":
+        return "phase3_v1" if str(problem).strip().lower() == "hh" else "legacy"
+    return _resolve_adapt_continuation_mode(problem=problem, requested_mode=requested_mode)
+
+
+@dataclass(frozen=True)
+class Phase3OracleGradientConfig:
+    noise_mode: str
+    shots: int
+    oracle_repeats: int
+    oracle_aggregate: str
+    backend_name: str | None
+    use_fake_backend: bool
+    seed: int
+    gradient_step: float
+    mitigation_mode: str
+    local_readout_strategy: str | None
+    scope: str = "selection_only"
+    execution_surface_requested: str = "auto"
+    execution_surface: str = "expectation_v1"
+    raw_transport: str = "auto"
+    raw_store_memory: bool = False
+    raw_artifact_path: str | None = None
+    seed_transpiler: int | None = None
+    transpile_optimization_level: int = 1
+
+
+def _resolve_phase3_oracle_gradient_config(
+    config: Phase3OracleGradientConfig,
+) -> Phase3OracleGradientConfig:
+    requested_surface = str(getattr(config, "execution_surface_requested", "auto")).strip().lower() or "auto"
+    if requested_surface not in {"auto", "expectation_v1", "raw_measurement_v1"}:
+        raise ValueError(
+            "phase3_oracle_execution_surface must be one of {'auto','expectation_v1','raw_measurement_v1'}."
+        )
+    noise_mode = str(config.noise_mode).strip().lower()
+    mitigation_mode = str(config.mitigation_mode).strip().lower()
+    resolved_surface = (
+        "raw_measurement_v1"
+        if requested_surface == "auto"
+        and noise_mode == "runtime"
+        and mitigation_mode == "none"
+        else (
+            "expectation_v1"
+            if requested_surface == "auto"
+            else str(requested_surface)
+        )
+    )
+    return Phase3OracleGradientConfig(
+        noise_mode=str(noise_mode),
+        shots=int(config.shots),
+        oracle_repeats=int(config.oracle_repeats),
+        oracle_aggregate=str(config.oracle_aggregate).strip().lower(),
+        backend_name=(None if config.backend_name in {None, ""} else str(config.backend_name)),
+        use_fake_backend=bool(config.use_fake_backend),
+        seed=int(config.seed),
+        gradient_step=float(config.gradient_step),
+        mitigation_mode=str(mitigation_mode),
+        local_readout_strategy=(
+            None
+            if config.local_readout_strategy in {None, ""}
+            else str(config.local_readout_strategy).strip().lower()
+        ),
+        scope=str(config.scope).strip().lower() or "selection_only",
+        execution_surface_requested=str(requested_surface),
+        execution_surface=str(resolved_surface),
+        raw_transport=str(getattr(config, "raw_transport", "auto")).strip().lower() or "auto",
+        raw_store_memory=bool(getattr(config, "raw_store_memory", False)),
+        raw_artifact_path=(
+            None
+            if getattr(config, "raw_artifact_path", None) in {None, ""}
+            else str(getattr(config, "raw_artifact_path"))
+        ),
+        seed_transpiler=(
+            None
+            if getattr(config, "seed_transpiler", None) is None
+            else int(getattr(config, "seed_transpiler"))
+        ),
+        transpile_optimization_level=int(getattr(config, "transpile_optimization_level", 1)),
+    )
+
+
+def _json_ready(value: Any) -> Any:
+    return json.loads(json.dumps(value, default=str))
+
+
+def _phase3_oracle_runtime_bindings() -> dict[str, Any]:
+    from pipelines.exact_bench.noise_oracle_runtime import (
+        ExpectationOracle,
+        OracleConfig,
+        RawMeasurementOracle,
+        _all_z_full_register_qop,
+        _summarize_hh_full_register_z_records,
+        build_runtime_layout_circuit,
+        normalize_sampler_raw_runtime_config,
+        pauli_poly_to_sparse_pauli_op,
+    )
+    from pipelines.hardcoded.adapt_circuit_execution import build_parameterized_ansatz_plan
+    from pipelines.hardcoded.hh_realtime_measurement import validate_controller_oracle_base_config
+
+    return {
+        "ExpectationOracle": ExpectationOracle,
+        "OracleConfig": OracleConfig,
+        "RawMeasurementOracle": RawMeasurementOracle,
+        "all_z_full_register_qop": _all_z_full_register_qop,
+        "summarize_hh_full_register_z_records": _summarize_hh_full_register_z_records,
+        "build_runtime_layout_circuit": build_runtime_layout_circuit,
+        "build_parameterized_ansatz_plan": build_parameterized_ansatz_plan,
+        "normalize_sampler_raw_runtime_config": normalize_sampler_raw_runtime_config,
+        "pauli_poly_to_sparse_pauli_op": pauli_poly_to_sparse_pauli_op,
+        "validate_controller_oracle_base_config": validate_controller_oracle_base_config,
+    }
+
+
+def _validate_phase3_oracle_gradient_config(
+    *,
+    config: Phase3OracleGradientConfig,
+    problem: str,
+    continuation_mode: str,
+) -> None:
+    config = _resolve_phase3_oracle_gradient_config(config)
+    problem_key = str(problem).strip().lower()
+    continuation_key = str(continuation_mode).strip().lower()
+    if problem_key != "hh":
+        raise ValueError("phase3 oracle gradient mode is only valid for problem='hh'.")
+    if continuation_key != "phase3_v1":
+        raise ValueError(
+            "phase3 oracle gradient mode is only valid for adapt_continuation_mode='phase3_v1'."
+        )
+    noise_mode = str(config.noise_mode).strip().lower()
+    if noise_mode not in {"ideal", "shots", "aer_noise", "backend_scheduled", "runtime"}:
+        raise ValueError(
+            "phase3_oracle_gradient_mode must be one of {'off','ideal','shots','aer_noise','backend_scheduled','runtime'}."
+        )
+    if int(config.shots) < 1:
+        raise ValueError("phase3_oracle_shots must be >= 1.")
+    if int(config.oracle_repeats) < 1:
+        raise ValueError("phase3_oracle_repeats must be >= 1.")
+    aggregate_key = str(config.oracle_aggregate).strip().lower()
+    if aggregate_key != "mean":
+        raise ValueError("phase3 oracle gradient mode currently requires oracle_aggregate='mean'.")
+    if (not math.isfinite(float(config.gradient_step))) or float(config.gradient_step) <= 0.0:
+        raise ValueError("phase3_oracle_gradient_step must be finite and > 0.")
+    mitigation_mode = str(config.mitigation_mode).strip().lower()
+    if mitigation_mode not in {"none", "readout"}:
+        raise ValueError("phase3_oracle_mitigation must be one of {'none','readout'}.")
+    if noise_mode == "backend_scheduled" and not bool(config.use_fake_backend):
+        raise ValueError(
+            "phase3 oracle gradient mode backend_scheduled requires --phase3-oracle-use-fake-backend."
+        )
+    if noise_mode == "runtime" and config.backend_name in {None, ""}:
+        raise ValueError("phase3 oracle gradient runtime mode requires --phase3-oracle-backend-name.")
+    local_readout_strategy = (
+        None
+        if config.local_readout_strategy in {None, ""}
+        else str(config.local_readout_strategy).strip().lower()
+    )
+    if mitigation_mode == "readout" and local_readout_strategy not in {None, "mthree"}:
+        raise ValueError(
+            "phase3_oracle_local_readout_strategy must be 'mthree' when readout mitigation is enabled."
+        )
+    if str(config.scope).strip().lower() != "selection_only":
+        raise ValueError("phase3 oracle gradient scope is fixed to 'selection_only' in v1.")
+    execution_surface = str(config.execution_surface).strip().lower()
+    if execution_surface == "expectation_v1":
+        return
+    if execution_surface != "raw_measurement_v1":
+        raise ValueError(
+            "phase3_oracle_execution_surface must resolve to 'expectation_v1' or 'raw_measurement_v1'."
+        )
+    if noise_mode != "runtime":
+        raise ValueError("phase3 raw oracle execution currently supports only noise_mode='runtime'.")
+    if bool(config.use_fake_backend):
+        raise ValueError("phase3 raw oracle execution requires a real runtime backend.")
+    if mitigation_mode != "none":
+        raise ValueError("phase3 raw oracle execution requires mitigation_mode='none'.")
+    if local_readout_strategy is not None:
+        raise ValueError("phase3 raw oracle execution does not allow local readout strategy.")
+    if str(config.raw_transport).strip().lower() not in {"auto", "sampler_v2"}:
+        raise ValueError(
+            "phase3_oracle_raw_transport must be one of {'auto','sampler_v2'}."
+        )
+    if int(config.transpile_optimization_level) not in {0, 1, 2, 3}:
+        raise ValueError(
+            "phase3_oracle_transpile_optimization_level must be one of {0,1,2,3}."
+        )
+
+
+def _phase3_oracle_mitigation_payload(config: Phase3OracleGradientConfig) -> dict[str, Any]:
+    mitigation_mode = str(config.mitigation_mode).strip().lower()
+    local_readout_strategy = (
+        "mthree"
+        if mitigation_mode == "readout"
+        and config.local_readout_strategy in {None, ""}
+        else (
+            None
+            if config.local_readout_strategy in {None, ""}
+            else str(config.local_readout_strategy).strip().lower()
+        )
+    )
+    return {
+        "mode": str(mitigation_mode),
+        "zne_scales": [],
+        "dd_sequence": None,
+        "local_readout_strategy": local_readout_strategy,
+    }
+
+
+def _phase3_oracle_gradient_config_payload(
+    config: Phase3OracleGradientConfig | None,
+) -> dict[str, Any] | None:
+    if config is None:
+        return None
+    config = _resolve_phase3_oracle_gradient_config(config)
+    return {
+        "noise_mode": str(config.noise_mode),
+        "shots": int(config.shots),
+        "oracle_repeats": int(config.oracle_repeats),
+        "oracle_aggregate": str(config.oracle_aggregate),
+        "backend_name": (None if config.backend_name in {None, ""} else str(config.backend_name)),
+        "use_fake_backend": bool(config.use_fake_backend),
+        "seed": int(config.seed),
+        "gradient_step": float(config.gradient_step),
+        "mitigation": dict(_phase3_oracle_mitigation_payload(config)),
+        "scope": str(config.scope),
+        "execution_surface_requested": str(config.execution_surface_requested),
+        "execution_surface": str(config.execution_surface),
+        "raw_transport": str(config.raw_transport),
+        "raw_store_memory": bool(config.raw_store_memory),
+        "raw_artifact_path": config.raw_artifact_path,
+        "seed_transpiler": config.seed_transpiler,
+        "transpile_optimization_level": int(config.transpile_optimization_level),
+    }
 
 
 @dataclass(frozen=True)
@@ -1732,6 +2699,76 @@ class ResolvedAdaptStopPolicy:
     drop_policy_source: str
     eps_energy_termination_enabled: bool
     eps_grad_termination_enabled: bool
+
+
+@dataclass(frozen=True)
+class ResolvedBeamCapacityPolicy:
+    live_branches_requested: int
+    children_per_parent_requested: int | None
+    terminated_keep_requested: int | None
+    live_branches_effective: int
+    children_per_parent_effective: int
+    terminated_keep_effective: int
+    beam_enabled: bool
+    source_children_per_parent: str
+    source_terminated_keep: str
+
+
+def _resolve_beam_capacity_policy(
+    *,
+    adapt_beam_live_branches: int,
+    adapt_beam_children_per_parent: int | None,
+    adapt_beam_terminated_keep: int | None,
+) -> ResolvedBeamCapacityPolicy:
+    live_requested = int(adapt_beam_live_branches)
+    children_requested = (
+        None if adapt_beam_children_per_parent is None else int(adapt_beam_children_per_parent)
+    )
+    terminated_requested = (
+        None if adapt_beam_terminated_keep is None else int(adapt_beam_terminated_keep)
+    )
+    if live_requested < 1:
+        raise ValueError("adapt_beam_live_branches must be >= 1.")
+    if children_requested is not None and children_requested < 1:
+        raise ValueError("adapt_beam_children_per_parent must be >= 1 when provided.")
+    if terminated_requested is not None and terminated_requested < 1:
+        raise ValueError("adapt_beam_terminated_keep must be >= 1 when provided.")
+    if live_requested == 1:
+        return ResolvedBeamCapacityPolicy(
+            live_branches_requested=live_requested,
+            children_per_parent_requested=children_requested,
+            terminated_keep_requested=terminated_requested,
+            live_branches_effective=1,
+            children_per_parent_effective=1,
+            terminated_keep_effective=1,
+            beam_enabled=False,
+            source_children_per_parent=(
+                "single_branch_clamp.explicit" if children_requested is not None else "single_branch_clamp.default"
+            ),
+            source_terminated_keep=(
+                "single_branch_clamp.explicit" if terminated_requested is not None else "single_branch_clamp.default"
+            ),
+        )
+    children_resolved_raw = 2 if children_requested is None else int(children_requested)
+    children_effective = min(int(children_resolved_raw), int(live_requested))
+    terminated_effective = (
+        int(live_requested) if terminated_requested is None else int(terminated_requested)
+    )
+    return ResolvedBeamCapacityPolicy(
+        live_branches_requested=live_requested,
+        children_per_parent_requested=children_requested,
+        terminated_keep_requested=terminated_requested,
+        live_branches_effective=int(live_requested),
+        children_per_parent_effective=int(children_effective),
+        terminated_keep_effective=int(terminated_effective),
+        beam_enabled=True,
+        source_children_per_parent=(
+            "default_live_gt_1_cap2" if children_requested is None else "explicit"
+        ),
+        source_terminated_keep=(
+            "default_live_width" if terminated_requested is None else "explicit"
+        ),
+    )
 
 
 def _resolve_adapt_stop_policy(
@@ -1816,6 +2853,53 @@ def _resolve_adapt_stop_policy(
     )
 
 
+def _estimate_stderr_value(estimate: Any) -> float:
+    if isinstance(estimate, Mapping):
+        raw_value = estimate.get("stderr")
+    else:
+        raw_value = getattr(estimate, "stderr", None)
+    if raw_value is None:
+        raise ValueError("Oracle estimate must expose a finite nonnegative stderr.")
+    stderr_value = float(raw_value)
+    if (not math.isfinite(stderr_value)) or stderr_value < 0.0:
+        raise ValueError("Oracle estimate stderr must be finite and nonnegative.")
+    return float(stderr_value)
+
+
+def _oracle_fd_gradient_stderr(
+    e_plus: Any,
+    e_minus: Any,
+    *,
+    grad_step: float,
+) -> float:
+    step = float(grad_step)
+    if (not math.isfinite(step)) or step <= 0.0:
+        raise ValueError("grad_step must be finite and > 0 for oracle finite-difference stderr.")
+    stderr_plus = _estimate_stderr_value(e_plus)
+    stderr_minus = _estimate_stderr_value(e_minus)
+    grad_stderr = math.sqrt(stderr_plus ** 2 + stderr_minus ** 2) / (2.0 * step)
+    if (not math.isfinite(grad_stderr)) or grad_stderr < 0.0:
+        raise ValueError("Resolved oracle finite-difference stderr must be finite and nonnegative.")
+    return float(grad_stderr)
+
+
+def _phase3_sigma_hat_for_label(
+    *,
+    candidate_label: str,
+    sigma_by_label: Mapping[str, float],
+    phase3_enabled: bool,
+) -> float:
+    if not bool(phase3_enabled):
+        return 0.0
+    sigma_raw = sigma_by_label.get(str(candidate_label))
+    if sigma_raw is None:
+        return 0.0
+    sigma_value = float(sigma_raw)
+    if (not math.isfinite(sigma_value)) or sigma_value < 0.0:
+        return 0.0
+    return float(sigma_value)
+
+
 def _phase1_repeated_family_flat(
     *,
     history: list[dict[str, Any]],
@@ -1871,6 +2955,35 @@ def _splice_candidate_at_position(
     return new_ops, np.asarray(new_theta, dtype=float)
 
 
+def _splice_logical_candidate_at_position(
+    *,
+    ops: list[AnsatzTerm],
+    theta: np.ndarray,
+    candidate: _ADAPTLogicalCandidate,
+    pool: Sequence[AnsatzTerm],
+    position_id: int,
+    init_theta_values: Sequence[float] | None = None,
+) -> tuple[list[AnsatzTerm], np.ndarray]:
+    theta_arr = np.asarray(theta, dtype=float).reshape(-1)
+    append_position = int(theta_arr.size)
+    pos = max(0, min(int(append_position), int(position_id)))
+    theta_values = (
+        [0.0] * int(len(candidate.pool_indices))
+        if init_theta_values is None
+        else [float(x) for x in init_theta_values]
+    )
+    if len(theta_values) != int(len(candidate.pool_indices)):
+        raise ValueError("Logical candidate insertion requires one init theta per emitted term.")
+
+    new_ops = list(ops)
+    new_theta = np.asarray(theta_arr, dtype=float)
+    for offset, (pool_idx, theta_val) in enumerate(zip(candidate.pool_indices, theta_values)):
+        insert_at = int(pos + offset)
+        new_ops.insert(insert_at, pool[int(pool_idx)])
+        new_theta = np.insert(new_theta, insert_at, float(theta_val))
+    return new_ops, np.asarray(new_theta, dtype=float)
+
+
 def _predict_reopt_window_for_position(
     *,
     theta: np.ndarray,
@@ -1917,9 +3030,15 @@ def _window_terms_for_position(
 
 
 def _phase2_record_sort_key(record: Mapping[str, Any]) -> tuple[float, float, int, int]:
+    full_score = record.get("full_v2_score", float("-inf"))
+    if full_score is None:
+        full_score = float("-inf")
+    cheap_score = record.get("cheap_score", record.get("simple_score", float("-inf")))
+    if cheap_score is None:
+        cheap_score = record.get("simple_score", float("-inf"))
     return (
-        -float(record.get("full_v2_score", float("-inf"))),
-        -float(record.get("simple_score", float("-inf"))),
+        -float(full_score),
+        -float(cheap_score),
         int(record.get("candidate_pool_index", -1)),
         int(record.get("position_id", -1)),
     )
@@ -1973,6 +3092,7 @@ def _run_hardcoded_adapt_vqe(
     paop_normalization: str = "none",
     disable_hh_seed: bool = False,
     psi_ref_override: np.ndarray | None = None,
+    adapt_ref_json: Path | None = None,
     adapt_gradient_parity_check: bool = False,
     adapt_state_backend: str = "compiled",
     adapt_reopt_policy: str = "append_only",
@@ -1981,7 +3101,7 @@ def _run_hardcoded_adapt_vqe(
     adapt_full_refit_every: int = 0,
     adapt_final_full_refit: bool = True,
     exact_gs_override: float | None = None,
-    adapt_continuation_mode: str | None = "legacy",
+    adapt_continuation_mode: str | None = "phase3_v1",
     phase1_lambda_F: float = 1.0,
     phase1_lambda_compile: float = 0.05,
     phase1_lambda_measure: float = 0.02,
@@ -2004,6 +3124,7 @@ def _run_hardcoded_adapt_vqe(
     phase2_batch_target_size: int = 2,
     phase2_batch_size_cap: int = 3,
     phase2_batch_near_degenerate_ratio: float = 0.9,
+    adapt_pool_class_filter_json: Path | None = None,
     phase3_motif_source_json: Path | None = None,
     phase3_symmetry_mitigation_mode: str = "off",
     phase3_enable_rescue: bool = False,
@@ -2014,6 +3135,12 @@ def _run_hardcoded_adapt_vqe(
     phase3_backend_shortlist: Sequence[str] | None = None,
     phase3_backend_transpile_seed: int = 7,
     phase3_backend_optimization_level: int = 1,
+    phase3_oracle_gradient_config: Phase3OracleGradientConfig | None = None,
+    phase3_oracle_inner_objective_mode: str = "exact",
+    adapt_beam_live_branches: int = 1,
+    adapt_beam_children_per_parent: int | None = None,
+    adapt_beam_terminated_keep: int | None = None,
+    diagnostics_out: dict[str, Any] | None = None,
 ) -> tuple[dict[str, Any], np.ndarray]:
     """Run standard ADAPT-VQE and return (payload, psi_ground)."""
     if float(finite_angle) <= 0.0:
@@ -2060,6 +3187,38 @@ def _run_hardcoded_adapt_vqe(
         problem=str(problem_key),
         requested_mode=adapt_continuation_mode,
     )
+    if phase3_oracle_gradient_config is not None:
+        phase3_oracle_gradient_config = _resolve_phase3_oracle_gradient_config(
+            phase3_oracle_gradient_config
+        )
+        _validate_phase3_oracle_gradient_config(
+            config=phase3_oracle_gradient_config,
+            problem=str(problem_key),
+            continuation_mode=str(continuation_mode),
+        )
+    phase3_oracle_inner_objective_mode_key = (
+        str(phase3_oracle_inner_objective_mode).strip().lower() or "exact"
+    )
+    if phase3_oracle_inner_objective_mode_key not in {"exact", "noisy_v1"}:
+        raise ValueError(
+            "phase3_oracle_inner_objective_mode must be one of {'exact','noisy_v1'}."
+        )
+    phase3_oracle_inner_objective_enabled = bool(
+        phase3_oracle_inner_objective_mode_key == "noisy_v1"
+    )
+    if phase3_oracle_inner_objective_enabled:
+        if phase3_oracle_gradient_config is None:
+            raise ValueError(
+                "phase3_oracle_inner_objective_mode='noisy_v1' requires an active phase3 oracle gradient config."
+            )
+        if adapt_inner_optimizer_key != "SPSA":
+            raise ValueError(
+                "phase3_oracle_inner_objective_mode='noisy_v1' currently requires adapt_inner_optimizer='SPSA'."
+            )
+        if str(phase3_oracle_gradient_config.execution_surface).strip().lower() != "expectation_v1":
+            raise ValueError(
+                "phase3_oracle_inner_objective_mode='noisy_v1' currently requires phase3_oracle_execution_surface='expectation_v1'."
+            )
     stop_policy = _resolve_adapt_stop_policy(
         problem=str(problem_key),
         continuation_mode=str(continuation_mode),
@@ -2068,6 +3227,18 @@ def _run_hardcoded_adapt_vqe(
         adapt_drop_min_depth=adapt_drop_min_depth,
         adapt_grad_floor=adapt_grad_floor,
     )
+    beam_policy = _resolve_beam_capacity_policy(
+        adapt_beam_live_branches=int(adapt_beam_live_branches),
+        adapt_beam_children_per_parent=adapt_beam_children_per_parent,
+        adapt_beam_terminated_keep=adapt_beam_terminated_keep,
+    )
+    if bool(beam_policy.beam_enabled) and not (
+        str(problem_key) == "hh"
+        and str(continuation_mode).strip().lower() in _HH_STAGED_CONTINUATION_MODES
+    ):
+        raise ValueError(
+            "True ADAPT beam mode is currently supported only for HH staged continuation modes."
+        )
     adapt_drop_floor = float(stop_policy.adapt_drop_floor)
     adapt_drop_patience = int(stop_policy.adapt_drop_patience)
     adapt_drop_min_depth = int(stop_policy.adapt_drop_min_depth)
@@ -2138,6 +3309,29 @@ def _run_hardcoded_adapt_vqe(
             if len(phase3_backend_shortlist_tokens) < 1:
                 raise ValueError("transpile_shortlist_v1 requires --phase3-backend-shortlist.")
     pool_key_input = None if adapt_pool is None else str(adapt_pool).strip().lower()
+    full_meta_class_filter_spec: HHFullMetaClassFilterSpec | None = None
+    if adapt_pool_class_filter_json is not None:
+        if str(problem_key) != "hh":
+            raise ValueError("adapt_pool_class_filter_json is only valid for problem='hh'.")
+        if pool_key_input != "full_meta":
+            raise ValueError("adapt_pool_class_filter_json is only valid when adapt_pool='full_meta'.")
+        full_meta_class_filter_spec = _load_hh_full_meta_class_filter_spec(Path(adapt_pool_class_filter_json))
+        if (
+            full_meta_class_filter_spec.source_num_sites is not None
+            and int(full_meta_class_filter_spec.source_num_sites) != int(num_sites)
+        ):
+            raise ValueError(
+                "HH full_meta class filter source_num_sites does not match this run: "
+                f"got {full_meta_class_filter_spec.source_num_sites}, expected {num_sites}."
+            )
+        if (
+            full_meta_class_filter_spec.source_n_ph_max is not None
+            and int(full_meta_class_filter_spec.source_n_ph_max) != int(n_ph_max)
+        ):
+            raise ValueError(
+                "HH full_meta class filter source_n_ph_max does not match this run: "
+                f"got {full_meta_class_filter_spec.source_n_ph_max}, expected {n_ph_max}."
+            )
     adapt_spsa_params = {
         "a": float(adapt_spsa_a),
         "c": float(adapt_spsa_c),
@@ -2157,6 +3351,19 @@ def _run_hardcoded_adapt_vqe(
         L=int(num_sites),
         problem=str(problem),
         adapt_pool=(str(pool_key_input) if pool_key_input is not None else None),
+        adapt_pool_class_filter_json=(
+            str(adapt_pool_class_filter_json) if adapt_pool_class_filter_json is not None else None
+        ),
+        adapt_pool_class_filter_classifier_version=(
+            str(full_meta_class_filter_spec.classifier_version)
+            if full_meta_class_filter_spec is not None
+            else None
+        ),
+        adapt_pool_class_filter_keep_classes=(
+            list(full_meta_class_filter_spec.keep_classes)
+            if full_meta_class_filter_spec is not None
+            else None
+        ),
         adapt_continuation_mode=str(continuation_mode),
         phase3_motif_source_json=(str(phase3_motif_source_json) if phase3_motif_source_json is not None else None),
         phase3_symmetry_mitigation_mode=str(phase3_symmetry_mitigation_mode_key),
@@ -2167,6 +3374,21 @@ def _run_hardcoded_adapt_vqe(
         phase3_backend_transpile_seed=int(phase3_backend_transpile_seed),
         phase3_backend_optimization_level=int(phase3_backend_optimization_level),
         phase3_enable_rescue=bool(phase3_enable_rescue),
+        adapt_beam_live_branches_requested=int(beam_policy.live_branches_requested),
+        adapt_beam_children_per_parent_requested=(
+            int(beam_policy.children_per_parent_requested)
+            if beam_policy.children_per_parent_requested is not None
+            else None
+        ),
+        adapt_beam_terminated_keep_requested=(
+            int(beam_policy.terminated_keep_requested)
+            if beam_policy.terminated_keep_requested is not None
+            else None
+        ),
+        adapt_beam_live_branches=int(beam_policy.live_branches_effective),
+        adapt_beam_children_per_parent=int(beam_policy.children_per_parent_effective),
+        adapt_beam_terminated_keep=int(beam_policy.terminated_keep_effective),
+        adapt_beam_enabled=bool(beam_policy.beam_enabled),
         max_depth=int(max_depth),
         maxiter=int(maxiter),
         adapt_inner_optimizer=str(adapt_inner_optimizer_key),
@@ -2202,6 +3424,7 @@ def _run_hardcoded_adapt_vqe(
         adapt_window_topk=int(adapt_window_topk_val),
         adapt_full_refit_every=int(adapt_full_refit_every_val),
         adapt_final_full_refit=bool(adapt_final_full_refit_val),
+        adapt_ref_json=(str(adapt_ref_json) if adapt_ref_json is not None else None),
     )
 
     num_particles = half_filled_num_particles(int(num_sites))
@@ -2234,7 +3457,10 @@ def _run_hardcoded_adapt_vqe(
         )
 
     # Build operator pool(s)
+    full_meta_class_filter_meta: dict[str, Any] | None = None
+
     def _build_hh_pool_by_key(pool_key_hh: str) -> tuple[list[AnsatzTerm], str]:
+        nonlocal full_meta_class_filter_meta
         key = str(pool_key_hh).strip().lower()
         if key == "hva":
             hva_pool = _build_hva_pool(
@@ -2289,6 +3515,15 @@ def _run_hardcoded_adapt_vqe(
                 **full_meta_sizes,
                 dedup_total=int(len(pool_full)),
             )
+            if full_meta_class_filter_spec is not None:
+                pool_full, full_meta_class_filter_meta = _filter_hh_full_meta_pool_by_class(
+                    pool_full,
+                    full_meta_class_filter_spec,
+                )
+                _ai_log(
+                    "hardcoded_adapt_full_meta_class_filter_applied",
+                    **dict(full_meta_class_filter_meta),
+                )
             return list(pool_full), "hardcoded_adapt_vqe_full_meta"
         if key == "pareto_lean":
             pool_lean, lean_sizes = _build_hh_pareto_lean_pool(
@@ -2388,7 +3623,23 @@ def _run_hardcoded_adapt_vqe(
                 num_particles,
             )
             return _deduplicate_pool_terms(list(uccsd_lifted_pool) + list(paop_pool)), "hardcoded_adapt_vqe_uccsd_paop_lf_full"
-        if key in {"paop", "paop_min", "paop_std", "paop_full", "paop_lf", "paop_lf_std", "paop_lf2_std", "paop_lf_full"}:
+        if key in {
+            "paop",
+            "paop_min",
+            "paop_std",
+            "paop_full",
+            "paop_lf",
+            "paop_lf_std",
+            "paop_lf2_std",
+            "paop_lf3_std",
+            "paop_lf4_std",
+            "paop_lf_full",
+            "paop_sq_std",
+            "paop_sq_full",
+            "paop_bond_disp_std",
+            "paop_hop_sq_std",
+            "paop_pair_sq_std",
+        }:
             paop_pool = _build_paop_pool(
                 int(num_sites),
                 int(n_ph_max),
@@ -2430,6 +3681,21 @@ def _run_hardcoded_adapt_vqe(
                 seen.add(sig)
                 dedup_pool.append(term)
             return dedup_pool, f"hardcoded_adapt_vqe_{key}"
+        if key in {"vlf_only", "sq_only", "vlf_sq", "sq_dens_only", "vlf_sq_dens"}:
+            vlf_pool, _vlf_meta = _build_vlf_sq_pool(
+                int(num_sites),
+                int(n_ph_max),
+                str(boson_encoding),
+                str(ordering),
+                str(boundary),
+                key,
+                int(paop_r),
+                bool(paop_split_paulis),
+                float(paop_prune_eps),
+                str(paop_normalization),
+                num_particles,
+            )
+            return list(vlf_pool), f"hardcoded_adapt_vqe_{key}"
         if key == "full_hamiltonian":
             return _build_full_hamiltonian_pool(h_poly, normalize_coeff=True), "hardcoded_adapt_vqe_full_hamiltonian_hh"
         raise ValueError(
@@ -2579,6 +3845,17 @@ def _run_hardcoded_adapt_vqe(
 
     if len(pool) == 0:
         raise ValueError(f"ADAPT pool '{pool_key}' produced no operators for problem='{problem_key}'.")
+
+    seq2p_logical_mode = bool(
+        problem_key == "hh"
+        and pool_key in _HH_UCCSD_PAOP_PRODUCT_SPECS
+        and str(_HH_UCCSD_PAOP_PRODUCT_SPECS[str(pool_key)]["parameterization"]) == "double_sequential"
+    )
+    logical_candidates = (
+        _build_seq2p_logical_candidates(pool, family_id=str(pool_key))
+        if seq2p_logical_mode
+        else []
+    )
     _ai_log(
         "hardcoded_adapt_pool_built",
         pool_type=str(pool_key),
@@ -2644,12 +3921,18 @@ def _run_hardcoded_adapt_vqe(
             symmetry_specs=pool_symmetry_specs,
             split_policy=("deliberate_split" if bool(paop_split_paulis) else "preserve"),
         )
+    phase3_enable_rescue_requested = bool(phase3_enable_rescue)
+    phase3_enable_rescue_effective = bool(
+        phase3_enable_rescue_requested and (not phase3_oracle_inner_objective_enabled)
+    )
     if phase3_enabled and phase3_motif_source_json is not None:
         phase3_input_motif_library = load_motif_library_from_json(Path(phase3_motif_source_json))
         if phase3_input_motif_library is not None:
             phase3_motif_usage["enabled"] = True
             phase3_motif_usage["source_tag"] = str(phase3_input_motif_library.get("source_tag", "payload"))
-    if phase3_enabled and bool(phase3_enable_rescue):
+    if phase3_enabled and (
+        bool(phase3_enable_rescue_requested) or bool(phase3_oracle_inner_objective_enabled)
+    ):
         phase3_exact_reference_state = _exact_reference_state_for_hh(
             num_sites=int(num_sites),
             num_particles=num_particles,
@@ -2747,6 +4030,16 @@ def _run_hardcoded_adapt_vqe(
         else set(range(len(pool)))
     )
     selection_counts = np.zeros(len(pool), dtype=np.int64)
+    logical_available_indices = (
+        set(range(len(logical_candidates)))
+        if seq2p_logical_mode
+        else set()
+    )
+    logical_selection_counts = (
+        np.zeros(len(logical_candidates), dtype=np.int64)
+        if seq2p_logical_mode
+        else np.zeros(0, dtype=np.int64)
+    )
     phase1_stage_cfg = StageControllerConfig(
         plateau_patience=int(max(1, phase1_plateau_patience)),
         weak_drop_threshold=(
@@ -2768,6 +4061,15 @@ def _run_hardcoded_adapt_vqe(
         lambda_measure=float(phase1_lambda_measure),
         lambda_leak=float(phase1_lambda_leak),
         z_alpha=float(phase1_score_z_alpha),
+        wD=float(phase1_lambda_compile),
+        wG=float(phase1_lambda_measure),
+        wC=float(phase1_lambda_measure),
+        wc=float(phase1_lambda_measure),
+        lifetime_cost_mode=(
+            str(phase3_lifetime_cost_mode_key)
+            if phase3_enabled and str(phase3_lifetime_cost_mode_key) != "off"
+            else "off"
+        ),
     )
     phase1_compile_oracle = Phase1CompileCostOracle()
     phase1_measure_cache = MeasurementCacheAudit(nominal_shots_per_group=1)
@@ -2811,6 +4113,8 @@ def _run_hardcoded_adapt_vqe(
             else "none"
         ),
     )
+    if phase3_enabled and float(phase2_score_cfg.lambda_F) <= 0.0:
+        raise ValueError("phase3_v1 cheap ratio scoring requires phase1_lambda_F > 0.")
     phase2_novelty_oracle = Phase2NoveltyOracle()
     phase2_curvature_oracle = Phase2CurvatureOracle()
     phase2_memory_adapter = Phase2OptimizerMemoryAdapter()
@@ -2835,536 +4139,1391 @@ def _run_hardcoded_adapt_vqe(
     phase2_last_optimizer_memory_reused = False
     phase2_last_optimizer_memory_source = "unavailable"
     phase2_last_shortlist_eval_records: list[dict[str, Any]] = []
+    phase3_oracle_gradient_enabled = bool(phase3_oracle_gradient_config is not None)
+    phase3_gradient_uncertainty_source = (
+        "oracle_fd_stderr_v1" if phase3_oracle_gradient_enabled else "zero_default"
+    )
+    phase3_gradient_source_name = (
+        "oracle_fd_v1" if phase3_oracle_gradient_enabled else "exact_commutator"
+    )
+    phase3_oracle_gradient_calls_total = 0
+    phase3_oracle_backend_info: dict[str, Any] | None = None
+    phase3_last_candidate_gradient_scout: list[dict[str, Any]] = []
+    phase3_last_max_gradient_stderr = 0.0
+    phase3_oracle_gradient_raw_records_total = 0
+    phase3_oracle_symmetry_diagnostic_calls_total = 0
+    phase3_oracle_symmetry_diagnostic_raw_records_total = 0
+    phase3_oracle_inner_objective_calls_total = 0
+    phase3_oracle_raw_transport: str | None = None
+    phase3_oracle_raw_artifact_path: str | None = None
+    phase3_oracle = None
+    phase3_oracle_cleanup = None
+    phase3_oracle_h_qop = None
+    phase3_oracle_all_z_qop = None
+    build_runtime_layout_circuit_fn = None
+    build_parameterized_ansatz_plan_fn = None
+    phase3_oracle_num_qubits = int(round(math.log2(psi_ref.size)))
 
-    energy_current, _ = energy_via_one_apply(psi_ref, h_compiled)
-    energy_current = float(energy_current)
-    nfev_total += 1
-    _ai_log("hardcoded_adapt_initial_energy", energy=energy_current)
-    if exact_gs_override is None:
-        exact_gs = _exact_gs_energy_for_problem(
-            h_poly,
-            problem=problem_key,
-            num_sites=int(num_sites),
-            num_particles=num_particles,
-            indexing=str(ordering),
-            n_ph_max=int(n_ph_max),
-            boson_encoding=str(boson_encoding),
-            t=float(t),
-            u=float(u),
-            dv=float(dv),
-            omega0=float(omega0),
-            g_ep=float(g_ep),
-            boundary=str(boundary),
+    def _normalize_phase3_oracle_backend_info(
+        *,
+        oracle_obj: Any | None = None,
+        raw_bundle: Any | None = None,
+    ) -> dict[str, Any] | None:
+        if raw_bundle is not None and phase3_oracle_gradient_config is not None:
+            return _json_ready(
+                {
+                    "noise_mode": str(phase3_oracle_gradient_config.noise_mode),
+                    "estimator_kind": "raw_measurement_oracle",
+                    "backend_name": raw_bundle.backend_snapshot.get(
+                        "backend_name", phase3_oracle_gradient_config.backend_name
+                    ),
+                    "using_fake_backend": bool(phase3_oracle_gradient_config.use_fake_backend),
+                    "details": {
+                        "execution_surface": "raw_measurement_v1",
+                        "transport": str(raw_bundle.transport),
+                        "raw_artifact_path": raw_bundle.raw_artifact_path,
+                        "record_count": int(raw_bundle.estimate.record_count),
+                        "group_count": int(raw_bundle.estimate.group_count),
+                        "term_count": int(raw_bundle.estimate.term_count),
+                        "reduction_mode": str(raw_bundle.estimate.reduction_mode),
+                        "plan_digest": str(raw_bundle.plan_digest),
+                        "structure_digest": str(raw_bundle.structure_digest),
+                        "reference_state_digest": raw_bundle.reference_state_digest,
+                        "compile_signatures_by_basis": dict(raw_bundle.compile_signatures_by_basis),
+                        "backend_snapshot": dict(raw_bundle.backend_snapshot),
+                        "transpile_seed": phase3_oracle_gradient_config.seed_transpiler,
+                        "seed_transpiler": phase3_oracle_gradient_config.seed_transpiler,
+                        "transpile_optimization_level": int(
+                            phase3_oracle_gradient_config.transpile_optimization_level
+                        ),
+                    },
+                }
+            )
+        backend_info_raw = getattr(oracle_obj, "backend_info", None) if oracle_obj is not None else None
+        if backend_info_raw is not None:
+            return _json_ready(getattr(backend_info_raw, "__dict__", backend_info_raw))
+        if oracle_obj is not None and phase3_oracle_gradient_config is not None:
+            return _json_ready(
+                {
+                    "noise_mode": str(phase3_oracle_gradient_config.noise_mode),
+                    "estimator_kind": "raw_measurement_oracle",
+                    "backend_name": phase3_oracle_gradient_config.backend_name,
+                    "using_fake_backend": bool(phase3_oracle_gradient_config.use_fake_backend),
+                    "details": {
+                        "execution_surface": str(phase3_oracle_gradient_config.execution_surface),
+                        "transport": getattr(oracle_obj, "transport", None),
+                        "raw_artifact_path": phase3_oracle_gradient_config.raw_artifact_path,
+                        "backend_snapshot": dict(getattr(oracle_obj, "backend_snapshot", {}) or {}),
+                    },
+                }
+            )
+        return None
+
+    def _close_phase3_oracle_resource(oracle_obj: Any | None) -> None:
+        if oracle_obj is None:
+            return
+        close_oracle = getattr(oracle_obj, "close", None)
+        if callable(close_oracle):
+            close_oracle()
+
+    class _Phase3OracleCleanupGuard:
+        def __init__(self, oracle_obj: Any | None) -> None:
+            self._oracle_ref = weakref.ref(oracle_obj) if oracle_obj is not None else None
+            self._closed = False
+
+        def close(self) -> None:
+            if self._closed:
+                return
+            self._closed = True
+            oracle_obj = self._oracle_ref() if self._oracle_ref is not None else None
+            _close_phase3_oracle_resource(oracle_obj)
+
+        def __del__(self) -> None:
+            try:
+                self.close()
+            except Exception:
+                pass
+
+    if phase3_oracle_gradient_enabled:
+        bindings = _phase3_oracle_runtime_bindings()
+        build_parameterized_ansatz_plan_fn = bindings["build_parameterized_ansatz_plan"]
+        oracle_config = bindings["OracleConfig"](
+            noise_mode=str(phase3_oracle_gradient_config.noise_mode),
+            shots=int(phase3_oracle_gradient_config.shots),
+            seed=int(phase3_oracle_gradient_config.seed),
+            seed_transpiler=phase3_oracle_gradient_config.seed_transpiler,
+            transpile_optimization_level=int(phase3_oracle_gradient_config.transpile_optimization_level),
+            oracle_repeats=int(phase3_oracle_gradient_config.oracle_repeats),
+            oracle_aggregate=str(phase3_oracle_gradient_config.oracle_aggregate),
+            backend_name=(
+                None
+                if phase3_oracle_gradient_config.backend_name in {None, ""}
+                else str(phase3_oracle_gradient_config.backend_name)
+            ),
+            use_fake_backend=bool(phase3_oracle_gradient_config.use_fake_backend),
+            allow_aer_fallback=True,
+            aer_fallback_mode="sampler_shots",
+            omp_shm_workaround=True,
+            mitigation=dict(_phase3_oracle_mitigation_payload(phase3_oracle_gradient_config)),
+            symmetry_mitigation={"mode": "off"},
+            execution_surface=str(phase3_oracle_gradient_config.execution_surface),
+            raw_transport=str(phase3_oracle_gradient_config.raw_transport),
+            raw_store_memory=bool(phase3_oracle_gradient_config.raw_store_memory),
+            raw_artifact_path=phase3_oracle_gradient_config.raw_artifact_path,
         )
-    else:
-        exact_gs = float(exact_gs_override)
-        _ai_log("hardcoded_adapt_exact_override_used", exact_gs=exact_gs)
-    drop_prev_delta_abs = float(abs(energy_current - exact_gs))
-    drop_plateau_hits = 0
-    eps_energy_low_streak = 0
-
-    # HH preconditioning: optimize a compact boson-quadrature e-ph seed block
-    # before greedy ADAPT selection. This helps avoid the weak-coupling basin
-    # when g is moderate/strong.
-    if (
-        (not disable_hh_seed)
-        and problem_key == "hh"
-        and abs(float(g_ep)) > 1e-15
-    ):
-        n_sites = int(num_sites)
-        boson_bits = n_sites * int(boson_qubits_per_site(int(n_ph_max), str(boson_encoding)))
-        seed_indices: list[int] = []
-        for idx, op in enumerate(pool):
-            label = str(op.label)
-            if not label.startswith("hh_termwise_ham_quadrature_term("):
-                continue
-            op_terms = op.polynomial.return_polynomial()
-            if not op_terms:
-                continue
-            pw = str(op_terms[0].pw2strng())
-            has_boson_y = any(ch == "y" for ch in pw[:boson_bits])
-            has_electron_z = ("z" in pw[boson_bits:])
-            if has_boson_y and has_electron_z:
-                seed_indices.append(idx)
-
-        if seed_indices:
-            seed_ops = [pool[i] for i in seed_indices]
-            seed_layout = _build_selected_layout(seed_ops)
-            theta_seed0 = np.zeros(int(seed_layout.runtime_parameter_count), dtype=float)
-            seed_executor = (
-                _build_compiled_executor(seed_ops)
-                if adapt_state_backend_key == "compiled"
-                else None
+        bindings["validate_controller_oracle_base_config"](oracle_config)
+        if str(phase3_oracle_gradient_config.execution_surface) == "raw_measurement_v1":
+            oracle_config = bindings["normalize_sampler_raw_runtime_config"](oracle_config)
+            phase3_oracle = bindings["RawMeasurementOracle"](oracle_config)
+            phase3_oracle_all_z_qop = bindings["all_z_full_register_qop"](int(phase3_oracle_num_qubits))
+            phase3_oracle_raw_transport = str(
+                getattr(phase3_oracle, "transport", phase3_oracle_gradient_config.raw_transport)
             )
-            seed_opt_t0 = time.perf_counter()
-            seed_cobyla_last_hb_t = seed_opt_t0
-            seed_cobyla_nfev_so_far = 0
-            seed_cobyla_best_fun = float("inf")
-
-            def _seed_obj(x: np.ndarray) -> float:
-                nonlocal seed_cobyla_last_hb_t, seed_cobyla_nfev_so_far, seed_cobyla_best_fun
-                if seed_executor is not None:
-                    psi_seed = seed_executor.prepare_state(np.asarray(x, dtype=float), psi_ref)
-                    seed_energy, _ = energy_via_one_apply(psi_seed, h_compiled)
-                    seed_energy_val = float(seed_energy)
-                else:
-                    seed_energy_val = _adapt_energy_fn(
-                        h_poly,
-                        psi_ref,
-                        seed_ops,
-                        x,
-                        h_compiled=h_compiled,
-                    )
-                if adapt_inner_optimizer_key in {"COBYLA", "POWELL"}:
-                    seed_cobyla_nfev_so_far += 1
-                    if seed_energy_val < seed_cobyla_best_fun:
-                        seed_cobyla_best_fun = float(seed_energy_val)
-                    now = time.perf_counter()
-                    if (now - seed_cobyla_last_hb_t) >= float(adapt_spsa_progress_every_s):
-                        _ai_log(
-                            "hardcoded_adapt_scipy_heartbeat",
-                            stage="hh_seed_preopt",
-                            depth=0,
-                            opt_method=str(adapt_inner_optimizer_key),
-                            nfev_opt_so_far=int(seed_cobyla_nfev_so_far),
-                            best_fun=float(seed_cobyla_best_fun),
-                            delta_abs_best=(
-                                float(abs(seed_cobyla_best_fun - exact_gs))
-                                if math.isfinite(seed_cobyla_best_fun)
-                                else None
-                            ),
-                            elapsed_opt_s=float(now - seed_opt_t0),
-                        )
-                        seed_cobyla_last_hb_t = now
-                return float(seed_energy_val)
-
-            seed_maxiter = int(max(100, min(int(maxiter), 600)))
-            if adapt_inner_optimizer_key == "SPSA":
-                seed_last_hb_t = seed_opt_t0
-
-                def _seed_spsa_callback(ev: dict[str, Any]) -> None:
-                    nonlocal seed_last_hb_t
-                    now = time.perf_counter()
-                    if (now - seed_last_hb_t) < float(adapt_spsa_progress_every_s):
-                        return
-                    seed_best = float(ev.get("best_fun", float("nan")))
-                    _ai_log(
-                        "hardcoded_adapt_spsa_heartbeat",
-                        stage="hh_seed_preopt",
-                        depth=0,
-                        iter=int(ev.get("iter", 0)),
-                        nfev_opt_so_far=int(ev.get("nfev_so_far", 0)),
-                        best_fun=seed_best,
-                        delta_abs_best=float(abs(seed_best - exact_gs)) if math.isfinite(seed_best) else None,
-                        elapsed_opt_s=float(now - seed_opt_t0),
-                    )
-                    seed_last_hb_t = now
-
-                seed_result = spsa_minimize(
-                    fun=_seed_obj,
-                    x0=theta_seed0,
-                    maxiter=int(seed_maxiter),
-                    seed=int(seed) + 90000,
-                    a=float(adapt_spsa_a),
-                    c=float(adapt_spsa_c),
-                    alpha=float(adapt_spsa_alpha),
-                    gamma=float(adapt_spsa_gamma),
-                    A=float(adapt_spsa_A),
-                    bounds=None,
-                    project="none",
-                    eval_repeats=int(adapt_spsa_eval_repeats),
-                    eval_agg=str(adapt_spsa_eval_agg_key),
-                    avg_last=int(adapt_spsa_avg_last),
-                    callback=_seed_spsa_callback,
-                    callback_every=int(adapt_spsa_callback_every),
-                )
-                seed_theta = np.asarray(seed_result.x, dtype=float)
-                seed_energy = float(seed_result.fun)
-                seed_nfev = int(seed_result.nfev)
-                seed_nit = int(seed_result.nit)
-                seed_success = bool(seed_result.success)
-                seed_message = str(seed_result.message)
-            else:
-                if scipy_minimize is None:
-                    raise RuntimeError(
-                        f"SciPy minimize is unavailable for {adapt_inner_optimizer_key} ADAPT inner optimizer."
-                    )
-                seed_result = scipy_minimize(
-                    _seed_obj,
-                    theta_seed0,
-                    method=str(adapt_inner_optimizer_key),
-                    options=_scipy_inner_options(int(seed_maxiter)),
-                )
-                seed_theta = np.asarray(seed_result.x, dtype=float)
-                seed_energy = float(seed_result.fun)
-                seed_nfev = int(getattr(seed_result, "nfev", 0))
-                seed_nit = int(getattr(seed_result, "nit", 0))
-                seed_success = bool(getattr(seed_result, "success", False))
-                seed_message = str(getattr(seed_result, "message", ""))
-            nfev_total += int(seed_nfev)
-
-            selected_ops = list(seed_ops)
-            selected_layout = _build_selected_layout(selected_ops)
-            theta = np.asarray(seed_theta, dtype=float)
-            if phase2_enabled:
-                if adapt_inner_optimizer_key == "SPSA":
-                    phase2_optimizer_memory = phase2_memory_adapter.from_result(
-                        seed_result,
-                        method=str(adapt_inner_optimizer_key),
-                        parameter_count=int(theta.size),
-                        source="hh_seed_preopt",
-                    )
-                else:
-                    phase2_optimizer_memory = phase2_memory_adapter.unavailable(
-                        method=str(adapt_inner_optimizer_key),
-                        parameter_count=int(theta.size),
-                        reason="non_spsa_seed_preopt",
-                    )
-            if not allow_repeats:
-                for idx in seed_indices:
-                    available_indices.discard(idx)
-            energy_current = float(seed_energy)
-            selected_executor = (
-                seed_executor
-                if seed_executor is not None
-                else None
-            )
+            phase3_oracle_raw_artifact_path = phase3_oracle_gradient_config.raw_artifact_path
+            phase3_oracle_backend_info = _normalize_phase3_oracle_backend_info(oracle_obj=phase3_oracle)
+        else:
+            phase3_oracle = bindings["ExpectationOracle"](oracle_config)
+            build_runtime_layout_circuit_fn = bindings["build_runtime_layout_circuit"]
+            phase3_oracle_backend_info = _normalize_phase3_oracle_backend_info(oracle_obj=phase3_oracle)
+        phase3_oracle_cleanup = _Phase3OracleCleanupGuard(phase3_oracle)
+        phase3_oracle_h_qop = bindings["pauli_poly_to_sparse_pauli_op"](h_poly)
+        if bool(finite_angle_fallback):
             _ai_log(
-                "hardcoded_adapt_hh_seed_preopt",
-                num_seed_ops=int(len(seed_ops)),
-                seed_opt_method=str(adapt_inner_optimizer_key),
-                seed_energy=float(seed_energy),
-                seed_nfev=int(seed_nfev),
-                seed_nit=int(seed_nit),
-                seed_success=bool(seed_success),
-                seed_message=str(seed_message),
+                "hardcoded_adapt_phase3_oracle_finite_angle_disabled",
+                reason="oracle_gradient_mode_selection_only",
             )
-            if phase1_enabled:
-                phase1_stage.begin_core()
-                phase1_stage_events.append(
+        if bool(phase1_prune_enabled) and (not phase3_oracle_inner_objective_enabled):
+            _ai_log(
+                "hardcoded_adapt_phase3_oracle_prune_disabled",
+                reason="oracle_gradient_mode_selection_only",
+            )
+        finite_angle_fallback = False
+        if not phase3_oracle_inner_objective_enabled:
+            phase1_prune_enabled = False
+
+    try:
+        def _phase3_oracle_gradient_scout(
+            *,
+            selected_ops_now: list[AnsatzTerm],
+            theta_now: np.ndarray,
+            append_position_now: int,
+            available_indices_now: Sequence[int],
+        ) -> tuple[np.ndarray, np.ndarray, dict[str, float], list[dict[str, Any]], int]:
+            nonlocal phase3_oracle_backend_info
+            nonlocal phase3_oracle_gradient_raw_records_total
+            nonlocal phase3_oracle_symmetry_diagnostic_calls_total
+            nonlocal phase3_oracle_symmetry_diagnostic_raw_records_total
+            nonlocal phase3_oracle_raw_transport
+            nonlocal phase3_oracle_raw_artifact_path
+            if (
+                not phase3_oracle_gradient_enabled
+                or phase3_oracle is None
+                or phase3_oracle_h_qop is None
+                or phase3_oracle_gradient_config is None
+            ):
+                raise RuntimeError("phase3 oracle gradient scout requested without an active oracle session.")
+            if (
+                str(phase3_oracle_gradient_config.execution_surface) == "expectation_v1"
+                and build_runtime_layout_circuit_fn is None
+            ):
+                raise RuntimeError("phase3 expectation oracle path is missing its circuit builder.")
+            if (
+                str(phase3_oracle_gradient_config.execution_surface) == "raw_measurement_v1"
+                and build_parameterized_ansatz_plan_fn is None
+            ):
+                raise RuntimeError("phase3 raw oracle path is missing its plan builder.")
+            gradients_local = np.zeros(len(pool), dtype=float)
+            grad_magnitudes_local = np.zeros(len(pool), dtype=float)
+            sigma_by_label_local: dict[str, float] = {}
+            scout_rows_local: list[dict[str, Any]] = []
+            oracle_calls_local = 0
+            grad_step_local = float(phase3_oracle_gradient_config.gradient_step)
+            available_idx_sorted = [int(i) for i in sorted(int(i) for i in available_indices_now)]
+            _ai_log(
+                "hardcoded_adapt_phase3_oracle_scout_start",
+                depth=int(depth + 1),
+                available_count=int(len(available_idx_sorted)),
+                append_position=int(append_position_now),
+                noise_mode=str(phase3_oracle_gradient_config.noise_mode),
+                execution_surface=str(phase3_oracle_gradient_config.execution_surface),
+                raw_transport=(
+                    None
+                    if str(phase3_oracle_gradient_config.execution_surface) != "raw_measurement_v1"
+                    else str(phase3_oracle_gradient_config.raw_transport)
+                ),
+                shots=int(phase3_oracle_gradient_config.shots),
+                oracle_repeats=int(phase3_oracle_gradient_config.oracle_repeats),
+                mitigation_mode=str(phase3_oracle_gradient_config.mitigation_mode),
+                local_readout_strategy=(
+                    None
+                    if phase3_oracle_gradient_config.local_readout_strategy in {None, ""}
+                    else str(phase3_oracle_gradient_config.local_readout_strategy)
+                ),
+            )
+
+            def _measure_raw_probe_bundle(
+                *,
+                plan_probe: Any,
+                theta_probe: np.ndarray,
+                observable: Any,
+                observable_family: str,
+                probe_name: str,
+                candidate_pool_index: int,
+                candidate_label_value: str,
+                append_position_value: int,
+                extra_semantic_tags: Mapping[str, Any] | None = None,
+            ) -> tuple[Any, int]:
+                eval_t0 = time.perf_counter()
+                _ai_log(
+                    "hardcoded_adapt_phase3_oracle_eval_start",
+                    depth=int(depth + 1),
+                    candidate_pool_index=int(candidate_pool_index),
+                    candidate_label=str(candidate_label_value),
+                    probe_sign=str(probe_name),
+                    observable_family=str(observable_family),
+                )
+                try:
+                    bundle = phase3_oracle.measure_observable(
+                        plan=plan_probe,
+                        theta_runtime=np.asarray(theta_probe, dtype=float),
+                        observable=observable,
+                        observable_family=str(observable_family),
+                        semantic_tags={
+                            "route": "adapt_phase3_oracle_gradient",
+                            "depth": int(depth + 1),
+                            "candidate_pool_index": int(candidate_pool_index),
+                            "candidate_label": str(candidate_label_value),
+                            "append_position": int(append_position_value),
+                            "probe_sign": str(probe_name),
+                            "oracle_scope": str(phase3_oracle_gradient_config.scope),
+                            **{str(k): v for k, v in dict(extra_semantic_tags or {}).items()},
+                        },
+                    )
+                except Exception as exc:
+                    _ai_log(
+                        "hardcoded_adapt_phase3_oracle_eval_error",
+                        depth=int(depth + 1),
+                        candidate_pool_index=int(candidate_pool_index),
+                        candidate_label=str(candidate_label_value),
+                        probe_sign=str(probe_name),
+                        observable_family=str(observable_family),
+                        elapsed_s=float(time.perf_counter() - eval_t0),
+                        error_type=str(type(exc).__name__),
+                        error_repr=repr(exc),
+                    )
+                    raise
+                bundle_record_count = int(
+                    getattr(
+                        getattr(bundle, "estimate", None),
+                        "record_count",
+                        len(getattr(bundle, "records", ()) or ()),
+                    )
+                )
+                _ai_log(
+                    "hardcoded_adapt_phase3_oracle_eval_done",
+                    depth=int(depth + 1),
+                    candidate_pool_index=int(candidate_pool_index),
+                    candidate_label=str(candidate_label_value),
+                    probe_sign=str(probe_name),
+                    observable_family=str(observable_family),
+                    elapsed_s=float(time.perf_counter() - eval_t0),
+                    stderr=float(getattr(bundle.estimate, "stderr", 0.0) or 0.0),
+                    std=float(getattr(bundle.estimate, "std", 0.0) or 0.0),
+                    n_samples=int(getattr(bundle.estimate, "n_samples", 0) or 0),
+                    aggregate=str(
+                        getattr(bundle.estimate, "aggregate", phase3_oracle_gradient_config.oracle_aggregate)
+                    ),
+                    record_count=int(bundle_record_count),
+                    transport=str(bundle.transport),
+                )
+                return bundle, int(bundle_record_count)
+
+            for idx in available_idx_sorted:
+                candidate_term = pool[int(idx)]
+                candidate_label = str(candidate_term.label)
+                ops_plus, theta_plus = _splice_candidate_at_position(
+                    ops=list(selected_ops_now),
+                    theta=np.asarray(theta_now, dtype=float),
+                    op=candidate_term,
+                    position_id=int(append_position_now),
+                    init_theta=float(grad_step_local),
+                )
+                ops_minus, theta_minus = _splice_candidate_at_position(
+                    ops=list(selected_ops_now),
+                    theta=np.asarray(theta_now, dtype=float),
+                    op=candidate_term,
+                    position_id=int(append_position_now),
+                    init_theta=-float(grad_step_local),
+                )
+                raw_summary_local: dict[str, Any] | None = None
+                if str(phase3_oracle_gradient_config.execution_surface) == "raw_measurement_v1":
+                    if phase3_oracle_all_z_qop is None:
+                        raise RuntimeError("phase3 raw oracle path is missing its all-Z diagnostic observable.")
+                    layout_plus = _build_selected_layout(ops_plus)
+                    layout_minus = _build_selected_layout(ops_minus)
+                    if serialize_layout(layout_plus) != serialize_layout(layout_minus):
+                        raise RuntimeError("phase3 raw finite-difference probe structure mismatch")
+                    plan_probe = build_parameterized_ansatz_plan_fn(
+                        layout_plus,
+                        nq=int(phase3_oracle_num_qubits),
+                        ref_state=np.asarray(psi_ref, dtype=complex),
+                    )
+                    raw_bundles: dict[str, Any] = {}
+                    raw_record_counts: dict[str, int] = {}
+                    symmetry_diagnostic_local: dict[str, Any] = {}
+                    for probe_name, theta_probe in (("plus", theta_plus), ("minus", theta_minus)):
+                        bundle, bundle_record_count = _measure_raw_probe_bundle(
+                            plan_probe=plan_probe,
+                            theta_probe=np.asarray(theta_probe, dtype=float),
+                            observable=phase3_oracle_h_qop,
+                            observable_family="adapt_phase3_oracle_gradient",
+                            probe_name=str(probe_name),
+                            candidate_pool_index=int(idx),
+                            candidate_label_value=str(candidate_label),
+                            append_position_value=int(append_position_now),
+                        )
+                        oracle_calls_local += 1
+                        raw_bundles[str(probe_name)] = bundle
+                        raw_record_counts[str(probe_name)] = int(bundle_record_count)
+                        phase3_oracle_gradient_raw_records_total += int(bundle_record_count)
+                        phase3_oracle_raw_transport = str(bundle.transport)
+                        if bundle.raw_artifact_path not in {None, ""}:
+                            phase3_oracle_raw_artifact_path = str(bundle.raw_artifact_path)
+                        phase3_oracle_backend_info = _normalize_phase3_oracle_backend_info(raw_bundle=bundle)
+
+                        diagnostic_payload = {
+                            "available": False,
+                            "reason": None,
+                            "observable_family": "adapt_phase3_oracle_symmetry_diagnostic",
+                            "evaluation_id": None,
+                            "transport": None,
+                            "raw_artifact_path": phase3_oracle_raw_artifact_path,
+                            "record_count_total": 0,
+                            "group_count": None,
+                            "term_count": None,
+                            "compile_signatures_by_basis": {},
+                            "summary": None,
+                            "error_type": None,
+                            "error_message": None,
+                        }
+                        try:
+                            diagnostic_bundle, diagnostic_record_count = _measure_raw_probe_bundle(
+                                plan_probe=plan_probe,
+                                theta_probe=np.asarray(theta_probe, dtype=float),
+                                observable=phase3_oracle_all_z_qop,
+                                observable_family="adapt_phase3_oracle_symmetry_diagnostic",
+                                probe_name=str(probe_name),
+                                candidate_pool_index=int(idx),
+                                candidate_label_value=str(candidate_label),
+                                append_position_value=int(append_position_now),
+                                extra_semantic_tags={
+                                    "diagnostic_kind": "all_z_full_register_v1",
+                                    "symmetry_num_sites": int(num_sites),
+                                    "symmetry_ordering": str(ordering),
+                                    "symmetry_sector_n_up": int(num_particles[0]),
+                                    "symmetry_sector_n_dn": int(num_particles[1]),
+                                },
+                            )
+                            phase3_oracle_symmetry_diagnostic_calls_total += 1
+                            phase3_oracle_symmetry_diagnostic_raw_records_total += int(diagnostic_record_count)
+                            if diagnostic_bundle.raw_artifact_path not in {None, ""}:
+                                phase3_oracle_raw_artifact_path = str(diagnostic_bundle.raw_artifact_path)
+                            diagnostic_payload.update(
+                                {
+                                    "available": True,
+                                    "reason": None,
+                                    "observable_family": str(diagnostic_bundle.observable_family),
+                                    "evaluation_id": str(diagnostic_bundle.evaluation_id),
+                                    "transport": str(diagnostic_bundle.transport),
+                                    "raw_artifact_path": diagnostic_bundle.raw_artifact_path,
+                                    "record_count_total": int(diagnostic_record_count),
+                                    "group_count": int(diagnostic_bundle.estimate.group_count),
+                                    "term_count": int(diagnostic_bundle.estimate.term_count),
+                                    "compile_signatures_by_basis": dict(
+                                        diagnostic_bundle.compile_signatures_by_basis
+                                    ),
+                                }
+                            )
+                            try:
+                                diagnostic_payload["summary"] = _json_ready(
+                                    bindings["summarize_hh_full_register_z_records"](
+                                        getattr(diagnostic_bundle, "records", ()),
+                                        num_sites=int(num_sites),
+                                        ordering=str(ordering),
+                                        sector_n_up=int(num_particles[0]),
+                                        sector_n_dn=int(num_particles[1]),
+                                        expected_repeat_count=int(
+                                            phase3_oracle_gradient_config.oracle_repeats
+                                        ),
+                                    )
+                                )
+                            except Exception as exc:
+                                diagnostic_payload.update(
+                                    {
+                                        "available": False,
+                                        "reason": "summary_failed",
+                                        "summary": None,
+                                        "error_type": str(type(exc).__name__),
+                                        "error_message": str(exc),
+                                    }
+                                )
+                                _ai_log(
+                                    "hardcoded_adapt_phase3_oracle_symmetry_diagnostic_unavailable",
+                                    depth=int(depth + 1),
+                                    candidate_pool_index=int(idx),
+                                    candidate_label=str(candidate_label),
+                                    probe_sign=str(probe_name),
+                                    reason="summary_failed",
+                                    error_type=str(type(exc).__name__),
+                                    error_repr=repr(exc),
+                                )
+                        except Exception as exc:
+                            diagnostic_payload.update(
+                                {
+                                    "available": False,
+                                    "reason": "measurement_failed",
+                                    "summary": None,
+                                    "error_type": str(type(exc).__name__),
+                                    "error_message": str(exc),
+                                }
+                            )
+                            _ai_log(
+                                "hardcoded_adapt_phase3_oracle_symmetry_diagnostic_unavailable",
+                                depth=int(depth + 1),
+                                candidate_pool_index=int(idx),
+                                candidate_label=str(candidate_label),
+                                probe_sign=str(probe_name),
+                                reason="measurement_failed",
+                                error_type=str(type(exc).__name__),
+                                error_repr=repr(exc),
+                            )
+                        symmetry_diagnostic_local[str(probe_name)] = dict(diagnostic_payload)
+                    bundle_plus = raw_bundles["plus"]
+                    bundle_minus = raw_bundles["minus"]
+                    e_plus = bundle_plus.estimate
+                    e_minus = bundle_minus.estimate
+                    raw_summary_local = {
+                        "transport": str(bundle_plus.transport),
+                        "record_count_total": int(raw_record_counts.get("plus", 0) + raw_record_counts.get("minus", 0)),
+                        "group_count": int(bundle_plus.estimate.group_count),
+                        "reduction_mode_plus": str(bundle_plus.estimate.reduction_mode),
+                        "reduction_mode_minus": str(bundle_minus.estimate.reduction_mode),
+                        "evaluation_id_plus": str(bundle_plus.evaluation_id),
+                        "evaluation_id_minus": str(bundle_minus.evaluation_id),
+                        "raw_artifact_path": (
+                            bundle_plus.raw_artifact_path
+                            if bundle_plus.raw_artifact_path not in {None, ""}
+                            else bundle_minus.raw_artifact_path
+                        ),
+                        "symmetry_diagnostic": dict(symmetry_diagnostic_local),
+                    }
+                else:
+                    circuit_plus = build_runtime_layout_circuit_fn(
+                        _build_selected_layout(ops_plus),
+                        theta_plus,
+                        int(phase3_oracle_num_qubits),
+                        reference_state=np.asarray(psi_ref, dtype=complex),
+                    )
+                    circuit_minus = build_runtime_layout_circuit_fn(
+                        _build_selected_layout(ops_minus),
+                        theta_minus,
+                        int(phase3_oracle_num_qubits),
+                        reference_state=np.asarray(psi_ref, dtype=complex),
+                    )
+                    for circuit_obj, sign in ((circuit_plus, 1.0), (circuit_minus, -1.0)):
+                        try:
+                            setattr(circuit_obj, "_phase3_candidate_label", str(candidate_label))
+                            setattr(circuit_obj, "_phase3_probe_sign", float(sign))
+                        except Exception:
+                            pass
+                    oracle_estimates: dict[str, Any] = {}
+                    for probe_name, circuit_obj in (("plus", circuit_plus), ("minus", circuit_minus)):
+                        eval_t0 = time.perf_counter()
+                        _ai_log(
+                            "hardcoded_adapt_phase3_oracle_eval_start",
+                            depth=int(depth + 1),
+                            candidate_pool_index=int(idx),
+                            candidate_label=str(candidate_label),
+                            probe_sign=str(probe_name),
+                        )
+                        try:
+                            estimate = phase3_oracle.evaluate(circuit_obj, phase3_oracle_h_qop)
+                        except Exception as exc:
+                            _ai_log(
+                                "hardcoded_adapt_phase3_oracle_eval_error",
+                                depth=int(depth + 1),
+                                candidate_pool_index=int(idx),
+                                candidate_label=str(candidate_label),
+                                probe_sign=str(probe_name),
+                                elapsed_s=float(time.perf_counter() - eval_t0),
+                                error_type=str(type(exc).__name__),
+                                error_repr=repr(exc),
+                            )
+                            raise
+                        oracle_calls_local += 1
+                        oracle_estimates[str(probe_name)] = estimate
+                        _ai_log(
+                            "hardcoded_adapt_phase3_oracle_eval_done",
+                            depth=int(depth + 1),
+                            candidate_pool_index=int(idx),
+                            candidate_label=str(candidate_label),
+                            probe_sign=str(probe_name),
+                            elapsed_s=float(time.perf_counter() - eval_t0),
+                            stderr=float(getattr(estimate, "stderr", 0.0) or 0.0),
+                            std=float(getattr(estimate, "std", 0.0) or 0.0),
+                            n_samples=int(getattr(estimate, "n_samples", 0) or 0),
+                            aggregate=str(
+                                getattr(estimate, "aggregate", phase3_oracle_gradient_config.oracle_aggregate)
+                            ),
+                        )
+                    e_plus = oracle_estimates["plus"]
+                    e_minus = oracle_estimates["minus"]
+                gradient_signed = float((float(e_plus.mean) - float(e_minus.mean)) / (2.0 * grad_step_local))
+                sigma_hat_local = float(
+                    _oracle_fd_gradient_stderr(e_plus, e_minus, grad_step=grad_step_local)
+                )
+                g_abs_local = float(abs(gradient_signed))
+                g_lcb_local = max(
+                    float(g_abs_local) - float(phase1_score_cfg.z_alpha) * float(sigma_hat_local),
+                    0.0,
+                )
+                gradients_local[int(idx)] = float(gradient_signed)
+                grad_magnitudes_local[int(idx)] = float(g_abs_local)
+                sigma_by_label_local[str(candidate_label)] = float(sigma_hat_local)
+                scout_rows_local.append(
                     {
-                        "depth": 0,
-                        "stage_name": "seed",
-                        "reason": "seed_complete",
-                        "num_seed_ops": int(len(seed_ops)),
+                        "candidate_pool_index": int(idx),
+                        "candidate_label": str(candidate_label),
+                        "gradient_signed": float(gradient_signed),
+                        "gradient_abs": float(g_abs_local),
+                        "gradient_stderr": float(sigma_hat_local),
+                        "sigma_hat": float(sigma_hat_local),
+                        "g_lcb": float(g_lcb_local),
+                        "oracle_samples_plus": int(getattr(e_plus, "n_samples", 0)),
+                        "oracle_samples_minus": int(getattr(e_minus, "n_samples", 0)),
+                        "oracle_aggregate": str(
+                            getattr(e_plus, "aggregate", phase3_oracle_gradient_config.oracle_aggregate)
+                        ),
+                        "raw_summary": (
+                            dict(raw_summary_local) if isinstance(raw_summary_local, Mapping) else None
+                        ),
+                        "selected_for_optimization": False,
                     }
                 )
-    if phase1_enabled and phase1_stage.stage_name == "seed":
-        phase1_stage.begin_core()
-        phase1_stage_events.append(
-            {
-                "depth": 0,
-                "stage_name": "seed",
-                "reason": "seed_skipped_or_empty",
-                "num_seed_ops": 0,
-            }
-        )
-    if phase2_enabled and int(theta.size) > 0 and int(phase2_optimizer_memory.get("parameter_count", 0)) != int(theta.size):
-        phase2_optimizer_memory = phase2_memory_adapter.unavailable(
-            method=str(adapt_inner_optimizer_key),
-            parameter_count=int(theta.size),
-            reason="post_seed_memory_resize",
-        )
-
-    if phase3_enabled and isinstance(phase3_input_motif_library, Mapping):
-        motif_seed_records = select_tiled_generators_from_library(
-            motif_library=phase3_input_motif_library,
-            registry_by_label=pool_generator_registry,
-            target_num_sites=int(num_sites),
-            excluded_labels=[str(op.label) for op in selected_ops],
-            max_seed=4,
-        )
-        label_to_indices: dict[str, list[int]] = {}
-        for idx_pool, op_pool in enumerate(pool):
-            label_to_indices.setdefault(str(op_pool.label), []).append(int(idx_pool))
-        seeded_labels_now: list[str] = []
-        seeded_generator_ids_now: list[str] = []
-        seeded_motif_ids_now: list[str] = []
-        for rec in motif_seed_records:
-            label_seed = str(rec.get("candidate_label", ""))
-            idx_list = label_to_indices.get(label_seed, [])
-            idx_seed = None
-            for idx_candidate in idx_list:
-                if bool(allow_repeats) or int(idx_candidate) in available_indices:
-                    idx_seed = int(idx_candidate)
-                    break
-            if idx_seed is None:
-                continue
-            if phase2_enabled:
-                phase2_optimizer_memory = phase2_memory_adapter.remap_insert(
-                    phase2_optimizer_memory,
-                    position_id=int(theta.size),
-                    count=1,
-                )
-            selected_ops, theta = _splice_candidate_at_position(
-                ops=selected_ops,
-                theta=np.asarray(theta, dtype=float),
-                op=pool[int(idx_seed)],
-                position_id=int(theta.size),
-                init_theta=0.0,
+            _ai_log(
+                "hardcoded_adapt_phase3_oracle_scout_done",
+                depth=int(depth + 1),
+                available_count=int(len(available_idx_sorted)),
+                oracle_calls_total=int(oracle_calls_local),
+                max_gradient_stderr=float(
+                    max((float(row.get("gradient_stderr", 0.0)) for row in scout_rows_local), default=0.0)
+                ),
+                raw_records_total=int(phase3_oracle_gradient_raw_records_total),
             )
-            selection_counts[int(idx_seed)] += 1
-            if not allow_repeats:
-                available_indices.discard(int(idx_seed))
-            seeded_labels_now.append(str(label_seed))
-            generator_meta = rec.get("generator_metadata", None)
-            if isinstance(generator_meta, Mapping) and generator_meta.get("generator_id") is not None:
-                seeded_generator_ids_now.append(str(generator_meta.get("generator_id")))
-            motif_meta = rec.get("motif_metadata", None)
-            if isinstance(motif_meta, Mapping):
-                for motif_id in motif_meta.get("motif_ids", []):
-                    seeded_motif_ids_now.append(str(motif_id))
-        if seeded_labels_now:
-            phase3_motif_usage["seeded_labels"] = [str(x) for x in seeded_labels_now]
-            phase3_motif_usage["seeded_generator_ids"] = [str(x) for x in seeded_generator_ids_now]
-            phase3_motif_usage["seeded_motif_ids"] = [str(x) for x in seeded_motif_ids_now]
+            return gradients_local, grad_magnitudes_local, sigma_by_label_local, scout_rows_local, int(oracle_calls_local)
+
+        def _evaluate_selected_energy_objective(
+            *,
+            ops_now: Sequence[AnsatzTerm],
+            theta_now: np.ndarray,
+            executor_now: CompiledAnsatzExecutor | None,
+            parameter_layout_now: AnsatzParameterLayout | None,
+            objective_stage: str,
+            depth_marker: int | None = None,
+        ) -> float:
+            nonlocal phase3_oracle_backend_info
+            nonlocal phase3_oracle_inner_objective_calls_total
+            theta_eval = np.asarray(theta_now, dtype=float)
+            if phase3_oracle_inner_objective_enabled:
+                if (
+                    phase3_oracle is None
+                    or phase3_oracle_h_qop is None
+                    or phase3_oracle_gradient_config is None
+                    or build_runtime_layout_circuit_fn is None
+                ):
+                    raise RuntimeError(
+                        "phase3 noisy inner objective requested without an active expectation oracle session."
+                    )
+                layout_eval = (
+                    parameter_layout_now
+                    if parameter_layout_now is not None
+                    else _build_selected_layout(list(ops_now))
+                )
+                eval_t0 = time.perf_counter()
+                circuit_obj = build_runtime_layout_circuit_fn(
+                    layout_eval,
+                    theta_eval,
+                    int(phase3_oracle_num_qubits),
+                    reference_state=np.asarray(psi_ref, dtype=complex),
+                )
+                try:
+                    setattr(circuit_obj, "_phase3_objective_stage", str(objective_stage))
+                    setattr(circuit_obj, "_phase3_objective_depth", int(depth_marker or 0))
+                except Exception:
+                    pass
+                _ai_log(
+                    "hardcoded_adapt_phase3_oracle_inner_eval_start",
+                    stage=str(objective_stage),
+                    depth=(None if depth_marker is None else int(depth_marker)),
+                    theta_runtime_count=int(theta_eval.size),
+                    operator_count=int(len(list(ops_now))),
+                )
+                try:
+                    estimate = phase3_oracle.evaluate(circuit_obj, phase3_oracle_h_qop)
+                except Exception as exc:
+                    _ai_log(
+                        "hardcoded_adapt_phase3_oracle_inner_eval_error",
+                        stage=str(objective_stage),
+                        depth=(None if depth_marker is None else int(depth_marker)),
+                        elapsed_s=float(time.perf_counter() - eval_t0),
+                        error_type=str(type(exc).__name__),
+                        error_repr=repr(exc),
+                    )
+                    raise
+                phase3_oracle_inner_objective_calls_total += 1
+                phase3_oracle_backend_info = _normalize_phase3_oracle_backend_info(
+                    oracle_obj=phase3_oracle
+                )
+                _ai_log(
+                    "hardcoded_adapt_phase3_oracle_inner_eval_done",
+                    stage=str(objective_stage),
+                    depth=(None if depth_marker is None else int(depth_marker)),
+                    elapsed_s=float(time.perf_counter() - eval_t0),
+                    mean=float(getattr(estimate, "mean", 0.0) or 0.0),
+                    stderr=float(getattr(estimate, "stderr", 0.0) or 0.0),
+                    std=float(getattr(estimate, "std", 0.0) or 0.0),
+                    n_samples=int(getattr(estimate, "n_samples", 0) or 0),
+                    aggregate=str(
+                        getattr(
+                            estimate,
+                            "aggregate",
+                            phase3_oracle_gradient_config.oracle_aggregate,
+                        )
+                    ),
+                )
+                return float(estimate.mean)
+            if executor_now is not None:
+                psi_obj = executor_now.prepare_state(theta_eval, psi_ref)
+                energy_obj, _ = energy_via_one_apply(psi_obj, h_compiled)
+                return float(energy_obj)
+            return float(
+                _adapt_energy_fn(
+                    h_poly,
+                    psi_ref,
+                    list(ops_now),
+                    theta_eval,
+                    h_compiled=h_compiled,
+                    parameter_layout=parameter_layout_now,
+                )
+            )
+
+        energy_current = _evaluate_selected_energy_objective(
+            ops_now=list(selected_ops),
+            theta_now=np.asarray(theta, dtype=float),
+            executor_now=selected_executor,
+            parameter_layout_now=selected_layout,
+            objective_stage="initial_state",
+            depth_marker=0,
+        )
+        adapt_ref_import: dict[str, Any] | None = None
+        nfev_total += 1
+        _ai_log("hardcoded_adapt_initial_energy", energy=energy_current)
+        if exact_gs_override is None:
+            exact_gs = _exact_gs_energy_for_problem(
+                h_poly,
+                problem=problem_key,
+                num_sites=int(num_sites),
+                num_particles=num_particles,
+                indexing=str(ordering),
+                n_ph_max=int(n_ph_max),
+                boson_encoding=str(boson_encoding),
+                t=float(t),
+                u=float(u),
+                dv=float(dv),
+                omega0=float(omega0),
+                g_ep=float(g_ep),
+                boundary=str(boundary),
+            )
+        else:
+            exact_gs = float(exact_gs_override)
+            _ai_log("hardcoded_adapt_exact_override_used", exact_gs=exact_gs)
+        drop_prev_delta_abs = float(abs(energy_current - exact_gs))
+        drop_plateau_hits = 0
+        eps_energy_low_streak = 0
+
+        # HH preconditioning: optimize a compact boson-quadrature e-ph seed block
+        # before greedy ADAPT selection. This helps avoid the weak-coupling basin
+        # when g is moderate/strong.
+        if (
+            (not disable_hh_seed)
+            and problem_key == "hh"
+            and abs(float(g_ep)) > 1e-15
+        ):
+            n_sites = int(num_sites)
+            boson_bits = n_sites * int(boson_qubits_per_site(int(n_ph_max), str(boson_encoding)))
+            seed_indices: list[int] = []
+            for idx, op in enumerate(pool):
+                label = str(op.label)
+                if not label.startswith("hh_termwise_ham_quadrature_term("):
+                    continue
+                op_terms = op.polynomial.return_polynomial()
+                if not op_terms:
+                    continue
+                pw = str(op_terms[0].pw2strng())
+                has_boson_y = any(ch == "y" for ch in pw[:boson_bits])
+                has_electron_z = ("z" in pw[boson_bits:])
+                if has_boson_y and has_electron_z:
+                    seed_indices.append(idx)
+
+            if seed_indices:
+                seed_ops = [pool[i] for i in seed_indices]
+                seed_layout = _build_selected_layout(seed_ops)
+                theta_seed0 = np.zeros(int(seed_layout.runtime_parameter_count), dtype=float)
+                seed_executor = (
+                    _build_compiled_executor(seed_ops)
+                    if adapt_state_backend_key == "compiled"
+                    else None
+                )
+                seed_opt_t0 = time.perf_counter()
+                seed_cobyla_last_hb_t = seed_opt_t0
+                seed_cobyla_nfev_so_far = 0
+                seed_cobyla_best_fun = float("inf")
+
+                def _seed_obj(x: np.ndarray) -> float:
+                    nonlocal seed_cobyla_last_hb_t, seed_cobyla_nfev_so_far, seed_cobyla_best_fun
+                    seed_energy_val = _evaluate_selected_energy_objective(
+                        ops_now=seed_ops,
+                        theta_now=np.asarray(x, dtype=float),
+                        executor_now=seed_executor,
+                        parameter_layout_now=seed_layout,
+                        objective_stage="hh_seed_preopt",
+                        depth_marker=0,
+                    )
+                    if adapt_inner_optimizer_key in {"COBYLA", "POWELL"}:
+                        seed_cobyla_nfev_so_far += 1
+                        if seed_energy_val < seed_cobyla_best_fun:
+                            seed_cobyla_best_fun = float(seed_energy_val)
+                        now = time.perf_counter()
+                        if (now - seed_cobyla_last_hb_t) >= float(adapt_spsa_progress_every_s):
+                            _ai_log(
+                                "hardcoded_adapt_scipy_heartbeat",
+                                stage="hh_seed_preopt",
+                                depth=0,
+                                opt_method=str(adapt_inner_optimizer_key),
+                                nfev_opt_so_far=int(seed_cobyla_nfev_so_far),
+                                best_fun=float(seed_cobyla_best_fun),
+                                delta_abs_best=(
+                                    float(abs(seed_cobyla_best_fun - exact_gs))
+                                    if math.isfinite(seed_cobyla_best_fun)
+                                    else None
+                                ),
+                                elapsed_opt_s=float(now - seed_opt_t0),
+                            )
+                            seed_cobyla_last_hb_t = now
+                    return float(seed_energy_val)
+
+                seed_maxiter = int(max(100, min(int(maxiter), 600)))
+                if adapt_inner_optimizer_key == "SPSA":
+                    seed_last_hb_t = seed_opt_t0
+
+                    def _seed_spsa_callback(ev: dict[str, Any]) -> None:
+                        nonlocal seed_last_hb_t
+                        now = time.perf_counter()
+                        if (now - seed_last_hb_t) < float(adapt_spsa_progress_every_s):
+                            return
+                        seed_best = float(ev.get("best_fun", float("nan")))
+                        _ai_log(
+                            "hardcoded_adapt_spsa_heartbeat",
+                            stage="hh_seed_preopt",
+                            depth=0,
+                            iter=int(ev.get("iter", 0)),
+                            nfev_opt_so_far=int(ev.get("nfev_so_far", 0)),
+                            best_fun=seed_best,
+                            delta_abs_best=float(abs(seed_best - exact_gs)) if math.isfinite(seed_best) else None,
+                            elapsed_opt_s=float(now - seed_opt_t0),
+                        )
+                        seed_last_hb_t = now
+
+                    seed_result = spsa_minimize(
+                        fun=_seed_obj,
+                        x0=theta_seed0,
+                        maxiter=int(seed_maxiter),
+                        seed=int(seed) + 90000,
+                        a=float(adapt_spsa_a),
+                        c=float(adapt_spsa_c),
+                        alpha=float(adapt_spsa_alpha),
+                        gamma=float(adapt_spsa_gamma),
+                        A=float(adapt_spsa_A),
+                        bounds=None,
+                        project="none",
+                        eval_repeats=int(adapt_spsa_eval_repeats),
+                        eval_agg=str(adapt_spsa_eval_agg_key),
+                        avg_last=int(adapt_spsa_avg_last),
+                        callback=_seed_spsa_callback,
+                        callback_every=int(adapt_spsa_callback_every),
+                    )
+                    seed_theta = np.asarray(seed_result.x, dtype=float)
+                    seed_energy = float(seed_result.fun)
+                    seed_nfev = int(seed_result.nfev)
+                    seed_nit = int(seed_result.nit)
+                    seed_success = bool(seed_result.success)
+                    seed_message = str(seed_result.message)
+                else:
+                    if scipy_minimize is None:
+                        raise RuntimeError(
+                            f"SciPy minimize is unavailable for {adapt_inner_optimizer_key} ADAPT inner optimizer."
+                        )
+                    seed_result = scipy_minimize(
+                        _seed_obj,
+                        theta_seed0,
+                        method=str(adapt_inner_optimizer_key),
+                        options=_scipy_inner_options(int(seed_maxiter)),
+                    )
+                    seed_theta = np.asarray(seed_result.x, dtype=float)
+                    seed_energy = float(seed_result.fun)
+                    seed_nfev = int(getattr(seed_result, "nfev", 0))
+                    seed_nit = int(getattr(seed_result, "nit", 0))
+                    seed_success = bool(getattr(seed_result, "success", False))
+                    seed_message = str(getattr(seed_result, "message", ""))
+                nfev_total += int(seed_nfev)
+
+                selected_ops = list(seed_ops)
+                selected_layout = _build_selected_layout(selected_ops)
+                theta = np.asarray(seed_theta, dtype=float)
+                if phase2_enabled:
+                    if adapt_inner_optimizer_key == "SPSA":
+                        phase2_optimizer_memory = phase2_memory_adapter.from_result(
+                            seed_result,
+                            method=str(adapt_inner_optimizer_key),
+                            parameter_count=int(theta.size),
+                            source="hh_seed_preopt",
+                        )
+                    else:
+                        phase2_optimizer_memory = phase2_memory_adapter.unavailable(
+                            method=str(adapt_inner_optimizer_key),
+                            parameter_count=int(theta.size),
+                            reason="non_spsa_seed_preopt",
+                        )
+                if not allow_repeats:
+                    for idx in seed_indices:
+                        available_indices.discard(idx)
+                energy_current = float(seed_energy)
+                selected_executor = (
+                    seed_executor
+                    if seed_executor is not None
+                    else None
+                )
+                _ai_log(
+                    "hardcoded_adapt_hh_seed_preopt",
+                    num_seed_ops=int(len(seed_ops)),
+                    seed_opt_method=str(adapt_inner_optimizer_key),
+                    seed_energy=float(seed_energy),
+                    seed_nfev=int(seed_nfev),
+                    seed_nit=int(seed_nit),
+                    seed_success=bool(seed_success),
+                    seed_message=str(seed_message),
+                )
+                if phase1_enabled:
+                    phase1_stage.begin_core()
+                    phase1_stage_events.append(
+                        {
+                            "depth": 0,
+                            "stage_name": "seed",
+                            "reason": "seed_complete",
+                            "num_seed_ops": int(len(seed_ops)),
+                        }
+                    )
+        if phase1_enabled and phase1_stage.stage_name == "seed":
+            phase1_stage.begin_core()
             phase1_stage_events.append(
                 {
                     "depth": 0,
-                    "stage_name": str(phase1_stage.stage_name if phase1_enabled else "legacy"),
-                    "reason": "motif_seed_injected",
-                    "seeded_labels": [str(x) for x in seeded_labels_now],
+                    "stage_name": "seed",
+                    "reason": "seed_skipped_or_empty",
+                    "num_seed_ops": 0,
                 }
             )
-            if adapt_state_backend_key == "compiled":
-                selected_executor = _build_compiled_executor(selected_ops)
-            _ai_log(
-                "hardcoded_adapt_phase3_motif_seeded",
-                seeded_count=int(len(seeded_labels_now)),
-                seeded_labels=[str(x) for x in seeded_labels_now],
-                source_tag=str(phase3_motif_usage.get("source_tag")),
+        if phase2_enabled and int(theta.size) > 0 and int(phase2_optimizer_memory.get("parameter_count", 0)) != int(theta.size):
+            phase2_optimizer_memory = phase2_memory_adapter.unavailable(
+                method=str(adapt_inner_optimizer_key),
+                parameter_count=int(theta.size),
+                reason="post_seed_memory_resize",
             )
 
-    rescue_cfg = RescueConfig(enabled=bool(phase3_enable_rescue))
-
-    def _phase3_try_rescue(
-        *,
-        psi_current_state: np.ndarray,
-        shortlist_eval_records: list[dict[str, Any]],
-        selected_position_append: int,
-        history_rows: list[dict[str, Any]],
-        trough_detected_now: bool,
-    ) -> tuple[dict[str, Any] | None, dict[str, Any]]:
-        diagnostic = {
-            "enabled": bool(phase3_enable_rescue),
-            "triggered": False,
-            "reason": "disabled",
-            "ranked": [],
-            "selected_label": None,
-            "selected_position": None,
-            "overlap_gain": 0.0,
-        }
-        trigger_on, trigger_reason = should_trigger_rescue(
-            enabled=bool(phase3_enable_rescue),
-            exact_state_available=bool(phase3_exact_reference_state is not None),
-            residual_opened=bool(phase1_residual_opened),
-            trough_detected=bool(trough_detected_now),
-            history=history_rows,
-            shortlist_records=shortlist_eval_records,
-            cfg=rescue_cfg,
-        )
-        diagnostic["reason"] = str(trigger_reason)
-        if not bool(trigger_on):
-            return None, diagnostic
-        diagnostic["triggered"] = True
-        psi_exact_ref = np.asarray(phase3_exact_reference_state, dtype=complex)
-        overlap_current = float(abs(np.vdot(psi_exact_ref, np.asarray(psi_current_state, dtype=complex))) ** 2)
-        probe_theta_by_key: dict[tuple[int, int], float] = {}
-
-        def _overlap_gain(rec: Mapping[str, Any]) -> float:
-            idx_sel = int(rec.get("candidate_pool_index", -1))
-            pos_sel = int(rec.get("position_id", selected_position_append))
-            if idx_sel < 0 or idx_sel >= len(pool):
-                return 0.0
-            best_gain_local = 0.0
-            best_theta_local = 0.0
-            for theta_probe in (float(finite_angle), -float(finite_angle)):
-                ops_trial, theta_trial = _splice_candidate_at_position(
+        if phase3_enabled and isinstance(phase3_input_motif_library, Mapping):
+            motif_seed_records = select_tiled_generators_from_library(
+                motif_library=phase3_input_motif_library,
+                registry_by_label=pool_generator_registry,
+                target_num_sites=int(num_sites),
+                excluded_labels=[str(op.label) for op in selected_ops],
+                max_seed=4,
+            )
+            label_to_indices: dict[str, list[int]] = {}
+            for idx_pool, op_pool in enumerate(pool):
+                label_to_indices.setdefault(str(op_pool.label), []).append(int(idx_pool))
+            seeded_labels_now: list[str] = []
+            seeded_generator_ids_now: list[str] = []
+            seeded_motif_ids_now: list[str] = []
+            for rec in motif_seed_records:
+                label_seed = str(rec.get("candidate_label", ""))
+                idx_list = label_to_indices.get(label_seed, [])
+                idx_seed = None
+                for idx_candidate in idx_list:
+                    if bool(allow_repeats) or int(idx_candidate) in available_indices:
+                        idx_seed = int(idx_candidate)
+                        break
+                if idx_seed is None:
+                    continue
+                if phase2_enabled:
+                    phase2_optimizer_memory = phase2_memory_adapter.remap_insert(
+                        phase2_optimizer_memory,
+                        position_id=int(theta.size),
+                        count=1,
+                    )
+                selected_ops, theta = _splice_candidate_at_position(
                     ops=selected_ops,
                     theta=np.asarray(theta, dtype=float),
-                    op=pool[int(idx_sel)],
-                    position_id=int(pos_sel),
-                    init_theta=float(theta_probe),
+                    op=pool[int(idx_seed)],
+                    position_id=int(theta.size),
+                    init_theta=0.0,
+                )
+                selection_counts[int(idx_seed)] += 1
+                if not allow_repeats:
+                    available_indices.discard(int(idx_seed))
+                seeded_labels_now.append(str(label_seed))
+                generator_meta = rec.get("generator_metadata", None)
+                if isinstance(generator_meta, Mapping) and generator_meta.get("generator_id") is not None:
+                    seeded_generator_ids_now.append(str(generator_meta.get("generator_id")))
+                motif_meta = rec.get("motif_metadata", None)
+                if isinstance(motif_meta, Mapping):
+                    for motif_id in motif_meta.get("motif_ids", []):
+                        seeded_motif_ids_now.append(str(motif_id))
+            if seeded_labels_now:
+                phase3_motif_usage["seeded_labels"] = [str(x) for x in seeded_labels_now]
+                phase3_motif_usage["seeded_generator_ids"] = [str(x) for x in seeded_generator_ids_now]
+                phase3_motif_usage["seeded_motif_ids"] = [str(x) for x in seeded_motif_ids_now]
+                phase1_stage_events.append(
+                    {
+                        "depth": 0,
+                        "stage_name": str(phase1_stage.stage_name if phase1_enabled else "legacy"),
+                        "reason": "motif_seed_injected",
+                        "seeded_labels": [str(x) for x in seeded_labels_now],
+                    }
                 )
                 if adapt_state_backend_key == "compiled":
-                    psi_trial = _build_compiled_executor(ops_trial).prepare_state(theta_trial, psi_ref)
-                else:
-                    psi_trial = _prepare_adapt_state(
-                        psi_ref,
-                        ops_trial,
-                        theta_trial,
-                        parameter_layout=_build_selected_layout(ops_trial),
-                    )
-                overlap_trial = float(abs(np.vdot(psi_exact_ref, np.asarray(psi_trial, dtype=complex))) ** 2)
-                gain = float(overlap_trial - overlap_current)
-                if gain > best_gain_local:
-                    best_gain_local = float(gain)
-                    best_theta_local = float(theta_probe)
-            probe_theta_by_key[(int(idx_sel), int(pos_sel))] = float(best_theta_local)
-            return float(best_gain_local)
-
-        best_record, rescue_meta = rank_rescue_candidates(
-            records=shortlist_eval_records,
-            overlap_gain_fn=_overlap_gain,
-            cfg=rescue_cfg,
-        )
-        diagnostic.update(
-            {
-                "reason": str(rescue_meta.get("reason", trigger_reason)),
-                "ranked": [dict(x) for x in rescue_meta.get("ranked", [])],
-            }
-        )
-        if best_record is None:
-            return None, diagnostic
-        idx_best = int(best_record.get("candidate_pool_index", -1))
-        pos_best = int(best_record.get("position_id", selected_position_append))
-        diagnostic.update(
-            {
-                "selected_label": str(best_record.get("candidate_label", "")),
-                "selected_position": int(pos_best),
-                "overlap_gain": float(best_record.get("overlap_gain", 0.0)),
-                "init_theta": float(probe_theta_by_key.get((int(idx_best), int(pos_best)), 0.0)),
-            }
-        )
-        best_out = dict(best_record)
-        best_out["rescue_init_theta"] = float(probe_theta_by_key.get((int(idx_best), int(pos_best)), 0.0))
-        return best_out, diagnostic
-
-    for depth in range(int(max_depth)):
-        iter_t0 = time.perf_counter()
-
-        # 1) Compute the current state
-        if adapt_state_backend_key == "compiled":
-            if len(selected_ops) == 0:
-                psi_current = np.array(psi_ref, copy=True)
-            else:
-                if selected_executor is None:
                     selected_executor = _build_compiled_executor(selected_ops)
-                psi_current = selected_executor.prepare_state(theta, psi_ref)
-        else:
-            psi_current = _prepare_adapt_state(psi_ref, selected_ops, theta, parameter_layout=selected_layout)
-        energy_current, hpsi_current = energy_via_one_apply(psi_current, h_compiled)
-        energy_current = float(energy_current)
-        theta_logical_current = _logical_theta_alias(theta, selected_layout)
-        backend_compile_snapshot = (
-            backend_compile_oracle.snapshot_base(selected_ops)
-            if backend_compile_oracle is not None
-            else None
-        )
-
-        # 2) Compute commutator gradients for all pool operators
-        gradient_eval_t0 = time.perf_counter()
-        gradients = np.zeros(len(pool), dtype=float)
-        grad_magnitudes = np.zeros(len(pool), dtype=float)
-        for i in available_indices:
-            apsi = _apply_compiled_polynomial(psi_current, pool_compiled[i])
-            gradients[i] = adapt_commutator_grad_from_hpsi(hpsi_current, apsi)
-            grad_magnitudes[i] = abs(float(gradients[i]))
-        if bool(adapt_gradient_parity_check) and available_indices:
-            parity_idx = max(available_indices, key=lambda idx: grad_magnitudes[int(idx)])
-            grad_old = _commutator_gradient(
-                h_poly,
-                pool[int(parity_idx)],
-                psi_current,
-                h_compiled=h_compiled,
-                pool_compiled=pool_compiled[int(parity_idx)],
-            )
-            grad_new = float(gradients[int(parity_idx)])
-            rel_err = abs(grad_new - grad_old) / max(abs(grad_new), abs(grad_old), 1e-15)
-            if rel_err > float(_ADAPT_GRADIENT_PARITY_RTOL):
-                raise AssertionError(
-                    "ADAPT gradient parity check failed: "
-                    f"depth={depth + 1}, idx={int(parity_idx)}, grad_new={grad_new:.16e}, "
-                    f"grad_old={float(grad_old):.16e}, rel_err={float(rel_err):.3e}, "
-                    f"rtol={_ADAPT_GRADIENT_PARITY_RTOL:.1e}"
+                _ai_log(
+                    "hardcoded_adapt_phase3_motif_seeded",
+                    seeded_count=int(len(seeded_labels_now)),
+                    seeded_labels=[str(x) for x in seeded_labels_now],
+                    source_tag=str(phase3_motif_usage.get("source_tag")),
                 )
-        gradient_eval_elapsed_s = float(time.perf_counter() - gradient_eval_t0)
-        _ai_log(
-            "hardcoded_adapt_gradient_timing",
-            depth=int(depth + 1),
-            available_count=int(len(available_indices)),
-            gradient_eval_elapsed_s=float(gradient_eval_elapsed_s),
-        )
 
-        # 2b) Select candidate (legacy argmax or phase1_v1 simple score).
-        selected_position = int(len(selected_ops))
-        stage_name = "legacy"
-        phase1_feature_selected: dict[str, Any] | None = None
-        phase1_stage_transition_reason = "legacy"
-        append_position = int(len(selected_ops))
-        phase1_append_best_score = float("-inf")
-        phase2_selected_records: list[dict[str, Any]] = []
-        phase2_last_shortlist_records = []
-        phase2_last_shortlist_eval_records = []
-        phase2_last_batch_selected = False
-        phase2_last_batch_penalty_total = 0.0
-        if available_indices:
-            max_grad = float(max(float(grad_magnitudes[i]) for i in available_indices))
-        else:
-            max_grad = 0.0
-        if phase1_enabled and available_indices:
-            stage_name = str(phase1_stage.stage_name)
-            append_position = int(theta.size)
-            available_sorted = sorted(list(available_indices), key=lambda i: -float(grad_magnitudes[i]))
-            shortlist = available_sorted[: min(len(available_sorted), int(phase1_shortlist_size_val))]
-            current_active_window_for_probe, _probe_window_name = _resolve_reopt_active_indices(
-                policy=str(adapt_reopt_policy_key),
-                n=int(max(1, append_position)),
-                theta=(np.asarray(theta_logical_current, dtype=float) if append_position > 0 else np.zeros(1, dtype=float)),
-                window_size=int(adapt_window_size_val),
-                window_topk=int(adapt_window_topk_val),
-                periodic_full_refit_triggered=False,
+        rescue_cfg = RescueConfig(enabled=bool(phase3_enable_rescue_effective))
+
+        def _phase3_try_rescue(
+            *,
+            psi_current_state: np.ndarray,
+            shortlist_eval_records: list[dict[str, Any]],
+            selected_position_append: int,
+            history_rows: list[dict[str, Any]],
+            trough_detected_now: bool,
+        ) -> tuple[dict[str, Any] | None, dict[str, Any]]:
+            diagnostic = {
+                "enabled": bool(phase3_enable_rescue_effective),
+                "triggered": False,
+                "reason": "disabled",
+                "ranked": [],
+                "selected_label": None,
+                "selected_position": None,
+                "overlap_gain": 0.0,
+            }
+            trigger_on, trigger_reason = should_trigger_rescue(
+                enabled=bool(phase3_enable_rescue_effective),
+                exact_state_available=bool(phase3_exact_reference_state is not None),
+                residual_opened=bool(phase1_residual_opened),
+                trough_detected=bool(trough_detected_now),
+                history=history_rows,
+                shortlist_records=shortlist_eval_records,
+                cfg=rescue_cfg,
+            )
+            diagnostic["reason"] = str(trigger_reason)
+            if not bool(trigger_on):
+                return None, diagnostic
+            diagnostic["triggered"] = True
+            psi_exact_ref = np.asarray(phase3_exact_reference_state, dtype=complex)
+            overlap_current = float(abs(np.vdot(psi_exact_ref, np.asarray(psi_current_state, dtype=complex))) ** 2)
+            probe_theta_by_key: dict[tuple[int, int], float] = {}
+
+            def _overlap_gain(rec: Mapping[str, Any]) -> float:
+                idx_sel = int(rec.get("candidate_pool_index", -1))
+                pos_sel = int(rec.get("position_id", selected_position_append))
+                if idx_sel < 0 or idx_sel >= len(pool):
+                    return 0.0
+                best_gain_local = 0.0
+                best_theta_local = 0.0
+                for theta_probe in (float(finite_angle), -float(finite_angle)):
+                    ops_trial, theta_trial = _splice_candidate_at_position(
+                        ops=selected_ops,
+                        theta=np.asarray(theta, dtype=float),
+                        op=pool[int(idx_sel)],
+                        position_id=int(pos_sel),
+                        init_theta=float(theta_probe),
+                    )
+                    if adapt_state_backend_key == "compiled":
+                        psi_trial = _build_compiled_executor(ops_trial).prepare_state(theta_trial, psi_ref)
+                    else:
+                        psi_trial = _prepare_adapt_state(
+                            psi_ref,
+                            ops_trial,
+                            theta_trial,
+                            parameter_layout=_build_selected_layout(ops_trial),
+                        )
+                    overlap_trial = float(abs(np.vdot(psi_exact_ref, np.asarray(psi_trial, dtype=complex))) ** 2)
+                    gain = float(overlap_trial - overlap_current)
+                    if gain > best_gain_local:
+                        best_gain_local = float(gain)
+                        best_theta_local = float(theta_probe)
+                probe_theta_by_key[(int(idx_sel), int(pos_sel))] = float(best_theta_local)
+                return float(best_gain_local)
+
+            best_record, rescue_meta = rank_rescue_candidates(
+                records=shortlist_eval_records,
+                overlap_gain_fn=_overlap_gain,
+                cfg=rescue_cfg,
+            )
+            diagnostic.update(
+                {
+                    "reason": str(rescue_meta.get("reason", trigger_reason)),
+                    "ranked": [dict(x) for x in rescue_meta.get("ranked", [])],
+                }
+            )
+            if best_record is None:
+                return None, diagnostic
+            idx_best = int(best_record.get("candidate_pool_index", -1))
+            pos_best = int(best_record.get("position_id", selected_position_append))
+            diagnostic.update(
+                {
+                    "selected_label": str(best_record.get("candidate_label", "")),
+                    "selected_position": int(pos_best),
+                    "overlap_gain": float(best_record.get("overlap_gain", 0.0)),
+                    "init_theta": float(probe_theta_by_key.get((int(idx_best), int(pos_best)), 0.0)),
+                }
+            )
+            best_out = dict(best_record)
+            best_out["rescue_init_theta"] = float(probe_theta_by_key.get((int(idx_best), int(pos_best)), 0.0))
+            return best_out, diagnostic
+
+        beam_executor_memo: dict[tuple[str, ...], CompiledAnsatzExecutor] = {}
+        beam_nfev_total = int(nfev_total)
+        beam_branch_counter = 1
+        beam_search_diagnostics: dict[str, Any] = {
+            "beam_enabled": bool(beam_policy.beam_enabled),
+            "rounds": [],
+        }
+
+        def _beam_clone_branch(
+            branch: _BeamBranchState,
+            *,
+            branch_id: int,
+            parent_branch_id: int | None,
+        ) -> _BeamBranchState:
+            cloned = branch.clone_for_child(branch_id=int(branch_id))
+            cloned.parent_branch_id = (
+                None if parent_branch_id is None else int(parent_branch_id)
+            )
+            return cloned
+
+        def _beam_executor_key(ops: Sequence[AnsatzTerm]) -> tuple[str, ...]:
+            return tuple(str(op.label) for op in ops)
+
+        def _get_beam_executor(ops: Sequence[AnsatzTerm]) -> CompiledAnsatzExecutor | None:
+            if adapt_state_backend_key != "compiled" or len(ops) == 0:
+                return None
+            key = _beam_executor_key(ops)
+            executor = beam_executor_memo.get(key)
+            if executor is None:
+                executor = _build_compiled_executor(list(ops))
+                beam_executor_memo[key] = executor
+            return executor
+
+        def _branch_state_fingerprint(branch: _BeamBranchState) -> str:
+            payload = {
+                "ops": [str(op.label) for op in branch.selected_ops],
+                "theta": [round(float(x), 12) for x in np.asarray(branch.theta, dtype=float).tolist()],
+                "available_indices": sorted(int(x) for x in branch.available_indices),
+                "selection_counts": [int(x) for x in np.asarray(branch.selection_counts, dtype=np.int64).tolist()],
+                "stop_reason": branch.stop_reason,
+                "phase1_stage": str(branch.phase1_stage.stage_name),
+                "phase1_residual_opened": bool(branch.phase1_residual_opened),
+                "measurement_cache": branch.phase1_measure_cache.snapshot(),
+                "optimizer_memory": branch.phase2_optimizer_memory,
+                "drop_plateau_hits": int(branch.drop_plateau_hits),
+                "eps_energy_low_streak": int(branch.eps_energy_low_streak),
+                "history_tail": [dict(x) for x in branch.history[-3:]],
+            }
+            return hashlib.sha256(
+                json.dumps(payload, sort_keys=True, default=str).encode("utf-8")
+            ).hexdigest()
+
+        def _proposal_fingerprint(
+            *,
+            parent: _BeamBranchState,
+            plan: _BranchExpansionPlan,
+        ) -> str:
+            payload = {
+                "parent": _branch_state_fingerprint(parent),
+                "candidate_pool_index": int(plan.candidate_pool_index),
+                "position_id": int(plan.position_id),
+                "selection_mode": str(plan.selection_mode),
+                "candidate_label": str(plan.candidate_label),
+                "init_theta": round(float(plan.init_theta), 12),
+            }
+            return hashlib.sha256(
+                json.dumps(payload, sort_keys=True, default=str).encode("utf-8")
+            ).hexdigest()
+
+        def _branch_optimizer_seed(
+            *,
+            base_seed: int,
+            stage_tag: str,
+            depth_local: int,
+            parent_state_fingerprint: str,
+            proposal_fingerprint: str | None,
+        ) -> int:
+            payload = {
+                "base_seed": int(base_seed),
+                "stage_tag": str(stage_tag),
+                "depth_local": int(depth_local),
+                "parent_state_fingerprint": str(parent_state_fingerprint),
+                "proposal_fingerprint": (None if proposal_fingerprint is None else str(proposal_fingerprint)),
+            }
+            digest = hashlib.sha256(
+                json.dumps(payload, sort_keys=True).encode("utf-8")
+            ).digest()
+            return int.from_bytes(digest[:8], "big") % (2**31 - 1)
+
+        def _beam_sort_float(value: Any, default: float = float("-inf")) -> float:
+            if value is None:
+                return float(default)
+            try:
+                return float(value)
+            except (TypeError, ValueError):
+                return float(default)
+
+        def _beam_sort_int(value: Any, default: int) -> int:
+            if value is None:
+                return int(default)
+            try:
+                return int(value)
+            except (TypeError, ValueError):
+                return int(default)
+
+        def _beam_prune_key(branch: _BeamBranchState) -> tuple[Any, ...]:
+            last = branch.history[-1] if branch.history else {}
+            return (
+                float(branch.energy_current),
+                -_beam_sort_float(last.get("full_v2_score"), float("-inf")),
+                -_beam_sort_float(last.get("simple_score"), float("-inf")),
+                _beam_sort_int(last.get("pool_index"), -1),
+                _beam_sort_int(last.get("selected_position"), len(branch.selected_ops)),
+                str(last.get("selected_op", "")),
+                _branch_state_fingerprint(branch),
             )
 
-            def _evaluate_phase1_positions(
+        def _beam_dedup(branches: Sequence[_BeamBranchState]) -> list[_BeamBranchState]:
+            keep: dict[str, _BeamBranchState] = {}
+            for branch in branches:
+                fingerprint = _branch_state_fingerprint(branch)
+                incumbent = keep.get(fingerprint)
+                if incumbent is None or _beam_prune_key(branch) < _beam_prune_key(incumbent):
+                    keep[fingerprint] = branch
+            return list(keep.values())
+
+        def _beam_prune(
+            branches: Sequence[_BeamBranchState],
+            *,
+            cap: int,
+        ) -> list[_BeamBranchState]:
+            deduped = _beam_dedup(branches)
+            return sorted(deduped, key=_beam_prune_key)[: int(max(0, cap))]
+
+        def _evaluate_beam_branch(
+            branch: _BeamBranchState,
+            *,
+            depth: int,
+            children_cap: int,
+        ) -> _BranchStepScratch:
+            nonlocal beam_nfev_total
+
+            executor = _get_beam_executor(branch.selected_ops)
+            if adapt_state_backend_key == "compiled":
+                if len(branch.selected_ops) == 0:
+                    psi_current_local = np.array(psi_ref, copy=True)
+                else:
+                    assert executor is not None
+                    psi_current_local = executor.prepare_state(
+                        np.asarray(branch.theta, dtype=float),
+                        psi_ref,
+                    )
+            else:
+                psi_current_local = _prepare_adapt_state(
+                    psi_ref,
+                    list(branch.selected_ops),
+                    np.asarray(branch.theta, dtype=float),
+                )
+            energy_current_local, hpsi_current_local = energy_via_one_apply(
+                psi_current_local,
+                h_compiled,
+            )
+            energy_current_exact_local = float(energy_current_local)
+            energy_current_local = (
+                float(branch.energy_current)
+                if phase3_oracle_inner_objective_enabled
+                else float(energy_current_exact_local)
+            )
+            branch_layout = _build_selected_layout(list(branch.selected_ops))
+            theta_logical_branch = _logical_theta_alias(
+                np.asarray(branch.theta, dtype=float),
+                branch_layout,
+            )
+
+            gradient_eval_t0 = time.perf_counter()
+            gradients_local = np.zeros(len(pool), dtype=float)
+            grad_magnitudes_local = np.zeros(len(pool), dtype=float)
+            available_indices_local = set(int(x) for x in branch.available_indices)
+            for idx in available_indices_local:
+                apsi = _apply_compiled_polynomial(psi_current_local, pool_compiled[int(idx)])
+                gradients_local[int(idx)] = adapt_commutator_grad_from_hpsi(
+                    hpsi_current_local,
+                    apsi,
+                )
+                grad_magnitudes_local[int(idx)] = abs(float(gradients_local[int(idx)]))
+            gradient_eval_elapsed_s_local = float(time.perf_counter() - gradient_eval_t0)
+
+            if available_indices_local:
+                max_grad_local = float(
+                    max(float(grad_magnitudes_local[int(idx)]) for idx in available_indices_local)
+                )
+            else:
+                max_grad_local = 0.0
+
+            append_position_local = int(branch_layout.logical_parameter_count)
+            selected_position_local = int(append_position_local)
+            best_idx_local = int(sorted(available_indices_local)[0]) if available_indices_local else -1
+            stage_name_local = str(branch.phase1_stage.stage_name)
+            phase1_feature_selected_local: dict[str, Any] | None = None
+            phase1_stage_transition_reason_local = "legacy"
+            phase1_last_probe_reason_local = "append_only"
+            phase1_last_positions_considered_local = [int(append_position_local)]
+            phase1_last_trough_detected_local = False
+            phase1_last_trough_probe_triggered_local = False
+            phase1_last_selected_score_local: float | None = None
+            phase2_last_shortlist_records_local: list[dict[str, Any]] = []
+            phase2_last_batch_selected_local = False
+            phase2_last_batch_penalty_total_local = 0.0
+            phase2_last_optimizer_memory_reused_local = False
+            phase2_last_optimizer_memory_source_local = "unavailable"
+            phase2_last_shortlist_eval_records_local: list[dict[str, Any]] = []
+            phase3_runtime_split_summary_local = copy.deepcopy(
+                branch.phase3_runtime_split_summary
+            )
+            phase1_stage_local = branch.phase1_stage.clone()
+            phase1_stage_events_local = [dict(x) for x in branch.phase1_stage_events]
+            phase1_residual_opened_local = bool(branch.phase1_residual_opened)
+            selection_mode_local = "simple_v1"
+            candidate_plans: list[_BranchExpansionPlan] = []
+            fallback_scan_size_local = 0
+            fallback_best_probe_delta_e_local: float | None = None
+            fallback_best_probe_theta_local: float | None = None
+
+            if not available_indices_local and not allow_repeats:
+                return _BranchStepScratch(
+                    energy_current=energy_current_local,
+                    psi_current=np.asarray(psi_current_local, dtype=complex),
+                    hpsi_current=np.asarray(hpsi_current_local, dtype=complex),
+                    gradients=np.asarray(gradients_local, dtype=float),
+                    grad_magnitudes=np.asarray(grad_magnitudes_local, dtype=float),
+                    max_grad=float(max_grad_local),
+                    gradient_eval_elapsed_s=float(gradient_eval_elapsed_s_local),
+                    append_position=int(append_position_local),
+                    best_idx=int(best_idx_local),
+                    selected_position=int(selected_position_local),
+                    selection_mode="pool_exhausted",
+                    stage_name=str(stage_name_local),
+                    phase1_feature_selected=None,
+                    phase1_stage_transition_reason="pool_exhausted",
+                    phase1_stage_now=str(phase1_stage_local.stage_name),
+                    phase1_stage_after_transition=phase1_stage_local,
+                    phase1_last_probe_reason=str(phase1_last_probe_reason_local),
+                    phase1_last_positions_considered=list(phase1_last_positions_considered_local),
+                    phase1_last_trough_detected=bool(phase1_last_trough_detected_local),
+                    phase1_last_trough_probe_triggered=bool(phase1_last_trough_probe_triggered_local),
+                    phase1_last_selected_score=phase1_last_selected_score_local,
+                    phase2_last_shortlist_records=[],
+                    phase2_last_batch_selected=False,
+                    phase2_last_batch_penalty_total=0.0,
+                    phase2_last_optimizer_memory_reused=False,
+                    phase2_last_optimizer_memory_source="unavailable",
+                    phase2_last_shortlist_eval_records=[],
+                    phase1_residual_opened=bool(phase1_residual_opened_local),
+                    available_indices_after_transition=set(available_indices_local),
+                    phase1_stage_events_after_transition=[dict(x) for x in phase1_stage_events_local],
+                    phase3_runtime_split_summary_after_eval=copy.deepcopy(phase3_runtime_split_summary_local),
+                    proposals=[],
+                    stop_reason="pool_exhausted",
+                    fallback_scan_size=0,
+                    fallback_best_probe_delta_e=None,
+                    fallback_best_probe_theta=None,
+                )
+
+            available_sorted = sorted(
+                list(available_indices_local),
+                key=lambda idx: -float(grad_magnitudes_local[int(idx)]),
+            )
+            shortlist_local = available_sorted[: min(len(available_sorted), 64)]
+            candidate_metric_cache_local: dict[int, float] = {}
+            family_repeat_cache_local: dict[str, float] = {}
+
+            def _evaluate_phase1_positions_local(
                 positions_considered_local: list[int],
                 *,
                 trough_probe_triggered_local: bool,
             ) -> dict[str, Any]:
                 best_score_local = float("-inf")
-                best_idx_local = int(shortlist[0]) if shortlist else int(max(available_indices))
-                best_position_local = int(append_position)
-                best_feat_local: dict[str, Any] | None = None
-                append_best_score_local = float("-inf")
-                append_best_g_lcb_local = 0.0
-                append_best_family_local = ""
-                best_non_append_score_local = float("-inf")
-                best_non_append_g_lcb_local = 0.0
-                records_local: list[dict[str, Any]] = []
-                for idx in shortlist:
+                best_idx_inner = int(shortlist_local[0]) if shortlist_local else int(best_idx_local)
+                best_position_inner = int(append_position_local)
+                best_feat_inner: dict[str, Any] | None = None
+                append_best_score_inner = float("-inf")
+                append_best_g_lcb_inner = 0.0
+                append_best_family_inner = ""
+                best_non_append_score_inner = float("-inf")
+                best_non_append_g_lcb_inner = 0.0
+                records_inner: list[dict[str, Any]] = []
+                for idx in shortlist_local:
                     for pos in positions_considered_local:
                         active_window_guess = _predict_reopt_window_for_position(
-                            theta=np.asarray(theta_logical_current, dtype=float),
+                            theta=np.asarray(theta_logical_branch, dtype=float),
                             position_id=int(pos),
                             policy=str(adapt_reopt_policy_key),
                             window_size=int(adapt_window_size_val),
                             window_topk=int(adapt_window_topk_val),
                             periodic_full_refit_triggered=False,
                         )
-                        proxy_compile_est = phase1_compile_oracle.estimate(
+                        inherited_window_guess = [
+                            int(i) for i in active_window_guess if int(i) != int(pos)
+                        ]
+                        compile_est = phase1_compile_oracle.estimate(
                             candidate_term_count=int(len(pool_compiled[int(idx)].terms)),
                             position_id=int(pos),
-                            append_position=int(append_position),
-                            refit_active_count=int(len(active_window_guess)),
-                            candidate_term=pool[int(idx)],
+                            append_position=int(append_position_local),
+                            refit_active_count=int(len(inherited_window_guess)),
                         )
-                        compile_est = (
-                            backend_compile_oracle.estimate_insertion(
-                                backend_compile_snapshot,
-                                candidate_term=pool[int(idx)],
-                                position_id=int(pos),
-                                proxy_baseline=proxy_compile_est,
-                            )
-                            if backend_compile_oracle is not None and backend_compile_snapshot is not None
-                            else proxy_compile_est
-                        )
-                        meas_stats = phase1_measure_cache.estimate(
-                            measurement_group_keys_for_term(pool[int(idx)])
-                        )
+                        meas_stats = branch.phase1_measure_cache.estimate([str(pool[int(idx)].label)])
                         is_residual_candidate = bool(int(idx) in phase1_residual_indices)
                         stage_gate_open = (
-                            (stage_name == "residual")
-                            or (not is_residual_candidate)
+                            str(stage_name_local) == "residual"
+                            or (not bool(is_residual_candidate))
                         )
                         generator_meta = (
                             pool_generator_registry.get(str(pool[int(idx)].label))
@@ -3376,29 +5535,50 @@ def _run_hardcoded_adapt_vqe(
                             if phase3_enabled and int(idx) < len(pool_symmetry_specs)
                             else None
                         )
+                        metric_raw = candidate_metric_cache_local.get(int(idx))
+                        if metric_raw is None:
+                            apsi_metric = _apply_compiled_polynomial(
+                                np.asarray(psi_current_local, dtype=complex),
+                                pool_compiled[int(idx)],
+                            )
+                            mean_metric = complex(
+                                np.vdot(np.asarray(psi_current_local, dtype=complex), apsi_metric)
+                            )
+                            centered_metric = np.asarray(
+                                apsi_metric - mean_metric * np.asarray(psi_current_local, dtype=complex),
+                                dtype=complex,
+                            )
+                            metric_raw = float(
+                                max(0.0, np.real(np.vdot(centered_metric, centered_metric)))
+                            )
+                            candidate_metric_cache_local[int(idx)] = float(metric_raw)
+                        family_id = str(pool_family_ids[int(idx)])
+                        family_repeat_cost = family_repeat_cache_local.get(family_id)
+                        if family_repeat_cost is None:
+                            family_repeat_cost = float(
+                                family_repeat_cost_from_history(
+                                    history_rows=list(branch.history),
+                                    candidate_family=str(family_id),
+                                )
+                            )
+                            family_repeat_cache_local[family_id] = float(family_repeat_cost)
                         feat_obj = build_candidate_features(
-                            stage_name=str(stage_name),
+                            stage_name=str(stage_name_local),
                             candidate_label=str(pool[int(idx)].label),
-                            candidate_family=str(pool_family_ids[int(idx)]),
+                            candidate_family=str(family_id),
                             candidate_pool_index=int(idx),
                             position_id=int(pos),
-                            append_position=int(append_position),
+                            append_position=int(append_position_local),
                             positions_considered=[int(x) for x in positions_considered_local],
-                            gradient_signed=float(gradients[int(idx)]),
-                            metric_proxy=float(abs(float(gradients[int(idx)]))),
+                            gradient_signed=float(gradients_local[int(idx)]),
+                            metric_proxy=float(metric_raw),
                             sigma_hat=0.0,
-                            refit_window_indices=[int(i) for i in active_window_guess],
+                            refit_window_indices=[int(i) for i in inherited_window_guess],
                             compile_cost=compile_est,
                             measurement_stats=meas_stats,
-                            leakage_penalty=(
-                                float(leakage_penalty_from_spec(symmetry_spec))
-                                if phase3_enabled
-                                else 0.0
-                            ),
+                            leakage_penalty=0.0,
                             stage_gate_open=bool(stage_gate_open),
-                            leakage_gate_open=not bool(
-                                isinstance(symmetry_spec, Mapping) and symmetry_spec.get("hard_guard", False)
-                            ),
+                            leakage_gate_open=True,
                             trough_probe_triggered=bool(trough_probe_triggered_local),
                             trough_detected=False,
                             cfg=phase1_score_cfg,
@@ -3409,24 +5589,22 @@ def _run_hardcoded_adapt_vqe(
                             current_depth=int(depth),
                             max_depth=int(max_depth),
                             lifetime_cost_mode=(
-                                str(phase3_lifetime_cost_mode_key)
-                                if phase3_enabled
-                                else "off"
+                                str(phase3_lifetime_cost_mode_key) if phase3_enabled else "off"
                             ),
                             remaining_evaluations_proxy_mode=(
                                 "remaining_depth"
                                 if phase3_enabled and str(phase3_lifetime_cost_mode_key) != "off"
                                 else "none"
                             ),
+                            family_repeat_cost=float(family_repeat_cost),
                         )
                         window_terms, window_labels = _window_terms_for_position(
-                            selected_ops=list(selected_ops),
-                            refit_window_indices=[int(i) for i in active_window_guess],
+                            selected_ops=list(branch.selected_ops),
+                            refit_window_indices=[int(i) for i in inherited_window_guess],
                             position_id=int(pos),
                         )
-                        feat = dict(feat_obj.__dict__)
-                        score_val = float(feat.get("simple_score", float("-inf")))
-                        records_local.append(
+                        score_val = float(feat_obj.simple_score or float("-inf"))
+                        records_inner.append(
                             {
                                 "feature": feat_obj,
                                 "simple_score": float(score_val),
@@ -3437,89 +5615,41 @@ def _run_hardcoded_adapt_vqe(
                                 "window_labels": list(window_labels),
                             }
                         )
-                        if int(pos) == int(append_position) and score_val > append_best_score_local:
-                            append_best_score_local = float(score_val)
-                            append_best_g_lcb_local = float(feat.get("g_lcb", 0.0))
-                            append_best_family_local = str(feat.get("candidate_family", ""))
-                        if int(pos) != int(append_position) and score_val > best_non_append_score_local:
-                            best_non_append_score_local = float(score_val)
-                            best_non_append_g_lcb_local = float(feat.get("g_lcb", 0.0))
+                        if int(pos) == int(append_position_local) and score_val > append_best_score_inner:
+                            append_best_score_inner = float(score_val)
+                            append_best_g_lcb_inner = float(feat_obj.g_lcb)
+                            append_best_family_inner = str(feat_obj.candidate_family)
+                        if int(pos) != int(append_position_local) and score_val > best_non_append_score_inner:
+                            best_non_append_score_inner = float(score_val)
+                            best_non_append_g_lcb_inner = float(feat_obj.g_lcb)
                         if score_val > best_score_local:
                             best_score_local = float(score_val)
-                            best_idx_local = int(idx)
-                            best_position_local = int(pos)
-                            best_feat_local = dict(feat)
+                            best_idx_inner = int(idx)
+                            best_position_inner = int(pos)
+                            best_feat_inner = dict(feat_obj.__dict__)
                 return {
                     "best_score": float(best_score_local),
-                    "best_idx": int(best_idx_local),
-                    "best_position": int(best_position_local),
-                    "best_feat": (dict(best_feat_local) if isinstance(best_feat_local, dict) else None),
-                    "append_best_score": float(append_best_score_local),
-                    "append_best_g_lcb": float(append_best_g_lcb_local),
-                    "append_best_family": str(append_best_family_local),
-                    "best_non_append_score": float(best_non_append_score_local),
-                    "best_non_append_g_lcb": float(best_non_append_g_lcb_local),
-                    "records": list(records_local),
+                    "best_idx": int(best_idx_inner),
+                    "best_position": int(best_position_inner),
+                    "best_feat": (dict(best_feat_inner) if isinstance(best_feat_inner, dict) else None),
+                    "append_best_score": float(append_best_score_inner),
+                    "append_best_g_lcb": float(append_best_g_lcb_inner),
+                    "append_best_family": str(append_best_family_inner),
+                    "best_non_append_score": float(best_non_append_score_inner),
+                    "best_non_append_g_lcb": float(best_non_append_g_lcb_inner),
+                    "records": list(records_inner),
                 }
 
-            append_eval = _evaluate_phase1_positions(
-                [int(append_position)],
+            append_eval_local = _evaluate_phase1_positions_local(
+                [int(append_position_local)],
                 trough_probe_triggered_local=False,
             )
-            phase1_append_best_score = float(append_eval["append_best_score"])
-            repeated_family_flat = _phase1_repeated_family_flat(
-                history=history,
-                candidate_family=str(append_eval["append_best_family"]),
-                patience=int(phase1_stage_cfg.family_repeat_patience),
-                weak_drop_threshold=float(phase1_stage_cfg.weak_drop_threshold),
-            )
-            probe_on, probe_reason = should_probe_positions(
-                stage_name=str(stage_name),
-                drop_plateau_hits=int(drop_plateau_hits),
-                max_grad=float(max_grad),
-                eps_grad=float(eps_grad),
-                append_score=float(phase1_append_best_score),
-                finite_angle_flat=False,
-                repeated_family_flat=bool(repeated_family_flat),
-                cfg=phase1_stage_cfg,
-            )
-            positions_considered = [int(append_position)]
-            score_eval = append_eval
-            if probe_on:
-                positions_considered = allowed_positions(
-                    n_params=int(theta.size),
-                    append_position=int(append_position),
-                    active_window_indices=[int(i) for i in current_active_window_for_probe],
-                    max_positions=int(phase1_stage_cfg.max_probe_positions),
-                )
-                score_eval = _evaluate_phase1_positions(
-                    [int(x) for x in positions_considered],
-                    trough_probe_triggered_local=True,
-                )
-            if backend_compile_oracle is not None:
-                finite_phase1_records = [
-                    rec for rec in score_eval.get("records", [])
-                    if math.isfinite(float(rec.get("simple_score", float("-inf"))))
-                ]
-                if not finite_phase1_records:
-                    stop_reason = "backend_compile_exhausted"
-                    break
-            trough = detect_trough(
-                append_score=float(score_eval["append_best_score"]),
-                best_non_append_score=float(score_eval["best_non_append_score"]),
-                best_non_append_g_lcb=float(score_eval["best_non_append_g_lcb"]),
-                margin_ratio=float(phase1_stage_cfg.probe_margin_ratio),
-                append_admit_threshold=float(phase1_stage_cfg.append_admit_threshold),
-            )
-            phase1_last_probe_reason = str(probe_reason)
-            phase1_last_positions_considered = [int(x) for x in positions_considered]
-            phase1_last_trough_detected = bool(trough)
-            phase1_last_trough_probe_triggered = bool(probe_on)
-            phase1_last_selected_score = float(score_eval["best_score"])
-            best_feat = score_eval["best_feat"]
-            best_idx = int(score_eval["best_idx"])
-            selected_position = int(score_eval["best_position"])
-            selection_mode = "simple_v1_probe" if bool(probe_on) else "simple_v1"
+            score_eval_local = append_eval_local
+            best_feat_local = score_eval_local["best_feat"]
+            best_idx_local = int(score_eval_local["best_idx"])
+            selected_position_local = int(score_eval_local["best_position"])
+            phase1_last_selected_score_local = float(score_eval_local["best_score"])
+
             if phase2_enabled:
                 cheap_records = shortlist_records(
                     [
@@ -3528,20 +5658,19 @@ def _run_hardcoded_adapt_vqe(
                             "feature": rec["feature"],
                             "simple_score": float(rec.get("simple_score", float("-inf"))),
                             "candidate_pool_index": int(rec.get("candidate_pool_index", -1)),
-                            "position_id": int(rec.get("position_id", append_position)),
+                            "position_id": int(rec.get("position_id", append_position_local)),
                         }
-                        for rec in score_eval.get("records", [])
+                        for rec in score_eval_local.get("records", [])
                     ],
                     cfg=phase2_score_cfg,
                     score_key="simple_score",
                 )
                 full_records: list[dict[str, Any]] = []
+                phase2_scaffold_context_cache: dict[tuple[int, ...], Any] = {}
                 for rec in cheap_records:
                     feat_base = rec.get("feature")
                     if not isinstance(feat_base, CandidateFeatures):
                         continue
-                    window_terms = list(rec.get("window_terms", []))
-                    window_labels = [str(x) for x in rec.get("window_labels", [])]
                     parent_label = str(rec.get("candidate_term").label)
                     parent_generator_meta = (
                         dict(feat_base.generator_metadata)
@@ -3564,7 +5693,7 @@ def _run_hardcoded_adapt_vqe(
                         )
                     )
 
-                    def _full_record_for_candidate(
+                    def _full_record_for_candidate_local(
                         *,
                         candidate_term: AnsatzTerm,
                         candidate_label: str,
@@ -3574,10 +5703,6 @@ def _run_hardcoded_adapt_vqe(
                         runtime_split_parent_label_value: str | None = None,
                         runtime_split_child_index_value: int | None = None,
                         runtime_split_child_count_value: int | None = None,
-                        runtime_split_chosen_representation_value: str = "parent",
-                        runtime_split_child_indices_value: Sequence[int] | None = None,
-                        runtime_split_child_labels_value: Sequence[str] | None = None,
-                        runtime_split_child_generator_ids_value: Sequence[str] | None = None,
                     ) -> dict[str, Any]:
                         compiled_candidate = phase2_compiled_term_cache.get(str(candidate_label))
                         if compiled_candidate is None:
@@ -3586,34 +5711,34 @@ def _run_hardcoded_adapt_vqe(
                                 pauli_action_cache=pauli_action_cache,
                             )
                             phase2_compiled_term_cache[str(candidate_label)] = compiled_candidate
+                        apsi_candidate = _apply_compiled_polynomial(
+                            np.asarray(psi_current_local, dtype=complex),
+                            compiled_candidate,
+                        )
                         grad_candidate = float(
                             adapt_commutator_grad_from_hpsi(
-                                hpsi_current,
-                                _apply_compiled_polynomial(
-                                    np.asarray(psi_current, dtype=complex),
-                                    compiled_candidate,
-                                ),
+                                hpsi_current_local,
+                                apsi_candidate,
                             )
                         )
-                        proxy_compile_est_candidate = phase1_compile_oracle.estimate(
+                        mean_candidate = complex(
+                            np.vdot(np.asarray(psi_current_local, dtype=complex), apsi_candidate)
+                        )
+                        centered_candidate = np.asarray(
+                            apsi_candidate - mean_candidate * np.asarray(psi_current_local, dtype=complex),
+                            dtype=complex,
+                        )
+                        metric_candidate = float(
+                            max(0.0, np.real(np.vdot(centered_candidate, centered_candidate)))
+                        )
+                        compile_est_candidate = phase1_compile_oracle.estimate(
                             candidate_term_count=int(len(compiled_candidate.terms)),
                             position_id=int(feat_base.position_id),
                             append_position=int(feat_base.append_position),
                             refit_active_count=int(len(feat_base.refit_window_indices)),
-                            candidate_term=candidate_term,
                         )
-                        compile_est_candidate = (
-                            backend_compile_oracle.estimate_insertion(
-                                backend_compile_snapshot,
-                                candidate_term=candidate_term,
-                                position_id=int(feat_base.position_id),
-                                proxy_baseline=proxy_compile_est_candidate,
-                            )
-                            if backend_compile_oracle is not None and backend_compile_snapshot is not None
-                            else proxy_compile_est_candidate
-                        )
-                        measurement_stats_candidate = phase1_measure_cache.estimate(
-                            measurement_group_keys_for_term(candidate_term)
+                        measurement_stats_candidate = branch.phase1_measure_cache.estimate(
+                            [str(candidate_label)]
                         )
                         feat_candidate_base = build_candidate_features(
                             stage_name=str(feat_base.stage_name),
@@ -3624,29 +5749,19 @@ def _run_hardcoded_adapt_vqe(
                             append_position=int(feat_base.append_position),
                             positions_considered=[int(x) for x in feat_base.positions_considered],
                             gradient_signed=float(grad_candidate),
-                            metric_proxy=float(abs(grad_candidate)),
+                            metric_proxy=float(metric_candidate),
                             sigma_hat=float(feat_base.sigma_hat),
                             refit_window_indices=[int(i) for i in feat_base.refit_window_indices],
                             compile_cost=compile_est_candidate,
                             measurement_stats=measurement_stats_candidate,
-                            leakage_penalty=(
-                                float(leakage_penalty_from_spec(symmetry_spec_candidate))
-                                if isinstance(symmetry_spec_candidate, Mapping)
-                                else float(feat_base.leakage_penalty)
-                            ),
+                            leakage_penalty=0.0,
                             stage_gate_open=bool(feat_base.stage_gate_open),
-                            leakage_gate_open=bool(feat_base.leakage_gate_open),
+                            leakage_gate_open=True,
                             trough_probe_triggered=bool(feat_base.trough_probe_triggered),
                             trough_detected=bool(feat_base.trough_detected),
                             cfg=phase1_score_cfg,
-                            generator_metadata=(
-                                dict(generator_metadata) if isinstance(generator_metadata, Mapping) else None
-                            ),
-                            symmetry_spec=(
-                                dict(symmetry_spec_candidate)
-                                if isinstance(symmetry_spec_candidate, Mapping)
-                                else None
-                            ),
+                            generator_metadata=(dict(generator_metadata) if isinstance(generator_metadata, Mapping) else None),
+                            symmetry_spec=(dict(symmetry_spec_candidate) if isinstance(symmetry_spec_candidate, Mapping) else None),
                             symmetry_mode=str(feat_base.symmetry_mode),
                             symmetry_mitigation_mode=str(feat_base.symmetry_mitigation_mode),
                             motif_metadata=(
@@ -3660,6 +5775,7 @@ def _run_hardcoded_adapt_vqe(
                             max_depth=int(max_depth),
                             lifetime_cost_mode=str(feat_base.lifetime_cost_mode),
                             remaining_evaluations_proxy_mode=str(feat_base.remaining_evaluations_proxy_mode),
+                            family_repeat_cost=float(feat_base.family_repeat_cost),
                         )
                         if str(runtime_split_mode_value) != "off":
                             feat_candidate_base = CandidateFeatures(
@@ -3681,40 +5797,35 @@ def _run_hardcoded_adapt_vqe(
                                         if runtime_split_child_count_value is not None
                                         else None
                                     ),
-                                    "runtime_split_chosen_representation": str(
-                                        runtime_split_chosen_representation_value
-                                    ),
-                                    "runtime_split_child_indices": (
-                                        [int(x) for x in runtime_split_child_indices_value]
-                                        if runtime_split_child_indices_value is not None
-                                        else []
-                                    ),
-                                    "runtime_split_child_labels": (
-                                        [str(x) for x in runtime_split_child_labels_value]
-                                        if runtime_split_child_labels_value is not None
-                                        else []
-                                    ),
-                                    "runtime_split_child_generator_ids": (
-                                        [str(x) for x in runtime_split_child_generator_ids_value]
-                                        if runtime_split_child_generator_ids_value is not None
-                                        else []
-                                    ),
                                 }
                             )
                         active_memory = phase2_memory_adapter.select_active(
-                            phase2_optimizer_memory,
+                            branch.phase2_optimizer_memory,
                             active_indices=list(feat_candidate_base.refit_window_indices),
-                            source=f"adapt.depth{int(depth + 1)}.window_subset",
+                            source=f"beam.depth{int(depth + 1)}.window_subset",
                         )
+                        scaffold_key = tuple(int(i) for i in feat_candidate_base.refit_window_indices)
+                        scaffold_context = phase2_scaffold_context_cache.get(scaffold_key)
+                        if scaffold_context is None:
+                            scaffold_context = phase2_novelty_oracle.prepare_scaffold_context(
+                                selected_ops=list(branch.selected_ops),
+                                theta=np.asarray(theta_logical_branch, dtype=float),
+                                psi_ref=np.asarray(psi_ref, dtype=complex),
+                                psi_state=np.asarray(psi_current_local, dtype=complex),
+                                h_compiled=h_compiled,
+                                hpsi_state=np.asarray(hpsi_current_local, dtype=complex),
+                                refit_window_indices=list(feat_candidate_base.refit_window_indices),
+                                pauli_action_cache=pauli_action_cache,
+                            )
+                            phase2_scaffold_context_cache[scaffold_key] = scaffold_context
                         feat_full = build_full_candidate_features(
                             base_feature=feat_candidate_base,
-                            psi_state=np.asarray(psi_current, dtype=complex),
                             candidate_term=candidate_term,
-                            window_terms=list(window_terms),
-                            window_labels=[str(x) for x in window_labels],
                             cfg=phase2_score_cfg,
                             novelty_oracle=phase2_novelty_oracle,
                             curvature_oracle=phase2_curvature_oracle,
+                            scaffold_context=scaffold_context,
+                            h_compiled=h_compiled,
                             compiled_cache=phase2_compiled_term_cache,
                             pauli_action_cache=pauli_action_cache,
                             optimizer_memory=active_memory,
@@ -3731,13 +5842,14 @@ def _run_hardcoded_adapt_vqe(
                             "candidate_term": candidate_term,
                         }
 
-                    parent_record = _full_record_for_candidate(
-                        candidate_term=rec["candidate_term"],
-                        candidate_label=parent_label,
-                        generator_metadata=parent_generator_meta,
-                        symmetry_spec_candidate=parent_symmetry_spec,
-                    )
-                    candidate_variants = [parent_record]
+                    candidate_variants = [
+                        _full_record_for_candidate_local(
+                            candidate_term=rec["candidate_term"],
+                            candidate_label=parent_label,
+                            generator_metadata=parent_generator_meta,
+                            symmetry_spec_candidate=parent_symmetry_spec,
+                        )
+                    ]
                     if (
                         phase3_enabled
                         and str(phase3_runtime_split_mode_key) == "shortlist_pauli_children_v1"
@@ -3756,489 +5868,2521 @@ def _run_hardcoded_adapt_vqe(
                             symmetry_spec=parent_symmetry_spec,
                         )
                         if split_children:
-                            phase3_runtime_split_summary["probed_parent_count"] = int(
-                                phase3_runtime_split_summary.get("probed_parent_count", 0)
+                            phase3_runtime_split_summary_local["probed_parent_count"] = int(
+                                phase3_runtime_split_summary_local.get("probed_parent_count", 0)
                             ) + 1
-                        split_child_records: list[dict[str, Any]] = []
-                        split_child_record_by_generator_id: dict[str, dict[str, Any]] = {}
-                        split_child_scores: dict[str, float] = {}
                         for child in split_children:
                             child_label = str(child.get("child_label"))
                             child_poly = child.get("child_polynomial")
                             child_meta = child.get("child_generator_metadata")
-                            child_symmetry_gate = (
-                                dict(child.get("symmetry_gate", {}))
-                                if isinstance(child.get("symmetry_gate"), Mapping)
-                                else {}
-                            )
                             if not isinstance(child_poly, PauliPolynomial):
                                 continue
                             if not isinstance(child_meta, Mapping):
                                 continue
                             pool_generator_registry[str(child_label)] = dict(child_meta)
-                            phase3_runtime_split_summary["evaluated_child_count"] = int(
-                                phase3_runtime_split_summary.get("evaluated_child_count", 0)
+                            phase3_runtime_split_summary_local["evaluated_child_count"] = int(
+                                phase3_runtime_split_summary_local.get("evaluated_child_count", 0)
                             ) + 1
-                            if not bool(child_symmetry_gate.get("passed", True)):
-                                phase3_runtime_split_summary["rejected_child_count_symmetry"] = int(
-                                    phase3_runtime_split_summary.get("rejected_child_count_symmetry", 0)
-                                ) + 1
-                            child_record = _full_record_for_candidate(
-                                candidate_term=AnsatzTerm(
-                                    label=str(child_label),
-                                    polynomial=child_poly,
-                                ),
-                                candidate_label=str(child_label),
-                                generator_metadata=dict(child_meta),
-                                symmetry_spec_candidate=(
-                                    dict(child_meta.get("symmetry_spec", {}))
-                                    if isinstance(child_meta.get("symmetry_spec"), Mapping)
-                                    else parent_symmetry_spec
-                                ),
-                                runtime_split_mode_value=str(phase3_runtime_split_mode_key),
-                                runtime_split_parent_label_value=str(parent_label),
-                                runtime_split_child_index_value=(
-                                    int(child.get("child_index"))
-                                    if child.get("child_index") is not None
-                                    else None
-                                ),
-                                runtime_split_child_count_value=(
-                                    int(child.get("child_count"))
-                                    if child.get("child_count") is not None
-                                    else None
-                                ),
-                                runtime_split_chosen_representation_value="child_atom",
-                                runtime_split_child_indices_value=(
-                                    [int(child.get("child_index"))]
-                                    if child.get("child_index") is not None
-                                    else []
-                                ),
-                                runtime_split_child_labels_value=[str(child_label)],
-                                runtime_split_child_generator_ids_value=(
-                                    [str(child_meta.get("generator_id"))]
-                                    if child_meta.get("generator_id") is not None
-                                    else []
-                                ),
-                            )
-                            split_child_records.append(dict(child_record))
-                            split_child_scores[str(child_label)] = float(
-                                child_record.get("full_v2_score", float("-inf"))
-                            )
-                            if child_meta.get("generator_id") is not None:
-                                split_child_record_by_generator_id[str(child_meta.get("generator_id"))] = dict(child_record)
-                        split_candidate_record: dict[str, Any] | None = None
-                        admissible_child_subsets: list[list[str]] = []
-                        best_split_choice_reason = "no_admissible_child_set"
-                        best_split_gate_results: dict[str, Any] = {}
-                        best_split_child_ids: list[str] = []
-                        child_set_candidates = build_runtime_split_child_sets(
-                            parent_label=str(parent_label),
-                            family_id=str(feat_base.candidate_family),
-                            num_sites=int(num_sites),
-                            ordering=str(ordering),
-                            qpb=int(max(1, qpb)),
-                            split_mode=str(phase3_runtime_split_mode_key),
-                            children=split_children,
-                            parent_generator_metadata=parent_generator_meta,
-                            symmetry_spec=parent_symmetry_spec,
-                            max_subset_size=3,
-                        )
-                        phase3_runtime_split_summary["admissible_child_set_count"] = int(
-                            phase3_runtime_split_summary.get("admissible_child_set_count", 0)
-                        ) + int(len(child_set_candidates))
-                        if child_set_candidates and split_child_records:
-                            compat_oracle_split = CompatibilityPenaltyOracle(
-                                cfg=phase2_score_cfg,
-                                psi_state=np.asarray(psi_current, dtype=complex),
-                                compiled_cache=phase2_compiled_term_cache,
-                                pauli_action_cache=pauli_action_cache,
-                            )
-                            best_split_proxy = float("-inf")
-                            best_split_payload: dict[str, Any] | None = None
-                            for child_set in child_set_candidates:
-                                child_set_ids = [str(x) for x in child_set.get("child_generator_ids", [])]
-                                child_set_records = [
-                                    dict(split_child_record_by_generator_id[str(child_id)])
-                                    for child_id in child_set_ids
-                                    if str(child_id) in split_child_record_by_generator_id
-                                ]
-                                if len(child_set_records) != len(child_set_ids):
-                                    continue
-                                admissible_child_subsets.append(
-                                    [str(x) for x in child_set.get("child_labels", [])]
-                                )
-                                penalty_total = 0.0
-                                for left_idx in range(len(child_set_records)):
-                                    for right_idx in range(left_idx + 1, len(child_set_records)):
-                                        penalty_total += float(
-                                            compat_oracle_split.penalty(
-                                                child_set_records[left_idx],
-                                                child_set_records[right_idx],
-                                            ).get("total", 0.0)
-                                        )
-                                proxy_score = float(
-                                    sum(
-                                        float(rec_child.get("full_v2_score", float("-inf")))
-                                        for rec_child in child_set_records
-                                    )
-                                    - penalty_total
-                                )
-                                if proxy_score > best_split_proxy:
-                                    best_split_proxy = float(proxy_score)
-                                    best_split_payload = dict(child_set)
-                            if best_split_payload is not None:
-                                split_label = str(best_split_payload.get("candidate_label"))
-                                split_poly = best_split_payload.get("candidate_polynomial")
-                                split_meta = best_split_payload.get("candidate_generator_metadata")
-                                if isinstance(split_poly, PauliPolynomial) and isinstance(split_meta, Mapping):
-                                    pool_generator_registry[str(split_label)] = dict(split_meta)
-                                    best_split_gate_results = (
-                                        dict(best_split_payload.get("symmetry_gate", {}))
-                                        if isinstance(best_split_payload.get("symmetry_gate"), Mapping)
-                                        else {}
-                                    )
-                                    best_split_child_ids = [
-                                        str(x) for x in best_split_payload.get("child_generator_ids", [])
-                                    ]
-                                    split_candidate_record = _full_record_for_candidate(
-                                        candidate_term=AnsatzTerm(
-                                            label=str(split_label),
-                                            polynomial=split_poly,
-                                        ),
-                                        candidate_label=str(split_label),
-                                        generator_metadata=dict(split_meta),
-                                        symmetry_spec_candidate=(
-                                            dict(split_meta.get("symmetry_spec", {}))
-                                            if isinstance(split_meta.get("symmetry_spec"), Mapping)
-                                            else parent_symmetry_spec
-                                        ),
-                                        runtime_split_mode_value=str(phase3_runtime_split_mode_key),
-                                        runtime_split_parent_label_value=str(parent_label),
-                                        runtime_split_child_count_value=int(len(split_children)),
-                                        runtime_split_chosen_representation_value="child_set",
-                                        runtime_split_child_indices_value=[
-                                            int(x) for x in best_split_payload.get("child_indices", [])
-                                        ],
-                                        runtime_split_child_labels_value=[
-                                            str(x) for x in best_split_payload.get("child_labels", [])
-                                        ],
-                                        runtime_split_child_generator_ids_value=list(best_split_child_ids),
-                                    )
-                                    candidate_variants.append(dict(split_candidate_record))
-                                    parent_score = float(parent_record.get("full_v2_score", float("-inf")))
-                                    split_score = float(split_candidate_record.get("full_v2_score", float("-inf")))
-                                    split_wins = bool(split_score > parent_score)
-                                    if split_wins:
-                                        phase3_runtime_split_summary["probe_child_set_count"] = int(
-                                            phase3_runtime_split_summary.get("probe_child_set_count", 0)
-                                        ) + 1
-                                        best_split_choice_reason = "child_set_actual_score_better"
-                                    else:
-                                        phase3_runtime_split_summary["probe_parent_win_count"] = int(
-                                            phase3_runtime_split_summary.get("probe_parent_win_count", 0)
-                                        ) + 1
-                                        best_split_choice_reason = "parent_actual_score_better"
-                                    phase3_split_events.append(
-                                        build_split_event(
-                                            parent_generator_id=str(parent_generator_meta.get("generator_id")),
-                                            child_generator_ids=list(best_split_child_ids),
-                                            reason=f"depth{int(depth + 1)}_shortlist_probe",
-                                            split_mode=str(phase3_runtime_split_mode_key),
-                                            probe_trigger="phase2_shortlist",
-                                            choice_reason=str(best_split_choice_reason),
-                                            parent_score=float(parent_score),
-                                            child_scores=dict(split_child_scores),
-                                            admissible_child_subsets=list(admissible_child_subsets),
-                                            chosen_representation=("child_set" if split_wins else "parent"),
-                                            chosen_child_ids=(list(best_split_child_ids) if split_wins else []),
-                                            split_margin=float(split_score - parent_score),
-                                            symmetry_gate_results=dict(best_split_gate_results),
-                                            compiled_cost_parent=float(
-                                                parent_record.get("feature").compile_cost_total
-                                            )
-                                            if isinstance(parent_record.get("feature"), CandidateFeatures)
-                                            else None,
-                                            compiled_cost_children=float(
-                                                split_candidate_record.get("feature").compile_cost_total
-                                            )
-                                            if isinstance(split_candidate_record.get("feature"), CandidateFeatures)
-                                            else None,
-                                            insertion_positions=[int(feat_base.position_id)],
-                                        )
-                                    )
-                        elif split_children:
-                            phase3_runtime_split_summary["probe_parent_win_count"] = int(
-                                phase3_runtime_split_summary.get("probe_parent_win_count", 0)
-                            ) + 1
-                            phase3_split_events.append(
-                                build_split_event(
-                                    parent_generator_id=str(parent_generator_meta.get("generator_id")),
-                                    child_generator_ids=[
-                                        str(meta.get("generator_id"))
-                                        for meta in (
-                                            child.get("child_generator_metadata")
-                                            for child in split_children
-                                            if isinstance(child.get("child_generator_metadata"), Mapping)
-                                        )
-                                        if meta.get("generator_id") is not None
-                                    ],
-                                    reason=f"depth{int(depth + 1)}_shortlist_probe",
-                                    split_mode=str(phase3_runtime_split_mode_key),
-                                    probe_trigger="phase2_shortlist",
-                                    choice_reason="no_admissible_child_set",
-                                    parent_score=float(parent_record.get("full_v2_score", float("-inf"))),
-                                    child_scores=dict(split_child_scores),
-                                    admissible_child_subsets=[],
-                                    chosen_representation="parent",
-                                    chosen_child_ids=[],
-                                    symmetry_gate_results={"admissible_child_set_count": 0},
-                                    compiled_cost_parent=float(
-                                        parent_record.get("feature").compile_cost_total
-                                    )
-                                    if isinstance(parent_record.get("feature"), CandidateFeatures)
-                                    else None,
-                                    insertion_positions=[int(feat_base.position_id)],
+                            candidate_variants.append(
+                                _full_record_for_candidate_local(
+                                    candidate_term=AnsatzTerm(label=str(child_label), polynomial=child_poly),
+                                    candidate_label=str(child_label),
+                                    generator_metadata=dict(child_meta),
+                                    symmetry_spec_candidate=(
+                                        dict(child_meta.get("symmetry_spec", {}))
+                                        if isinstance(child_meta.get("symmetry_spec"), Mapping)
+                                        else parent_symmetry_spec
+                                    ),
+                                    runtime_split_mode_value=str(phase3_runtime_split_mode_key),
+                                    runtime_split_parent_label_value=str(parent_label),
+                                    runtime_split_child_index_value=(
+                                        int(child.get("child_index"))
+                                        if child.get("child_index") is not None
+                                        else None
+                                    ),
+                                    runtime_split_child_count_value=(
+                                        int(child.get("child_count"))
+                                        if child.get("child_count") is not None
+                                        else None
+                                    ),
                                 )
                             )
                     candidate_variants = sorted(candidate_variants, key=_phase2_record_sort_key)
                     if candidate_variants:
                         full_records.append(dict(candidate_variants[0]))
                 full_records = sorted(full_records, key=_phase2_record_sort_key)
-                if backend_compile_oracle is not None:
-                    finite_full_records = [
-                        rec for rec in full_records
-                        if math.isfinite(float(rec.get("full_v2_score", float("-inf"))))
-                    ]
-                    if not finite_full_records:
-                        stop_reason = "backend_compile_exhausted"
-                        break
-                phase2_last_shortlist_eval_records = [dict(rec) for rec in full_records]
-                phase2_last_shortlist_records = [
+                phase2_last_shortlist_eval_records_local = [dict(rec) for rec in full_records]
+                phase2_last_shortlist_records_local = [
                     dict(rec["feature"].__dict__)
                     for rec in full_records
                     if isinstance(rec.get("feature"), CandidateFeatures)
                 ]
-                if full_records:
-                    if bool(phase2_enable_batching) and str(stage_name) == "core":
-                        compat_oracle = CompatibilityPenaltyOracle(
-                            cfg=phase2_score_cfg,
-                            psi_state=np.asarray(psi_current, dtype=complex),
-                            compiled_cache=phase2_compiled_term_cache,
-                            pauli_action_cache=pauli_action_cache,
-                        )
-                        phase2_selected_records, phase2_last_batch_penalty_total = greedy_batch_select(
-                            full_records,
-                            compat_oracle,
-                            phase2_score_cfg,
-                        )
-                    else:
-                        phase2_selected_records = [dict(full_records[0])]
-                    phase2_selected_records = sorted(phase2_selected_records, key=_phase2_record_sort_key)
-                    phase2_last_batch_selected = bool(len(phase2_selected_records) > 1)
-                    top_feat = phase2_selected_records[0].get("feature")
+                eligible_full_records = [
+                    dict(rec)
+                    for rec in full_records
+                    if float(rec.get("full_v2_score", float("-inf"))) > 0.0
+                ]
+                if eligible_full_records:
+                    top_record = dict(eligible_full_records[0])
+                    top_feat = top_record.get("feature")
                     if isinstance(top_feat, CandidateFeatures):
-                        phase1_feature_selected = dict(top_feat.__dict__)
-                        phase1_feature_selected["trough_detected"] = bool(trough)
-                        phase1_last_selected_score = float(
-                            top_feat.full_v2_score if top_feat.full_v2_score is not None else top_feat.simple_score or float("-inf")
+                        phase1_feature_selected_local = dict(top_feat.__dict__)
+                        phase1_last_selected_score_local = float(
+                            top_feat.full_v2_score
+                            if top_feat.full_v2_score is not None
+                            else top_feat.simple_score or float("-inf")
                         )
-                        best_idx = int(top_feat.candidate_pool_index)
-                        selected_position = int(top_feat.position_id)
-                        split_selected = bool(str(top_feat.runtime_split_mode) != "off")
-                        selection_mode = (
-                            "full_v2_batch_split"
-                            if phase2_last_batch_selected and split_selected
-                            else (
-                                "full_v2_split"
-                                if split_selected
-                                else ("full_v2_batch" if phase2_last_batch_selected else "full_v2")
+                        best_idx_local = int(top_feat.candidate_pool_index)
+                        selected_position_local = int(top_feat.position_id)
+                    selection_mode_local = (
+                        "full_v2_split"
+                        if isinstance(top_feat, CandidateFeatures)
+                        and str(top_feat.runtime_split_mode) != "off"
+                        else "full_v2"
+                    )
+                    for rec in eligible_full_records[: int(max(1, children_cap))]:
+                        feat_obj = rec.get("feature")
+                        feat_row = (
+                            dict(feat_obj.__dict__)
+                            if isinstance(feat_obj, CandidateFeatures)
+                            else None
+                        )
+                        candidate_term = rec.get("candidate_term")
+                        if not isinstance(candidate_term, AnsatzTerm):
+                            candidate_term = pool[int(rec.get("candidate_pool_index", best_idx_local))]
+                        candidate_plans.append(
+                            _BranchExpansionPlan(
+                                candidate_pool_index=int(rec.get("candidate_pool_index", best_idx_local)),
+                                position_id=int(rec.get("position_id", append_position_local)),
+                                selection_mode=str(selection_mode_local),
+                                candidate_label=str(candidate_term.label),
+                                candidate_term=candidate_term,
+                                feature_row=feat_row,
+                                init_theta=0.0,
                             )
                         )
-                elif best_feat is not None:
-                    best_feat["trough_detected"] = bool(trough)
-                    phase1_feature_selected = dict(best_feat)
-            elif best_feat is not None:
-                best_feat["trough_detected"] = bool(trough)
-                phase1_feature_selected = dict(best_feat)
-            phase1_stage_now, phase1_stage_transition_reason = phase1_stage.resolve_stage_transition(
-                drop_plateau_hits=int(drop_plateau_hits),
-                trough_detected=bool(trough),
-                residual_opened=bool(phase1_residual_opened),
+                elif best_feat_local is not None:
+                    phase1_feature_selected_local = dict(best_feat_local)
+                    phase1_last_selected_score_local = float(
+                        best_feat_local.get("simple_score", float("-inf"))
+                    )
+                    best_idx_local = int(best_feat_local.get("candidate_pool_index", best_idx_local))
+                    selected_position_local = int(
+                        best_feat_local.get("position_id", selected_position_local)
+                    )
+                    selection_mode_local = "simple_v1_full_zero_fallback"
+                    candidate_plans.append(
+                        _BranchExpansionPlan(
+                            candidate_pool_index=int(best_idx_local),
+                            position_id=int(selected_position_local),
+                            selection_mode=str(selection_mode_local),
+                            candidate_label=str(pool[int(best_idx_local)].label),
+                            candidate_term=pool[int(best_idx_local)],
+                            feature_row=dict(best_feat_local),
+                            init_theta=0.0,
+                        )
+                    )
+            elif best_feat_local is not None:
+                phase1_feature_selected_local = dict(best_feat_local)
+                phase1_last_selected_score_local = float(
+                    best_feat_local.get("simple_score", float("-inf"))
+                )
+                simple_records = sorted(
+                    list(score_eval_local.get("records", [])),
+                    key=lambda rec: (
+                        -float(rec.get("simple_score", float("-inf"))),
+                        int(rec.get("candidate_pool_index", -1)),
+                        int(rec.get("position_id", -1)),
+                    ),
+                )
+                for rec in simple_records[: int(max(1, children_cap))]:
+                    feat_obj = rec.get("feature")
+                    feat_row = (
+                        dict(feat_obj.__dict__)
+                        if isinstance(feat_obj, CandidateFeatures)
+                        else None
+                    )
+                    candidate_plans.append(
+                        _BranchExpansionPlan(
+                            candidate_pool_index=int(rec.get("candidate_pool_index", best_idx_local)),
+                            position_id=int(rec.get("position_id", append_position_local)),
+                            selection_mode="simple_v1",
+                            candidate_label=str(rec.get("candidate_term").label),
+                            candidate_term=rec.get("candidate_term"),
+                            feature_row=feat_row,
+                            init_theta=0.0,
+                        )
+                    )
+
+            phase1_stage_now_local, phase1_stage_transition_reason_local = (
+                phase1_stage_local.resolve_stage_transition(
+                    drop_plateau_hits=int(branch.drop_plateau_hits),
+                    trough_detected=bool(phase1_last_trough_detected_local),
+                    residual_opened=bool(phase1_residual_opened_local),
+                )
             )
             if (
-                phase1_stage_now == "residual"
-                and (not phase1_residual_opened)
+                phase1_stage_now_local == "residual"
+                and (not phase1_residual_opened_local)
                 and len(phase1_residual_indices) > 0
             ):
-                phase1_residual_opened = True
-                available_indices |= set(int(i) for i in phase1_residual_indices)
-                phase1_stage_events.append(
+                phase1_residual_opened_local = True
+                available_indices_local |= set(int(i) for i in phase1_residual_indices)
+                phase1_stage_events_local.append(
                     {
                         "depth": int(depth + 1),
                         "stage_name": "residual",
-                        "reason": str(phase1_stage_transition_reason),
+                        "reason": str(phase1_stage_transition_reason_local),
                     }
                 )
-                _ai_log(
-                    "hardcoded_adapt_phase1_residual_opened",
-                    depth=int(depth + 1),
-                    residual_count=int(len(phase1_residual_indices)),
-                )
-        else:
-            if allow_repeats:
-                repeat_bias = 1.5
-                scores = grad_magnitudes / (1.0 + repeat_bias * selection_counts.astype(float))
-                best_idx = int(np.argmax(scores))
-            else:
-                best_idx = int(np.argmax(grad_magnitudes))
-            selection_mode = "gradient"
 
-        _ai_log(
-            "hardcoded_adapt_iter",
-            depth=int(depth + 1),
-            max_grad=float(max_grad),
-            best_op=(
-                str(phase2_selected_records[0].get("candidate_term").label)
-                if phase1_enabled
-                and phase2_enabled
-                and len(phase2_selected_records) > 0
-                and phase2_selected_records[0].get("candidate_term") is not None
-                else (
-                    str(phase1_feature_selected.get("candidate_label"))
-                    if isinstance(phase1_feature_selected, dict)
-                    and phase1_feature_selected.get("candidate_label") is not None
-                    else str(pool[best_idx].label)
-                )
-            ),
-            selected_position=int(selected_position),
-            stage_name=str(stage_name),
-            selection_score=(float(phase1_last_selected_score) if phase1_enabled else None),
-            energy=float(energy_current),
-        )
-
-        # 3) Check gradient convergence (with optional finite-angle fallback)
-        if not phase1_enabled:
-            selection_mode = "gradient"
-        init_theta = 0.0
-        fallback_scan_size = 0
-        fallback_best_probe_delta_e = None
-        fallback_best_probe_theta = None
-        if max_grad < float(eps_grad):
-            if bool(finite_angle_fallback) and available_indices:
-                fallback_scan_size = int(len(available_indices))
-                best_probe_energy = float(energy_current)
-                best_probe_idx = None
-                best_probe_theta = None
-                fallback_executor_cache: dict[int, CompiledAnsatzExecutor] = {}
-
-                for idx in available_indices:
-                    trial_ops = selected_ops + [pool[idx]]
-                    for trial_theta in (float(finite_angle), -float(finite_angle)):
-                        trial_ops, trial_theta_vec = _splice_candidate_at_position(
-                            ops=selected_ops,
-                            theta=np.asarray(theta, dtype=float),
-                            op=pool[int(idx)],
-                            position_id=int(append_position),
-                            init_theta=float(trial_theta),
-                        )
-                        if adapt_state_backend_key == "compiled":
-                            trial_executor = fallback_executor_cache.get(int(idx))
-                            if trial_executor is None:
-                                trial_executor = _build_compiled_executor(trial_ops)
-                                fallback_executor_cache[int(idx)] = trial_executor
-                            psi_trial = trial_executor.prepare_state(trial_theta_vec, psi_ref)
-                            probe_energy, _ = energy_via_one_apply(psi_trial, h_compiled)
-                            probe_energy = float(probe_energy)
-                        else:
-                            probe_energy = _adapt_energy_fn(
-                                h_poly,
-                                psi_ref,
-                                trial_ops,
-                                trial_theta_vec,
-                                h_compiled=h_compiled,
+            if max_grad_local < float(eps_grad):
+                if bool(finite_angle_fallback) and available_indices_local:
+                    fallback_scan_size_local = int(len(available_indices_local))
+                    best_probe_energy = float(energy_current_local)
+                    best_probe_idx: int | None = None
+                    best_probe_theta_value: float | None = None
+                    fallback_executor_cache: dict[int, CompiledAnsatzExecutor] = {}
+                    for idx in available_indices_local:
+                        for trial_theta in (float(finite_angle), -float(finite_angle)):
+                            trial_ops, trial_theta_vec = _splice_candidate_at_position(
+                                ops=list(branch.selected_ops),
+                                theta=np.asarray(branch.theta, dtype=float),
+                                op=pool[int(idx)],
+                                position_id=int(append_position_local),
+                                init_theta=float(trial_theta),
                             )
-                        nfev_total += 1
-                        if probe_energy < best_probe_energy:
-                            best_probe_energy = float(probe_energy)
-                            best_probe_idx = int(idx)
-                            best_probe_theta = float(trial_theta)
+                            if adapt_state_backend_key == "compiled":
+                                trial_executor = fallback_executor_cache.get(int(idx))
+                                if trial_executor is None:
+                                    trial_executor = _build_compiled_executor(trial_ops)
+                                    fallback_executor_cache[int(idx)] = trial_executor
+                                psi_trial = trial_executor.prepare_state(trial_theta_vec, psi_ref)
+                                probe_energy, _ = energy_via_one_apply(psi_trial, h_compiled)
+                                probe_energy = float(probe_energy)
+                            else:
+                                probe_energy = _adapt_energy_fn(
+                                    h_poly,
+                                    psi_ref,
+                                    trial_ops,
+                                    trial_theta_vec,
+                                    h_compiled=h_compiled,
+                                )
+                            beam_nfev_total += 1
+                            if probe_energy < best_probe_energy:
+                                best_probe_energy = float(probe_energy)
+                                best_probe_idx = int(idx)
+                                best_probe_theta_value = float(trial_theta)
+                    fallback_best_probe_delta_e_local = float(best_probe_energy - energy_current_local)
+                    fallback_best_probe_theta_local = (
+                        None if best_probe_theta_value is None else float(best_probe_theta_value)
+                    )
+                    if (
+                        best_probe_idx is not None
+                        and (energy_current_local - best_probe_energy)
+                        > float(finite_angle_min_improvement)
+                    ):
+                        best_idx_local = int(best_probe_idx)
+                        selected_position_local = int(append_position_local)
+                        phase1_feature_selected_local = None
+                        phase1_last_selected_score_local = None
+                        phase2_last_shortlist_records_local = []
+                        phase2_last_shortlist_eval_records_local = []
+                        selection_mode_local = "finite_angle_fallback"
+                        candidate_plans = [
+                            _BranchExpansionPlan(
+                                candidate_pool_index=int(best_idx_local),
+                                position_id=int(selected_position_local),
+                                selection_mode=str(selection_mode_local),
+                                candidate_label=str(pool[int(best_idx_local)].label),
+                                candidate_term=pool[int(best_idx_local)],
+                                feature_row=None,
+                                init_theta=float(best_probe_theta_value),
+                            )
+                        ]
+                    else:
+                        return _BranchStepScratch(
+                            energy_current=energy_current_local,
+                            psi_current=np.asarray(psi_current_local, dtype=complex),
+                            hpsi_current=np.asarray(hpsi_current_local, dtype=complex),
+                            gradients=np.asarray(gradients_local, dtype=float),
+                            grad_magnitudes=np.asarray(grad_magnitudes_local, dtype=float),
+                            max_grad=float(max_grad_local),
+                            gradient_eval_elapsed_s=float(gradient_eval_elapsed_s_local),
+                            append_position=int(append_position_local),
+                            best_idx=int(best_idx_local),
+                            selected_position=int(selected_position_local),
+                            selection_mode="eps_grad",
+                            stage_name=str(stage_name_local),
+                            phase1_feature_selected=phase1_feature_selected_local,
+                            phase1_stage_transition_reason=str(phase1_stage_transition_reason_local),
+                            phase1_stage_now=str(phase1_stage_now_local),
+                            phase1_stage_after_transition=phase1_stage_local,
+                            phase1_last_probe_reason=str(phase1_last_probe_reason_local),
+                            phase1_last_positions_considered=list(phase1_last_positions_considered_local),
+                            phase1_last_trough_detected=bool(phase1_last_trough_detected_local),
+                            phase1_last_trough_probe_triggered=bool(phase1_last_trough_probe_triggered_local),
+                            phase1_last_selected_score=phase1_last_selected_score_local,
+                            phase2_last_shortlist_records=[dict(x) for x in phase2_last_shortlist_records_local],
+                            phase2_last_batch_selected=bool(phase2_last_batch_selected_local),
+                            phase2_last_batch_penalty_total=float(phase2_last_batch_penalty_total_local),
+                            phase2_last_optimizer_memory_reused=False,
+                            phase2_last_optimizer_memory_source="unavailable",
+                            phase2_last_shortlist_eval_records=[dict(x) for x in phase2_last_shortlist_eval_records_local],
+                            phase1_residual_opened=bool(phase1_residual_opened_local),
+                            available_indices_after_transition=set(available_indices_local),
+                            phase1_stage_events_after_transition=[dict(x) for x in phase1_stage_events_local],
+                            phase3_runtime_split_summary_after_eval=copy.deepcopy(phase3_runtime_split_summary_local),
+                            proposals=[],
+                            stop_reason="eps_grad",
+                            fallback_scan_size=int(fallback_scan_size_local),
+                            fallback_best_probe_delta_e=fallback_best_probe_delta_e_local,
+                            fallback_best_probe_theta=fallback_best_probe_theta_local,
+                        )
+                else:
+                    return _BranchStepScratch(
+                        energy_current=energy_current_local,
+                        psi_current=np.asarray(psi_current_local, dtype=complex),
+                        hpsi_current=np.asarray(hpsi_current_local, dtype=complex),
+                        gradients=np.asarray(gradients_local, dtype=float),
+                        grad_magnitudes=np.asarray(grad_magnitudes_local, dtype=float),
+                        max_grad=float(max_grad_local),
+                        gradient_eval_elapsed_s=float(gradient_eval_elapsed_s_local),
+                        append_position=int(append_position_local),
+                        best_idx=int(best_idx_local),
+                        selected_position=int(selected_position_local),
+                        selection_mode="eps_grad",
+                        stage_name=str(stage_name_local),
+                        phase1_feature_selected=phase1_feature_selected_local,
+                        phase1_stage_transition_reason=str(phase1_stage_transition_reason_local),
+                        phase1_stage_now=str(phase1_stage_now_local),
+                        phase1_stage_after_transition=phase1_stage_local,
+                        phase1_last_probe_reason=str(phase1_last_probe_reason_local),
+                        phase1_last_positions_considered=list(phase1_last_positions_considered_local),
+                        phase1_last_trough_detected=bool(phase1_last_trough_detected_local),
+                        phase1_last_trough_probe_triggered=bool(phase1_last_trough_probe_triggered_local),
+                        phase1_last_selected_score=phase1_last_selected_score_local,
+                        phase2_last_shortlist_records=[dict(x) for x in phase2_last_shortlist_records_local],
+                        phase2_last_batch_selected=bool(phase2_last_batch_selected_local),
+                        phase2_last_batch_penalty_total=float(phase2_last_batch_penalty_total_local),
+                        phase2_last_optimizer_memory_reused=False,
+                        phase2_last_optimizer_memory_source="unavailable",
+                        phase2_last_shortlist_eval_records=[dict(x) for x in phase2_last_shortlist_eval_records_local],
+                        phase1_residual_opened=bool(phase1_residual_opened_local),
+                        available_indices_after_transition=set(available_indices_local),
+                        phase1_stage_events_after_transition=[dict(x) for x in phase1_stage_events_local],
+                        phase3_runtime_split_summary_after_eval=copy.deepcopy(phase3_runtime_split_summary_local),
+                        proposals=[],
+                        stop_reason="eps_grad",
+                        fallback_scan_size=0,
+                        fallback_best_probe_delta_e=None,
+                        fallback_best_probe_theta=None,
+                    )
 
-                fallback_best_probe_delta_e = float(best_probe_energy - energy_current)
-                fallback_best_probe_theta = float(best_probe_theta) if best_probe_theta is not None else None
-                _ai_log(
-                    "hardcoded_adapt_fallback_scan",
-                    depth=int(depth + 1),
-                    scan_size=int(fallback_scan_size),
-                    finite_angle=float(finite_angle),
-                    best_probe_idx=(int(best_probe_idx) if best_probe_idx is not None else None),
-                    best_probe_op=(str(pool[best_probe_idx].label) if best_probe_idx is not None else None),
-                    best_probe_delta_e=float(fallback_best_probe_delta_e),
+            return _BranchStepScratch(
+                energy_current=energy_current_local,
+                psi_current=np.asarray(psi_current_local, dtype=complex),
+                hpsi_current=np.asarray(hpsi_current_local, dtype=complex),
+                gradients=np.asarray(gradients_local, dtype=float),
+                grad_magnitudes=np.asarray(grad_magnitudes_local, dtype=float),
+                max_grad=float(max_grad_local),
+                gradient_eval_elapsed_s=float(gradient_eval_elapsed_s_local),
+                append_position=int(append_position_local),
+                best_idx=int(best_idx_local),
+                selected_position=int(selected_position_local),
+                selection_mode=str(selection_mode_local),
+                stage_name=str(stage_name_local),
+                phase1_feature_selected=(
+                    None if phase1_feature_selected_local is None else dict(phase1_feature_selected_local)
+                ),
+                phase1_stage_transition_reason=str(phase1_stage_transition_reason_local),
+                phase1_stage_now=str(phase1_stage_now_local),
+                phase1_stage_after_transition=phase1_stage_local,
+                phase1_last_probe_reason=str(phase1_last_probe_reason_local),
+                phase1_last_positions_considered=list(phase1_last_positions_considered_local),
+                phase1_last_trough_detected=bool(phase1_last_trough_detected_local),
+                phase1_last_trough_probe_triggered=bool(phase1_last_trough_probe_triggered_local),
+                phase1_last_selected_score=phase1_last_selected_score_local,
+                phase2_last_shortlist_records=[dict(x) for x in phase2_last_shortlist_records_local],
+                phase2_last_batch_selected=bool(phase2_last_batch_selected_local),
+                phase2_last_batch_penalty_total=float(phase2_last_batch_penalty_total_local),
+                phase2_last_optimizer_memory_reused=False,
+                phase2_last_optimizer_memory_source="unavailable",
+                phase2_last_shortlist_eval_records=[dict(x) for x in phase2_last_shortlist_eval_records_local],
+                phase1_residual_opened=bool(phase1_residual_opened_local),
+                available_indices_after_transition=set(available_indices_local),
+                phase1_stage_events_after_transition=[dict(x) for x in phase1_stage_events_local],
+                phase3_runtime_split_summary_after_eval=copy.deepcopy(phase3_runtime_split_summary_local),
+                proposals=list(candidate_plans),
+                stop_reason=None,
+                fallback_scan_size=int(fallback_scan_size_local),
+                fallback_best_probe_delta_e=fallback_best_probe_delta_e_local,
+                fallback_best_probe_theta=fallback_best_probe_theta_local,
+            )
+
+        def _materialize_beam_child(
+            base_branch: _BeamBranchState,
+            scratch: _BranchStepScratch,
+            plan: _BranchExpansionPlan,
+            *,
+            depth: int,
+            branch_id: int,
+        ) -> _BeamBranchState:
+            nonlocal beam_nfev_total
+
+            child = _beam_clone_branch(
+                base_branch,
+                branch_id=int(branch_id),
+                parent_branch_id=int(base_branch.branch_id),
+            )
+            best_idx_local = int(plan.candidate_pool_index)
+            selected_position_local = int(plan.position_id)
+            selection_mode_local = str(plan.selection_mode)
+            phase1_feature_selected_local = (
+                None if plan.feature_row is None else dict(plan.feature_row)
+            )
+            selected_primary_term = plan.candidate_term
+
+            child_layout_before = _build_selected_layout(list(child.selected_ops))
+            admitted_layout = _build_selected_layout([selected_primary_term])
+            runtime_insert_pos_local = int(
+                runtime_insert_position(child_layout_before, int(selected_position_local))
+            )
+            if phase2_enabled:
+                child.phase2_optimizer_memory = phase2_memory_adapter.remap_insert(
+                    child.phase2_optimizer_memory,
+                    position_id=int(runtime_insert_pos_local),
+                    count=int(admitted_layout.runtime_parameter_count),
+                )
+            child.selected_ops, child.theta = _splice_candidate_at_position(
+                ops=list(child.selected_ops),
+                theta=np.asarray(child.theta, dtype=float),
+                op=selected_primary_term,
+                position_id=int(selected_position_local),
+                init_theta=float(plan.init_theta),
+            )
+            child.selection_counts[int(best_idx_local)] += 1
+            if not allow_repeats:
+                child.available_indices.discard(int(best_idx_local))
+            if (
+                phase3_enabled
+                and isinstance(phase1_feature_selected_local, Mapping)
+                and str(phase1_feature_selected_local.get("runtime_split_mode", "off")) != "off"
+                and phase1_feature_selected_local.get("parent_generator_id") is not None
+                and phase1_feature_selected_local.get("generator_id") is not None
+            ):
+                child.phase3_split_events.append(
+                    build_split_event(
+                        parent_generator_id=str(phase1_feature_selected_local.get("parent_generator_id")),
+                        child_generator_ids=[str(phase1_feature_selected_local.get("generator_id"))],
+                        reason=f"depth{int(depth + 1)}_selected",
+                        split_mode=str(phase1_feature_selected_local.get("runtime_split_mode")),
+                    )
+                )
+                child.phase3_runtime_split_summary["selected_child_count"] = int(
+                    child.phase3_runtime_split_summary.get("selected_child_count", 0)
+                ) + 1
+                child.phase3_runtime_split_summary["selected_child_labels"] = [
+                    *list(child.phase3_runtime_split_summary.get("selected_child_labels", [])),
+                    str(selected_primary_term.label),
+                ]
+
+            energy_prev_local = float(scratch.energy_current)
+            theta_before_opt_local = np.array(child.theta, copy=True)
+            optimizer_t0_local = time.perf_counter()
+            executor_local = _get_beam_executor(child.selected_ops)
+            child_layout_after = _build_selected_layout(child.selected_ops)
+
+            def _obj_child(x: np.ndarray) -> float:
+                return _evaluate_selected_energy_objective(
+                    ops_now=list(child.selected_ops),
+                    theta_now=np.asarray(x, dtype=float),
+                    executor_now=executor_local,
+                    parameter_layout_now=child_layout_after,
+                    objective_stage="beam_local_reopt",
+                    depth_marker=int(depth + 1),
                 )
 
-                if (
-                    best_probe_idx is not None
-                    and (energy_current - best_probe_energy) > float(finite_angle_min_improvement)
-                ):
-                    best_idx = int(best_probe_idx)
-                    selected_position = int(append_position)
-                    phase1_feature_selected = None
-                    phase2_selected_records = []
-                    phase1_last_selected_score = None
-                    phase1_last_positions_considered = [int(append_position)]
-                    selection_mode = "finite_angle_fallback"
-                    init_theta = float(best_probe_theta)
+            theta_logical_child = _logical_theta_alias(
+                np.asarray(child.theta, dtype=float),
+                child_layout_after,
+            )
+            n_theta_local = int(theta_logical_child.size)
+            depth_local = int(depth + 1)
+            depth_cumulative_local = int(adapt_ref_base_depth) + int(depth_local)
+            periodic_full_refit_triggered_local = bool(
+                adapt_reopt_policy_key == "windowed"
+                and adapt_full_refit_every_val > 0
+                and depth_cumulative_local % adapt_full_refit_every_val == 0
+            )
+            reopt_active_indices_local, reopt_policy_effective_local = _resolve_reopt_active_indices(
+                policy=adapt_reopt_policy_key,
+                n=n_theta_local,
+                theta=np.asarray(theta_logical_child, dtype=float),
+                window_size=adapt_window_size_val,
+                window_topk=adapt_window_topk_val,
+                periodic_full_refit_triggered=periodic_full_refit_triggered_local,
+            )
+            reopt_runtime_active_indices_local = runtime_indices_for_logical_indices(
+                child_layout_after,
+                reopt_active_indices_local,
+            )
+            inherited_reopt_indices_local = [
+                int(i)
+                for i in reopt_active_indices_local
+                if int(i) != int(selected_position_local)
+            ]
+            if isinstance(phase1_feature_selected_local, dict):
+                phase1_feature_selected_local["refit_window_indices"] = [
+                    int(i) for i in inherited_reopt_indices_local
+                ]
+            _obj_opt_local, opt_x0_local = _make_reduced_objective(
+                np.asarray(child.theta, dtype=float),
+                reopt_runtime_active_indices_local,
+                _obj_child,
+            )
+            phase2_active_memory_local = None
+            if phase2_enabled and adapt_inner_optimizer_key == "SPSA":
+                phase2_active_memory_local = phase2_memory_adapter.select_active(
+                    child.phase2_optimizer_memory,
+                    active_indices=list(reopt_runtime_active_indices_local),
+                    source=f"beam.depth{int(depth + 1)}.opt_active",
+                )
+                child.phase2_last_optimizer_memory_reused = bool(
+                    phase2_active_memory_local.get("reused", False)
+                )
+                child.phase2_last_optimizer_memory_source = str(
+                    phase2_active_memory_local.get("source", "unavailable")
+                )
+            else:
+                child.phase2_last_optimizer_memory_reused = False
+                child.phase2_last_optimizer_memory_source = "unavailable"
+
+            if adapt_inner_optimizer_key == "SPSA":
+                local_last_hb_t = optimizer_t0_local
+
+                def _beam_local_spsa_callback(ev: dict[str, Any]) -> None:
+                    nonlocal local_last_hb_t
+                    now = time.perf_counter()
+                    if (now - local_last_hb_t) < float(adapt_spsa_progress_every_s):
+                        return
+                    local_best = float(ev.get("best_fun", float("nan")))
                     _ai_log(
-                        "hardcoded_adapt_fallback_selected",
+                        "hardcoded_adapt_spsa_heartbeat",
+                        stage="beam_local_reopt",
                         depth=int(depth + 1),
-                        selected_idx=int(best_idx),
-                        selected_op=str(pool[best_idx].label),
-                        init_theta=float(init_theta),
-                        probe_delta_e=float(fallback_best_probe_delta_e),
+                        branch_id=int(child.branch_id),
+                        parent_branch_id=(
+                            None
+                            if child.parent_branch_id is None
+                            else int(child.parent_branch_id)
+                        ),
+                        selected_position=int(selected_position_local),
+                        selected_label=str(selected_primary_term.label),
+                        iter=int(ev.get("iter", 0)),
+                        nfev_opt_so_far=int(ev.get("nfev_so_far", 0)),
+                        best_fun=local_best,
+                        delta_abs_best=(
+                            float(abs(local_best - exact_gs)) if math.isfinite(local_best) else None
+                        ),
+                        elapsed_opt_s=float(now - optimizer_t0_local),
+                    )
+                    local_last_hb_t = now
+
+                result_local = spsa_minimize(
+                    fun=_obj_opt_local,
+                    x0=opt_x0_local,
+                    maxiter=int(maxiter),
+                    seed=_branch_optimizer_seed(
+                        base_seed=int(seed),
+                        stage_tag="local_reopt",
+                        depth_local=int(depth_local),
+                        parent_state_fingerprint=_branch_state_fingerprint(base_branch),
+                        proposal_fingerprint=_proposal_fingerprint(parent=base_branch, plan=plan),
+                    ),
+                    a=float(adapt_spsa_a),
+                    c=float(adapt_spsa_c),
+                    alpha=float(adapt_spsa_alpha),
+                    gamma=float(adapt_spsa_gamma),
+                    A=float(adapt_spsa_A),
+                    bounds=None,
+                    project="none",
+                    eval_repeats=int(adapt_spsa_eval_repeats),
+                    eval_agg=str(adapt_spsa_eval_agg_key),
+                    avg_last=int(adapt_spsa_avg_last),
+                    callback=_beam_local_spsa_callback,
+                    callback_every=int(adapt_spsa_callback_every),
+                    memory=(dict(phase2_active_memory_local) if isinstance(phase2_active_memory_local, Mapping) else None),
+                    refresh_every=0,
+                    precondition_mode=("diag_rms_grad" if phase2_enabled else "none"),
+                )
+                if len(reopt_active_indices_local) == n_theta_local:
+                    child.theta = np.asarray(result_local.x, dtype=float)
+                else:
+                    result_x_local = np.asarray(result_local.x, dtype=float).ravel()
+                    for k, idx in enumerate(reopt_active_indices_local):
+                        child.theta[int(idx)] = float(result_x_local[int(k)])
+                child.energy_current = float(result_local.fun)
+                nfev_opt_local = int(result_local.nfev)
+                nit_opt_local = int(result_local.nit)
+                opt_success_local = bool(result_local.success)
+                opt_message_local = str(result_local.message)
+                if phase2_enabled:
+                    child.phase2_optimizer_memory = phase2_memory_adapter.merge_active(
+                        child.phase2_optimizer_memory,
+                        active_indices=list(reopt_active_indices_local),
+                        active_state=phase2_memory_adapter.from_result(
+                            result_local,
+                            method=str(adapt_inner_optimizer_key),
+                            parameter_count=int(len(reopt_active_indices_local)),
+                            source=f"beam.depth{int(depth + 1)}.spsa_result",
+                        ),
+                        source=f"beam.depth{int(depth + 1)}.merge",
+                    )
+            else:
+                result_local = _run_scipy_adapt_optimizer(
+                    method_key=str(adapt_inner_optimizer_key),
+                    objective=_obj_opt_local,
+                    x0=opt_x0_local,
+                    maxiter=int(maxiter),
+                    context_label="ADAPT inner optimizer",
+                    scipy_minimize_fn=scipy_minimize,
+                )
+                if len(reopt_active_indices_local) == n_theta_local:
+                    child.theta = np.asarray(result_local.x, dtype=float)
+                else:
+                    result_x_local = np.asarray(result_local.x, dtype=float).ravel()
+                    for k, idx in enumerate(reopt_active_indices_local):
+                        child.theta[int(idx)] = float(result_x_local[int(k)])
+                child.energy_current = float(result_local.fun)
+                nfev_opt_local = int(getattr(result_local, "nfev", 0))
+                nit_opt_local = int(getattr(result_local, "nit", 0))
+                opt_success_local = bool(getattr(result_local, "success", False))
+                opt_message_local = str(getattr(result_local, "message", ""))
+                if phase2_enabled:
+                    child.phase2_optimizer_memory = phase2_memory_adapter.unavailable(
+                        method=str(adapt_inner_optimizer_key),
+                        parameter_count=int(child.theta.size),
+                        reason="non_spsa_depth_opt",
+                    )
+
+            depth_rollback_local = False
+            if float(child.energy_current) > float(energy_prev_local):
+                child.theta = np.array(theta_before_opt_local, copy=True)
+                child.energy_current = float(energy_prev_local)
+                depth_rollback_local = True
+
+            optimizer_elapsed_s_local = float(time.perf_counter() - optimizer_t0_local)
+            beam_nfev_total += int(nfev_opt_local)
+            child.nfev_total_local += int(nfev_opt_local)
+            delta_abs_prev_local = float(child.drop_prev_delta_abs)
+            delta_abs_current_local = float(abs(float(child.energy_current) - float(exact_gs)))
+            delta_abs_drop_local = float(delta_abs_prev_local - delta_abs_current_local)
+            child.drop_prev_delta_abs = float(delta_abs_current_local)
+            eps_energy_step_abs_local = float(abs(float(child.energy_current) - float(energy_prev_local)))
+            eps_energy_low_step_local = bool(eps_energy_step_abs_local < float(eps_energy))
+            eps_energy_gate_open_local = bool(
+                int(depth_local) >= int(eps_energy_min_extra_depth_effective)
+            )
+            if eps_energy_gate_open_local:
+                if eps_energy_low_step_local:
+                    child.eps_energy_low_streak += 1
+                else:
+                    child.eps_energy_low_streak = 0
+            else:
+                child.eps_energy_low_streak = 0
+            eps_energy_termination_condition_local = bool(eps_energy_gate_open_local) and (
+                int(child.eps_energy_low_streak) >= int(eps_energy_patience_effective)
+            )
+            drop_low_signal_local = None
+            drop_low_grad_local = None
+            if drop_policy_enabled and int(depth_local) >= int(adapt_drop_min_depth):
+                drop_low_signal_local = bool(delta_abs_drop_local < float(adapt_drop_floor))
+                if float(adapt_grad_floor) >= 0.0:
+                    drop_low_grad_local = bool(
+                        float(scratch.max_grad) < float(adapt_grad_floor)
                     )
                 else:
-                    eps_grad_probe_allowed = bool(phase1_enabled and str(stage_name) != "residual")
-                    eps_grad_trough = bool(phase1_last_trough_detected and int(selected_position) != int(append_position))
-                    if eps_grad_probe_allowed and (not eps_grad_trough):
-                        probe_positions_eps = allowed_positions(
-                            n_params=int(theta.size),
-                            append_position=int(append_position),
-                            active_window_indices=[int(i) for i in current_active_window_for_probe],
-                            max_positions=int(phase1_stage_cfg.max_probe_positions),
+                    drop_low_grad_local = True
+                if bool(drop_low_signal_local):
+                    child.drop_plateau_hits += 1
+                else:
+                    child.drop_plateau_hits = 0
+
+            selected_grad_signed_value_local = (
+                float(phase1_feature_selected_local.get("g_signed"))
+                if isinstance(phase1_feature_selected_local, dict)
+                and phase1_feature_selected_local.get("g_signed") is not None
+                else float(scratch.gradients[int(best_idx_local)])
+            )
+            selected_grad_abs_value_local = (
+                float(phase1_feature_selected_local.get("g_abs"))
+                if isinstance(phase1_feature_selected_local, dict)
+                and phase1_feature_selected_local.get("g_abs") is not None
+                else float(scratch.grad_magnitudes[int(best_idx_local)])
+            )
+            history_row_local = {
+                "depth": int(depth + 1),
+                "selected_op": str(selected_primary_term.label),
+                "selected_logical_op": str(selected_primary_term.label),
+                "selected_logical_size": 1,
+                "selected_logical_pool_indices": [int(best_idx_local)],
+                "pool_index": int(best_idx_local),
+                "selected_ops": [str(selected_primary_term.label)],
+                "selected_pool_indices": [int(best_idx_local)],
+                "selection_mode": str(selection_mode_local),
+                "init_theta": float(plan.init_theta),
+                "init_theta_values": [float(plan.init_theta)],
+                "max_grad": float(scratch.max_grad),
+                "selected_grad_signed": float(selected_grad_signed_value_local),
+                "selected_grad_abs": float(selected_grad_abs_value_local),
+                "selected_logical_grad_abs": float(selected_grad_abs_value_local),
+                "selected_grad_signed_components": [float(selected_grad_signed_value_local)],
+                "selected_grad_abs_components": [float(selected_grad_abs_value_local)],
+                "parameterization": "single_term",
+                "fallback_scan_size": int(scratch.fallback_scan_size),
+                "fallback_best_probe_delta_e": (
+                    None if scratch.fallback_best_probe_delta_e is None else float(scratch.fallback_best_probe_delta_e)
+                ),
+                "fallback_best_probe_theta": (
+                    None if scratch.fallback_best_probe_theta is None else float(scratch.fallback_best_probe_theta)
+                ),
+                "fallback_best_probe_theta_values": (
+                    None
+                    if scratch.fallback_best_probe_theta is None
+                    else [float(scratch.fallback_best_probe_theta)]
+                ),
+                "energy_before_opt": float(energy_prev_local),
+                "energy_after_opt": float(child.energy_current),
+                "delta_energy": float(child.energy_current - energy_prev_local),
+                "delta_abs_prev": float(delta_abs_prev_local),
+                "delta_abs_current": float(delta_abs_current_local),
+                "delta_abs_drop_from_prev": float(delta_abs_drop_local),
+                "opt_method": str(adapt_inner_optimizer_key),
+                "reopt_policy": str(adapt_reopt_policy_key),
+                "nfev_opt": int(nfev_opt_local),
+                "nit_opt": int(nit_opt_local),
+                "opt_success": bool(opt_success_local),
+                "opt_message": str(opt_message_local),
+                "gradient_eval_elapsed_s": float(scratch.gradient_eval_elapsed_s),
+                "optimizer_elapsed_s": float(optimizer_elapsed_s_local),
+                "iter_elapsed_s": float(time.perf_counter() - optimizer_t0_local) + float(scratch.gradient_eval_elapsed_s),
+                "drop_policy_enabled": bool(drop_policy_enabled),
+                "drop_policy_source": str(stop_policy.drop_policy_source),
+                "adapt_drop_floor_resolved": float(adapt_drop_floor),
+                "adapt_drop_patience_resolved": int(adapt_drop_patience),
+                "adapt_drop_min_depth_resolved": int(adapt_drop_min_depth),
+                "adapt_grad_floor_resolved": float(adapt_grad_floor),
+                "adapt_drop_floor_source": str(stop_policy.adapt_drop_floor_source),
+                "adapt_drop_patience_source": str(stop_policy.adapt_drop_patience_source),
+                "adapt_drop_min_depth_source": str(stop_policy.adapt_drop_min_depth_source),
+                "adapt_grad_floor_source": str(stop_policy.adapt_grad_floor_source),
+                "drop_low_signal": drop_low_signal_local,
+                "drop_low_grad": drop_low_grad_local,
+                "drop_plateau_hits": int(child.drop_plateau_hits),
+                "depth_rollback": bool(depth_rollback_local),
+                "depth_cumulative": int(depth_cumulative_local),
+                "adapt_ref_base_depth": int(adapt_ref_base_depth),
+                "eps_energy_step_abs": float(eps_energy_step_abs_local),
+                "eps_energy_low_step": bool(eps_energy_low_step_local),
+                "eps_energy_low_streak": int(child.eps_energy_low_streak),
+                "eps_energy_gate_open": bool(eps_energy_gate_open_local),
+                "eps_energy_min_extra_depth_effective": int(eps_energy_min_extra_depth_effective),
+                "eps_energy_patience_effective": int(eps_energy_patience_effective),
+                "eps_energy_termination_enabled": bool(eps_energy_termination_enabled),
+                "eps_energy_termination_condition": bool(eps_energy_termination_condition_local),
+                "eps_grad_termination_enabled": bool(eps_grad_termination_enabled),
+                "eps_grad_threshold_hit": bool(float(scratch.max_grad) < float(eps_grad)),
+                "reopt_policy_effective": str(reopt_policy_effective_local),
+                "reopt_active_indices": [int(i) for i in reopt_active_indices_local],
+                "reopt_active_count": int(len(reopt_active_indices_local)),
+                "reopt_periodic_full_refit_triggered": bool(periodic_full_refit_triggered_local),
+                "continuation_mode": str(continuation_mode),
+                "candidate_family": str(
+                    pool_family_ids[int(best_idx_local)]
+                    if int(best_idx_local) < len(pool_family_ids)
+                    else "legacy"
+                ),
+                "stage_name": str(scratch.stage_name),
+                "stage_transition_reason": str(scratch.phase1_stage_transition_reason),
+                "selected_position": int(selected_position_local),
+                "selected_positions": [int(selected_position_local)],
+                "batch_selected": False,
+                "batch_size": 1,
+                "positions_considered": [int(x) for x in scratch.phase1_last_positions_considered],
+                "score_version": (
+                    str(phase1_feature_selected_local.get("score_version"))
+                    if isinstance(phase1_feature_selected_local, dict)
+                    else None
+                ),
+                "simple_score": (
+                    float(phase1_feature_selected_local.get("simple_score"))
+                    if isinstance(phase1_feature_selected_local, dict)
+                    and phase1_feature_selected_local.get("simple_score") is not None
+                    else None
+                ),
+                "metric_proxy": (
+                    float(phase1_feature_selected_local.get("metric_proxy"))
+                    if isinstance(phase1_feature_selected_local, dict)
+                    else None
+                ),
+                "curvature_mode": (
+                    str(phase1_feature_selected_local.get("curvature_mode"))
+                    if isinstance(phase1_feature_selected_local, dict)
+                    else None
+                ),
+                "novelty_mode": (
+                    str(phase1_feature_selected_local.get("novelty_mode"))
+                    if isinstance(phase1_feature_selected_local, dict)
+                    else None
+                ),
+                "novelty": (
+                    phase1_feature_selected_local.get("novelty")
+                    if isinstance(phase1_feature_selected_local, dict)
+                    else None
+                ),
+                "g_lcb": (
+                    float(phase1_feature_selected_local.get("g_lcb"))
+                    if isinstance(phase1_feature_selected_local, dict)
+                    and phase1_feature_selected_local.get("g_lcb") is not None
+                    else None
+                ),
+                "F_raw": (
+                    float(phase1_feature_selected_local.get("F_raw"))
+                    if isinstance(phase1_feature_selected_local, dict)
+                    and phase1_feature_selected_local.get("F_raw") is not None
+                    else None
+                ),
+                "F_red": (
+                    float(phase1_feature_selected_local.get("F_red"))
+                    if isinstance(phase1_feature_selected_local, dict)
+                    and phase1_feature_selected_local.get("F_red") is not None
+                    else None
+                ),
+                "h_eff": (
+                    float(phase1_feature_selected_local.get("h_eff"))
+                    if isinstance(phase1_feature_selected_local, dict)
+                    and phase1_feature_selected_local.get("h_eff") is not None
+                    else None
+                ),
+                "ridge_used": (
+                    float(phase1_feature_selected_local.get("ridge_used"))
+                    if isinstance(phase1_feature_selected_local, dict)
+                    and phase1_feature_selected_local.get("ridge_used") is not None
+                    else None
+                ),
+                "family_repeat_cost": (
+                    float(phase1_feature_selected_local.get("family_repeat_cost", 0.0))
+                    if isinstance(phase1_feature_selected_local, dict)
+                    else None
+                ),
+                "refit_window_indices": [int(i) for i in reopt_active_indices_local],
+                "compile_cost_proxy": (
+                    dict(phase1_feature_selected_local.get("compiled_position_cost_proxy", {}))
+                    if isinstance(phase1_feature_selected_local, dict)
+                    else None
+                ),
+                "measurement_cache_stats": (
+                    dict(phase1_feature_selected_local.get("measurement_cache_stats", {}))
+                    if isinstance(phase1_feature_selected_local, dict)
+                    else None
+                ),
+                "actual_fallback_mode": (
+                    str(phase1_feature_selected_local.get("actual_fallback_mode"))
+                    if isinstance(phase1_feature_selected_local, dict)
+                    else None
+                ),
+                "trough_probe_triggered": bool(scratch.phase1_last_trough_probe_triggered),
+                "trough_detected": bool(scratch.phase1_last_trough_detected),
+                "full_v2_score": (
+                    float(phase1_feature_selected_local.get("full_v2_score"))
+                    if isinstance(phase1_feature_selected_local, dict)
+                    and phase1_feature_selected_local.get("full_v2_score") is not None
+                    else None
+                ),
+                "shortlist_size": int(len(child.phase2_last_shortlist_records)),
+                "shortlisted_records": [dict(x) for x in child.phase2_last_shortlist_records],
+                "compatibility_penalty_total": float(child.phase2_last_batch_penalty_total),
+                "optimizer_memory_reused": bool(child.phase2_last_optimizer_memory_reused),
+                "optimizer_memory_source": str(child.phase2_last_optimizer_memory_source),
+                "generator_id": (
+                    str(phase1_feature_selected_local.get("generator_id"))
+                    if isinstance(phase1_feature_selected_local, dict)
+                    and phase1_feature_selected_local.get("generator_id") is not None
+                    else None
+                ),
+                "template_id": (
+                    str(phase1_feature_selected_local.get("template_id"))
+                    if isinstance(phase1_feature_selected_local, dict)
+                    and phase1_feature_selected_local.get("template_id") is not None
+                    else None
+                ),
+                "is_macro_generator": (
+                    bool(phase1_feature_selected_local.get("is_macro_generator", False))
+                    if isinstance(phase1_feature_selected_local, dict)
+                    else None
+                ),
+                "parent_generator_id": (
+                    str(phase1_feature_selected_local.get("parent_generator_id"))
+                    if isinstance(phase1_feature_selected_local, dict)
+                    and phase1_feature_selected_local.get("parent_generator_id") is not None
+                    else None
+                ),
+                "symmetry_mode": (
+                    str(phase1_feature_selected_local.get("symmetry_mode"))
+                    if isinstance(phase1_feature_selected_local, dict)
+                    else None
+                ),
+                "symmetry_mitigation_mode": (
+                    str(phase1_feature_selected_local.get("symmetry_mitigation_mode"))
+                    if isinstance(phase1_feature_selected_local, dict)
+                    else str(phase3_symmetry_mitigation_mode_key)
+                ),
+                "symmetry_spec": (
+                    dict(phase1_feature_selected_local.get("symmetry_spec", {}))
+                    if isinstance(phase1_feature_selected_local, dict)
+                    else None
+                ),
+                "motif_bonus": (
+                    float(phase1_feature_selected_local.get("motif_bonus", 0.0))
+                    if isinstance(phase1_feature_selected_local, dict)
+                    else 0.0
+                ),
+                "motif_source": (
+                    str(phase1_feature_selected_local.get("motif_source"))
+                    if isinstance(phase1_feature_selected_local, dict)
+                    else None
+                ),
+                "motif_metadata": (
+                    dict(phase1_feature_selected_local.get("motif_metadata", {}))
+                    if isinstance(phase1_feature_selected_local, dict)
+                    and isinstance(phase1_feature_selected_local.get("motif_metadata"), Mapping)
+                    else None
+                ),
+                "runtime_split_mode": (
+                    str(phase1_feature_selected_local.get("runtime_split_mode", "off"))
+                    if isinstance(phase1_feature_selected_local, dict)
+                    else "off"
+                ),
+                "runtime_split_parent_label": (
+                    str(phase1_feature_selected_local.get("runtime_split_parent_label"))
+                    if isinstance(phase1_feature_selected_local, dict)
+                    and phase1_feature_selected_local.get("runtime_split_parent_label") is not None
+                    else None
+                ),
+                "runtime_split_child_index": (
+                    int(phase1_feature_selected_local.get("runtime_split_child_index"))
+                    if isinstance(phase1_feature_selected_local, dict)
+                    and phase1_feature_selected_local.get("runtime_split_child_index") is not None
+                    else None
+                ),
+                "runtime_split_child_count": (
+                    int(phase1_feature_selected_local.get("runtime_split_child_count"))
+                    if isinstance(phase1_feature_selected_local, dict)
+                    and phase1_feature_selected_local.get("runtime_split_child_count") is not None
+                    else None
+                ),
+                "lifetime_cost_mode": (
+                    str(phase1_feature_selected_local.get("lifetime_cost_mode"))
+                    if isinstance(phase1_feature_selected_local, dict)
+                    else str(phase3_lifetime_cost_mode_key)
+                ),
+                "remaining_evaluations_proxy_mode": (
+                    str(phase1_feature_selected_local.get("remaining_evaluations_proxy_mode"))
+                    if isinstance(phase1_feature_selected_local, dict)
+                    else None
+                ),
+                "remaining_evaluations_proxy": (
+                    float(phase1_feature_selected_local.get("remaining_evaluations_proxy", 0.0))
+                    if isinstance(phase1_feature_selected_local, dict)
+                    else 0.0
+                ),
+                "lifetime_weight_components": (
+                    dict(phase1_feature_selected_local.get("lifetime_weight_components", {}))
+                    if isinstance(phase1_feature_selected_local, dict)
+                    else None
+                ),
+            }
+            if adapt_inner_optimizer_key == "SPSA":
+                history_row_local["spsa_params"] = dict(adapt_spsa_params)
+            child.history.append(history_row_local)
+            if isinstance(phase1_feature_selected_local, dict):
+                child.phase1_features_history.append(dict(phase1_feature_selected_local))
+            child.phase1_measure_cache.commit([str(selected_primary_term.label)])
+
+            if (
+                drop_policy_enabled
+                and int(depth_local) >= int(adapt_drop_min_depth)
+                and int(child.drop_plateau_hits) >= int(adapt_drop_patience)
+            ):
+                if (not child.phase1_residual_opened) and len(phase1_residual_indices) > 0:
+                    child.phase1_residual_opened = True
+                    child.available_indices |= set(int(i) for i in phase1_residual_indices)
+                    child.phase1_stage.resolve_stage_transition(
+                        drop_plateau_hits=int(child.drop_plateau_hits),
+                        trough_detected=bool(child.phase1_last_trough_detected),
+                        residual_opened=True,
+                    )
+                    child.drop_plateau_hits = 0
+                    child.phase1_stage_events.append(
+                        {
+                            "depth": int(depth_local),
+                            "stage_name": "residual",
+                            "reason": "drop_plateau_open",
+                        }
+                    )
+                else:
+                    child.terminated = True
+                    child.stop_reason = "drop_plateau"
+            if (not child.terminated) and bool(eps_energy_termination_condition_local) and bool(
+                eps_energy_termination_enabled
+            ):
+                child.terminated = True
+                child.stop_reason = "eps_energy"
+            if (not child.terminated) and (not allow_repeats) and (not child.available_indices):
+                child.terminated = True
+                child.stop_reason = "pool_exhausted"
+            if not child.terminated:
+                child.stop_reason = None
+            child.depth_local = int(depth_local)
+            return child
+
+        if bool(beam_policy.beam_enabled):
+            root_branch = _BeamBranchState(
+                branch_id=0,
+                parent_branch_id=None,
+                depth_local=0,
+                terminated=False,
+                stop_reason=None,
+                selected_ops=list(selected_ops),
+                theta=np.asarray(theta, dtype=float).copy(),
+                energy_current=float(energy_current),
+                available_indices=set(int(x) for x in available_indices),
+                selection_counts=np.asarray(selection_counts, dtype=np.int64).copy(),
+                history=[dict(x) for x in history],
+                phase1_stage=phase1_stage.clone(),
+                phase1_residual_opened=bool(phase1_residual_opened),
+                phase1_last_probe_reason=str(phase1_last_probe_reason),
+                phase1_last_positions_considered=[int(x) for x in phase1_last_positions_considered],
+                phase1_last_trough_detected=bool(phase1_last_trough_detected),
+                phase1_last_trough_probe_triggered=bool(phase1_last_trough_probe_triggered),
+                phase1_last_selected_score=phase1_last_selected_score,
+                phase1_features_history=[dict(x) for x in phase1_features_history],
+                phase1_stage_events=[dict(x) for x in phase1_stage_events],
+                phase1_measure_cache=phase1_measure_cache.clone(),
+                phase2_optimizer_memory=copy.deepcopy(phase2_optimizer_memory),
+                phase2_last_shortlist_records=[dict(x) for x in phase2_last_shortlist_records],
+                phase2_last_batch_selected=bool(phase2_last_batch_selected),
+                phase2_last_batch_penalty_total=float(phase2_last_batch_penalty_total),
+                phase2_last_optimizer_memory_reused=bool(phase2_last_optimizer_memory_reused),
+                phase2_last_optimizer_memory_source=str(phase2_last_optimizer_memory_source),
+                phase2_last_shortlist_eval_records=[dict(x) for x in phase2_last_shortlist_eval_records],
+                drop_prev_delta_abs=float(drop_prev_delta_abs),
+                drop_plateau_hits=int(drop_plateau_hits),
+                eps_energy_low_streak=int(eps_energy_low_streak),
+                phase3_split_events=[dict(x) for x in phase3_split_events],
+                phase3_runtime_split_summary=copy.deepcopy(phase3_runtime_split_summary),
+                phase3_motif_usage=copy.deepcopy(phase3_motif_usage),
+                phase3_rescue_history=[dict(x) for x in phase3_rescue_history],
+                nfev_total_local=int(nfev_total),
+            )
+            frontier: list[_BeamBranchState] = [root_branch]
+            terminals: list[_BeamBranchState] = []
+            for depth in range(int(max_depth)):
+                if not frontier:
+                    break
+                child_frontier: list[_BeamBranchState] = []
+                round_terminals: list[_BeamBranchState] = []
+                parents_expanded_count = 0
+                proposals_selected_count = 0
+                frontier_input_count = int(len(frontier))
+                for parent in frontier:
+                    parents_expanded_count += 1
+                    scratch = _evaluate_beam_branch(
+                        parent,
+                        depth=int(depth),
+                        children_cap=int(beam_policy.children_per_parent_effective),
+                    )
+                    base_branch = _beam_clone_branch(
+                        parent,
+                        branch_id=int(parent.branch_id),
+                        parent_branch_id=parent.parent_branch_id,
+                    )
+                    base_branch.energy_current = float(scratch.energy_current)
+                    base_branch.available_indices = set(
+                        int(x) for x in scratch.available_indices_after_transition
+                    )
+                    base_branch.phase1_stage = scratch.phase1_stage_after_transition.clone()
+                    base_branch.phase1_residual_opened = bool(scratch.phase1_residual_opened)
+                    base_branch.phase1_stage_events = [
+                        dict(x) for x in scratch.phase1_stage_events_after_transition
+                    ]
+                    base_branch.phase1_last_probe_reason = str(scratch.phase1_last_probe_reason)
+                    base_branch.phase1_last_positions_considered = [
+                        int(x) for x in scratch.phase1_last_positions_considered
+                    ]
+                    base_branch.phase1_last_trough_detected = bool(
+                        scratch.phase1_last_trough_detected
+                    )
+                    base_branch.phase1_last_trough_probe_triggered = bool(
+                        scratch.phase1_last_trough_probe_triggered
+                    )
+                    base_branch.phase1_last_selected_score = scratch.phase1_last_selected_score
+                    base_branch.phase2_last_shortlist_records = [
+                        dict(x) for x in scratch.phase2_last_shortlist_records
+                    ]
+                    base_branch.phase2_last_batch_selected = bool(
+                        scratch.phase2_last_batch_selected
+                    )
+                    base_branch.phase2_last_batch_penalty_total = float(
+                        scratch.phase2_last_batch_penalty_total
+                    )
+                    base_branch.phase2_last_optimizer_memory_reused = bool(
+                        scratch.phase2_last_optimizer_memory_reused
+                    )
+                    base_branch.phase2_last_optimizer_memory_source = str(
+                        scratch.phase2_last_optimizer_memory_source
+                    )
+                    base_branch.phase2_last_shortlist_eval_records = [
+                        dict(x) for x in scratch.phase2_last_shortlist_eval_records
+                    ]
+                    base_branch.phase3_runtime_split_summary = copy.deepcopy(
+                        scratch.phase3_runtime_split_summary_after_eval
+                    )
+                    if scratch.stop_reason is not None or not scratch.proposals:
+                        base_branch.terminated = True
+                        base_branch.stop_reason = (
+                            str(scratch.stop_reason)
+                            if scratch.stop_reason is not None
+                            else "eps_grad"
                         )
-                        probe_eval_eps = _evaluate_phase1_positions(
-                            [int(x) for x in probe_positions_eps],
-                            trough_probe_triggered_local=True,
+                        round_terminals.append(base_branch)
+                        continue
+                    selected_plans = scratch.proposals[
+                        : int(max(1, beam_policy.children_per_parent_effective))
+                    ]
+                    proposals_selected_count += int(len(selected_plans))
+                    for plan in selected_plans:
+                        child = _materialize_beam_child(
+                            base_branch,
+                            scratch,
+                            plan,
+                            depth=int(depth),
+                            branch_id=int(beam_branch_counter),
                         )
-                        eps_grad_trough = detect_trough(
-                            append_score=float(probe_eval_eps["append_best_score"]),
-                            best_non_append_score=float(probe_eval_eps["best_non_append_score"]),
-                            best_non_append_g_lcb=float(probe_eval_eps["best_non_append_g_lcb"]),
-                            margin_ratio=float(phase1_stage_cfg.probe_margin_ratio),
-                            append_admit_threshold=float(phase1_stage_cfg.append_admit_threshold),
+                        beam_branch_counter += 1
+                        if child.terminated:
+                            round_terminals.append(child)
+                        else:
+                            child_frontier.append(child)
+                frontier_unique = _beam_dedup(child_frontier)
+                terminal_candidates = [*terminals, *round_terminals]
+                terminal_unique = _beam_dedup(terminal_candidates)
+                terminals = _beam_prune(
+                    terminal_candidates,
+                    cap=int(beam_policy.terminated_keep_effective),
+                )
+                frontier = _beam_prune(
+                    child_frontier,
+                    cap=int(beam_policy.live_branches_effective),
+                )
+                beam_search_diagnostics["rounds"].append(
+                    {
+                        "depth": int(depth + 1),
+                        "frontier_input_count": int(frontier_input_count),
+                        "parents_expanded_count": int(parents_expanded_count),
+                        "proposals_selected_count": int(proposals_selected_count),
+                        "children_materialized_count": int(len(child_frontier) + len(round_terminals)),
+                        "active_children_raw_count": int(len(child_frontier)),
+                        "active_children_unique_count": int(len(frontier_unique)),
+                        "frontier_kept_count": int(len(frontier)),
+                        "round_terminals_raw_count": int(len(round_terminals)),
+                        "terminal_pool_candidate_count": int(len(terminal_candidates)),
+                        "terminal_pool_unique_count": int(len(terminal_unique)),
+                        "terminal_kept_count": int(len(terminals)),
+                    }
+                )
+            finalists = _beam_dedup([*frontier, *terminals])
+            if not finalists:
+                finalists = [root_branch]
+            for branch in finalists:
+                if branch.stop_reason is None:
+                    branch.stop_reason = "max_depth"
+            winner_branch = sorted(finalists, key=_beam_prune_key)[0]
+            beam_search_diagnostics.update(
+                {
+                    "frontier_final_count": int(len(frontier)),
+                    "terminal_final_count": int(len(terminals)),
+                    "finalist_count": int(len(finalists)),
+                    "winner_branch_id": int(winner_branch.branch_id),
+                    "winner_parent_branch_id": (
+                        None
+                        if winner_branch.parent_branch_id is None
+                        else int(winner_branch.parent_branch_id)
+                    ),
+                    "winner_stop_reason": str(winner_branch.stop_reason or "max_depth"),
+                }
+            )
+            selected_ops = list(winner_branch.selected_ops)
+            theta = np.asarray(winner_branch.theta, dtype=float).copy()
+            selected_layout = _build_selected_layout(selected_ops)
+            selected_executor = None
+            history = [dict(x) for x in winner_branch.history]
+            nfev_total = int(beam_nfev_total)
+            stop_reason = str(winner_branch.stop_reason or "max_depth")
+            available_indices = set(int(x) for x in winner_branch.available_indices)
+            selection_counts = np.asarray(winner_branch.selection_counts, dtype=np.int64).copy()
+            phase1_stage = winner_branch.phase1_stage.clone()
+            phase1_residual_opened = bool(winner_branch.phase1_residual_opened)
+            phase1_last_probe_reason = str(winner_branch.phase1_last_probe_reason)
+            phase1_last_positions_considered = [
+                int(x) for x in winner_branch.phase1_last_positions_considered
+            ]
+            phase1_last_trough_detected = bool(winner_branch.phase1_last_trough_detected)
+            phase1_last_trough_probe_triggered = bool(
+                winner_branch.phase1_last_trough_probe_triggered
+            )
+            phase1_last_selected_score = winner_branch.phase1_last_selected_score
+            phase1_features_history = [dict(x) for x in winner_branch.phase1_features_history]
+            phase1_stage_events = [dict(x) for x in winner_branch.phase1_stage_events]
+            phase1_measure_cache = winner_branch.phase1_measure_cache.clone()
+            phase2_optimizer_memory = copy.deepcopy(winner_branch.phase2_optimizer_memory)
+            phase2_last_shortlist_records = [
+                dict(x) for x in winner_branch.phase2_last_shortlist_records
+            ]
+            phase2_last_batch_selected = bool(winner_branch.phase2_last_batch_selected)
+            phase2_last_batch_penalty_total = float(
+                winner_branch.phase2_last_batch_penalty_total
+            )
+            phase2_last_optimizer_memory_reused = bool(
+                winner_branch.phase2_last_optimizer_memory_reused
+            )
+            phase2_last_optimizer_memory_source = str(
+                winner_branch.phase2_last_optimizer_memory_source
+            )
+            phase2_last_shortlist_eval_records = [
+                dict(x) for x in winner_branch.phase2_last_shortlist_eval_records
+            ]
+            energy_current = float(winner_branch.energy_current)
+            drop_prev_delta_abs = float(winner_branch.drop_prev_delta_abs)
+            drop_plateau_hits = int(winner_branch.drop_plateau_hits)
+            eps_energy_low_streak = int(winner_branch.eps_energy_low_streak)
+            phase3_split_events = [dict(x) for x in winner_branch.phase3_split_events]
+            phase3_runtime_split_summary = copy.deepcopy(
+                winner_branch.phase3_runtime_split_summary
+            )
+            phase3_motif_usage = copy.deepcopy(winner_branch.phase3_motif_usage)
+            phase3_rescue_history = [dict(x) for x in winner_branch.phase3_rescue_history]
+
+        for depth in ([] if bool(beam_policy.beam_enabled) else range(int(max_depth))):
+            iter_t0 = time.perf_counter()
+
+            # 1) Compute the current state
+            if adapt_state_backend_key == "compiled":
+                if len(selected_ops) == 0:
+                    psi_current = np.array(psi_ref, copy=True)
+                else:
+                    if selected_executor is None:
+                        selected_executor = _build_compiled_executor(selected_ops)
+                    psi_current = selected_executor.prepare_state(theta, psi_ref)
+            else:
+                psi_current = _prepare_adapt_state(psi_ref, selected_ops, theta, parameter_layout=selected_layout)
+            energy_current_exact_loop, hpsi_current = energy_via_one_apply(psi_current, h_compiled)
+            if not phase3_oracle_inner_objective_enabled:
+                energy_current = float(energy_current_exact_loop)
+            theta_logical_current = _logical_theta_alias(theta, selected_layout)
+            backend_compile_snapshot = (
+                backend_compile_oracle.snapshot_base(selected_ops)
+                if backend_compile_oracle is not None
+                else None
+            )
+            phase3_base_metric_cache: dict[str, float] = {}
+            phase3_sigma_by_label: dict[str, float] = {}
+
+            def _base_metric_for_candidate(
+                *,
+                candidate_label: str,
+                candidate_term: AnsatzTerm,
+                gradient_signed: float,
+                precompiled_action: Any | None = None,
+            ) -> float:
+                gradient_abs = float(abs(float(gradient_signed)))
+                if not phase3_enabled:
+                    return float(gradient_abs)
+                cache_key = str(candidate_label)
+                cached_value = phase3_base_metric_cache.get(cache_key)
+                if cached_value is not None:
+                    return float(cached_value)
+                if precompiled_action is not None and cache_key not in phase2_compiled_term_cache:
+                    phase2_compiled_term_cache[cache_key] = precompiled_action
+                try:
+                    metric_value = float(
+                        raw_f_metric_from_state(
+                            psi_state=np.asarray(psi_current, dtype=complex),
+                            candidate_label=cache_key,
+                            candidate_term=candidate_term,
+                            compiled_cache=phase2_compiled_term_cache,
+                            pauli_action_cache=pauli_action_cache,
                         )
-                        if bool(eps_grad_trough) and int(probe_eval_eps["best_position"]) != int(append_position):
-                            phase1_last_probe_reason = "eps_grad_flat"
-                            phase1_last_positions_considered = [int(x) for x in probe_positions_eps]
-                            phase1_last_trough_detected = True
-                            phase1_last_trough_probe_triggered = True
-                            phase1_last_selected_score = float(probe_eval_eps["best_score"])
-                            phase1_feature_selected = dict(probe_eval_eps["best_feat"] or {})
+                    )
+                except Exception as exc:
+                    raise RuntimeError(
+                        f"Failed to compute phase3 raw F metric for candidate '{cache_key}' at depth {int(depth + 1)}."
+                    ) from exc
+                phase3_base_metric_cache[cache_key] = float(metric_value)
+                return float(metric_value)
+
+            # 2) Compute candidate gradients for all pool operators
+            gradient_eval_t0 = time.perf_counter()
+            candidate_gradient_scout: list[dict[str, Any]] = []
+            gradients = np.zeros(len(pool), dtype=float)
+            grad_magnitudes = np.zeros(len(pool), dtype=float)
+            if phase3_oracle_gradient_enabled:
+                gradients, grad_magnitudes, phase3_sigma_by_label, candidate_gradient_scout, oracle_calls_now = (
+                    _phase3_oracle_gradient_scout(
+                        selected_ops_now=list(selected_ops),
+                        theta_now=np.asarray(theta, dtype=float),
+                        append_position_now=int(len(selected_ops)),
+                        available_indices_now=sorted(int(i) for i in available_indices),
+                    )
+                )
+                phase3_oracle_gradient_calls_total += int(oracle_calls_now)
+                phase3_last_candidate_gradient_scout = [dict(row) for row in candidate_gradient_scout]
+                phase3_last_max_gradient_stderr = float(
+                    max(
+                        (float(row.get("gradient_stderr", 0.0)) for row in candidate_gradient_scout),
+                        default=0.0,
+                    )
+                )
+            else:
+                for i in available_indices:
+                    apsi = _apply_compiled_polynomial(psi_current, pool_compiled[i])
+                    gradients[i] = adapt_commutator_grad_from_hpsi(hpsi_current, apsi)
+                    grad_magnitudes[i] = abs(float(gradients[i]))
+                if bool(adapt_gradient_parity_check) and available_indices:
+                    parity_idx = max(available_indices, key=lambda idx: grad_magnitudes[int(idx)])
+                    grad_old = _commutator_gradient(
+                        h_poly,
+                        pool[int(parity_idx)],
+                        psi_current,
+                        h_compiled=h_compiled,
+                        pool_compiled=pool_compiled[int(parity_idx)],
+                    )
+                    grad_new = float(gradients[int(parity_idx)])
+                    rel_err = abs(grad_new - grad_old) / max(abs(grad_new), abs(grad_old), 1e-15)
+                    if rel_err > float(_ADAPT_GRADIENT_PARITY_RTOL):
+                        raise AssertionError(
+                            "ADAPT gradient parity check failed: "
+                            f"depth={depth + 1}, idx={int(parity_idx)}, grad_new={grad_new:.16e}, "
+                            f"grad_old={float(grad_old):.16e}, rel_err={float(rel_err):.3e}, "
+                            f"rtol={_ADAPT_GRADIENT_PARITY_RTOL:.1e}"
+                        )
+            gradient_eval_elapsed_s = float(time.perf_counter() - gradient_eval_t0)
+            _ai_log(
+                "hardcoded_adapt_gradient_timing",
+                depth=int(depth + 1),
+                available_count=int(len(available_indices)),
+                gradient_eval_elapsed_s=float(gradient_eval_elapsed_s),
+                gradient_source=str(phase3_gradient_source_name),
+            )
+
+            # 2b) Select candidate (legacy argmax or phase1_v1 simple score).
+            selected_position = int(len(selected_ops))
+            stage_name = "legacy"
+            phase1_feature_selected: dict[str, Any] | None = None
+            phase1_stage_transition_reason = "legacy"
+            append_position = int(len(selected_ops))
+            phase1_append_best_score = float("-inf")
+            phase2_selected_records: list[dict[str, Any]] = []
+            phase2_last_shortlist_records = []
+            phase2_last_shortlist_eval_records = []
+            phase2_last_batch_selected = False
+            phase2_last_batch_penalty_total = 0.0
+            best_logical_idx: int | None = None
+            selected_logical_label: str | None = None
+            selected_logical_size = 1
+            selected_logical_pool_indices: list[int] = []
+            selected_grad_signed_components: list[float] = []
+            selected_grad_abs_components: list[float] = []
+            logical_grad_scores = (
+                np.zeros(len(logical_candidates), dtype=float)
+                if seq2p_logical_mode
+                else np.zeros(0, dtype=float)
+            )
+            logical_grad_signed_components_all: list[list[float]] = (
+                [[] for _ in logical_candidates]
+                if seq2p_logical_mode
+                else []
+            )
+            logical_grad_abs_components_all: list[list[float]] = (
+                [[] for _ in logical_candidates]
+                if seq2p_logical_mode
+                else []
+            )
+            if seq2p_logical_mode:
+                for logical_idx, logical_candidate in enumerate(logical_candidates):
+                    score, signed_components, abs_components = _logical_candidate_gradient_summary(
+                        logical_candidate,
+                        gradients,
+                    )
+                    logical_grad_scores[int(logical_idx)] = float(score)
+                    logical_grad_signed_components_all[int(logical_idx)] = [float(x) for x in signed_components]
+                    logical_grad_abs_components_all[int(logical_idx)] = [float(x) for x in abs_components]
+            if seq2p_logical_mode:
+                if logical_available_indices:
+                    max_grad = float(max(float(logical_grad_scores[i]) for i in logical_available_indices))
+                else:
+                    max_grad = 0.0
+            elif available_indices:
+                max_grad = float(max(float(grad_magnitudes[i]) for i in available_indices))
+            else:
+                max_grad = 0.0
+            if seq2p_logical_mode and (not allow_repeats) and len(logical_available_indices) == 0:
+                stop_reason = "pool_exhausted"
+                _ai_log(
+                    "hardcoded_adapt_pool_exhausted",
+                    depth=int(depth + 1),
+                    pool_type=str(pool_key),
+                    continuation_mode=str(continuation_mode),
+                )
+                break
+            if phase1_enabled and available_indices:
+                stage_name = str(phase1_stage.stage_name)
+                append_position = int(theta.size)
+                def _phase1_cap_key(pool_index: int) -> tuple[float, float, int]:
+                    sigma_hat_cap = _phase3_sigma_hat_for_label(
+                        candidate_label=str(pool[int(pool_index)].label),
+                        sigma_by_label=phase3_sigma_by_label,
+                        phase3_enabled=phase3_enabled,
+                    )
+                    g_lcb_cap = max(
+                        float(grad_magnitudes[int(pool_index)])
+                        - float(phase1_score_cfg.z_alpha) * float(sigma_hat_cap),
+                        0.0,
+                    )
+                    return (
+                        -float(g_lcb_cap),
+                        -float(grad_magnitudes[int(pool_index)]),
+                        int(pool_index),
+                    )
+
+                available_sorted = (
+                    sorted(list(available_indices), key=_phase1_cap_key)
+                    if phase3_enabled
+                    else sorted(list(available_indices), key=lambda i: -float(grad_magnitudes[i]))
+                )
+                shortlist = available_sorted[: min(len(available_sorted), int(phase1_shortlist_size_val))]
+                current_active_window_for_probe, _probe_window_name = _resolve_reopt_active_indices(
+                    policy=str(adapt_reopt_policy_key),
+                    n=int(max(1, append_position)),
+                    theta=(np.asarray(theta_logical_current, dtype=float) if append_position > 0 else np.zeros(1, dtype=float)),
+                    window_size=int(adapt_window_size_val),
+                    window_topk=int(adapt_window_topk_val),
+                    periodic_full_refit_triggered=False,
+                )
+                candidate_metric_cache: dict[int, float] = {}
+                family_repeat_cache: dict[str, float] = {}
+
+                def _cheap_selection_mode(
+                    feature_row: Mapping[str, Any] | None,
+                    *,
+                    probe: bool,
+                ) -> str:
+                    version = "simple_v1"
+                    if isinstance(feature_row, Mapping):
+                        version_raw = feature_row.get(
+                            "cheap_score_version",
+                            feature_row.get("score_version", "simple_v1"),
+                        )
+                        if version_raw not in {None, ""}:
+                            version = str(version_raw)
+                    return f"{version}_probe" if probe else str(version)
+
+                def _evaluate_phase1_positions(
+                    positions_considered_local: list[int],
+                    *,
+                    trough_probe_triggered_local: bool,
+                ) -> dict[str, Any]:
+                    best_score_local = float("-inf")
+                    best_idx_local = int(shortlist[0]) if shortlist else int(max(available_indices))
+                    best_position_local = int(append_position)
+                    best_feat_local: dict[str, Any] | None = None
+                    append_best_score_local = float("-inf")
+                    append_best_g_lcb_local = 0.0
+                    append_best_family_local = ""
+                    best_non_append_score_local = float("-inf")
+                    best_non_append_g_lcb_local = 0.0
+                    records_local: list[dict[str, Any]] = []
+                    for idx in shortlist:
+                        candidate_label_local = str(pool[int(idx)].label)
+                        candidate_metric_proxy = _base_metric_for_candidate(
+                            candidate_label=str(candidate_label_local),
+                            candidate_term=pool[int(idx)],
+                            gradient_signed=float(gradients[int(idx)]),
+                            precompiled_action=pool_compiled[int(idx)],
+                        )
+                        candidate_sigma_hat = _phase3_sigma_hat_for_label(
+                            candidate_label=str(candidate_label_local),
+                            sigma_by_label=phase3_sigma_by_label,
+                            phase3_enabled=phase3_enabled,
+                        )
+                        for pos in positions_considered_local:
+                            active_window_guess = _predict_reopt_window_for_position(
+                                theta=np.asarray(theta_logical_current, dtype=float),
+                                position_id=int(pos),
+                                policy=str(adapt_reopt_policy_key),
+                                window_size=int(adapt_window_size_val),
+                                window_topk=int(adapt_window_topk_val),
+                                periodic_full_refit_triggered=False,
+                            )
+                            proxy_compile_est = phase1_compile_oracle.estimate(
+                                candidate_term_count=int(len(pool_compiled[int(idx)].terms)),
+                                position_id=int(pos),
+                                append_position=int(append_position),
+                                refit_active_count=int(len(active_window_guess)),
+                                candidate_term=pool[int(idx)],
+                            )
+                            compile_est = (
+                                backend_compile_oracle.estimate_insertion(
+                                    backend_compile_snapshot,
+                                    candidate_term=pool[int(idx)],
+                                    position_id=int(pos),
+                                    proxy_baseline=proxy_compile_est,
+                                )
+                                if backend_compile_oracle is not None and backend_compile_snapshot is not None
+                                else proxy_compile_est
+                            )
+                            meas_stats = phase1_measure_cache.estimate(
+                                measurement_group_keys_for_term(pool[int(idx)])
+                            )
+                            is_residual_candidate = bool(int(idx) in phase1_residual_indices)
+                            stage_gate_open = (
+                                (stage_name == "residual")
+                                or (not is_residual_candidate)
+                            )
+                            generator_meta = (
+                                pool_generator_registry.get(str(pool[int(idx)].label))
+                                if phase3_enabled
+                                else None
+                            )
+                            symmetry_spec = (
+                                pool_symmetry_specs[int(idx)]
+                                if phase3_enabled and int(idx) < len(pool_symmetry_specs)
+                                else None
+                            )
+                            metric_raw = candidate_metric_cache.get(int(idx))
+                            if metric_raw is None:
+                                apsi_metric = _apply_compiled_polynomial(
+                                    np.asarray(psi_current, dtype=complex),
+                                    pool_compiled[int(idx)],
+                                )
+                                mean_metric = complex(np.vdot(np.asarray(psi_current, dtype=complex), apsi_metric))
+                                centered_metric = np.asarray(
+                                    apsi_metric - mean_metric * np.asarray(psi_current, dtype=complex),
+                                    dtype=complex,
+                                )
+                                metric_raw = float(max(0.0, np.real(np.vdot(centered_metric, centered_metric))))
+                                candidate_metric_cache[int(idx)] = float(metric_raw)
+                            family_id = str(pool_family_ids[int(idx)])
+                            family_repeat_cost = family_repeat_cache.get(family_id)
+                            if family_repeat_cost is None:
+                                family_repeat_cost = float(
+                                    family_repeat_cost_from_history(
+                                        history_rows=list(history),
+                                        candidate_family=str(family_id),
+                                    )
+                                )
+                                family_repeat_cache[family_id] = float(family_repeat_cost)
+                            feat_obj = build_candidate_features(
+                                stage_name=str(stage_name),
+                                candidate_label=str(pool[int(idx)].label),
+                                candidate_family=str(family_id),
+                                candidate_pool_index=int(idx),
+                                position_id=int(pos),
+                                append_position=int(append_position),
+                                positions_considered=[int(x) for x in positions_considered_local],
+                                gradient_signed=float(gradients[int(idx)]),
+                                metric_proxy=float(candidate_metric_proxy),
+                                sigma_hat=float(candidate_sigma_hat),
+                                refit_window_indices=[int(i) for i in active_window_guess],
+                                compile_cost=compile_est,
+                                measurement_stats=meas_stats,
+                                leakage_penalty=0.0,
+                                stage_gate_open=bool(stage_gate_open),
+                                leakage_gate_open=True,
+                                trough_probe_triggered=bool(trough_probe_triggered_local),
+                                trough_detected=False,
+                                cfg=phase1_score_cfg,
+                                cheap_score_cfg=(phase2_score_cfg if phase3_enabled else None),
+                                generator_metadata=(dict(generator_meta) if isinstance(generator_meta, Mapping) else None),
+                                symmetry_spec=(dict(symmetry_spec) if isinstance(symmetry_spec, Mapping) else None),
+                                symmetry_mode=("shared_phase3_spec" if phase3_enabled else "none"),
+                                symmetry_mitigation_mode=str(phase3_symmetry_mitigation_mode_key if phase3_enabled else "off"),
+                                current_depth=int(depth),
+                                max_depth=int(max_depth),
+                                lifetime_cost_mode=(
+                                    str(phase3_lifetime_cost_mode_key)
+                                    if phase3_enabled
+                                    else "off"
+                                ),
+                                remaining_evaluations_proxy_mode=(
+                                    "remaining_depth"
+                                    if phase3_enabled and str(phase3_lifetime_cost_mode_key) != "off"
+                                    else "none"
+                                ),
+                                family_repeat_cost=float(family_repeat_cost),
+                            )
+                            window_terms, window_labels = _window_terms_for_position(
+                                selected_ops=list(selected_ops),
+                                refit_window_indices=[int(i) for i in active_window_guess],
+                                position_id=int(pos),
+                            )
+                            feat = dict(feat_obj.__dict__)
+                            score_val = float(
+                                feat.get("cheap_score", feat.get("simple_score", float("-inf")))
+                            )
+                            records_local.append(
+                                {
+                                    "feature": feat_obj,
+                                    "cheap_score": float(score_val),
+                                    "simple_score": float(feat.get("simple_score", float("-inf"))),
+                                    "candidate_pool_index": int(idx),
+                                    "position_id": int(pos),
+                                    "candidate_term": pool[int(idx)],
+                                    "window_terms": list(window_terms),
+                                    "window_labels": list(window_labels),
+                                }
+                            )
+                            if int(pos) == int(append_position) and score_val > append_best_score_local:
+                                append_best_score_local = float(score_val)
+                                append_best_g_lcb_local = float(feat.get("g_lcb", 0.0))
+                                append_best_family_local = str(feat.get("candidate_family", ""))
+                            if int(pos) != int(append_position) and score_val > best_non_append_score_local:
+                                best_non_append_score_local = float(score_val)
+                                best_non_append_g_lcb_local = float(feat.get("g_lcb", 0.0))
+                            if score_val > best_score_local:
+                                best_score_local = float(score_val)
+                                best_idx_local = int(idx)
+                                best_position_local = int(pos)
+                                best_feat_local = dict(feat)
+                    return {
+                        "best_score": float(best_score_local),
+                        "best_idx": int(best_idx_local),
+                        "best_position": int(best_position_local),
+                        "best_feat": (dict(best_feat_local) if isinstance(best_feat_local, dict) else None),
+                        "append_best_score": float(append_best_score_local),
+                        "append_best_g_lcb": float(append_best_g_lcb_local),
+                        "append_best_family": str(append_best_family_local),
+                        "best_non_append_score": float(best_non_append_score_local),
+                        "best_non_append_g_lcb": float(best_non_append_g_lcb_local),
+                        "records": list(records_local),
+                    }
+
+                append_eval = _evaluate_phase1_positions(
+                    [int(append_position)],
+                    trough_probe_triggered_local=False,
+                )
+                phase1_append_best_score = float(append_eval["append_best_score"])
+                positions_considered = [int(append_position)]
+                score_eval = append_eval
+                if backend_compile_oracle is not None:
+                    finite_phase1_records = [
+                        rec for rec in score_eval.get("records", [])
+                        if math.isfinite(float(rec.get("cheap_score", rec.get("simple_score", float("-inf")))))
+                    ]
+                    if not finite_phase1_records:
+                        stop_reason = "backend_compile_exhausted"
+                        break
+                trough = False
+                phase1_last_probe_reason = "append_only"
+                phase1_last_positions_considered = [int(x) for x in positions_considered]
+                phase1_last_trough_detected = False
+                phase1_last_trough_probe_triggered = False
+                phase1_last_selected_score = float(score_eval["best_score"])
+                best_feat = score_eval["best_feat"]
+                best_idx = int(score_eval["best_idx"])
+                selected_position = int(score_eval["best_position"])
+                selection_mode = _cheap_selection_mode(best_feat, probe=False)
+                if phase2_enabled:
+                    cheap_records = shortlist_records(
+                        [
+                            {
+                                **dict(rec),
+                                "feature": rec["feature"],
+                                "cheap_score": float(
+                                    rec.get("cheap_score", rec.get("simple_score", float("-inf")))
+                                ),
+                                "simple_score": float(rec.get("simple_score", float("-inf"))),
+                                "candidate_pool_index": int(rec.get("candidate_pool_index", -1)),
+                                "position_id": int(rec.get("position_id", append_position)),
+                            }
+                            for rec in score_eval.get("records", [])
+                        ],
+                        cfg=phase2_score_cfg,
+                        score_key="cheap_score",
+                        tie_break_score_key="cheap_score",
+                    )
+                    full_records: list[dict[str, Any]] = []
+                    phase2_scaffold_context_cache: dict[tuple[int, ...], Any] = {}
+                    for rec in cheap_records:
+                        feat_base = rec.get("feature")
+                        if not isinstance(feat_base, CandidateFeatures):
+                            continue
+                        window_terms = list(rec.get("window_terms", []))
+                        window_labels = [str(x) for x in rec.get("window_labels", [])]
+                        parent_label = str(rec.get("candidate_term").label)
+                        parent_generator_meta = (
+                            dict(feat_base.generator_metadata)
+                            if isinstance(feat_base.generator_metadata, Mapping)
+                            else (
+                                dict(pool_generator_registry.get(parent_label, {}))
+                                if phase3_enabled and isinstance(pool_generator_registry.get(parent_label), Mapping)
+                                else None
+                            )
+                        )
+                        parent_symmetry_spec = (
+                            dict(feat_base.symmetry_spec)
+                            if isinstance(feat_base.symmetry_spec, Mapping)
+                            else (
+                                dict(pool_symmetry_specs[int(feat_base.candidate_pool_index)])
+                                if phase3_enabled
+                                and int(feat_base.candidate_pool_index) < len(pool_symmetry_specs)
+                                and isinstance(pool_symmetry_specs[int(feat_base.candidate_pool_index)], Mapping)
+                                else None
+                            )
+                        )
+
+                        def _full_record_for_candidate(
+                            *,
+                            candidate_term: AnsatzTerm,
+                            candidate_label: str,
+                            generator_metadata: Mapping[str, Any] | None,
+                            symmetry_spec_candidate: Mapping[str, Any] | None,
+                            runtime_split_mode_value: str = "off",
+                            runtime_split_parent_label_value: str | None = None,
+                            runtime_split_child_index_value: int | None = None,
+                            runtime_split_child_count_value: int | None = None,
+                            runtime_split_chosen_representation_value: str = "parent",
+                            runtime_split_child_indices_value: Sequence[int] | None = None,
+                            runtime_split_child_labels_value: Sequence[str] | None = None,
+                            runtime_split_child_generator_ids_value: Sequence[str] | None = None,
+                        ) -> dict[str, Any]:
+                            compiled_candidate = phase2_compiled_term_cache.get(str(candidate_label))
+                            if compiled_candidate is None:
+                                compiled_candidate = _compile_polynomial_action(
+                                    candidate_term.polynomial,
+                                    pauli_action_cache=pauli_action_cache,
+                                )
+                                phase2_compiled_term_cache[str(candidate_label)] = compiled_candidate
+                            apsi_candidate = _apply_compiled_polynomial(
+                                np.asarray(psi_current, dtype=complex),
+                                compiled_candidate,
+                            )
+                            grad_candidate = float(
+                                adapt_commutator_grad_from_hpsi(
+                                    hpsi_current,
+                                    apsi_candidate,
+                                )
+                            )
+                            candidate_metric_proxy = _base_metric_for_candidate(
+                                candidate_label=str(candidate_label),
+                                candidate_term=candidate_term,
+                                gradient_signed=float(grad_candidate),
+                                precompiled_action=compiled_candidate,
+                            )
+                            candidate_sigma_hat = _phase3_sigma_hat_for_label(
+                                candidate_label=str(candidate_label),
+                                sigma_by_label=phase3_sigma_by_label,
+                                phase3_enabled=phase3_enabled,
+                            )
+                            proxy_compile_est_candidate = phase1_compile_oracle.estimate(
+                                candidate_term_count=int(len(compiled_candidate.terms)),
+                                position_id=int(feat_base.position_id),
+                                append_position=int(feat_base.append_position),
+                                refit_active_count=int(len(feat_base.refit_window_indices)),
+                                candidate_term=candidate_term,
+                            )
+                            compile_est_candidate = (
+                                backend_compile_oracle.estimate_insertion(
+                                    backend_compile_snapshot,
+                                    candidate_term=candidate_term,
+                                    position_id=int(feat_base.position_id),
+                                    proxy_baseline=proxy_compile_est_candidate,
+                                )
+                                if backend_compile_oracle is not None and backend_compile_snapshot is not None
+                                else proxy_compile_est_candidate
+                            )
+                            measurement_stats_candidate = phase1_measure_cache.estimate(
+                                measurement_group_keys_for_term(candidate_term)
+                            )
+                            feat_candidate_base = build_candidate_features(
+                                stage_name=str(feat_base.stage_name),
+                                candidate_label=str(candidate_label),
+                                candidate_family=str(feat_base.candidate_family),
+                                candidate_pool_index=int(feat_base.candidate_pool_index),
+                                position_id=int(feat_base.position_id),
+                                append_position=int(feat_base.append_position),
+                                positions_considered=[int(x) for x in feat_base.positions_considered],
+                                gradient_signed=float(grad_candidate),
+                                metric_proxy=float(candidate_metric_proxy),
+                                sigma_hat=float(candidate_sigma_hat),
+                                refit_window_indices=[int(i) for i in feat_base.refit_window_indices],
+                                compile_cost=compile_est_candidate,
+                                measurement_stats=measurement_stats_candidate,
+                                leakage_penalty=0.0,
+                                stage_gate_open=bool(feat_base.stage_gate_open),
+                                leakage_gate_open=True,
+                                trough_probe_triggered=bool(feat_base.trough_probe_triggered),
+                                trough_detected=bool(feat_base.trough_detected),
+                                cfg=phase1_score_cfg,
+                                cheap_score_cfg=(phase2_score_cfg if phase3_enabled else None),
+                                generator_metadata=(
+                                    dict(generator_metadata) if isinstance(generator_metadata, Mapping) else None
+                                ),
+                                symmetry_spec=(
+                                    dict(symmetry_spec_candidate)
+                                    if isinstance(symmetry_spec_candidate, Mapping)
+                                    else None
+                                ),
+                                symmetry_mode=str(feat_base.symmetry_mode),
+                                symmetry_mitigation_mode=str(feat_base.symmetry_mitigation_mode),
+                                motif_metadata=(
+                                    dict(feat_base.motif_metadata)
+                                    if isinstance(feat_base.motif_metadata, Mapping)
+                                    else None
+                                ),
+                                motif_bonus=float(feat_base.motif_bonus or 0.0),
+                                motif_source=str(feat_base.motif_source),
+                                current_depth=int(depth),
+                                max_depth=int(max_depth),
+                                lifetime_cost_mode=str(feat_base.lifetime_cost_mode),
+                                remaining_evaluations_proxy_mode=str(feat_base.remaining_evaluations_proxy_mode),
+                                family_repeat_cost=float(feat_base.family_repeat_cost),
+                            )
+                            if str(runtime_split_mode_value) != "off":
+                                feat_candidate_base = CandidateFeatures(
+                                    **{
+                                        **feat_candidate_base.__dict__,
+                                        "runtime_split_mode": str(runtime_split_mode_value),
+                                        "runtime_split_parent_label": (
+                                            str(runtime_split_parent_label_value)
+                                            if runtime_split_parent_label_value is not None
+                                            else None
+                                        ),
+                                        "runtime_split_child_index": (
+                                            int(runtime_split_child_index_value)
+                                            if runtime_split_child_index_value is not None
+                                            else None
+                                        ),
+                                        "runtime_split_child_count": (
+                                            int(runtime_split_child_count_value)
+                                            if runtime_split_child_count_value is not None
+                                            else None
+                                        ),
+                                        "runtime_split_chosen_representation": str(
+                                            runtime_split_chosen_representation_value
+                                        ),
+                                        "runtime_split_child_indices": (
+                                            [int(x) for x in runtime_split_child_indices_value]
+                                            if runtime_split_child_indices_value is not None
+                                            else []
+                                        ),
+                                        "runtime_split_child_labels": (
+                                            [str(x) for x in runtime_split_child_labels_value]
+                                            if runtime_split_child_labels_value is not None
+                                            else []
+                                        ),
+                                        "runtime_split_child_generator_ids": (
+                                            [str(x) for x in runtime_split_child_generator_ids_value]
+                                            if runtime_split_child_generator_ids_value is not None
+                                            else []
+                                        ),
+                                    }
+                                )
+                            active_memory = phase2_memory_adapter.select_active(
+                                phase2_optimizer_memory,
+                                active_indices=list(feat_candidate_base.refit_window_indices),
+                                source=f"adapt.depth{int(depth + 1)}.window_subset",
+                            )
+                            scaffold_key = tuple(int(i) for i in feat_candidate_base.refit_window_indices)
+                            scaffold_context = phase2_scaffold_context_cache.get(scaffold_key)
+                            if scaffold_context is None:
+                                scaffold_context = phase2_novelty_oracle.prepare_scaffold_context(
+                                    selected_ops=list(selected_ops),
+                                    theta=np.asarray(theta_logical_current, dtype=float),
+                                    psi_ref=np.asarray(psi_ref, dtype=complex),
+                                    psi_state=np.asarray(psi_current, dtype=complex),
+                                    h_compiled=h_compiled,
+                                    hpsi_state=np.asarray(hpsi_current, dtype=complex),
+                                    refit_window_indices=list(feat_candidate_base.refit_window_indices),
+                                    pauli_action_cache=pauli_action_cache,
+                                )
+                                phase2_scaffold_context_cache[scaffold_key] = scaffold_context
+                            feat_full = build_full_candidate_features(
+                                base_feature=feat_candidate_base,
+                                candidate_term=candidate_term,
+                                cfg=phase2_score_cfg,
+                                novelty_oracle=phase2_novelty_oracle,
+                                curvature_oracle=phase2_curvature_oracle,
+                                scaffold_context=scaffold_context,
+                                h_compiled=h_compiled,
+                                compiled_cache=phase2_compiled_term_cache,
+                                pauli_action_cache=pauli_action_cache,
+                                optimizer_memory=active_memory,
+                                motif_library=(phase3_input_motif_library if phase3_enabled else None),
+                                target_num_sites=int(num_sites),
+                            )
+                            return {
+                                **dict(rec),
+                                "feature": feat_full,
+                                "cheap_score": float(
+                                    feat_full.cheap_score
+                                    if feat_full.cheap_score is not None
+                                    else feat_full.simple_score or float("-inf")
+                                ),
+                                "simple_score": float(feat_full.simple_score or float("-inf")),
+                                "full_v2_score": float(feat_full.full_v2_score or float("-inf")),
+                                "candidate_pool_index": int(feat_full.candidate_pool_index),
+                                "position_id": int(feat_full.position_id),
+                                "candidate_term": candidate_term,
+                            }
+
+                        parent_record = _full_record_for_candidate(
+                            candidate_term=rec["candidate_term"],
+                            candidate_label=parent_label,
+                            generator_metadata=parent_generator_meta,
+                            symmetry_spec_candidate=parent_symmetry_spec,
+                        )
+                        candidate_variants = [parent_record]
+                        if (
+                            phase3_enabled
+                            and str(phase3_runtime_split_mode_key) == "shortlist_pauli_children_v1"
+                            and isinstance(parent_generator_meta, Mapping)
+                            and bool(parent_generator_meta.get("is_macro_generator", False))
+                        ):
+                            split_children = build_runtime_split_children(
+                                parent_label=str(parent_label),
+                                polynomial=rec["candidate_term"].polynomial,
+                                family_id=str(feat_base.candidate_family),
+                                num_sites=int(num_sites),
+                                ordering=str(ordering),
+                                qpb=int(max(1, qpb)),
+                                split_mode=str(phase3_runtime_split_mode_key),
+                                parent_generator_metadata=parent_generator_meta,
+                                symmetry_spec=parent_symmetry_spec,
+                            )
+                            if split_children:
+                                phase3_runtime_split_summary["probed_parent_count"] = int(
+                                    phase3_runtime_split_summary.get("probed_parent_count", 0)
+                                ) + 1
+                            split_child_records: list[dict[str, Any]] = []
+                            split_child_record_by_generator_id: dict[str, dict[str, Any]] = {}
+                            split_child_scores: dict[str, float] = {}
+                            for child in split_children:
+                                child_label = str(child.get("child_label"))
+                                child_poly = child.get("child_polynomial")
+                                child_meta = child.get("child_generator_metadata")
+                                child_symmetry_gate = (
+                                    dict(child.get("symmetry_gate", {}))
+                                    if isinstance(child.get("symmetry_gate"), Mapping)
+                                    else {}
+                                )
+                                if not isinstance(child_poly, PauliPolynomial):
+                                    continue
+                                if not isinstance(child_meta, Mapping):
+                                    continue
+                                pool_generator_registry[str(child_label)] = dict(child_meta)
+                                phase3_runtime_split_summary["evaluated_child_count"] = int(
+                                    phase3_runtime_split_summary.get("evaluated_child_count", 0)
+                                ) + 1
+                                if not bool(child_symmetry_gate.get("passed", True)):
+                                    phase3_runtime_split_summary["rejected_child_count_symmetry"] = int(
+                                        phase3_runtime_split_summary.get("rejected_child_count_symmetry", 0)
+                                    ) + 1
+                                child_record = _full_record_for_candidate(
+                                    candidate_term=AnsatzTerm(
+                                        label=str(child_label),
+                                        polynomial=child_poly,
+                                    ),
+                                    candidate_label=str(child_label),
+                                    generator_metadata=dict(child_meta),
+                                    symmetry_spec_candidate=(
+                                        dict(child_meta.get("symmetry_spec", {}))
+                                        if isinstance(child_meta.get("symmetry_spec"), Mapping)
+                                        else parent_symmetry_spec
+                                    ),
+                                    runtime_split_mode_value=str(phase3_runtime_split_mode_key),
+                                    runtime_split_parent_label_value=str(parent_label),
+                                    runtime_split_child_index_value=(
+                                        int(child.get("child_index"))
+                                        if child.get("child_index") is not None
+                                        else None
+                                    ),
+                                    runtime_split_child_count_value=(
+                                        int(child.get("child_count"))
+                                        if child.get("child_count") is not None
+                                        else None
+                                    ),
+                                    runtime_split_chosen_representation_value="child_atom",
+                                    runtime_split_child_indices_value=(
+                                        [int(child.get("child_index"))]
+                                        if child.get("child_index") is not None
+                                        else []
+                                    ),
+                                    runtime_split_child_labels_value=[str(child_label)],
+                                    runtime_split_child_generator_ids_value=(
+                                        [str(child_meta.get("generator_id"))]
+                                        if child_meta.get("generator_id") is not None
+                                        else []
+                                    ),
+                                )
+                                split_child_records.append(dict(child_record))
+                                split_child_scores[str(child_label)] = float(
+                                    child_record.get("full_v2_score", float("-inf"))
+                                )
+                                if child_meta.get("generator_id") is not None:
+                                    split_child_record_by_generator_id[str(child_meta.get("generator_id"))] = dict(child_record)
+                            split_candidate_record: dict[str, Any] | None = None
+                            admissible_child_subsets: list[list[str]] = []
+                            best_split_choice_reason = "no_admissible_child_set"
+                            best_split_gate_results: dict[str, Any] = {}
+                            best_split_child_ids: list[str] = []
+                            child_set_candidates = build_runtime_split_child_sets(
+                                parent_label=str(parent_label),
+                                family_id=str(feat_base.candidate_family),
+                                num_sites=int(num_sites),
+                                ordering=str(ordering),
+                                qpb=int(max(1, qpb)),
+                                split_mode=str(phase3_runtime_split_mode_key),
+                                children=split_children,
+                                parent_generator_metadata=parent_generator_meta,
+                                symmetry_spec=parent_symmetry_spec,
+                                max_subset_size=3,
+                            )
+                            phase3_runtime_split_summary["admissible_child_set_count"] = int(
+                                phase3_runtime_split_summary.get("admissible_child_set_count", 0)
+                            ) + int(len(child_set_candidates))
+                            if child_set_candidates and split_child_records:
+                                compat_oracle_split = CompatibilityPenaltyOracle(
+                                    cfg=phase2_score_cfg,
+                                    psi_state=np.asarray(psi_current, dtype=complex),
+                                    compiled_cache=phase2_compiled_term_cache,
+                                    pauli_action_cache=pauli_action_cache,
+                                )
+                                best_split_proxy = float("-inf")
+                                best_split_payload: dict[str, Any] | None = None
+                                for child_set in child_set_candidates:
+                                    child_set_ids = [str(x) for x in child_set.get("child_generator_ids", [])]
+                                    child_set_records = [
+                                        dict(split_child_record_by_generator_id[str(child_id)])
+                                        for child_id in child_set_ids
+                                        if str(child_id) in split_child_record_by_generator_id
+                                    ]
+                                    if len(child_set_records) != len(child_set_ids):
+                                        continue
+                                    admissible_child_subsets.append(
+                                        [str(x) for x in child_set.get("child_labels", [])]
+                                    )
+                                    penalty_total = 0.0
+                                    for left_idx in range(len(child_set_records)):
+                                        for right_idx in range(left_idx + 1, len(child_set_records)):
+                                            penalty_total += float(
+                                                compat_oracle_split.penalty(
+                                                    child_set_records[left_idx],
+                                                    child_set_records[right_idx],
+                                                ).get("total", 0.0)
+                                            )
+                                    proxy_score = float(
+                                        sum(
+                                            float(rec_child.get("full_v2_score", float("-inf")))
+                                            for rec_child in child_set_records
+                                        )
+                                        - penalty_total
+                                    )
+                                    if proxy_score > best_split_proxy:
+                                        best_split_proxy = float(proxy_score)
+                                        best_split_payload = dict(child_set)
+                                if best_split_payload is not None:
+                                    split_label = str(best_split_payload.get("candidate_label"))
+                                    split_poly = best_split_payload.get("candidate_polynomial")
+                                    split_meta = best_split_payload.get("candidate_generator_metadata")
+                                    if isinstance(split_poly, PauliPolynomial) and isinstance(split_meta, Mapping):
+                                        pool_generator_registry[str(split_label)] = dict(split_meta)
+                                        best_split_gate_results = (
+                                            dict(best_split_payload.get("symmetry_gate", {}))
+                                            if isinstance(best_split_payload.get("symmetry_gate"), Mapping)
+                                            else {}
+                                        )
+                                        best_split_child_ids = [
+                                            str(x) for x in best_split_payload.get("child_generator_ids", [])
+                                        ]
+                                        split_candidate_record = _full_record_for_candidate(
+                                            candidate_term=AnsatzTerm(
+                                                label=str(split_label),
+                                                polynomial=split_poly,
+                                            ),
+                                            candidate_label=str(split_label),
+                                            generator_metadata=dict(split_meta),
+                                            symmetry_spec_candidate=(
+                                                dict(split_meta.get("symmetry_spec", {}))
+                                                if isinstance(split_meta.get("symmetry_spec"), Mapping)
+                                                else parent_symmetry_spec
+                                            ),
+                                            runtime_split_mode_value=str(phase3_runtime_split_mode_key),
+                                            runtime_split_parent_label_value=str(parent_label),
+                                            runtime_split_child_count_value=int(len(split_children)),
+                                            runtime_split_chosen_representation_value="child_set",
+                                            runtime_split_child_indices_value=[
+                                                int(x) for x in best_split_payload.get("child_indices", [])
+                                            ],
+                                            runtime_split_child_labels_value=[
+                                                str(x) for x in best_split_payload.get("child_labels", [])
+                                            ],
+                                            runtime_split_child_generator_ids_value=list(best_split_child_ids),
+                                        )
+                                        candidate_variants.append(dict(split_candidate_record))
+                                        parent_score = float(parent_record.get("full_v2_score", float("-inf")))
+                                        split_score = float(split_candidate_record.get("full_v2_score", float("-inf")))
+                                        split_wins = bool(split_score > parent_score)
+                                        if split_wins:
+                                            phase3_runtime_split_summary["probe_child_set_count"] = int(
+                                                phase3_runtime_split_summary.get("probe_child_set_count", 0)
+                                            ) + 1
+                                            best_split_choice_reason = "child_set_actual_score_better"
+                                        else:
+                                            phase3_runtime_split_summary["probe_parent_win_count"] = int(
+                                                phase3_runtime_split_summary.get("probe_parent_win_count", 0)
+                                            ) + 1
+                                            best_split_choice_reason = "parent_actual_score_better"
+                                        phase3_split_events.append(
+                                            build_split_event(
+                                                parent_generator_id=str(parent_generator_meta.get("generator_id")),
+                                                child_generator_ids=list(best_split_child_ids),
+                                                reason=f"depth{int(depth + 1)}_shortlist_probe",
+                                                split_mode=str(phase3_runtime_split_mode_key),
+                                                probe_trigger="phase2_shortlist",
+                                                choice_reason=str(best_split_choice_reason),
+                                                parent_score=float(parent_score),
+                                                child_scores=dict(split_child_scores),
+                                                admissible_child_subsets=list(admissible_child_subsets),
+                                                chosen_representation=("child_set" if split_wins else "parent"),
+                                                chosen_child_ids=(list(best_split_child_ids) if split_wins else []),
+                                                split_margin=float(split_score - parent_score),
+                                                symmetry_gate_results=dict(best_split_gate_results),
+                                                compiled_cost_parent=float(
+                                                    parent_record.get("feature").compile_cost_total
+                                                )
+                                                if isinstance(parent_record.get("feature"), CandidateFeatures)
+                                                else None,
+                                                compiled_cost_children=float(
+                                                    split_candidate_record.get("feature").compile_cost_total
+                                                )
+                                                if isinstance(split_candidate_record.get("feature"), CandidateFeatures)
+                                                else None,
+                                                insertion_positions=[int(feat_base.position_id)],
+                                            )
+                                        )
+                            elif split_children:
+                                phase3_runtime_split_summary["probe_parent_win_count"] = int(
+                                    phase3_runtime_split_summary.get("probe_parent_win_count", 0)
+                                ) + 1
+                                phase3_split_events.append(
+                                    build_split_event(
+                                        parent_generator_id=str(parent_generator_meta.get("generator_id")),
+                                        child_generator_ids=[
+                                            str(meta.get("generator_id"))
+                                            for meta in (
+                                                child.get("child_generator_metadata")
+                                                for child in split_children
+                                                if isinstance(child.get("child_generator_metadata"), Mapping)
+                                            )
+                                            if meta.get("generator_id") is not None
+                                        ],
+                                        reason=f"depth{int(depth + 1)}_shortlist_probe",
+                                        split_mode=str(phase3_runtime_split_mode_key),
+                                        probe_trigger="phase2_shortlist",
+                                        choice_reason="no_admissible_child_set",
+                                        parent_score=float(parent_record.get("full_v2_score", float("-inf"))),
+                                        child_scores=dict(split_child_scores),
+                                        admissible_child_subsets=[],
+                                        chosen_representation="parent",
+                                        chosen_child_ids=[],
+                                        symmetry_gate_results={"admissible_child_set_count": 0},
+                                        compiled_cost_parent=float(
+                                            parent_record.get("feature").compile_cost_total
+                                        )
+                                        if isinstance(parent_record.get("feature"), CandidateFeatures)
+                                        else None,
+                                        insertion_positions=[int(feat_base.position_id)],
+                                    )
+                                )
+                        candidate_variants = sorted(candidate_variants, key=_phase2_record_sort_key)
+                        if candidate_variants:
+                            full_records.append(dict(candidate_variants[0]))
+                    full_records = sorted(full_records, key=_phase2_record_sort_key)
+                    if backend_compile_oracle is not None:
+                        finite_full_records = [
+                            rec for rec in full_records
+                            if math.isfinite(float(rec.get("full_v2_score", float("-inf"))))
+                        ]
+                        if not finite_full_records:
+                            stop_reason = "backend_compile_exhausted"
+                            break
+                    phase2_last_shortlist_eval_records = [dict(rec) for rec in full_records]
+                    phase2_last_shortlist_records = [
+                        dict(rec["feature"].__dict__)
+                        for rec in full_records
+                        if isinstance(rec.get("feature"), CandidateFeatures)
+                    ]
+                    if full_records:
+                        if bool(phase2_enable_batching) and str(stage_name) == "core":
+                            compat_oracle = CompatibilityPenaltyOracle(
+                                cfg=phase2_score_cfg,
+                                psi_state=np.asarray(psi_current, dtype=complex),
+                                compiled_cache=phase2_compiled_term_cache,
+                                pauli_action_cache=pauli_action_cache,
+                            )
+                            phase2_selected_records, phase2_last_batch_penalty_total = greedy_batch_select(
+                                full_records,
+                                compat_oracle,
+                                phase2_score_cfg,
+                                tie_break_score_key="cheap_score",
+                            )
+                        else:
+                            phase2_selected_records = [dict(full_records[0])]
+                        phase2_selected_records = sorted(phase2_selected_records, key=_phase2_record_sort_key)
+                        phase2_last_batch_selected = bool(len(phase2_selected_records) > 1)
+                        top_feat = phase2_selected_records[0].get("feature")
+                        if isinstance(top_feat, CandidateFeatures):
+                            phase1_feature_selected = dict(top_feat.__dict__)
+                            phase1_feature_selected["trough_detected"] = bool(trough)
+                            phase1_last_selected_score = float(
+                                top_feat.full_v2_score
+                                if top_feat.full_v2_score is not None
+                                else (
+                                    top_feat.cheap_score
+                                    if top_feat.cheap_score is not None
+                                    else top_feat.simple_score or float("-inf")
+                                )
+                            )
+                            best_idx = int(top_feat.candidate_pool_index)
+                            selected_position = int(top_feat.position_id)
+                            split_selected = bool(str(top_feat.runtime_split_mode) != "off")
+                            selection_mode = "full_v2_split" if split_selected else "full_v2"
+                    elif best_feat is not None:
+                        best_feat["trough_detected"] = bool(trough)
+                        phase1_feature_selected = dict(best_feat)
+                        phase1_last_selected_score = float(best_feat.get("simple_score", float("-inf")))
+                        best_idx = int(best_feat.get("candidate_pool_index", best_idx))
+                        selected_position = int(best_feat.get("position_id", selected_position))
+                        selection_mode = "simple_v1_full_zero_fallback"
+                elif best_feat is not None:
+                    best_feat["trough_detected"] = bool(trough)
+                    phase1_feature_selected = dict(best_feat)
+                phase1_stage_now, phase1_stage_transition_reason = phase1_stage.resolve_stage_transition(
+                    drop_plateau_hits=int(drop_plateau_hits),
+                    trough_detected=bool(trough),
+                    residual_opened=bool(phase1_residual_opened),
+                )
+                if (
+                    phase1_stage_now == "residual"
+                    and (not phase1_residual_opened)
+                    and len(phase1_residual_indices) > 0
+                ):
+                    phase1_residual_opened = True
+                    available_indices |= set(int(i) for i in phase1_residual_indices)
+                    phase1_stage_events.append(
+                        {
+                            "depth": int(depth + 1),
+                            "stage_name": "residual",
+                            "reason": str(phase1_stage_transition_reason),
+                        }
+                    )
+                    _ai_log(
+                        "hardcoded_adapt_phase1_residual_opened",
+                        depth=int(depth + 1),
+                        residual_count=int(len(phase1_residual_indices)),
+                    )
+            else:
+                if seq2p_logical_mode:
+                    if allow_repeats:
+                        repeat_bias = 1.5
+                        logical_scores = logical_grad_scores / (1.0 + repeat_bias * logical_selection_counts.astype(float))
+                        best_logical_idx = int(
+                            max(logical_available_indices, key=lambda idx: float(logical_scores[int(idx)]))
+                        )
+                    else:
+                        best_logical_idx = int(
+                            max(logical_available_indices, key=lambda idx: float(logical_grad_scores[int(idx)]))
+                        )
+                    logical_candidate = logical_candidates[int(best_logical_idx)]
+                    best_idx = int(logical_candidate.pool_indices[0])
+                    selected_logical_label = str(logical_candidate.logical_label)
+                    selected_logical_size = int(len(logical_candidate.pool_indices))
+                    selected_logical_pool_indices = [int(x) for x in logical_candidate.pool_indices]
+                    selected_grad_signed_components = list(
+                        logical_grad_signed_components_all[int(best_logical_idx)]
+                    )
+                    selected_grad_abs_components = list(
+                        logical_grad_abs_components_all[int(best_logical_idx)]
+                    )
+                    selection_mode = "gradient_seq2p"
+                else:
+                    if allow_repeats:
+                        repeat_bias = 1.5
+                        scores = grad_magnitudes / (1.0 + repeat_bias * selection_counts.astype(float))
+                        best_idx = int(np.argmax(scores))
+                    else:
+                        best_idx = int(np.argmax(grad_magnitudes))
+                    selection_mode = "gradient"
+
+            if candidate_gradient_scout:
+                for scout_row in candidate_gradient_scout:
+                    scout_row["selected_for_optimization"] = (
+                        int(scout_row.get("candidate_pool_index", -1)) == int(best_idx)
+                    )
+                phase3_last_candidate_gradient_scout = [dict(row) for row in candidate_gradient_scout]
+
+            _ai_log(
+                "hardcoded_adapt_iter",
+                depth=int(depth + 1),
+                max_grad=float(max_grad),
+                best_op=(
+                    str(phase2_selected_records[0].get("candidate_term").label)
+                    if phase1_enabled
+                    and phase2_enabled
+                    and len(phase2_selected_records) > 0
+                    and phase2_selected_records[0].get("candidate_term") is not None
+                    else (
+                        str(phase1_feature_selected.get("candidate_label"))
+                        if isinstance(phase1_feature_selected, dict)
+                        and phase1_feature_selected.get("candidate_label") is not None
+                        else (
+                            str(selected_logical_label)
+                            if selected_logical_label is not None
+                            else str(pool[best_idx].label)
+                        )
+                    )
+                ),
+                selected_position=int(selected_position),
+                stage_name=str(stage_name),
+                selection_score=(float(phase1_last_selected_score) if phase1_enabled else None),
+                energy=float(energy_current),
+            )
+
+            # 3) Check gradient convergence (with optional finite-angle fallback)
+            if not phase1_enabled and not seq2p_logical_mode:
+                selection_mode = "gradient"
+            init_theta = 0.0
+            init_theta_values: list[float] = (
+                [0.0] * int(selected_logical_size)
+                if seq2p_logical_mode and selected_logical_size > 1
+                else [0.0]
+            )
+            fallback_scan_size = 0
+            fallback_best_probe_delta_e = None
+            fallback_best_probe_theta = None
+            if max_grad < float(eps_grad):
+                if bool(finite_angle_fallback) and available_indices:
+                    fallback_scan_size = int(len(available_indices))
+                    best_probe_energy = float(energy_current)
+                    best_probe_idx = None
+                    best_probe_theta = None
+                    fallback_executor_cache: dict[int, CompiledAnsatzExecutor] = {}
+
+                    for idx in available_indices:
+                        trial_ops = selected_ops + [pool[idx]]
+                        for trial_theta in (float(finite_angle), -float(finite_angle)):
+                            trial_ops, trial_theta_vec = _splice_candidate_at_position(
+                                ops=selected_ops,
+                                theta=np.asarray(theta, dtype=float),
+                                op=pool[int(idx)],
+                                position_id=int(append_position),
+                                init_theta=float(trial_theta),
+                            )
+                            if adapt_state_backend_key == "compiled":
+                                trial_executor = fallback_executor_cache.get(int(idx))
+                                if trial_executor is None:
+                                    trial_executor = _build_compiled_executor(trial_ops)
+                                    fallback_executor_cache[int(idx)] = trial_executor
+                                psi_trial = trial_executor.prepare_state(trial_theta_vec, psi_ref)
+                                probe_energy, _ = energy_via_one_apply(psi_trial, h_compiled)
+                                probe_energy = float(probe_energy)
+                            else:
+                                probe_energy = _adapt_energy_fn(
+                                    h_poly,
+                                    psi_ref,
+                                    trial_ops,
+                                    trial_theta_vec,
+                                    h_compiled=h_compiled,
+                                )
+                            nfev_total += 1
+                            if probe_energy < best_probe_energy:
+                                best_probe_energy = float(probe_energy)
+                                best_probe_idx = int(idx)
+                                best_probe_theta = float(trial_theta)
+
+                    fallback_best_probe_delta_e = float(best_probe_energy - energy_current)
+                    fallback_best_probe_theta = float(best_probe_theta) if best_probe_theta is not None else None
+                    _ai_log(
+                        "hardcoded_adapt_fallback_scan",
+                        depth=int(depth + 1),
+                        scan_size=int(fallback_scan_size),
+                        finite_angle=float(finite_angle),
+                        best_probe_idx=(int(best_probe_idx) if best_probe_idx is not None else None),
+                        best_probe_op=(str(pool[best_probe_idx].label) if best_probe_idx is not None else None),
+                        best_probe_delta_e=float(fallback_best_probe_delta_e),
+                    )
+
+                    if (
+                        best_probe_idx is not None
+                        and (energy_current - best_probe_energy) > float(finite_angle_min_improvement)
+                    ):
+                        best_idx = int(best_probe_idx)
+                        selected_position = int(append_position)
+                        phase1_feature_selected = None
+                        phase2_selected_records = []
+                        phase1_last_selected_score = None
+                        phase1_last_positions_considered = [int(append_position)]
+                        selection_mode = "finite_angle_fallback"
+                        init_theta = float(best_probe_theta)
+                        _ai_log(
+                            "hardcoded_adapt_fallback_scan",
+                            depth=int(depth + 1),
+                            scan_size=int(fallback_scan_size),
+                            finite_angle=float(finite_angle),
+                            best_probe_idx=(int(best_probe_logical_idx) if best_probe_logical_idx is not None else None),
+                            best_probe_op=(
+                                str(logical_candidates[int(best_probe_logical_idx)].logical_label)
+                                if best_probe_logical_idx is not None
+                                else None
+                            ),
+                            best_probe_delta_e=float(fallback_best_probe_delta_e),
+                        )
+
+                        if (
+                            best_probe_logical_idx is not None
+                            and (energy_current - best_probe_energy) > float(finite_angle_min_improvement)
+                        ):
+                            best_logical_idx = int(best_probe_logical_idx)
+                            logical_candidate = logical_candidates[int(best_logical_idx)]
+                            best_idx = int(logical_candidate.pool_indices[0])
+                            selected_position = int(append_position)
+                            phase1_feature_selected = None
                             phase2_selected_records = []
-                            if phase1_feature_selected:
-                                phase1_feature_selected["trough_detected"] = True
-                            best_idx = int(probe_eval_eps["best_idx"])
-                            selected_position = int(probe_eval_eps["best_position"])
-                            selection_mode = "simple_v1_probe"
-                    if not bool(eps_grad_trough):
-                        rescue_record = None
-                        rescue_diag: dict[str, Any] | None = None
-                        if phase3_enabled:
-                            rescue_record, rescue_diag = _phase3_try_rescue(
-                                psi_current_state=np.asarray(psi_current, dtype=complex),
-                                shortlist_eval_records=list(phase2_last_shortlist_eval_records),
-                                selected_position_append=int(append_position),
-                                history_rows=list(history),
-                                trough_detected_now=bool(phase1_last_trough_detected),
+                            phase1_last_selected_score = None
+                            phase1_last_positions_considered = [int(append_position)]
+                            selection_mode = "finite_angle_fallback_seq2p"
+                            selected_logical_label = str(logical_candidate.logical_label)
+                            selected_logical_size = int(len(logical_candidate.pool_indices))
+                            selected_logical_pool_indices = [int(x) for x in logical_candidate.pool_indices]
+                            selected_grad_signed_components = list(
+                                logical_grad_signed_components_all[int(best_logical_idx)]
+                            )
+                            selected_grad_abs_components = list(
+                                logical_grad_abs_components_all[int(best_logical_idx)]
+                            )
+                            init_theta_values = (
+                                [float(x) for x in best_probe_theta_values]
+                                if best_probe_theta_values is not None
+                                else [0.0] * int(selected_logical_size)
+                            )
+                            if bool(eps_grad_trough) and int(probe_eval_eps["best_position"]) != int(append_position):
+                                phase1_last_probe_reason = "eps_grad_flat"
+                                phase1_last_positions_considered = [int(x) for x in probe_positions_eps]
+                                phase1_last_trough_detected = True
+                                phase1_last_trough_probe_triggered = True
+                                phase1_last_selected_score = float(probe_eval_eps["best_score"])
+                                phase1_feature_selected = dict(probe_eval_eps["best_feat"] or {})
+                                phase2_selected_records = []
+                                if phase1_feature_selected:
+                                    phase1_feature_selected["trough_detected"] = True
+                                best_idx = int(probe_eval_eps["best_idx"])
+                                selected_position = int(probe_eval_eps["best_position"])
+                                selection_mode = _cheap_selection_mode(
+                                    phase1_feature_selected,
+                                    probe=True,
+                                )
+                        if not bool(eps_grad_trough):
+                            rescue_record = None
+                            rescue_diag: dict[str, Any] | None = None
+                            if phase3_enabled:
+                                rescue_record, rescue_diag = _phase3_try_rescue(
+                                    psi_current_state=np.asarray(psi_current, dtype=complex),
+                                    shortlist_eval_records=list(phase2_last_shortlist_eval_records),
+                                    selected_position_append=int(append_position),
+                                    history_rows=list(history),
+                                    trough_detected_now=bool(phase1_last_trough_detected),
+                                )
+                                if rescue_diag is not None:
+                                    phase3_rescue_history.append(dict(rescue_diag))
+                            if isinstance(rescue_record, Mapping):
+                                best_idx = int(rescue_record.get("candidate_pool_index", best_idx))
+                                selected_position = int(rescue_record.get("position_id", append_position))
+                                init_theta = float(rescue_record.get("rescue_init_theta", finite_angle))
+                                selection_mode = "rescue_overlap"
+                                feat_rescue = rescue_record.get("feature")
+                                phase2_selected_records = [dict(rescue_record)] if phase2_enabled else []
+                                if isinstance(feat_rescue, CandidateFeatures):
+                                    phase1_feature_selected = dict(feat_rescue.__dict__)
+                                    phase1_feature_selected["actual_fallback_mode"] = "rescue_overlap"
+                                    phase1_last_selected_score = float(
+                                        feat_rescue.full_v2_score
+                                        if feat_rescue.full_v2_score is not None
+                                        else (
+                                            feat_rescue.cheap_score
+                                            if feat_rescue.cheap_score is not None
+                                            else feat_rescue.simple_score or float("-inf")
+                                        )
+                                    )
+                                    if str(feat_rescue.runtime_split_mode) != "off":
+                                        selection_mode = "rescue_overlap_split"
+                                _ai_log(
+                                    "hardcoded_adapt_phase3_rescue_selected",
+                                    depth=int(depth + 1),
+                                    selected_idx=int(best_idx),
+                                    selected_op=(
+                                        str(rescue_record.get("candidate_term").label)
+                                        if rescue_record.get("candidate_term") is not None
+                                        else str(pool[int(best_idx)].label)
+                                    ),
+                                    selected_position=int(selected_position),
+                                    init_theta=float(init_theta),
+                                    overlap_gain=float(rescue_record.get("overlap_gain", 0.0)),
+                                )
+                            else:
+                                if bool(eps_grad_termination_enabled):
+                                    stop_reason = "eps_grad"
+                                    _ai_log(
+                                        "hardcoded_adapt_converged_grad",
+                                        max_grad=float(max_grad),
+                                        eps_grad=float(eps_grad),
+                                        fallback_attempted=True,
+                                        fallback_best_probe_delta_e=float(fallback_best_probe_delta_e),
+                                        finite_angle_min_improvement=float(finite_angle_min_improvement),
+                                    )
+                                    break
+                                selection_mode = "eps_grad_suppressed_continue"
+                                _ai_log(
+                                    "hardcoded_adapt_converged_grad",
+                                    max_grad=float(max_grad),
+                                    eps_grad=float(eps_grad),
+                                    fallback_attempted=True,
+                                    fallback_best_probe_delta_e=float(fallback_best_probe_delta_e),
+                                    finite_angle_min_improvement=float(finite_angle_min_improvement),
+                                )
+                                break
+                            selection_mode = "eps_grad_suppressed_continue"
+                            _ai_log(
+                                "hardcoded_adapt_eps_grad_termination_suppressed",
+                                depth=int(depth + 1),
+                                max_grad=float(max_grad),
+                                eps_grad=float(eps_grad),
+                                fallback_attempted=True,
+                                fallback_best_probe_delta_e=float(fallback_best_probe_delta_e),
+                                finite_angle_min_improvement=float(finite_angle_min_improvement),
+                                continuation_mode=str(continuation_mode),
+                                problem=str(problem_key),
                             )
                             if rescue_diag is not None:
                                 phase3_rescue_history.append(dict(rescue_diag))
@@ -4255,22 +8399,21 @@ def _run_hardcoded_adapt_vqe(
                                 phase1_last_selected_score = float(
                                     feat_rescue.full_v2_score
                                     if feat_rescue.full_v2_score is not None
-                                    else feat_rescue.simple_score or float("-inf")
+                                    else (
+                                        feat_rescue.cheap_score
+                                        if feat_rescue.cheap_score is not None
+                                        else feat_rescue.simple_score or float("-inf")
+                                    )
                                 )
                                 if str(feat_rescue.runtime_split_mode) != "off":
                                     selection_mode = "rescue_overlap_split"
                             _ai_log(
-                                "hardcoded_adapt_phase3_rescue_selected",
+                                "hardcoded_adapt_fallback_selected",
                                 depth=int(depth + 1),
                                 selected_idx=int(best_idx),
-                                selected_op=(
-                                    str(rescue_record.get("candidate_term").label)
-                                    if rescue_record.get("candidate_term") is not None
-                                    else str(pool[int(best_idx)].label)
-                                ),
-                                selected_position=int(selected_position),
+                                selected_op=str(pool[best_idx].label),
                                 init_theta=float(init_theta),
-                                overlap_gain=float(rescue_record.get("overlap_gain", 0.0)),
+                                probe_delta_e=float(fallback_best_probe_delta_e),
                             )
                         else:
                             if bool(eps_grad_termination_enabled):
@@ -4296,87 +8439,127 @@ def _run_hardcoded_adapt_vqe(
                                 continuation_mode=str(continuation_mode),
                                 problem=str(problem_key),
                             )
-            else:
-                eps_grad_trough = bool(phase1_enabled and phase1_last_trough_detected and int(selected_position) != int(append_position))
-                if not bool(eps_grad_trough):
-                    rescue_record = None
-                    rescue_diag: dict[str, Any] | None = None
-                    if phase3_enabled:
-                        rescue_record, rescue_diag = _phase3_try_rescue(
-                            psi_current_state=np.asarray(psi_current, dtype=complex),
-                            shortlist_eval_records=list(phase2_last_shortlist_eval_records),
-                            selected_position_append=int(append_position),
-                            history_rows=list(history),
-                            trough_detected_now=bool(phase1_last_trough_detected),
-                        )
-                        if rescue_diag is not None:
-                            phase3_rescue_history.append(dict(rescue_diag))
-                    if isinstance(rescue_record, Mapping):
-                        best_idx = int(rescue_record.get("candidate_pool_index", best_idx))
-                        selected_position = int(rescue_record.get("position_id", append_position))
-                        init_theta = float(rescue_record.get("rescue_init_theta", finite_angle))
-                        selection_mode = "rescue_overlap"
-                        feat_rescue = rescue_record.get("feature")
-                        phase2_selected_records = [dict(rescue_record)] if phase2_enabled else []
-                        if isinstance(feat_rescue, CandidateFeatures):
-                            phase1_feature_selected = dict(feat_rescue.__dict__)
-                            phase1_feature_selected["actual_fallback_mode"] = "rescue_overlap"
-                            phase1_last_selected_score = float(
-                                feat_rescue.full_v2_score
-                                if feat_rescue.full_v2_score is not None
-                                else feat_rescue.simple_score or float("-inf")
-                            )
-                            if str(feat_rescue.runtime_split_mode) != "off":
-                                selection_mode = "rescue_overlap_split"
-                        _ai_log(
-                            "hardcoded_adapt_phase3_rescue_selected",
-                            depth=int(depth + 1),
-                            selected_idx=int(best_idx),
-                            selected_op=(
-                                str(rescue_record.get("candidate_term").label)
-                                if rescue_record.get("candidate_term") is not None
-                                else str(pool[int(best_idx)].label)
-                            ),
-                            selected_position=int(selected_position),
-                            init_theta=float(init_theta),
-                            overlap_gain=float(rescue_record.get("overlap_gain", 0.0)),
-                        )
-                    else:
-                        if bool(eps_grad_termination_enabled):
-                            stop_reason = "eps_grad"
-                            _ai_log("hardcoded_adapt_converged_grad", max_grad=float(max_grad), eps_grad=float(eps_grad))
-                            break
-                        selection_mode = "eps_grad_suppressed_continue"
-                        _ai_log(
-                            "hardcoded_adapt_eps_grad_termination_suppressed",
-                            depth=int(depth + 1),
-                            max_grad=float(max_grad),
-                            eps_grad=float(eps_grad),
-                            fallback_attempted=False,
-                            continuation_mode=str(continuation_mode),
-                            problem=str(problem_key),
-                        )
+                else:
+                    if bool(eps_grad_termination_enabled):
+                        stop_reason = "eps_grad"
+                        _ai_log("hardcoded_adapt_converged_grad", max_grad=float(max_grad), eps_grad=float(eps_grad))
+                        break
+                    selection_mode = "eps_grad_suppressed_continue"
+                    _ai_log(
+                        "hardcoded_adapt_eps_grad_termination_suppressed",
+                        depth=int(depth + 1),
+                        max_grad=float(max_grad),
+                        eps_grad=float(eps_grad),
+                        fallback_attempted=False,
+                        continuation_mode=str(continuation_mode),
+                        problem=str(problem_key),
+                    )
 
-        # 4) Admit selected operator (append or insertion in continuation modes).
-        selected_batch_records_for_history: list[dict[str, Any]] = []
-        selected_batch_labels: list[str] = []
-        selected_batch_positions: list[int] = []
-        selected_batch_indices: list[int] = []
-        selected_batch_measurement_keys: list[str] = []
-        if phase1_enabled and phase2_enabled and len(phase2_selected_records) > 0:
-            original_positions_seen: list[int] = []
-            for rec in phase2_selected_records:
-                feat_rec = rec.get("feature")
-                if not isinstance(feat_rec, CandidateFeatures):
-                    continue
-                idx_sel = int(feat_rec.candidate_pool_index)
-                pos_orig = int(feat_rec.position_id)
-                pos_eff = int(pos_orig + sum(1 for prev in original_positions_seen if prev <= pos_orig))
-                admitted_term = rec.get("candidate_term")
-                if not isinstance(admitted_term, AnsatzTerm):
-                    admitted_term = pool[int(idx_sel)]
+            # 4) Admit selected operator (append or insertion in continuation modes).
+            selected_batch_records_for_history: list[dict[str, Any]] = []
+            selected_batch_labels: list[str] = []
+            selected_batch_positions: list[int] = []
+            selected_batch_indices: list[int] = []
+            selected_batch_measurement_keys: list[str] = []
+            selected_new_parameter_indices: list[int] = []
+            if phase1_enabled and phase2_enabled and len(phase2_selected_records) > 0:
+                original_positions_seen: list[int] = []
+                for rec in phase2_selected_records:
+                    feat_rec = rec.get("feature")
+                    if not isinstance(feat_rec, CandidateFeatures):
+                        continue
+                    idx_sel = int(feat_rec.candidate_pool_index)
+                    pos_orig = int(feat_rec.position_id)
+                    pos_eff = int(pos_orig + sum(1 for prev in original_positions_seen if prev <= pos_orig))
+                    admitted_term = rec.get("candidate_term")
+                    if not isinstance(admitted_term, AnsatzTerm):
+                        admitted_term = pool[int(idx_sel)]
+                    admitted_layout = _build_selected_layout([admitted_term])
+                    runtime_insert_pos = int(runtime_insert_position(selected_layout, int(pos_eff)))
+                    if phase2_enabled:
+                        phase2_optimizer_memory = phase2_memory_adapter.remap_insert(
+                            phase2_optimizer_memory,
+                            position_id=int(runtime_insert_pos),
+                            count=int(admitted_layout.runtime_parameter_count),
+                        )
+                    selected_ops, theta = _splice_candidate_at_position(
+                        ops=selected_ops,
+                        theta=np.asarray(theta, dtype=float),
+                        op=admitted_term,
+                        position_id=int(pos_eff),
+                        init_theta=0.0,
+                    )
+                    selected_layout = _build_selected_layout(selected_ops)
+                    if (
+                        phase3_enabled
+                        and str(feat_rec.runtime_split_mode) != "off"
+                        and feat_rec.parent_generator_id is not None
+                    ):
+                        selected_child_generator_ids = [str(x) for x in feat_rec.runtime_split_child_generator_ids]
+                        phase3_split_events.append(
+                            build_split_event(
+                                parent_generator_id=str(feat_rec.parent_generator_id),
+                                child_generator_ids=(
+                                    list(selected_child_generator_ids)
+                                    if selected_child_generator_ids
+                                    else ([str(feat_rec.generator_id)] if feat_rec.generator_id is not None else [])
+                                ),
+                                reason=f"depth{int(depth + 1)}_selected",
+                                split_mode=str(feat_rec.runtime_split_mode),
+                                choice_reason="selected_for_admission",
+                                chosen_representation=str(feat_rec.runtime_split_chosen_representation),
+                                chosen_child_ids=list(selected_child_generator_ids),
+                                symmetry_gate_results=(
+                                    dict(feat_rec.generator_metadata.get("compile_metadata", {}).get("runtime_split", {}).get("symmetry_gate", {}))
+                                    if isinstance(feat_rec.generator_metadata, Mapping)
+                                    and isinstance(feat_rec.generator_metadata.get("compile_metadata"), Mapping)
+                                    and isinstance(
+                                        feat_rec.generator_metadata.get("compile_metadata", {}).get("runtime_split"),
+                                        Mapping,
+                                    )
+                                    else {}
+                                ),
+                                insertion_positions=[int(pos_eff)],
+                            )
+                        )
+                        if str(feat_rec.runtime_split_chosen_representation) == "child_set":
+                            phase3_runtime_split_summary["selected_child_set_count"] = int(
+                                phase3_runtime_split_summary.get("selected_child_set_count", 0)
+                            ) + 1
+                        phase3_runtime_split_summary["selected_child_count"] = int(
+                            phase3_runtime_split_summary.get("selected_child_count", 0)
+                        ) + int(
+                            max(
+                                1,
+                                len(selected_child_generator_ids)
+                                if selected_child_generator_ids
+                                else len(feat_rec.runtime_split_child_labels),
+                            )
+                        )
+                        phase3_runtime_split_summary["selected_child_labels"] = [
+                            *list(phase3_runtime_split_summary.get("selected_child_labels", [])),
+                            *(
+                                [str(x) for x in feat_rec.runtime_split_child_labels]
+                                if feat_rec.runtime_split_child_labels
+                                else [str(admitted_term.label)]
+                            ),
+                        ]
+                    original_positions_seen.append(int(pos_orig))
+                    selection_counts[idx_sel] += 1
+                    if not allow_repeats:
+                        available_indices.discard(idx_sel)
+                    selected_batch_records_for_history.append(dict(feat_rec.__dict__))
+                    selected_batch_labels.append(str(admitted_term.label))
+                    selected_batch_positions.append(int(pos_orig))
+                    selected_batch_indices.append(int(idx_sel))
+                    selected_batch_measurement_keys.extend(measurement_group_keys_for_term(admitted_term))
+                if selected_batch_indices:
+                    best_idx = int(selected_batch_indices[0])
+                    selected_position = int(selected_batch_positions[0])
+            elif phase1_enabled:
+                admitted_term = pool[int(best_idx)]
                 admitted_layout = _build_selected_layout([admitted_term])
-                runtime_insert_pos = int(runtime_insert_position(selected_layout, int(pos_eff)))
+                runtime_insert_pos = int(runtime_insert_position(selected_layout, int(selected_position)))
                 if phase2_enabled:
                     phase2_optimizer_memory = phase2_memory_adapter.remap_insert(
                         phase2_optimizer_memory,
@@ -4387,791 +8570,841 @@ def _run_hardcoded_adapt_vqe(
                     ops=selected_ops,
                     theta=np.asarray(theta, dtype=float),
                     op=admitted_term,
-                    position_id=int(pos_eff),
-                    init_theta=0.0,
+                    position_id=int(selected_position),
+                    init_theta=float(init_theta),
                 )
                 selected_layout = _build_selected_layout(selected_ops)
-                if (
-                    phase3_enabled
-                    and str(feat_rec.runtime_split_mode) != "off"
-                    and feat_rec.parent_generator_id is not None
-                ):
-                    selected_child_generator_ids = [str(x) for x in feat_rec.runtime_split_child_generator_ids]
-                    phase3_split_events.append(
-                        build_split_event(
-                            parent_generator_id=str(feat_rec.parent_generator_id),
-                            child_generator_ids=(
-                                list(selected_child_generator_ids)
-                                if selected_child_generator_ids
-                                else ([str(feat_rec.generator_id)] if feat_rec.generator_id is not None else [])
-                            ),
-                            reason=f"depth{int(depth + 1)}_selected",
-                            split_mode=str(feat_rec.runtime_split_mode),
-                            choice_reason="selected_for_admission",
-                            chosen_representation=str(feat_rec.runtime_split_chosen_representation),
-                            chosen_child_ids=list(selected_child_generator_ids),
-                            symmetry_gate_results=(
-                                dict(feat_rec.generator_metadata.get("compile_metadata", {}).get("runtime_split", {}).get("symmetry_gate", {}))
-                                if isinstance(feat_rec.generator_metadata, Mapping)
-                                and isinstance(feat_rec.generator_metadata.get("compile_metadata"), Mapping)
-                                and isinstance(
-                                    feat_rec.generator_metadata.get("compile_metadata", {}).get("runtime_split"),
-                                    Mapping,
-                                )
-                                else {}
-                            ),
-                            insertion_positions=[int(pos_eff)],
-                        )
-                    )
-                    if str(feat_rec.runtime_split_chosen_representation) == "child_set":
-                        phase3_runtime_split_summary["selected_child_set_count"] = int(
-                            phase3_runtime_split_summary.get("selected_child_set_count", 0)
-                        ) + 1
-                    phase3_runtime_split_summary["selected_child_count"] = int(
-                        phase3_runtime_split_summary.get("selected_child_count", 0)
-                    ) + int(
-                        max(
-                            1,
-                            len(selected_child_generator_ids)
-                            if selected_child_generator_ids
-                            else len(feat_rec.runtime_split_child_labels),
-                        )
-                    )
-                    phase3_runtime_split_summary["selected_child_labels"] = [
-                        *list(phase3_runtime_split_summary.get("selected_child_labels", [])),
-                        *(
-                            [str(x) for x in feat_rec.runtime_split_child_labels]
-                            if feat_rec.runtime_split_child_labels
-                            else [str(admitted_term.label)]
-                        ),
-                    ]
-                original_positions_seen.append(int(pos_orig))
-                selection_counts[idx_sel] += 1
+                selection_counts[best_idx] += 1
                 if not allow_repeats:
-                    available_indices.discard(idx_sel)
-                selected_batch_records_for_history.append(dict(feat_rec.__dict__))
-                selected_batch_labels.append(str(admitted_term.label))
-                selected_batch_positions.append(int(pos_orig))
-                selected_batch_indices.append(int(idx_sel))
-                selected_batch_measurement_keys.extend(measurement_group_keys_for_term(admitted_term))
-            if selected_batch_indices:
-                best_idx = int(selected_batch_indices[0])
-                selected_position = int(selected_batch_positions[0])
-        elif phase1_enabled:
-            admitted_term = pool[int(best_idx)]
-            admitted_layout = _build_selected_layout([admitted_term])
-            runtime_insert_pos = int(runtime_insert_position(selected_layout, int(selected_position)))
-            if phase2_enabled:
-                phase2_optimizer_memory = phase2_memory_adapter.remap_insert(
-                    phase2_optimizer_memory,
-                    position_id=int(runtime_insert_pos),
-                    count=int(admitted_layout.runtime_parameter_count),
+                    available_indices.discard(best_idx)
+                if isinstance(phase1_feature_selected, dict):
+                    selected_batch_records_for_history.append(dict(phase1_feature_selected))
+                selected_batch_labels.append(str(pool[int(best_idx)].label))
+                selected_batch_positions.append(int(selected_position))
+                selected_batch_indices.append(int(best_idx))
+                selected_batch_measurement_keys.extend(measurement_group_keys_for_term(pool[int(best_idx)]))
+            else:
+                selected_ops, theta = _splice_candidate_at_position(
+                    ops=selected_ops,
+                    theta=np.asarray(theta, dtype=float),
+                    op=pool[int(best_idx)],
+                    position_id=int(len(selected_ops)),
+                    init_theta=float(init_theta),
                 )
-            selected_ops, theta = _splice_candidate_at_position(
-                ops=selected_ops,
-                theta=np.asarray(theta, dtype=float),
-                op=admitted_term,
-                position_id=int(selected_position),
-                init_theta=float(init_theta),
-            )
-            selected_layout = _build_selected_layout(selected_ops)
-            selection_counts[best_idx] += 1
-            if not allow_repeats:
-                available_indices.discard(best_idx)
-            if isinstance(phase1_feature_selected, dict):
-                selected_batch_records_for_history.append(dict(phase1_feature_selected))
-            selected_batch_labels.append(str(pool[int(best_idx)].label))
-            selected_batch_positions.append(int(selected_position))
-            selected_batch_indices.append(int(best_idx))
-            selected_batch_measurement_keys.extend(measurement_group_keys_for_term(pool[int(best_idx)]))
-        else:
-            selected_ops, theta = _splice_candidate_at_position(
-                ops=selected_ops,
-                theta=np.asarray(theta, dtype=float),
-                op=pool[int(best_idx)],
-                position_id=int(len(selected_ops)),
-                init_theta=float(init_theta),
-            )
-            selected_layout = _build_selected_layout(selected_ops)
-            selection_counts[best_idx] += 1
-            if not allow_repeats:
-                available_indices.discard(best_idx)
-            selected_batch_labels.append(str(pool[int(best_idx)].label))
-            selected_batch_positions.append(int(selected_position))
-            selected_batch_indices.append(int(best_idx))
-            selected_batch_measurement_keys.extend(measurement_group_keys_for_term(pool[int(best_idx)]))
-        if adapt_state_backend_key == "compiled":
-            selected_executor = _build_compiled_executor(selected_ops)
-        else:
-            selected_executor = None
-
-        # 5) Re-optimize parameters with selected inner optimizer
-        # Policy: 'full' re-optimizes all parameters (legacy behavior),
-        #         'append_only' freezes the prefix and optimizes only the
-        #         newly appended parameter.
-        energy_prev = energy_current
-        theta_before_opt = np.array(theta, copy=True)
-        optimizer_t0 = time.perf_counter()
-        cobyla_last_hb_t = optimizer_t0
-        cobyla_nfev_so_far = 0
-        cobyla_best_fun = float("inf")
-
-        def _obj(x: np.ndarray) -> float:
-            nonlocal cobyla_last_hb_t, cobyla_nfev_so_far, cobyla_best_fun
+                selected_layout = _build_selected_layout(selected_ops)
+                selection_counts[best_idx] += 1
+                if not allow_repeats:
+                    available_indices.discard(best_idx)
+                selected_batch_labels.append(str(pool[int(best_idx)].label))
+                selected_batch_positions.append(int(selected_position))
+                selected_batch_indices.append(int(best_idx))
+                selected_batch_measurement_keys.extend(measurement_group_keys_for_term(pool[int(best_idx)]))
             if adapt_state_backend_key == "compiled":
-                assert selected_executor is not None
-                psi_obj = selected_executor.prepare_state(np.asarray(x, dtype=float), psi_ref)
-                energy_obj, _ = energy_via_one_apply(psi_obj, h_compiled)
-                energy_obj_val = float(energy_obj)
+                selected_executor = _build_compiled_executor(selected_ops)
             else:
-                energy_obj_val = _adapt_energy_fn(
-                    h_poly,
-                    psi_ref,
-                    selected_ops,
-                    x,
-                    h_compiled=h_compiled,
-                    parameter_layout=selected_layout,
+                selected_executor = None
+
+            # 5) Re-optimize parameters with selected inner optimizer
+            # Policy: 'full' re-optimizes all parameters (legacy behavior),
+            #         'append_only' freezes the prefix and optimizes only the
+            #         newly appended parameter.
+            energy_prev = energy_current
+            theta_before_opt = np.array(theta, copy=True)
+            optimizer_t0 = time.perf_counter()
+            cobyla_last_hb_t = optimizer_t0
+            cobyla_nfev_so_far = 0
+            cobyla_best_fun = float("inf")
+
+            def _obj(x: np.ndarray) -> float:
+                nonlocal cobyla_last_hb_t, cobyla_nfev_so_far, cobyla_best_fun
+                energy_obj_val = _evaluate_selected_energy_objective(
+                    ops_now=selected_ops,
+                    theta_now=np.asarray(x, dtype=float),
+                    executor_now=selected_executor,
+                    parameter_layout_now=selected_layout,
+                    objective_stage="depth_opt",
+                    depth_marker=int(depth + 1),
                 )
-            if adapt_inner_optimizer_key in {"COBYLA", "POWELL"}:
-                cobyla_nfev_so_far += 1
-                if energy_obj_val < cobyla_best_fun:
-                    cobyla_best_fun = float(energy_obj_val)
-                now = time.perf_counter()
-                if (now - cobyla_last_hb_t) >= float(adapt_spsa_progress_every_s):
-                    _ai_log(
-                        "hardcoded_adapt_scipy_heartbeat",
-                        stage="depth_opt",
-                        depth=int(depth + 1),
-                        opt_method=str(adapt_inner_optimizer_key),
-                        nfev_opt_so_far=int(cobyla_nfev_so_far),
-                        best_fun=float(cobyla_best_fun),
-                        delta_abs_best=(
-                            float(abs(cobyla_best_fun - exact_gs))
-                            if math.isfinite(cobyla_best_fun)
-                            else None
-                        ),
-                        elapsed_opt_s=float(now - optimizer_t0),
-                    )
-                    cobyla_last_hb_t = now
-            return float(energy_obj_val)
+                if adapt_inner_optimizer_key in {"COBYLA", "POWELL"}:
+                    cobyla_nfev_so_far += 1
+                    if energy_obj_val < cobyla_best_fun:
+                        cobyla_best_fun = float(energy_obj_val)
+                    now = time.perf_counter()
+                    if (now - cobyla_last_hb_t) >= float(adapt_spsa_progress_every_s):
+                        _ai_log(
+                            "hardcoded_adapt_scipy_heartbeat",
+                            stage="depth_opt",
+                            depth=int(depth + 1),
+                            opt_method=str(adapt_inner_optimizer_key),
+                            nfev_opt_so_far=int(cobyla_nfev_so_far),
+                            best_fun=float(cobyla_best_fun),
+                            delta_abs_best=(
+                                float(abs(cobyla_best_fun - exact_gs))
+                                if math.isfinite(cobyla_best_fun)
+                                else None
+                            ),
+                            elapsed_opt_s=float(now - optimizer_t0),
+                        )
+                        cobyla_last_hb_t = now
+                return float(energy_obj_val)
 
-        # -- Resolve active reopt indices for this depth --
-        n_theta_runtime = int(theta.size)
-        theta_logical_selected = _logical_theta_alias(theta, selected_layout)
-        n_theta_logical = int(theta_logical_selected.size)
-        depth_local = int(depth + 1)
-        depth_cumulative = int(adapt_ref_base_depth) + int(depth_local)
-        periodic_full_refit_triggered = bool(
-            adapt_reopt_policy_key == "windowed"
-            and adapt_full_refit_every_val > 0
-            and depth_cumulative % adapt_full_refit_every_val == 0
-        )
-        reopt_active_indices, reopt_policy_effective = _resolve_reopt_active_indices(
-            policy=adapt_reopt_policy_key,
-            n=n_theta_logical,
-            theta=theta_logical_selected,
-            window_size=adapt_window_size_val,
-            window_topk=adapt_window_topk_val,
-            periodic_full_refit_triggered=periodic_full_refit_triggered,
-        )
-        reopt_runtime_active_indices = runtime_indices_for_logical_indices(
-            selected_layout,
-            reopt_active_indices,
-        )
-        if phase1_enabled and isinstance(phase1_feature_selected, dict):
-            phase1_feature_selected["refit_window_indices"] = [int(i) for i in reopt_active_indices]
-        if phase1_enabled and selected_batch_records_for_history:
-            for rec in selected_batch_records_for_history:
-                rec["refit_window_indices"] = [int(i) for i in reopt_active_indices]
-        _obj_opt, opt_x0 = _make_reduced_objective(theta, reopt_runtime_active_indices, _obj)
-        phase2_active_memory = None
-        phase2_last_optimizer_memory_reused = False
-        phase2_last_optimizer_memory_source = "unavailable"
-        if phase2_enabled and adapt_inner_optimizer_key == "SPSA":
-            phase2_active_memory = phase2_memory_adapter.select_active(
-                phase2_optimizer_memory,
-                active_indices=list(reopt_runtime_active_indices),
-                source=f"adapt.depth{int(depth + 1)}.opt_active",
+            # -- Resolve active reopt indices for this depth --
+            n_theta_runtime = int(theta.size)
+            theta_logical_selected = _logical_theta_alias(theta, selected_layout)
+            n_theta_logical = int(theta_logical_selected.size)
+            depth_local = int(depth + 1)
+            depth_cumulative = int(adapt_ref_base_depth) + int(depth_local)
+            periodic_full_refit_triggered = bool(
+                adapt_reopt_policy_key == "windowed"
+                and adapt_full_refit_every_val > 0
+                and depth_cumulative % adapt_full_refit_every_val == 0
             )
-            phase2_last_optimizer_memory_reused = bool(phase2_active_memory.get("reused", False))
-            phase2_last_optimizer_memory_source = str(phase2_active_memory.get("source", "unavailable"))
-
-        if adapt_inner_optimizer_key == "SPSA":
-            spsa_last_hb_t = optimizer_t0
-
-            def _depth_spsa_callback(ev: dict[str, Any]) -> None:
-                nonlocal spsa_last_hb_t
-                now = time.perf_counter()
-                if (now - spsa_last_hb_t) < float(adapt_spsa_progress_every_s):
-                    return
-                best_fun = float(ev.get("best_fun", float("nan")))
-                _ai_log(
-                    "hardcoded_adapt_spsa_heartbeat",
-                    stage="depth_opt",
-                    depth=int(depth + 1),
-                    iter=int(ev.get("iter", 0)),
-                    nfev_opt_so_far=int(ev.get("nfev_so_far", 0)),
-                    best_fun=best_fun,
-                    delta_abs_best=float(abs(best_fun - exact_gs)) if math.isfinite(best_fun) else None,
-                    elapsed_opt_s=float(now - optimizer_t0),
-                )
-                spsa_last_hb_t = now
-
-            result = spsa_minimize(
-                fun=_obj_opt,
-                x0=opt_x0,
-                maxiter=int(maxiter),
-                seed=int(seed) + int(depth),
-                a=float(adapt_spsa_a),
-                c=float(adapt_spsa_c),
-                alpha=float(adapt_spsa_alpha),
-                gamma=float(adapt_spsa_gamma),
-                A=float(adapt_spsa_A),
-                bounds=None,
-                project="none",
-                eval_repeats=int(adapt_spsa_eval_repeats),
-                eval_agg=str(adapt_spsa_eval_agg_key),
-                avg_last=int(adapt_spsa_avg_last),
-                callback=_depth_spsa_callback,
-                callback_every=int(adapt_spsa_callback_every),
-                memory=(dict(phase2_active_memory) if isinstance(phase2_active_memory, Mapping) else None),
-                refresh_every=0,
-                precondition_mode=("diag_rms_grad" if phase2_enabled else "none"),
+            reopt_active_indices, reopt_policy_effective = _resolve_reopt_active_indices(
+                policy=adapt_reopt_policy_key,
+                n=n_theta_logical,
+                theta=theta_logical_selected,
+                window_size=adapt_window_size_val,
+                window_topk=adapt_window_topk_val,
+                periodic_full_refit_triggered=periodic_full_refit_triggered,
             )
-            # Reconstruct full theta from reduced optimizer result
-            if len(reopt_runtime_active_indices) == n_theta_runtime:
-                theta = np.asarray(result.x, dtype=float)
-            else:
-                result_x = np.asarray(result.x, dtype=float).ravel()
-                for k, idx in enumerate(reopt_runtime_active_indices):
-                    theta[idx] = float(result_x[k])
-            energy_current = float(result.fun)
-            nfev_opt = int(result.nfev)
-            nit_opt = int(result.nit)
-            opt_success = bool(result.success)
-            opt_message = str(result.message)
-            if phase2_enabled:
-                phase2_optimizer_memory = phase2_memory_adapter.merge_active(
+            reopt_runtime_active_indices = runtime_indices_for_logical_indices(
+                selected_layout,
+                reopt_active_indices,
+            )
+            inherited_reopt_indices = [
+                int(i) for i in reopt_active_indices
+                if (not phase1_enabled) or int(i) != int(selected_position)
+            ]
+            if phase1_enabled and isinstance(phase1_feature_selected, dict):
+                phase1_feature_selected["refit_window_indices"] = [int(i) for i in inherited_reopt_indices]
+            if phase1_enabled and selected_batch_records_for_history:
+                for rec in selected_batch_records_for_history:
+                    rec["refit_window_indices"] = [int(i) for i in inherited_reopt_indices]
+            _obj_opt, opt_x0 = _make_reduced_objective(theta, reopt_runtime_active_indices, _obj)
+            phase2_active_memory = None
+            phase2_last_optimizer_memory_reused = False
+            phase2_last_optimizer_memory_source = "unavailable"
+            if phase2_enabled and adapt_inner_optimizer_key == "SPSA":
+                phase2_active_memory = phase2_memory_adapter.select_active(
                     phase2_optimizer_memory,
                     active_indices=list(reopt_runtime_active_indices),
-                    active_state=phase2_memory_adapter.from_result(
-                        result,
-                        method=str(adapt_inner_optimizer_key),
-                        parameter_count=int(len(reopt_runtime_active_indices)),
-                        source=f"adapt.depth{int(depth + 1)}.spsa_result",
-                    ),
-                    source=f"adapt.depth{int(depth + 1)}.merge",
+                    source=f"adapt.depth{int(depth + 1)}.opt_active",
                 )
-        else:
-            if scipy_minimize is None:
-                raise RuntimeError(
-                    f"SciPy minimize is unavailable for {adapt_inner_optimizer_key} ADAPT inner optimizer."
+                phase2_last_optimizer_memory_reused = bool(phase2_active_memory.get("reused", False))
+                phase2_last_optimizer_memory_source = str(phase2_active_memory.get("source", "unavailable"))
+
+            if adapt_inner_optimizer_key == "SPSA":
+                spsa_last_hb_t = optimizer_t0
+
+                def _depth_spsa_callback(ev: dict[str, Any]) -> None:
+                    nonlocal spsa_last_hb_t
+                    now = time.perf_counter()
+                    if (now - spsa_last_hb_t) < float(adapt_spsa_progress_every_s):
+                        return
+                    best_fun = float(ev.get("best_fun", float("nan")))
+                    _ai_log(
+                        "hardcoded_adapt_spsa_heartbeat",
+                        stage="depth_opt",
+                        depth=int(depth + 1),
+                        iter=int(ev.get("iter", 0)),
+                        nfev_opt_so_far=int(ev.get("nfev_so_far", 0)),
+                        best_fun=best_fun,
+                        delta_abs_best=float(abs(best_fun - exact_gs)) if math.isfinite(best_fun) else None,
+                        elapsed_opt_s=float(now - optimizer_t0),
+                    )
+                    spsa_last_hb_t = now
+
+                result = spsa_minimize(
+                    fun=_obj_opt,
+                    x0=opt_x0,
+                    maxiter=int(maxiter),
+                    seed=int(seed) + int(depth),
+                    a=float(adapt_spsa_a),
+                    c=float(adapt_spsa_c),
+                    alpha=float(adapt_spsa_alpha),
+                    gamma=float(adapt_spsa_gamma),
+                    A=float(adapt_spsa_A),
+                    bounds=None,
+                    project="none",
+                    eval_repeats=int(adapt_spsa_eval_repeats),
+                    eval_agg=str(adapt_spsa_eval_agg_key),
+                    avg_last=int(adapt_spsa_avg_last),
+                    callback=_depth_spsa_callback,
+                    callback_every=int(adapt_spsa_callback_every),
+                    memory=(dict(phase2_active_memory) if isinstance(phase2_active_memory, Mapping) else None),
+                    refresh_every=0,
+                    precondition_mode=("diag_rms_grad" if phase2_enabled else "none"),
                 )
-            result = scipy_minimize(
-                _obj_opt,
-                opt_x0,
-                method=str(adapt_inner_optimizer_key),
-                options=_scipy_inner_options(int(maxiter)),
-            )
-            # Reconstruct full theta from reduced optimizer result
-            if len(reopt_runtime_active_indices) == n_theta_runtime:
-                theta = np.asarray(result.x, dtype=float)
+                # Reconstruct full theta from reduced optimizer result
+                if len(reopt_runtime_active_indices) == n_theta_runtime:
+                    theta = np.asarray(result.x, dtype=float)
+                else:
+                    result_x = np.asarray(result.x, dtype=float).ravel()
+                    for k, idx in enumerate(reopt_runtime_active_indices):
+                        theta[idx] = float(result_x[k])
+                energy_current = float(result.fun)
+                nfev_opt = int(result.nfev)
+                nit_opt = int(result.nit)
+                opt_success = bool(result.success)
+                opt_message = str(result.message)
+                if phase2_enabled:
+                    phase2_optimizer_memory = phase2_memory_adapter.merge_active(
+                        phase2_optimizer_memory,
+                        active_indices=list(reopt_runtime_active_indices),
+                        active_state=phase2_memory_adapter.from_result(
+                            result,
+                            method=str(adapt_inner_optimizer_key),
+                            parameter_count=int(len(reopt_runtime_active_indices)),
+                            source=f"adapt.depth{int(depth + 1)}.spsa_result",
+                        ),
+                        source=f"adapt.depth{int(depth + 1)}.merge",
+                    )
             else:
-                result_x = np.asarray(result.x, dtype=float).ravel()
-                for k, idx in enumerate(reopt_runtime_active_indices):
-                    theta[idx] = float(result_x[k])
-            energy_current = float(result.fun)
-            nfev_opt = int(getattr(result, "nfev", 0))
-            nit_opt = int(getattr(result, "nit", 0))
-            opt_success = bool(getattr(result, "success", False))
-            opt_message = str(getattr(result, "message", ""))
-            if phase2_enabled:
-                phase2_optimizer_memory = phase2_memory_adapter.unavailable(
+                if scipy_minimize is None:
+                    raise RuntimeError(
+                        f"SciPy minimize is unavailable for {adapt_inner_optimizer_key} ADAPT inner optimizer."
+                    )
+                result = scipy_minimize(
+                    _obj_opt,
+                    opt_x0,
                     method=str(adapt_inner_optimizer_key),
-                    parameter_count=int(theta.size),
-                    reason="non_spsa_depth_opt",
+                    options=_scipy_inner_options(int(maxiter)),
                 )
+                # Reconstruct full theta from reduced optimizer result
+                if len(reopt_runtime_active_indices) == n_theta_runtime:
+                    theta = np.asarray(result.x, dtype=float)
+                else:
+                    result_x = np.asarray(result.x, dtype=float).ravel()
+                    for k, idx in enumerate(reopt_runtime_active_indices):
+                        theta[idx] = float(result_x[k])
+                energy_current = float(result.fun)
+                nfev_opt = int(getattr(result, "nfev", 0))
+                nit_opt = int(getattr(result, "nit", 0))
+                opt_success = bool(getattr(result, "success", False))
+                opt_message = str(getattr(result, "message", ""))
+                if phase2_enabled:
+                    phase2_optimizer_memory = phase2_memory_adapter.unavailable(
+                        method=str(adapt_inner_optimizer_key),
+                        parameter_count=int(theta.size),
+                        reason="non_spsa_depth_opt",
+                    )
 
-        # -- Depth-level non-improvement rollback guard --
-        # If the optimizer returned an energy worse than the entry energy for
-        # this depth, roll back to the pre-optimization parameters.  This
-        # prevents stochastic optimizer noise from accumulating regressions.
-        depth_rollback = False
-        if float(energy_current) > float(energy_prev):
-            _ai_log(
-                "hardcoded_adapt_depth_rollback",
-                depth=int(depth + 1),
-                energy_before_opt=float(energy_prev),
-                energy_after_opt=float(energy_current),
-                regression=float(energy_current - energy_prev),
-                opt_method=str(adapt_inner_optimizer_key),
-            )
-            theta = np.array(theta_before_opt, copy=True)
-            energy_current = float(energy_prev)
-            depth_rollback = True
+            # -- Depth-level non-improvement rollback guard --
+            # If the optimizer returned an energy worse than the entry energy for
+            # this depth, roll back to the pre-optimization parameters.  This
+            # prevents stochastic optimizer noise from accumulating regressions.
+            depth_rollback = False
+            if float(energy_current) > float(energy_prev):
+                _ai_log(
+                    "hardcoded_adapt_depth_rollback",
+                    depth=int(depth + 1),
+                    energy_before_opt=float(energy_prev),
+                    energy_after_opt=float(energy_current),
+                    regression=float(energy_current - energy_prev),
+                    opt_method=str(adapt_inner_optimizer_key),
+                )
+                theta = np.array(theta_before_opt, copy=True)
+                energy_current = float(energy_prev)
+                depth_rollback = True
 
-        optimizer_elapsed_s = float(time.perf_counter() - optimizer_t0)
-        nfev_total += int(nfev_opt)
-        depth_local = int(depth + 1)
-        depth_cumulative = int(adapt_ref_base_depth) + int(depth_local)
-        delta_abs_prev = float(drop_prev_delta_abs)
-        delta_abs_current = float(abs(energy_current - exact_gs))
-        delta_abs_drop = float(delta_abs_prev - delta_abs_current)
-        drop_prev_delta_abs = float(delta_abs_current)
-        eps_energy_step_abs = float(abs(energy_current - energy_prev))
-        eps_energy_low_step = bool(eps_energy_step_abs < float(eps_energy))
-        eps_energy_gate_open = bool(depth_local >= int(eps_energy_min_extra_depth_effective))
-        if eps_energy_gate_open:
-            if eps_energy_low_step:
-                eps_energy_low_streak += 1
+            optimizer_elapsed_s = float(time.perf_counter() - optimizer_t0)
+            nfev_total += int(nfev_opt)
+            depth_local = int(depth + 1)
+            depth_cumulative = int(adapt_ref_base_depth) + int(depth_local)
+            delta_abs_prev = float(drop_prev_delta_abs)
+            delta_abs_current = float(abs(energy_current - exact_gs))
+            delta_abs_drop = float(delta_abs_prev - delta_abs_current)
+            drop_prev_delta_abs = float(delta_abs_current)
+            eps_energy_step_abs = float(abs(energy_current - energy_prev))
+            eps_energy_low_step = bool(eps_energy_step_abs < float(eps_energy))
+            eps_energy_gate_open = bool(depth_local >= int(eps_energy_min_extra_depth_effective))
+            if eps_energy_gate_open:
+                if eps_energy_low_step:
+                    eps_energy_low_streak += 1
+                else:
+                    eps_energy_low_streak = 0
             else:
                 eps_energy_low_streak = 0
-        else:
-            eps_energy_low_streak = 0
-        eps_energy_termination_condition = bool(eps_energy_gate_open) and (
-            int(eps_energy_low_streak) >= int(eps_energy_patience_effective)
-        )
-        drop_low_signal = None
-        drop_low_grad = None
-        if drop_policy_enabled and int(depth_local) >= int(adapt_drop_min_depth):
-            drop_low_signal = bool(delta_abs_drop < float(adapt_drop_floor))
-            if float(adapt_grad_floor) >= 0.0:
-                drop_low_grad = bool(float(max_grad) < float(adapt_grad_floor))
-            else:
-                drop_low_grad = True
-            if bool(drop_low_signal) and bool(drop_low_grad):
-                drop_plateau_hits += 1
-            else:
-                drop_plateau_hits = 0
-        _ai_log(
-            "hardcoded_adapt_optimizer_timing",
-            depth=int(depth + 1),
-            opt_method=str(adapt_inner_optimizer_key),
-            nfev_opt=int(nfev_opt),
-            nit_opt=int(nit_opt),
-            opt_success=bool(opt_success),
-            opt_message=str(opt_message),
-            optimizer_elapsed_s=float(optimizer_elapsed_s),
-        )
-
-        selected_primary_label = (
-            str(selected_batch_labels[0])
-            if selected_batch_labels
-            else (
-                str(phase1_feature_selected.get("candidate_label"))
-                if isinstance(phase1_feature_selected, dict)
-                and phase1_feature_selected.get("candidate_label") is not None
-                else str(pool[best_idx].label)
+            eps_energy_termination_condition = bool(eps_energy_gate_open) and (
+                int(eps_energy_low_streak) >= int(eps_energy_patience_effective)
             )
-        )
-        selected_grad_signed_value = (
-            float(phase1_feature_selected.get("g_signed"))
-            if isinstance(phase1_feature_selected, dict)
-            and phase1_feature_selected.get("g_signed") is not None
-            else float(gradients[best_idx])
-        )
-        selected_grad_abs_value = (
-            float(phase1_feature_selected.get("g_abs"))
-            if isinstance(phase1_feature_selected, dict)
-            and phase1_feature_selected.get("g_abs") is not None
-            else float(grad_magnitudes[best_idx])
-        )
-        history_row = {
-            "depth": int(depth + 1),
-            "selected_op": str(selected_primary_label),
-            "pool_index": int(best_idx),
-            "selected_ops": [str(x) for x in selected_batch_labels],
-            "selected_pool_indices": [int(x) for x in selected_batch_indices],
-            "selection_mode": str(selection_mode),
-            "init_theta": float(init_theta),
-            "max_grad": float(max_grad),
-            "selected_grad_signed": float(selected_grad_signed_value),
-            "selected_grad_abs": float(selected_grad_abs_value),
-            "fallback_scan_size": int(fallback_scan_size),
-            "fallback_best_probe_delta_e": (
-                float(fallback_best_probe_delta_e) if fallback_best_probe_delta_e is not None else None
-            ),
-            "fallback_best_probe_theta": (
-                float(fallback_best_probe_theta) if fallback_best_probe_theta is not None else None
-            ),
-            "energy_before_opt": float(energy_prev),
-            "energy_after_opt": float(energy_current),
-            "delta_energy": float(energy_current - energy_prev),
-            "delta_abs_prev": float(delta_abs_prev),
-            "delta_abs_current": float(delta_abs_current),
-            "delta_abs_drop_from_prev": float(delta_abs_drop),
-            "opt_method": str(adapt_inner_optimizer_key),
-            "reopt_policy": str(adapt_reopt_policy_key),
-            "nfev_opt": int(nfev_opt),
-            "nit_opt": int(nit_opt),
-            "opt_success": bool(opt_success),
-            "opt_message": str(opt_message),
-            "gradient_eval_elapsed_s": float(gradient_eval_elapsed_s),
-            "optimizer_elapsed_s": float(optimizer_elapsed_s),
-            "iter_elapsed_s": float(time.perf_counter() - iter_t0),
-            "drop_policy_enabled": bool(drop_policy_enabled),
-            "drop_policy_source": str(stop_policy.drop_policy_source),
-            "adapt_drop_floor_resolved": float(adapt_drop_floor),
-            "adapt_drop_patience_resolved": int(adapt_drop_patience),
-            "adapt_drop_min_depth_resolved": int(adapt_drop_min_depth),
-            "adapt_grad_floor_resolved": float(adapt_grad_floor),
-            "adapt_drop_floor_source": str(stop_policy.adapt_drop_floor_source),
-            "adapt_drop_patience_source": str(stop_policy.adapt_drop_patience_source),
-            "adapt_drop_min_depth_source": str(stop_policy.adapt_drop_min_depth_source),
-            "adapt_grad_floor_source": str(stop_policy.adapt_grad_floor_source),
-            "drop_low_signal": drop_low_signal,
-            "drop_low_grad": drop_low_grad,
-            "drop_plateau_hits": int(drop_plateau_hits),
-            "depth_rollback": bool(depth_rollback),
-            "depth_cumulative": int(depth_cumulative),
-            "adapt_ref_base_depth": int(adapt_ref_base_depth),
-            "eps_energy_step_abs": float(eps_energy_step_abs),
-            "eps_energy_low_step": bool(eps_energy_low_step),
-            "eps_energy_low_streak": int(eps_energy_low_streak),
-            "eps_energy_gate_open": bool(eps_energy_gate_open),
-            "eps_energy_min_extra_depth_effective": int(eps_energy_min_extra_depth_effective),
-            "eps_energy_patience_effective": int(eps_energy_patience_effective),
-            "eps_energy_termination_enabled": bool(eps_energy_termination_enabled),
-            "eps_energy_termination_condition": bool(eps_energy_termination_condition),
-            "eps_grad_termination_enabled": bool(eps_grad_termination_enabled),
-            "eps_grad_threshold_hit": bool(max_grad < float(eps_grad)),
-            "reopt_policy_effective": str(reopt_policy_effective),
-            "reopt_active_indices": [int(i) for i in reopt_active_indices],
-            "reopt_active_count": int(len(reopt_active_indices)),
-            "reopt_runtime_active_indices": [int(i) for i in reopt_runtime_active_indices],
-            "reopt_runtime_active_count": int(len(reopt_runtime_active_indices)),
-            "num_parameters_after_opt": int(theta.size),
-            "logical_num_parameters_after_opt": int(len(selected_ops)),
-            "parameters_added_this_step": int(theta.size - theta_before_opt.size),
-            "logical_parameters_added_this_step": int(len(selected_batch_labels)) if selected_batch_labels else 1,
-            "reopt_periodic_full_refit_triggered": bool(periodic_full_refit_triggered),
-        }
-        if phase1_enabled:
-            history_row.update(
-                {
-                    "continuation_mode": str(continuation_mode),
-                    "candidate_family": str(
-                        pool_family_ids[int(best_idx)] if int(best_idx) < len(pool_family_ids) else "legacy"
-                    ),
-                    "stage_name": str(stage_name),
-                    "stage_transition_reason": str(phase1_stage_transition_reason),
-                    "selected_position": int(selected_position),
-                    "selected_positions": [int(x) for x in selected_batch_positions],
-                    "batch_selected": bool(phase2_enabled and phase2_last_batch_selected),
-                    "batch_size": int(len(selected_batch_labels)),
-                    "positions_considered": [int(x) for x in phase1_last_positions_considered],
-                    "score_version": (
-                        str(phase1_feature_selected.get("score_version"))
-                        if isinstance(phase1_feature_selected, dict)
-                        else None
-                    ),
-                    "simple_score": (
-                        float(phase1_feature_selected.get("simple_score"))
-                        if isinstance(phase1_feature_selected, dict)
-                        and phase1_feature_selected.get("simple_score") is not None
-                        else None
-                    ),
-                    "metric_proxy": (
-                        float(phase1_feature_selected.get("metric_proxy"))
-                        if isinstance(phase1_feature_selected, dict)
-                        else None
-                    ),
-                    "curvature_mode": (
-                        str(phase1_feature_selected.get("curvature_mode"))
-                        if isinstance(phase1_feature_selected, dict)
-                        else None
-                    ),
-                    "novelty_mode": (
-                        str(phase1_feature_selected.get("novelty_mode"))
-                        if isinstance(phase1_feature_selected, dict)
-                        else None
-                    ),
-                    "novelty": (
-                        phase1_feature_selected.get("novelty")
-                        if isinstance(phase1_feature_selected, dict)
-                        else None
-                    ),
-                    "g_lcb": (
-                        float(phase1_feature_selected.get("g_lcb"))
-                        if isinstance(phase1_feature_selected, dict)
-                        else None
-                    ),
-                    "refit_window_indices": (
-                        [int(i) for i in phase1_feature_selected.get("refit_window_indices", [])]
-                        if isinstance(phase1_feature_selected, dict)
-                        else [int(i) for i in reopt_active_indices]
-                    ),
-                    "compile_cost_proxy": (
-                        dict(phase1_feature_selected.get("compiled_position_cost_proxy", {}))
-                        if isinstance(phase1_feature_selected, dict)
-                        else None
-                    ),
-                    "compile_cost_mode": str(phase3_backend_cost_mode_key),
-                    "compile_cost_source": (
-                        str(phase1_feature_selected.get("compile_cost_source", "proxy"))
-                        if isinstance(phase1_feature_selected, dict)
-                        else "proxy"
-                    ),
-                    "compile_cost_total": (
-                        float(phase1_feature_selected.get("compile_cost_total", 0.0))
-                        if isinstance(phase1_feature_selected, dict)
-                        else 0.0
-                    ),
-                    "compile_gate_open": (
-                        bool(phase1_feature_selected.get("compile_gate_open", True))
-                        if isinstance(phase1_feature_selected, dict)
-                        else True
-                    ),
-                    "compile_failure_reason": (
-                        phase1_feature_selected.get("compile_failure_reason")
-                        if isinstance(phase1_feature_selected, dict)
-                        else None
-                    ),
-                    "compile_cost_backend": (
-                        dict(phase1_feature_selected.get("compiled_position_cost_backend", {}))
-                        if isinstance(phase1_feature_selected, dict)
-                        and isinstance(phase1_feature_selected.get("compiled_position_cost_backend"), Mapping)
-                        else None
-                    ),
-                    "measurement_cache_stats": (
-                        dict(phase1_feature_selected.get("measurement_cache_stats", {}))
-                        if isinstance(phase1_feature_selected, dict)
-                        else None
-                    ),
-                    "actual_fallback_mode": (
-                        str(phase1_feature_selected.get("actual_fallback_mode"))
-                        if isinstance(phase1_feature_selected, dict)
-                        else None
-                    ),
-                    "trough_probe_triggered": bool(phase1_last_trough_probe_triggered),
-                    "trough_detected": bool(phase1_last_trough_detected),
-                }
-            )
-            if phase2_enabled:
-                history_row.update(
-                    {
-                        "full_v2_score": (
-                            float(phase1_feature_selected.get("full_v2_score"))
-                            if isinstance(phase1_feature_selected, dict)
-                            and phase1_feature_selected.get("full_v2_score") is not None
-                            else None
-                        ),
-                        "shortlist_size": int(len(phase2_last_shortlist_records)),
-                        "shortlisted_records": [dict(x) for x in phase2_last_shortlist_records],
-                        "compatibility_penalty_total": float(phase2_last_batch_penalty_total),
-                        "optimizer_memory_reused": bool(phase2_last_optimizer_memory_reused),
-                        "optimizer_memory_source": str(phase2_last_optimizer_memory_source),
-                    }
-                )
-            if phase3_enabled:
-                history_row.update(
-                    {
-                        "generator_id": (
-                            str(phase1_feature_selected.get("generator_id"))
-                            if isinstance(phase1_feature_selected, dict)
-                            and phase1_feature_selected.get("generator_id") is not None
-                            else None
-                        ),
-                        "template_id": (
-                            str(phase1_feature_selected.get("template_id"))
-                            if isinstance(phase1_feature_selected, dict)
-                            and phase1_feature_selected.get("template_id") is not None
-                            else None
-                        ),
-                        "is_macro_generator": (
-                            bool(phase1_feature_selected.get("is_macro_generator", False))
-                            if isinstance(phase1_feature_selected, dict)
-                            else None
-                        ),
-                        "parent_generator_id": (
-                            str(phase1_feature_selected.get("parent_generator_id"))
-                            if isinstance(phase1_feature_selected, dict)
-                            and phase1_feature_selected.get("parent_generator_id") is not None
-                            else None
-                        ),
-                        "symmetry_mode": (
-                            str(phase1_feature_selected.get("symmetry_mode"))
-                            if isinstance(phase1_feature_selected, dict)
-                            else None
-                        ),
-                        "symmetry_mitigation_mode": (
-                            str(phase1_feature_selected.get("symmetry_mitigation_mode"))
-                            if isinstance(phase1_feature_selected, dict)
-                            else str(phase3_symmetry_mitigation_mode_key)
-                        ),
-                        "symmetry_spec": (
-                            dict(phase1_feature_selected.get("symmetry_spec", {}))
-                            if isinstance(phase1_feature_selected, dict)
-                            else None
-                        ),
-                        "motif_bonus": (
-                            float(phase1_feature_selected.get("motif_bonus", 0.0))
-                            if isinstance(phase1_feature_selected, dict)
-                            else 0.0
-                        ),
-                        "motif_source": (
-                            str(phase1_feature_selected.get("motif_source"))
-                            if isinstance(phase1_feature_selected, dict)
-                            else None
-                        ),
-                        "motif_metadata": (
-                            dict(phase1_feature_selected.get("motif_metadata", {}))
-                            if isinstance(phase1_feature_selected, dict)
-                            and isinstance(phase1_feature_selected.get("motif_metadata"), Mapping)
-                            else None
-                        ),
-                        "runtime_split_mode": (
-                            str(phase1_feature_selected.get("runtime_split_mode", "off"))
-                            if isinstance(phase1_feature_selected, dict)
-                            else "off"
-                        ),
-                        "runtime_split_parent_label": (
-                            str(phase1_feature_selected.get("runtime_split_parent_label"))
-                            if isinstance(phase1_feature_selected, dict)
-                            and phase1_feature_selected.get("runtime_split_parent_label") is not None
-                            else None
-                        ),
-                        "runtime_split_child_index": (
-                            int(phase1_feature_selected.get("runtime_split_child_index"))
-                            if isinstance(phase1_feature_selected, dict)
-                            and phase1_feature_selected.get("runtime_split_child_index") is not None
-                            else None
-                        ),
-                        "runtime_split_child_count": (
-                            int(phase1_feature_selected.get("runtime_split_child_count"))
-                            if isinstance(phase1_feature_selected, dict)
-                            and phase1_feature_selected.get("runtime_split_child_count") is not None
-                            else None
-                        ),
-                        "runtime_split_chosen_representation": (
-                            str(phase1_feature_selected.get("runtime_split_chosen_representation", "parent"))
-                            if isinstance(phase1_feature_selected, dict)
-                            else "parent"
-                        ),
-                        "runtime_split_child_indices": (
-                            [int(x) for x in phase1_feature_selected.get("runtime_split_child_indices", [])]
-                            if isinstance(phase1_feature_selected, dict)
-                            else []
-                        ),
-                        "runtime_split_child_labels": (
-                            [str(x) for x in phase1_feature_selected.get("runtime_split_child_labels", [])]
-                            if isinstance(phase1_feature_selected, dict)
-                            else []
-                        ),
-                        "runtime_split_child_generator_ids": (
-                            [str(x) for x in phase1_feature_selected.get("runtime_split_child_generator_ids", [])]
-                            if isinstance(phase1_feature_selected, dict)
-                            else []
-                        ),
-                        "lifetime_cost_mode": (
-                            str(phase1_feature_selected.get("lifetime_cost_mode"))
-                            if isinstance(phase1_feature_selected, dict)
-                            else str(phase3_lifetime_cost_mode_key)
-                        ),
-                        "remaining_evaluations_proxy_mode": (
-                            str(phase1_feature_selected.get("remaining_evaluations_proxy_mode"))
-                            if isinstance(phase1_feature_selected, dict)
-                            else None
-                        ),
-                        "remaining_evaluations_proxy": (
-                            float(phase1_feature_selected.get("remaining_evaluations_proxy", 0.0))
-                            if isinstance(phase1_feature_selected, dict)
-                            else 0.0
-                        ),
-                        "lifetime_weight_components": (
-                            dict(phase1_feature_selected.get("lifetime_weight_components", {}))
-                            if isinstance(phase1_feature_selected, dict)
-                            else None
-                        ),
-                    }
-                )
-        if adapt_inner_optimizer_key == "SPSA":
-            history_row["spsa_params"] = dict(adapt_spsa_params)
-        history.append(history_row)
-        if phase1_enabled:
-            if selected_batch_records_for_history:
-                for rec in selected_batch_records_for_history:
-                    phase1_features_history.append(dict(rec))
-            elif isinstance(phase1_feature_selected, dict):
-                phase1_features_history.append(dict(phase1_feature_selected))
-            phase1_measure_cache.commit(
-                selected_batch_measurement_keys
-                if selected_batch_measurement_keys
-                else measurement_group_keys_for_term(pool[int(best_idx)])
-            )
-
-        _ai_log(
-            "hardcoded_adapt_iter_done",
-            depth=int(depth + 1),
-            energy=float(energy_current),
-            delta_e=float(energy_current - energy_prev),
-            eps_energy_step_abs=float(eps_energy_step_abs),
-            eps_energy_low_step=bool(eps_energy_low_step),
-            eps_energy_low_streak=int(eps_energy_low_streak),
-            eps_energy_gate_open=bool(eps_energy_gate_open),
-            eps_energy_min_extra_depth_effective=int(eps_energy_min_extra_depth_effective),
-            eps_energy_patience_effective=int(eps_energy_patience_effective),
-            eps_energy_termination_enabled=bool(eps_energy_termination_enabled),
-            eps_energy_termination_condition=bool(eps_energy_termination_condition),
-            eps_grad_termination_enabled=bool(eps_grad_termination_enabled),
-            eps_grad_threshold_hit=bool(max_grad < float(eps_grad)),
-            depth_cumulative=int(depth_cumulative),
-            delta_abs_current=float(delta_abs_current),
-            delta_abs_drop_from_prev=float(delta_abs_drop),
-            drop_plateau_hits=int(drop_plateau_hits),
-            depth_rollback=bool(depth_rollback),
-            gradient_eval_elapsed_s=float(gradient_eval_elapsed_s),
-            optimizer_elapsed_s=float(optimizer_elapsed_s),
-        )
-
-        if (
-            drop_policy_enabled
-            and int(depth_local) >= int(adapt_drop_min_depth)
-            and int(drop_plateau_hits) >= int(adapt_drop_patience)
-        ):
-            if phase1_enabled and (not phase1_residual_opened) and len(phase1_residual_indices) > 0:
-                phase1_residual_opened = True
-                available_indices |= set(int(i) for i in phase1_residual_indices)
-                phase1_stage.resolve_stage_transition(
-                    drop_plateau_hits=int(drop_plateau_hits),
-                    trough_detected=bool(phase1_last_trough_detected),
-                    residual_opened=True,
-                )
-                drop_plateau_hits = 0
-                phase1_stage_events.append(
-                    {
-                        "depth": int(depth_local),
-                        "stage_name": "residual",
-                        "reason": "drop_plateau_open",
-                    }
-                )
-                _ai_log(
-                    "hardcoded_adapt_phase1_residual_opened_on_plateau",
-                    depth=int(depth_local),
-                    residual_count=int(len(phase1_residual_indices)),
-                )
-                continue
-            stop_reason = "drop_plateau"
+            drop_low_signal = None
+            drop_low_grad = None
+            if drop_policy_enabled and int(depth_local) >= int(adapt_drop_min_depth):
+                drop_low_signal = bool(delta_abs_drop < float(adapt_drop_floor))
+                if float(adapt_grad_floor) >= 0.0:
+                    drop_low_grad = bool(float(max_grad) < float(adapt_grad_floor))
+                else:
+                    drop_low_grad = True
+                # HH staged policy is energy-drop first; grad floors remain diagnostic.
+                if bool(drop_low_signal):
+                    drop_plateau_hits += 1
+                else:
+                    drop_plateau_hits = 0
             _ai_log(
-                "hardcoded_adapt_converged_drop_plateau",
-                depth=int(depth_local),
+                "hardcoded_adapt_optimizer_timing",
+                depth=int(depth + 1),
+                opt_method=str(adapt_inner_optimizer_key),
+                nfev_opt=int(nfev_opt),
+                nit_opt=int(nit_opt),
+                opt_success=bool(opt_success),
+                opt_message=str(opt_message),
+                optimizer_elapsed_s=float(optimizer_elapsed_s),
+            )
+
+            selected_primary_label = (
+                str(selected_batch_labels[0])
+                if selected_batch_labels
+                else (
+                    str(phase1_feature_selected.get("candidate_label"))
+                    if isinstance(phase1_feature_selected, dict)
+                    and phase1_feature_selected.get("candidate_label") is not None
+                    else str(pool[best_idx].label)
+                )
+            )
+            selected_logical_primary_label = (
+                str(selected_logical_label)
+                if selected_logical_label is not None
+                else str(selected_primary_label)
+            )
+            selected_grad_signed_value = (
+                float(selected_grad_signed_components[0])
+                if selected_logical_label is not None and selected_grad_signed_components
+                else (
+                    float(phase1_feature_selected.get("g_signed"))
+                    if isinstance(phase1_feature_selected, dict)
+                    and phase1_feature_selected.get("g_signed") is not None
+                    else float(gradients[best_idx])
+                )
+            )
+            selected_grad_abs_value = (
+                float(selected_grad_abs_components[0])
+                if selected_logical_label is not None and selected_grad_abs_components
+                else (
+                    float(phase1_feature_selected.get("g_abs"))
+                    if isinstance(phase1_feature_selected, dict)
+                    and phase1_feature_selected.get("g_abs") is not None
+                    else float(grad_magnitudes[best_idx])
+                )
+            )
+            selected_logical_grad_abs_value = (
+                float(math.sqrt(sum(float(x) * float(x) for x in selected_grad_abs_components)))
+                if selected_logical_label is not None and selected_grad_abs_components
+                else float(selected_grad_abs_value)
+            )
+            history_row = {
+                "depth": int(depth + 1),
+                "selected_op": str(selected_primary_label),
+                "selected_logical_op": str(selected_logical_primary_label),
+                "selected_logical_size": int(selected_logical_size),
+                "selected_logical_pool_indices": (
+                    [int(x) for x in selected_logical_pool_indices]
+                    if selected_logical_pool_indices
+                    else [int(best_idx)]
+                ),
+                "pool_index": int(best_idx),
+                "selected_ops": [str(x) for x in selected_batch_labels],
+                "selected_pool_indices": [int(x) for x in selected_batch_indices],
+                "selection_mode": str(selection_mode),
+                "init_theta": (
+                    float(init_theta_values[0])
+                    if selected_logical_label is not None and init_theta_values
+                    else float(init_theta)
+                ),
+                "init_theta_values": (
+                    [float(x) for x in init_theta_values]
+                    if selected_logical_label is not None
+                    else [float(init_theta)]
+                ),
+                "max_grad": float(max_grad),
+                "selected_grad_signed": float(selected_grad_signed_value),
+                "selected_grad_abs": float(selected_grad_abs_value),
+                "selected_logical_grad_abs": float(selected_logical_grad_abs_value),
+                "selected_grad_signed_components": (
+                    [float(x) for x in selected_grad_signed_components]
+                    if selected_grad_signed_components
+                    else [float(selected_grad_signed_value)]
+                ),
+                "selected_grad_abs_components": (
+                    [float(x) for x in selected_grad_abs_components]
+                    if selected_grad_abs_components
+                    else [float(selected_grad_abs_value)]
+                ),
+                "parameterization": ("double_sequential" if selected_logical_label is not None else "single_term"),
+                "fallback_scan_size": int(fallback_scan_size),
+                "fallback_best_probe_delta_e": (
+                    float(fallback_best_probe_delta_e) if fallback_best_probe_delta_e is not None else None
+                ),
+                "fallback_best_probe_theta": (
+                    float(fallback_best_probe_theta[0])
+                    if isinstance(fallback_best_probe_theta, (list, tuple, np.ndarray))
+                    else (float(fallback_best_probe_theta) if fallback_best_probe_theta is not None else None)
+                ),
+                "fallback_best_probe_theta_values": (
+                    [float(x) for x in fallback_best_probe_theta]
+                    if isinstance(fallback_best_probe_theta, (list, tuple, np.ndarray))
+                    else (
+                        [float(fallback_best_probe_theta)]
+                        if fallback_best_probe_theta is not None
+                        else None
+                    )
+                ),
+                "energy_before_opt": float(energy_prev),
+                "energy_after_opt": float(energy_current),
+                "delta_energy": float(energy_current - energy_prev),
+                "delta_abs_prev": float(delta_abs_prev),
+                "delta_abs_current": float(delta_abs_current),
+                "delta_abs_drop_from_prev": float(delta_abs_drop),
+                "opt_method": str(adapt_inner_optimizer_key),
+                "reopt_policy": str(adapt_reopt_policy_key),
+                "nfev_opt": int(nfev_opt),
+                "nit_opt": int(nit_opt),
+                "opt_success": bool(opt_success),
+                "opt_message": str(opt_message),
+                "gradient_eval_elapsed_s": float(gradient_eval_elapsed_s),
+                "gradient_source": str(phase3_gradient_source_name),
+                "max_gradient_stderr": float(phase3_last_max_gradient_stderr),
+                "candidate_gradient_scout": [dict(row) for row in candidate_gradient_scout],
+                "optimizer_elapsed_s": float(optimizer_elapsed_s),
+                "iter_elapsed_s": float(time.perf_counter() - iter_t0),
+                "drop_policy_enabled": bool(drop_policy_enabled),
+                "drop_policy_source": str(stop_policy.drop_policy_source),
+                "adapt_drop_floor_resolved": float(adapt_drop_floor),
+                "adapt_drop_patience_resolved": int(adapt_drop_patience),
+                "adapt_drop_min_depth_resolved": int(adapt_drop_min_depth),
+                "adapt_grad_floor_resolved": float(adapt_grad_floor),
+                "adapt_drop_floor_source": str(stop_policy.adapt_drop_floor_source),
+                "adapt_drop_patience_source": str(stop_policy.adapt_drop_patience_source),
+                "adapt_drop_min_depth_source": str(stop_policy.adapt_drop_min_depth_source),
+                "adapt_grad_floor_source": str(stop_policy.adapt_grad_floor_source),
+                "drop_low_signal": drop_low_signal,
+                "drop_low_grad": drop_low_grad,
+                "drop_plateau_hits": int(drop_plateau_hits),
+                "depth_rollback": bool(depth_rollback),
+                "depth_cumulative": int(depth_cumulative),
+                "adapt_ref_base_depth": int(adapt_ref_base_depth),
+                "eps_energy_step_abs": float(eps_energy_step_abs),
+                "eps_energy_low_step": bool(eps_energy_low_step),
+                "eps_energy_low_streak": int(eps_energy_low_streak),
+                "eps_energy_gate_open": bool(eps_energy_gate_open),
+                "eps_energy_min_extra_depth_effective": int(eps_energy_min_extra_depth_effective),
+                "eps_energy_patience_effective": int(eps_energy_patience_effective),
+                "eps_energy_termination_enabled": bool(eps_energy_termination_enabled),
+                "eps_energy_termination_condition": bool(eps_energy_termination_condition),
+                "eps_grad_termination_enabled": bool(eps_grad_termination_enabled),
+                "eps_grad_threshold_hit": bool(max_grad < float(eps_grad)),
+                "reopt_policy_effective": str(reopt_policy_effective),
+                "reopt_active_indices": [int(i) for i in reopt_active_indices],
+                "reopt_active_count": int(len(reopt_active_indices)),
+                "reopt_runtime_active_indices": [int(i) for i in reopt_runtime_active_indices],
+                "reopt_runtime_active_count": int(len(reopt_runtime_active_indices)),
+                "num_parameters_after_opt": int(theta.size),
+                "logical_num_parameters_after_opt": int(len(selected_ops)),
+                "parameters_added_this_step": int(theta.size - theta_before_opt.size),
+                "logical_parameters_added_this_step": int(len(selected_batch_labels)) if selected_batch_labels else 1,
+                "reopt_periodic_full_refit_triggered": bool(periodic_full_refit_triggered),
+            }
+            if phase1_enabled:
+                history_row.update(
+                    {
+                        "continuation_mode": str(continuation_mode),
+                        "candidate_family": str(
+                            pool_family_ids[int(best_idx)] if int(best_idx) < len(pool_family_ids) else "legacy"
+                        ),
+                        "stage_name": str(stage_name),
+                        "stage_transition_reason": str(phase1_stage_transition_reason),
+                        "selected_position": int(selected_position),
+                        "selected_positions": [int(x) for x in selected_batch_positions],
+                        "batch_selected": bool(phase2_enabled and phase2_last_batch_selected),
+                        "batch_size": int(len(selected_batch_labels)),
+                        "positions_considered": [int(x) for x in phase1_last_positions_considered],
+                        "score_version": (
+                            str(phase1_feature_selected.get("score_version"))
+                            if isinstance(phase1_feature_selected, dict)
+                            else None
+                        ),
+                        "simple_score": (
+                            float(phase1_feature_selected.get("simple_score"))
+                            if isinstance(phase1_feature_selected, dict)
+                            and phase1_feature_selected.get("simple_score") is not None
+                            else None
+                        ),
+                        "cheap_score": (
+                            float(phase1_feature_selected.get("cheap_score"))
+                            if isinstance(phase1_feature_selected, dict)
+                            and phase1_feature_selected.get("cheap_score") is not None
+                            else None
+                        ),
+                        "cheap_score_version": (
+                            str(phase1_feature_selected.get("cheap_score_version"))
+                            if isinstance(phase1_feature_selected, dict)
+                            and phase1_feature_selected.get("cheap_score_version") is not None
+                            else None
+                        ),
+                        "cheap_metric_proxy": (
+                            float(phase1_feature_selected.get("cheap_metric_proxy"))
+                            if isinstance(phase1_feature_selected, dict)
+                            and phase1_feature_selected.get("cheap_metric_proxy") is not None
+                            else None
+                        ),
+                        "cheap_benefit_proxy": (
+                            float(phase1_feature_selected.get("cheap_benefit_proxy"))
+                            if isinstance(phase1_feature_selected, dict)
+                            and phase1_feature_selected.get("cheap_benefit_proxy") is not None
+                            else None
+                        ),
+                        "cheap_burden_total": (
+                            float(phase1_feature_selected.get("cheap_burden_total"))
+                            if isinstance(phase1_feature_selected, dict)
+                            and phase1_feature_selected.get("cheap_burden_total") is not None
+                            else None
+                        ),
+                        "metric_proxy": (
+                            float(phase1_feature_selected.get("metric_proxy"))
+                            if isinstance(phase1_feature_selected, dict)
+                            else None
+                        ),
+                        "curvature_mode": (
+                            str(phase1_feature_selected.get("curvature_mode"))
+                            if isinstance(phase1_feature_selected, dict)
+                            else None
+                        ),
+                        "novelty_mode": (
+                            str(phase1_feature_selected.get("novelty_mode"))
+                            if isinstance(phase1_feature_selected, dict)
+                            else None
+                        ),
+                        "novelty": (
+                            phase1_feature_selected.get("novelty")
+                            if isinstance(phase1_feature_selected, dict)
+                            else None
+                        ),
+                        "g_lcb": (
+                            float(phase1_feature_selected.get("g_lcb"))
+                            if isinstance(phase1_feature_selected, dict)
+                            and phase1_feature_selected.get("g_lcb") is not None
+                            else None
+                        ),
+                        "sigma_hat": (
+                            float(phase1_feature_selected.get("sigma_hat"))
+                            if isinstance(phase1_feature_selected, dict)
+                            and phase1_feature_selected.get("sigma_hat") is not None
+                            else None
+                        ),
+                        "F_raw": (
+                            float(phase1_feature_selected.get("F_raw"))
+                            if isinstance(phase1_feature_selected, dict)
+                            and phase1_feature_selected.get("F_raw") is not None
+                            else None
+                        ),
+                        "F_red": (
+                            float(phase1_feature_selected.get("F_red"))
+                            if isinstance(phase1_feature_selected, dict)
+                            and phase1_feature_selected.get("F_red") is not None
+                            else None
+                        ),
+                        "h_eff": (
+                            float(phase1_feature_selected.get("h_eff"))
+                            if isinstance(phase1_feature_selected, dict)
+                            and phase1_feature_selected.get("h_eff") is not None
+                            else None
+                        ),
+                        "ridge_used": (
+                            float(phase1_feature_selected.get("ridge_used"))
+                            if isinstance(phase1_feature_selected, dict)
+                            and phase1_feature_selected.get("ridge_used") is not None
+                            else None
+                        ),
+                        "family_repeat_cost": (
+                            float(phase1_feature_selected.get("family_repeat_cost", 0.0))
+                            if isinstance(phase1_feature_selected, dict)
+                            else None
+                        ),
+                        "refit_window_indices": [int(i) for i in reopt_active_indices],
+                        "compile_cost_proxy": (
+                            dict(phase1_feature_selected.get("compiled_position_cost_proxy", {}))
+                            if isinstance(phase1_feature_selected, dict)
+                            else None
+                        ),
+                        "compile_cost_mode": str(phase3_backend_cost_mode_key),
+                        "compile_cost_source": (
+                            str(phase1_feature_selected.get("compile_cost_source", "proxy"))
+                            if isinstance(phase1_feature_selected, dict)
+                            else "proxy"
+                        ),
+                        "compile_cost_total": (
+                            float(phase1_feature_selected.get("compile_cost_total", 0.0))
+                            if isinstance(phase1_feature_selected, dict)
+                            else 0.0
+                        ),
+                        "compile_gate_open": (
+                            bool(phase1_feature_selected.get("compile_gate_open", True))
+                            if isinstance(phase1_feature_selected, dict)
+                            else True
+                        ),
+                        "compile_failure_reason": (
+                            phase1_feature_selected.get("compile_failure_reason")
+                            if isinstance(phase1_feature_selected, dict)
+                            else None
+                        ),
+                        "compile_cost_backend": (
+                            dict(phase1_feature_selected.get("compiled_position_cost_backend", {}))
+                            if isinstance(phase1_feature_selected, dict)
+                            and isinstance(phase1_feature_selected.get("compiled_position_cost_backend"), Mapping)
+                            else None
+                        ),
+                        "measurement_cache_stats": (
+                            dict(phase1_feature_selected.get("measurement_cache_stats", {}))
+                            if isinstance(phase1_feature_selected, dict)
+                            else None
+                        ),
+                        "actual_fallback_mode": (
+                            str(phase1_feature_selected.get("actual_fallback_mode"))
+                            if isinstance(phase1_feature_selected, dict)
+                            else None
+                        ),
+                        "trough_probe_triggered": bool(phase1_last_trough_probe_triggered),
+                        "trough_detected": bool(phase1_last_trough_detected),
+                    }
+                )
+                if phase2_enabled:
+                    history_row.update(
+                        {
+                            "full_v2_score": (
+                                float(phase1_feature_selected.get("full_v2_score"))
+                                if isinstance(phase1_feature_selected, dict)
+                                and phase1_feature_selected.get("full_v2_score") is not None
+                                else None
+                            ),
+                            "shortlist_size": int(len(phase2_last_shortlist_records)),
+                            "shortlisted_records": [dict(x) for x in phase2_last_shortlist_records],
+                            "compatibility_penalty_total": float(phase2_last_batch_penalty_total),
+                            "optimizer_memory_reused": bool(phase2_last_optimizer_memory_reused),
+                            "optimizer_memory_source": str(phase2_last_optimizer_memory_source),
+                        }
+                    )
+                if phase3_enabled:
+                    history_row.update(
+                        {
+                            "generator_id": (
+                                str(phase1_feature_selected.get("generator_id"))
+                                if isinstance(phase1_feature_selected, dict)
+                                and phase1_feature_selected.get("generator_id") is not None
+                                else None
+                            ),
+                            "template_id": (
+                                str(phase1_feature_selected.get("template_id"))
+                                if isinstance(phase1_feature_selected, dict)
+                                and phase1_feature_selected.get("template_id") is not None
+                                else None
+                            ),
+                            "is_macro_generator": (
+                                bool(phase1_feature_selected.get("is_macro_generator", False))
+                                if isinstance(phase1_feature_selected, dict)
+                                else None
+                            ),
+                            "parent_generator_id": (
+                                str(phase1_feature_selected.get("parent_generator_id"))
+                                if isinstance(phase1_feature_selected, dict)
+                                and phase1_feature_selected.get("parent_generator_id") is not None
+                                else None
+                            ),
+                            "symmetry_mode": (
+                                str(phase1_feature_selected.get("symmetry_mode"))
+                                if isinstance(phase1_feature_selected, dict)
+                                else None
+                            ),
+                            "symmetry_mitigation_mode": (
+                                str(phase1_feature_selected.get("symmetry_mitigation_mode"))
+                                if isinstance(phase1_feature_selected, dict)
+                                else str(phase3_symmetry_mitigation_mode_key)
+                            ),
+                            "symmetry_spec": (
+                                dict(phase1_feature_selected.get("symmetry_spec", {}))
+                                if isinstance(phase1_feature_selected, dict)
+                                else None
+                            ),
+                            "motif_bonus": (
+                                float(phase1_feature_selected.get("motif_bonus", 0.0))
+                                if isinstance(phase1_feature_selected, dict)
+                                else 0.0
+                            ),
+                            "motif_source": (
+                                str(phase1_feature_selected.get("motif_source"))
+                                if isinstance(phase1_feature_selected, dict)
+                                else None
+                            ),
+                            "motif_metadata": (
+                                dict(phase1_feature_selected.get("motif_metadata", {}))
+                                if isinstance(phase1_feature_selected, dict)
+                                and isinstance(phase1_feature_selected.get("motif_metadata"), Mapping)
+                                else None
+                            ),
+                            "runtime_split_mode": (
+                                str(phase1_feature_selected.get("runtime_split_mode", "off"))
+                                if isinstance(phase1_feature_selected, dict)
+                                else "off"
+                            ),
+                            "runtime_split_parent_label": (
+                                str(phase1_feature_selected.get("runtime_split_parent_label"))
+                                if isinstance(phase1_feature_selected, dict)
+                                and phase1_feature_selected.get("runtime_split_parent_label") is not None
+                                else None
+                            ),
+                            "runtime_split_child_index": (
+                                int(phase1_feature_selected.get("runtime_split_child_index"))
+                                if isinstance(phase1_feature_selected, dict)
+                                and phase1_feature_selected.get("runtime_split_child_index") is not None
+                                else None
+                            ),
+                            "runtime_split_child_count": (
+                                int(phase1_feature_selected.get("runtime_split_child_count"))
+                                if isinstance(phase1_feature_selected, dict)
+                                and phase1_feature_selected.get("runtime_split_child_count") is not None
+                                else None
+                            ),
+                            "runtime_split_chosen_representation": (
+                                str(phase1_feature_selected.get("runtime_split_chosen_representation", "parent"))
+                                if isinstance(phase1_feature_selected, dict)
+                                else "parent"
+                            ),
+                            "runtime_split_child_indices": (
+                                [int(x) for x in phase1_feature_selected.get("runtime_split_child_indices", [])]
+                                if isinstance(phase1_feature_selected, dict)
+                                else []
+                            ),
+                            "runtime_split_child_labels": (
+                                [str(x) for x in phase1_feature_selected.get("runtime_split_child_labels", [])]
+                                if isinstance(phase1_feature_selected, dict)
+                                else []
+                            ),
+                            "runtime_split_child_generator_ids": (
+                                [str(x) for x in phase1_feature_selected.get("runtime_split_child_generator_ids", [])]
+                                if isinstance(phase1_feature_selected, dict)
+                                else []
+                            ),
+                            "lifetime_cost_mode": (
+                                str(phase1_feature_selected.get("lifetime_cost_mode"))
+                                if isinstance(phase1_feature_selected, dict)
+                                else str(phase3_lifetime_cost_mode_key)
+                            ),
+                            "remaining_evaluations_proxy_mode": (
+                                str(phase1_feature_selected.get("remaining_evaluations_proxy_mode"))
+                                if isinstance(phase1_feature_selected, dict)
+                                else None
+                            ),
+                            "remaining_evaluations_proxy": (
+                                float(phase1_feature_selected.get("remaining_evaluations_proxy", 0.0))
+                                if isinstance(phase1_feature_selected, dict)
+                                else 0.0
+                            ),
+                            "lifetime_weight_components": (
+                                dict(phase1_feature_selected.get("lifetime_weight_components", {}))
+                                if isinstance(phase1_feature_selected, dict)
+                                else None
+                            ),
+                        }
+                    )
+            if adapt_inner_optimizer_key == "SPSA":
+                history_row["spsa_params"] = dict(adapt_spsa_params)
+            history.append(history_row)
+            if phase1_enabled:
+                if selected_batch_records_for_history:
+                    for rec in selected_batch_records_for_history:
+                        phase1_features_history.append(dict(rec))
+                elif isinstance(phase1_feature_selected, dict):
+                    phase1_features_history.append(dict(phase1_feature_selected))
+                phase1_measure_cache.commit(
+                    selected_batch_measurement_keys
+                    if selected_batch_measurement_keys
+                    else measurement_group_keys_for_term(pool[int(best_idx)])
+                )
+
+            _ai_log(
+                "hardcoded_adapt_iter_done",
+                depth=int(depth + 1),
+                energy=float(energy_current),
+                delta_e=float(energy_current - energy_prev),
+                eps_energy_step_abs=float(eps_energy_step_abs),
+                eps_energy_low_step=bool(eps_energy_low_step),
+                eps_energy_low_streak=int(eps_energy_low_streak),
+                eps_energy_gate_open=bool(eps_energy_gate_open),
+                eps_energy_min_extra_depth_effective=int(eps_energy_min_extra_depth_effective),
+                eps_energy_patience_effective=int(eps_energy_patience_effective),
+                eps_energy_termination_enabled=bool(eps_energy_termination_enabled),
+                eps_energy_termination_condition=bool(eps_energy_termination_condition),
+                eps_grad_termination_enabled=bool(eps_grad_termination_enabled),
+                eps_grad_threshold_hit=bool(max_grad < float(eps_grad)),
+                depth_cumulative=int(depth_cumulative),
                 delta_abs_current=float(delta_abs_current),
                 delta_abs_drop_from_prev=float(delta_abs_drop),
-                drop_floor=float(adapt_drop_floor),
-                drop_patience=int(adapt_drop_patience),
-                drop_min_depth=int(adapt_drop_min_depth),
                 drop_plateau_hits=int(drop_plateau_hits),
-                grad_floor=(float(adapt_grad_floor) if float(adapt_grad_floor) >= 0.0 else None),
-                max_grad=float(max_grad),
+                depth_rollback=bool(depth_rollback),
+                gradient_eval_elapsed_s=float(gradient_eval_elapsed_s),
+                optimizer_elapsed_s=float(optimizer_elapsed_s),
             )
-            break
 
-        # 6) Check energy convergence
-        if bool(eps_energy_termination_condition):
-            if bool(eps_energy_termination_enabled):
-                stop_reason = "eps_energy"
+            if (
+                drop_policy_enabled
+                and int(depth_local) >= int(adapt_drop_min_depth)
+                and int(drop_plateau_hits) >= int(adapt_drop_patience)
+            ):
+                if phase1_enabled and (not phase1_residual_opened) and len(phase1_residual_indices) > 0:
+                    phase1_residual_opened = True
+                    available_indices |= set(int(i) for i in phase1_residual_indices)
+                    phase1_stage.resolve_stage_transition(
+                        drop_plateau_hits=int(drop_plateau_hits),
+                        trough_detected=bool(phase1_last_trough_detected),
+                        residual_opened=True,
+                    )
+                    drop_plateau_hits = 0
+                    phase1_stage_events.append(
+                        {
+                            "depth": int(depth_local),
+                            "stage_name": "residual",
+                            "reason": "drop_plateau_open",
+                        }
+                    )
+                    _ai_log(
+                        "hardcoded_adapt_phase1_residual_opened_on_plateau",
+                        depth=int(depth_local),
+                        residual_count=int(len(phase1_residual_indices)),
+                    )
+                    continue
+                stop_reason = "drop_plateau"
                 _ai_log(
-                    "hardcoded_adapt_converged_energy",
+                    "hardcoded_adapt_converged_drop_plateau",
+                    depth=int(depth_local),
+                    delta_abs_current=float(delta_abs_current),
+                    delta_abs_drop_from_prev=float(delta_abs_drop),
+                    drop_floor=float(adapt_drop_floor),
+                    drop_patience=int(adapt_drop_patience),
+                    drop_min_depth=int(adapt_drop_min_depth),
+                    drop_plateau_hits=int(drop_plateau_hits),
+                    grad_floor=(float(adapt_grad_floor) if float(adapt_grad_floor) >= 0.0 else None),
+                    max_grad=float(max_grad),
+                )
+                break
+
+            # 6) Check energy convergence
+            if bool(eps_energy_termination_condition):
+                if bool(eps_energy_termination_enabled):
+                    stop_reason = "eps_energy"
+                    _ai_log(
+                        "hardcoded_adapt_converged_energy",
+                        depth=int(depth_local),
+                        depth_cumulative=int(depth_cumulative),
+                        delta_e=float(eps_energy_step_abs),
+                        eps_energy=float(eps_energy),
+                        eps_energy_low_streak=int(eps_energy_low_streak),
+                        eps_energy_patience=int(eps_energy_patience_effective),
+                        eps_energy_min_extra_depth=int(eps_energy_min_extra_depth_effective),
+                        adapt_ref_base_depth=int(adapt_ref_base_depth),
+                        eps_energy_gate_cumulative_depth=int(adapt_ref_base_depth) + int(eps_energy_min_extra_depth_effective),
+                    )
+                    break
+                _ai_log(
+                    "hardcoded_adapt_eps_energy_termination_suppressed",
                     depth=int(depth_local),
                     depth_cumulative=int(depth_cumulative),
                     delta_e=float(eps_energy_step_abs),
@@ -5181,452 +9414,447 @@ def _run_hardcoded_adapt_vqe(
                     eps_energy_min_extra_depth=int(eps_energy_min_extra_depth_effective),
                     adapt_ref_base_depth=int(adapt_ref_base_depth),
                     eps_energy_gate_cumulative_depth=int(adapt_ref_base_depth) + int(eps_energy_min_extra_depth_effective),
+                    continuation_mode=str(continuation_mode),
+                    problem=str(problem_key),
                 )
+            if bool(eps_energy_low_step) and (not bool(eps_energy_gate_open)):
+                _ai_log(
+                    "hardcoded_adapt_energy_convergence_gate_wait",
+                    depth=int(depth_local),
+                    depth_cumulative=int(depth_cumulative),
+                    delta_e=float(eps_energy_step_abs),
+                    eps_energy=float(eps_energy),
+                    eps_energy_min_extra_depth=int(eps_energy_min_extra_depth_effective),
+                    adapt_ref_base_depth=int(adapt_ref_base_depth),
+                    eps_energy_gate_cumulative_depth=int(adapt_ref_base_depth) + int(eps_energy_min_extra_depth_effective),
+                )
+
+            # Check if pool exhausted
+            if not allow_repeats and not available_indices:
+                stop_reason = "pool_exhausted"
+                _ai_log("hardcoded_adapt_pool_exhausted")
                 break
-            _ai_log(
-                "hardcoded_adapt_eps_energy_termination_suppressed",
-                depth=int(depth_local),
-                depth_cumulative=int(depth_cumulative),
-                delta_e=float(eps_energy_step_abs),
-                eps_energy=float(eps_energy),
-                eps_energy_low_streak=int(eps_energy_low_streak),
-                eps_energy_patience=int(eps_energy_patience_effective),
-                eps_energy_min_extra_depth=int(eps_energy_min_extra_depth_effective),
-                adapt_ref_base_depth=int(adapt_ref_base_depth),
-                eps_energy_gate_cumulative_depth=int(adapt_ref_base_depth) + int(eps_energy_min_extra_depth_effective),
-                continuation_mode=str(continuation_mode),
-                problem=str(problem_key),
+
+        # -- Final full-prefix refit (windowed policy only) --
+        final_full_refit_meta: dict[str, Any] = {
+            "requested": bool(
+                adapt_reopt_policy_key == "windowed" and adapt_final_full_refit_val
+            ),
+            "executed": False,
+            "skipped_reason": None,
+            "energy_before": None,
+            "energy_after": None,
+            "nfev": 0,
+            "nit": 0,
+            "opt_success": None,
+            "opt_message": None,
+            "rollback": False,
+        }
+        if (
+            adapt_reopt_policy_key == "windowed"
+            and adapt_final_full_refit_val
+            and len(selected_ops) > 0
+        ):
+            # Check if already satisfied by last depth being a full-prefix reopt
+            last_was_full = bool(
+                len(history) > 0
+                and str(history[-1].get("reopt_policy_effective", "")).startswith("windowed_periodic_full")
+                or (len(history) > 0 and str(history[-1].get("reopt_policy_effective", "")) == "full")
             )
-        if bool(eps_energy_low_step) and (not bool(eps_energy_gate_open)):
-            _ai_log(
-                "hardcoded_adapt_energy_convergence_gate_wait",
-                depth=int(depth_local),
-                depth_cumulative=int(depth_cumulative),
-                delta_e=float(eps_energy_step_abs),
-                eps_energy=float(eps_energy),
-                eps_energy_min_extra_depth=int(eps_energy_min_extra_depth_effective),
-                adapt_ref_base_depth=int(adapt_ref_base_depth),
-                eps_energy_gate_cumulative_depth=int(adapt_ref_base_depth) + int(eps_energy_min_extra_depth_effective),
-            )
+            # Also skip if last depth used all local indices (full or periodic full)
+            if last_was_full and len(history) > 0:
+                last_active = history[-1].get("reopt_active_count", 0)
+                last_was_full = bool(int(last_active) == int(len(selected_ops)))
 
-        # Check if pool exhausted
-        if not allow_repeats and not available_indices:
-            stop_reason = "pool_exhausted"
-            _ai_log("hardcoded_adapt_pool_exhausted")
-            break
-
-    # -- Final full-prefix refit (windowed policy only) --
-    final_full_refit_meta: dict[str, Any] = {
-        "requested": bool(
-            adapt_reopt_policy_key == "windowed" and adapt_final_full_refit_val
-        ),
-        "executed": False,
-        "skipped_reason": None,
-        "energy_before": None,
-        "energy_after": None,
-        "nfev": 0,
-        "nit": 0,
-        "opt_success": None,
-        "opt_message": None,
-        "rollback": False,
-    }
-    if (
-        adapt_reopt_policy_key == "windowed"
-        and adapt_final_full_refit_val
-        and len(selected_ops) > 0
-    ):
-        # Check if already satisfied by last depth being a full-prefix reopt
-        last_was_full = bool(
-            len(history) > 0
-            and str(history[-1].get("reopt_policy_effective", "")).startswith("windowed_periodic_full")
-            or (len(history) > 0 and str(history[-1].get("reopt_policy_effective", "")) == "full")
-        )
-        # Also skip if last depth used all local indices (full or periodic full)
-        if last_was_full and len(history) > 0:
-            last_active = history[-1].get("reopt_active_count", 0)
-            last_was_full = bool(int(last_active) == int(len(selected_ops)))
-
-        if last_was_full:
-            final_full_refit_meta["skipped_reason"] = "last_depth_already_full_prefix"
-            _ai_log(
-                "hardcoded_adapt_final_full_refit_skipped",
-                reason="last_depth_already_full_prefix",
-            )
-        else:
-            _ai_log(
-                "hardcoded_adapt_final_full_refit_start",
-                n_params=int(theta.size),
-                energy_before=float(energy_current),
-            )
-            final_full_refit_meta["energy_before"] = float(energy_current)
-            energy_before_final = float(energy_current)
-
-            # Re-use existing _obj and optimizer infrastructure
-            if adapt_state_backend_key == "compiled":
-                if selected_executor is None:
-                    selected_executor = _build_compiled_executor(selected_ops)
-
-            # Reset COBYLA heartbeat state for final refit
-            final_opt_t0 = time.perf_counter()
-            cobyla_last_hb_t = final_opt_t0
-            cobyla_nfev_so_far = 0
-            cobyla_best_fun = float("inf")
-
-            def _obj_final(x: np.ndarray) -> float:
-                nonlocal cobyla_last_hb_t, cobyla_nfev_so_far, cobyla_best_fun
-                if adapt_state_backend_key == "compiled":
-                    assert selected_executor is not None
-                    psi_obj = selected_executor.prepare_state(np.asarray(x, dtype=float), psi_ref)
-                    energy_obj, _ = energy_via_one_apply(psi_obj, h_compiled)
-                    energy_obj_val = float(energy_obj)
-                else:
-                    energy_obj_val = _adapt_energy_fn(
-                        h_poly, psi_ref, selected_ops, x, h_compiled=h_compiled,
-                    )
-                if adapt_inner_optimizer_key in {"COBYLA", "POWELL"}:
-                    cobyla_nfev_so_far += 1
-                    if energy_obj_val < cobyla_best_fun:
-                        cobyla_best_fun = float(energy_obj_val)
-                    now = time.perf_counter()
-                    if (now - cobyla_last_hb_t) >= float(adapt_spsa_progress_every_s):
-                        _ai_log(
-                            "hardcoded_adapt_scipy_heartbeat",
-                            stage="final_full_refit",
-                            opt_method=str(adapt_inner_optimizer_key),
-                            nfev_opt_so_far=int(cobyla_nfev_so_far),
-                            best_fun=float(cobyla_best_fun),
-                            elapsed_opt_s=float(now - final_opt_t0),
-                        )
-                        cobyla_last_hb_t = now
-                return float(energy_obj_val)
-
-            final_x0 = np.array(theta, copy=True)
-            if adapt_inner_optimizer_key == "SPSA":
-                final_memory = None
-                if phase2_enabled:
-                    final_memory = phase2_memory_adapter.select_active(
-                        phase2_optimizer_memory,
-                        active_indices=list(range(int(theta.size))),
-                        source="adapt.final_full_refit.active_subset",
-                    )
-                final_result = spsa_minimize(
-                    fun=_obj_final,
-                    x0=final_x0,
-                    maxiter=int(maxiter),
-                    seed=int(seed) + int(max_depth) + 1,
-                    a=float(adapt_spsa_a),
-                    c=float(adapt_spsa_c),
-                    alpha=float(adapt_spsa_alpha),
-                    gamma=float(adapt_spsa_gamma),
-                    A=float(adapt_spsa_A),
-                    bounds=None,
-                    project="none",
-                    eval_repeats=int(adapt_spsa_eval_repeats),
-                    eval_agg=str(adapt_spsa_eval_agg_key),
-                    avg_last=int(adapt_spsa_avg_last),
-                    memory=(dict(final_memory) if isinstance(final_memory, Mapping) else None),
-                    refresh_every=0,
-                    precondition_mode=("diag_rms_grad" if phase2_enabled else "none"),
+            if last_was_full:
+                final_full_refit_meta["skipped_reason"] = "last_depth_already_full_prefix"
+                _ai_log(
+                    "hardcoded_adapt_final_full_refit_skipped",
+                    reason="last_depth_already_full_prefix",
                 )
             else:
-                if scipy_minimize is None:
-                    raise RuntimeError(
-                        f"SciPy minimize is unavailable for {adapt_inner_optimizer_key} final full refit."
-                    )
-                final_result = scipy_minimize(
-                    _obj_final,
-                    final_x0,
-                    method=str(adapt_inner_optimizer_key),
-                    options=_scipy_inner_options(int(maxiter)),
-                )
-
-            final_energy = float(final_result.fun)
-            final_nfev = int(getattr(final_result, "nfev", 0))
-            final_nit = int(getattr(final_result, "nit", 0))
-            final_success = bool(getattr(final_result, "success", False))
-            final_message = str(getattr(final_result, "message", ""))
-
-            # Rollback-on-regression semantics
-            if final_energy > energy_before_final:
-                final_full_refit_meta["rollback"] = True
                 _ai_log(
-                    "hardcoded_adapt_final_full_refit_rollback",
+                    "hardcoded_adapt_final_full_refit_start",
+                    n_params=int(theta.size),
+                    energy_before=float(energy_current),
+                )
+                final_full_refit_meta["energy_before"] = float(energy_current)
+                energy_before_final = float(energy_current)
+
+                # Re-use existing _obj and optimizer infrastructure
+                if adapt_state_backend_key == "compiled":
+                    if selected_executor is None:
+                        selected_executor = _build_compiled_executor(selected_ops)
+
+                # Reset COBYLA heartbeat state for final refit
+                final_opt_t0 = time.perf_counter()
+                cobyla_last_hb_t = final_opt_t0
+                cobyla_nfev_so_far = 0
+                cobyla_best_fun = float("inf")
+
+                def _obj_final(x: np.ndarray) -> float:
+                    nonlocal cobyla_last_hb_t, cobyla_nfev_so_far, cobyla_best_fun
+                    energy_obj_val = _evaluate_selected_energy_objective(
+                        ops_now=selected_ops,
+                        theta_now=np.asarray(x, dtype=float),
+                        executor_now=selected_executor,
+                        parameter_layout_now=selected_layout,
+                        objective_stage="final_full_refit",
+                        depth_marker=int(len(history)),
+                    )
+                    if adapt_inner_optimizer_key in {"COBYLA", "POWELL"}:
+                        cobyla_nfev_so_far += 1
+                        if energy_obj_val < cobyla_best_fun:
+                            cobyla_best_fun = float(energy_obj_val)
+                        now = time.perf_counter()
+                        if (now - cobyla_last_hb_t) >= float(adapt_spsa_progress_every_s):
+                            _ai_log(
+                                "hardcoded_adapt_scipy_heartbeat",
+                                stage="final_full_refit",
+                                opt_method=str(adapt_inner_optimizer_key),
+                                nfev_opt_so_far=int(cobyla_nfev_so_far),
+                                best_fun=float(cobyla_best_fun),
+                                elapsed_opt_s=float(now - final_opt_t0),
+                            )
+                            cobyla_last_hb_t = now
+                    return float(energy_obj_val)
+
+                final_x0 = np.array(theta, copy=True)
+                if adapt_inner_optimizer_key == "SPSA":
+                    final_memory = None
+                    if phase2_enabled:
+                        final_memory = phase2_memory_adapter.select_active(
+                            phase2_optimizer_memory,
+                            active_indices=list(range(int(theta.size))),
+                            source="adapt.final_full_refit.active_subset",
+                        )
+                    final_result = spsa_minimize(
+                        fun=_obj_final,
+                        x0=final_x0,
+                        maxiter=int(maxiter),
+                        seed=int(seed) + int(max_depth) + 1,
+                        a=float(adapt_spsa_a),
+                        c=float(adapt_spsa_c),
+                        alpha=float(adapt_spsa_alpha),
+                        gamma=float(adapt_spsa_gamma),
+                        A=float(adapt_spsa_A),
+                        bounds=None,
+                        project="none",
+                        eval_repeats=int(adapt_spsa_eval_repeats),
+                        eval_agg=str(adapt_spsa_eval_agg_key),
+                        avg_last=int(adapt_spsa_avg_last),
+                        memory=(dict(final_memory) if isinstance(final_memory, Mapping) else None),
+                        refresh_every=0,
+                        precondition_mode=("diag_rms_grad" if phase2_enabled else "none"),
+                    )
+                else:
+                    if scipy_minimize is None:
+                        raise RuntimeError(
+                            f"SciPy minimize is unavailable for {adapt_inner_optimizer_key} final full refit."
+                        )
+                    final_result = scipy_minimize(
+                        _obj_final,
+                        final_x0,
+                        method=str(adapt_inner_optimizer_key),
+                        options=_scipy_inner_options(int(maxiter)),
+                    )
+
+                final_energy = float(final_result.fun)
+                final_nfev = int(getattr(final_result, "nfev", 0))
+                final_nit = int(getattr(final_result, "nit", 0))
+                final_success = bool(getattr(final_result, "success", False))
+                final_message = str(getattr(final_result, "message", ""))
+
+                # Rollback-on-regression semantics
+                if final_energy > energy_before_final:
+                    final_full_refit_meta["rollback"] = True
+                    _ai_log(
+                        "hardcoded_adapt_final_full_refit_rollback",
+                        energy_before=float(energy_before_final),
+                        energy_after=float(final_energy),
+                    )
+                else:
+                    theta = np.asarray(final_result.x, dtype=float)
+                    energy_current = float(final_energy)
+                    if phase2_enabled and adapt_inner_optimizer_key == "SPSA":
+                        phase2_optimizer_memory = phase2_memory_adapter.merge_active(
+                            phase2_optimizer_memory,
+                            active_indices=list(range(int(theta.size))),
+                            active_state=phase2_memory_adapter.from_result(
+                                final_result,
+                                method=str(adapt_inner_optimizer_key),
+                                parameter_count=int(theta.size),
+                                source="adapt.final_full_refit.result",
+                            ),
+                            source="adapt.final_full_refit.merge",
+                        )
+
+                nfev_total += final_nfev
+                final_full_refit_meta["executed"] = True
+                final_full_refit_meta["energy_after"] = float(final_energy)
+                final_full_refit_meta["nfev"] = int(final_nfev)
+                final_full_refit_meta["nit"] = int(final_nit)
+                final_full_refit_meta["opt_success"] = bool(final_success)
+                final_full_refit_meta["opt_message"] = str(final_message)
+                _ai_log(
+                    "hardcoded_adapt_final_full_refit_done",
                     energy_before=float(energy_before_final),
                     energy_after=float(final_energy),
+                    rollback=bool(final_full_refit_meta["rollback"]),
+                    nfev=int(final_nfev),
                 )
-            else:
-                theta = np.asarray(final_result.x, dtype=float)
-                energy_current = float(final_energy)
-                if phase2_enabled and adapt_inner_optimizer_key == "SPSA":
-                    phase2_optimizer_memory = phase2_memory_adapter.merge_active(
-                        phase2_optimizer_memory,
-                        active_indices=list(range(int(theta.size))),
-                        active_state=phase2_memory_adapter.from_result(
-                            final_result,
-                            method=str(adapt_inner_optimizer_key),
-                            parameter_count=int(theta.size),
-                            source="adapt.final_full_refit.result",
-                        ),
-                        source="adapt.final_full_refit.merge",
-                    )
 
-            nfev_total += final_nfev
-            final_full_refit_meta["executed"] = True
-            final_full_refit_meta["energy_after"] = float(final_energy)
-            final_full_refit_meta["nfev"] = int(final_nfev)
-            final_full_refit_meta["nit"] = int(final_nit)
-            final_full_refit_meta["opt_success"] = bool(final_success)
-            final_full_refit_meta["opt_message"] = str(final_message)
-            _ai_log(
-                "hardcoded_adapt_final_full_refit_done",
-                energy_before=float(energy_before_final),
-                energy_after=float(final_energy),
-                rollback=bool(final_full_refit_meta["rollback"]),
-                nfev=int(final_nfev),
-            )
-
-    prune_summary: dict[str, Any] = {
-        "enabled": bool(phase1_enabled and phase1_prune_enabled),
-        "executed": False,
-        "rolled_back": False,
-        "accepted_count": 0,
-        "candidate_count": 0,
-        "decisions": [],
-        "energy_before": float(energy_current),
-        "energy_after_prune": float(energy_current),
-        "energy_after_post_refit": float(energy_current),
-        "post_refit_executed": False,
-    }
-    if phase1_enabled and bool(phase1_prune_enabled) and int(len(selected_ops)) > 1:
-        phase1_scaffold_pre_prune = {
-            "operators": [str(op.label) for op in selected_ops],
-            "optimal_point": [float(x) for x in np.asarray(theta, dtype=float).tolist()],
-            "energy": float(energy_current),
+        prune_summary: dict[str, Any] = {
+            "enabled": bool(phase1_enabled and phase1_prune_enabled),
+            "executed": False,
+            "rolled_back": False,
+            "accepted_count": 0,
+            "candidate_count": 0,
+            "decisions": [],
+            "energy_before": float(energy_current),
+            "energy_after_prune": float(energy_current),
+            "energy_after_post_refit": float(energy_current),
+            "post_refit_executed": False,
         }
-        prune_cfg = PruneConfig(
-            max_candidates=int(max(1, phase1_prune_max_candidates)),
-            min_candidates=2,
-            fraction_candidates=float(max(0.0, phase1_prune_fraction)),
-            max_regression=float(max(0.0, phase1_prune_max_regression)),
-        )
-
-        def _reconstruct_phase1_proxy_benefits() -> list[float]:
-            benefits: list[float] = []
-            for row in history:
-                if not isinstance(row, dict):
-                    continue
-                if row.get("continuation_mode") not in {"phase1_v1", "phase2_v1", "phase3_v1"}:
-                    continue
-                pos = int(row.get("selected_position", len(benefits)))
-                pos = max(0, min(len(benefits), pos))
-                benefit = row.get("full_v2_score", row.get("simple_score", None))
-                if benefit is None:
-                    benefit = row.get("metric_proxy", row.get("selected_grad_abs", float("inf")))
-                benefit_f = float(benefit)
-                if not math.isfinite(benefit_f):
-                    benefit_f = float("inf")
-                benefits.insert(pos, benefit_f)
-            while len(benefits) < int(len(selected_ops)):
-                benefits.append(float("inf"))
-            return [float(x) for x in benefits[: int(len(selected_ops))]]
-
-        pre_prune_ops = list(selected_ops)
-        pre_prune_layout = _build_selected_layout(pre_prune_ops)
-        pre_prune_theta = np.asarray(theta, dtype=float).copy()
-        pre_prune_energy = float(energy_current)
-        pre_prune_memory = dict(phase2_optimizer_memory) if phase2_enabled else None
-        pre_prune_generator_meta = (
-            selected_generator_metadata_for_labels(
-                [str(op.label) for op in pre_prune_ops],
-                pool_generator_registry,
+        if phase1_enabled and bool(phase1_prune_enabled) and int(len(selected_ops)) > 1:
+            phase1_scaffold_pre_prune = {
+                "operators": [str(op.label) for op in selected_ops],
+                "optimal_point": [float(x) for x in np.asarray(theta, dtype=float).tolist()],
+                "energy": float(energy_current),
+            }
+            prune_cfg = PruneConfig(
+                max_candidates=int(max(1, phase1_prune_max_candidates)),
+                min_candidates=2,
+                fraction_candidates=float(max(0.0, phase1_prune_fraction)),
+                max_regression=float(max(0.0, phase1_prune_max_regression)),
             )
-            if phase3_enabled
-            else []
-        )
-        prune_proxy_benefit = _reconstruct_phase1_proxy_benefits()
-        candidate_indices = rank_prune_candidates(
-            theta=np.asarray(_logical_theta_alias(theta, selected_layout), dtype=float),
-            labels=[str(op.label) for op in selected_ops],
-            marginal_proxy_benefit=list(prune_proxy_benefit),
-            max_candidates=int(prune_cfg.max_candidates),
-            min_candidates=int(prune_cfg.min_candidates),
-            fraction_candidates=float(prune_cfg.fraction_candidates),
-        )
-        prune_summary["candidate_count"] = int(len(candidate_indices))
-        prune_summary["marginal_proxy_benefit"] = [float(x) for x in prune_proxy_benefit]
 
-        def _refit_given_ops(ops_refit: list[AnsatzTerm], theta0: np.ndarray) -> tuple[np.ndarray, float]:
-            nonlocal phase2_optimizer_memory
-            if len(ops_refit) == 0:
-                return np.zeros(0, dtype=float), float(energy_current)
-            executor_refit = _build_compiled_executor(ops_refit) if adapt_state_backend_key == "compiled" else None
+            def _reconstruct_phase1_proxy_benefits() -> list[float]:
+                benefits: list[float] = []
+                for row in history:
+                    if not isinstance(row, dict):
+                        continue
+                    if row.get("continuation_mode") not in {"phase1_v1", "phase2_v1", "phase3_v1"}:
+                        continue
+                    pos = int(row.get("selected_position", len(benefits)))
+                    pos = max(0, min(len(benefits), pos))
+                    benefit = row.get("full_v2_score", None)
+                    if benefit is None:
+                        benefit = row.get("cheap_score", row.get("simple_score", None))
+                    if benefit is None:
+                        benefit = row.get("metric_proxy", row.get("selected_grad_abs", float("inf")))
+                    benefit_f = float(benefit)
+                    if not math.isfinite(benefit_f):
+                        benefit_f = float("inf")
+                    benefits.insert(pos, benefit_f)
+                while len(benefits) < int(len(selected_ops)):
+                    benefits.append(float("inf"))
+                return [float(x) for x in benefits[: int(len(selected_ops))]]
 
-            def _obj_prune(x: np.ndarray) -> float:
-                if executor_refit is not None:
-                    psi_obj = executor_refit.prepare_state(np.asarray(x, dtype=float), psi_ref)
-                    e_obj, _ = energy_via_one_apply(psi_obj, h_compiled)
-                    return float(e_obj)
-                return float(
-                    _adapt_energy_fn(
-                        h_poly,
-                        psi_ref,
-                        ops_refit,
-                        x,
-                        h_compiled=h_compiled,
-                        parameter_layout=_build_selected_layout(ops_refit),
-                    )
-                )
-
-            x0 = np.asarray(theta0, dtype=float).reshape(-1)
-            if adapt_inner_optimizer_key == "SPSA":
-                refit_memory = None
-                if phase2_enabled:
-                    refit_memory = phase2_memory_adapter.select_active(
-                        phase2_optimizer_memory,
-                        active_indices=list(range(int(x0.size))),
-                        source="adapt.post_prune_refit.active_subset",
-                    )
-                res = spsa_minimize(
-                    fun=_obj_prune,
-                    x0=x0,
-                    maxiter=int(max(25, min(int(maxiter), 120))),
-                    seed=int(seed) + 700000 + int(len(ops_refit)),
-                    a=float(adapt_spsa_a),
-                    c=float(adapt_spsa_c),
-                    alpha=float(adapt_spsa_alpha),
-                    gamma=float(adapt_spsa_gamma),
-                    A=float(adapt_spsa_A),
-                    bounds=None,
-                    project="none",
-                    eval_repeats=int(adapt_spsa_eval_repeats),
-                    eval_agg=str(adapt_spsa_eval_agg_key),
-                    avg_last=int(adapt_spsa_avg_last),
-                    memory=(dict(refit_memory) if isinstance(refit_memory, Mapping) else None),
-                    refresh_every=0,
-                    precondition_mode=("diag_rms_grad" if phase2_enabled else "none"),
-                )
-                if phase2_enabled:
-                    phase2_optimizer_memory = phase2_memory_adapter.merge_active(
-                        phase2_optimizer_memory,
-                        active_indices=list(range(int(x0.size))),
-                        active_state=phase2_memory_adapter.from_result(
-                            res,
-                            method=str(adapt_inner_optimizer_key),
-                            parameter_count=int(x0.size),
-                            source="adapt.post_prune_refit.result",
-                        ),
-                        source="adapt.post_prune_refit.merge",
-                    )
-                return np.asarray(res.x, dtype=float), float(res.fun)
-            if scipy_minimize is None:
-                raise RuntimeError("SciPy minimize is unavailable for prune refit.")
-            res = scipy_minimize(
-                _obj_prune,
-                x0,
-                method="COBYLA",
-                options={"maxiter": int(max(25, min(int(maxiter), 120))), "rhobeg": 0.3},
-            )
-            return np.asarray(res.x, dtype=float), float(res.fun)
-
-        def _ops_from_labels(labels_cur: list[str]) -> list[AnsatzTerm]:
-            buckets: dict[str, list[AnsatzTerm]] = {}
-            for op_ref in selected_ops:
-                key_ref = str(op_ref.label)
-                buckets.setdefault(key_ref, []).append(op_ref)
-            rebuilt: list[AnsatzTerm] = []
-            for lbl in labels_cur:
-                key_lbl = str(lbl)
-                if key_lbl not in buckets or len(buckets[key_lbl]) == 0:
-                    continue
-                rebuilt.append(buckets[key_lbl].pop(0))
-            return rebuilt
-
-        def _eval_with_removal(
-            idx_remove: int,
-            theta_cur: np.ndarray,
-            labels_cur: list[str],
-        ) -> tuple[float, np.ndarray]:
-            ops_current = _ops_from_labels(list(labels_cur))
-            layout_current = _build_selected_layout(ops_current)
-            runtime_remove_indices = runtime_indices_for_logical_indices(layout_current, [int(idx_remove)])
-            ops_trial = list(ops_current)
-            del ops_trial[int(idx_remove)]
-            theta_trial0 = np.delete(np.asarray(theta_cur, dtype=float), runtime_remove_indices)
-            theta_trial_opt, e_trial = _refit_given_ops(ops_trial, theta_trial0)
-            return float(e_trial), np.asarray(theta_trial_opt, dtype=float)
-
-        theta_pruned, labels_pruned, prune_decisions, energy_after_prune = apply_pruning(
-            theta=np.asarray(theta, dtype=float),
-            labels=[str(op.label) for op in selected_ops],
-            candidate_indices=[int(i) for i in candidate_indices],
-            eval_with_removal=_eval_with_removal,
-            energy_before=float(energy_current),
-            max_regression=float(prune_cfg.max_regression),
-        )
-        accepted_count = int(sum(1 for d in prune_decisions if bool(d.accepted)))
-        if accepted_count > 0:
-            accepted_remove_indices = [int(d.index) for d in prune_decisions if bool(d.accepted)]
-            accepted_runtime_remove_indices = runtime_indices_for_logical_indices(
-                pre_prune_layout,
-                accepted_remove_indices,
-            )
-            if phase2_enabled:
-                phase2_optimizer_memory = phase2_memory_adapter.remap_remove(
-                    phase2_optimizer_memory,
-                    indices=list(accepted_runtime_remove_indices),
-                )
-            label_to_ops: dict[str, list[AnsatzTerm]] = {}
-            for op in selected_ops:
-                key = str(op.label)
-                label_to_ops.setdefault(key, []).append(op)
-            rebuilt_ops: list[AnsatzTerm] = []
-            for lbl in labels_pruned:
-                key = str(lbl)
-                bucket = label_to_ops.get(key, [])
-                if not bucket:
-                    continue
-                rebuilt_ops.append(bucket.pop(0))
-            selected_ops = list(rebuilt_ops)
-            selected_layout = _build_selected_layout(selected_ops)
-            theta = np.asarray(theta_pruned, dtype=float)
-            energy_current = float(energy_after_prune)
-            if adapt_state_backend_key == "compiled":
-                selected_executor = _build_compiled_executor(selected_ops) if len(selected_ops) > 0 else None
-            else:
-                selected_executor = None
-            theta_post, e_post = post_prune_refit(
-                theta=np.asarray(theta, dtype=float),
-                refit_fn=lambda x: _refit_given_ops(list(selected_ops), np.asarray(x, dtype=float)),
-            )
-            theta = np.asarray(theta_post, dtype=float)
-            energy_current = float(e_post)
-            if adapt_state_backend_key == "compiled":
-                selected_executor = _build_compiled_executor(selected_ops) if len(selected_ops) > 0 else None
-            else:
-                selected_executor = None
-            prune_summary["post_refit_executed"] = True
-            if phase3_enabled and str(phase3_symmetry_mitigation_mode_key) != "off":
-                post_prune_generator_meta = selected_generator_metadata_for_labels(
-                    [str(op.label) for op in selected_ops],
+            pre_prune_ops = list(selected_ops)
+            pre_prune_layout = _build_selected_layout(pre_prune_ops)
+            pre_prune_theta = np.asarray(theta, dtype=float).copy()
+            pre_prune_energy = float(energy_current)
+            pre_prune_memory = dict(phase2_optimizer_memory) if phase2_enabled else None
+            pre_prune_generator_meta = (
+                selected_generator_metadata_for_labels(
+                    [str(op.label) for op in pre_prune_ops],
                     pool_generator_registry,
                 )
-                sym_pre = verify_symmetry_sequence(
-                    generator_metadata=pre_prune_generator_meta,
-                    mitigation_mode=str(phase3_symmetry_mitigation_mode_key),
+                if phase3_enabled
+                else []
+            )
+            prune_proxy_benefit = _reconstruct_phase1_proxy_benefits()
+            candidate_indices = rank_prune_candidates(
+                theta=np.asarray(_logical_theta_alias(theta, selected_layout), dtype=float),
+                labels=[str(op.label) for op in selected_ops],
+                marginal_proxy_benefit=list(prune_proxy_benefit),
+                max_candidates=int(prune_cfg.max_candidates),
+                min_candidates=int(prune_cfg.min_candidates),
+                fraction_candidates=float(prune_cfg.fraction_candidates),
+            )
+            prune_summary["candidate_count"] = int(len(candidate_indices))
+            prune_summary["marginal_proxy_benefit"] = [float(x) for x in prune_proxy_benefit]
+
+            def _refit_given_ops(ops_refit: list[AnsatzTerm], theta0: np.ndarray) -> tuple[np.ndarray, float]:
+                nonlocal phase2_optimizer_memory
+                if len(ops_refit) == 0:
+                    return np.zeros(0, dtype=float), float(energy_current)
+                executor_refit = _build_compiled_executor(ops_refit) if adapt_state_backend_key == "compiled" else None
+
+                def _obj_prune(x: np.ndarray) -> float:
+                    return _evaluate_selected_energy_objective(
+                        ops_now=ops_refit,
+                        theta_now=np.asarray(x, dtype=float),
+                        executor_now=executor_refit,
+                        parameter_layout_now=_build_selected_layout(ops_refit),
+                        objective_stage="prune_refit",
+                        depth_marker=int(len(history)),
+                    )
+
+                x0 = np.asarray(theta0, dtype=float).reshape(-1)
+                if adapt_inner_optimizer_key == "SPSA":
+                    refit_memory = None
+                    if phase2_enabled:
+                        refit_memory = phase2_memory_adapter.select_active(
+                            phase2_optimizer_memory,
+                            active_indices=list(range(int(x0.size))),
+                            source="adapt.post_prune_refit.active_subset",
+                        )
+                    res = spsa_minimize(
+                        fun=_obj_prune,
+                        x0=x0,
+                        maxiter=int(max(25, min(int(maxiter), 120))),
+                        seed=int(seed) + 700000 + int(len(ops_refit)),
+                        a=float(adapt_spsa_a),
+                        c=float(adapt_spsa_c),
+                        alpha=float(adapt_spsa_alpha),
+                        gamma=float(adapt_spsa_gamma),
+                        A=float(adapt_spsa_A),
+                        bounds=None,
+                        project="none",
+                        eval_repeats=int(adapt_spsa_eval_repeats),
+                        eval_agg=str(adapt_spsa_eval_agg_key),
+                        avg_last=int(adapt_spsa_avg_last),
+                        memory=(dict(refit_memory) if isinstance(refit_memory, Mapping) else None),
+                        refresh_every=0,
+                        precondition_mode=("diag_rms_grad" if phase2_enabled else "none"),
+                    )
+                    if phase2_enabled:
+                        phase2_optimizer_memory = phase2_memory_adapter.merge_active(
+                            phase2_optimizer_memory,
+                            active_indices=list(range(int(x0.size))),
+                            active_state=phase2_memory_adapter.from_result(
+                                res,
+                                method=str(adapt_inner_optimizer_key),
+                                parameter_count=int(x0.size),
+                                source="adapt.post_prune_refit.result",
+                            ),
+                            source="adapt.post_prune_refit.merge",
+                        )
+                    return np.asarray(res.x, dtype=float), float(res.fun)
+                res = _run_scipy_adapt_optimizer(
+                    method_key=str(adapt_inner_optimizer_key),
+                    objective=_obj_prune,
+                    x0=x0,
+                    maxiter=int(max(25, min(int(maxiter), 120))),
+                    context_label="prune refit",
+                    scipy_minimize_fn=scipy_minimize,
                 )
-                sym_post = verify_symmetry_sequence(
-                    generator_metadata=post_prune_generator_meta,
-                    mitigation_mode=str(phase3_symmetry_mitigation_mode_key),
+                return np.asarray(res.x, dtype=float), float(res.fun)
+
+            def _ops_from_labels(labels_cur: list[str]) -> list[AnsatzTerm]:
+                buckets: dict[str, list[AnsatzTerm]] = {}
+                for op_ref in selected_ops:
+                    key_ref = str(op_ref.label)
+                    buckets.setdefault(key_ref, []).append(op_ref)
+                rebuilt: list[AnsatzTerm] = []
+                for lbl in labels_cur:
+                    key_lbl = str(lbl)
+                    if key_lbl not in buckets or len(buckets[key_lbl]) == 0:
+                        continue
+                    rebuilt.append(buckets[key_lbl].pop(0))
+                return rebuilt
+
+            def _eval_with_removal(
+                idx_remove: int,
+                theta_cur: np.ndarray,
+                labels_cur: list[str],
+            ) -> tuple[float, np.ndarray]:
+                ops_current = _ops_from_labels(list(labels_cur))
+                layout_current = _build_selected_layout(ops_current)
+                runtime_remove_indices = runtime_indices_for_logical_indices(layout_current, [int(idx_remove)])
+                ops_trial = list(ops_current)
+                del ops_trial[int(idx_remove)]
+                theta_trial0 = np.delete(np.asarray(theta_cur, dtype=float), runtime_remove_indices)
+                theta_trial_opt, e_trial = _refit_given_ops(ops_trial, theta_trial0)
+                return float(e_trial), np.asarray(theta_trial_opt, dtype=float)
+
+            theta_pruned, labels_pruned, prune_decisions, energy_after_prune = apply_pruning(
+                theta=np.asarray(theta, dtype=float),
+                labels=[str(op.label) for op in selected_ops],
+                candidate_indices=[int(i) for i in candidate_indices],
+                eval_with_removal=_eval_with_removal,
+                energy_before=float(energy_current),
+                max_regression=float(prune_cfg.max_regression),
+            )
+            accepted_count = int(sum(1 for d in prune_decisions if bool(d.accepted)))
+            if accepted_count > 0:
+                accepted_remove_indices = [int(d.index) for d in prune_decisions if bool(d.accepted)]
+                accepted_runtime_remove_indices = runtime_indices_for_logical_indices(
+                    pre_prune_layout,
+                    accepted_remove_indices,
                 )
-                prune_summary["symmetry_mitigation"] = {
-                    "mode": str(phase3_symmetry_mitigation_mode_key),
-                    "pre_prune": dict(sym_pre),
-                    "post_prune": dict(sym_post),
-                }
-                if (not bool(sym_post.get("passed", True))) or (
-                    float(sym_post.get("max_leakage_risk", 0.0))
-                    > float(sym_pre.get("max_leakage_risk", 0.0)) + 1e-12
-                ):
+                if phase2_enabled:
+                    phase2_optimizer_memory = phase2_memory_adapter.remap_remove(
+                        phase2_optimizer_memory,
+                        indices=list(accepted_runtime_remove_indices),
+                    )
+                label_to_ops: dict[str, list[AnsatzTerm]] = {}
+                for op in selected_ops:
+                    key = str(op.label)
+                    label_to_ops.setdefault(key, []).append(op)
+                rebuilt_ops: list[AnsatzTerm] = []
+                for lbl in labels_pruned:
+                    key = str(lbl)
+                    bucket = label_to_ops.get(key, [])
+                    if not bucket:
+                        continue
+                    rebuilt_ops.append(bucket.pop(0))
+                selected_ops = list(rebuilt_ops)
+                selected_layout = _build_selected_layout(selected_ops)
+                theta = np.asarray(theta_pruned, dtype=float)
+                energy_current = float(energy_after_prune)
+                if adapt_state_backend_key == "compiled":
+                    selected_executor = _build_compiled_executor(selected_ops) if len(selected_ops) > 0 else None
+                else:
+                    selected_executor = None
+                theta_post, e_post = post_prune_refit(
+                    theta=np.asarray(theta, dtype=float),
+                    refit_fn=lambda x: _refit_given_ops(list(selected_ops), np.asarray(x, dtype=float)),
+                )
+                theta = np.asarray(theta_post, dtype=float)
+                energy_current = float(e_post)
+                if adapt_state_backend_key == "compiled":
+                    selected_executor = _build_compiled_executor(selected_ops) if len(selected_ops) > 0 else None
+                else:
+                    selected_executor = None
+                prune_summary["post_refit_executed"] = True
+                if phase3_enabled and str(phase3_symmetry_mitigation_mode_key) != "off":
+                    post_prune_generator_meta = selected_generator_metadata_for_labels(
+                        [str(op.label) for op in selected_ops],
+                        pool_generator_registry,
+                    )
+                    sym_pre = verify_symmetry_sequence(
+                        generator_metadata=pre_prune_generator_meta,
+                        mitigation_mode=str(phase3_symmetry_mitigation_mode_key),
+                    )
+                    sym_post = verify_symmetry_sequence(
+                        generator_metadata=post_prune_generator_meta,
+                        mitigation_mode=str(phase3_symmetry_mitigation_mode_key),
+                    )
+                    prune_summary["symmetry_mitigation"] = {
+                        "mode": str(phase3_symmetry_mitigation_mode_key),
+                        "pre_prune": dict(sym_pre),
+                        "post_prune": dict(sym_post),
+                    }
+                    if (not bool(sym_post.get("passed", True))) or (
+                        float(sym_post.get("max_leakage_risk", 0.0))
+                        > float(sym_pre.get("max_leakage_risk", 0.0)) + 1e-12
+                    ):
+                        selected_ops = list(pre_prune_ops)
+                        selected_layout = _build_selected_layout(selected_ops)
+                        theta = np.asarray(pre_prune_theta, dtype=float)
+                        energy_current = float(pre_prune_energy)
+                        if phase2_enabled and isinstance(pre_prune_memory, dict):
+                            phase2_optimizer_memory = dict(pre_prune_memory)
+                        if adapt_state_backend_key == "compiled":
+                            selected_executor = _build_compiled_executor(selected_ops) if len(selected_ops) > 0 else None
+                        else:
+                            selected_executor = None
+                        prune_summary["rolled_back"] = True
+                        prune_summary["rollback_reason"] = "symmetry_verify_failed"
+                if float(energy_current) > float(pre_prune_energy) + float(prune_cfg.max_regression):
                     selected_ops = list(pre_prune_ops)
                     selected_layout = _build_selected_layout(selected_ops)
                     theta = np.asarray(pre_prune_theta, dtype=float)
@@ -5638,345 +9866,471 @@ def _run_hardcoded_adapt_vqe(
                     else:
                         selected_executor = None
                     prune_summary["rolled_back"] = True
-                    prune_summary["rollback_reason"] = "symmetry_verify_failed"
-            if float(energy_current) > float(pre_prune_energy) + float(prune_cfg.max_regression):
-                selected_ops = list(pre_prune_ops)
-                selected_layout = _build_selected_layout(selected_ops)
-                theta = np.asarray(pre_prune_theta, dtype=float)
-                energy_current = float(pre_prune_energy)
-                if phase2_enabled and isinstance(pre_prune_memory, dict):
-                    phase2_optimizer_memory = dict(pre_prune_memory)
-                if adapt_state_backend_key == "compiled":
-                    selected_executor = _build_compiled_executor(selected_ops) if len(selected_ops) > 0 else None
-                else:
-                    selected_executor = None
-                prune_summary["rolled_back"] = True
-                prune_summary["rollback_reason"] = "post_prune_regression_exceeded"
+                    prune_summary["rollback_reason"] = "post_prune_regression_exceeded"
 
-        prune_summary.update(
-            {
-                "executed": True,
-                "accepted_count": int(accepted_count),
-                "energy_after_prune": float(energy_after_prune),
-                "energy_after_post_refit": float(energy_current),
-                "decisions": [dict(d.__dict__) for d in prune_decisions],
-            }
-        )
-        _ai_log(
-            "hardcoded_adapt_phase1_prune_done",
-            candidate_count=int(prune_summary["candidate_count"]),
-            accepted_count=int(prune_summary["accepted_count"]),
-            energy_after_post_refit=float(prune_summary["energy_after_post_refit"]),
-        )
+            prune_summary.update(
+                {
+                    "executed": True,
+                    "accepted_count": int(accepted_count),
+                    "energy_after_prune": float(energy_after_prune),
+                    "energy_after_post_refit": float(energy_current),
+                    "decisions": [dict(d.__dict__) for d in prune_decisions],
+                }
+            )
+            _ai_log(
+                "hardcoded_adapt_phase1_prune_done",
+                candidate_count=int(prune_summary["candidate_count"]),
+                accepted_count=int(prune_summary["accepted_count"]),
+                energy_after_post_refit=float(prune_summary["energy_after_post_refit"]),
+            )
 
-    selected_layout = _build_selected_layout(selected_ops)
-    theta_logical_final = _logical_theta_alias(theta, selected_layout)
+        selected_layout = _build_selected_layout(selected_ops)
+        theta_logical_final = _logical_theta_alias(theta, selected_layout)
 
-    # Build final state
-    if adapt_state_backend_key == "compiled":
-        if len(selected_ops) == 0:
-            psi_adapt = np.array(psi_ref, copy=True)
+        # Build final state
+        if adapt_state_backend_key == "compiled":
+            if len(selected_ops) == 0:
+                psi_adapt = np.array(psi_ref, copy=True)
+            else:
+                if selected_executor is None:
+                    selected_executor = _build_compiled_executor(selected_ops)
+                psi_adapt = selected_executor.prepare_state(theta, psi_ref)
         else:
-            if selected_executor is None:
-                selected_executor = _build_compiled_executor(selected_ops)
-            psi_adapt = selected_executor.prepare_state(theta, psi_ref)
-    else:
-        psi_adapt = _prepare_adapt_state(psi_ref, selected_ops, theta, parameter_layout=selected_layout)
-    psi_adapt = _normalize_state(psi_adapt)
+            psi_adapt = _prepare_adapt_state(psi_ref, selected_ops, theta, parameter_layout=selected_layout)
+        psi_adapt = _normalize_state(psi_adapt)
 
-    elapsed = time.perf_counter() - t0
-    selected_generator_metadata = (
-        selected_generator_metadata_for_labels(
-            [str(op.label) for op in selected_ops],
-            pool_generator_registry,
+        elapsed = time.perf_counter() - t0
+        selected_generator_metadata = (
+            selected_generator_metadata_for_labels(
+                [str(op.label) for op in selected_ops],
+                pool_generator_registry,
+            )
+            if phase3_enabled
+            else []
         )
-        if phase3_enabled
-        else []
-    )
-    phase3_symmetry_summary = (
-        verify_symmetry_sequence(
-            generator_metadata=selected_generator_metadata,
-            mitigation_mode=str(phase3_symmetry_mitigation_mode_key),
+        phase3_symmetry_summary = (
+            verify_symmetry_sequence(
+                generator_metadata=selected_generator_metadata,
+                mitigation_mode=str(phase3_symmetry_mitigation_mode_key),
+            )
+            if phase3_enabled
+            else None
         )
-        if phase3_enabled
-        else None
-    )
-    phase3_output_motif_library = (
-        extract_motif_library(
-            generator_metadata=selected_generator_metadata,
-            theta=[float(x) for x in np.asarray(theta_logical_final, dtype=float).tolist()],
-            source_num_sites=int(num_sites),
-            source_tag=f"phase3_v1_L{int(num_sites)}",
-            ordering=str(ordering),
-            boson_encoding=str(boson_encoding),
+        exact_energy_from_final_state, _ = energy_via_one_apply(psi_adapt, h_compiled)
+        exact_energy_from_final_state = float(exact_energy_from_final_state)
+        phase3_output_motif_library = (
+            extract_motif_library(
+                generator_metadata=selected_generator_metadata,
+                theta=[float(x) for x in np.asarray(theta_logical_final, dtype=float).tolist()],
+                source_num_sites=int(num_sites),
+                source_tag=f"phase3_v1_L{int(num_sites)}",
+                ordering=str(ordering),
+                boson_encoding=str(boson_encoding),
+            )
+            if phase3_enabled and selected_generator_metadata
+            else None
         )
-        if phase3_enabled and selected_generator_metadata
-        else None
-    )
-    if phase3_enabled and isinstance(phase3_input_motif_library, Mapping):
-        selected_match_count = 0
-        source_records = phase3_input_motif_library.get("records", [])
-        if isinstance(source_records, Sequence):
-            for meta in selected_generator_metadata:
-                matched = False
-                for rec in source_records:
-                    if not isinstance(rec, Mapping):
-                        continue
-                    if str(rec.get("family_id", "")) != str(meta.get("family_id", "")):
-                        continue
-                    if str(rec.get("template_id", "")) != str(meta.get("template_id", "")):
-                        continue
-                    if [int(x) for x in rec.get("support_site_offsets", [])] != [
-                        int(x) for x in meta.get("support_site_offsets", [])
-                    ]:
-                        continue
-                    matched = True
-                    break
-                if matched:
-                    selected_match_count += 1
-        phase3_motif_usage["selected_match_count"] = int(selected_match_count)
+        if phase3_enabled and isinstance(phase3_input_motif_library, Mapping):
+            selected_match_count = 0
+            source_records = phase3_input_motif_library.get("records", [])
+            if isinstance(source_records, Sequence):
+                for meta in selected_generator_metadata:
+                    matched = False
+                    for rec in source_records:
+                        if not isinstance(rec, Mapping):
+                            continue
+                        if str(rec.get("family_id", "")) != str(meta.get("family_id", "")):
+                            continue
+                        if str(rec.get("template_id", "")) != str(meta.get("template_id", "")):
+                            continue
+                        if [int(x) for x in rec.get("support_site_offsets", [])] != [
+                            int(x) for x in meta.get("support_site_offsets", [])
+                        ]:
+                            continue
+                        matched = True
+                        break
+                    if matched:
+                        selected_match_count += 1
+            phase3_motif_usage["selected_match_count"] = int(selected_match_count)
 
-    continuation_payload: dict[str, Any] = {
-        "mode": str(continuation_mode),
-        "score_version": (
-            str(phase2_score_cfg.score_version)
-            if phase2_enabled
-            else str(phase1_score_cfg.score_version)
-        ),
-        "stage_controller": {
-            "shortlist_size": int(phase1_shortlist_size_val),
-            "plateau_patience": int(phase1_stage_cfg.plateau_patience),
-            "probe_margin_ratio": float(phase1_stage_cfg.probe_margin_ratio),
-            "max_probe_positions": int(phase1_stage_cfg.max_probe_positions),
-            "append_admit_threshold": float(phase1_stage_cfg.append_admit_threshold),
-        },
-        "stage_events": [dict(row) for row in phase1_stage_events],
-        "phase1_feature_rows": [dict(row) for row in phase1_features_history[-200:]],
-        "last_probe_reason": str(phase1_last_probe_reason),
-        "residual_opened": bool(phase1_residual_opened),
-    }
-    backend_compile_summary: dict[str, Any] | None = None
-    if backend_compile_oracle is not None:
-        backend_compile_summary = {
-            "mode": str(phase3_backend_cost_mode_key),
-            "requested_backend_name": (
-                None if phase3_backend_name in {None, ""} else str(phase3_backend_name)
+        continuation_payload: dict[str, Any] = {
+            "mode": str(continuation_mode),
+            "score_version": (
+                str(phase2_score_cfg.score_version)
+                if phase2_enabled
+                else str(phase1_score_cfg.score_version)
             ),
-            "requested_backend_shortlist": [str(x) for x in phase3_backend_shortlist_tokens],
-            "optimization_level": int(phase3_backend_optimization_level),
-            "seed_transpiler": int(phase3_backend_transpile_seed),
-            "resolution_audit": [dict(row) for row in backend_compile_oracle.resolution_audit],
-            "cache_summary": dict(backend_compile_oracle.cache_summary()),
-            **dict(backend_compile_oracle.final_scaffold_summary(selected_ops)),
+            "gradient_uncertainty_source": str(phase3_gradient_uncertainty_source),
+            "oracle_gradient_scope": (
+                str(phase3_oracle_gradient_config.scope)
+                if phase3_oracle_gradient_config is not None
+                else "off"
+            ),
+            "oracle_gradient_config": _phase3_oracle_gradient_config_payload(phase3_oracle_gradient_config),
+            "oracle_execution_surface": (
+                str(phase3_oracle_gradient_config.execution_surface)
+                if phase3_oracle_gradient_config is not None
+                else "off"
+            ),
+            "oracle_backend_info": (
+                dict(phase3_oracle_backend_info)
+                if isinstance(phase3_oracle_backend_info, Mapping)
+                else phase3_oracle_backend_info
+            ),
+            "oracle_raw_transport": (
+                str(phase3_oracle_raw_transport)
+                if phase3_oracle_raw_transport not in {None, ""}
+                else None
+            ),
+            "oracle_gradient_raw_records_total": int(phase3_oracle_gradient_raw_records_total),
+            "oracle_symmetry_diagnostic_calls_total": int(
+                phase3_oracle_symmetry_diagnostic_calls_total
+            ),
+            "oracle_symmetry_diagnostic_raw_records_total": int(
+                phase3_oracle_symmetry_diagnostic_raw_records_total
+            ),
+            "oracle_gradient_raw_artifact_path": (
+                None
+                if phase3_oracle_raw_artifact_path in {None, ""}
+                else str(phase3_oracle_raw_artifact_path)
+            ),
+            "oracle_gradient_calls_total": int(phase3_oracle_gradient_calls_total),
+            "oracle_inner_objective_mode": str(phase3_oracle_inner_objective_mode_key),
+            "oracle_inner_objective_calls_total": int(phase3_oracle_inner_objective_calls_total),
+            "reoptimization_backend": (
+                "oracle_expectation_v1"
+                if phase3_oracle_inner_objective_enabled
+                else "exact_statevector"
+            ),
+            "phase3_enable_rescue_requested": bool(phase3_enable_rescue_requested),
+            "phase3_enable_rescue_effective": bool(phase3_enable_rescue_effective),
+            "stage_controller": {
+                "shortlist_size": int(phase1_shortlist_size_val),
+                "plateau_patience": int(phase1_stage_cfg.plateau_patience),
+                "probe_margin_ratio": float(phase1_stage_cfg.probe_margin_ratio),
+                "max_probe_positions": int(phase1_stage_cfg.max_probe_positions),
+                "append_admit_threshold": float(phase1_stage_cfg.append_admit_threshold),
+            },
+            "stage_events": [dict(row) for row in phase1_stage_events],
+            "phase1_feature_rows": [dict(row) for row in phase1_features_history[-200:]],
+            "last_probe_reason": str(phase1_last_probe_reason),
+            "residual_opened": bool(phase1_residual_opened),
         }
-    if phase2_enabled:
-        continuation_payload.update(
-            {
-                "phase2_shortlist_rows": [dict(row) for row in phase2_last_shortlist_records[-200:]],
-                "optimizer_memory": dict(phase2_optimizer_memory),
-                "phase2": {
-                    "shortlist_fraction": float(phase2_score_cfg.shortlist_fraction),
-                    "shortlist_size": int(phase2_score_cfg.shortlist_size),
-                    "batch_target_size": int(phase2_score_cfg.batch_target_size),
-                    "batch_size_cap": int(phase2_score_cfg.batch_size_cap),
-                    "batch_near_degenerate_ratio": float(phase2_score_cfg.batch_near_degenerate_ratio),
-                },
+        backend_compile_summary: dict[str, Any] | None = None
+        if backend_compile_oracle is not None:
+            backend_compile_summary = {
+                "mode": str(phase3_backend_cost_mode_key),
+                "requested_backend_name": (
+                    None if phase3_backend_name in {None, ""} else str(phase3_backend_name)
+                ),
+                "requested_backend_shortlist": [str(x) for x in phase3_backend_shortlist_tokens],
+                "optimization_level": int(phase3_backend_optimization_level),
+                "seed_transpiler": int(phase3_backend_transpile_seed),
+                "resolution_audit": [dict(row) for row in backend_compile_oracle.resolution_audit],
+                "cache_summary": dict(backend_compile_oracle.cache_summary()),
+                **dict(backend_compile_oracle.final_scaffold_summary(selected_ops)),
             }
-        )
-    if phase3_enabled:
-        continuation_payload.update(
-            {
-                "selected_generator_metadata": [dict(x) for x in selected_generator_metadata],
-                "generator_split_events": [dict(x) for x in phase3_split_events],
-                "runtime_split_summary": dict(phase3_runtime_split_summary),
-                "motif_library": (
-                    dict(phase3_output_motif_library)
-                    if isinstance(phase3_output_motif_library, Mapping)
-                    else None
-                ),
-                "motif_usage": dict(phase3_motif_usage),
-                "symmetry_mitigation": (
-                    dict(phase3_symmetry_summary)
-                    if isinstance(phase3_symmetry_summary, Mapping)
-                    else None
-                ),
-                "rescue_history": [dict(x) for x in phase3_rescue_history],
-            }
-        )
-    if backend_compile_summary is not None:
-        continuation_payload["backend_compile_cost_summary"] = dict(backend_compile_summary)
-
-    payload = {
-        "success": True,
-        "method": method_name,
-        "energy": float(energy_current),
-        "exact_gs_energy": float(exact_gs),
-        "delta_e": float(energy_current - exact_gs),
-        "abs_delta_e": float(abs(energy_current - exact_gs)),
-        "num_particles": {"n_up": int(num_particles[0]), "n_dn": int(num_particles[1])},
-        "ansatz_depth": int(len(selected_ops)),
-        "num_parameters": int(theta.size),
-        "logical_num_parameters": int(len(selected_ops)),
-        "optimal_point": [float(x) for x in theta.tolist()],
-        "logical_optimal_point": [float(x) for x in theta_logical_final.tolist()],
-        "parameterization": serialize_layout(selected_layout),
-        "operators": [str(op.label) for op in selected_ops],
-        "pool_size": int(len(pool)),
-        "pool_type": str(pool_key),
-        "phase1_depth0_full_meta_override": bool(phase1_depth0_full_meta_override),
-        "stop_reason": str(stop_reason),
-        "nfev_total": int(nfev_total),
-        "adapt_inner_optimizer": str(adapt_inner_optimizer_key),
-        "adapt_reopt_policy": str(adapt_reopt_policy_key),
-        "adapt_window_size": int(adapt_window_size_val),
-        "adapt_window_topk": int(adapt_window_topk_val),
-        "adapt_full_refit_every": int(adapt_full_refit_every_val),
-        "adapt_final_full_refit": bool(adapt_final_full_refit_val),
-        "allow_repeats": bool(allow_repeats),
-        "finite_angle_fallback": bool(finite_angle_fallback),
-        "finite_angle": float(finite_angle),
-        "finite_angle_min_improvement": float(finite_angle_min_improvement),
-        "adapt_drop_policy_enabled": bool(drop_policy_enabled),
-        "adapt_drop_floor": (float(adapt_drop_floor) if drop_policy_enabled else None),
-        "adapt_drop_patience": (int(adapt_drop_patience) if drop_policy_enabled else None),
-        "adapt_drop_min_depth": (int(adapt_drop_min_depth) if drop_policy_enabled else None),
-        "adapt_grad_floor": (float(adapt_grad_floor) if float(adapt_grad_floor) >= 0.0 else None),
-        "adapt_drop_floor_resolved": float(adapt_drop_floor),
-        "adapt_drop_patience_resolved": int(adapt_drop_patience),
-        "adapt_drop_min_depth_resolved": int(adapt_drop_min_depth),
-        "adapt_grad_floor_resolved": float(adapt_grad_floor),
-        "adapt_drop_floor_source": str(stop_policy.adapt_drop_floor_source),
-        "adapt_drop_patience_source": str(stop_policy.adapt_drop_patience_source),
-        "adapt_drop_min_depth_source": str(stop_policy.adapt_drop_min_depth_source),
-        "adapt_grad_floor_source": str(stop_policy.adapt_grad_floor_source),
-        "adapt_drop_policy_source": str(stop_policy.drop_policy_source),
-        "adapt_ref_base_depth": int(adapt_ref_base_depth),
-        "adapt_eps_energy_min_extra_depth": int(adapt_eps_energy_min_extra_depth),
-        "adapt_eps_energy_patience": int(adapt_eps_energy_patience),
-        "eps_energy_min_extra_depth_effective": int(eps_energy_min_extra_depth_effective),
-        "eps_energy_patience_effective": int(eps_energy_patience_effective),
-        "eps_energy_gate_cumulative_depth": int(adapt_ref_base_depth) + int(eps_energy_min_extra_depth_effective),
-        "eps_energy_termination_enabled": bool(eps_energy_termination_enabled),
-        "eps_grad_termination_enabled": bool(eps_grad_termination_enabled),
-        "eps_energy_low_streak_final": int(eps_energy_low_streak),
-        "drop_plateau_hits_final": int(drop_plateau_hits),
-        "adapt_gradient_parity_check": bool(adapt_gradient_parity_check),
-        "adapt_state_backend": str(adapt_state_backend_key),
-        "compiled_pauli_cache": {
-            "enabled": True,
-            "compile_elapsed_s": compile_cache_elapsed_s,
-            "h_terms": int(len(h_compiled.terms)),
-            "pool_terms_total": int(pool_compiled_terms_total),
-            "unique_pauli_actions": int(len(pauli_action_cache)),
-        },
-        "history": history,
-        "final_full_refit": dict(final_full_refit_meta),
-        "continuation_mode": str(continuation_mode),
-        "elapsed_s": float(elapsed),
-        "hf_bitstring_qn_to_q0": str(hf_bits),
-    }
-    if phase1_enabled:
-        measurement_plan = phase1_measure_cache.plan_for([])
-        payload.update(
-            {
-                "continuation": dict(continuation_payload),
-                "measurement_cache_summary": {
-                    **dict(phase1_measure_cache.summary()),
-                    "measurement_plan": dict(measurement_plan.__dict__),
-                },
-                "compile_cost_proxy_summary": {
-                    "version": (
-                        "phase3_v1_proxy"
-                        if phase3_enabled
-                        else ("phase2_v1_proxy" if phase2_enabled else "phase1_v1_proxy")
-                    ),
-                    "components": [
-                        "new_pauli_actions",
-                        "new_rotation_steps",
-                        "cx_proxy_total",
-                        "sq_proxy_total",
-                        "gate_proxy_total",
-                        "max_pauli_weight",
-                        "position_shift_span",
-                        "refit_active_count",
-                    ],
-                },
-                "compile_cost_mode": str(phase3_backend_cost_mode_key),
-                "backend_compile_cost_summary": (
-                    dict(backend_compile_summary) if backend_compile_summary is not None else None
-                ),
-                "pre_prune_scaffold": (
-                    dict(phase1_scaffold_pre_prune) if phase1_scaffold_pre_prune is not None else None
-                ),
-                "prune_summary": dict(prune_summary),
-                "post_prune_refit": {
-                    "executed": bool(prune_summary.get("post_refit_executed", False)),
-                    "energy": float(prune_summary.get("energy_after_post_refit", energy_current)),
-                },
-                "scaffold_fingerprint_lite": ScaffoldFingerprintLite(
-                    selected_operator_labels=[str(op.label) for op in selected_ops],
-                    selected_generator_ids=[
-                        str(meta.get("generator_id", ""))
-                        for meta in selected_generator_metadata
-                        if str(meta.get("generator_id", "")) != ""
-                    ],
-                    num_parameters=int(theta.size),
-                    generator_family=str(pool_key),
-                    continuation_mode=str(continuation_mode),
-                    compiled_pauli_cache_size=int(len(pauli_action_cache)),
-                    measurement_plan_version=str(measurement_plan.plan_version),
-                    post_prune=bool(prune_summary.get("executed", False)),
-                    split_event_count=int(len(phase3_split_events)),
-                    motif_record_ids=(
-                        [
-                            str(rec.get("motif_id", ""))
-                            for rec in phase3_output_motif_library.get("records", [])
-                            if isinstance(rec, Mapping) and str(rec.get("motif_id", "")) != ""
-                        ]
+        if phase2_enabled:
+            continuation_payload.update(
+                {
+                    "phase2_shortlist_rows": [dict(row) for row in phase2_last_shortlist_records[-200:]],
+                    "optimizer_memory": dict(phase2_optimizer_memory),
+                    "phase2": {
+                        "shortlist_fraction": float(phase2_score_cfg.shortlist_fraction),
+                        "shortlist_size": int(phase2_score_cfg.shortlist_size),
+                        "batch_target_size": int(phase2_score_cfg.batch_target_size),
+                        "batch_size_cap": int(phase2_score_cfg.batch_size_cap),
+                        "batch_near_degenerate_ratio": float(phase2_score_cfg.batch_near_degenerate_ratio),
+                    },
+                }
+            )
+        if phase3_enabled:
+            continuation_payload.update(
+                {
+                    "selected_generator_metadata": [dict(x) for x in selected_generator_metadata],
+                    "generator_split_events": [dict(x) for x in phase3_split_events],
+                    "runtime_split_summary": dict(phase3_runtime_split_summary),
+                    "motif_library": (
+                        dict(phase3_output_motif_library)
                         if isinstance(phase3_output_motif_library, Mapping)
-                        else []
+                        else None
                     ),
-                    compile_cost_mode=str(phase3_backend_cost_mode_key),
-                    backend_target_names=(
-                        list(
-                            dict.fromkeys(
-                                [
-                                    str(row.get("transpile_backend", ""))
-                                    for row in (backend_compile_summary or {}).get("rows", [])
-                                    if str(row.get("transpile_backend", "")) != ""
-                                ]
-                            )
-                        )
-                        if isinstance(backend_compile_summary, Mapping)
-                        else []
+                    "motif_usage": dict(phase3_motif_usage),
+                    "symmetry_mitigation": (
+                        dict(phase3_symmetry_summary)
+                        if isinstance(phase3_symmetry_summary, Mapping)
+                        else None
                     ),
-                    backend_reduction_mode=(
-                        "single_backend"
-                        if str(phase3_backend_cost_mode_key) == "transpile_single_v1"
-                        else (
-                            "best_backend_in_shortlist_v1"
-                            if str(phase3_backend_cost_mode_key) == "transpile_shortlist_v1"
-                            else "none"
-                        )
-                    ),
-                ).__dict__,
-            }
-        )
-    if adapt_inner_optimizer_key == "SPSA":
-        payload["adapt_spsa"] = dict(adapt_spsa_params)
+                    "rescue_history": [dict(x) for x in phase3_rescue_history],
+                }
+            )
+        if backend_compile_summary is not None:
+            continuation_payload["backend_compile_cost_summary"] = dict(backend_compile_summary)
 
-    _ai_log(
-        "hardcoded_adapt_vqe_done",
-        L=int(num_sites),
-        adapt_inner_optimizer=str(adapt_inner_optimizer_key),
-        energy=float(energy_current),
-        exact_gs=float(exact_gs),
-        abs_delta_e=float(abs(energy_current - exact_gs)),
-        depth=int(len(selected_ops)),
-        stop_reason=str(stop_reason),
-        elapsed_sec=round(elapsed, 6),
-    )
-    return payload, psi_adapt
+        exact_state_fidelity: float | None = None
+        exact_state_fidelity_source: str | None = None
+        if phase3_exact_reference_state is not None:
+            psi_exact_ref = _normalize_state(np.asarray(phase3_exact_reference_state, dtype=complex).reshape(-1))
+            psi_final = _normalize_state(np.asarray(psi_adapt, dtype=complex).reshape(-1))
+            if int(psi_exact_ref.size) != int(psi_final.size):
+                raise ValueError(
+                    "phase3 exact reference state dimension mismatch: "
+                    f"got {psi_exact_ref.size}, expected {psi_final.size}."
+                )
+            exact_state_fidelity = float(abs(np.vdot(psi_exact_ref, psi_final)) ** 2)
+            exact_state_fidelity_source = (
+                "final_theta_exact_state_sidecar"
+                if phase3_oracle_inner_objective_enabled
+                else "phase3_rescue_exact_state"
+            )
+
+        payload = {
+            "success": True,
+            "method": method_name,
+            "energy": float(energy_current),
+            "energy_source": (
+                "oracle_expectation_v1"
+                if phase3_oracle_inner_objective_enabled
+                else "exact_statevector"
+            ),
+            "exact_energy_from_final_state": float(exact_energy_from_final_state),
+            "exact_gs_energy": float(exact_gs),
+            "delta_e": float(energy_current - exact_gs),
+            "abs_delta_e": float(abs(energy_current - exact_gs)),
+            "exact_delta_e_from_final_state": float(exact_energy_from_final_state - exact_gs),
+            "exact_abs_delta_e_from_final_state": float(abs(exact_energy_from_final_state - exact_gs)),
+            "num_particles": {"n_up": int(num_particles[0]), "n_dn": int(num_particles[1])},
+            "ansatz_depth": int(len(selected_ops)),
+            "num_parameters": int(theta.size),
+            "logical_num_parameters": int(len(selected_ops)),
+            "optimal_point": [float(x) for x in theta.tolist()],
+            "logical_optimal_point": [float(x) for x in theta_logical_final.tolist()],
+            "parameterization": serialize_layout(selected_layout),
+            "operators": [str(op.label) for op in selected_ops],
+            "pool_size": int(len(pool)),
+            "pool_type": str(pool_key),
+            "adapt_pool_class_filter_json": (
+                str(adapt_pool_class_filter_json) if adapt_pool_class_filter_json is not None else None
+            ),
+            "adapt_pool_class_filter_classifier_version": (
+                str(full_meta_class_filter_spec.classifier_version)
+                if full_meta_class_filter_spec is not None
+                else None
+            ),
+            "adapt_pool_class_filter_keep_classes": (
+                list(full_meta_class_filter_spec.keep_classes)
+                if full_meta_class_filter_spec is not None
+                else None
+            ),
+            "adapt_pool_class_filter_class_counts_before": (
+                dict(full_meta_class_filter_meta.get("class_counts_before", {}))
+                if full_meta_class_filter_meta is not None
+                else None
+            ),
+            "adapt_pool_class_filter_class_counts_after": (
+                dict(full_meta_class_filter_meta.get("class_counts_after", {}))
+                if full_meta_class_filter_meta is not None
+                else None
+            ),
+            "phase3_oracle_inner_objective_mode": str(phase3_oracle_inner_objective_mode_key),
+            "exact_state_fidelity": (
+                float(exact_state_fidelity) if exact_state_fidelity is not None else None
+            ),
+            "exact_state_fidelity_source": (
+                str(exact_state_fidelity_source) if exact_state_fidelity_source is not None else None
+            ),
+            "phase1_depth0_full_meta_override": bool(phase1_depth0_full_meta_override),
+            "stop_reason": str(stop_reason),
+            "nfev_total": int(nfev_total),
+            "adapt_inner_optimizer": str(adapt_inner_optimizer_key),
+            "adapt_reopt_policy": str(adapt_reopt_policy_key),
+            "adapt_window_size": int(adapt_window_size_val),
+            "adapt_window_topk": int(adapt_window_topk_val),
+            "adapt_full_refit_every": int(adapt_full_refit_every_val),
+            "adapt_final_full_refit": bool(adapt_final_full_refit_val),
+            "adapt_beam_live_branches_requested": int(beam_policy.live_branches_requested),
+            "adapt_beam_children_per_parent_requested": (
+                int(beam_policy.children_per_parent_requested)
+                if beam_policy.children_per_parent_requested is not None
+                else None
+            ),
+            "adapt_beam_terminated_keep_requested": (
+                int(beam_policy.terminated_keep_requested)
+                if beam_policy.terminated_keep_requested is not None
+                else None
+            ),
+            "adapt_beam_live_branches": int(beam_policy.live_branches_effective),
+            "adapt_beam_children_per_parent": int(beam_policy.children_per_parent_effective),
+            "adapt_beam_terminated_keep": int(beam_policy.terminated_keep_effective),
+            "adapt_beam_enabled": bool(beam_policy.beam_enabled),
+            "allow_repeats": bool(allow_repeats),
+            "finite_angle_fallback": bool(finite_angle_fallback),
+            "finite_angle": float(finite_angle),
+            "finite_angle_min_improvement": float(finite_angle_min_improvement),
+            "adapt_drop_policy_enabled": bool(drop_policy_enabled),
+            "adapt_drop_floor": (float(adapt_drop_floor) if drop_policy_enabled else None),
+            "adapt_drop_patience": (int(adapt_drop_patience) if drop_policy_enabled else None),
+            "adapt_drop_min_depth": (int(adapt_drop_min_depth) if drop_policy_enabled else None),
+            "adapt_grad_floor": (float(adapt_grad_floor) if float(adapt_grad_floor) >= 0.0 else None),
+            "adapt_drop_floor_resolved": float(adapt_drop_floor),
+            "adapt_drop_patience_resolved": int(adapt_drop_patience),
+            "adapt_drop_min_depth_resolved": int(adapt_drop_min_depth),
+            "adapt_grad_floor_resolved": float(adapt_grad_floor),
+            "adapt_drop_floor_source": str(stop_policy.adapt_drop_floor_source),
+            "adapt_drop_patience_source": str(stop_policy.adapt_drop_patience_source),
+            "adapt_drop_min_depth_source": str(stop_policy.adapt_drop_min_depth_source),
+            "adapt_grad_floor_source": str(stop_policy.adapt_grad_floor_source),
+            "adapt_drop_policy_source": str(stop_policy.drop_policy_source),
+            "adapt_ref_base_depth": int(adapt_ref_base_depth),
+            "adapt_eps_energy_min_extra_depth": int(adapt_eps_energy_min_extra_depth),
+            "adapt_eps_energy_patience": int(adapt_eps_energy_patience),
+            "eps_energy_min_extra_depth_effective": int(eps_energy_min_extra_depth_effective),
+            "eps_energy_patience_effective": int(eps_energy_patience_effective),
+            "eps_energy_gate_cumulative_depth": int(adapt_ref_base_depth) + int(eps_energy_min_extra_depth_effective),
+            "eps_energy_termination_enabled": bool(eps_energy_termination_enabled),
+            "eps_grad_termination_enabled": bool(eps_grad_termination_enabled),
+            "eps_energy_low_streak_final": int(eps_energy_low_streak),
+            "drop_plateau_hits_final": int(drop_plateau_hits),
+            "adapt_gradient_parity_check": bool(adapt_gradient_parity_check),
+            "adapt_state_backend": str(adapt_state_backend_key),
+            "compiled_pauli_cache": {
+                "enabled": True,
+                "compile_elapsed_s": compile_cache_elapsed_s,
+                "h_terms": int(len(h_compiled.terms)),
+                "pool_terms_total": int(pool_compiled_terms_total),
+                "unique_pauli_actions": int(len(pauli_action_cache)),
+            },
+            "history": history,
+            "final_full_refit": dict(final_full_refit_meta),
+            "continuation_mode": str(continuation_mode),
+            "elapsed_s": float(elapsed),
+            "hf_bitstring_qn_to_q0": str(hf_bits),
+        }
+        if seq2p_logical_mode:
+            payload.update(
+                {
+                    "logical_parameterization": "double_sequential",
+                    "logical_operator_count": int(len(history)),
+                    "logical_operator_labels": [
+                        str(row.get("selected_logical_op", row.get("selected_op", "")))
+                        for row in history
+                    ],
+                    "logical_operator_sizes": [
+                        int(row.get("selected_logical_size", 1))
+                        for row in history
+                    ],
+                    "expanded_operator_count": int(len(selected_ops)),
+                }
+            )
+        if phase1_enabled:
+            measurement_plan = phase1_measure_cache.plan_for([])
+            payload.update(
+                {
+                    "continuation": dict(continuation_payload),
+                    "measurement_cache_summary": {
+                        **dict(phase1_measure_cache.summary()),
+                        "measurement_plan": dict(measurement_plan.__dict__),
+                    },
+                    "compile_cost_proxy_summary": {
+                        "version": (
+                            "phase3_v1_proxy"
+                            if phase3_enabled
+                            else ("phase2_v1_proxy" if phase2_enabled else "phase1_v1_proxy")
+                        ),
+                        "components": [
+                            "new_pauli_actions",
+                            "new_rotation_steps",
+                            "cx_proxy_total",
+                            "sq_proxy_total",
+                            "gate_proxy_total",
+                            "max_pauli_weight",
+                            "position_shift_span",
+                            "refit_active_count",
+                        ],
+                    },
+                    "compile_cost_mode": str(phase3_backend_cost_mode_key),
+                    "backend_compile_cost_summary": (
+                        dict(backend_compile_summary) if backend_compile_summary is not None else None
+                    ),
+                    "pre_prune_scaffold": (
+                        dict(phase1_scaffold_pre_prune) if phase1_scaffold_pre_prune is not None else None
+                    ),
+                    "prune_summary": dict(prune_summary),
+                    "post_prune_refit": {
+                        "executed": bool(prune_summary.get("post_refit_executed", False)),
+                        "energy": float(prune_summary.get("energy_after_post_refit", energy_current)),
+                    },
+                    "scaffold_fingerprint_lite": ScaffoldFingerprintLite(
+                        selected_operator_labels=[str(op.label) for op in selected_ops],
+                        selected_generator_ids=[
+                            str(meta.get("generator_id", ""))
+                            for meta in selected_generator_metadata
+                            if str(meta.get("generator_id", "")) != ""
+                        ],
+                        num_parameters=int(theta.size),
+                        generator_family=str(pool_key),
+                        continuation_mode=str(continuation_mode),
+                        compiled_pauli_cache_size=int(len(pauli_action_cache)),
+                        measurement_plan_version=str(measurement_plan.plan_version),
+                        post_prune=bool(prune_summary.get("executed", False)),
+                        split_event_count=int(len(phase3_split_events)),
+                        motif_record_ids=(
+                            [
+                                str(rec.get("motif_id", ""))
+                                for rec in phase3_output_motif_library.get("records", [])
+                                if isinstance(rec, Mapping) and str(rec.get("motif_id", "")) != ""
+                            ]
+                            if isinstance(phase3_output_motif_library, Mapping)
+                            else []
+                        ),
+                        compile_cost_mode=str(phase3_backend_cost_mode_key),
+                        backend_target_names=(
+                            list(
+                                dict.fromkeys(
+                                    [
+                                        str(row.get("transpile_backend", ""))
+                                        for row in (backend_compile_summary or {}).get("rows", [])
+                                        if str(row.get("transpile_backend", "")) != ""
+                                    ]
+                                )
+                            )
+                            if isinstance(backend_compile_summary, Mapping)
+                            else []
+                        ),
+                        backend_reduction_mode=(
+                            "single_backend"
+                            if str(phase3_backend_cost_mode_key) == "transpile_single_v1"
+                            else (
+                                "best_backend_in_shortlist_v1"
+                                if str(phase3_backend_cost_mode_key) == "transpile_shortlist_v1"
+                                else "none"
+                            )
+                        ),
+                    ).__dict__,
+                }
+            )
+        if adapt_inner_optimizer_key == "SPSA":
+            payload["adapt_spsa"] = dict(adapt_spsa_params)
+        if adapt_ref_import is not None:
+            payload["adapt_ref_import"] = dict(adapt_ref_import)
+
+        _ai_log(
+            "hardcoded_adapt_vqe_done",
+            L=int(num_sites),
+            adapt_inner_optimizer=str(adapt_inner_optimizer_key),
+            energy=float(energy_current),
+            exact_gs=float(exact_gs),
+            abs_delta_e=float(abs(energy_current - exact_gs)),
+            depth=int(len(selected_ops)),
+            stop_reason=str(stop_reason),
+            elapsed_sec=round(elapsed, 6),
+        )
+        return payload, psi_adapt
+    finally:
+        if phase3_oracle_cleanup is not None:
+            phase3_oracle_cleanup.close()
+        else:
+            _close_phase3_oracle_resource(phase3_oracle)
 
 
 # ---------------------------------------------------------------------------
@@ -6273,7 +10627,12 @@ def _write_pipeline_pdf(pdf_path: Path, payload: dict[str, Any], run_command: st
 # ---------------------------------------------------------------------------
 
 def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
-    p = argparse.ArgumentParser(description="Hardcoded ADAPT-VQE Hubbard / Hubbard-Holstein pipeline.")
+    p = argparse.ArgumentParser(
+        description=(
+            "Hardcoded ADAPT-VQE Hubbard / Hubbard-Holstein pipeline. "
+            "Direct HH CLI runs default to phase3_v1 continuation."
+        )
+    )
     p.add_argument("--L", type=int, default=2)
     p.add_argument("--t", type=float, default=1.0)
     p.add_argument("--u", type=float, default=4.0)
@@ -6283,7 +10642,7 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     p.add_argument("--g-ep", type=float, default=0.0, help="Holstein electron-phonon coupling g.")
     p.add_argument("--n-ph-max", type=int, default=1)
     p.add_argument("--boson-encoding", choices=["binary"], default="binary")
-    p.add_argument("--boundary", choices=["periodic", "open"], default="periodic")
+    p.add_argument("--boundary", choices=["periodic", "open"], default="open")
     p.add_argument("--ordering", choices=["blocked", "interleaved"], default="blocked")
     p.add_argument("--term-order", choices=["native", "sorted"], default="sorted")
 
@@ -6300,6 +10659,12 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
             "pareto_lean_l2",
             "pareto_lean_gate_pruned",
             "uccsd_paop_lf_full",
+            "uccsd_otimes_paop_lf_std",
+            "uccsd_otimes_paop_lf2_std",
+            "uccsd_otimes_paop_bond_disp_std",
+            "uccsd_otimes_paop_lf_std_seq2p",
+            "uccsd_otimes_paop_lf2_std_seq2p",
+            "uccsd_otimes_paop_bond_disp_std_seq2p",
             "paop",
             "paop_min",
             "paop_std",
@@ -6307,20 +10672,45 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
             "paop_lf",
             "paop_lf_std",
             "paop_lf2_std",
+            "paop_lf3_std",
+            "paop_lf4_std",
             "paop_lf_full",
+            "paop_sq_std",
+            "paop_sq_full",
+            "paop_bond_disp_std",
+            "paop_hop_sq_std",
+            "paop_pair_sq_std",
+            "vlf_only",
+            "sq_only",
+            "vlf_sq",
+            "sq_dens_only",
+            "vlf_sq_dens",
         ],
         default=None,
         help=(
             "ADAPT pool family. If omitted, runtime resolves problem-aware defaults: "
-            "hubbard->uccsd, hh+legacy->full_meta, hh+phase1_v1/phase2_v1/phase3_v1->paop_lf_std core + residual full_meta. "
+            "hubbard->uccsd; hh+phase3_v1 (direct canonical path)->paop_lf_std core + residual full_meta; "
+            "hh+legacy->full_meta compatibility path; hh+phase1_v1/phase2_v1->older compatibility paths with the same narrow core + residual full_meta curriculum. "
             "HH also supports opt-in scaffold-derived preset pareto_lean."
+        ),
+    )
+    p.add_argument(
+        "--adapt-pool-class-filter-json",
+        type=Path,
+        default=None,
+        help=(
+            "Optional JSON keep-spec for filtering the HH full_meta pool by operator class. "
+            "Only valid together with --problem hh --adapt-pool full_meta."
         ),
     )
     p.add_argument(
         "--adapt-continuation-mode",
         choices=["legacy", "phase1_v1", "phase2_v1", "phase3_v1"],
-        default="legacy",
-        help="Continuation mode for ADAPT. legacy is default; phase1_v1 is staged continuation; phase2_v1 adds shortlist/full scoring and batching; phase3_v1 adds generator/motif/symmetry/rescue metadata.",
+        default=None,
+        help=(
+            "Continuation mode for ADAPT. On the direct HH CLI, omitting this now resolves to phase3_v1, the canonical current path with full Phase 3 cheap/rerank scoring. "
+            "legacy, phase1_v1, and phase2_v1 remain explicit historical/compatibility modes; non-HH direct omission keeps legacy compatibility behavior."
+        ),
     )
     p.add_argument("--adapt-max-depth", type=int, default=20)
     p.add_argument("--adapt-eps-grad", type=float, default=1e-4)
@@ -6373,6 +10763,24 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
         choices=["true", "false"],
         default="true",
         help="Run a final full-prefix refit after ADAPT loop when using 'windowed' policy.",
+    )
+    p.add_argument(
+        "--adapt-beam-live-branches",
+        type=int,
+        default=1,
+        help="Requested live frontier size for ADAPT beam mode (1 keeps exact single-branch semantics).",
+    )
+    p.add_argument(
+        "--adapt-beam-children-per-parent",
+        type=int,
+        default=None,
+        help="Optional per-parent child cap for ADAPT beam mode; omitted resolves from live-branch policy.",
+    )
+    p.add_argument(
+        "--adapt-beam-terminated-keep",
+        type=int,
+        default=None,
+        help="Optional terminal-pool cap for ADAPT beam mode; omitted resolves from live-branch policy.",
     )
     p.add_argument("--phase1-lambda-F", type=float, default=1.0)
     p.add_argument("--phase1-lambda-compile", type=float, default=0.05)
@@ -6501,6 +10909,108 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
         type=int,
         default=1,
         help="Qiskit transpiler optimization level used by the backend-conditioned transpilation oracle.",
+    )
+    p.add_argument(
+        "--phase3-oracle-gradient-mode",
+        choices=["off", "ideal", "shots", "aer_noise", "backend_scheduled", "runtime"],
+        default="off",
+        help=(
+            "Opt-in direct HH phase3_v1 local oracle-gradient mode. Candidate gradient scouting uses expectation or raw-shot oracle finite-difference energies; inner re-optimization stays exact unless --phase3-oracle-inner-objective-mode noisy_v1 is selected."
+        ),
+    )
+    p.add_argument(
+        "--phase3-oracle-shots",
+        type=int,
+        default=2048,
+        help="Shots per oracle circuit when --phase3-oracle-gradient-mode is enabled.",
+    )
+    p.add_argument(
+        "--phase3-oracle-repeats",
+        type=int,
+        default=1,
+        help="Repeat count for oracle gradient circuits; mean aggregate only in v1.",
+    )
+    p.add_argument(
+        "--phase3-oracle-aggregate",
+        choices=["mean"],
+        default="mean",
+        help="Aggregate for repeated oracle gradient circuits. v1 supports mean only.",
+    )
+    p.add_argument(
+        "--phase3-oracle-backend-name",
+        type=str,
+        default=None,
+        help="Backend name for aer_noise/backend_scheduled oracle modes (for example FakeNighthawk).",
+    )
+    p.add_argument(
+        "--phase3-oracle-use-fake-backend",
+        action="store_true",
+        help="Use an offline fake backend for phase3 oracle-gradient mode.",
+    )
+    p.add_argument(
+        "--phase3-oracle-seed",
+        type=int,
+        default=7,
+        help="Seed for local oracle-gradient execution when enabled.",
+    )
+    p.add_argument(
+        "--phase3-oracle-gradient-step",
+        type=float,
+        default=None,
+        help="Finite-difference step for oracle-backed phase3 candidate gradients. Defaults to --adapt-finite-angle when omitted.",
+    )
+    p.add_argument(
+        "--phase3-oracle-mitigation",
+        choices=["none", "readout"],
+        default="none",
+        help="Mitigation mode for phase3 oracle-gradient execution. backend_scheduled supports none/readout only.",
+    )
+    p.add_argument(
+        "--phase3-oracle-local-readout-strategy",
+        choices=["mthree"],
+        default=None,
+        help="Local readout mitigation strategy for phase3 oracle-gradient execution.",
+    )
+    p.add_argument(
+        "--phase3-oracle-execution-surface",
+        choices=["auto", "expectation_v1", "raw_measurement_v1"],
+        default="auto",
+        help="Execution surface for phase3 oracle-gradient mode. 'auto' selects raw-shot only for runtime with mitigation=none.",
+    )
+    p.add_argument(
+        "--phase3-oracle-inner-objective-mode",
+        choices=["exact", "noisy_v1"],
+        default="exact",
+        help="When noisy_v1, HH phase3_v1 inner re-optimization uses the same expectation-oracle energy as candidate scouting. v1 currently supports SPSA only.",
+    )
+    p.add_argument(
+        "--phase3-oracle-raw-transport",
+        choices=["auto", "sampler_v2"],
+        default="auto",
+        help="Raw transport preference when phase3 oracle execution surface resolves to raw_measurement_v1 on the runtime sampler path.",
+    )
+    p.add_argument(
+        "--phase3-oracle-raw-store-memory",
+        action="store_true",
+        help="Keep emitted raw measurement records in memory during phase3 raw-shot scouting.",
+    )
+    p.add_argument(
+        "--phase3-oracle-raw-artifact-path",
+        type=str,
+        default=None,
+        help="Optional NDJSON(.gz) path for phase3 raw-shot measurement records.",
+    )
+    p.add_argument(
+        "--phase3-oracle-seed-transpiler",
+        type=int,
+        default=None,
+        help="Optional transpiler seed for phase3 oracle execution.",
+    )
+    p.add_argument(
+        "--phase3-oracle-transpile-optimization-level",
+        type=int,
+        default=1,
+        help="Qiskit transpiler optimization level used by phase3 oracle execution.",
     )
     p.add_argument("--adapt-maxiter", type=int, default=300, help="Inner optimizer maxiter per re-optimization")
     p.add_argument("--adapt-spsa-a", type=float, default=0.2)
@@ -6776,6 +11286,59 @@ def main(argv: Sequence[str] | None = None) -> None:
             boson_encoding=str(args.boson_encoding),
         )
 
+    cli_adapt_continuation_mode = _resolve_cli_adapt_continuation_mode(
+        problem=problem_key,
+        requested_mode=args.adapt_continuation_mode,
+    )
+    phase3_oracle_gradient_config: Phase3OracleGradientConfig | None = None
+    phase3_oracle_gradient_mode_key = str(args.phase3_oracle_gradient_mode).strip().lower()
+    if phase3_oracle_gradient_mode_key != "off":
+        phase3_oracle_gradient_config = _resolve_phase3_oracle_gradient_config(
+            Phase3OracleGradientConfig(
+                noise_mode=str(phase3_oracle_gradient_mode_key),
+                shots=int(args.phase3_oracle_shots),
+                oracle_repeats=int(args.phase3_oracle_repeats),
+                oracle_aggregate=str(args.phase3_oracle_aggregate),
+                backend_name=(
+                    None
+                    if args.phase3_oracle_backend_name in {None, ""}
+                    else str(args.phase3_oracle_backend_name)
+                ),
+                use_fake_backend=bool(args.phase3_oracle_use_fake_backend),
+                seed=int(args.phase3_oracle_seed),
+                gradient_step=(
+                    float(args.phase3_oracle_gradient_step)
+                    if args.phase3_oracle_gradient_step is not None
+                    else float(args.adapt_finite_angle)
+                ),
+                mitigation_mode=str(args.phase3_oracle_mitigation),
+                local_readout_strategy=(
+                    None
+                    if args.phase3_oracle_local_readout_strategy in {None, ""}
+                    else str(args.phase3_oracle_local_readout_strategy)
+                ),
+                execution_surface_requested=str(args.phase3_oracle_execution_surface),
+                raw_transport=str(args.phase3_oracle_raw_transport),
+                raw_store_memory=bool(args.phase3_oracle_raw_store_memory),
+                raw_artifact_path=(
+                    None
+                    if args.phase3_oracle_raw_artifact_path in {None, ""}
+                    else str(args.phase3_oracle_raw_artifact_path)
+                ),
+                seed_transpiler=(
+                    None
+                    if args.phase3_oracle_seed_transpiler is None
+                    else int(args.phase3_oracle_seed_transpiler)
+                ),
+                transpile_optimization_level=int(args.phase3_oracle_transpile_optimization_level),
+            )
+        )
+        _validate_phase3_oracle_gradient_config(
+            config=phase3_oracle_gradient_config,
+            problem=str(problem_key),
+            continuation_mode=str(cli_adapt_continuation_mode),
+        )
+
     # Sector-filtered exact ground state: ADAPT-VQE preserves particle number,
     # so compare against the GS within the same (n_alpha, n_beta) sector.
     # For HH: use fermion-only sector filtering (phonon qubits free).
@@ -6784,7 +11347,7 @@ def main(argv: Sequence[str] | None = None) -> None:
         adapt_ref_meta=adapt_ref_meta,
         args=args,
         problem=problem_key,
-        continuation_mode=str(args.adapt_continuation_mode),
+        continuation_mode=str(cli_adapt_continuation_mode),
     )
     if gs_energy_exact is None:
         gs_energy_exact = _exact_gs_energy_for_problem(
@@ -6815,7 +11378,7 @@ def main(argv: Sequence[str] | None = None) -> None:
             )
         elif (
             problem_key == "hh"
-            and str(args.adapt_continuation_mode).strip().lower() in _HH_STAGED_CONTINUATION_MODES
+            and str(cli_adapt_continuation_mode).strip().lower() in _HH_STAGED_CONTINUATION_MODES
         ):
             _ai_log(
                 "hardcoded_adapt_exact_energy_reuse_skipped",
@@ -6901,7 +11464,18 @@ def main(argv: Sequence[str] | None = None) -> None:
             adapt_window_topk=int(args.adapt_window_topk),
             adapt_full_refit_every=int(args.adapt_full_refit_every),
             adapt_final_full_refit=bool(str(args.adapt_final_full_refit).strip().lower() == "true"),
-            adapt_continuation_mode=str(args.adapt_continuation_mode),
+            adapt_continuation_mode=str(cli_adapt_continuation_mode),
+            adapt_beam_live_branches=int(args.adapt_beam_live_branches),
+            adapt_beam_children_per_parent=(
+                int(args.adapt_beam_children_per_parent)
+                if args.adapt_beam_children_per_parent is not None
+                else None
+            ),
+            adapt_beam_terminated_keep=(
+                int(args.adapt_beam_terminated_keep)
+                if args.adapt_beam_terminated_keep is not None
+                else None
+            ),
             allow_repeats=bool(args.adapt_allow_repeats),
             finite_angle_fallback=bool(args.adapt_finite_angle_fallback),
             finite_angle=float(args.adapt_finite_angle),
@@ -6943,6 +11517,11 @@ def main(argv: Sequence[str] | None = None) -> None:
             phase2_batch_target_size=int(args.phase2_batch_target_size),
             phase2_batch_size_cap=int(args.phase2_batch_size_cap),
             phase2_batch_near_degenerate_ratio=float(args.phase2_batch_near_degenerate_ratio),
+            adapt_pool_class_filter_json=(
+                Path(args.adapt_pool_class_filter_json)
+                if args.adapt_pool_class_filter_json is not None
+                else None
+            ),
             phase3_motif_source_json=(Path(args.phase3_motif_source_json) if args.phase3_motif_source_json is not None else None),
             phase3_symmetry_mitigation_mode=str(args.phase3_symmetry_mitigation_mode),
             phase3_enable_rescue=bool(args.phase3_enable_rescue),
@@ -6957,6 +11536,8 @@ def main(argv: Sequence[str] | None = None) -> None:
             ),
             phase3_backend_transpile_seed=int(args.phase3_backend_transpile_seed),
             phase3_backend_optimization_level=int(args.phase3_backend_optimization_level),
+            phase3_oracle_gradient_config=phase3_oracle_gradient_config,
+            phase3_oracle_inner_objective_mode=str(args.phase3_oracle_inner_objective_mode),
         )
     except Exception as exc:
         _ai_log("hardcoded_adapt_vqe_failed", L=int(args.L), error=str(exc))
@@ -7070,7 +11651,18 @@ def main(argv: Sequence[str] | None = None) -> None:
             "dense_eigh_enabled": bool(dense_eigh_enabled),
             "hilbert_dim": int(hilbert_dim),
             "adapt_pool": (str(args.adapt_pool) if args.adapt_pool is not None else None),
-            "adapt_continuation_mode": str(args.adapt_continuation_mode),
+            "adapt_pool_class_filter_json": (
+                str(args.adapt_pool_class_filter_json)
+                if args.adapt_pool_class_filter_json is not None
+                else None
+            ),
+            "adapt_pool_class_filter_classifier_version": (
+                adapt_payload.get("adapt_pool_class_filter_classifier_version")
+            ),
+            "adapt_pool_class_filter_keep_classes": (
+                adapt_payload.get("adapt_pool_class_filter_keep_classes")
+            ),
+            "adapt_continuation_mode": str(cli_adapt_continuation_mode),
             "adapt_max_depth": int(args.adapt_max_depth),
             "adapt_eps_grad": float(args.adapt_eps_grad),
             "adapt_eps_energy": float(args.adapt_eps_energy),
@@ -7144,6 +11736,7 @@ def main(argv: Sequence[str] | None = None) -> None:
             ),
             "phase3_backend_transpile_seed": int(args.phase3_backend_transpile_seed),
             "phase3_backend_optimization_level": int(args.phase3_backend_optimization_level),
+            "phase3_oracle_inner_objective_mode": str(args.phase3_oracle_inner_objective_mode),
             "adapt_ref_json": (str(args.adapt_ref_json) if args.adapt_ref_json is not None else None),
             "paop_r": int(args.paop_r),
             "paop_split_paulis": bool(args.paop_split_paulis),
@@ -7216,9 +11809,9 @@ def main(argv: Sequence[str] | None = None) -> None:
         output_pdf=(str(output_pdf) if not args.skip_pdf else None),
         adapt_energy=adapt_payload.get("energy"),
     )
-    print(f"Wrote JSON: {output_json}")
+    _safe_stdout_print(f"Wrote JSON: {output_json}")
     if not args.skip_pdf:
-        print(f"Wrote PDF:  {output_pdf}")
+        _safe_stdout_print(f"Wrote PDF:  {output_pdf}")
 
 
 if __name__ == "__main__":

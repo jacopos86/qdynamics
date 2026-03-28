@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import asdict
 from pathlib import Path
 import sys
 from types import SimpleNamespace
@@ -46,6 +47,7 @@ def test_resolve_staged_defaults_from_run_guide_formulae() -> None:
     assert int(cfg.adapt.maxiter) == 5000
     assert float(cfg.adapt.eps_grad) == pytest.approx(5e-7)
     assert float(cfg.adapt.eps_energy) == pytest.approx(1e-9)
+    assert str(cfg.adapt.continuation_mode) == "phase1_v1"
     assert int(cfg.replay.reps) == 3
     assert int(cfg.replay.restarts) == 5
     assert int(cfg.replay.maxiter) == 4000
@@ -94,6 +96,57 @@ def test_underparameterized_override_rejected_without_smoke_flag() -> None:
     ])
     cfg = resolve_staged_hh_config(args)
     assert int(cfg.warm_start.reps) == 1
+
+
+def test_resolve_staged_builds_phase3_raw_oracle_config() -> None:
+    args = parse_args(
+        [
+            "--L",
+            "2",
+            "--skip-pdf",
+            "--adapt-continuation-mode",
+            "phase3_v1",
+            "--phase3-oracle-gradient-mode",
+            "runtime",
+            "--phase3-oracle-backend-name",
+            "ibm_marrakesh",
+        ]
+    )
+    cfg = resolve_staged_hh_config(args)
+    oracle_cfg = cfg.adapt.phase3_oracle_gradient_config
+    cfg_payload = asdict(cfg)
+
+    assert oracle_cfg is not None
+    assert str(oracle_cfg.noise_mode) == "runtime"
+    assert str(oracle_cfg.execution_surface) == "raw_measurement_v1"
+    assert str(oracle_cfg.execution_surface_requested) == "auto"
+    assert str(oracle_cfg.raw_transport) == "auto"
+    assert float(oracle_cfg.gradient_step) == pytest.approx(float(cfg.adapt.finite_angle))
+    assert cfg_payload["adapt"]["phase3_oracle_gradient_config"]["execution_surface"] == "raw_measurement_v1"
+
+
+def test_run_staged_hh_noiseless_rejects_phase3_oracle_config(tmp_path: Path) -> None:
+    args = parse_args(
+        [
+            "--L",
+            "2",
+            "--skip-pdf",
+            "--output-json",
+            str(tmp_path / "hh_staged.json"),
+            "--output-pdf",
+            str(tmp_path / "hh_staged.pdf"),
+            "--adapt-continuation-mode",
+            "phase3_v1",
+            "--phase3-oracle-gradient-mode",
+            "backend_scheduled",
+            "--phase3-oracle-use-fake-backend",
+            "--phase3-oracle-backend-name",
+            "FakeNighthawk",
+        ]
+    )
+    cfg = resolve_staged_hh_config(args)
+    with pytest.raises(ValueError, match="staged noise workflow"):
+        wf.run_staged_hh_noiseless(cfg, run_command="pytest")
 
 
 def test_workflow_runs_matched_family_replay_and_static_plus_drive_profiles(
@@ -311,6 +364,112 @@ def test_workflow_runs_matched_family_replay_and_static_plus_drive_profiles(
     assert Path(payload["artifacts"]["pareto"]["rolling_frontier_json"]).exists()
     assert calls["propagators"] == ["suzuki2", "cfqm4", "suzuki2", "cfqm4"]
     assert Path(cfg.artifacts.output_json).exists()
+
+
+def test_run_stage_pipeline_forwards_phase3_oracle_config_and_stage_summary_fields(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    dim = 1 << int(wf._hh_nq_total(2, 1, "binary"))
+    psi_hf = _basis(dim, 0)
+    psi_warm = _basis(dim, 1)
+    psi_adapt = _basis(dim, 2)
+    psi_final = _basis(dim, 3)
+    calls: dict[str, object] = {}
+
+    monkeypatch.setattr(wf, "build_hubbard_holstein_hamiltonian", lambda **kwargs: object())
+    monkeypatch.setattr(wf, "hubbard_holstein_reference_state", lambda **kwargs: np.array(psi_hf, copy=True))
+    monkeypatch.setattr(wf.hc_pipeline, "_collect_hardcoded_terms_exyz", lambda h: (["eeeeee"], {"eeeeee": 1.0 + 0.0j}))
+    monkeypatch.setattr(wf.hc_pipeline, "_build_hamiltonian_matrix", lambda coeff: np.eye(dim, dtype=complex))
+    monkeypatch.setattr(
+        wf.hc_pipeline,
+        "_run_hardcoded_vqe",
+        lambda **kwargs: ({"energy": -1.0, "exact_filtered_energy": -1.0, "ansatz": "hh_hva_ptw"}, np.array(psi_warm, copy=True)),
+    )
+
+    def _fake_run_adapt(**kwargs):
+        calls["adapt_kwargs"] = kwargs
+        return {
+            "energy": -1.03,
+            "exact_gs_energy": -1.04,
+            "ansatz_depth": 2,
+            "num_parameters": 3,
+            "logical_num_parameters": 2,
+            "pool_type": "phase3_v1",
+            "continuation_mode": str(kwargs["adapt_continuation_mode"]),
+            "continuation": {
+                "gradient_uncertainty_source": "oracle_fd_stderr_v1",
+                "oracle_gradient_scope": "selection_only",
+                "oracle_gradient_config": {
+                    "execution_surface_requested": "auto",
+                    "execution_surface": "raw_measurement_v1",
+                    "raw_transport": "auto",
+                    "raw_store_memory": True,
+                    "raw_artifact_path": str(tmp_path / "phase3.ndjson.gz"),
+                },
+                "oracle_execution_surface": "raw_measurement_v1",
+                "oracle_backend_info": {"backend_name": "FakeNighthawk"},
+                "oracle_raw_transport": "sampler_v2",
+                "oracle_gradient_raw_records_total": 8,
+                "oracle_gradient_raw_artifact_path": str(tmp_path / "phase3.ndjson.gz"),
+                "reoptimization_backend": "exact_statevector",
+            },
+        }, np.array(psi_adapt, copy=True)
+
+    monkeypatch.setattr(wf.adapt_mod, "_run_hardcoded_adapt_vqe", _fake_run_adapt)
+    monkeypatch.setattr(wf, "write_handoff_state_bundle", lambda **kwargs: None)
+    monkeypatch.setattr(
+        wf.replay_mod,
+        "run",
+        lambda cfg: {
+            "generator_family": {"requested": "match_adapt", "resolved": "paop_lf_std"},
+            "seed_baseline": {"theta_policy": "auto"},
+            "exact": {"E_exact_sector": -1.05},
+            "vqe": {"energy": -1.049, "stop_reason": "converged"},
+            "replay_contract": {"continuation_mode": str(cfg.replay_continuation_mode)},
+            "best_state": {"amplitudes_qn_to_q0": _amplitudes_qn_to_q0(psi_final)},
+        },
+    )
+
+    args = parse_args(
+        [
+            "--L",
+            "2",
+            "--skip-pdf",
+            "--output-json",
+            str(tmp_path / "hh_staged.json"),
+            "--output-pdf",
+            str(tmp_path / "hh_staged.pdf"),
+            "--adapt-continuation-mode",
+            "phase3_v1",
+            "--phase3-oracle-gradient-mode",
+            "runtime",
+            "--phase3-oracle-backend-name",
+            "ibm_marrakesh",
+            "--phase3-oracle-raw-store-memory",
+            "--phase3-oracle-raw-artifact-path",
+            str(tmp_path / "phase3.ndjson.gz"),
+        ]
+    )
+    cfg = resolve_staged_hh_config(args)
+    stage_result = wf.run_stage_pipeline(cfg)
+    stage_summary = wf._stage_summary(stage_result, cfg)
+    adapt_kwargs = calls["adapt_kwargs"]
+    oracle_cfg = adapt_kwargs["phase3_oracle_gradient_config"]
+    adapt_stage = stage_summary["adapt_vqe"]
+
+    assert oracle_cfg is not None
+    assert str(oracle_cfg.execution_surface) == "raw_measurement_v1"
+    assert bool(oracle_cfg.raw_store_memory) is True
+    assert str(oracle_cfg.raw_artifact_path) == str(tmp_path / "phase3.ndjson.gz")
+    assert adapt_stage["gradient_uncertainty_source"] == "oracle_fd_stderr_v1"
+    assert adapt_stage["oracle_gradient_scope"] == "selection_only"
+    assert adapt_stage["oracle_execution_surface"] == "raw_measurement_v1"
+    assert adapt_stage["oracle_raw_transport"] == "sampler_v2"
+    assert adapt_stage["oracle_gradient_raw_records_total"] == 8
+    assert adapt_stage["oracle_gradient_raw_artifact_path"] == str(tmp_path / "phase3.ndjson.gz")
+    assert adapt_stage["reoptimization_backend"] == "exact_statevector"
+    assert adapt_stage["oracle_gradient_config"]["raw_store_memory"] is True
 
 
 def test_run_staged_hh_noiseless_adds_checkpoint_controller_block_when_enabled(

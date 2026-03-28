@@ -21,8 +21,9 @@ from pipelines.hardcoded.hh_staged_workflow import (
 def build_parser() -> argparse.ArgumentParser:
     return build_staged_hh_parser(
         description=(
-            "Staged HH noiseless workflow: HF -> hh_hva_ptw warm-start -> staged ADAPT -> "
-            "matched-family conventional replay -> Suzuki/CFQM vs exact."
+            "Historical/compatibility staged HH noiseless workflow: HF -> hh_hva_ptw warm-start -> staged ADAPT -> "
+            "matched-family conventional replay -> Suzuki/CFQM vs exact. "
+            "Kept for VQE->ADAPT->VQE reproduction; new HH default work should use pipelines/hardcoded/adapt_pipeline.py with direct phase3_v1 continuation."
         )
     )
 

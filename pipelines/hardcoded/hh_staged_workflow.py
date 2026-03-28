@@ -42,6 +42,7 @@ from pipelines.hardcoded.hh_pareto_tracking import (
 from pipelines.hardcoded import hh_vqe_from_adapt_family as replay_mod
 from pipelines.hardcoded import hubbard_pipeline as hc_pipeline
 from pipelines.hardcoded.hh_realtime_checkpoint_controller import (
+    ControllerDriveConfig,
     RealtimeCheckpointController,
 )
 from pipelines.hardcoded.hh_realtime_checkpoint_types import (
@@ -154,6 +155,7 @@ class AdaptConfig:
     phase3_enable_rescue: bool
     phase3_lifetime_cost_mode: str
     phase3_runtime_split_mode: str
+    phase3_oracle_gradient_config: adapt_mod.Phase3OracleGradientConfig | None
 
 
 @dataclass(frozen=True)
@@ -685,6 +687,56 @@ def resolve_staged_hh_config(args: Any) -> StagedHHConfig:
         spsa_eval_agg=str(getattr(args, "vqe_spsa_eval_agg")),
     )
     adapt_mode = str(getattr(args, "adapt_continuation_mode"))
+    phase3_oracle_gradient_config: adapt_mod.Phase3OracleGradientConfig | None = None
+    phase3_oracle_gradient_mode_key = str(getattr(args, "phase3_oracle_gradient_mode", "off")).strip().lower()
+    if phase3_oracle_gradient_mode_key != "off":
+        phase3_oracle_gradient_config = adapt_mod._resolve_phase3_oracle_gradient_config(
+            adapt_mod.Phase3OracleGradientConfig(
+                noise_mode=str(phase3_oracle_gradient_mode_key),
+                shots=int(getattr(args, "phase3_oracle_shots")),
+                oracle_repeats=int(getattr(args, "phase3_oracle_repeats")),
+                oracle_aggregate=str(getattr(args, "phase3_oracle_aggregate")),
+                backend_name=(
+                    None
+                    if getattr(args, "phase3_oracle_backend_name", None) in {None, ""}
+                    else str(getattr(args, "phase3_oracle_backend_name"))
+                ),
+                use_fake_backend=bool(getattr(args, "phase3_oracle_use_fake_backend")),
+                seed=int(getattr(args, "phase3_oracle_seed")),
+                gradient_step=(
+                    float(getattr(args, "phase3_oracle_gradient_step"))
+                    if getattr(args, "phase3_oracle_gradient_step", None) is not None
+                    else float(getattr(args, "adapt_finite_angle"))
+                ),
+                mitigation_mode=str(getattr(args, "phase3_oracle_mitigation")),
+                local_readout_strategy=(
+                    None
+                    if getattr(args, "phase3_oracle_local_readout_strategy", None) in {None, ""}
+                    else str(getattr(args, "phase3_oracle_local_readout_strategy"))
+                ),
+                execution_surface_requested=str(getattr(args, "phase3_oracle_execution_surface")),
+                raw_transport=str(getattr(args, "phase3_oracle_raw_transport")),
+                raw_store_memory=bool(getattr(args, "phase3_oracle_raw_store_memory")),
+                raw_artifact_path=(
+                    None
+                    if getattr(args, "phase3_oracle_raw_artifact_path", None) in {None, ""}
+                    else str(getattr(args, "phase3_oracle_raw_artifact_path"))
+                ),
+                seed_transpiler=(
+                    None
+                    if getattr(args, "phase3_oracle_seed_transpiler", None) is None
+                    else int(getattr(args, "phase3_oracle_seed_transpiler"))
+                ),
+                transpile_optimization_level=int(
+                    getattr(args, "phase3_oracle_transpile_optimization_level")
+                ),
+            )
+        )
+        adapt_mod._validate_phase3_oracle_gradient_config(
+            config=phase3_oracle_gradient_config,
+            problem="hh",
+            continuation_mode=str(adapt_mode),
+        )
     adapt = AdaptConfig(
         pool=(None if getattr(args, "adapt_pool", None) in {None, "", "none"} else str(getattr(args, "adapt_pool"))),
         continuation_mode=adapt_mode,
@@ -739,6 +791,7 @@ def resolve_staged_hh_config(args: Any) -> StagedHHConfig:
         phase3_enable_rescue=bool(getattr(args, "phase3_enable_rescue")),
         phase3_lifetime_cost_mode=str(getattr(args, "phase3_lifetime_cost_mode")),
         phase3_runtime_split_mode=str(getattr(args, "phase3_runtime_split_mode")),
+        phase3_oracle_gradient_config=phase3_oracle_gradient_config,
     )
     replay_mode_raw = getattr(args, "replay_continuation_mode", None)
     replay_mode = adapt_mode if replay_mode_raw in {None, "", "auto"} else str(replay_mode_raw)
@@ -1169,6 +1222,7 @@ def run_stage_pipeline(cfg: StagedHHConfig) -> StageExecutionResult:
         phase3_enable_rescue=bool(cfg.adapt.phase3_enable_rescue),
         phase3_lifetime_cost_mode=str(cfg.adapt.phase3_lifetime_cost_mode),
         phase3_runtime_split_mode=str(cfg.adapt.phase3_runtime_split_mode),
+        phase3_oracle_gradient_config=cfg.adapt.phase3_oracle_gradient_config,
     )
 
     _write_adapt_handoff(
@@ -1252,6 +1306,33 @@ def _build_drive_provider(
         "drive_label_count": int(len(drive_labels)),
     }
     return drive.coeff_map_exyz, meta, ordered, profile
+
+
+def _controller_drive_config_from_cfg(cfg: StagedHHConfig) -> ControllerDriveConfig | None:
+    if not bool(cfg.dynamics.enable_drive):
+        return None
+    custom_weights = None
+    if str(cfg.dynamics.drive_pattern) == "custom":
+        custom_weights = _parse_drive_custom_weights(cfg.dynamics.drive_custom_s)
+        if custom_weights is None:
+            raise ValueError("--drive-custom-s is required when --drive-pattern custom.")
+    return ControllerDriveConfig(
+        enabled=True,
+        n_sites=int(cfg.physics.L),
+        ordering=str(cfg.physics.ordering),
+        drive_A=float(cfg.dynamics.drive_A),
+        drive_omega=float(cfg.dynamics.drive_omega),
+        drive_tbar=float(cfg.dynamics.drive_tbar),
+        drive_phi=float(cfg.dynamics.drive_phi),
+        drive_pattern=str(cfg.dynamics.drive_pattern),
+        drive_custom_weights=(
+            None if custom_weights is None else tuple(float(x) for x in custom_weights)
+        ),
+        drive_include_identity=bool(cfg.dynamics.drive_include_identity),
+        drive_time_sampling=str(cfg.dynamics.drive_time_sampling),
+        drive_t0=float(cfg.dynamics.drive_t0),
+        exact_steps_multiplier=int(cfg.dynamics.exact_steps_multiplier),
+    )
 
 
 def _run_noiseless_profile(
@@ -1398,9 +1479,10 @@ def _prepare_adaptive_realtime_checkpoint_inputs(
     stage_result: StageExecutionResult,
     cfg: StagedHHConfig,
 ) -> tuple[Any, Any, Sequence[float]] | None:
-    if str(cfg.realtime_checkpoint.mode) == "off":
+    mode = str(cfg.realtime_checkpoint.mode)
+    if mode == "off":
         return None
-    if bool(cfg.dynamics.enable_drive):
+    if bool(cfg.dynamics.enable_drive) and mode != "oracle_v1":
         raise ValueError(
             "checkpoint controller exact_v1 currently supports only static Hamiltonians; disable --enable-drive."
         )
@@ -1523,6 +1605,55 @@ def _stage_summary(stage_result: StageExecutionResult, cfg: StagedHHConfig) -> d
             ),
             "compile_cost_proxy_summary": (
                 dict(adapt_compile) if isinstance(adapt_compile, Mapping) else None
+            ),
+            "gradient_uncertainty_source": (
+                str(adapt_continuation.get("gradient_uncertainty_source", "zero_default"))
+                if isinstance(adapt_continuation, Mapping)
+                else "zero_default"
+            ),
+            "oracle_gradient_scope": (
+                str(adapt_continuation.get("oracle_gradient_scope", "off"))
+                if isinstance(adapt_continuation, Mapping)
+                else "off"
+            ),
+            "oracle_gradient_config": (
+                dict(adapt_continuation.get("oracle_gradient_config", {}))
+                if isinstance(adapt_continuation, Mapping)
+                and isinstance(adapt_continuation.get("oracle_gradient_config"), Mapping)
+                else None
+            ),
+            "oracle_execution_surface": (
+                str(adapt_continuation.get("oracle_execution_surface", "off"))
+                if isinstance(adapt_continuation, Mapping)
+                else "off"
+            ),
+            "oracle_backend_info": (
+                dict(adapt_continuation.get("oracle_backend_info", {}))
+                if isinstance(adapt_continuation, Mapping)
+                and isinstance(adapt_continuation.get("oracle_backend_info"), Mapping)
+                else None
+            ),
+            "oracle_raw_transport": (
+                None
+                if not isinstance(adapt_continuation, Mapping)
+                or adapt_continuation.get("oracle_raw_transport") in {None, ""}
+                else str(adapt_continuation.get("oracle_raw_transport"))
+            ),
+            "oracle_gradient_raw_records_total": (
+                int(adapt_continuation.get("oracle_gradient_raw_records_total", 0))
+                if isinstance(adapt_continuation, Mapping)
+                else 0
+            ),
+            "oracle_gradient_raw_artifact_path": (
+                None
+                if not isinstance(adapt_continuation, Mapping)
+                or adapt_continuation.get("oracle_gradient_raw_artifact_path") in {None, ""}
+                else str(adapt_continuation.get("oracle_gradient_raw_artifact_path"))
+            ),
+            "reoptimization_backend": (
+                str(adapt_continuation.get("reoptimization_backend", "exact_statevector"))
+                if isinstance(adapt_continuation, Mapping)
+                else "exact_statevector"
             ),
             "runtime_split_summary": (
                 dict(adapt_continuation.get("runtime_split_summary", {}))
@@ -1811,6 +1942,10 @@ def run_staged_hh_noiseless(cfg: StagedHHConfig, *, run_command: str | None = No
     if str(cfg.realtime_checkpoint.mode) == "oracle_v1":
         raise ValueError(
             "checkpoint controller oracle_v1 is only available through the staged noise workflow; use pipelines/hardcoded/hh_staged_noise.py."
+        )
+    if cfg.adapt.phase3_oracle_gradient_config is not None:
+        raise ValueError(
+            "phase3 oracle-gradient staged runs are only available through the staged noise workflow; use pipelines/hardcoded/hh_staged_noise.py."
         )
     stage_result = run_stage_pipeline(cfg)
     if str(cfg.realtime_checkpoint.mode) != "off":

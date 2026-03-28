@@ -55,6 +55,10 @@ def add_staged_hh_base_args(p: argparse.ArgumentParser) -> argparse.ArgumentPars
         "--adapt-continuation-mode",
         choices=["legacy", "phase1_v1", "phase2_v1", "phase3_v1"],
         default="phase1_v1",
+        help=(
+            "Historical staged-wrapper continuation mode. The staged VQE->ADAPT->VQE wrappers keep phase1_v1 as their compatibility default; "
+            "use pipelines/hardcoded/adapt_pipeline.py for the canonical direct HH phase3_v1 path."
+        ),
     )
     p.add_argument("--adapt-max-depth", type=int, default=None)
     p.add_argument("--adapt-maxiter", type=int, default=None)
@@ -134,6 +138,59 @@ def add_staged_hh_base_args(p: argparse.ArgumentParser) -> argparse.ArgumentPars
         default="off",
         help="Opt-in shortlist-only macro splitting via serialized Pauli child atoms with symmetry-safe child-set admission.",
     )
+    p.add_argument(
+        "--phase3-oracle-gradient-mode",
+        choices=["off", "ideal", "shots", "aer_noise", "backend_scheduled", "runtime"],
+        default="off",
+        help=(
+            "Opt-in direct HH phase3_v1 oracle-gradient scouting for the staged workflow. "
+            "Inner re-optimization stays exact in v1."
+        ),
+    )
+    p.add_argument("--phase3-oracle-shots", type=int, default=2048)
+    p.add_argument("--phase3-oracle-repeats", type=int, default=1)
+    p.add_argument("--phase3-oracle-aggregate", choices=["mean"], default="mean")
+    p.add_argument("--phase3-oracle-backend-name", type=str, default=None)
+    p.add_argument("--phase3-oracle-use-fake-backend", action="store_true")
+    p.add_argument("--phase3-oracle-seed", type=int, default=7)
+    p.add_argument(
+        "--phase3-oracle-gradient-step",
+        type=float,
+        default=None,
+        help="Finite-difference step for phase3 oracle scouting. Defaults to --adapt-finite-angle when omitted.",
+    )
+    p.add_argument(
+        "--phase3-oracle-mitigation",
+        choices=["none", "readout"],
+        default="none",
+    )
+    p.add_argument(
+        "--phase3-oracle-local-readout-strategy",
+        choices=["mthree"],
+        default=None,
+    )
+    p.add_argument(
+        "--phase3-oracle-execution-surface",
+        choices=["auto", "expectation_v1", "raw_measurement_v1"],
+        default="auto",
+        help=(
+            "Execution surface for staged phase3 oracle scouting. "
+            "'auto' selects raw-shot only for runtime with mitigation=none."
+        ),
+    )
+    p.add_argument(
+        "--phase3-oracle-raw-transport",
+        choices=["auto", "sampler_v2"],
+        default="auto",
+        help=(
+            "Raw transport preference when phase3 oracle execution resolves to raw_measurement_v1 "
+            "on the runtime sampler path."
+        ),
+    )
+    p.add_argument("--phase3-oracle-raw-store-memory", action="store_true")
+    p.add_argument("--phase3-oracle-raw-artifact-path", type=str, default=None)
+    p.add_argument("--phase3-oracle-seed-transpiler", type=int, default=None)
+    p.add_argument("--phase3-oracle-transpile-optimization-level", type=int, default=1)
 
     # Final matched-family replay
     p.add_argument("--final-reps", type=int, default=None)
@@ -156,6 +213,9 @@ def add_staged_hh_base_args(p: argparse.ArgumentParser) -> argparse.ArgumentPars
         "--replay-continuation-mode",
         choices=["auto", "legacy", "phase1_v1", "phase2_v1", "phase3_v1"],
         default="auto",
+        help=(
+            "Historical staged replay continuation mode. 'auto' inherits the staged ADAPT mode, so the staged wrappers keep their phase1_v1 compatibility behavior unless explicitly overridden."
+        ),
     )
     p.add_argument("--replay-wallclock-cap-s", type=int, default=43200)
     p.add_argument("--replay-freeze-fraction", type=float, default=0.2)
@@ -276,8 +336,8 @@ def add_staged_hh_noise_args(p: argparse.ArgumentParser) -> argparse.ArgumentPar
         help=(
             "Fake/runtime backend name. Imported lean routes default to FakeGuadalupeV2; "
             "fixed-scaffold local noisy replay defaults to FakeMarrakesh; fixed-scaffold Nighthawk compile-control "
-            "and attribution routes still default to FakeNighthawk when omitted, except compile-control scouts "
-            "which require an explicit backend name."
+            "and attribution routes still default to FakeNighthawk when omitted; fixed-scaffold compile-control scouts "
+            "now stay pinned to an explicit local fake backend so requested-vs-observed transpile settings stay auditable."
         ),
     )
     p.add_argument("--use-fake-backend", action="store_true")
@@ -347,9 +407,10 @@ def add_staged_hh_noise_args(p: argparse.ArgumentParser) -> argparse.ArgumentPar
         action="store_true",
         help=(
             "Enable imported fixed-scaffold energy-only local compile-control scouting. "
-            "Defaults to the exported Nighthawk gate-pruned 7-term scaffold when no import JSON is given, "
+            "Defaults to the exported Marrakesh/Heron gate-pruned 6-term runtime candidate when no import JSON is given, "
             "keeps the locked imported circuit fixed, evaluates only the Hamiltonian energy, and compares a small "
-            "transpile seed / optimization-level grid under backend_scheduled + readout/mthree. "
+            "transpile seed / optimization-level grid under backend_scheduled + readout/mthree while recording "
+            "requested-vs-observed compile metadata for each candidate. "
             "Requires an explicit --backend-name so the scout stays pinned to the intended local fake backend."
         ),
     )
@@ -374,6 +435,36 @@ def add_staged_hh_noise_args(p: argparse.ArgumentParser) -> argparse.ArgumentPar
         ),
     )
     p.add_argument(
+        "--include-fixed-scaffold-runtime-raw-baseline",
+        action="store_true",
+        help=(
+            "Enable imported fixed-scaffold raw-shot baseline. Defaults to the Marrakesh/Heron gate-pruned 6-term "
+            "runtime candidate when no import JSON is given. On the real Runtime path it uses the sampler-backed raw "
+            "measurement surface; on the local fake-backend path it keeps acquisition mitigation/symmetry off and "
+            "supports offline diagonal-only readout-then-symmetry postprocessing from the all-Z diagnostic sidecar."
+        ),
+    )
+    p.add_argument(
+        "--fixed-scaffold-runtime-raw-transport",
+        choices=["auto", "sampler_v2"],
+        default="auto",
+        help=(
+            "Raw transport preference for the imported fixed-scaffold raw-shot baseline. 'auto' keeps the public "
+            "contract portable: sampler_v2 on the real Runtime path and the local backend-run style path on fake backends."
+        ),
+    )
+    p.add_argument(
+        "--fixed-scaffold-runtime-raw-store-memory",
+        action="store_true",
+        help="Keep fixed-scaffold Runtime raw-shot measurement records in memory during reduction.",
+    )
+    p.add_argument(
+        "--fixed-scaffold-runtime-raw-artifact-path",
+        type=str,
+        default=None,
+        help="Optional NDJSON(.gz) path for imported fixed-scaffold Runtime raw-shot records.",
+    )
+    p.add_argument(
         "--fixed-scaffold-runtime-profile",
         choices=[
             "legacy_runtime_v0",
@@ -394,13 +485,19 @@ def add_staged_hh_noise_args(p: argparse.ArgumentParser) -> argparse.ArgumentPar
         "--fixed-scaffold-runtime-transpile-optimization-level",
         type=int,
         default=1,
-        help="Transpile optimization level for imported fixed-scaffold real-runtime routes.",
+        help=(
+            "Transpile optimization level for imported fixed-scaffold runtime/raw-baseline routes. "
+            "Also seeds the fixed-scaffold compile-control scout baseline and imported full-circuit audit compile request metadata."
+        ),
     )
     p.add_argument(
         "--fixed-scaffold-runtime-seed-transpiler",
         type=int,
         default=0,
-        help="Transpile seed for imported fixed-scaffold real-runtime routes.",
+        help=(
+            "Transpile seed for imported fixed-scaffold runtime/raw-baseline routes. "
+            "Also seeds the fixed-scaffold compile-control scout baseline and imported full-circuit audit compile request metadata."
+        ),
     )
     p.add_argument(
         "--include-fixed-scaffold-runtime-dd-probe",

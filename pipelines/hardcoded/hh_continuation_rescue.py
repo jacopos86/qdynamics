@@ -18,6 +18,29 @@ class RescueConfig:
     min_overlap_gain: float = 1e-7
 
 
+def _cheap_score_value(rec: Mapping[str, Any]) -> float:
+    raw = rec.get("cheap_score", rec.get("simple_score", float("-inf")))
+    if raw is None:
+        raw = rec.get("simple_score", float("-inf"))
+    return float(raw)
+
+
+def _full_or_cheap_score_value(rec: Mapping[str, Any]) -> float:
+    raw = rec.get("full_v2_score", None)
+    if raw is None:
+        return _cheap_score_value(rec)
+    return float(raw)
+
+
+def _legacy_simple_tie_value(rec: Mapping[str, Any]) -> float:
+    if str(rec.get("cheap_score_version", "")) == "phase3_cheap_ratio_v1":
+        return 0.0
+    raw = rec.get("simple_score", float("-inf"))
+    if raw is None:
+        raw = float("-inf")
+    return float(raw)
+
+
 def should_trigger_rescue(
     *,
     enabled: bool,
@@ -42,8 +65,8 @@ def should_trigger_rescue(
         return False, "drop_not_flat"
     if len(shortlist_records) < 2:
         return False, "shortlist_too_small"
-    top = float(shortlist_records[0].get("full_v2_score", shortlist_records[0].get("simple_score", 0.0)))
-    second = float(shortlist_records[1].get("full_v2_score", shortlist_records[1].get("simple_score", 0.0)))
+    top = _full_or_cheap_score_value(shortlist_records[0])
+    second = _full_or_cheap_score_value(shortlist_records[1])
     if top <= 0.0:
         return False, "nonpositive_shortlist"
     if second < float(cfg.shortlist_flat_ratio) * top:
@@ -70,8 +93,9 @@ def rank_rescue_candidates(
         ranked,
         key=lambda rec: (
             -float(rec.get("overlap_gain", 0.0)),
-            -float(rec.get("full_v2_score", rec.get("simple_score", float("-inf")))),
-            -float(rec.get("simple_score", float("-inf"))),
+            -_full_or_cheap_score_value(rec),
+            -_cheap_score_value(rec),
+            -_legacy_simple_tie_value(rec),
             int(rec.get("candidate_pool_index", -1)),
             int(rec.get("position_id", -1)),
         ),

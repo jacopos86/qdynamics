@@ -15,13 +15,95 @@ Editing contract:
 
 **Target QPU:** `ibm_marrakesh` (Heron r2, CZ-native, heavy-hex 156q).
 
-**Current state:** Gate-pruned 7-term ADAPT-VQE ansatz with per_pauli_term parameterization. Noisy validation on FakeNighthawk complete. Marrakesh compilation and Pareto pruning complete. Fixed-theta Marrakesh QPU run attempted (poor result — needs noisy re-optimization on Marrakesh noise model).
+**Current state:** This guide still contains the detailed 20260323 Marrakesh 7-term lane, but the checkout now also has newer fixed-manifold / realtime sweep surfaces (20260325-20260326) plus the canonical direct HH `phase3_v1` ADAPT path.
 
 ---
 
-## 1. Active QPU Pipeline (Marrakesh)
+## 0. Current surface map (2026-03-26)
 
-This is the primary workflow. Each step has a concrete artifact and script.
+Use this section first. Sections 1-6 remain the narrow Marrakesh 7-term line; they are not the whole active run surface.
+
+| Intent | Preferred entrypoint | Invocation note | Scope |
+|--------|-----------------------|-----------------|-------|
+| canonical direct HH ADAPT | `pipelines/hardcoded/adapt_pipeline.py` | direct CLI; HH omission defaults to `phase3_v1` | current default |
+| staged HH compatibility workflow | `pipelines/hardcoded/hh_staged_noiseless.py` | historical wrapper | compatibility |
+| staged HH noisy/import-side follow-ons | `pipelines/hardcoded/hh_staged_noise.py` | local noisy extension and imported fixed-scaffold routes | current |
+| HH noise validation / parity | `pipelines/exact_bench/hh_noise_hardware_validation.py` | structured JSON/PDF validator | current |
+| HH exact cross-check matrix | `pipelines/exact_bench/cross_check_suite.py` | current CLI only; older seed-surface flags are absent here | current |
+| fixed-manifold exact compare | `python -m pipelines.hardcoded.hh_fixed_manifold_mclachlan` | use `-m` | current saved-artifact exact compare |
+| fixed-manifold measured/oracle run | `python -m pipelines.hardcoded.hh_fixed_manifold_measured --manifold locked_7term --enable-drive --drive-A 0.6 --exact-steps-multiplier 2` | use `-m`; currently `noise_mode=ideal` only | current |
+| L=2 static realtime sweep | `python -m pipelines.hardcoded.hh_l2_static_realtime_pareto_sweep` | use `-m`; writes `summary.json` + `progress.json` | current L=2-only |
+| L=2 driven realtime sweep | `python -m pipelines.hardcoded.hh_l2_driven_realtime_pareto_sweep` | use `-m`; writes `summary.json` + `progress.json` + PNG | current L=2-only |
+| literal legacy shorthand | `bash pipelines/shell/run_drive_accurate.sh --L <L>` | legacy helper; script gate is `1e-7`, not AGENTS `1e-4` | legacy |
+
+Quick commands:
+
+```bash
+# Canonical direct HH ADAPT
+python pipelines/hardcoded/adapt_pipeline.py \
+  --L 2 --problem hh --omega0 1.0 --g-ep 0.5 --n-ph-max 1 \
+  --adapt-max-depth 30 --adapt-eps-grad 1e-5 --adapt-maxiter 800 \
+  --initial-state-source adapt_vqe --skip-pdf \
+  --output-json artifacts/json/adapt_hh_L2_phase3_v1.json
+
+# Current fixed-manifold exact compare
+python -m pipelines.hardcoded.hh_fixed_manifold_mclachlan
+
+# Current fixed-manifold measured/driven run
+python -m pipelines.hardcoded.hh_fixed_manifold_measured \
+  --manifold locked_7term --enable-drive \
+  --drive-A 0.6 --exact-steps-multiplier 2
+
+# Current driven L=2 realtime sweep
+python -m pipelines.hardcoded.hh_l2_driven_realtime_pareto_sweep
+```
+
+Notes:
+- Use `python -m` for the newer fixed-manifold / realtime sweep modules; direct file-path invocation can fail on imports.
+- `hh_fixed_manifold_measured.py` currently supports only `noise_mode=ideal`, `oracle_repeats=1`, and mean aggregation.
+- `hh_l2_static_realtime_pareto_sweep.py` and `hh_l2_driven_realtime_pareto_sweep.py` are saved-artifact `L=2` workflows, not generic `run L` wrappers.
+- `run_drive_accurate.sh` remains a legacy shorthand helper with a stricter `1e-7` gate than the AGENTS/README shorthand target.
+
+---
+
+## 0a. Agent run/report contract
+
+| Field | Contract |
+| --- | --- |
+| Objective | short scientific / mathematical / physical sub-problem that could improve the real-QPU `ΔE / K` Pareto front |
+| Execution mode | keep separate from objective; use `fresh_run`, `reuse_artifact`, `compare_artifacts`, or `promote_candidate` |
+| Default emphasis | HH, `L=2`, driven dynamics, QPU-preparatory; this is an agent planning priority, not a universal CLI default |
+| Verification style | soft expectations / sanity targets by default; preserve explicit hard gates when the user or the chosen repo surface defines them |
+| Logging | the agent wrapper should write `artifacts/agent_runs/<tag>/logs/command.sh`, `stdout.log`, `stderr.log`, and `progress.json` when supported; native CLI outputs still vary by surface |
+| Execute behavior | if the user says `execute`, run without an extra **repo-level** confirmation unless a real runtime/policy choice remains unresolved; still obey host sandbox/approval policy |
+| Auto-report | agent post-processing convention: after a run, first give a short in-chat report that retells the objective and result; only write/update markdown or PDF report files when report output is in scope or the user explicitly asks |
+| Style | in RepoPrompt agent mode, default to three compact lines with no blank lines: `Objective<...>`, `Why/Intent<...>`, `Suggested Next step/how this fits into broader picture<...>`; each line should be 1-3 sentences max and logic/math/physics-first |
+
+## 0b. Skill-aware agent routing
+
+When the relevant skills are available in the agent environment:
+
+- Use `hh-experiment` for **run choice, run planning, or execution**.
+- Use `hh-reporting` for **artifact interpretation, comparison, or report generation**.
+- When report output is in scope and the user has not narrowed the task to execution-only, the default agent convention after a completed run is:
+  1. execute through the run path
+  2. collect logs + structured artifacts
+  3. hand off immediately to the reporting path for a short objective-aware retell
+
+Clarifications:
+
+- These skills do **not** replace the repo run surfaces listed in Section 0.
+- `hh-experiment` is the wrapper for choosing/planning/executing those surfaces.
+- `hh-reporting` is the wrapper for artifact interpretation, report generation, and post-run summary updates.
+- These skills do **not** outrank repo policy. Authority remains `AGENTS.md` -> `pipelines/run_guide.md` -> `README.md`.
+- If a skill expectation and current code/CLI behavior diverge in a way that affects the run/report choice, stop and ask the user before proceeding.
+- The reporting path should default to the compact three-line agent-mode format: `Objective<...>`, `Why/Intent<...>`, `Suggested Next step/how this fits into broader picture<...>`, with no blank lines and 1-3 sentences max per line. Persistent markdown/PDF report files are optional and should only be written when requested or already in scope.
+
+---
+
+## 1. 20260323 Marrakesh 7-term QPU lane
+
+This is a specific historical/narrow workflow. Each step has a concrete artifact and script.
 
 ### 1.1 Pipeline overview
 
@@ -428,28 +510,46 @@ exyz register order: [phonon1, phonon0, dn1, dn0, up1, up0]
 
 ---
 
-## 7. Staged Noiseless Workflow
+## 7. Canonical direct HH ADAPT path and historical staged wrapper
 
-For agents that need to re-run the full noiseless pipeline:
-
-```bash
-# One-shot staged: HF → warm-start → ADAPT
-python -m pipelines.hardcoded.hh_staged_noiseless --L 2
-
-# With replay:
-python -m pipelines.hardcoded.hh_staged_noiseless --L 2 --run-replay
-```
-
-Key CLI for the ADAPT pipeline directly:
+For new HH ADAPT work, use the direct ADAPT pipeline. On the direct CLI, omitting `--adapt-continuation-mode` now defaults to `phase3_v1`, which is the canonical current HH path.
 
 ```bash
 python -m pipelines.hardcoded.adapt_pipeline \
   --L 2 --problem hh --omega0 1.0 --g-ep 0.5 --n-ph-max 1 \
-  --adapt-pool paop_lf_full --adapt-continuation-mode phase3_v1 \
   --adapt-max-depth 30 --adapt-eps-grad 1e-5 --adapt-maxiter 800 \
   --initial-state-source adapt_vqe --skip-pdf \
   --output-json artifacts/json/adapt_hh_L2.json
 ```
+
+True local noisy `phase3_v1` continuation (selection/scoring under oracle-backed local noise; reoptimization stays exact in v1):
+
+```bash
+python -m pipelines.hardcoded.adapt_pipeline \
+  --L 2 --problem hh --boundary open --omega0 1.0 --g-ep 0.5 --n-ph-max 1 \
+  --adapt-max-depth 30 --adapt-eps-grad 1e-5 --adapt-maxiter 800 \
+  --adapt-continuation-mode phase3_v1 \
+  --phase1-score-z-alpha 1.0 \
+  --adapt-no-finite-angle-fallback --phase1-no-prune \
+  --phase3-oracle-gradient-mode backend_scheduled \
+  --phase3-oracle-use-fake-backend \
+  --phase3-oracle-backend-name FakeNighthawk \
+  --phase3-oracle-shots 2048 \
+  --phase3-oracle-repeats 8 \
+  --phase3-oracle-mitigation readout \
+  --phase3-oracle-local-readout-strategy mthree \
+  --initial-state-source adapt_vqe --skip-pdf \
+  --output-json artifacts/json/hh_phase3_v1_local_noisy_backend_scheduled.json
+```
+
+Historical/compatibility staged wrapper:
+
+```bash
+# Historical staged: HF -> warm-start -> ADAPT -> matched-family replay
+python -m pipelines.hardcoded.hh_staged_noiseless --L 2
+```
+
+The staged wrapper already performs replay and keeps `phase1_v1` as its compatibility default through `--replay-continuation-mode auto`; use explicit staged flags only when reproducing older VQE->ADAPT->VQE behavior. Fresh-stage `hh_staged_noise` remains a noiseless ADAPT stage plus noisy follow-on profiles; it is not the true noisy direct `phase3_v1` continuation path above.
 
 ---
 
@@ -524,13 +624,13 @@ The 5-op family is **not** faithfully executable through the current import/repl
 
 | Flag | Type | Default | Description |
 |------|------|---------|-------------|
-| `--adapt-pool` | choice | `uccsd` | Pool type (HH: `paop_lf_full`, `full_meta`, etc.) |
+| `--adapt-pool` | choice | runtime-resolved | Pool type. Direct CLI resolves `hubbard->uccsd`; HH `phase3_v1` resolves to the narrow core + residual `full_meta`; HH `legacy` keeps the broad `full_meta` compatibility path. |
 | `--adapt-max-depth` | int | 20 | Max ADAPT iterations |
 | `--adapt-eps-grad` | float | 1e-4 | Gradient convergence |
-| `--adapt-eps-energy` | float | 1e-8 | Energy convergence |
+| `--adapt-eps-energy` | float | 1e-8 | Energy convergence guard for Hubbard / HH legacy; telemetry-only in HH `phase1_v1`, `phase2_v1`, and `phase3_v1` |
 | `--adapt-inner-optimizer` | choice | `SPSA` | `COBYLA` or `SPSA` |
 | `--adapt-reopt-policy` | choice | `append_only` | `append_only`, `full`, `windowed` |
-| `--adapt-continuation-mode` | choice | — | `legacy`, `phase1_v1`, `phase2_v1`, `phase3_v1` |
+| `--adapt-continuation-mode` | choice | `phase3_v1` (direct CLI) | Direct ADAPT default is `phase3_v1`; `legacy`, `phase1_v1`, and `phase2_v1` are historical/compatibility modes. Staged wrappers keep `phase1_v1` as their compatibility default. |
 | `--adapt-maxiter` | int | 300 | Inner optimizer maxiter |
 | `--adapt-seed` | int | 7 | RNG seed |
 

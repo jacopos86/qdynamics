@@ -84,6 +84,9 @@ def test_imported_full_circuit_audit_reports_ansatz_input_metadata_on_success(
     )
 
     def _fake_core(**kwargs):
+        assert kwargs["seed_transpiler"] == 5
+        assert kwargs["transpile_optimization_level"] == 2
+        assert kwargs["compile_request_source"] == "fixed_scaffold_runtime_transpile_cli"
         return {
             "success": True,
             "final_observables": {
@@ -94,6 +97,29 @@ def test_imported_full_circuit_audit_reports_ansatz_input_metadata_on_success(
                 }
             },
             "audit_source": dict(kwargs.get("audit_source", {})),
+            "compile_control": {
+                "backend_name": None,
+                "seed_transpiler": 5,
+                "transpile_optimization_level": 2,
+                "source": "fixed_scaffold_runtime_transpile_cli",
+            },
+            "compile_observation": {
+                "available": True,
+                "requested": {
+                    "backend_name": None,
+                    "seed_transpiler": 5,
+                    "transpile_optimization_level": 2,
+                    "source": "fixed_scaffold_runtime_transpile_cli",
+                },
+                "observed": {
+                    "backend_name": None,
+                    "seed_transpiler": 5,
+                    "transpile_optimization_level": 2,
+                },
+                "matches_requested": True,
+                "mismatch_fields": [],
+                "reason": None,
+            },
         }
 
     monkeypatch.setattr(report, "_run_static_observable_audit_core", _fake_core)
@@ -111,6 +137,9 @@ def test_imported_full_circuit_audit_reports_ansatz_input_metadata_on_success(
         use_fake_backend=False,
         allow_aer_fallback=True,
         omp_shm_workaround=True,
+        seed_transpiler=5,
+        transpile_optimization_level=2,
+        compile_request_source="fixed_scaffold_runtime_transpile_cli",
     )
 
     assert payload["success"] is True
@@ -119,3 +148,5 @@ def test_imported_full_circuit_audit_reports_ansatz_input_metadata_on_success(
     assert payload["audit_source"]["ansatz_input_state_kind"] == "prepared_state"
     assert payload["full_circuit_reference"]["saved_artifact_energy"] == pytest.approx(0.1)
     assert payload["full_circuit_reference"]["ideal_circuit_energy"] == pytest.approx(0.125)
+    assert payload["compile_control"]["seed_transpiler"] == 5
+    assert payload["compile_observation"]["matches_requested"] is True

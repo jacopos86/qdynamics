@@ -273,3 +273,13 @@ def test_rebuild_polynomial_from_serialized_terms_preserves_serialized_order() -
         ]
     )
     assert [term.pw2strng() for term in poly.return_polynomial()] == ["eyezee", "eyeeez"]
+
+
+def test_rebuild_polynomial_from_serialized_terms_respects_custom_drop_tolerance() -> None:
+    poly = rebuild_polynomial_from_serialized_terms(
+        [
+            {"pauli_exyz": "eyezee", "coeff_re": 1.0e-8, "coeff_im": 0.0, "nq": 6},
+        ],
+        drop_abs_tol=1.0e-12,
+    )
+    assert [term.pw2strng() for term in poly.return_polynomial()] == ["eyezee"]

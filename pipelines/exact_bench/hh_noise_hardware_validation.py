@@ -86,6 +86,7 @@ from pipelines.exact_bench.noise_oracle_runtime import (
     normalize_mitigation_config,
     normalize_symmetry_mitigation_config,
 )
+from pipelines.hardcoded.adapt_pipeline import _oracle_fd_gradient_stderr
 
 
 def _ai_log(event: str, **fields: Any) -> None:
@@ -595,6 +596,17 @@ def _run_noisy_adapt(
     history: list[dict[str, Any]] = []
     nfev_total = 0
     stop_reason = "max_depth"
+    phase1_score_z_alpha_used = 0.0
+    gradient_uncertainty_source = "oracle_fd_stderr_v1"
+    selection_metric_name = "g_abs"
+    gradient_confidence_mode_used = "std"
+    last_candidate_gradient_scout: list[dict[str, Any]] = []
+    last_sigma_hat = 0.0
+    last_g_lcb = 0.0
+    last_gradient_confidence = 0.0
+    last_gradient_confidence_stderr = 0.0
+    last_selected_pool_index: int | None = None
+    last_selected_label: str | None = None
 
     qc0 = _adapt_ops_to_circuit(
         selected_ops,
@@ -617,6 +629,7 @@ def _run_noisy_adapt(
         best_grad = 0.0
         best_grad_std = 0.0
         best_grad_stderr = 0.0
+        candidate_gradient_scout: list[dict[str, Any]] = []
 
         for idx in candidate_indices:
             trial_ops = selected_ops + [pool[idx]]
@@ -634,8 +647,33 @@ def _run_noisy_adapt(
 
             grad = float((e_plus.mean - e_minus.mean) / (2.0 * grad_step))
             grad_std = float(np.sqrt(e_plus.std ** 2 + e_minus.std ** 2) / (2.0 * grad_step))
-            grad_stderr = float(np.sqrt(e_plus.stderr ** 2 + e_minus.stderr ** 2) / (2.0 * grad_step))
+            try:
+                grad_stderr = float(_oracle_fd_gradient_stderr(e_plus, e_minus, grad_step=grad_step))
+            except Exception as exc:
+                raise RuntimeError(
+                    "Failed to resolve oracle finite-difference gradient stderr "
+                    f"at depth {int(depth + 1)} for candidate index {int(idx)} "
+                    f"label '{str(pool[int(idx)].label)}'."
+                ) from exc
             abs_grad = abs(grad)
+            g_lcb = max(float(abs_grad) - float(phase1_score_z_alpha_used) * float(grad_stderr), 0.0)
+            candidate_gradient_scout.append(
+                {
+                    "candidate_pool_index": int(idx),
+                    "candidate_label": str(pool[int(idx)].label),
+                    "gradient_signed": float(grad),
+                    "gradient_abs": float(abs_grad),
+                    "gradient_std": float(grad_std),
+                    "gradient_stderr": float(grad_stderr),
+                    "sigma_hat": float(grad_stderr),
+                    "g_lcb": float(g_lcb),
+                    "selection_metric_value": float(abs_grad),
+                    "oracle_samples_plus": int(getattr(e_plus, "n_samples", 0)),
+                    "oracle_samples_minus": int(getattr(e_minus, "n_samples", 0)),
+                    "oracle_aggregate": str(getattr(e_plus, "aggregate", "mean")),
+                    "selected_for_optimization": False,
+                }
+            )
             if abs_grad > best_abs_grad:
                 best_abs_grad = abs_grad
                 best_idx = int(idx)
@@ -647,7 +685,22 @@ def _run_noisy_adapt(
             stop_reason = "no_candidate"
             break
 
+        selected_g_lcb = max(
+            float(best_abs_grad) - float(phase1_score_z_alpha_used) * float(best_grad_stderr),
+            0.0,
+        )
+        for scout in candidate_gradient_scout:
+            if int(scout.get("candidate_pool_index", -1)) == int(best_idx):
+                scout["selected_for_optimization"] = True
         grad_conf = float(best_abs_grad / max(best_grad_std, 1e-12))
+        grad_conf_stderr = float(best_abs_grad / max(best_grad_stderr, 1e-12))
+        last_candidate_gradient_scout = [dict(row) for row in candidate_gradient_scout]
+        last_sigma_hat = float(best_grad_stderr)
+        last_g_lcb = float(selected_g_lcb)
+        last_gradient_confidence = float(grad_conf)
+        last_gradient_confidence_stderr = float(grad_conf_stderr)
+        last_selected_pool_index = int(best_idx)
+        last_selected_label = str(pool[int(best_idx)].label)
         if best_abs_grad < eps_grad:
             stop_reason = "eps_grad"
             break
@@ -733,7 +786,12 @@ def _run_noisy_adapt(
             "max_gradient_abs": float(best_abs_grad),
             "max_gradient_std": float(best_grad_std),
             "max_gradient_stderr": float(best_grad_stderr),
+            "sigma_hat": float(best_grad_stderr),
+            "g_lcb": float(selected_g_lcb),
             "gradient_confidence": float(grad_conf),
+            "gradient_confidence_std": float(grad_conf),
+            "gradient_confidence_stderr": float(grad_conf_stderr),
+            "candidate_gradient_scout": [dict(row) for row in candidate_gradient_scout],
             "energy_before_opt": float(energy_prev),
             "energy_after_opt": float(energy_current),
             "delta_energy_abs": float(delta_e),
@@ -806,6 +864,19 @@ def _run_noisy_adapt(
         "adapt_eps_energy": float(eps_energy),
         "adapt_gradient_step": float(grad_step),
         "adapt_min_confidence": float(min_conf),
+        "gradient_uncertainty_source": str(gradient_uncertainty_source),
+        "phase1_score_z_alpha_used": float(phase1_score_z_alpha_used),
+        "selection_metric_name": str(selection_metric_name),
+        "gradient_confidence_mode_used": str(gradient_confidence_mode_used),
+        "last_candidate_gradient_scout": [dict(row) for row in last_candidate_gradient_scout],
+        "last_sigma_hat": float(last_sigma_hat),
+        "last_g_lcb": float(last_g_lcb),
+        "last_gradient_confidence": float(last_gradient_confidence),
+        "last_gradient_confidence_stderr": float(last_gradient_confidence_stderr),
+        "last_selected_pool_index": (
+            int(last_selected_pool_index) if last_selected_pool_index is not None else None
+        ),
+        "last_selected_label": str(last_selected_label) if last_selected_label is not None else None,
         "elapsed_s": float(time.perf_counter() - t0),
     }
     if adapt_inner_key == "SPSA":

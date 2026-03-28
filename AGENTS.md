@@ -49,6 +49,18 @@ The priority is **correctness and consistency of operator conventions**, not “
 - Agents should ignore `docs/` unless the user explicitly asks for material from that folder or PDF/report output is in scope.
 - Agents may use `docs/reports/` when repairing or extending PDF/report output.
 
+### Skill-aware run/report routing
+- When the task is to **choose, plan, or execute** an HH run, agents should route through the `hh-experiment` skill **if that skill is available in the current agent environment**.
+- When the task is to **interpret, compare, or summarize** HH artifacts — or when a run has just completed — agents should route through the `hh-reporting` skill **if that skill is available in the current agent environment**.
+- These skills are **wrappers over this repo's authority docs**, not replacements for them. Authority order remains: `AGENTS.md` -> `pipelines/run_guide.md` -> `README.md`.
+- If a skill contract and repo policy ever diverge, agents must surface:
+  - `AGENTS target`
+  - `Skill/runtime behavior`
+  - `Required action: ask user before proceeding`
+- Repo-facing run plans should follow the short objective-first run contract already captured in `pipelines/run_guide.md §0a`.
+- Repo-facing reports should mirror that contract, restate the original objective, and keep interpretation logic/math/physics-first rather than only repo-prose-first. The default report deliverable is a short in-chat retell in the compact three-line format `Objective<...>`, `Why/Intent<...>`, `Suggested Next step/how this fits into broader picture<...>`, with no blank lines and 1-3 sentences max per line.
+- After a completed run, the default repo-agent convention is to hand the artifact bundle to the reporting path for a short objective-aware retell. Only generate/update persistent report files when report output is in scope and the user has not narrowed the task to execution-only.
+
 ### Policy-vs-code conflict rule (mandatory)
 - If AGENTS policy and current code/CLI behavior diverge, agents must **stop and ask the user before proceeding**.
 - In docs, when such a mismatch exists, present:

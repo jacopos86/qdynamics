@@ -3406,6 +3406,156 @@ Empirically, the following heavy-pool families are absent from the lean pool yet
 
 This should be read as a scoped data claim, not as a universal proof: for the present HH $L=2$, $n_{\mathrm{ph,max}}=1$ target problem, the heavy pool carries substantial operator-family redundancy relative to the observed energy objective.
 
+### 19.3.1 Weak-coupling $L=2$ class-prune redo
+
+A second $L=2$ class-prune line at weaker coupling sharpens the same conclusion. For
+$$
+L=2,\qquad t=1,\qquad U=0.5,\qquad \omega_0=1,\qquad g=0.2,\qquad n_{\mathrm{ph,max}}=1,
+$$
+using binary bosons, blocked ordering, open boundaries, the compiled backend path, full-window reoptimization, beam width $B=3$, and the direct `phase3_v1` HH selector, the heavy parent `full_meta` run reached
+$$
+E_{\mathrm{parent}}=-0.7763497696348323,
+\qquad
+\lvert\Delta E\rvert_{\mathrm{parent}}=2.7761269927\times 10^{-5},
+\qquad
+F_{\mathrm{parent}}=0.9999861889450502,
+$$
+at logical depth $d_{\mathrm{parent}}=7$.
+
+From that parent, a class-first pruning loop removed one operator family at a time and reran fresh ADAPT after every proposed removal. A removal was accepted only if the rerun satisfied
+$$
+\lvert\Delta E\rvert \le 5\times 10^{-4},
+\qquad
+F \ge F_{\mathrm{parent}}-10^{-4}.
+$$
+The accepted removals were
+
+- `hh_termwise_unit`,
+- `hva_layer`,
+- `paop_cloud_x`,
+- `paop_curdrag`,
+- `paop_dbl`,
+- `paop_dbl_p`,
+- `paop_dbl_x`,
+- `paop_disp`,
+- `paop_hop2`,
+- `paop_hopdrag`,
+- `hh_termwise_quadrature`.
+
+Hence the final validated keep-set was simply
+$$
+\mathcal G_{\mathrm{lean,weak}}
+=
+\{\texttt{uccsd\_sing},\ \texttt{uccsd\_dbl},\ \texttt{paop\_cloud\_p}\}.
+$$
+A fresh rerun using only this class-filtered pool then produced
+$$
+E_{\mathrm{lean}}=-0.7763497696348325,
+\qquad
+\lvert\Delta E\rvert_{\mathrm{lean}}=2.7761269927\times 10^{-5},
+\qquad
+F_{\mathrm{lean}}=0.9999861889437017,
+$$
+at logical depth $d_{\mathrm{lean}}=4$.
+Thus, to numerical precision,
+$$
+E_{\mathrm{lean}}\approx E_{\mathrm{parent}},
+\qquad
+\lvert\Delta E\rvert_{\mathrm{lean}}\approx \lvert\Delta E\rvert_{\mathrm{parent}},
+\qquad
+F_{\mathrm{lean}}\approx F_{\mathrm{parent}},
+$$
+while the logical depth drops from $7$ to $4$.
+
+A separate optimizer check on this same weak-coupling direct Phase-3 beam surface asked a narrower question: whether SPSA, still run locally/noiselessly with the pre-transpile proxy-cost surface (`phase3_backend_cost_mode=proxy`) and still using the same reduced class-filtered pool with full-window refits, could at least reach the practical noise-threshold regime even if it did not exactly recover the Powell basin. The best completed local SPSA artifact on that surface was
+$$
+E_{\mathrm{SPSA,local}}=-0.7763064877481185,
+\qquad
+\lvert\Delta E\rvert_{\mathrm{SPSA,local}}=7.1043156641\times 10^{-5},
+\qquad
+F_{\mathrm{SPSA,local}}=0.9999653825260001,
+$$
+from the direct beam-enabled class-filtered run `20260328_hh_l2_u05_g02_local_beam_b3_spsa_case4_direct_m3200_a0p1_c0p02_A5`. This did not match the Powell/class-pruned reference value $2.7761269927\times 10^{-5}$, but it did enter the sub-$10^{-4}$ regime and therefore satisfied the more practical gate of crossing below the anticipated noise floor. In that sense the local SPSA question at weak coupling was answered positively: exact-basin recovery remained unresolved, but threshold-level local recovery was achieved strongly enough to justify a direct noisy/backend follow-on on the same algorithmic surface.
+
+A direct noisy transfer follow-on then kept the same reduced pool
+$\{\texttt{uccsd\_sing},\texttt{uccsd\_dbl},\texttt{paop\_cloud\_p}\}$,
+the same beam/full-window `phase3_v1` surface, and the same SPSA recipe
+$(a,c,A,\texttt{maxiter})=(0.1,0.02,5.0,3200)$, but turned on
+`backend_scheduled` FakeMarrakesh scoring with `expectation_v1`, `512` shots,
+`1` repeat, and no mitigation; the exact command is recorded at
+`artifacts/agent_runs/20260328_hh_l2_u05_g02_phase3_beam_b3_fake_marrakesh_spsa_case4_recipe_attempt3_supervised/logs/command.sh`.
+During that supervised run, the best observed heartbeat reached
+$$
+E_{\mathrm{SPSA,noisy,best}}=-0.7762934955401648,
+\qquad
+\lvert\Delta E\rvert_{\mathrm{SPSA,noisy,best}}=8.4035364595\times 10^{-5},
+$$
+at depth $95$, as preserved in
+`artifacts/agent_runs/20260328_hh_l2_u05_g02_phase3_beam_b3_fake_marrakesh_spsa_case4_recipe_attempt3_supervised/best_so_far_snapshot.json`.
+So, before final max-depth termination, the same reduced-pool direct Phase-3 beam SPSA lane already crossed the practical noisy sub-$10^{-4}$ regime under transpiled FakeMarrakesh selection/scoring.
+
+### 19.3.2 Live four-run supervised status block
+
+```text
+Objective<As of March 28, 2026 at 10:59:12 CDT, all 4 noisy
+  reduced-pool backend_scheduled SPSA runs are still genuinely
+  running with live child PIDs and no stderr in artifacts/
+  agent_runs/20260328_hh_l2_u05_g02_phase3_beam_b3_fake_marrake
+  sh_spsa_case4_recipe_attempt4_dropstop/progress.json,
+  artifacts/
+  agent_runs/20260328_hh_l2_u05_g02_phase3_beam_b3_fake_marrake
+  sh_spsa_case4_recipe_attempt5_dropstop_lifetimeoff/
+  progress.json, artifacts/
+  agent_runs/20260328_hh_l2_u05_g02_phase3_beam_b4_c3_k4_fake_m
+  arrakesh_spsa_case4_recipe_attempt6_dropstop_lifetimeoff/
+  sh_spsa_case4_recipe_attempt7_dropstop_transpile_single/
+  progress.json. Best observed noisy gaps so far are: attempt4
+  3.3871153069520155e-05 at depth 76 in artifacts/
+  agent_runs/20260328_hh_l2_u05_g02_phase3_beam_b3_fake_marrake
+  sh_spsa_case4_recipe_attempt4_dropstop/logs/stdout.log,
+  attempt6 3.733262477279009e-05 at depth 49 in artifacts/
+  agent_runs/20260328_hh_l2_u05_g02_phase3_beam_b4_c3_k4_fake_m
+  arrakesh_spsa_case4_recipe_attempt6_dropstop_lifetimeoff/
+  logs/stdout.log, attempt7 3.899366517123859e-05 at depth 67
+  in artifacts/
+  agent_runs/20260328_hh_l2_u05_g02_phase3_beam_b3_fake_marrake
+  sh_spsa_case4_recipe_attempt7_dropstop_transpile_single/logs/
+  stdout.log, and attempt5 1.0855648531227224e-04 at depth 67
+  in artifacts/
+  agent_runs/20260328_hh_l2_u05_g02_phase3_beam_b3_fake_marrake
+  sh_spsa_case4_recipe_attempt5_dropstop_lifetimeoff/logs/
+  stdout.log.>
+  Why/Intent<So the current result ordering is: baseline clean-
+  stop attempt4 best, then wider-beam+lifetime-off attempt6,
+  then transpile_single_v1 attempt7, with lifetime-off only
+  attempt5 trailing. None has written a final JSON yet because
+  the clean stop is intentionally gated by --adapt-drop-min-
+  depth 96, so even though three runs are already well below
+  the practical 1e-4 threshold, the normal drop_plateau exit
+  cannot fire before depth 96.>
+  Suggested Next step/how this fits into broader picture<I
+  recommend we keep these running until the first one crosses
+  depth 96 and exits normally, because that will give us the
+  first clean final JSON on this surface without interrupting a
+  good basin. If the ranking stays similar, attempt4 should
+  finish first, while attempt6 and attempt7 already look
+  scientifically competitive enough to justify keeping them
+  alive as the main comparison axes.>
+```
+
+The rejected removals show which families remained indispensable under this contract:
+
+- removing `paop_cloud_p` gave $\lvert\Delta E\rvert\approx 1.0813\times 10^{-2}$ and $F\approx 0.996632$,
+- removing `uccsd_sing` gave $\lvert\Delta E\rvert\approx 2.19934$ and $F\approx 0.214233$,
+- removing `uccsd_dbl` gave $\lvert\Delta E\rvert\approx 1.31029\times 10^{-2}$ and $F\approx 0.996691$.
+
+So at this weaker-coupling $L=2$ point the validated lean pool is even smaller than the earlier heavy/lean $U=4$, $g=0.5$ line: the heavy search may still visit quadrature seeds, but the final class-level support needed to preserve the achieved energy/fidelity scale is just
+$$
+\texttt{uccsd\_sing}\;\cup\;\texttt{uccsd\_dbl}\;\cup\;\texttt{paop\_cloud\_p}.
+$$
+
+For the backend-facing follow-up at this same weak-coupling point, the Heron/Marrakesh optimization should be done as a **transpile-only** sweep rather than through the noisy staged wrapper: run `python -m pipelines.hardcoded.adapt_circuit_cost` on the promoted locked scaffold `hh_l2_u05_g02_full_meta_class_pruned_lean4_locked_scaffold_v1.json` over `\texttt{optimization\_level}\in\{1,2\}` and `\texttt{seed\_transpiler}\in\{0,\dots,9\}`, then rank by compiled two-qubit count, depth, and size. On `\texttt{FakeMarrakesh}` the winning setting was `\texttt{optimization\_level}=2`, `\texttt{seed\_transpiler}=5`, reducing the same 4-operator, 6-runtime-term scaffold from about `25` two-qubit gates, depth `63`, size `109` to `18` two-qubit gates, depth `43`, size `83` without changing the physics or operator order.
+
 ## 19.4 Relation to live pruning
 
 The redundancy story above is consistent with the live pruning machinery, but it should not be conflated with it. The implemented scaffold-pruning pass is active and ranks removal candidates primarily by small amplitude, then by weaker prior proxy benefit. Schematically, the ordering is lexicographic in
@@ -3422,6 +3572,70 @@ It is also important that estimated remaining depth is **not** part of the prune
 The novelty-ablation numbers in this chapter come from the fresh direct `adapt_pipeline` artifacts `pi_ablate_pareto_lean_l2_novelty_on.json`, `pi_ablate_pareto_lean_l2_novelty_off.json`, `pi_ablate_full_meta_novelty_on.json`, and `pi_ablate_full_meta_novelty_off.json`, all dated `2026-03-24`. The heavy-versus-lean pool-family comparison is anchored by the `2026-03-21` comparison bundle summarized in `pareto_lean_l2_vs_heavy_L2_ecut1_comparison.md` together with the corresponding lean rerun artifact. The data are therefore matched and current enough for PI-facing evidence.
 
 The honesty caveat is the same one stated in the reporting notes: these matched ablations share the same physics, seed, and selector family, but they are not claimed to be byte-for-byte reproductions of every earlier March 21/22 runtime-resolved default. That caveat does not weaken the on/off comparisons above, because the resolved settings were shared inside each matched pair.
+
+## 19.6 Machine-agent redo note for the successful L=2 pruning session
+
+For the validated HH prune line, keep the problem fixed at
+$$
+L=2,\qquad t=1,\qquad U=4,\qquad \omega_0=1,\qquad g=0.5,\qquad n_{\mathrm{ph,max}}=1,
+$$
+with the saved fullhorse parent artifact as the starting point. A machine agent can reproduce the session in three steps from repo root:
+
+```bash
+python -m pipelines.hardcoded.hh_prune_nighthawk \
+  --input-json artifacts/json/hh_backend_adapt_fullhorse_powell_20260322T194155Z_fakenighthawk.json \
+  --mode both \
+  --prune-threshold 1e-4 \
+  --output-json artifacts/json/hh_prune_nighthawk_<timestamp>.json
+
+python -m pipelines.hardcoded.hh_prune_nighthawk \
+  --mode export_fixed_scaffolds \
+  --source-artifact-json artifacts/json/hh_prune_nighthawk_aggressive_5op.json
+
+python -m pipelines.hardcoded.adapt_circuit_cost \
+  --artifact-json artifacts/json/hh_prune_nighthawk_gate_pruned_7term.json \
+  --backend-name ibm_marrakesh \
+  --seed-transpiler 7 --optimization-level 1 \
+  --sweep-backends
+```
+
+The redo is not complete unless it records **fidelity as well as energy**. For each surviving scaffold and exported fixed scaffold, save at least:
+`abs_delta_e`, exact-state fidelity (`exact_state_fidelity`, `local_exact_state_fidelity`, or `expected_local_exact_state_fidelity`), retained exyz labels, backend, transpiler seed, optimization level, compiled `count_2q`, compiled depth, and compiled size. The validated executable anchor is the `gate_pruned_7term` artifact, not `circuit_optimized_7term`: the trustworthy target is
+$$
+\lvert\Delta E\rvert\approx 4.23\times 10^{-4},\qquad F\approx 0.9998,
+$$
+with Marrakesh compile cost near `25` two-qubit gates and depth `63-75`. A leaner 6-term executable may reach about `14` two-qubit gates and depth `48`, but its exact regression is materially worse, near
+$$
+\lvert\Delta E\rvert\approx 4.61\times 10^{-3}.
+$$
+
+## 19.7 Direct noisy `backend_scheduled` L=2 fastprobe note
+
+For the same HH point
+$$
+L=2,\qquad t=1,\qquad U=4,\qquad \omega_0=1,\qquad g=0.5,\qquad n_{\mathrm{ph,max}}=1,
+$$
+a useful data line is the direct local noisy `phase3_v1` fastprobe on `FakeNighthawk` with `backend_scheduled` oracle evaluation, `512` shots, `2` repeats, and optional `mthree` readout mitigation. The March 26 command family is recorded in `artifacts/runstate/hh_phase3_v1_local_noisy_backend_scheduled_fastprobe_retry2_20260326_cmd.sh` and the stabilized readout follow-up `artifacts/runstate/hh_phase3_v1_local_noisy_backend_scheduled_fastprobe_retry3_20260326_cmd.sh`, with the no-readout comparator in `artifacts/runstate/hh_phase3_v1_local_noisy_backend_scheduled_noreadout_retry1_20260326/`.
+
+These probes were intentionally weak (`\texttt{adapt\_max\_depth}=1`) and were stopped after the first scout evaluation timing split was captured, so they are debug-quality runtime evidence rather than convergence-quality VQE runs. The first measured `plus` evaluation on the readout+mthree path gave
+$$
+T_{\mathrm{total,readout}}\approx 37.04\,\mathrm{s},
+\qquad
+T_{\mathrm{term}}\approx 26.39\,\mathrm{s},
+\qquad
+T_{\mathrm{calib}}\approx 10.64\,\mathrm{s},
+$$
+with readout-apply time negligible at about `0.01s`. The no-readout comparator gave
+$$
+T_{\mathrm{total,no\,readout}}\approx 26.84\,\mathrm{s},
+\qquad
+T_{\mathrm{term}}\approx 26.83\,\mathrm{s}.
+$$
+So on this $L=2$ HH debug line the dominant cost is backend-scheduled term execution itself, while readout mitigation contributes a secondary first-hit warmup rather than the main runtime burden. The practical lesson is that `backend_scheduled` is honest enough for a very small late shortlist or confirmation pass, but too expensive to act as the broad pre-shortlist scout surface.
+
+## 19.8 Fixed-scaffold compile-control scout note
+
+For the locked Marrakesh/Heron 6-term HH scaffold `artifacts/json/hh_marrakesh_fixed_scaffold_6term_drop_eyezee_20260323T171528Z.json`, the useful local compile-control test is a transpile-only scout on `FakeMarrakesh` with fixed circuit/parameters, `shots=4096`, `oracle_repeats=8`, readout/mthree mitigation, and grid $(\texttt{optimization\_level},\texttt{seed\_transpiler})\in\{1,2\}\times\{0,\dots,4\}$, ranking by $\Delta E=E_{\mathrm{noisy}}-E_{\mathrm{ideal}}$ then by compiled cost; among the saved `8/10` completed candidates in `artifacts/agent_runs/20260328_direct_fixed_scaffold_compile_scout_fullaccess_attempt2_timeout7200/json/20260328_direct_fixed_scaffold_compile_scout_fullaccess_attempt2_timeout7200.json`, the best-so-far setting was `opt1_seed4` with $\Delta E\approx 9.9899\times 10^{-2}$, two-qubit count `14`, and depth `48`, whereas the completed lower-depth `opt2_*` candidates kept the same two-qubit count `14` but had depth `38` and worse $\Delta E$: `opt2_seed0\approx 1.1726\times 10^{-1}`, `opt2_seed1\approx 1.2245\times 10^{-1}`, `opt2_seed2\approx 1.2029\times 10^{-1}`, so lower compiled depth alone did not improve noisy accuracy and the current hardware-facing compile preset is `(optimization_level=1, seed_transpiler=4)`.
 
 # Appendix A. Spec-only or not-yet-formalized surfaces kept out of the main body
 

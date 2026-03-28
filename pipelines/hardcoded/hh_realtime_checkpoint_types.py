@@ -36,6 +36,16 @@ class RealtimeCheckpointConfig:
     compile_penalty_weight: float = 0.05
     measurement_penalty_weight: float = 0.02
     directional_penalty_weight: float = 0.01
+    motion_calm_direction_cosine_threshold: float = 0.98
+    motion_calm_rate_change_ratio_threshold: float = 0.15
+    motion_direction_reversal_cosine_threshold: float = -0.05
+    motion_curvature_flip_cosine_threshold: float = -0.10
+    motion_acceleration_l2_threshold: float = 0.05
+    motion_kink_rate_change_ratio_threshold: float = 0.50
+    motion_calm_shortlist_scale: float = 0.5
+    motion_kink_shortlist_bonus: int = 2
+    motion_calm_oracle_budget_scale: float = 0.5
+    motion_kink_oracle_budget_scale: float = 2.0
     position_jump_tie_margin_abs: float = 1e-6
     reconstruction_tol: float = 1e-10
     grouping_mode: str = "qwc_basis_cover_reuse"
@@ -92,6 +102,51 @@ class OracleValueKey:
 
 
 @dataclass(frozen=True)
+class DerivedGeometryKey:
+    checkpoint_id: str
+    memo_family: str
+    candidate_label: str | None
+    position_id: int | None
+
+
+@dataclass(frozen=True)
+class RawGroupKey:
+    checkpoint_id: str
+    observable_family: str
+    candidate_label: str | None
+    position_id: int | None
+    group_key: str
+    state_key: str | None = None
+
+
+@dataclass(frozen=True)
+class SharedRawGroupKey:
+    checkpoint_id: str
+    candidate_label: str | None
+    position_id: int | None
+    state_key: str
+    group_key: str
+
+
+@dataclass(frozen=True)
+class TemporalPriorKey:
+    candidate_identity: str
+    position_id: int
+
+
+@dataclass(frozen=True)
+class TemporalPriorRecord:
+    candidate_identity: str
+    position_id: int
+    last_checkpoint_index: int
+    times_selected: int
+    last_groups_new: float
+    last_gain_ratio: float
+    last_predicted_displacement: float
+    last_refresh_pressure: str
+
+
+@dataclass(frozen=True)
 class BaselineGeometrySummary:
     energy: float
     variance: float
@@ -129,6 +184,7 @@ class CandidateProbeSummary:
     rejection_reason: str | None
     decision_metric: str = "gain_ratio"
     oracle_estimate_kind: str | None = None
+    temporal_prior_bonus: float = 0.0
     predicted_noisy_energy_mean: float | None = None
     predicted_noisy_energy_stderr: float | None = None
     predicted_noisy_improvement_abs: float | None = None
@@ -151,27 +207,46 @@ class CheckpointLedgerEntry:
     runtime_parameter_count_before: int
     runtime_parameter_count_after: int
     rate_change_l2: float | None
-    exact_cache_hits: int
-    exact_cache_misses: int
-    planning_groups_new_selected: float
-    energy_total_controller: float
-    energy_total_exact: float
-    abs_energy_total_error: float
-    fidelity_exact: float
+    physical_time: float | None = None
+    motion_regime: str | None = None
+    motion_direction_cosine: float | None = None
+    motion_rate_change_ratio: float | None = None
+    motion_acceleration_l2: float | None = None
+    motion_curvature_cosine: float | None = None
+    motion_direction_reversal: bool = False
+    motion_curvature_sign_flip: bool = False
+    motion_kink_score: float | None = None
+    exact_cache_hits: int = 0
+    exact_cache_misses: int = 0
+    geometry_memo_hits: int = 0
+    geometry_memo_misses: int = 0
+    planning_groups_new_selected: float = 0.0
+    energy_total_controller: float = 0.0
+    energy_total_exact: float = 0.0
+    abs_energy_total_error: float = 0.0
+    fidelity_exact: float = 0.0
     requested_mode: str = "exact_v1"
     decision_backend: str = "exact"
     decision_noise_mode: str | None = None
     oracle_decision_used: bool = False
     oracle_attempted: bool = False
     oracle_estimate_kind: str | None = None
+    predicted_displacement: float | None = None
+    temporal_refresh_pressure: str | None = None
     selected_noisy_energy_mean: float | None = None
     selected_noisy_energy_stderr: float | None = None
     stay_noisy_energy_mean: float | None = None
     stay_noisy_energy_stderr: float | None = None
     selected_noisy_improvement_abs: float | None = None
     selected_noisy_improvement_ratio: float | None = None
+    oracle_confirm_limit: int | None = None
+    oracle_budget_scale: float | None = None
     oracle_cache_hits: int = 0
     oracle_cache_misses: int = 0
+    raw_group_cache_hits: int = 0
+    raw_group_cache_misses: int = 0
+    raw_group_cache_extensions: int = 0
+    drive_term_count: int = 0
     degraded_reason: str | None = None
 
 
@@ -209,6 +284,30 @@ def hash_statevector(psi: np.ndarray | Sequence[complex]) -> str:
     arr = np.asarray(psi, dtype=complex).reshape(-1)
     rounded = np.round(arr.real, decimals=12) + 1.0j * np.round(arr.imag, decimals=12)
     return hashlib.sha1(np.ascontiguousarray(rounded).tobytes()).hexdigest()
+
+
+"""
+measurement_state_hash = sha1(scaffold_hash, theta_hash)
+"""
+def hash_measurement_state(
+    *,
+    scaffold_labels: Sequence[str],
+    logical_count: int,
+    runtime_count: int,
+    theta: np.ndarray | Sequence[float],
+) -> str:
+    scaffold_hash = hash_scaffold_labels(
+        scaffold_labels,
+        logical_count=int(logical_count),
+        runtime_count=int(runtime_count),
+    )
+    theta_hash = hash_theta_vector(theta)
+    return _hash_jsonable(
+        {
+            "scaffold_hash": str(scaffold_hash),
+            "theta_hash": str(theta_hash),
+        }
+    )
 
 
 def make_checkpoint_context(
@@ -302,12 +401,18 @@ __all__ = [
     "CandidateProbeSummary",
     "CheckpointContext",
     "CheckpointLedgerEntry",
+    "DerivedGeometryKey",
     "GeometryValueKey",
     "OracleValueKey",
+    "RawGroupKey",
+    "SharedRawGroupKey",
     "MeasurementTierConfig",
     "RealtimeCheckpointConfig",
     "ScaffoldAcceptanceResult",
+    "TemporalPriorKey",
+    "TemporalPriorRecord",
     "dataclass_to_payload",
+    "hash_measurement_state",
     "hash_scaffold_labels",
     "hash_statevector",
     "hash_theta_vector",

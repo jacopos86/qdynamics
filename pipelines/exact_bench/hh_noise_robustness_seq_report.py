@@ -18,13 +18,14 @@ import json
 import math
 import multiprocessing as mp
 import os
+import queue as pyqueue
 import re
 import sys
 import time
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Mapping, Sequence
+from typing import Any, Callable, Mapping, Sequence
 
 import numpy as np
 
@@ -106,19 +107,30 @@ from pipelines.exact_bench.noise_oracle_runtime import (
     BACKEND_SCHEDULED_ATTRIBUTION_SLICES,
     ExpectationOracle,
     OracleConfig,
+    RawMeasurementOracle,
+    _all_z_full_register_qop,
     _append_reference_state,
+    _bootstrap_hh_full_register_z_artifact,
     _doublon_site_qop,
     _number_operator_qop,
+    _summarize_hh_exact_diagonal_reference,
+    _summarize_hh_full_register_z_records,
+    _summarize_hh_full_register_z_records_postprocessed,
     normalize_ideal_reference_symmetry_mitigation,
     normalize_mitigation_config,
     normalize_runtime_estimator_profile_config,
     normalize_runtime_session_policy_config,
+    normalize_sampler_raw_runtime_config,
     normalize_symmetry_mitigation_config,
 )
 from pipelines.hardcoded.adapt_circuit_cost import (
     _build_ansatz_circuit,
     _load_adapt_result,
     reconstruct_imported_adapt_circuit,
+)
+from pipelines.hardcoded.adapt_circuit_execution import (
+    bind_parameterized_ansatz_circuit,
+    build_parameterized_ansatz_plan,
 )
 from pipelines.hardcoded import hubbard_pipeline as hc_pipeline
 
@@ -467,7 +479,216 @@ def _bounded_append(history: list[dict[str, Any]], row: dict[str, Any], *, limit
         del history[:-int(limit)]
 
 
-def _evaluate_locked_imported_circuit_energy(
+def _build_locked_imported_runtime_raw_oracle_config(
+    *,
+    shots: int,
+    seed: int,
+    oracle_repeats: int,
+    oracle_aggregate: str,
+    mitigation_config: Mapping[str, Any],
+    symmetry_mitigation_config: Mapping[str, Any],
+    backend_name: str | None,
+    use_fake_backend: bool,
+    allow_aer_fallback: bool,
+    omp_shm_workaround: bool,
+    seed_transpiler: int | None,
+    transpile_optimization_level: int,
+    runtime_profile_config: Mapping[str, Any] | None,
+    runtime_session_config: Mapping[str, Any] | None,
+    raw_transport: str = "auto",
+    raw_store_memory: bool = False,
+    raw_artifact_path: str | None = None,
+) -> OracleConfig:
+    noisy_mode = "backend_scheduled" if bool(use_fake_backend) else "runtime"
+    return OracleConfig(
+        noise_mode=str(noisy_mode),
+        shots=int(shots),
+        seed=int(seed),
+        seed_transpiler=(None if seed_transpiler is None else int(seed_transpiler)),
+        transpile_optimization_level=int(transpile_optimization_level),
+        oracle_repeats=int(oracle_repeats),
+        oracle_aggregate=str(oracle_aggregate),
+        backend_name=(None if backend_name is None else str(backend_name)),
+        use_fake_backend=bool(use_fake_backend),
+        allow_aer_fallback=bool(allow_aer_fallback),
+        aer_fallback_mode="sampler_shots",
+        omp_shm_workaround=bool(omp_shm_workaround),
+        mitigation=dict(normalize_mitigation_config(mitigation_config)),
+        symmetry_mitigation=dict(normalize_symmetry_mitigation_config(symmetry_mitigation_config)),
+        runtime_profile=dict(
+            normalize_runtime_estimator_profile_config(runtime_profile_config)
+        ),
+        runtime_session=dict(
+            normalize_runtime_session_policy_config(runtime_session_config)
+        ),
+        execution_surface="raw_measurement_v1",
+        raw_transport=str(raw_transport),
+        raw_store_memory=bool(raw_store_memory),
+        raw_artifact_path=(None if raw_artifact_path in {None, ""} else str(raw_artifact_path)),
+    )
+
+
+def _build_locked_imported_ideal_oracle_config(
+    *,
+    shots: int,
+    seed: int,
+    oracle_repeats: int,
+    oracle_aggregate: str,
+) -> OracleConfig:
+    return OracleConfig(
+        noise_mode="ideal",
+        shots=int(shots),
+        seed=int(seed),
+        oracle_repeats=int(oracle_repeats),
+        oracle_aggregate=str(oracle_aggregate),
+        backend_name=None,
+        use_fake_backend=False,
+        mitigation={"mode": "none", "zne_scales": [], "dd_sequence": None, "local_readout_strategy": None},
+        symmetry_mitigation={"mode": "off"},
+    )
+
+
+def _resolve_locked_imported_hh_symmetry_metadata(ctx: Mapping[str, Any]) -> dict[str, Any] | None:
+    payload = ctx.get("payload", {}) if isinstance(ctx, Mapping) else {}
+    settings = ctx.get("settings", {}) if isinstance(ctx, Mapping) else {}
+    adapt_vqe = payload.get("adapt_vqe", {}) if isinstance(payload, Mapping) else {}
+    fixed_meta = adapt_vqe.get("fixed_scaffold_metadata", {}) if isinstance(adapt_vqe, Mapping) else {}
+
+    def _first_int(*values: Any) -> int | None:
+        for raw in values:
+            if raw in {None, ""}:
+                continue
+            if isinstance(raw, bool):
+                continue
+            try:
+                return int(raw)
+            except Exception:
+                continue
+        return None
+
+    def _first_str(*values: Any) -> str | None:
+        for raw in values:
+            if raw in {None, ""}:
+                continue
+            token = str(raw).strip()
+            if token != "":
+                return token
+        return None
+
+    def _sector_from_pair(raw: Any) -> tuple[int | None, int | None]:
+        if isinstance(raw, Sequence) and not isinstance(raw, (str, bytes)) and len(raw) >= 2:
+            try:
+                return int(raw[0]), int(raw[1])
+            except Exception:
+                return None, None
+        return None, None
+
+    num_sites = _first_int(
+        ctx.get("num_sites", None),
+        settings.get("num_sites", None) if isinstance(settings, Mapping) else None,
+        settings.get("L", None) if isinstance(settings, Mapping) else None,
+        payload.get("num_sites", None) if isinstance(payload, Mapping) else None,
+        payload.get("L", None) if isinstance(payload, Mapping) else None,
+        adapt_vqe.get("num_sites", None) if isinstance(adapt_vqe, Mapping) else None,
+        adapt_vqe.get("L", None) if isinstance(adapt_vqe, Mapping) else None,
+        fixed_meta.get("num_sites", None) if isinstance(fixed_meta, Mapping) else None,
+    )
+    ordering = (
+        _first_str(
+            ctx.get("ordering", None),
+            settings.get("ordering", None) if isinstance(settings, Mapping) else None,
+            payload.get("ordering", None) if isinstance(payload, Mapping) else None,
+            adapt_vqe.get("ordering", None) if isinstance(adapt_vqe, Mapping) else None,
+            fixed_meta.get("ordering", None) if isinstance(fixed_meta, Mapping) else None,
+        )
+        or "blocked"
+    )
+    sector_from_ctx = _sector_from_pair(ctx.get("num_particles", None))
+    sector_from_settings = _sector_from_pair(settings.get("num_particles", None) if isinstance(settings, Mapping) else None)
+    sector_from_payload = _sector_from_pair(payload.get("num_particles", None) if isinstance(payload, Mapping) else None)
+    sector_from_adapt = _sector_from_pair(adapt_vqe.get("num_particles", None) if isinstance(adapt_vqe, Mapping) else None)
+    sector_n_up = _first_int(
+        ctx.get("sector_n_up", None),
+        settings.get("sector_n_up", None) if isinstance(settings, Mapping) else None,
+        payload.get("sector_n_up", None) if isinstance(payload, Mapping) else None,
+        adapt_vqe.get("sector_n_up", None) if isinstance(adapt_vqe, Mapping) else None,
+        fixed_meta.get("sector_n_up", None) if isinstance(fixed_meta, Mapping) else None,
+        sector_from_ctx[0],
+        sector_from_settings[0],
+        sector_from_payload[0],
+        sector_from_adapt[0],
+    )
+    sector_n_dn = _first_int(
+        ctx.get("sector_n_dn", None),
+        settings.get("sector_n_dn", None) if isinstance(settings, Mapping) else None,
+        payload.get("sector_n_dn", None) if isinstance(payload, Mapping) else None,
+        adapt_vqe.get("sector_n_dn", None) if isinstance(adapt_vqe, Mapping) else None,
+        fixed_meta.get("sector_n_dn", None) if isinstance(fixed_meta, Mapping) else None,
+        sector_from_ctx[1],
+        sector_from_settings[1],
+        sector_from_payload[1],
+        sector_from_adapt[1],
+    )
+    if num_sites is None:
+        return None
+    if sector_n_up is None or sector_n_dn is None:
+        sector_n_up, sector_n_dn = _half_filled_particles(int(num_sites))
+    return {
+        "num_sites": int(num_sites),
+        "ordering": str(ordering).strip().lower() or "blocked",
+        "sector_n_up": int(sector_n_up),
+        "sector_n_dn": int(sector_n_dn),
+    }
+
+
+def _build_locked_imported_energy_qop(
+    *,
+    ordered_labels_exyz: Sequence[str],
+    static_coeff_map_exyz: Mapping[str, complex],
+) -> SparsePauliOp:
+    return build_time_dependent_sparse_qop(
+        ordered_labels_exyz=list(ordered_labels_exyz),
+        static_coeff_map_exyz=dict(static_coeff_map_exyz),
+        drive_coeff_map_exyz=None,
+    )
+
+
+def _evaluate_locked_imported_circuit_ideal_energy(
+    *,
+    circuit: QuantumCircuit,
+    ordered_labels_exyz: Sequence[str],
+    static_coeff_map_exyz: Mapping[str, complex],
+    shots: int,
+    seed: int,
+    oracle_repeats: int,
+    oracle_aggregate: str,
+    qop: SparsePauliOp | None = None,
+) -> dict[str, Any]:
+    qop_eval = (
+        qop
+        if qop is not None
+        else _build_locked_imported_energy_qop(
+            ordered_labels_exyz=ordered_labels_exyz,
+            static_coeff_map_exyz=static_coeff_map_exyz,
+        )
+    )
+    ideal_cfg = _build_locked_imported_ideal_oracle_config(
+        shots=int(shots),
+        seed=int(seed),
+        oracle_repeats=int(oracle_repeats),
+        oracle_aggregate=str(oracle_aggregate),
+    )
+    with ExpectationOracle(ideal_cfg) as ideal_oracle:
+        ideal = ideal_oracle.evaluate(circuit, qop_eval)
+    return {
+        "ideal_mean": float(ideal.mean),
+        "ideal_std": float(ideal.std),
+        "ideal_stdev": float(ideal.stdev),
+        "ideal_stderr": float(ideal.stderr),
+    }
+
+
+def _evaluate_locked_imported_circuit_noisy_energy(
     *,
     circuit: QuantumCircuit,
     ordered_labels_exyz: Sequence[str],
@@ -488,11 +709,15 @@ def _evaluate_locked_imported_circuit_energy(
     runtime_session_config: Mapping[str, Any] | None = None,
     runtime_job_observer: Any | None = None,
     runtime_trace_context: Mapping[str, Any] | None = None,
+    qop: SparsePauliOp | None = None,
 ) -> dict[str, Any]:
-    qop = build_time_dependent_sparse_qop(
-        ordered_labels_exyz=list(ordered_labels_exyz),
-        static_coeff_map_exyz=dict(static_coeff_map_exyz),
-        drive_coeff_map_exyz=None,
+    qop_eval = (
+        qop
+        if qop is not None
+        else _build_locked_imported_energy_qop(
+            ordered_labels_exyz=ordered_labels_exyz,
+            static_coeff_map_exyz=static_coeff_map_exyz,
+        )
     )
     noisy_mode = "backend_scheduled" if bool(use_fake_backend) else "runtime"
     noisy_cfg = OracleConfig(
@@ -517,31 +742,213 @@ def _evaluate_locked_imported_circuit_energy(
             normalize_runtime_session_policy_config(runtime_session_config)
         ),
     )
-    ideal_cfg = OracleConfig(
-        noise_mode="ideal",
-        shots=int(shots),
-        seed=int(seed),
-        oracle_repeats=int(oracle_repeats),
-        oracle_aggregate=str(oracle_aggregate),
-        backend_name=None,
-        use_fake_backend=False,
-        mitigation={"mode": "none", "zne_scales": [], "dd_sequence": None, "local_readout_strategy": None},
-        symmetry_mitigation={"mode": "off"},
-    )
-    with ExpectationOracle(noisy_cfg) as noisy_oracle, ExpectationOracle(ideal_cfg) as ideal_oracle:
+    with ExpectationOracle(noisy_cfg) as noisy_oracle:
         noisy = noisy_oracle.evaluate(
             circuit,
-            qop,
+            qop_eval,
             runtime_job_observer=runtime_job_observer,
             runtime_trace_context=runtime_trace_context,
         )
-        ideal = ideal_oracle.evaluate(circuit, qop)
         backend_info = {
             "noise_mode": str(noisy_oracle.backend_info.noise_mode),
             "estimator_kind": str(noisy_oracle.backend_info.estimator_kind),
             "backend_name": noisy_oracle.backend_info.backend_name,
             "using_fake_backend": bool(noisy_oracle.backend_info.using_fake_backend),
             "details": dict(noisy_oracle.backend_info.details),
+        }
+    return {
+        "noisy_mean": float(noisy.mean),
+        "noisy_std": float(noisy.std),
+        "noisy_stdev": float(noisy.stdev),
+        "noisy_stderr": float(noisy.stderr),
+        "backend_info": backend_info,
+    }
+
+
+def _combine_locked_imported_circuit_energy_evaluations(
+    *,
+    noisy_eval: Mapping[str, Any],
+    ideal_eval: Mapping[str, Any],
+) -> dict[str, Any]:
+    noisy_mean = float(noisy_eval["noisy_mean"])
+    noisy_stderr = float(noisy_eval["noisy_stderr"])
+    ideal_mean = float(ideal_eval["ideal_mean"])
+    ideal_stderr = float(ideal_eval["ideal_stderr"])
+    return {
+        "noisy_mean": noisy_mean,
+        "noisy_std": float(noisy_eval["noisy_std"]),
+        "noisy_stdev": float(noisy_eval["noisy_stdev"]),
+        "noisy_stderr": noisy_stderr,
+        "ideal_mean": ideal_mean,
+        "ideal_std": float(ideal_eval["ideal_std"]),
+        "ideal_stdev": float(ideal_eval["ideal_stdev"]),
+        "ideal_stderr": ideal_stderr,
+        "delta_mean": float(noisy_mean - ideal_mean),
+        "delta_stderr": float(_combine_stderr(noisy_stderr, ideal_stderr)),
+        "backend_info": dict(noisy_eval.get("backend_info", {})),
+    }
+
+
+def _evaluate_locked_imported_circuit_energy(
+    *,
+    circuit: QuantumCircuit,
+    ordered_labels_exyz: Sequence[str],
+    static_coeff_map_exyz: Mapping[str, complex],
+    shots: int,
+    seed: int,
+    oracle_repeats: int,
+    oracle_aggregate: str,
+    mitigation_config: Mapping[str, Any],
+    symmetry_mitigation_config: Mapping[str, Any],
+    backend_name: str | None,
+    use_fake_backend: bool,
+    allow_aer_fallback: bool,
+    omp_shm_workaround: bool,
+    seed_transpiler: int | None = None,
+    transpile_optimization_level: int = 1,
+    runtime_profile_config: Mapping[str, Any] | None = None,
+    runtime_session_config: Mapping[str, Any] | None = None,
+    runtime_job_observer: Any | None = None,
+    runtime_trace_context: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    qop = _build_locked_imported_energy_qop(
+        ordered_labels_exyz=ordered_labels_exyz,
+        static_coeff_map_exyz=static_coeff_map_exyz,
+    )
+    ideal_eval = _evaluate_locked_imported_circuit_ideal_energy(
+        circuit=circuit,
+        ordered_labels_exyz=ordered_labels_exyz,
+        static_coeff_map_exyz=static_coeff_map_exyz,
+        shots=int(shots),
+        seed=int(seed),
+        oracle_repeats=int(oracle_repeats),
+        oracle_aggregate=str(oracle_aggregate),
+        qop=qop,
+    )
+    noisy_eval = _evaluate_locked_imported_circuit_noisy_energy(
+        circuit=circuit,
+        ordered_labels_exyz=ordered_labels_exyz,
+        static_coeff_map_exyz=static_coeff_map_exyz,
+        shots=int(shots),
+        seed=int(seed),
+        oracle_repeats=int(oracle_repeats),
+        oracle_aggregate=str(oracle_aggregate),
+        mitigation_config=mitigation_config,
+        symmetry_mitigation_config=symmetry_mitigation_config,
+        backend_name=backend_name,
+        use_fake_backend=bool(use_fake_backend),
+        allow_aer_fallback=bool(allow_aer_fallback),
+        omp_shm_workaround=bool(omp_shm_workaround),
+        seed_transpiler=seed_transpiler,
+        transpile_optimization_level=int(transpile_optimization_level),
+        runtime_profile_config=runtime_profile_config,
+        runtime_session_config=runtime_session_config,
+        runtime_job_observer=runtime_job_observer,
+        runtime_trace_context=runtime_trace_context,
+        qop=qop,
+    )
+    return _combine_locked_imported_circuit_energy_evaluations(
+        noisy_eval=noisy_eval,
+        ideal_eval=ideal_eval,
+    )
+
+
+def _evaluate_locked_imported_circuit_raw_energy(
+    *,
+    plan: Any,
+    theta_runtime: np.ndarray,
+    ordered_labels_exyz: Sequence[str],
+    static_coeff_map_exyz: Mapping[str, complex],
+    shots: int,
+    seed: int,
+    oracle_repeats: int,
+    oracle_aggregate: str,
+    mitigation_config: Mapping[str, Any],
+    symmetry_mitigation_config: Mapping[str, Any],
+    backend_name: str | None,
+    use_fake_backend: bool,
+    allow_aer_fallback: bool,
+    omp_shm_workaround: bool,
+    seed_transpiler: int | None = None,
+    transpile_optimization_level: int = 1,
+    runtime_profile_config: Mapping[str, Any] | None = None,
+    runtime_session_config: Mapping[str, Any] | None = None,
+    runtime_job_observer: Any | None = None,
+    runtime_trace_context: Mapping[str, Any] | None = None,
+    raw_transport: str = "auto",
+    raw_store_memory: bool = False,
+    raw_artifact_path: str | None = None,
+) -> dict[str, Any]:
+    qop = build_time_dependent_sparse_qop(
+        ordered_labels_exyz=list(ordered_labels_exyz),
+        static_coeff_map_exyz=dict(static_coeff_map_exyz),
+        drive_coeff_map_exyz=None,
+    )
+    raw_cfg = _build_locked_imported_runtime_raw_oracle_config(
+        shots=int(shots),
+        seed=int(seed),
+        oracle_repeats=int(oracle_repeats),
+        oracle_aggregate=str(oracle_aggregate),
+        mitigation_config=mitigation_config,
+        symmetry_mitigation_config=symmetry_mitigation_config,
+        backend_name=backend_name,
+        use_fake_backend=bool(use_fake_backend),
+        allow_aer_fallback=bool(allow_aer_fallback),
+        omp_shm_workaround=bool(omp_shm_workaround),
+        seed_transpiler=seed_transpiler,
+        transpile_optimization_level=int(transpile_optimization_level),
+        runtime_profile_config=runtime_profile_config,
+        runtime_session_config=runtime_session_config,
+        raw_transport=str(raw_transport),
+        raw_store_memory=bool(raw_store_memory),
+        raw_artifact_path=(None if raw_artifact_path in {None, ""} else str(raw_artifact_path)),
+    )
+    ideal_cfg = _build_locked_imported_ideal_oracle_config(
+        shots=int(shots),
+        seed=int(seed),
+        oracle_repeats=int(oracle_repeats),
+        oracle_aggregate=str(oracle_aggregate),
+    )
+    with RawMeasurementOracle(raw_cfg) as raw_oracle, ExpectationOracle(ideal_cfg) as ideal_oracle:
+        raw_bundle = raw_oracle.measure_observable(
+            plan=plan,
+            theta_runtime=np.asarray(theta_runtime, dtype=float),
+            observable=qop,
+            observable_family="fixed_scaffold_runtime_energy",
+            semantic_tags={"route": "fixed_scaffold_runtime_raw_baseline"},
+            runtime_job_observer=runtime_job_observer,
+            runtime_trace_context=runtime_trace_context,
+        )
+        noisy = raw_bundle.estimate
+        ideal_circuit = bind_parameterized_ansatz_circuit(plan, theta_runtime)
+        ideal = ideal_oracle.evaluate(ideal_circuit, qop)
+        backend_info = {
+            "noise_mode": str(raw_cfg.noise_mode),
+            "estimator_kind": "raw_measurement_oracle",
+            "backend_name": raw_bundle.backend_snapshot.get("backend_name", backend_name),
+            "using_fake_backend": bool(raw_cfg.use_fake_backend),
+            "details": {
+                "execution_surface": "raw_measurement_v1",
+                "transport": str(raw_bundle.transport),
+                "raw_artifact_path": raw_bundle.raw_artifact_path,
+                "record_count": int(raw_bundle.estimate.record_count),
+                "group_count": int(raw_bundle.estimate.group_count),
+                "term_count": int(raw_bundle.estimate.term_count),
+                "reduction_mode": str(raw_bundle.estimate.reduction_mode),
+                "plan_digest": str(raw_bundle.plan_digest),
+                "structure_digest": str(raw_bundle.structure_digest),
+                "reference_state_digest": raw_bundle.reference_state_digest,
+                "compile_signatures_by_basis": dict(raw_bundle.compile_signatures_by_basis),
+                "backend_snapshot": dict(raw_bundle.backend_snapshot),
+                "transpile_seed": (
+                    None if seed_transpiler is None else int(seed_transpiler)
+                ),
+                "seed_transpiler": (
+                    None if seed_transpiler is None else int(seed_transpiler)
+                ),
+                "transpile_optimization_level": int(transpile_optimization_level),
+                "evaluation_id": str(raw_bundle.evaluation_id),
+            },
         }
     return {
         "noisy_mean": float(noisy.mean),
@@ -558,6 +965,477 @@ def _evaluate_locked_imported_circuit_energy(
     }
 
 
+def _evaluate_locked_imported_circuit_raw_symmetry_diagnostic(
+    *,
+    plan: Any,
+    theta_runtime: np.ndarray,
+    shots: int,
+    seed: int,
+    oracle_repeats: int,
+    oracle_aggregate: str,
+    mitigation_config: Mapping[str, Any],
+    symmetry_mitigation_config: Mapping[str, Any],
+    backend_name: str | None,
+    use_fake_backend: bool,
+    allow_aer_fallback: bool,
+    omp_shm_workaround: bool,
+    num_sites: int | None,
+    ordering: str | None,
+    sector_n_up: int | None,
+    sector_n_dn: int | None,
+    seed_transpiler: int | None = None,
+    transpile_optimization_level: int = 1,
+    runtime_profile_config: Mapping[str, Any] | None = None,
+    runtime_session_config: Mapping[str, Any] | None = None,
+    runtime_job_observer: Any | None = None,
+    runtime_trace_context: Mapping[str, Any] | None = None,
+    raw_transport: str = "auto",
+    raw_store_memory: bool = False,
+    raw_artifact_path: str | None = None,
+    diagonal_postprocessing_mitigation_config: Mapping[str, Any] | None = None,
+    diagonal_postprocessing_symmetry_config: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    if num_sites is None or sector_n_up is None or sector_n_dn is None:
+        return {
+            "success": False,
+            "available": False,
+            "reason": "missing_target_sector_metadata",
+            "observable_family": "fixed_scaffold_runtime_all_z_symmetry_diagnostic",
+            "evaluation_id": None,
+            "transport": None,
+            "raw_artifact_path": (None if raw_artifact_path in {None, ""} else str(raw_artifact_path)),
+            "record_count": 0,
+            "group_count": None,
+            "term_count": None,
+            "compile_signatures_by_basis": {},
+            "summary": None,
+            "diagonal_postprocessing": None,
+            "error_type": None,
+            "error_message": None,
+        }
+    raw_cfg = _build_locked_imported_runtime_raw_oracle_config(
+        shots=int(shots),
+        seed=int(seed),
+        oracle_repeats=int(oracle_repeats),
+        oracle_aggregate=str(oracle_aggregate),
+        mitigation_config=mitigation_config,
+        symmetry_mitigation_config=symmetry_mitigation_config,
+        backend_name=backend_name,
+        use_fake_backend=bool(use_fake_backend),
+        allow_aer_fallback=bool(allow_aer_fallback),
+        omp_shm_workaround=bool(omp_shm_workaround),
+        seed_transpiler=seed_transpiler,
+        transpile_optimization_level=int(transpile_optimization_level),
+        runtime_profile_config=runtime_profile_config,
+        runtime_session_config=runtime_session_config,
+        raw_transport=str(raw_transport),
+        raw_store_memory=bool(raw_store_memory),
+        raw_artifact_path=(None if raw_artifact_path in {None, ""} else str(raw_artifact_path)),
+    )
+    try:
+        with RawMeasurementOracle(raw_cfg) as raw_oracle:
+            bundle = raw_oracle.measure_observable(
+                plan=plan,
+                theta_runtime=np.asarray(theta_runtime, dtype=float),
+                observable=_all_z_full_register_qop(int(getattr(plan, "nq"))),
+                observable_family="fixed_scaffold_runtime_all_z_symmetry_diagnostic",
+                semantic_tags={
+                    "route": "fixed_scaffold_runtime_raw_baseline",
+                    "diagnostic_kind": "all_z_full_register_v1",
+                    "symmetry_num_sites": int(num_sites),
+                    "symmetry_ordering": str(ordering or "blocked"),
+                    "symmetry_sector_n_up": int(sector_n_up),
+                    "symmetry_sector_n_dn": int(sector_n_dn),
+                },
+                runtime_job_observer=runtime_job_observer,
+                runtime_trace_context=runtime_trace_context,
+            )
+            diagonal_postprocessing = (
+                _summarize_hh_full_register_z_records_postprocessed(
+                    getattr(bundle, "records", ()),
+                    backend_target=raw_oracle.backend_target,
+                    mitigation_config=(
+                        diagonal_postprocessing_mitigation_config
+                        if diagonal_postprocessing_mitigation_config is not None
+                        else {"mode": "none"}
+                    ),
+                    symmetry_mitigation_config=(
+                        diagonal_postprocessing_symmetry_config
+                        if diagonal_postprocessing_symmetry_config is not None
+                        else {"mode": "off"}
+                    ),
+                    num_sites=int(num_sites),
+                    ordering=str(ordering or "blocked"),
+                    sector_n_up=int(sector_n_up),
+                    sector_n_dn=int(sector_n_dn),
+                    expected_repeat_count=int(oracle_repeats),
+                    shots=int(shots),
+                )
+                if bool(use_fake_backend)
+                else {
+                    "success": False,
+                    "available": False,
+                    "reason": "local_fake_backend_only",
+                    "summary": None,
+                    "readout_details": None,
+                    "error_type": None,
+                    "error_message": None,
+                }
+            )
+        record_count = int(
+            getattr(getattr(bundle, "estimate", None), "record_count", len(getattr(bundle, "records", ()) or ()))
+        )
+    except Exception as exc:
+        return {
+            "success": False,
+            "available": False,
+            "reason": "measurement_failed",
+            "observable_family": "fixed_scaffold_runtime_all_z_symmetry_diagnostic",
+            "evaluation_id": None,
+            "transport": None,
+            "raw_artifact_path": (None if raw_artifact_path in {None, ""} else str(raw_artifact_path)),
+            "record_count": 0,
+            "group_count": None,
+            "term_count": None,
+            "compile_signatures_by_basis": {},
+            "summary": None,
+            "diagonal_postprocessing": None,
+            "error_type": str(type(exc).__name__),
+            "error_message": str(exc),
+        }
+    try:
+        summary = _summarize_hh_full_register_z_records(
+            getattr(bundle, "records", ()),
+            num_sites=int(num_sites),
+            ordering=str(ordering or "blocked"),
+            sector_n_up=int(sector_n_up),
+            sector_n_dn=int(sector_n_dn),
+            expected_repeat_count=int(oracle_repeats),
+        )
+    except Exception as exc:
+        return {
+            "success": False,
+            "available": False,
+            "reason": "summary_failed",
+            "observable_family": str(bundle.observable_family),
+            "evaluation_id": str(bundle.evaluation_id),
+            "transport": str(bundle.transport),
+            "raw_artifact_path": bundle.raw_artifact_path,
+            "record_count": int(record_count),
+            "group_count": int(bundle.estimate.group_count),
+            "term_count": int(bundle.estimate.term_count),
+            "compile_signatures_by_basis": dict(bundle.compile_signatures_by_basis),
+            "summary": None,
+            "diagonal_postprocessing": dict(diagonal_postprocessing),
+            "error_type": str(type(exc).__name__),
+            "error_message": str(exc),
+        }
+    return {
+        "success": True,
+        "available": True,
+        "reason": None,
+        "observable_family": str(bundle.observable_family),
+        "evaluation_id": str(bundle.evaluation_id),
+        "transport": str(bundle.transport),
+        "raw_artifact_path": bundle.raw_artifact_path,
+        "record_count": int(record_count),
+        "group_count": int(bundle.estimate.group_count),
+        "term_count": int(bundle.estimate.term_count),
+        "compile_signatures_by_basis": dict(bundle.compile_signatures_by_basis),
+        "summary": dict(summary),
+        "diagonal_postprocessing": dict(diagonal_postprocessing),
+        "error_type": None,
+        "error_message": None,
+    }
+
+
+def _evaluate_locked_imported_circuit_raw_symmetry_validation(
+    *,
+    plan: Any,
+    theta_runtime: np.ndarray,
+    symmetry_diagnostic: Mapping[str, Any] | None,
+    num_sites: int | None,
+    ordering: str | None,
+    sector_n_up: int | None,
+    sector_n_dn: int | None,
+) -> dict[str, Any]:
+    if num_sites is None or sector_n_up is None or sector_n_dn is None:
+        return {
+            "success": False,
+            "available": False,
+            "reason": "missing_target_sector_metadata",
+            "reference_source": None,
+            "metrics": {},
+            "notes": ["diagnostic_only", "no_energy_correction"],
+            "error_type": None,
+            "error_message": None,
+        }
+    if not isinstance(symmetry_diagnostic, Mapping) or not bool(symmetry_diagnostic.get("available", False)):
+        return {
+            "success": False,
+            "available": False,
+            "reason": "symmetry_diagnostic_unavailable",
+            "reference_source": None,
+            "metrics": {},
+            "notes": ["diagnostic_only", "no_energy_correction"],
+            "error_type": None,
+            "error_message": None,
+        }
+    raw_summary = (
+        symmetry_diagnostic.get("summary", {})
+        if isinstance(symmetry_diagnostic.get("summary", {}), Mapping)
+        else {}
+    )
+
+    def _maybe_float(raw: Any) -> float | None:
+        if raw in {None, ""}:
+            return None
+        try:
+            return float(raw)
+        except Exception:
+            return None
+
+    try:
+        circuit = bind_parameterized_ansatz_circuit(plan, np.asarray(theta_runtime, dtype=float))
+        reference = _summarize_hh_exact_diagonal_reference(
+            circuit,
+            num_sites=int(num_sites),
+            ordering=str(ordering or "blocked"),
+            sector_n_up=int(sector_n_up),
+            sector_n_dn=int(sector_n_dn),
+        )
+    except Exception as exc:
+        return {
+            "success": False,
+            "available": False,
+            "reason": "reference_unavailable",
+            "reference_source": "ideal_diagonal_v1",
+            "metrics": {},
+            "notes": ["diagnostic_only", "no_energy_correction"],
+            "error_type": str(type(exc).__name__),
+            "error_message": str(exc),
+        }
+
+    def _metric(raw_mean_key: str, raw_stderr_key: str, ref_key: str) -> dict[str, Any]:
+        raw_mean = _maybe_float(raw_summary.get(raw_mean_key, None))
+        raw_stderr = _maybe_float(raw_summary.get(raw_stderr_key, None))
+        reference_value = _maybe_float(reference.get(ref_key, None))
+        delta = (
+            None
+            if raw_mean is None or reference_value is None
+            else float(raw_mean - reference_value)
+        )
+        return {
+            "raw_mean": raw_mean,
+            "raw_stderr": raw_stderr,
+            "reference": reference_value,
+            "delta": delta,
+        }
+
+    return {
+        "success": True,
+        "available": True,
+        "reason": None,
+        "reference_source": str(reference.get("source", "ideal_diagonal_v1")),
+        "target_sector": dict(reference.get("target_sector", {})),
+        "metrics": {
+            "sector_weight": _metric(
+                "sector_weight_mean",
+                "sector_weight_stderr",
+                "sector_weight",
+            ),
+            "doublon_total": _metric(
+                "doublon_total_mean",
+                "doublon_total_stderr",
+                "doublon_total",
+            ),
+        },
+        "notes": ["diagnostic_only", "no_energy_correction"],
+        "error_type": None,
+        "error_message": None,
+    }
+
+
+def _evaluate_locked_imported_circuit_raw_diagonal_postprocessing_validation(
+    *,
+    plan: Any,
+    theta_runtime: np.ndarray,
+    diagonal_postprocessing: Mapping[str, Any] | None,
+    num_sites: int | None,
+    ordering: str | None,
+    sector_n_up: int | None,
+    sector_n_dn: int | None,
+) -> dict[str, Any]:
+    if num_sites is None or sector_n_up is None or sector_n_dn is None:
+        return {
+            "success": False,
+            "available": False,
+            "reason": "missing_target_sector_metadata",
+            "reference_source": None,
+            "metrics": {},
+            "notes": ["diagnostic_only", "diagonal_only"],
+            "error_type": None,
+            "error_message": None,
+        }
+    if not isinstance(diagonal_postprocessing, Mapping) or not bool(
+        diagonal_postprocessing.get("available", False)
+    ):
+        return {
+            "success": False,
+            "available": False,
+            "reason": "diagonal_postprocessing_unavailable",
+            "reference_source": None,
+            "metrics": {},
+            "notes": ["diagnostic_only", "diagonal_only"],
+            "error_type": None,
+            "error_message": None,
+        }
+    summary = (
+        diagonal_postprocessing.get("summary", {})
+        if isinstance(diagonal_postprocessing.get("summary", {}), Mapping)
+        else {}
+    )
+
+    def _maybe_float(raw: Any) -> float | None:
+        if raw in {None, ""}:
+            return None
+        try:
+            return float(raw)
+        except Exception:
+            return None
+
+    try:
+        circuit = bind_parameterized_ansatz_circuit(plan, np.asarray(theta_runtime, dtype=float))
+        reference = _summarize_hh_exact_diagonal_reference(
+            circuit,
+            num_sites=int(num_sites),
+            ordering=str(ordering or "blocked"),
+            sector_n_up=int(sector_n_up),
+            sector_n_dn=int(sector_n_dn),
+        )
+    except Exception as exc:
+        return {
+            "success": False,
+            "available": False,
+            "reason": "reference_unavailable",
+            "reference_source": "ideal_diagonal_v1",
+            "metrics": {},
+            "notes": ["diagnostic_only", "diagonal_only"],
+            "error_type": str(type(exc).__name__),
+            "error_message": str(exc),
+        }
+
+    def _metric(observed_mean_key: str, observed_stderr_key: str, ref_key: str) -> dict[str, Any]:
+        observed_mean = _maybe_float(summary.get(observed_mean_key, None))
+        observed_stderr = _maybe_float(summary.get(observed_stderr_key, None))
+        reference_value = _maybe_float(reference.get(ref_key, None))
+        delta = (
+            None
+            if observed_mean is None or reference_value is None
+            else float(observed_mean - reference_value)
+        )
+        return {
+            "observed_mean": observed_mean,
+            "observed_stderr": observed_stderr,
+            "reference": reference_value,
+            "delta": delta,
+        }
+
+    return {
+        "success": True,
+        "available": True,
+        "reason": None,
+        "reference_source": str(reference.get("source", "ideal_diagonal_v1")),
+        "target_sector": dict(reference.get("target_sector", {})),
+        "metrics": {
+            "sector_weight": _metric(
+                "sector_weight_mean",
+                "sector_weight_stderr",
+                "sector_weight",
+            ),
+            "doublon_total": _metric(
+                "doublon_total_mean",
+                "doublon_total_stderr",
+                "doublon_total",
+            ),
+        },
+        "notes": ["diagnostic_only", "diagonal_only"],
+        "error_type": None,
+        "error_message": None,
+    }
+
+
+def _evaluate_locked_imported_circuit_raw_symmetry_bootstrap(
+    *,
+    symmetry_diagnostic: Mapping[str, Any] | None,
+    num_sites: int | None,
+    ordering: str | None,
+    sector_n_up: int | None,
+    sector_n_dn: int | None,
+    oracle_repeats: int,
+    seed: int,
+) -> dict[str, Any]:
+    if num_sites is None or sector_n_up is None or sector_n_dn is None:
+        return {
+            "success": False,
+            "available": False,
+            "reason": "missing_target_sector_metadata",
+            "summary": None,
+            "error_type": None,
+            "error_message": None,
+        }
+    if not isinstance(symmetry_diagnostic, Mapping) or not bool(symmetry_diagnostic.get("available", False)):
+        return {
+            "success": False,
+            "available": False,
+            "reason": "symmetry_diagnostic_unavailable",
+            "summary": None,
+            "error_type": None,
+            "error_message": None,
+        }
+    raw_artifact_path = symmetry_diagnostic.get("raw_artifact_path", None)
+    evaluation_id = symmetry_diagnostic.get("evaluation_id", None)
+    observable_family = symmetry_diagnostic.get("observable_family", None)
+    if raw_artifact_path in {None, ""} or evaluation_id in {None, ""}:
+        return {
+            "success": False,
+            "available": False,
+            "reason": "raw_artifact_unavailable",
+            "summary": None,
+            "error_type": None,
+            "error_message": None,
+        }
+    try:
+        summary = _bootstrap_hh_full_register_z_artifact(
+            str(raw_artifact_path),
+            evaluation_id=str(evaluation_id),
+            observable_family=(None if observable_family in {None, ""} else str(observable_family)),
+            num_sites=int(num_sites),
+            ordering=str(ordering or "blocked"),
+            sector_n_up=int(sector_n_up),
+            sector_n_dn=int(sector_n_dn),
+            expected_repeat_count=int(oracle_repeats),
+            seed=int(seed),
+        )
+    except Exception as exc:
+        return {
+            "success": False,
+            "available": False,
+            "reason": "bootstrap_failed",
+            "summary": None,
+            "error_type": str(type(exc).__name__),
+            "error_message": str(exc),
+        }
+    return {
+        "success": True,
+        "available": True,
+        "reason": None,
+        "summary": dict(summary),
+        "error_type": None,
+        "error_message": None,
+    }
+
+
 def _extract_compile_metrics_from_backend_info(backend_info: Mapping[str, Any] | None) -> dict[str, Any]:
     details = (
         backend_info.get("details", {})
@@ -565,9 +1443,10 @@ def _extract_compile_metrics_from_backend_info(backend_info: Mapping[str, Any] |
         and isinstance(backend_info.get("details", {}), Mapping)
         else {}
     )
+    transpile_seed_raw = details.get("transpile_seed", details.get("seed_transpiler", None))
     return {
         "transpile_seed": (
-            None if details.get("transpile_seed", None) is None else int(details.get("transpile_seed"))
+            None if transpile_seed_raw is None else int(transpile_seed_raw)
         ),
         "transpile_optimization_level": int(details.get("transpile_optimization_level", 1)),
         "compiled_two_qubit_count": int(details.get("compiled_two_qubit_count", 0)),
@@ -584,6 +1463,106 @@ def _extract_compile_metrics_from_backend_info(backend_info: Mapping[str, Any] |
             if isinstance(details.get("compiled_op_counts", {}), Mapping)
             else {}
         ),
+    }
+
+
+def _build_compile_request_payload(
+    *,
+    backend_name: str | None,
+    seed_transpiler: int | None,
+    transpile_optimization_level: int | None,
+    source: str,
+) -> dict[str, Any]:
+    return {
+        "backend_name": (None if backend_name in {None, ""} else str(backend_name)),
+        "seed_transpiler": (
+            None if seed_transpiler is None else int(seed_transpiler)
+        ),
+        "transpile_optimization_level": (
+            None
+            if transpile_optimization_level is None
+            else int(transpile_optimization_level)
+        ),
+        "source": str(source),
+    }
+
+
+def _build_compile_observation_payload(
+    *,
+    requested: Mapping[str, Any],
+    backend_info: Mapping[str, Any] | None,
+) -> dict[str, Any]:
+    details = (
+        backend_info.get("details", {})
+        if isinstance(backend_info, Mapping)
+        and isinstance(backend_info.get("details", {}), Mapping)
+        else {}
+    )
+    compile_available = bool(
+        details
+        and any(
+            key in details
+            for key in (
+                "transpile_seed",
+                "seed_transpiler",
+                "transpile_optimization_level",
+                "layout_physical_qubits",
+                "compiled_num_qubits",
+                "compiled_two_qubit_count",
+                "compiled_depth",
+                "compiled_size",
+            )
+        )
+    )
+    if not compile_available:
+        return {
+            "available": False,
+            "requested": dict(requested),
+            "observed": None,
+            "matches_requested": None,
+            "mismatch_fields": [],
+            "reason": "compile_metrics_unavailable",
+        }
+    metrics = _extract_compile_metrics_from_backend_info(backend_info)
+    observed = {
+        "backend_name": (
+            None
+            if not isinstance(backend_info, Mapping)
+            or backend_info.get("backend_name", None) in {None, ""}
+            else str(backend_info.get("backend_name"))
+        ),
+        "seed_transpiler": metrics.get("transpile_seed", None),
+        "transpile_optimization_level": metrics.get(
+            "transpile_optimization_level", None
+        ),
+        "layout_physical_qubits": [
+            int(x) for x in metrics.get("layout_physical_qubits", [])
+        ],
+        "compiled_num_qubits": metrics.get("compiled_num_qubits", None),
+        "compiled_two_qubit_count": metrics.get("compiled_two_qubit_count", None),
+        "compiled_depth": metrics.get("compiled_depth", None),
+        "compiled_size": metrics.get("compiled_size", None),
+    }
+    mismatch_fields: list[str] = []
+    if requested.get("backend_name", None) not in {None, ""} and observed["backend_name"] != str(
+        requested.get("backend_name")
+    ):
+        mismatch_fields.append("backend_name")
+    if requested.get("seed_transpiler", None) is not None and observed[
+        "seed_transpiler"
+    ] != int(requested.get("seed_transpiler")):
+        mismatch_fields.append("seed_transpiler")
+    if requested.get("transpile_optimization_level", None) is not None and observed[
+        "transpile_optimization_level"
+    ] != int(requested.get("transpile_optimization_level")):
+        mismatch_fields.append("transpile_optimization_level")
+    return {
+        "available": True,
+        "requested": dict(requested),
+        "observed": dict(observed),
+        "matches_requested": bool(len(mismatch_fields) == 0),
+        "mismatch_fields": list(mismatch_fields),
+        "reason": None,
     }
 
 
@@ -2032,6 +3011,9 @@ def _run_static_observable_audit_core(
     omp_shm_workaround: bool,
     audit_source: dict[str, Any] | None = None,
     extra_meta: dict[str, Any] | None = None,
+    seed_transpiler: int | None = None,
+    transpile_optimization_level: int | None = None,
+    compile_request_source: str | None = None,
 ) -> dict[str, Any]:
     nq = int(initial_circuit.num_qubits)
     drive_provider_exyz, drive_meta = _drive_provider_from_profile(
@@ -2078,6 +3060,14 @@ def _run_static_observable_audit_core(
         noise_mode=str(noise_mode),
         shots=int(shots),
         seed=int(seed),
+        seed_transpiler=(
+            None if seed_transpiler is None else int(seed_transpiler)
+        ),
+        transpile_optimization_level=int(
+            1
+            if transpile_optimization_level is None
+            else transpile_optimization_level
+        ),
         oracle_repeats=int(oracle_repeats),
         oracle_aggregate=str(oracle_aggregate),
         backend_name=(None if backend_name is None else str(backend_name)),
@@ -2145,6 +3135,25 @@ def _run_static_observable_audit_core(
             np.asarray([float(rec["delta_stderr"])], dtype=float),
         )
 
+    compile_control = _build_compile_request_payload(
+        backend_name=(None if backend_name in {None, ""} else str(backend_name)),
+        seed_transpiler=(None if seed_transpiler is None else int(seed_transpiler)),
+        transpile_optimization_level=(
+            None
+            if transpile_optimization_level is None
+            else int(transpile_optimization_level)
+        ),
+        source=(
+            str(compile_request_source)
+            if compile_request_source not in {None, ""}
+            else "static_observable_audit"
+        ),
+    )
+    compile_observation = _build_compile_observation_payload(
+        requested=compile_control,
+        backend_info=backend_details.get("backend_info", {}),
+    )
+
     return {
         "success": True,
         "noise_mode": str(noise_mode),
@@ -2159,6 +3168,8 @@ def _run_static_observable_audit_core(
             "mitigation": dict(noisy_mitigation_config),
             "symmetry_mitigation": dict(symmetry_mitigation_config),
         },
+        "compile_control": dict(compile_control),
+        "compile_observation": dict(compile_observation),
         "final_observables": obs_map,
         "delta_uncertainty": delta_unc,
         "audit_source": (dict(audit_source) if isinstance(audit_source, dict) else {}),
@@ -2287,6 +3298,9 @@ def _run_imported_full_circuit_audit(
     use_fake_backend: bool,
     allow_aer_fallback: bool,
     omp_shm_workaround: bool,
+    seed_transpiler: int | None = None,
+    transpile_optimization_level: int | None = None,
+    compile_request_source: str | None = None,
 ) -> dict[str, Any]:
     ctx = _load_imported_artifact_context(artifact_json)
     ansatz_input_state_meta = dict(ctx.get("ansatz_input_state_meta", {}))
@@ -2335,6 +3349,13 @@ def _run_imported_full_circuit_audit(
             "logical_parameter_count": int(ctx["layout"].logical_parameter_count),
             "runtime_parameter_count": int(ctx["layout"].runtime_parameter_count),
         },
+        seed_transpiler=(None if seed_transpiler is None else int(seed_transpiler)),
+        transpile_optimization_level=(
+            None if transpile_optimization_level is None else int(transpile_optimization_level)
+        ),
+        compile_request_source=(
+            None if compile_request_source in {None, ""} else str(compile_request_source)
+        ),
     )
     energy_static = payload.get("final_observables", {}).get("energy_static", {})
     if isinstance(energy_static, dict):
@@ -2954,6 +3975,7 @@ def _run_imported_compile_control_scout_core(
     rank_policy: str,
     extra_payload: Mapping[str, Any] | None = None,
     artifact_compile_recommendation: Mapping[str, Any] | None = None,
+    progress_callback: Callable[[dict[str, Any]], None] | None = None,
 ) -> dict[str, Any]:
     mitigation_cfg = dict(normalize_mitigation_config(mitigation_config))
     symmetry_cfg = dict(normalize_symmetry_mitigation_config(symmetry_mitigation_config))
@@ -3020,11 +4042,159 @@ def _run_imported_compile_control_scout_core(
             }
         )
 
+    def _emit_progress(event: str, **fields: Any) -> None:
+        if progress_callback is None:
+            return
+        try:
+            progress_callback(
+                {
+                    "event": str(event),
+                    "route": str(route),
+                    "artifact_json": str(ctx["path"]),
+                    **fields,
+                }
+            )
+        except Exception:
+            pass
+
+    def _candidate_counts_payload(candidates: Sequence[Mapping[str, Any]]) -> dict[str, int]:
+        successful = sum(1 for rec in candidates if bool(rec.get("success", False)))
+        return {
+            "total": int(len(candidate_specs)),
+            "completed": int(len(candidates)),
+            "successful": int(successful),
+            "failed": int(len(candidates) - successful),
+        }
+
+    def _partial_payload(
+        *,
+        reason: str,
+        candidates: Sequence[Mapping[str, Any]],
+        last_candidate_label: str | None,
+        last_candidate_index: int | None,
+        elapsed_s: float,
+    ) -> dict[str, Any]:
+        candidate_records = [dict(rec) for rec in candidates]
+        payload: dict[str, Any] = {
+            "success": False,
+            "available": True,
+            "route": str(route),
+            "reason": str(reason),
+            "artifact_json": str(ctx["path"]),
+            "pool_type": None if pool_type is None else str(pool_type),
+            "candidate_counts": _candidate_counts_payload(candidate_records),
+            "candidates_partial": candidate_records,
+            "elapsed_s": float(elapsed_s),
+            "last_candidate_label": (
+                None if last_candidate_label in {None, ""} else str(last_candidate_label)
+            ),
+            "last_candidate_index": (
+                None if last_candidate_index is None else int(last_candidate_index)
+            ),
+        }
+        baseline_candidate = next(
+            (dict(rec) for rec in candidate_records if bool(rec.get("is_baseline", False))),
+            None,
+        )
+        if baseline_candidate is not None:
+            payload["baseline_candidate"] = baseline_candidate
+            payload["baseline_compile_observation"] = dict(
+                baseline_candidate.get("compile_observation", {}) or {}
+            )
+        successful_candidates = [
+            dict(rec) for rec in candidate_records if bool(rec.get("success", False))
+        ]
+        if successful_candidates:
+            ranked_candidates = _rank_imported_compile_control_candidates(
+                successful_candidates,
+                rank_policy=str(rank_policy),
+            )
+            best_candidate = dict(ranked_candidates[0])
+            payload["best_candidate"] = best_candidate
+            payload["best_candidate_compile_observation"] = dict(
+                best_candidate.get("compile_observation", {}) or {}
+            )
+        if artifact_compile_recommendation is not None:
+            payload["artifact_compile_recommendation"] = dict(artifact_compile_recommendation)
+        if isinstance(extra_payload, Mapping):
+            payload.update(dict(extra_payload))
+        return payload
+
     t0 = time.perf_counter()
+    qop = _build_locked_imported_energy_qop(
+        ordered_labels_exyz=list(ctx["ordered_labels_exyz"]),
+        static_coeff_map_exyz=dict(ctx["static_coeff_map_exyz"]),
+    )
+    ideal_eval = _evaluate_locked_imported_circuit_ideal_energy(
+        circuit=ctx["circuit"],
+        ordered_labels_exyz=list(ctx["ordered_labels_exyz"]),
+        static_coeff_map_exyz=dict(ctx["static_coeff_map_exyz"]),
+        shots=int(shots),
+        seed=int(seed),
+        oracle_repeats=int(oracle_repeats),
+        oracle_aggregate=str(oracle_aggregate),
+        qop=qop,
+    )
+    _ai_log(
+        "compile_control_scout_ideal_ready",
+        route=str(route),
+        ideal_mean=float(ideal_eval["ideal_mean"]),
+        candidate_total=int(len(candidate_specs)),
+    )
+    _emit_progress(
+        "compile_control_scout_initialized",
+        candidate_counts=_candidate_counts_payload(()),
+        candidate_labels=[str(spec["label"]) for spec in candidate_specs],
+        artifact_compile_recommendation=(
+            None
+            if artifact_compile_recommendation is None
+            else dict(artifact_compile_recommendation)
+        ),
+        ideal_mean=float(ideal_eval["ideal_mean"]),
+        ideal_stderr=float(ideal_eval["ideal_stderr"]),
+        elapsed_s=float(time.perf_counter() - t0),
+        partial_payload=_partial_payload(
+            reason="in_progress",
+            candidates=(),
+            last_candidate_label=None,
+            last_candidate_index=None,
+            elapsed_s=float(time.perf_counter() - t0),
+        ),
+    )
     candidates: list[dict[str, Any]] = []
     for idx, spec in enumerate(candidate_specs):
+        compile_request = _build_compile_request_payload(
+            backend_name=backend_name_norm,
+            seed_transpiler=int(spec["seed_transpiler"]),
+            transpile_optimization_level=int(spec["transpile_optimization_level"]),
+            source=f"{str(route)}_candidate",
+        )
+        _ai_log(
+            "compile_control_scout_candidate_start",
+            route=str(route),
+            candidate_index=int(idx),
+            candidate_label=str(spec["label"]),
+            seed_transpiler=int(spec["seed_transpiler"]),
+            transpile_optimization_level=int(spec["transpile_optimization_level"]),
+            candidate_total=int(len(candidate_specs)),
+        )
+        _emit_progress(
+            "compile_control_scout_candidate_started",
+            candidate_index=int(idx),
+            candidate_label=str(spec["label"]),
+            compile_request=dict(compile_request),
+            candidate_counts=_candidate_counts_payload(candidates),
+            elapsed_s=float(time.perf_counter() - t0),
+            partial_payload=_partial_payload(
+                reason="in_progress",
+                candidates=candidates,
+                last_candidate_label=str(spec["label"]),
+                last_candidate_index=int(idx),
+                elapsed_s=float(time.perf_counter() - t0),
+            ),
+        )
         try:
-            eval_payload = _evaluate_locked_imported_circuit_energy(
+            noisy_eval = _evaluate_locked_imported_circuit_noisy_energy(
                 circuit=ctx["circuit"],
                 ordered_labels_exyz=list(ctx["ordered_labels_exyz"]),
                 static_coeff_map_exyz=dict(ctx["static_coeff_map_exyz"]),
@@ -3040,6 +4210,11 @@ def _run_imported_compile_control_scout_core(
                 omp_shm_workaround=bool(omp_shm_workaround),
                 seed_transpiler=int(spec["seed_transpiler"]),
                 transpile_optimization_level=int(spec["transpile_optimization_level"]),
+                qop=qop,
+            )
+            eval_payload = _combine_locked_imported_circuit_energy_evaluations(
+                noisy_eval=noisy_eval,
+                ideal_eval=ideal_eval,
             )
             backend_info = (
                 dict(eval_payload.get("backend_info", {}))
@@ -3047,14 +4222,30 @@ def _run_imported_compile_control_scout_core(
                 else {}
             )
             compile_metrics = _extract_compile_metrics_from_backend_info(backend_info)
+            compile_observation = _build_compile_observation_payload(
+                requested=compile_request,
+                backend_info=backend_info,
+            )
+            compile_metrics_flat = dict(compile_metrics)
+            compile_metrics_flat.pop("transpile_seed", None)
+            compile_metrics_flat.pop("transpile_optimization_level", None)
             candidates.append(
                 {
                     "success": True,
                     "candidate_index": int(idx),
                     "label": str(spec["label"]),
                     "is_baseline": bool(spec["is_baseline"]),
-                    "transpile_seed": int(spec["seed_transpiler"]),
-                    "transpile_optimization_level": int(spec["transpile_optimization_level"]),
+                    "requested_backend_name": compile_request.get("backend_name", None),
+                    "requested_seed_transpiler": compile_request.get("seed_transpiler", None),
+                    "requested_transpile_optimization_level": compile_request.get(
+                        "transpile_optimization_level", None
+                    ),
+                    "compile_request": dict(compile_request),
+                    "compile_observation": dict(compile_observation),
+                    "transpile_seed": compile_metrics.get("transpile_seed", None),
+                    "transpile_optimization_level": compile_metrics.get(
+                        "transpile_optimization_level", None
+                    ),
                     "noisy_mean": float(eval_payload["noisy_mean"]),
                     "noisy_stderr": float(eval_payload["noisy_stderr"]),
                     "ideal_mean": float(eval_payload["ideal_mean"]),
@@ -3063,7 +4254,7 @@ def _run_imported_compile_control_scout_core(
                     "delta_stderr": float(eval_payload["delta_stderr"]),
                     "delta_abs": abs(float(eval_payload["delta_mean"])),
                     "backend_info": backend_info,
-                    **compile_metrics,
+                    **compile_metrics_flat,
                 }
             )
         except Exception as exc:
@@ -3073,23 +4264,67 @@ def _run_imported_compile_control_scout_core(
                     "candidate_index": int(idx),
                     "label": str(spec["label"]),
                     "is_baseline": bool(spec["is_baseline"]),
+                    "requested_backend_name": compile_request.get("backend_name", None),
+                    "requested_seed_transpiler": compile_request.get("seed_transpiler", None),
+                    "requested_transpile_optimization_level": compile_request.get(
+                        "transpile_optimization_level", None
+                    ),
+                    "compile_request": dict(compile_request),
+                    "compile_observation": {
+                        "available": False,
+                        "requested": dict(compile_request),
+                        "observed": None,
+                        "matches_requested": None,
+                        "mismatch_fields": [],
+                        "reason": "candidate_exception",
+                    },
                     "transpile_seed": int(spec["seed_transpiler"]),
                     "transpile_optimization_level": int(spec["transpile_optimization_level"]),
                     "reason": "candidate_exception",
                     "error": f"{type(exc).__name__}: {exc}",
                 }
             )
+        last_candidate = dict(candidates[-1])
+        _ai_log(
+            "compile_control_scout_candidate_done",
+            route=str(route),
+            candidate_index=int(idx),
+            candidate_label=str(spec["label"]),
+            success=bool(last_candidate.get("success", False)),
+            delta_mean=last_candidate.get("delta_mean", None),
+            compiled_two_qubit_count=last_candidate.get("compiled_two_qubit_count", None),
+            compiled_depth=last_candidate.get("compiled_depth", None),
+            elapsed_s=float(time.perf_counter() - t0),
+        )
+        _emit_progress(
+            "compile_control_scout_candidate_completed",
+            candidate_index=int(idx),
+            candidate_label=str(spec["label"]),
+            candidate=last_candidate,
+            candidate_counts=_candidate_counts_payload(candidates),
+            elapsed_s=float(time.perf_counter() - t0),
+            partial_payload=_partial_payload(
+                reason="in_progress",
+                candidates=candidates,
+                last_candidate_label=str(spec["label"]),
+                last_candidate_index=int(idx),
+                elapsed_s=float(time.perf_counter() - t0),
+            ),
+        )
 
     successful_candidates = [dict(rec) for rec in candidates if bool(rec.get("success", False))]
     if not successful_candidates:
-        return {
-            "success": False,
-            "available": False,
-            "reason": f"{reason_prefix}_no_successful_candidates",
-            "artifact_json": str(ctx["path"]),
-            "pool_type": None if pool_type is None else str(pool_type),
-            "candidates": candidates,
-        }
+        return _partial_payload(
+            reason=f"{reason_prefix}_no_successful_candidates",
+            candidates=candidates,
+            last_candidate_label=(
+                None if not candidates else str(candidates[-1].get("label", ""))
+            ),
+            last_candidate_index=(
+                None if not candidates else int(candidates[-1].get("candidate_index", 0))
+            ),
+            elapsed_s=float(time.perf_counter() - t0),
+        )
 
     ranked_candidates = _rank_imported_compile_control_candidates(
         successful_candidates,
@@ -3184,7 +4419,20 @@ def _run_imported_compile_control_scout_core(
             "failed": int(len(candidates) - len(successful_candidates)),
         },
         "baseline_candidate": baseline_candidate,
+        "baseline_compile_request": (
+            None
+            if not isinstance(baseline_candidate, Mapping)
+            else dict(baseline_candidate.get("compile_request", {}) or {})
+        ),
+        "baseline_compile_observation": (
+            None
+            if not isinstance(baseline_candidate, Mapping)
+            else dict(baseline_candidate.get("compile_observation", {}) or {})
+        ),
         "best_candidate": best_candidate,
+        "best_candidate_compile_observation": dict(
+            best_candidate.get("compile_observation", {}) or {}
+        ),
         "candidates": candidates,
         "ranking": ranking_summary,
         "elapsed_s": float(time.perf_counter() - t0),
@@ -3263,6 +4511,7 @@ def _run_imported_fixed_scaffold_compile_control_scout(
     scout_transpile_optimization_levels: Sequence[int],
     scout_seed_transpilers: Sequence[int],
     rank_policy: str,
+    progress_callback: Callable[[dict[str, Any]], None] | None = None,
 ) -> dict[str, Any]:
     ctx, ansatz_input_state_meta, subject, error_payload = _resolve_locked_imported_fixed_scaffold_context(
         artifact_json,
@@ -3293,6 +4542,7 @@ def _run_imported_fixed_scaffold_compile_control_scout(
         rank_policy=str(rank_policy),
         extra_payload=_locked_subject_payload_fields(subject),
         artifact_compile_recommendation=_extract_fixed_scaffold_compile_recommendation(ctx),
+        progress_callback=progress_callback,
     )
 
 
@@ -3428,6 +4678,428 @@ def _run_imported_fixed_scaffold_runtime_energy_only(
         },
         "energy_audits": dict(phase_evals),
         "backend_info": dict(main_eval_payload.get("backend_info", {})) if isinstance(main_eval_payload, Mapping) else {},
+        **_locked_subject_payload_fields(subject),
+    }
+
+
+def _run_imported_fixed_scaffold_runtime_raw_baseline(
+    *,
+    artifact_json: str,
+    shots: int,
+    seed: int,
+    oracle_repeats: int,
+    oracle_aggregate: str,
+    backend_name: str | None,
+    use_fake_backend: bool,
+    allow_aer_fallback: bool,
+    omp_shm_workaround: bool,
+    mitigation_config: dict[str, Any],
+    symmetry_mitigation_config: dict[str, Any],
+    runtime_profile_config: dict[str, Any],
+    runtime_session_config: dict[str, Any],
+    transpile_optimization_level: int,
+    seed_transpiler: int | None,
+    raw_transport: str = "auto",
+    raw_store_memory: bool = False,
+    raw_artifact_path: str | None = None,
+) -> dict[str, Any]:
+    ctx, ansatz_input_state_meta, subject, error_payload = _resolve_locked_imported_fixed_scaffold_context(
+        artifact_json,
+        nonfixed_reason="fixed_scaffold_runtime_raw_baseline_requires_locked_fixed_scaffold_source",
+    )
+    if error_payload is not None or ctx is None or subject is None:
+        return dict(error_payload or {})
+    requested_mitigation_cfg = dict(normalize_mitigation_config(mitigation_config))
+    requested_symmetry_cfg = dict(normalize_symmetry_mitigation_config(symmetry_mitigation_config))
+    runtime_profile_cfg = dict(normalize_runtime_estimator_profile_config(runtime_profile_config))
+    runtime_session_cfg = dict(normalize_runtime_session_policy_config(runtime_session_config))
+
+    symmetry_meta = _resolve_locked_imported_hh_symmetry_metadata(ctx)
+
+    effective_requested_symmetry_cfg = dict(requested_symmetry_cfg)
+    if symmetry_meta is not None:
+        effective_requested_symmetry_cfg.update(
+            {
+                "num_sites": int(symmetry_meta["num_sites"]),
+                "ordering": str(symmetry_meta["ordering"]),
+                "sector_n_up": int(symmetry_meta["sector_n_up"]),
+                "sector_n_dn": int(symmetry_meta["sector_n_dn"]),
+            }
+        )
+    effective_num_sites = effective_requested_symmetry_cfg.get("num_sites", None)
+    effective_ordering = effective_requested_symmetry_cfg.get("ordering", None)
+    effective_sector_n_up = effective_requested_symmetry_cfg.get("sector_n_up", None)
+    effective_sector_n_dn = effective_requested_symmetry_cfg.get("sector_n_dn", None)
+
+    raw_transport_key = str(raw_transport).strip().lower() or "auto"
+    if bool(use_fake_backend):
+        backend_name = "FakeMarrakesh" if backend_name in {None, ""} else str(backend_name)
+        requested_mitigation_mode = str(requested_mitigation_cfg.get("mode", "none"))
+        if requested_mitigation_mode not in {"none", "readout"}:
+            return {
+                "success": False,
+                "available": False,
+                "reason": "fixed_scaffold_runtime_raw_baseline_local_postprocessing_requires_none_or_readout",
+                "artifact_json": str(ctx["path"]),
+                **_locked_subject_payload_fields(subject),
+            }
+        if requested_mitigation_mode == "readout" and requested_mitigation_cfg.get(
+            "local_readout_strategy", None
+        ) in {None, "", "none"}:
+            requested_mitigation_cfg["local_readout_strategy"] = "mthree"
+        if requested_mitigation_mode == "readout" and str(
+            requested_mitigation_cfg.get("local_readout_strategy", "mthree")
+        ) != "mthree":
+            return {
+                "success": False,
+                "available": False,
+                "reason": "fixed_scaffold_runtime_raw_baseline_local_postprocessing_requires_mthree",
+                "artifact_json": str(ctx["path"]),
+                **_locked_subject_payload_fields(subject),
+            }
+        if requested_mitigation_cfg.get("zne_scales", []):
+            return {
+                "success": False,
+                "available": False,
+                "reason": "fixed_scaffold_runtime_raw_baseline_local_postprocessing_rejects_zne",
+                "artifact_json": str(ctx["path"]),
+                **_locked_subject_payload_fields(subject),
+            }
+        if requested_mitigation_cfg.get("dd_sequence", None) not in {None, "", "none"}:
+            return {
+                "success": False,
+                "available": False,
+                "reason": "fixed_scaffold_runtime_raw_baseline_local_postprocessing_rejects_dd",
+                "artifact_json": str(ctx["path"]),
+                **_locked_subject_payload_fields(subject),
+            }
+        if bool(requested_mitigation_cfg.get("local_gate_twirling", False)):
+            return {
+                "success": False,
+                "available": False,
+                "reason": "fixed_scaffold_runtime_raw_baseline_local_postprocessing_rejects_gate_twirling",
+                "artifact_json": str(ctx["path"]),
+                **_locked_subject_payload_fields(subject),
+            }
+        if str(effective_requested_symmetry_cfg.get("mode", "off")) not in {
+            "off",
+            "verify_only",
+            "postselect_diag_v1",
+            "projector_renorm_v1",
+        }:
+            return {
+                "success": False,
+                "available": False,
+                "reason": "fixed_scaffold_runtime_raw_baseline_local_postprocessing_requires_diagonal_symmetry",
+                "artifact_json": str(ctx["path"]),
+                **_locked_subject_payload_fields(subject),
+            }
+        if raw_transport_key == "sampler_v2":
+            return {
+                "success": False,
+                "available": False,
+                "reason": "fixed_scaffold_runtime_raw_baseline_requires_backend_run_transport",
+                "artifact_json": str(ctx["path"]),
+                **_locked_subject_payload_fields(subject),
+            }
+        acquisition_mitigation_cfg = dict(normalize_mitigation_config({"mode": "none"}))
+        acquisition_symmetry_cfg = dict(
+            normalize_symmetry_mitigation_config({"mode": "off"})
+        )
+        acquisition_noise_mode = "backend_scheduled"
+    else:
+        if backend_name in {None, ""}:
+            return {
+                "success": False,
+                "available": False,
+                "reason": "fixed_scaffold_runtime_raw_baseline_requires_backend_name",
+                "artifact_json": str(ctx["path"]),
+                **_locked_subject_payload_fields(subject),
+            }
+        if str(requested_mitigation_cfg.get("mode", "none")) != "none":
+            return {
+                "success": False,
+                "available": False,
+                "reason": "fixed_scaffold_runtime_raw_baseline_requires_no_mitigation",
+                "artifact_json": str(ctx["path"]),
+                **_locked_subject_payload_fields(subject),
+            }
+        if str(effective_requested_symmetry_cfg.get("mode", "off")) != "off":
+            return {
+                "success": False,
+                "available": False,
+                "reason": "fixed_scaffold_runtime_raw_baseline_requires_symmetry_off",
+                "artifact_json": str(ctx["path"]),
+                **_locked_subject_payload_fields(subject),
+            }
+        if str(runtime_profile_cfg.get("name", "legacy_runtime_v0")) != "legacy_runtime_v0":
+            return {
+                "success": False,
+                "available": False,
+                "reason": "fixed_scaffold_runtime_raw_baseline_requires_legacy_runtime_profile",
+                "artifact_json": str(ctx["path"]),
+                **_locked_subject_payload_fields(subject),
+            }
+        try:
+            normalize_sampler_raw_runtime_config(
+                OracleConfig(
+                    noise_mode="runtime",
+                    shots=int(shots),
+                    seed=int(seed),
+                    seed_transpiler=(
+                        None if seed_transpiler is None else int(seed_transpiler)
+                    ),
+                    transpile_optimization_level=int(transpile_optimization_level),
+                    oracle_repeats=int(oracle_repeats),
+                    oracle_aggregate=str(oracle_aggregate),
+                    backend_name=str(backend_name),
+                    use_fake_backend=False,
+                    allow_aer_fallback=bool(allow_aer_fallback),
+                    aer_fallback_mode="sampler_shots",
+                    omp_shm_workaround=bool(omp_shm_workaround),
+                    mitigation=dict(requested_mitigation_cfg),
+                    symmetry_mitigation=dict(
+                        normalize_symmetry_mitigation_config({"mode": "off"})
+                    ),
+                    runtime_profile=dict(runtime_profile_cfg),
+                    runtime_session=dict(runtime_session_cfg),
+                    execution_surface="raw_measurement_v1",
+                    raw_transport=str(raw_transport),
+                    raw_store_memory=bool(raw_store_memory),
+                    raw_artifact_path=(
+                        None if raw_artifact_path in {None, ""} else str(raw_artifact_path)
+                    ),
+                )
+            )
+        except ValueError as exc:
+            msg = str(exc)
+            if "raw_transport" in msg:
+                reason = "fixed_scaffold_runtime_raw_baseline_requires_sampler_transport"
+            elif "backend_name" in msg:
+                reason = "fixed_scaffold_runtime_raw_baseline_requires_backend_name"
+            elif "use_fake_backend=False" in msg or "noise_mode='runtime'" in msg:
+                reason = "fixed_scaffold_runtime_raw_baseline_requires_runtime_backend"
+            elif "mitigation_mode='none'" in msg:
+                reason = "fixed_scaffold_runtime_raw_baseline_requires_no_mitigation"
+            elif "symmetry_mitigation='off'" in msg:
+                reason = "fixed_scaffold_runtime_raw_baseline_requires_symmetry_off"
+            elif "runtime_profile='legacy_runtime_v0'" in msg:
+                reason = "fixed_scaffold_runtime_raw_baseline_requires_legacy_runtime_profile"
+            else:
+                reason = "fixed_scaffold_runtime_raw_baseline_invalid_sampler_runtime_config"
+            return {
+                "success": False,
+                "available": False,
+                "reason": str(reason),
+                "artifact_json": str(ctx["path"]),
+                **_locked_subject_payload_fields(subject),
+            }
+        acquisition_mitigation_cfg = dict(requested_mitigation_cfg)
+        acquisition_symmetry_cfg = dict(
+            normalize_symmetry_mitigation_config({"mode": "off"})
+        )
+        acquisition_noise_mode = "runtime"
+
+    layout = ctx["layout"]
+    nq = int(ctx["num_qubits"])
+    theta_runtime = np.asarray(ctx["theta_runtime"], dtype=float).reshape(-1)
+    ref_state = np.asarray(ctx["ansatz_input_state"], dtype=complex).reshape(-1)
+    ordered_labels_exyz = list(ctx["ordered_labels_exyz"])
+    static_coeff_map_exyz = dict(ctx["static_coeff_map_exyz"])
+    plan = build_parameterized_ansatz_plan(layout, nq=int(nq), ref_state=ref_state)
+
+    main_eval = _evaluate_locked_imported_circuit_raw_energy(
+        plan=plan,
+        theta_runtime=theta_runtime,
+        ordered_labels_exyz=ordered_labels_exyz,
+        static_coeff_map_exyz=static_coeff_map_exyz,
+        shots=int(shots),
+        seed=int(seed),
+        oracle_repeats=int(oracle_repeats),
+        oracle_aggregate=str(oracle_aggregate),
+        mitigation_config=acquisition_mitigation_cfg,
+        symmetry_mitigation_config=acquisition_symmetry_cfg,
+        backend_name=(None if backend_name in {None, ""} else str(backend_name)),
+        use_fake_backend=bool(use_fake_backend),
+        allow_aer_fallback=bool(allow_aer_fallback),
+        omp_shm_workaround=bool(omp_shm_workaround),
+        seed_transpiler=(None if seed_transpiler is None else int(seed_transpiler)),
+        transpile_optimization_level=int(transpile_optimization_level),
+        runtime_profile_config=runtime_profile_cfg,
+        runtime_session_config=runtime_session_cfg,
+        raw_transport=str(raw_transport),
+        raw_store_memory=bool(raw_store_memory),
+        raw_artifact_path=(None if raw_artifact_path in {None, ""} else str(raw_artifact_path)),
+    )
+    main_compile_signature = _runtime_compile_signature(main_eval.get("backend_info", {}))
+    symmetry_diagnostic = _evaluate_locked_imported_circuit_raw_symmetry_diagnostic(
+        plan=plan,
+        theta_runtime=theta_runtime,
+        shots=int(shots),
+        seed=int(seed),
+        oracle_repeats=int(oracle_repeats),
+        oracle_aggregate=str(oracle_aggregate),
+        mitigation_config=acquisition_mitigation_cfg,
+        symmetry_mitigation_config=acquisition_symmetry_cfg,
+        backend_name=(None if backend_name in {None, ""} else str(backend_name)),
+        use_fake_backend=bool(use_fake_backend),
+        allow_aer_fallback=bool(allow_aer_fallback),
+        omp_shm_workaround=bool(omp_shm_workaround),
+        num_sites=(None if effective_num_sites is None else int(effective_num_sites)),
+        ordering=(None if effective_ordering is None else str(effective_ordering)),
+        sector_n_up=(None if effective_sector_n_up is None else int(effective_sector_n_up)),
+        sector_n_dn=(None if effective_sector_n_dn is None else int(effective_sector_n_dn)),
+        seed_transpiler=(None if seed_transpiler is None else int(seed_transpiler)),
+        transpile_optimization_level=int(transpile_optimization_level),
+        runtime_profile_config=runtime_profile_cfg,
+        runtime_session_config=runtime_session_cfg,
+        raw_transport=str(raw_transport),
+        raw_store_memory=bool(raw_store_memory),
+        raw_artifact_path=(None if raw_artifact_path in {None, ""} else str(raw_artifact_path)),
+        diagonal_postprocessing_mitigation_config=dict(requested_mitigation_cfg),
+        diagonal_postprocessing_symmetry_config=dict(effective_requested_symmetry_cfg),
+    )
+    symmetry_validation = _evaluate_locked_imported_circuit_raw_symmetry_validation(
+        plan=plan,
+        theta_runtime=theta_runtime,
+        symmetry_diagnostic=symmetry_diagnostic,
+        num_sites=(None if effective_num_sites is None else int(effective_num_sites)),
+        ordering=(None if effective_ordering is None else str(effective_ordering)),
+        sector_n_up=(None if effective_sector_n_up is None else int(effective_sector_n_up)),
+        sector_n_dn=(None if effective_sector_n_dn is None else int(effective_sector_n_dn)),
+    )
+    symmetry_bootstrap = _evaluate_locked_imported_circuit_raw_symmetry_bootstrap(
+        symmetry_diagnostic=symmetry_diagnostic,
+        num_sites=(None if effective_num_sites is None else int(effective_num_sites)),
+        ordering=(None if effective_ordering is None else str(effective_ordering)),
+        sector_n_up=(None if effective_sector_n_up is None else int(effective_sector_n_up)),
+        sector_n_dn=(None if effective_sector_n_dn is None else int(effective_sector_n_dn)),
+        oracle_repeats=int(oracle_repeats),
+        seed=int(seed),
+    )
+    diagonal_postprocessing = (
+        symmetry_diagnostic.get("diagonal_postprocessing", {})
+        if isinstance(symmetry_diagnostic, Mapping)
+        and isinstance(symmetry_diagnostic.get("diagonal_postprocessing", {}), Mapping)
+        else {
+            "success": False,
+            "available": False,
+            "reason": "diagonal_postprocessing_unavailable",
+            "summary": None,
+            "readout_details": None,
+            "error_type": None,
+            "error_message": None,
+        }
+    )
+    diagonal_postprocessing = {
+        **dict(diagonal_postprocessing),
+        "validation": _evaluate_locked_imported_circuit_raw_diagonal_postprocessing_validation(
+            plan=plan,
+            theta_runtime=theta_runtime,
+            diagonal_postprocessing=diagonal_postprocessing,
+            num_sites=(None if effective_num_sites is None else int(effective_num_sites)),
+            ordering=(None if effective_ordering is None else str(effective_ordering)),
+            sector_n_up=(None if effective_sector_n_up is None else int(effective_sector_n_up)),
+            sector_n_dn=(None if effective_sector_n_dn is None else int(effective_sector_n_dn)),
+        ),
+    }
+    phase_evals = {
+        "main": {
+            "success": True,
+            "profile": dict(runtime_profile_cfg),
+            "evaluation": dict(main_eval),
+            "compile_signature": dict(main_compile_signature),
+            "symmetry_diagnostic": dict(symmetry_diagnostic),
+            "symmetry_validation": dict(symmetry_validation),
+            "symmetry_bootstrap": dict(symmetry_bootstrap),
+            "diagonal_postprocessing": dict(diagonal_postprocessing),
+        },
+        "dd_probe": {
+            "enabled": False,
+            "success": False,
+            "reason": "raw_acquisition_only_v1",
+        },
+        "final_audit_zne": {
+            "enabled": False,
+            "success": False,
+            "reason": "raw_acquisition_only_v1",
+        },
+    }
+    compile_control = _build_compile_request_payload(
+        backend_name=(None if backend_name in {None, ""} else str(backend_name)),
+        seed_transpiler=(None if seed_transpiler is None else int(seed_transpiler)),
+        transpile_optimization_level=int(transpile_optimization_level),
+        source="fixed_scaffold_runtime_transpile_cli",
+    )
+    compile_observation = _build_compile_observation_payload(
+        requested=compile_control,
+        backend_info=(
+            main_eval.get("backend_info", {})
+            if isinstance(main_eval.get("backend_info", {}), Mapping)
+            else {}
+        ),
+    )
+    backend_info_payload = (
+        dict(main_eval.get("backend_info", {})) if isinstance(main_eval, Mapping) else {}
+    )
+    backend_details = (
+        dict(backend_info_payload.get("details", {}))
+        if isinstance(backend_info_payload.get("details", {}), Mapping)
+        else {}
+    )
+    backend_details["symmetry_diagnostic"] = {
+        "observable_family": symmetry_diagnostic.get("observable_family", None),
+        "evaluation_id": symmetry_diagnostic.get("evaluation_id", None),
+        "transport": symmetry_diagnostic.get("transport", None),
+        "raw_artifact_path": symmetry_diagnostic.get("raw_artifact_path", None),
+        "record_count": int(symmetry_diagnostic.get("record_count", 0) or 0),
+        "diagonal_postprocessing_available": bool(
+            diagonal_postprocessing.get("available", False)
+        ),
+        "group_count": symmetry_diagnostic.get("group_count", None),
+        "term_count": symmetry_diagnostic.get("term_count", None),
+        "compile_signatures_by_basis": dict(
+            symmetry_diagnostic.get("compile_signatures_by_basis", {}) or {}
+        ),
+    }
+    backend_info_payload["details"] = dict(backend_details)
+    return {
+        "success": True,
+        "available": True,
+        "route": "fixed_scaffold_runtime_raw_baseline",
+        "artifact_json": str(ctx["path"]),
+        "candidate_artifact_json": str(ctx["path"]),
+        "source_kind": str(ctx.get("source_kind", "unknown")),
+        "pool_type": str(subject.pool_type),
+        "structure_locked": True,
+        "reference_state_embedded": True,
+        "ansatz_input_state_source": ansatz_input_state_meta.get("source", None),
+        "ansatz_input_state_kind": ansatz_input_state_meta.get("handoff_state_kind", None),
+        "noise_config": {
+            "noise_mode": str(acquisition_noise_mode),
+            "shots": int(shots),
+            "oracle_repeats": int(oracle_repeats),
+            "oracle_aggregate": str(oracle_aggregate),
+            "backend_name": (None if backend_name in {None, ""} else str(backend_name)),
+            "mitigation": dict(acquisition_mitigation_cfg),
+            "symmetry_mitigation": dict(acquisition_symmetry_cfg),
+            "runtime_profile": dict(runtime_profile_cfg),
+            "runtime_session": dict(runtime_session_cfg),
+            "execution_surface": "raw_measurement_v1",
+            "raw_transport": str(raw_transport),
+            "raw_store_memory": bool(raw_store_memory),
+            "raw_artifact_path": (None if raw_artifact_path in {None, ""} else str(raw_artifact_path)),
+            "requested_diagonal_postprocessing": {
+                "mitigation": dict(requested_mitigation_cfg),
+                "symmetry_mitigation": dict(effective_requested_symmetry_cfg),
+                "order": "readout_then_symmetry",
+                "observable_scope": "full_register_diagonal_only",
+            },
+        },
+        "compile_control": dict(compile_control),
+        "compile_observation": dict(compile_observation),
+        "energy_audits": dict(phase_evals),
+        "backend_info": dict(backend_info_payload),
         **_locked_subject_payload_fields(subject),
     }
 
@@ -3585,28 +5257,6 @@ def _run_imported_fixed_scaffold_noisy_replay(
     )
     if error_payload is not None or ctx is None or subject is None:
         return dict(error_payload or {})
-    expected_subject_kind = "hh_marrakesh_gate_pruned_6term_drop_eyezee_v1"
-    if str(subject.subject_kind) != str(expected_subject_kind):
-        payload = {
-            "success": False,
-            "available": False,
-            "reason": "fixed_scaffold_replay_local_requires_marrakesh_6term_subject",
-            "artifact_json": str(ctx["path"]),
-            "expected_subject_kind": str(expected_subject_kind),
-            "observed_subject_kind": str(subject.subject_kind),
-            "structure_locked": True,
-            "pool_type": str(subject.pool_type),
-            **_locked_subject_payload_fields(subject),
-        }
-        _ai_log(
-            "fixed_scaffold_replay_failed",
-            route="fixed_scaffold_noisy_replay",
-            reason=str(payload["reason"]),
-            artifact_json=str(ctx["path"]),
-            expected_subject_kind=str(expected_subject_kind),
-            observed_subject_kind=str(subject.subject_kind),
-        )
-        return payload
     if not bool(use_fake_backend):
         payload = {
             "success": False,
@@ -3628,32 +5278,30 @@ def _run_imported_fixed_scaffold_noisy_replay(
 
     mitigation_cfg = dict(normalize_mitigation_config(mitigation_config))
     symmetry_cfg = dict(normalize_symmetry_mitigation_config(symmetry_mitigation_config))
-    if str(mitigation_cfg.get("mode", "none")) != "readout":
-        return {
-            "success": False,
-            "available": False,
-            "reason": "fixed_scaffold_replay_requires_readout_mitigation",
-            "artifact_json": str(ctx["path"]),
-        }
+    mitigation_mode_key = str(mitigation_cfg.get("mode", "none")).strip().lower()
+    symmetry_mode_key = str(symmetry_cfg.get("mode", "off")).strip().lower()
     if bool(use_fake_backend):
-        strategy = str(mitigation_cfg.get("local_readout_strategy") or "mthree")
-        if strategy != "mthree":
+        if mitigation_mode_key not in {"none", "readout"}:
             return {
                 "success": False,
                 "available": False,
-                "reason": "fixed_scaffold_replay_requires_mthree_for_backend_scheduled",
+                "reason": "fixed_scaffold_replay_backend_scheduled_supports_only_none_or_readout",
                 "artifact_json": str(ctx["path"]),
             }
-        mitigation_cfg["local_readout_strategy"] = "mthree"
+        if mitigation_mode_key == "readout":
+            strategy = str(mitigation_cfg.get("local_readout_strategy") or "mthree")
+            if strategy != "mthree":
+                return {
+                    "success": False,
+                    "available": False,
+                    "reason": "fixed_scaffold_replay_requires_mthree_for_backend_scheduled",
+                    "artifact_json": str(ctx["path"]),
+                }
+            mitigation_cfg["local_readout_strategy"] = "mthree"
+        else:
+            mitigation_cfg["local_readout_strategy"] = None
     else:
         mitigation_cfg["local_readout_strategy"] = None
-    if str(symmetry_cfg.get("mode", "off")) != "off":
-        return {
-            "success": False,
-            "available": False,
-            "reason": "fixed_scaffold_replay_requires_symmetry_off",
-            "artifact_json": str(ctx["path"]),
-        }
     if bool(mitigation_cfg.get("dd_sequence")):
         return {
             "success": False,
@@ -3684,11 +5332,20 @@ def _run_imported_fixed_scaffold_noisy_replay(
     )
 
     noisy_mode = "backend_scheduled"
-    local_mitigation_label = (
-        "readout_plus_gate_twirling"
-        if bool(mitigation_cfg.get("local_gate_twirling", False))
-        else "readout_only"
-    )
+    if mitigation_mode_key == "readout":
+        local_mitigation_label = (
+            "readout_plus_gate_twirling"
+            if bool(mitigation_cfg.get("local_gate_twirling", False))
+            else "readout_only"
+        )
+    elif mitigation_mode_key == "none":
+        local_mitigation_label = (
+            "gate_twirling_only"
+            if bool(mitigation_cfg.get("local_gate_twirling", False))
+            else "none"
+        )
+    else:
+        local_mitigation_label = str(mitigation_mode_key)
     runtime_profile_cfg = dict(normalize_runtime_estimator_profile_config(runtime_profile_config))
     runtime_session_cfg = dict(normalize_runtime_session_policy_config(runtime_session_config))
     noisy_cfg = OracleConfig(
@@ -3737,6 +5394,7 @@ def _run_imported_fixed_scaffold_noisy_replay(
                 execution_mode="backend_scheduled",
                 backend_name=(None if backend_name is None else str(backend_name)),
                 local_mitigation_label=str(local_mitigation_label),
+                symmetry_mitigation_mode=str(symmetry_mode_key),
                 **fields,
             )
         except Exception:
@@ -4359,6 +6017,8 @@ def _run_noisy_mode_isolated(
     kwargs: dict[str, Any],
     timeout_s: int,
 ) -> dict[str, Any]:
+    latest_progress: dict[str, Any] | None = None
+    latest_partial_payload: dict[str, Any] | None = None
     ctx = mp.get_context("spawn")
     queue = ctx.Queue()
     proc = ctx.Process(target=_noisy_worker_entry, args=(queue, kwargs), daemon=False)
@@ -4376,6 +6036,23 @@ def _run_noisy_mode_isolated(
         }
 
     if int(proc.exitcode or 0) != 0:
+        nonzero_payload = (
+            dict(latest_partial_payload)
+            if isinstance(latest_partial_payload, Mapping)
+            else {}
+        )
+        if nonzero_payload:
+            nonzero_payload.update(
+                {
+                    "success": False,
+                    "env_blocked": True,
+                    "reason": "subprocess_nonzero_exit",
+                    "exitcode": int(proc.exitcode or 0),
+                }
+            )
+            if isinstance(latest_progress, Mapping):
+                nonzero_payload["last_progress_event"] = latest_progress.get("event", None)
+            return nonzero_payload
         return {
             "success": False,
             "env_blocked": True,
@@ -4453,16 +6130,30 @@ def _imported_fixed_lean_compile_control_scout_worker_entry(queue: Any, kwargs: 
 
 
 def _imported_fixed_scaffold_compile_control_scout_worker_entry(queue: Any, kwargs: dict[str, Any]) -> None:
+    def _progress(payload: dict[str, Any]) -> None:
+        queue.put({"kind": "progress", "payload": dict(payload)})
+
     try:
-        payload = _run_imported_fixed_scaffold_compile_control_scout(**kwargs)
-        queue.put({"ok": True, "payload": payload})
+        payload = _run_imported_fixed_scaffold_compile_control_scout(
+            progress_callback=_progress,
+            **kwargs,
+        )
+        queue.put({"kind": "result", "ok": True, "payload": payload})
     except Exception as exc:  # pragma: no cover - subprocess fault path
-        queue.put({"ok": False, "error": f"{type(exc).__name__}: {exc}"})
+        queue.put({"kind": "result", "ok": False, "error": f"{type(exc).__name__}: {exc}"})
 
 
 def _imported_fixed_scaffold_runtime_energy_only_worker_entry(queue: Any, kwargs: dict[str, Any]) -> None:
     try:
         payload = _run_imported_fixed_scaffold_runtime_energy_only(**kwargs)
+        queue.put({"ok": True, "payload": payload})
+    except Exception as exc:  # pragma: no cover - subprocess fault path
+        queue.put({"ok": False, "error": f"{type(exc).__name__}: {exc}"})
+
+
+def _imported_fixed_scaffold_runtime_raw_baseline_worker_entry(queue: Any, kwargs: dict[str, Any]) -> None:
+    try:
+        payload = _run_imported_fixed_scaffold_runtime_raw_baseline(**kwargs)
         queue.put({"ok": True, "payload": payload})
     except Exception as exc:  # pragma: no cover - subprocess fault path
         queue.put({"ok": False, "error": f"{type(exc).__name__}: {exc}"})
@@ -4779,6 +6470,140 @@ def _run_imported_fixed_scaffold_compile_control_scout_mode_isolated(
         daemon=False,
     )
     proc.start()
+
+    def _drain_messages() -> tuple[dict[str, Any] | None, dict[str, Any] | None]:
+        result_msg: dict[str, Any] | None = None
+        latest_progress: dict[str, Any] | None = None
+        while True:
+            try:
+                msg = queue.get_nowait()
+            except pyqueue.Empty:
+                break
+            kind = str(msg.get("kind", "result"))
+            if kind == "progress":
+                payload = msg.get("payload", {})
+                if isinstance(payload, Mapping):
+                    latest_progress = dict(payload)
+            else:
+                result_msg = dict(msg)
+        return result_msg, latest_progress
+
+    started_at = time.monotonic()
+    deadline = started_at + float(timeout_s)
+    result_msg: dict[str, Any] | None = None
+    latest_progress: dict[str, Any] | None = None
+    latest_partial_payload: dict[str, Any] | None = None
+
+    def _finalize_failure_payload(
+        *,
+        reason: str,
+        exitcode: int | None,
+    ) -> dict[str, Any]:
+        payload = (
+            dict(latest_partial_payload)
+            if latest_partial_payload is not None
+            else {}
+        )
+        payload.update(
+            {
+                "success": False,
+                "env_blocked": True,
+                "reason": str(reason),
+                "exitcode": exitcode,
+                "elapsed_s": float(max(0.0, time.monotonic() - started_at)),
+            }
+        )
+        if isinstance(latest_progress, Mapping):
+            payload["last_progress_event"] = latest_progress.get("event", None)
+        return payload
+
+    while True:
+        remaining = deadline - time.monotonic()
+        if remaining <= 0.0:
+            break
+        proc.join(timeout=min(0.25, remaining))
+        drained_result, drained_progress = _drain_messages()
+        if drained_progress is not None:
+            latest_progress = dict(drained_progress)
+            partial_payload = drained_progress.get("partial_payload", {})
+            if partial_payload is not None:
+                latest_partial_payload = dict(partial_payload)
+        if drained_result is not None:
+            result_msg = dict(drained_result)
+        if result_msg is not None and not proc.is_alive():
+            break
+        if not proc.is_alive():
+            break
+
+    drained_result, drained_progress = _drain_messages()
+    if drained_progress is not None:
+        latest_progress = dict(drained_progress)
+        partial_payload = drained_progress.get("partial_payload", {})
+        if partial_payload is not None:
+            latest_partial_payload = dict(partial_payload)
+    if drained_result is not None:
+        result_msg = dict(drained_result)
+
+    if proc.is_alive():
+        proc.terminate()
+        proc.join(5.0)
+        timeout_payload = _finalize_failure_payload(
+            reason=f"timeout_after_{int(timeout_s)}s",
+            exitcode=proc.exitcode,
+        )
+        if timeout_payload:
+            return timeout_payload
+        return {
+            "success": False,
+            "env_blocked": True,
+            "reason": f"timeout_after_{int(timeout_s)}s",
+            "exitcode": proc.exitcode,
+        }
+    if int(proc.exitcode or 0) != 0:
+        nonzero_payload = _finalize_failure_payload(
+            reason="subprocess_nonzero_exit",
+            exitcode=int(proc.exitcode or 0),
+        )
+        if nonzero_payload:
+            return nonzero_payload
+        return {
+            "success": False,
+            "env_blocked": True,
+            "reason": "subprocess_nonzero_exit",
+            "exitcode": int(proc.exitcode or 0),
+        }
+    if result_msg is None:
+        return {
+            "success": False,
+            "env_blocked": True,
+            "reason": "subprocess_completed_without_payload",
+            "exitcode": int(proc.exitcode or 0),
+        }
+    msg = result_msg
+    if not bool(msg.get("ok", False)):
+        return {
+            "success": False,
+            "env_blocked": True,
+            "reason": "worker_exception",
+            "error": str(msg.get("error", "unknown")),
+            "exitcode": int(proc.exitcode or 0),
+        }
+    return dict(msg.get("payload", {}))
+
+
+def _run_imported_fixed_scaffold_runtime_energy_only_mode_isolated(
+    *,
+    kwargs: dict[str, Any],
+    timeout_s: int,
+) -> dict[str, Any]:
+    ctx = mp.get_context("spawn")
+    queue = ctx.Queue()
+    proc = ctx.Process(
+        target=_imported_fixed_scaffold_runtime_energy_only_worker_entry,
+        args=(queue, kwargs),
+        daemon=False,
+    )
+    proc.start()
     proc.join(timeout=float(timeout_s))
     if proc.is_alive():
         proc.terminate()
@@ -4815,7 +6640,7 @@ def _run_imported_fixed_scaffold_compile_control_scout_mode_isolated(
     return dict(msg.get("payload", {}))
 
 
-def _run_imported_fixed_scaffold_runtime_energy_only_mode_isolated(
+def _run_imported_fixed_scaffold_runtime_raw_baseline_mode_isolated(
     *,
     kwargs: dict[str, Any],
     timeout_s: int,
@@ -4823,7 +6648,7 @@ def _run_imported_fixed_scaffold_runtime_energy_only_mode_isolated(
     ctx = mp.get_context("spawn")
     queue = ctx.Queue()
     proc = ctx.Process(
-        target=_imported_fixed_scaffold_runtime_energy_only_worker_entry,
+        target=_imported_fixed_scaffold_runtime_raw_baseline_worker_entry,
         args=(queue, kwargs),
         daemon=False,
     )

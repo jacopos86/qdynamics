@@ -65,3 +65,55 @@ def test_rank_rescue_candidates_skips_when_gain_too_small() -> None:
     )
     assert best is None
     assert meta["reason"] == "insufficient_overlap_gain"
+
+
+def test_rank_rescue_candidates_prefers_cheap_score_over_legacy_simple_tie_break() -> None:
+    cfg = RescueConfig(min_overlap_gain=1e-6)
+    best, meta = rank_rescue_candidates(
+        records=[
+            {
+                "candidate_pool_index": 1,
+                "position_id": 0,
+                "cheap_score": 0.9,
+                "simple_score": 0.1,
+            },
+            {
+                "candidate_pool_index": 0,
+                "position_id": 0,
+                "cheap_score": 0.4,
+                "simple_score": 9.0,
+            },
+        ],
+        overlap_gain_fn=lambda _rec: 0.2,
+        cfg=cfg,
+    )
+    assert meta["executed"] is True
+    assert best is not None
+    assert int(best["candidate_pool_index"]) == 1
+
+
+def test_rank_rescue_candidates_phase3_exact_tie_ignores_legacy_simple_score() -> None:
+    cfg = RescueConfig(min_overlap_gain=1e-6)
+    best, meta = rank_rescue_candidates(
+        records=[
+            {
+                "candidate_pool_index": 0,
+                "position_id": 0,
+                "cheap_score": 0.5,
+                "cheap_score_version": "phase3_cheap_ratio_v1",
+                "simple_score": 0.1,
+            },
+            {
+                "candidate_pool_index": 1,
+                "position_id": 0,
+                "cheap_score": 0.5,
+                "cheap_score_version": "phase3_cheap_ratio_v1",
+                "simple_score": 9.0,
+            },
+        ],
+        overlap_gain_fn=lambda _rec: 0.2,
+        cfg=cfg,
+    )
+    assert meta["executed"] is True
+    assert best is not None
+    assert int(best["candidate_pool_index"]) == 0

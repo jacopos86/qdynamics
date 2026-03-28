@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+import gzip
+import json
 from pathlib import Path
 import sys
 from types import SimpleNamespace
+from typing import Any
 
 import numpy as np
 import pytest
@@ -18,6 +21,7 @@ import pipelines.exact_bench.noise_oracle_runtime as nor
 from pipelines.exact_bench.noise_oracle_runtime import (
     ExpectationOracle,
     OracleConfig,
+    RawMeasurementOracle,
     _ansatz_to_circuit,
     _pauli_poly_to_sparse_pauli_op,
     build_runtime_layout_circuit,
@@ -25,7 +29,13 @@ from pipelines.exact_bench.noise_oracle_runtime import (
     normalize_ideal_reference_symmetry_mitigation,
     normalize_runtime_estimator_profile_config,
     normalize_runtime_session_policy_config,
+    normalize_sampler_raw_runtime_config,
     normalize_symmetry_mitigation_config,
+)
+from pipelines.hardcoded.adapt_circuit_execution import (
+    bind_parameterized_ansatz_circuit,
+    build_ansatz_circuit,
+    build_parameterized_ansatz_plan,
 )
 from src.quantum.ansatz_parameterization import build_parameter_layout
 from src.quantum.compiled_ansatz import CompiledAnsatzExecutor
@@ -204,6 +214,36 @@ def test_backend_scheduled_deterministic_with_fixed_seed_and_fake_backend() -> N
 
     assert est_a.mean == pytest.approx(est_b.mean, abs=1e-12)
     assert est_a.stderr == pytest.approx(est_b.stderr, abs=1e-12)
+
+
+def test_backend_scheduled_collect_term_sample_returns_raw_payload() -> None:
+    qc = QuantumCircuit(1)
+    qc.x(0)
+    with ExpectationOracle(
+        OracleConfig(
+            noise_mode="backend_scheduled",
+            shots=64,
+            seed=7,
+            oracle_repeats=1,
+            backend_name="FakeGuadalupeV2",
+            use_fake_backend=True,
+        )
+    ) as oracle:
+        group_payload = oracle.collect_backend_scheduled_group_sample(qc, "Z", repeat_idx=0)
+        payload = oracle.collect_backend_scheduled_term_sample(qc, "Z", repeat_idx=0)
+
+    assert group_payload["basis_label"] == "Z"
+    assert group_payload["measured_logical_qubits"] == [0]
+    assert isinstance(group_payload["counts"], dict)
+    assert int(payload["repeat_index"]) == 0
+    assert int(payload["shots"]) == 64
+    assert np.isfinite(float(payload["expectation"]))
+    assert isinstance(payload["counts"], dict)
+    assert isinstance(payload["term_details"], dict)
+    assert "active_physical_qubits" in payload["term_details"]
+    assert isinstance(oracle.backend_info.details.get("readout_mitigation", {}), dict)
+    assert isinstance(oracle.backend_info.details.get("local_gate_twirling", {}), dict)
+    assert isinstance(oracle.backend_info.details.get("local_dynamical_decoupling", {}), dict)
 
 
 def test_backend_scheduled_mthree_readout_records_details() -> None:
@@ -1153,3 +1193,737 @@ def test_configure_runtime_estimator_options_applies_explicit_profile() -> None:
     assert details["engine"] == "runtime_profile"
     assert details["provider_strategy"] == "explicit_profile"
     assert details["applied"] is True
+
+
+def test_parameterized_ansatz_plan_digest_stable_and_theta_independent() -> None:
+    term = AnsatzTerm(
+        label="op_x",
+        polynomial=PauliPolynomial("JW", [PauliTerm(1, ps="x", pc=1.0)]),
+    )
+    layout = build_parameter_layout([term], ignore_identity=True, coefficient_tolerance=1e-12, sort_terms=True)
+    psi_ref = np.asarray([1.0 + 0.0j, 0.0 + 0.0j], dtype=complex)
+
+    plan_a = build_parameterized_ansatz_plan(layout, nq=1, ref_state=psi_ref)
+    plan_b = build_parameterized_ansatz_plan(layout, nq=1, ref_state=psi_ref)
+
+    assert plan_a.structure_digest == plan_b.structure_digest
+    assert plan_a.reference_state_digest == plan_b.reference_state_digest
+    assert plan_a.plan_digest == plan_b.plan_digest
+
+    theta_a = np.asarray([0.1], dtype=float)
+    theta_b = np.asarray([-0.2], dtype=float)
+    _ = bind_parameterized_ansatz_circuit(plan_a, theta_a)
+    _ = bind_parameterized_ansatz_circuit(plan_a, theta_b)
+
+    assert plan_a.plan_digest == plan_b.plan_digest
+
+
+def test_build_ansatz_circuit_matches_parameterized_plan_binding() -> None:
+    term = AnsatzTerm(
+        label="op_x",
+        polynomial=PauliPolynomial("JW", [PauliTerm(1, ps="x", pc=1.0)]),
+    )
+    layout = build_parameter_layout([term], ignore_identity=True, coefficient_tolerance=1e-12, sort_terms=True)
+    theta = np.asarray([0.2], dtype=float)
+    psi_ref = np.asarray([1.0 + 0.0j, 0.0 + 0.0j], dtype=complex)
+
+    plan = build_parameterized_ansatz_plan(layout, nq=1, ref_state=psi_ref)
+    qc_bound = bind_parameterized_ansatz_circuit(plan, theta)
+    qc_direct = build_ansatz_circuit(layout, theta, 1, ref_state=psi_ref)
+
+    psi_bound = np.asarray(Statevector.from_instruction(qc_bound).data, dtype=complex).reshape(-1)
+    psi_direct = np.asarray(Statevector.from_instruction(qc_direct).data, dtype=complex).reshape(-1)
+    fidelity = float(abs(np.vdot(psi_bound, psi_direct)) ** 2)
+    assert fidelity > 1.0 - 1e-10
+
+
+def test_parameterized_measured_template_keeps_parameters_after_transpile() -> None:
+    term = AnsatzTerm(
+        label="op_x",
+        polynomial=PauliPolynomial("JW", [PauliTerm(1, ps="x", pc=1.0)]),
+    )
+    layout = build_parameter_layout([term], ignore_identity=True, coefficient_tolerance=1e-12, sort_terms=True)
+    psi_ref = np.asarray([1.0 + 0.0j, 0.0 + 0.0j], dtype=complex)
+    plan = build_parameterized_ansatz_plan(layout, nq=1, ref_state=psi_ref)
+    measured, _active = nor._sparse_term_measurement_circuit(plan.circuit, "X")
+    backend, _name = nor._load_fake_backend("FakeGuadalupeV2")
+    compiled = compile_circuit_for_local_backend(
+        measured,
+        backend,
+        seed_transpiler=0,
+        optimization_level=1,
+    )
+
+    assert len(tuple(compiled["compiled"].parameters)) == 1
+
+
+def test_bind_group_template_allows_compiled_parameter_subset() -> None:
+    term = AnsatzTerm(
+        label="op_z",
+        polynomial=PauliPolynomial("JW", [PauliTerm(1, ps="z", pc=1.0)]),
+    )
+    layout = build_parameter_layout([term], ignore_identity=True, coefficient_tolerance=1e-12, sort_terms=True)
+    plan = build_parameterized_ansatz_plan(
+        layout,
+        nq=1,
+        ref_state=np.asarray([1.0 + 0.0j, 0.0 + 0.0j], dtype=complex),
+    )
+
+    with RawMeasurementOracle(
+        OracleConfig(
+            noise_mode="backend_scheduled",
+            shots=32,
+            seed=7,
+            oracle_repeats=1,
+            backend_name="FakeGuadalupeV2",
+            use_fake_backend=True,
+        )
+    ) as oracle:
+        bound = oracle._bind_group_template(
+            {"compiled": QuantumCircuit(1, 1)},
+            plan,
+            np.asarray([0.3], dtype=float),
+        )
+
+    assert isinstance(bound, QuantumCircuit)
+    assert len(tuple(bound.parameters)) == 0
+
+
+def _raw_record(
+    *,
+    basis_label: str,
+    repeat_index: int,
+    counts: dict[str, int],
+    measured_logical_qubits: tuple[int, ...],
+    group_terms: tuple[dict[str, Any], ...],
+    num_qubits: int = 1,
+    evaluation_id: str = "eval-1",
+    observable_family: str = "unit_test",
+    semantic_tags: dict[str, Any] | None = None,
+) -> nor.RawMeasurementRecord:
+    shots = int(sum(int(v) for v in counts.values()))
+    measured_physical_qubits = tuple(int(q) for q in measured_logical_qubits)
+    logical_to_physical = tuple(range(int(num_qubits)))
+    physical_to_logical = {str(int(q)): int(q) for q in logical_to_physical}
+    return nor.RawMeasurementRecord(
+        schema_version="raw_measurement_record_v1",
+        record_id=f"record-{basis_label}-{repeat_index}",
+        evaluation_id=str(evaluation_id),
+        execution_surface="raw_measurement_v1",
+        observable_family=str(observable_family),
+        semantic_tags=dict(semantic_tags or {}),
+        group_index=0,
+        basis_label=str(basis_label),
+        group_terms=group_terms,
+        plan_digest="plan",
+        structure_digest="structure",
+        reference_state_digest=None,
+        theta_runtime=(0.0,),
+        theta_digest="theta",
+        logical_parameter_count=1,
+        runtime_parameter_count=1,
+        num_qubits=int(num_qubits),
+        measured_logical_qubits=tuple(measured_logical_qubits),
+        measured_physical_qubits=measured_physical_qubits,
+        logical_to_physical=logical_to_physical,
+        physical_to_logical=physical_to_logical,
+        compile_signature={"compiled_depth": 1},
+        backend_snapshot={"backend_name": "stub"},
+        transport="backend_run",
+        call_path="backend_run_counts",
+        job_records=tuple(),
+        repeat_index=int(repeat_index),
+        shots_requested=shots,
+        shots_completed=shots,
+        counts=dict(counts),
+        requested_mitigation={"mode": "none"},
+        requested_symmetry_mitigation={"mode": "off"},
+        requested_runtime_profile={"name": "legacy_runtime_v0"},
+        requested_runtime_session={"mode": "prefer_session"},
+        parent_record_ids=tuple(),
+        emitted_utc="2026-03-26T00:00:00Z",
+    )
+
+
+def test_reduce_grouped_counts_repeat_aligned_returns_raw_values() -> None:
+    observable = SparsePauliOp.from_list([("Z", 1.0)])
+    records = [
+        _raw_record(
+            basis_label="Z",
+            repeat_index=0,
+            counts={"0": 16},
+            measured_logical_qubits=(0,),
+            group_terms=({"label": "Z", "coeff_re": 1.0, "coeff_im": 0.0},),
+        ),
+        _raw_record(
+            basis_label="Z",
+            repeat_index=1,
+            counts={"1": 16},
+            measured_logical_qubits=(0,),
+            group_terms=({"label": "Z", "coeff_re": 1.0, "coeff_im": 0.0},),
+        ),
+    ]
+
+    estimate = nor._reduce_grouped_counts_to_observable(
+        observable,
+        records,
+        aggregate="mean",
+    )
+
+    assert estimate.reduction_mode == "repeat_aligned_full_observable"
+    assert estimate.n_samples == 2
+    assert estimate.raw_values == pytest.approx((1.0, -1.0))
+    assert estimate.mean == pytest.approx(0.0, abs=1e-12)
+
+
+def test_reduce_grouped_counts_falls_back_when_repeat_grid_incomplete() -> None:
+    observable = SparsePauliOp.from_list([("Z", 1.0)])
+    records = [
+        _raw_record(
+            basis_label="Z",
+            repeat_index=0,
+            counts={"0": 16},
+            measured_logical_qubits=(0,),
+            group_terms=({"label": "Z", "coeff_re": 1.0, "coeff_im": 0.0},),
+        ),
+        _raw_record(
+            basis_label="Z",
+            repeat_index=0,
+            counts={"1": 16},
+            measured_logical_qubits=(0,),
+            group_terms=({"label": "Z", "coeff_re": 1.0, "coeff_im": 0.0},),
+        ),
+    ]
+
+    estimate = nor._reduce_grouped_counts_to_observable(
+        observable,
+        records,
+        aggregate="mean",
+    )
+
+    assert estimate.reduction_mode == "weighted_term_fallback"
+    assert estimate.aggregate == "weighted_term_fallback"
+
+
+def test_reduce_grouped_counts_missing_expected_repeat_falls_back() -> None:
+    observable = SparsePauliOp.from_list([("Z", 1.0)])
+    records = [
+        _raw_record(
+            basis_label="Z",
+            repeat_index=0,
+            counts={"0": 16},
+            measured_logical_qubits=(0,),
+            group_terms=({"label": "Z", "coeff_re": 1.0, "coeff_im": 0.0},),
+        ),
+        _raw_record(
+            basis_label="Z",
+            repeat_index=2,
+            counts={"1": 16},
+            measured_logical_qubits=(0,),
+            group_terms=({"label": "Z", "coeff_re": 1.0, "coeff_im": 0.0},),
+        ),
+    ]
+
+    estimate = nor._reduce_grouped_counts_to_observable(
+        observable,
+        records,
+        aggregate="mean",
+        expected_repeat_count=3,
+    )
+
+    assert estimate.reduction_mode == "weighted_term_fallback"
+    assert estimate.aggregate == "weighted_term_fallback"
+
+
+def test_raw_measurement_oracle_backend_scheduled_emits_records_and_estimate() -> None:
+    term = AnsatzTerm(
+        label="op_x",
+        polynomial=PauliPolynomial("JW", [PauliTerm(1, ps="x", pc=1.0)]),
+    )
+    layout = build_parameter_layout([term], ignore_identity=True, coefficient_tolerance=1e-12, sort_terms=True)
+    plan = build_parameterized_ansatz_plan(
+        layout,
+        nq=1,
+        ref_state=np.asarray([1.0 + 0.0j, 0.0 + 0.0j], dtype=complex),
+    )
+    observable = SparsePauliOp.from_list([("Z", 1.0)])
+    with RawMeasurementOracle(
+        OracleConfig(
+            noise_mode="backend_scheduled",
+            shots=64,
+            seed=7,
+            oracle_repeats=2,
+            backend_name="FakeGuadalupeV2",
+            use_fake_backend=True,
+            raw_store_memory=True,
+        )
+    ) as oracle:
+        bundle = oracle.measure_observable(
+            plan=plan,
+            theta_runtime=np.asarray([0.0], dtype=float),
+            observable=observable,
+            observable_family="unit_test",
+        )
+
+    assert bundle.transport == "backend_run"
+    assert bundle.estimate.record_count == 2
+    assert bundle.estimate.group_count == 1
+    assert len(bundle.records) == 2
+    assert len(oracle.memory_records) == 2
+    assert bundle.records[0].basis_label == "Z"
+    assert bundle.records[0].measured_logical_qubits == (0,)
+    assert isinstance(bundle.records[0].compile_signature, dict)
+
+
+def test_raw_measurement_oracle_compile_cache_reused_across_theta_changes(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    term = AnsatzTerm(
+        label="op_x",
+        polynomial=PauliPolynomial("JW", [PauliTerm(1, ps="x", pc=1.0)]),
+    )
+    layout = build_parameter_layout([term], ignore_identity=True, coefficient_tolerance=1e-12, sort_terms=True)
+    plan = build_parameterized_ansatz_plan(
+        layout,
+        nq=1,
+        ref_state=np.asarray([1.0 + 0.0j, 0.0 + 0.0j], dtype=complex),
+    )
+    observable = SparsePauliOp.from_list([("Z", 1.0)])
+    compile_calls = {"count": 0}
+    orig_compile = nor.compile_circuit_for_local_backend
+
+    def _counting_compile(*args, **kwargs):
+        compile_calls["count"] += 1
+        return orig_compile(*args, **kwargs)
+
+    monkeypatch.setattr(nor, "compile_circuit_for_local_backend", _counting_compile)
+    with RawMeasurementOracle(
+        OracleConfig(
+            noise_mode="backend_scheduled",
+            shots=32,
+            seed=7,
+            oracle_repeats=1,
+            backend_name="FakeGuadalupeV2",
+            use_fake_backend=True,
+        )
+    ) as oracle:
+        _ = oracle.measure_observable(
+            plan=plan,
+            theta_runtime=np.asarray([0.0], dtype=float),
+            observable=observable,
+            observable_family="unit_test",
+        )
+        _ = oracle.measure_observable(
+            plan=plan,
+            theta_runtime=np.asarray([0.2], dtype=float),
+            observable=observable,
+            observable_family="unit_test",
+        )
+
+    assert compile_calls["count"] == 1
+
+
+def test_summarize_hh_full_register_z_records_reports_sector_weight_and_doublon() -> None:
+    tags = {
+        "symmetry_num_sites": 2,
+        "symmetry_ordering": "blocked",
+        "symmetry_sector_n_up": 1,
+        "symmetry_sector_n_dn": 1,
+    }
+    records = [
+        _raw_record(
+            basis_label="ZZZZZZ",
+            repeat_index=0,
+            counts={"000101": 4, "001010": 4},
+            measured_logical_qubits=(0, 1, 2, 3, 4, 5),
+            group_terms=({"label": "ZZZZZZ", "coeff_re": 1.0, "coeff_im": 0.0},),
+            num_qubits=6,
+            observable_family="fixed_scaffold_runtime_all_z_symmetry_diagnostic",
+            semantic_tags=tags,
+        ),
+        _raw_record(
+            basis_label="ZZZZZZ",
+            repeat_index=1,
+            counts={"000101": 4, "000001": 4},
+            measured_logical_qubits=(0, 1, 2, 3, 4, 5),
+            group_terms=({"label": "ZZZZZZ", "coeff_re": 1.0, "coeff_im": 0.0},),
+            num_qubits=6,
+            observable_family="fixed_scaffold_runtime_all_z_symmetry_diagnostic",
+            semantic_tags=tags,
+        ),
+    ]
+
+    summary = nor._summarize_hh_full_register_z_records(records, expected_repeat_count=2)
+
+    assert summary["source"] == "raw_all_z_full_register_v1"
+    assert summary["repeat_grid_complete"] is True
+    assert summary["sector_weight_mean"] == pytest.approx(0.75)
+    assert summary["doublon_total_mean"] == pytest.approx(0.75)
+    assert summary["sector_distribution"]["sorted_by"] == "n_up_then_n_dn"
+    assert summary["sector_distribution"]["weights_by_sector"] == [
+        {"n_up": 1, "n_dn": 0, "mean": pytest.approx(0.25), "std": pytest.approx(0.3535533905932738), "stderr": pytest.approx(0.25)},
+        {"n_up": 1, "n_dn": 1, "mean": pytest.approx(0.75), "std": pytest.approx(0.3535533905932738), "stderr": pytest.approx(0.25)},
+    ]
+    assert summary["site_observables"]["site_index_order"] == "physical_site_0_to_n_minus_1"
+    assert summary["site_observables"]["doublon_by_site_mean"] == pytest.approx([0.5, 0.25])
+    assert summary["site_observables"]["charge_by_site_mean"] == pytest.approx([1.25, 0.5])
+    assert summary["observable_span"]["supports_postselected_energy"] is False
+    assert summary["observable_span"]["supports_projector_renorm_energy"] is False
+
+
+def test_summarize_hh_exact_diagonal_reference_reports_sector_weight_and_doublon() -> None:
+    qc = QuantumCircuit(4)
+    qc.x(0)
+    qc.x(2)
+
+    summary = nor._summarize_hh_exact_diagonal_reference(
+        qc,
+        num_sites=2,
+        ordering="blocked",
+        sector_n_up=1,
+        sector_n_dn=1,
+    )
+
+    assert summary["source"] == "ideal_diagonal_v1"
+    assert summary["sector_weight"] == pytest.approx(1.0)
+    assert summary["doublon_total"] == pytest.approx(1.0)
+    assert summary["target_sector"] == {"n_up": 1, "n_dn": 1}
+
+
+def test_bootstrap_hh_full_register_z_records_reports_confidence_intervals() -> None:
+    tags = {
+        "symmetry_num_sites": 2,
+        "symmetry_ordering": "blocked",
+        "symmetry_sector_n_up": 1,
+        "symmetry_sector_n_dn": 1,
+    }
+    records = [
+        _raw_record(
+            basis_label="ZZZZZZ",
+            repeat_index=0,
+            counts={"000101": 4, "001010": 4},
+            measured_logical_qubits=(0, 1, 2, 3, 4, 5),
+            group_terms=({"label": "ZZZZZZ", "coeff_re": 1.0, "coeff_im": 0.0},),
+            num_qubits=6,
+            observable_family="fixed_scaffold_runtime_all_z_symmetry_diagnostic",
+            semantic_tags=tags,
+        ),
+        _raw_record(
+            basis_label="ZZZZZZ",
+            repeat_index=1,
+            counts={"000101": 4, "000001": 4},
+            measured_logical_qubits=(0, 1, 2, 3, 4, 5),
+            group_terms=({"label": "ZZZZZZ", "coeff_re": 1.0, "coeff_im": 0.0},),
+            num_qubits=6,
+            observable_family="fixed_scaffold_runtime_all_z_symmetry_diagnostic",
+            semantic_tags=tags,
+        ),
+    ]
+
+    summary = nor._bootstrap_hh_full_register_z_records(
+        records,
+        expected_repeat_count=2,
+        bootstrap_repetitions=32,
+        seed=11,
+    )
+
+    assert summary["source"] == "hh_full_register_z_bootstrap_v1"
+    assert summary["bootstrap_repetitions"] == 32
+    assert summary["metrics"]["sector_weight"]["point_estimate"] == pytest.approx(0.75)
+    assert (
+        summary["metrics"]["sector_weight"]["ci_lower"]
+        <= summary["metrics"]["sector_weight"]["point_estimate"]
+        <= summary["metrics"]["sector_weight"]["ci_upper"]
+    )
+    assert len(summary["metrics"]["sector_distribution"]) == 2
+    assert summary["metrics"]["doublon_by_site"][0]["site"] == 0
+    assert summary["metrics"]["charge_by_site"][1]["point_estimate"] == pytest.approx(0.5)
+
+
+def test_summarize_hh_full_register_z_records_rejects_partial_register_measurement() -> None:
+    tags = {
+        "symmetry_num_sites": 2,
+        "symmetry_ordering": "blocked",
+        "symmetry_sector_n_up": 1,
+        "symmetry_sector_n_dn": 1,
+    }
+    record = _raw_record(
+        basis_label="ZZIIII",
+        repeat_index=0,
+        counts={"000101": 8},
+        measured_logical_qubits=(0, 2),
+        group_terms=({"label": "ZZIIII", "coeff_re": 1.0, "coeff_im": 0.0},),
+        num_qubits=6,
+        observable_family="fixed_scaffold_runtime_all_z_symmetry_diagnostic",
+        semantic_tags=tags,
+    )
+
+    with pytest.raises(ValueError, match="full-register"):
+        nor._summarize_hh_full_register_z_records([record], expected_repeat_count=1)
+
+
+def test_summarize_hh_full_register_z_artifact_filters_gzip_records(tmp_path: Path) -> None:
+    raw_path = tmp_path / "records.ndjson.gz"
+    diag_tags = {
+        "symmetry_num_sites": 2,
+        "symmetry_ordering": "blocked",
+        "symmetry_sector_n_up": 1,
+        "symmetry_sector_n_dn": 1,
+    }
+    for record in (
+        _raw_record(
+            basis_label="Z",
+            repeat_index=0,
+            counts={"0": 8},
+            measured_logical_qubits=(0,),
+            group_terms=({"label": "Z", "coeff_re": 1.0, "coeff_im": 0.0},),
+            evaluation_id="eval-energy",
+            observable_family="adapt_phase3_oracle_gradient",
+        ),
+        _raw_record(
+            basis_label="ZZZZZZ",
+            repeat_index=0,
+            counts={"000101": 8},
+            measured_logical_qubits=(0, 1, 2, 3, 4, 5),
+            group_terms=({"label": "ZZZZZZ", "coeff_re": 1.0, "coeff_im": 0.0},),
+            num_qubits=6,
+            evaluation_id="eval-diag",
+            observable_family="fixed_scaffold_runtime_all_z_symmetry_diagnostic",
+            semantic_tags=diag_tags,
+        ),
+        _raw_record(
+            basis_label="ZZZZZZ",
+            repeat_index=1,
+            counts={"000001": 8},
+            measured_logical_qubits=(0, 1, 2, 3, 4, 5),
+            group_terms=({"label": "ZZZZZZ", "coeff_re": 1.0, "coeff_im": 0.0},),
+            num_qubits=6,
+            evaluation_id="eval-diag",
+            observable_family="fixed_scaffold_runtime_all_z_symmetry_diagnostic",
+            semantic_tags=diag_tags,
+        ),
+    ):
+        nor._write_raw_measurement_record(str(raw_path), record)
+
+    summary = nor._summarize_hh_full_register_z_artifact(
+        str(raw_path),
+        evaluation_id="eval-diag",
+        observable_family="fixed_scaffold_runtime_all_z_symmetry_diagnostic",
+        expected_repeat_count=2,
+    )
+
+    assert summary["evaluation_id"] == "eval-diag"
+    assert summary["raw_artifact_path"] == str(raw_path)
+    assert summary["sector_weight_mean"] == pytest.approx(0.5)
+
+
+def test_raw_measurement_oracle_all_z_diagnostic_measures_full_register() -> None:
+    term = AnsatzTerm(
+        label="op_xy",
+        polynomial=PauliPolynomial("JW", [PauliTerm(2, ps="xy", pc=1.0)]),
+    )
+    layout = build_parameter_layout([term], ignore_identity=True, coefficient_tolerance=1e-12, sort_terms=True)
+    plan = build_parameterized_ansatz_plan(
+        layout,
+        nq=2,
+        ref_state=np.asarray([1.0 + 0.0j, 0.0 + 0.0j, 0.0 + 0.0j, 0.0 + 0.0j], dtype=complex),
+    )
+    with RawMeasurementOracle(
+        OracleConfig(
+            noise_mode="backend_scheduled",
+            shots=32,
+            seed=7,
+            oracle_repeats=1,
+            backend_name="FakeGuadalupeV2",
+            use_fake_backend=True,
+        )
+    ) as oracle:
+        bundle = oracle.measure_observable(
+            plan=plan,
+            theta_runtime=np.asarray([0.0], dtype=float),
+            observable=nor._all_z_full_register_qop(2),
+            observable_family="all_z_diag_test",
+        )
+
+    assert bundle.records[0].basis_label == "ZZ"
+    assert bundle.records[0].measured_logical_qubits == (0, 1)
+    assert bundle.estimate.group_count == 1
+    assert "ZZ" in bundle.compile_signatures_by_basis
+
+
+def test_raw_measurement_oracle_ndjson_writer_appends_records(tmp_path: Path) -> None:
+    term = AnsatzTerm(
+        label="op_x",
+        polynomial=PauliPolynomial("JW", [PauliTerm(1, ps="x", pc=1.0)]),
+    )
+    layout = build_parameter_layout([term], ignore_identity=True, coefficient_tolerance=1e-12, sort_terms=True)
+    plan = build_parameterized_ansatz_plan(
+        layout,
+        nq=1,
+        ref_state=np.asarray([1.0 + 0.0j, 0.0 + 0.0j], dtype=complex),
+    )
+    observable = SparsePauliOp.from_list([("Z", 1.0)])
+    raw_path = tmp_path / "records.ndjson.gz"
+    with RawMeasurementOracle(
+        OracleConfig(
+            noise_mode="backend_scheduled",
+            shots=32,
+            seed=7,
+            oracle_repeats=2,
+            backend_name="FakeGuadalupeV2",
+            use_fake_backend=True,
+            raw_artifact_path=str(raw_path),
+        )
+    ) as oracle:
+        bundle = oracle.measure_observable(
+            plan=plan,
+            theta_runtime=np.asarray([0.0], dtype=float),
+            observable=observable,
+            observable_family="unit_test",
+        )
+
+    with gzip.open(raw_path, "rt", encoding="utf-8") as fh:
+        rows = [json.loads(line) for line in fh if line.strip()]
+
+    assert len(rows) == len(bundle.records)
+    assert rows[0]["schema_version"] == "raw_measurement_record_v1"
+    assert rows[0]["basis_label"] == "Z"
+
+
+def test_raw_measurement_oracle_default_evaluation_ids_are_unique_across_instances() -> None:
+    term = AnsatzTerm(
+        label="op_x",
+        polynomial=PauliPolynomial("JW", [PauliTerm(1, ps="x", pc=1.0)]),
+    )
+    layout = build_parameter_layout([term], ignore_identity=True, coefficient_tolerance=1e-12, sort_terms=True)
+    plan = build_parameterized_ansatz_plan(
+        layout,
+        nq=1,
+        ref_state=np.asarray([1.0 + 0.0j, 0.0 + 0.0j], dtype=complex),
+    )
+    observable = SparsePauliOp.from_list([("Z", 1.0)])
+
+    with RawMeasurementOracle(
+        OracleConfig(
+            noise_mode="backend_scheduled",
+            shots=16,
+            seed=7,
+            oracle_repeats=1,
+            backend_name="FakeGuadalupeV2",
+            use_fake_backend=True,
+        )
+    ) as oracle_a:
+        bundle_a = oracle_a.measure_observable(
+            plan=plan,
+            theta_runtime=np.asarray([0.0], dtype=float),
+            observable=observable,
+            observable_family="unit_test",
+        )
+    with RawMeasurementOracle(
+        OracleConfig(
+            noise_mode="backend_scheduled",
+            shots=16,
+            seed=7,
+            oracle_repeats=1,
+            backend_name="FakeGuadalupeV2",
+            use_fake_backend=True,
+        )
+    ) as oracle_b:
+        bundle_b = oracle_b.measure_observable(
+            plan=plan,
+            theta_runtime=np.asarray([0.0], dtype=float),
+            observable=observable,
+            observable_family="unit_test",
+        )
+
+    assert bundle_a.evaluation_id != bundle_b.evaluation_id
+    assert bundle_a.records[0].record_id != bundle_b.records[0].record_id
+
+
+def test_resolve_raw_transport_runtime_auto_prefers_sampler_v2() -> None:
+    IBMBackendStub = type("IBMBackend", (), {"run": lambda self, *args, **kwargs: None})
+    IBMBackendStub.__module__ = "qiskit_ibm_runtime.ibm_backend"
+    backend = IBMBackendStub()
+    cfg = OracleConfig(noise_mode="runtime", shots=128, raw_transport="auto")
+
+    assert nor._resolve_raw_transport(cfg, backend) == "sampler_v2"
+
+
+def test_resolve_raw_transport_runtime_rejects_backend_run_for_ibm_backend() -> None:
+    IBMBackendStub = type("IBMBackend", (), {"run": lambda self, *args, **kwargs: None})
+    IBMBackendStub.__module__ = "qiskit_ibm_runtime.ibm_backend"
+    backend = IBMBackendStub()
+    cfg = OracleConfig(noise_mode="runtime", shots=128, raw_transport="backend_run")
+
+    with pytest.raises(ValueError, match="backend_run"):
+        nor._resolve_raw_transport(cfg, backend)
+
+
+def test_resolve_raw_transport_runtime_allows_backend_run_for_direct_backend() -> None:
+    DirectBackendStub = type("DirectBackend", (), {"run": lambda self, *args, **kwargs: None})
+    DirectBackendStub.__module__ = "custom.runtime_backend"
+    backend = DirectBackendStub()
+    cfg = OracleConfig(noise_mode="runtime", shots=128, raw_transport="backend_run")
+
+    assert nor._resolve_raw_transport(cfg, backend) == "backend_run"
+
+
+def test_normalize_sampler_raw_runtime_config_accepts_runtime_sampler_contract() -> None:
+    cfg = normalize_sampler_raw_runtime_config(
+        OracleConfig(
+            noise_mode="runtime",
+            shots=128,
+            backend_name="ibm_marrakesh",
+            execution_surface="raw_measurement_v1",
+            mitigation={"mode": "none"},
+            symmetry_mitigation={"mode": "off"},
+            runtime_profile={"name": "legacy_runtime_v0"},
+            raw_transport="auto",
+        )
+    )
+
+    assert cfg.noise_mode == "runtime"
+    assert cfg.execution_surface == "raw_measurement_v1"
+    assert cfg.raw_transport == "auto"
+
+
+def test_normalize_sampler_raw_runtime_config_rejects_backend_run_transport() -> None:
+    with pytest.raises(ValueError, match="raw_transport"):
+        normalize_sampler_raw_runtime_config(
+            OracleConfig(
+                noise_mode="runtime",
+                shots=128,
+                backend_name="ibm_marrakesh",
+                execution_surface="raw_measurement_v1",
+                mitigation={"mode": "none"},
+                symmetry_mitigation={"mode": "off"},
+                runtime_profile={"name": "legacy_runtime_v0"},
+                raw_transport="backend_run",
+            )
+        )
+
+
+def test_normalize_sampler_raw_runtime_config_rejects_verify_only_symmetry() -> None:
+    with pytest.raises(ValueError, match="symmetry_mitigation='off'"):
+        normalize_sampler_raw_runtime_config(
+            OracleConfig(
+                noise_mode="runtime",
+                shots=128,
+                backend_name="ibm_marrakesh",
+                execution_surface="raw_measurement_v1",
+                mitigation={"mode": "none"},
+                symmetry_mitigation={"mode": "verify_only"},
+                runtime_profile={"name": "legacy_runtime_v0"},
+                raw_transport="sampler_v2",
+            )
+        )
+
+
+def test_expectation_oracle_marks_legacy_execution_surface() -> None:
+    qc = QuantumCircuit(1)
+    obs = SparsePauliOp.from_list([("I", 1.0)])
+
+    with ExpectationOracle(OracleConfig(noise_mode="ideal")) as oracle:
+        _ = oracle.evaluate(qc, obs)
+
+    assert oracle.backend_info.details.get("execution_surface") == "expectation_v1"

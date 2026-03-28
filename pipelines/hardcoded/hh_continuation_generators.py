@@ -268,6 +268,8 @@ def _symmetry_spec_with_runtime_gate(
 
 def rebuild_polynomial_from_serialized_terms(
     serialized_terms: Sequence[Mapping[str, Any]],
+    *,
+    drop_abs_tol: float = 1.0e-7,
 ) -> PauliPolynomial:
     nq_expected: int | None = None
     coeffs_by_label: dict[str, complex] = {}
@@ -294,7 +296,7 @@ def rebuild_polynomial_from_serialized_terms(
     poly = PauliPolynomial("JW")
     for label in label_order:
         coeff = complex(coeffs_by_label[label])
-        if abs(coeff) < 1.0e-7:
+        if abs(coeff) < float(drop_abs_tol):
             continue
         poly.add_term(PauliTerm(int(nq_expected), ps=label, pc=coeff))
     if int(poly.count_number_terms()) <= 0:

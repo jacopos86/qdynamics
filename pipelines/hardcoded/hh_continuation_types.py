@@ -35,6 +35,15 @@ class CandidateFeatures:
     trough_detected: bool
     simple_score: float | None
     score_version: str
+    F_raw: float | None = None
+    h_eff: float | None = None
+    F_red: float | None = None
+    ridge_used: float | None = None
+    cheap_score: float | None = None
+    cheap_score_version: str = "simple_v1"
+    cheap_metric_proxy: float = 0.0
+    cheap_benefit_proxy: float | None = None
+    cheap_burden_total: float | None = None
     h_hat: float | None = None
     b_hat: list[float] | None = None
     H_window: list[list[float]] | None = None
@@ -43,6 +52,7 @@ class CandidateFeatures:
     new_shot_cost: float = 0.0
     opt_dim_cost: float = 0.0
     reuse_count_cost: float = 0.0
+    family_repeat_cost: float = 0.0
     full_v2_score: float | None = None
     shortlist_rank: int | None = None
     shortlist_size: int | None = None

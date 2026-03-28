@@ -94,6 +94,26 @@ class StageController:
         self.cfg = cfg
         self._stage = "core"
 
+    def clone(self) -> "StageController":
+        cloned = StageController(self.cfg)
+        cloned._stage = str(self._stage)
+        return cloned
+
+    def snapshot(self) -> dict[str, str | StageControllerConfig]:
+        return {
+            "cfg": self.cfg,
+            "stage": str(self._stage),
+        }
+
+    @classmethod
+    def from_snapshot(cls, snapshot: dict[str, object]) -> "StageController":
+        cfg = snapshot.get("cfg")
+        if not isinstance(cfg, StageControllerConfig):
+            raise TypeError("StageController snapshot missing StageControllerConfig.")
+        out = cls(cfg)
+        out._stage = str(snapshot.get("stage", "core"))
+        return out
+
     @property
     def stage_name(self) -> str:
         return str(self._stage)

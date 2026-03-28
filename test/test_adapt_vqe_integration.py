@@ -16,9 +16,12 @@ import math
 import sys
 import time
 from pathlib import Path
+from types import SimpleNamespace
 
 import numpy as np
 import pytest
+
+import pipelines.exact_bench.noise_oracle_runtime as _raw_runtime
 
 # Ensure repo root is on path
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -38,7 +41,10 @@ from src.quantum.vqe_latex_python_pairs import (
 )
 
 # Import ADAPT pipeline internals
+import builtins
 import importlib.util
+from pipelines.hardcoded.hh_continuation_types import CompileCostEstimate
+
 _spec = importlib.util.spec_from_file_location(
     "hardcoded_adapt_pipeline",
     str(REPO_ROOT / "pipelines" / "hardcoded" / "adapt_pipeline.py"),
@@ -46,8 +52,6 @@ _spec = importlib.util.spec_from_file_location(
 _adapt_mod = importlib.util.module_from_spec(_spec)
 sys.modules["hardcoded_adapt_pipeline"] = _adapt_mod
 _spec.loader.exec_module(_adapt_mod)
-
-from pipelines.hardcoded.hh_continuation_types import CompileCostEstimate
 
 _run_hardcoded_adapt_vqe = _adapt_mod._run_hardcoded_adapt_vqe
 _build_uccsd_pool = _adapt_mod._build_uccsd_pool
@@ -68,6 +72,7 @@ _commutator_gradient = _adapt_mod._commutator_gradient
 _resolve_reopt_active_indices = _adapt_mod._resolve_reopt_active_indices
 _make_reduced_objective = _adapt_mod._make_reduced_objective
 _VALID_REOPT_POLICIES = _adapt_mod._VALID_REOPT_POLICIES
+_Phase3OracleGradientConfig = _adapt_mod.Phase3OracleGradientConfig
 
 
 def _fermion_sector_weights(
@@ -295,6 +300,11 @@ class TestAdaptCLIParsing:
         args = _adapt_mod.parse_args()
         assert str(args.adapt_state_backend) == "legacy"
 
+    def test_parse_defaults_direct_cli_continuation_mode_to_none(self, monkeypatch: pytest.MonkeyPatch):
+        monkeypatch.setattr(sys, "argv", ["adapt_pipeline.py"])
+        args = _adapt_mod.parse_args()
+        assert args.adapt_continuation_mode is None
+
     def test_parse_accepts_phase1_continuation_mode(self, monkeypatch: pytest.MonkeyPatch):
         monkeypatch.setattr(
             sys,
@@ -322,6 +332,29 @@ class TestAdaptCLIParsing:
         args = _adapt_mod.parse_args()
         assert str(args.adapt_continuation_mode) == "phase3_v1"
 
+    def test_parse_defaults_phase3_oracle_gradient_mode_off(self, monkeypatch: pytest.MonkeyPatch):
+        monkeypatch.setattr(sys, "argv", ["adapt_pipeline.py"])
+        args = _adapt_mod.parse_args()
+        assert str(args.phase3_oracle_gradient_mode) == "off"
+
+    def test_parse_accepts_phase3_oracle_backend_scheduled(self, monkeypatch: pytest.MonkeyPatch):
+        monkeypatch.setattr(
+            sys,
+            "argv",
+            ["adapt_pipeline.py", "--phase3-oracle-gradient-mode", "backend_scheduled"],
+        )
+        args = _adapt_mod.parse_args()
+        assert str(args.phase3_oracle_gradient_mode) == "backend_scheduled"
+
+    def test_parse_accepts_phase3_oracle_inner_objective_mode(self, monkeypatch: pytest.MonkeyPatch):
+        monkeypatch.setattr(
+            sys,
+            "argv",
+            ["adapt_pipeline.py", "--phase3-oracle-inner-objective-mode", "noisy_v1"],
+        )
+        args = _adapt_mod.parse_args()
+        assert str(args.phase3_oracle_inner_objective_mode) == "noisy_v1"
+
     def test_parse_rejects_auto_continuation_mode(self, monkeypatch: pytest.MonkeyPatch):
         monkeypatch.setattr(
             sys,
@@ -344,6 +377,18 @@ class TestAdaptCLIParsing:
         assert args.adapt_drop_patience is None
         assert args.adapt_drop_min_depth is None
         assert args.adapt_grad_floor is None
+
+    def test_programmatic_default_resolution_stays_legacy_for_none(self):
+        assert _adapt_mod._resolve_adapt_continuation_mode(problem="hh", requested_mode=None) == "legacy"
+
+    def test_programmatic_default_resolution_stays_legacy_for_empty_string(self):
+        assert _adapt_mod._resolve_adapt_continuation_mode(problem="hh", requested_mode="") == "legacy"
+
+    def test_cli_default_resolution_promotes_hh_to_phase3(self):
+        assert _adapt_mod._resolve_cli_adapt_continuation_mode(problem="hh", requested_mode=None) == "phase3_v1"
+
+    def test_cli_default_resolution_keeps_hubbard_legacy(self):
+        assert _adapt_mod._resolve_cli_adapt_continuation_mode(problem="hubbard", requested_mode=None) == "legacy"
 
     def test_parse_accepts_eps_energy_gate_knobs(self, monkeypatch: pytest.MonkeyPatch):
         monkeypatch.setattr(
@@ -1252,6 +1297,24 @@ class TestAdaptVQEHolsteinPAOP:
         assert int(payload["pool_size"]) > 0
 
 
+class TestAILoggingResilience:
+    def test_ai_log_ignores_broken_pipe(self, monkeypatch: pytest.MonkeyPatch):
+        calls = {"count": 0}
+
+        def _broken_print(*args, **kwargs):
+            calls["count"] += 1
+            raise BrokenPipeError()
+
+        monkeypatch.setattr(builtins, "print", _broken_print)
+        monkeypatch.setattr(_adapt_mod, "_STDOUT_PIPE_BROKEN", False)
+
+        _adapt_mod._ai_log("unit_test_event", value=1)
+        _adapt_mod._ai_log("unit_test_event_second", value=2)
+
+        assert calls["count"] == 1
+        assert _adapt_mod._STDOUT_PIPE_BROKEN is True
+
+
 class TestAdaptSPSAHeartbeats:
     """SPSA inner optimizer should emit progress heartbeats for ADAPT."""
 
@@ -2091,6 +2154,251 @@ class TestHHPhase3Continuation:
             include_zero_point=True,
         )
 
+    def _oracle_cfg(self, **overrides: object) -> _Phase3OracleGradientConfig:
+        payload: dict[str, object] = {
+            "noise_mode": "shots",
+            "shots": 64,
+            "oracle_repeats": 2,
+            "oracle_aggregate": "mean",
+            "backend_name": None,
+            "use_fake_backend": False,
+            "seed": 7,
+            "gradient_step": 0.1,
+            "mitigation_mode": "none",
+            "local_readout_strategy": None,
+            "scope": "selection_only",
+            "execution_surface_requested": "auto",
+            "execution_surface": "expectation_v1",
+            "raw_transport": "auto",
+            "raw_store_memory": False,
+            "raw_artifact_path": None,
+            "seed_transpiler": None,
+            "transpile_optimization_level": 1,
+        }
+        payload.update(overrides)
+        return _Phase3OracleGradientConfig(**payload)
+
+    def _install_fake_oracle_bindings(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+        *,
+        gradient_by_label: dict[str, float] | None = None,
+        sigma_by_label: dict[str, float] | None = None,
+        objective_mean: float | None = None,
+        objective_mean_by_stage: dict[str, float] | None = None,
+        default_gradient: float = 1.0,
+        default_sigma: float = 0.0,
+        shots: int = 64,
+        gradient_step: float = 0.1,
+        backend_name: str = "FakeNighthawk",
+        raise_on_raw_measure: bool = False,
+        raise_on_symmetry_measure: bool = False,
+    ) -> list[object]:
+        gradient_lookup = dict(gradient_by_label or {})
+        sigma_lookup = dict(sigma_by_label or {})
+        objective_lookup = dict(objective_mean_by_stage or {})
+        oracle_instances: list[object] = []
+
+        class _FakeOracleConfig:
+            def __init__(self, **kwargs: object) -> None:
+                self.__dict__.update(kwargs)
+
+        class _FakeOracle:
+            def __init__(self, config: object) -> None:
+                self.config = config
+                self.calls: list[tuple[str, float]] = []
+                self.closed = False
+                self.backend_info = SimpleNamespace(
+                    backend_name=str(backend_name),
+                    using_fake_backend=bool(getattr(config, "use_fake_backend", False)),
+                    details={"noise_mode": str(getattr(config, "noise_mode", "shots"))},
+                )
+                oracle_instances.append(self)
+
+            def evaluate(self, circuit: object, observable: object) -> SimpleNamespace:
+                del observable
+                stage = getattr(circuit, "_phase3_objective_stage", None)
+                if stage is not None:
+                    objective_val = float(objective_lookup.get(str(stage), objective_mean if objective_mean is not None else 0.0))
+                    self.calls.append((str(stage), 0.0))
+                    return SimpleNamespace(
+                        mean=float(objective_val),
+                        std=0.0,
+                        stdev=0.0,
+                        stderr=0.0,
+                        n_samples=int(shots),
+                        raw_values=[float(objective_val)],
+                        aggregate=str(getattr(self.config, "oracle_aggregate", "mean")),
+                    )
+                label = str(getattr(circuit, "_phase3_candidate_label", "unknown"))
+                sign = float(getattr(circuit, "_phase3_probe_sign", 0.0))
+                grad_target = float(gradient_lookup.get(label, default_gradient))
+                sigma_target = float(sigma_lookup.get(label, default_sigma))
+                per_eval_stderr = float(sigma_target * math.sqrt(2.0) * float(gradient_step))
+                self.calls.append((str(label), float(sign)))
+                return SimpleNamespace(
+                    mean=float(sign * grad_target * float(gradient_step)),
+                    std=float(per_eval_stderr),
+                    stdev=float(per_eval_stderr),
+                    stderr=float(per_eval_stderr),
+                    n_samples=int(shots),
+                    raw_values=[float(sign * grad_target * float(gradient_step))],
+                    aggregate=str(getattr(self.config, "oracle_aggregate", "mean")),
+                )
+
+            def close(self) -> None:
+                self.closed = True
+
+        class _FakeRawOracle:
+            def __init__(self, config: object) -> None:
+                self.config = config
+                self.calls: list[tuple[str, str]] = []
+                self.diagnostic_calls: list[tuple[str, str]] = []
+                self.closed = False
+                self.transport = "sampler_v2"
+                self.backend_snapshot = {"backend_name": str(backend_name)}
+                oracle_instances.append(self)
+
+            def measure_observable(
+                self,
+                *,
+                plan: object,
+                theta_runtime: object,
+                observable: object,
+                observable_family: str,
+                semantic_tags: dict[str, object] | None = None,
+                **_kwargs: object,
+            ) -> SimpleNamespace:
+                del theta_runtime, observable
+                tags = dict(semantic_tags or {})
+                label = str(tags.get("candidate_label", "unknown"))
+                probe_sign = str(tags.get("probe_sign", "plus"))
+                sign = 1.0 if probe_sign == "plus" else -1.0
+                grad_target = float(gradient_lookup.get(label, default_gradient))
+                sigma_target = float(sigma_lookup.get(label, default_sigma))
+                per_eval_stderr = float(sigma_target * math.sqrt(2.0) * float(gradient_step))
+                nq = int(getattr(plan, "nq", 6))
+                repeat_count = int(getattr(self.config, "oracle_repeats", 1))
+                is_symmetry_diag = str(observable_family) == "adapt_phase3_oracle_symmetry_diagnostic"
+                if is_symmetry_diag:
+                    self.diagnostic_calls.append((str(label), str(probe_sign)))
+                    if raise_on_raw_measure:
+                        raise RuntimeError("synthetic raw oracle failure")
+                    if raise_on_symmetry_measure:
+                        raise RuntimeError("synthetic symmetry diagnostic failure")
+                    basis_label = "Z" * int(nq)
+                    counts = {"000101": int(shots // 2), "001010": int(shots - (shots // 2))}
+                    records = [
+                        {
+                            "evaluation_id": f"eval-diag-{label}-{probe_sign}",
+                            "observable_family": str(observable_family),
+                            "basis_label": str(basis_label),
+                            "num_qubits": int(nq),
+                            "measured_logical_qubits": list(range(int(nq))),
+                            "repeat_index": int(repeat_idx),
+                            "counts": dict(counts),
+                            "shots_completed": int(shots),
+                            "semantic_tags": dict(tags),
+                            "transport": str(self.transport),
+                            "compile_signature": {"compiled_depth": 1},
+                        }
+                        for repeat_idx in range(int(repeat_count))
+                    ]
+                    estimate_mean = 1.0
+                    compile_signatures = {str(basis_label): {"compiled_depth": 1}}
+                else:
+                    self.calls.append((str(label), str(probe_sign)))
+                    if raise_on_raw_measure:
+                        raise RuntimeError("synthetic raw oracle failure")
+                    basis_label = "Z"
+                    records = [
+                        {
+                            "evaluation_id": f"eval-{label}-{probe_sign}",
+                            "observable_family": str(observable_family),
+                            "basis_label": "Z",
+                            "num_qubits": 1,
+                            "measured_logical_qubits": [0],
+                            "repeat_index": int(repeat_idx),
+                            "counts": ({"0": int(shots)} if sign > 0 else {"1": int(shots)}),
+                            "shots_completed": int(shots),
+                            "semantic_tags": dict(tags),
+                            "transport": str(self.transport),
+                            "compile_signature": {"compiled_depth": 1},
+                        }
+                        for repeat_idx in range(int(repeat_count))
+                    ]
+                    estimate_mean = float(sign * grad_target * float(gradient_step))
+                    compile_signatures = {"Z": {"compiled_depth": 1}}
+                estimate = SimpleNamespace(
+                    mean=float(estimate_mean),
+                    std=float(per_eval_stderr),
+                    stdev=float(per_eval_stderr),
+                    stderr=float(per_eval_stderr),
+                    n_samples=int(repeat_count),
+                    raw_values=tuple(float(estimate_mean) for _ in range(int(repeat_count))),
+                    aggregate=str(getattr(self.config, "oracle_aggregate", "mean")),
+                    total_shots=int(shots * repeat_count),
+                    group_count=1,
+                    term_count=1,
+                    record_count=len(records),
+                    reduction_mode="repeat_aligned_full_observable",
+                )
+                return SimpleNamespace(
+                    estimate=estimate,
+                    records=records,
+                    transport=str(self.transport),
+                    observable_family=str(observable_family),
+                    evaluation_id=(
+                        f"eval-diag-{label}-{probe_sign}-{len(self.diagnostic_calls)}"
+                        if is_symmetry_diag
+                        else f"eval-{label}-{probe_sign}-{len(self.calls)}"
+                    ),
+                    raw_artifact_path=getattr(self.config, "raw_artifact_path", None),
+                    compile_signatures_by_basis=compile_signatures,
+                    backend_snapshot=dict(self.backend_snapshot),
+                    plan_digest="plan",
+                    structure_digest="structure",
+                    reference_state_digest="ref",
+                )
+
+            def close(self) -> None:
+                self.closed = True
+
+        def _fake_bindings() -> dict[str, object]:
+            return {
+                "ExpectationOracle": _FakeOracle,
+                "RawMeasurementOracle": _FakeRawOracle,
+                "OracleConfig": _FakeOracleConfig,
+                "all_z_full_register_qop": _raw_runtime._all_z_full_register_qop,
+                "summarize_hh_full_register_z_records": _raw_runtime._summarize_hh_full_register_z_records,
+                "normalize_sampler_raw_runtime_config": (lambda cfg: cfg),
+                "build_runtime_layout_circuit": (
+                    lambda layout, theta_runtime, num_qubits, reference_state=None: SimpleNamespace(
+                        layout=layout,
+                        theta_runtime=np.asarray(theta_runtime, dtype=float),
+                        num_qubits=int(num_qubits),
+                        reference_state=reference_state,
+                    )
+                ),
+                "build_parameterized_ansatz_plan": (
+                    lambda layout, nq, ref_state=None: SimpleNamespace(
+                        layout=layout,
+                        nq=int(nq),
+                        circuit=SimpleNamespace(layout=layout),
+                        parameters=tuple(),
+                        reference_state=ref_state,
+                        plan_digest="plan",
+                        structure_digest="structure",
+                        reference_state_digest="ref",
+                    )
+                ),
+                "pauli_poly_to_sparse_pauli_op": (lambda poly: SimpleNamespace(poly=poly)),
+                "validate_controller_oracle_base_config": (lambda cfg: None),
+            }
+
+        monkeypatch.setattr(_adapt_mod, "_phase3_oracle_runtime_bindings", _fake_bindings)
+        return oracle_instances
+
     def test_phase3_emits_generator_motif_symmetry_and_lifetime_fields(self):
         payload, _ = _run_hardcoded_adapt_vqe(
             h_poly=self._hh_h(),
@@ -2137,6 +2445,973 @@ class TestHHPhase3Continuation:
             assert "symmetry_mode" in row
             assert "lifetime_cost_mode" in row
             assert "remaining_evaluations_proxy" in row
+            assert "cheap_score" in row
+            assert row["cheap_score_version"] == "phase3_cheap_ratio_v1"
+            assert "cheap_metric_proxy" in row
+            assert "metric_proxy" in row
+            assert "cheap_benefit_proxy" in row
+            assert "cheap_burden_total" in row
+            assert "sigma_hat" in row
+            assert row["sigma_hat"] == pytest.approx(0.0)
+            assert row["cheap_metric_proxy"] == pytest.approx(row["metric_proxy"])
+        assert continuation["phase2_shortlist_rows"]
+        assert all(
+            row["cheap_score_version"] == "phase3_cheap_ratio_v1"
+            for row in continuation["phase2_shortlist_rows"]
+        )
+        assert all(
+            row["sigma_hat"] == pytest.approx(0.0)
+            for row in continuation["phase2_shortlist_rows"]
+        )
+        assert all(
+            row["cheap_metric_proxy"] == pytest.approx(row["metric_proxy"])
+            for row in continuation["phase2_shortlist_rows"]
+        )
+
+    def test_oracle_fd_gradient_stderr_combines_stderr_in_quadrature(self):
+        stderr = _adapt_mod._oracle_fd_gradient_stderr(
+            SimpleNamespace(stderr=0.3),
+            {"stderr": 0.4},
+            grad_step=0.2,
+        )
+        assert stderr == pytest.approx(math.sqrt(0.3 ** 2 + 0.4 ** 2) / 0.4)
+
+    def test_phase3_phase1_shortlist_input_uses_raw_f_metric(self, monkeypatch: pytest.MonkeyPatch):
+        captured_phase1_metrics: list[tuple[float, float]] = []
+        original_shortlist_records = _adapt_mod.shortlist_records
+
+        def _capture_shortlist_records(records, *, cfg, score_key="simple_score", tie_break_score_key="simple_score"):
+            if score_key == "cheap_score":
+                for rec in records:
+                    feat = rec.get("feature")
+                    if feat is not None and hasattr(feat, "cheap_metric_proxy") and hasattr(feat, "g_abs"):
+                        captured_phase1_metrics.append(
+                            (float(feat.cheap_metric_proxy), float(feat.g_abs))
+                        )
+            return original_shortlist_records(
+                records,
+                cfg=cfg,
+                score_key=score_key,
+                tie_break_score_key=tie_break_score_key,
+            )
+
+        monkeypatch.setattr(_adapt_mod, "shortlist_records", _capture_shortlist_records)
+        monkeypatch.setattr(_adapt_mod, "raw_f_metric_from_state", lambda **kwargs: 123.0)
+
+        _run_hardcoded_adapt_vqe(
+            h_poly=self._hh_h(),
+            num_sites=2,
+            ordering="blocked",
+            problem="hh",
+            adapt_pool="paop_lf_std",
+            t=1.0,
+            u=2.0,
+            dv=0.0,
+            boundary="periodic",
+            omega0=1.0,
+            g_ep=0.5,
+            n_ph_max=1,
+            boson_encoding="binary",
+            max_depth=1,
+            eps_grad=1e-3,
+            eps_energy=1e-8,
+            maxiter=20,
+            seed=7,
+            allow_repeats=True,
+            finite_angle_fallback=False,
+            finite_angle=0.1,
+            finite_angle_min_improvement=1e-12,
+            adapt_reopt_policy="windowed",
+            adapt_window_size=1,
+            adapt_window_topk=0,
+            adapt_continuation_mode="phase3_v1",
+            phase3_symmetry_mitigation_mode="verify_only",
+            phase3_enable_rescue=False,
+            phase3_lifetime_cost_mode="phase3_v1",
+        )
+
+        assert captured_phase1_metrics
+        assert all(metric == pytest.approx(123.0) for metric, _ in captured_phase1_metrics)
+        assert any(abs(metric - g_abs) > 1e-6 for metric, g_abs in captured_phase1_metrics)
+
+    def test_phase3_routes_sigma_hat_from_label_resolver(self, monkeypatch: pytest.MonkeyPatch):
+        captured_sigmas: list[float] = []
+        original_shortlist_records = _adapt_mod.shortlist_records
+
+        def _capture_shortlist_records(records, *, cfg, score_key="simple_score", tie_break_score_key="simple_score"):
+            if score_key == "cheap_score":
+                for rec in records:
+                    feat = rec.get("feature")
+                    if feat is not None and hasattr(feat, "sigma_hat"):
+                        captured_sigmas.append(float(feat.sigma_hat))
+            return original_shortlist_records(
+                records,
+                cfg=cfg,
+                score_key=score_key,
+                tie_break_score_key=tie_break_score_key,
+            )
+
+        monkeypatch.setattr(_adapt_mod, "shortlist_records", _capture_shortlist_records)
+        monkeypatch.setattr(_adapt_mod, "_phase3_sigma_hat_for_label", lambda **kwargs: 0.25)
+
+        payload, _ = _run_hardcoded_adapt_vqe(
+            h_poly=self._hh_h(),
+            num_sites=2,
+            ordering="blocked",
+            problem="hh",
+            adapt_pool="paop_lf_std",
+            t=1.0,
+            u=2.0,
+            dv=0.0,
+            boundary="periodic",
+            omega0=1.0,
+            g_ep=0.5,
+            n_ph_max=1,
+            boson_encoding="binary",
+            max_depth=1,
+            eps_grad=1e-3,
+            eps_energy=1e-8,
+            maxiter=20,
+            seed=7,
+            allow_repeats=True,
+            finite_angle_fallback=False,
+            finite_angle=0.1,
+            finite_angle_min_improvement=1e-12,
+            adapt_reopt_policy="windowed",
+            adapt_window_size=1,
+            adapt_window_topk=0,
+            adapt_continuation_mode="phase3_v1",
+            phase3_symmetry_mitigation_mode="verify_only",
+            phase3_enable_rescue=False,
+            phase3_lifetime_cost_mode="phase3_v1",
+        )
+
+        assert captured_sigmas
+        assert all(sigma == pytest.approx(0.25) for sigma in captured_sigmas)
+        assert payload["history"][0]["sigma_hat"] == pytest.approx(0.25)
+
+    def test_phase3_oracle_gradient_mode_default_off_keeps_exact_path(self, monkeypatch: pytest.MonkeyPatch):
+        def _unexpected_bindings() -> dict[str, object]:
+            raise AssertionError("oracle runtime bindings should not be loaded when phase3_oracle_gradient_mode is off")
+
+        monkeypatch.setattr(_adapt_mod, "_phase3_oracle_runtime_bindings", _unexpected_bindings)
+        payload, _ = _run_hardcoded_adapt_vqe(
+            h_poly=self._hh_h(),
+            num_sites=2,
+            ordering="blocked",
+            problem="hh",
+            adapt_pool="paop_lf_std",
+            t=1.0,
+            u=2.0,
+            dv=0.0,
+            boundary="periodic",
+            omega0=1.0,
+            g_ep=0.5,
+            n_ph_max=1,
+            boson_encoding="binary",
+            max_depth=1,
+            eps_grad=1e-3,
+            eps_energy=1e-8,
+            maxiter=20,
+            seed=7,
+            allow_repeats=True,
+            finite_angle_fallback=False,
+            finite_angle=0.1,
+            finite_angle_min_improvement=1e-12,
+            adapt_reopt_policy="windowed",
+            adapt_window_size=1,
+            adapt_window_topk=0,
+            adapt_continuation_mode="phase3_v1",
+            phase3_symmetry_mitigation_mode="verify_only",
+            phase3_enable_rescue=False,
+            phase3_lifetime_cost_mode="phase3_v1",
+        )
+
+        assert payload["continuation"]["gradient_uncertainty_source"] == "zero_default"
+        assert payload["continuation"]["oracle_gradient_scope"] == "off"
+        assert payload["continuation"]["oracle_gradient_config"] is None
+        assert payload["continuation"]["oracle_gradient_calls_total"] == 0
+        assert payload["history"][0]["gradient_source"] == "exact_commutator"
+        assert payload["history"][0]["max_gradient_stderr"] == pytest.approx(0.0)
+        assert payload["history"][0]["candidate_gradient_scout"] == []
+
+    def test_phase3_oracle_gradient_mode_routes_sigma_through_real_oracle_path(self, monkeypatch: pytest.MonkeyPatch):
+        oracle_instances = self._install_fake_oracle_bindings(
+            monkeypatch,
+            default_gradient=1.0,
+            default_sigma=0.25,
+            gradient_step=0.1,
+        )
+        payload, _ = _run_hardcoded_adapt_vqe(
+            h_poly=self._hh_h(),
+            num_sites=2,
+            ordering="blocked",
+            problem="hh",
+            adapt_pool="paop_lf_std",
+            t=1.0,
+            u=2.0,
+            dv=0.0,
+            boundary="periodic",
+            omega0=1.0,
+            g_ep=0.5,
+            n_ph_max=1,
+            boson_encoding="binary",
+            max_depth=1,
+            eps_grad=1e-3,
+            eps_energy=1e-8,
+            maxiter=20,
+            seed=7,
+            allow_repeats=True,
+            finite_angle_fallback=False,
+            finite_angle=0.1,
+            finite_angle_min_improvement=1e-12,
+            adapt_reopt_policy="windowed",
+            adapt_window_size=1,
+            adapt_window_topk=0,
+            adapt_continuation_mode="phase3_v1",
+            phase3_symmetry_mitigation_mode="verify_only",
+            phase3_enable_rescue=False,
+            phase3_lifetime_cost_mode="phase3_v1",
+            phase3_oracle_gradient_config=self._oracle_cfg(gradient_step=0.1),
+        )
+
+        history_row = payload["history"][0]
+        assert payload["continuation"]["gradient_uncertainty_source"] == "oracle_fd_stderr_v1"
+        assert payload["continuation"]["oracle_gradient_scope"] == "selection_only"
+        assert payload["continuation"]["oracle_gradient_calls_total"] == 2 * len(history_row["candidate_gradient_scout"])
+        assert payload["continuation"]["oracle_backend_info"]["backend_name"] == "FakeNighthawk"
+        assert payload["continuation"]["reoptimization_backend"] == "exact_statevector"
+        assert history_row["gradient_source"] == "oracle_fd_v1"
+        assert history_row["max_gradient_stderr"] > 0.0
+        assert history_row["candidate_gradient_scout"]
+        assert any(float(row["sigma_hat"]) > 0.0 for row in history_row["candidate_gradient_scout"])
+        assert oracle_instances and getattr(oracle_instances[0], "closed", False) is True
+
+    def test_phase3_oracle_gradient_mode_keeps_reoptimization_exact(self, monkeypatch: pytest.MonkeyPatch):
+        oracle_instances = self._install_fake_oracle_bindings(
+            monkeypatch,
+            default_gradient=1.0,
+            default_sigma=0.1,
+            gradient_step=0.1,
+        )
+        payload, _ = _run_hardcoded_adapt_vqe(
+            h_poly=self._hh_h(),
+            num_sites=2,
+            ordering="blocked",
+            problem="hh",
+            adapt_pool="paop_lf_std",
+            t=1.0,
+            u=2.0,
+            dv=0.0,
+            boundary="periodic",
+            omega0=1.0,
+            g_ep=0.5,
+            n_ph_max=1,
+            boson_encoding="binary",
+            max_depth=1,
+            eps_grad=1e-3,
+            eps_energy=1e-8,
+            maxiter=20,
+            seed=7,
+            allow_repeats=True,
+            finite_angle_fallback=False,
+            finite_angle=0.1,
+            finite_angle_min_improvement=1e-12,
+            adapt_reopt_policy="windowed",
+            adapt_window_size=1,
+            adapt_window_topk=0,
+            adapt_continuation_mode="phase3_v1",
+            phase3_symmetry_mitigation_mode="verify_only",
+            phase3_enable_rescue=False,
+            phase3_lifetime_cost_mode="phase3_v1",
+            phase3_oracle_gradient_config=self._oracle_cfg(gradient_step=0.1),
+        )
+
+        history_row = payload["history"][0]
+        assert payload["continuation"]["reoptimization_backend"] == "exact_statevector"
+        assert payload["continuation"]["oracle_gradient_calls_total"] == 2 * len(history_row["candidate_gradient_scout"])
+        assert len(oracle_instances) == 1
+        assert len(oracle_instances[0].calls) == 2 * len(history_row["candidate_gradient_scout"])
+
+    def test_phase3_oracle_inner_objective_mode_requires_active_oracle_config(self):
+        with pytest.raises(ValueError, match="requires an active phase3 oracle gradient config"):
+            _run_hardcoded_adapt_vqe(
+                h_poly=self._hh_h(),
+                num_sites=2,
+                ordering="blocked",
+                problem="hh",
+                adapt_pool="paop_lf_std",
+                t=1.0,
+                u=2.0,
+                dv=0.0,
+                boundary="periodic",
+                omega0=1.0,
+                g_ep=0.5,
+                n_ph_max=1,
+                boson_encoding="binary",
+                max_depth=1,
+                eps_grad=1e-3,
+                eps_energy=1e-8,
+                maxiter=20,
+                seed=7,
+                adapt_inner_optimizer="SPSA",
+                allow_repeats=True,
+                finite_angle_fallback=False,
+                finite_angle=0.1,
+                finite_angle_min_improvement=1e-12,
+                adapt_continuation_mode="phase3_v1",
+                phase3_oracle_inner_objective_mode="noisy_v1",
+            )
+
+    def test_phase3_oracle_inner_objective_mode_requires_spsa(self):
+        with pytest.raises(ValueError, match="requires adapt_inner_optimizer='SPSA'"):
+            _run_hardcoded_adapt_vqe(
+                h_poly=self._hh_h(),
+                num_sites=2,
+                ordering="blocked",
+                problem="hh",
+                adapt_pool="paop_lf_std",
+                t=1.0,
+                u=2.0,
+                dv=0.0,
+                boundary="periodic",
+                omega0=1.0,
+                g_ep=0.5,
+                n_ph_max=1,
+                boson_encoding="binary",
+                max_depth=1,
+                eps_grad=1e-3,
+                eps_energy=1e-8,
+                maxiter=10,
+                seed=7,
+                adapt_inner_optimizer="POWELL",
+                allow_repeats=True,
+                finite_angle_fallback=False,
+                finite_angle=0.1,
+                finite_angle_min_improvement=1e-12,
+                adapt_continuation_mode="phase3_v1",
+                phase3_oracle_gradient_config=self._oracle_cfg(gradient_step=0.1),
+                phase3_oracle_inner_objective_mode="noisy_v1",
+            )
+
+    def test_phase3_oracle_inner_objective_mode_uses_oracle_energy_for_payload(self, monkeypatch: pytest.MonkeyPatch):
+        oracle_instances = self._install_fake_oracle_bindings(
+            monkeypatch,
+            default_gradient=1.0,
+            default_sigma=0.1,
+            gradient_step=0.1,
+            objective_mean=-0.321,
+        )
+        payload, _ = _run_hardcoded_adapt_vqe(
+            h_poly=self._hh_h(),
+            num_sites=2,
+            ordering="blocked",
+            problem="hh",
+            adapt_pool="paop_lf_std",
+            t=1.0,
+            u=2.0,
+            dv=0.0,
+            boundary="periodic",
+            omega0=1.0,
+            g_ep=0.5,
+            n_ph_max=1,
+            boson_encoding="binary",
+            max_depth=1,
+            eps_grad=1e-3,
+            eps_energy=1e-8,
+            maxiter=1,
+            seed=7,
+            adapt_inner_optimizer="SPSA",
+            allow_repeats=True,
+            finite_angle_fallback=False,
+            finite_angle=0.1,
+            finite_angle_min_improvement=1e-12,
+            adapt_reopt_policy="windowed",
+            adapt_window_size=1,
+            adapt_window_topk=0,
+            adapt_continuation_mode="phase3_v1",
+            phase3_symmetry_mitigation_mode="verify_only",
+            phase3_enable_rescue=True,
+            phase3_lifetime_cost_mode="phase3_v1",
+            phase3_oracle_gradient_config=self._oracle_cfg(gradient_step=0.1),
+            phase3_oracle_inner_objective_mode="noisy_v1",
+        )
+
+        assert payload["energy_source"] == "oracle_expectation_v1"
+        assert payload["energy"] == pytest.approx(-0.321)
+        assert payload["phase3_oracle_inner_objective_mode"] == "noisy_v1"
+        assert payload["continuation"]["reoptimization_backend"] == "oracle_expectation_v1"
+        assert payload["continuation"]["oracle_inner_objective_calls_total"] > 0
+        assert payload["continuation"]["phase3_enable_rescue_requested"] is True
+        assert payload["continuation"]["phase3_enable_rescue_effective"] is False
+        assert payload["exact_energy_from_final_state"] != pytest.approx(payload["energy"])
+        assert payload["exact_state_fidelity_source"] == "final_theta_exact_state_sidecar"
+        assert oracle_instances and getattr(oracle_instances[0], "closed", False) is True
+
+    def test_phase3_oracle_auto_surface_resolves_raw_for_runtime_none_mitigation(self):
+        resolved = _adapt_mod._resolve_phase3_oracle_gradient_config(
+            self._oracle_cfg(
+                noise_mode="runtime",
+                backend_name="ibm_marrakesh",
+                mitigation_mode="none",
+            )
+        )
+
+        assert resolved.execution_surface == "raw_measurement_v1"
+
+    def test_phase3_oracle_auto_surface_keeps_expectation_for_backend_scheduled(self):
+        resolved = _adapt_mod._resolve_phase3_oracle_gradient_config(
+            self._oracle_cfg(
+                noise_mode="backend_scheduled",
+                use_fake_backend=True,
+                backend_name="FakeNighthawk",
+                mitigation_mode="none",
+            )
+        )
+
+        assert resolved.execution_surface == "expectation_v1"
+
+    def test_phase3_raw_oracle_gradient_mode_routes_sigma_and_raw_summary(self, monkeypatch: pytest.MonkeyPatch):
+        oracle_instances = self._install_fake_oracle_bindings(
+            monkeypatch,
+            default_gradient=1.0,
+            default_sigma=0.25,
+            gradient_step=0.1,
+        )
+        payload, _ = _run_hardcoded_adapt_vqe(
+            h_poly=self._hh_h(),
+            num_sites=2,
+            ordering="blocked",
+            problem="hh",
+            adapt_pool="paop_lf_std",
+            t=1.0,
+            u=2.0,
+            dv=0.0,
+            boundary="periodic",
+            omega0=1.0,
+            g_ep=0.5,
+            n_ph_max=1,
+            boson_encoding="binary",
+            max_depth=1,
+            eps_grad=1e-3,
+            eps_energy=1e-8,
+            maxiter=20,
+            seed=7,
+            allow_repeats=True,
+            finite_angle_fallback=False,
+            finite_angle=0.1,
+            finite_angle_min_improvement=1e-12,
+            adapt_reopt_policy="windowed",
+            adapt_window_size=1,
+            adapt_window_topk=0,
+            adapt_continuation_mode="phase3_v1",
+            phase3_symmetry_mitigation_mode="verify_only",
+            phase3_enable_rescue=False,
+            phase3_lifetime_cost_mode="phase3_v1",
+            phase3_oracle_gradient_config=self._oracle_cfg(
+                noise_mode="runtime",
+                use_fake_backend=False,
+                backend_name="ibm_marrakesh",
+                mitigation_mode="none",
+                raw_artifact_path="artifacts/raw_phase3.ndjson.gz",
+                gradient_step=0.1,
+            ),
+        )
+
+        history_row = payload["history"][0]
+        continuation = payload["continuation"]
+        assert continuation["oracle_execution_surface"] == "raw_measurement_v1"
+        assert continuation["oracle_gradient_raw_records_total"] > 0
+        assert continuation["oracle_symmetry_diagnostic_calls_total"] == 2 * len(history_row["candidate_gradient_scout"])
+        assert continuation["oracle_symmetry_diagnostic_raw_records_total"] > 0
+        assert continuation["oracle_gradient_calls_total"] == 2 * len(history_row["candidate_gradient_scout"])
+        assert continuation["reoptimization_backend"] == "exact_statevector"
+        assert continuation["oracle_raw_transport"] == "sampler_v2"
+        assert history_row["candidate_gradient_scout"]
+        assert all(row["raw_summary"] is not None for row in history_row["candidate_gradient_scout"])
+        assert all(
+            row["raw_summary"]["symmetry_diagnostic"]["plus"]["available"] is True
+            and row["raw_summary"]["symmetry_diagnostic"]["minus"]["available"] is True
+            for row in history_row["candidate_gradient_scout"]
+        )
+        assert all(
+            row["raw_summary"]["symmetry_diagnostic"]["plus"]["summary"]["sector_weight_mean"] == pytest.approx(1.0)
+            for row in history_row["candidate_gradient_scout"]
+        )
+        assert oracle_instances and getattr(oracle_instances[0], "closed", False) is True
+
+    def test_phase3_raw_oracle_rejects_incompatible_readout_mitigation(self):
+        with pytest.raises(ValueError, match="mitigation_mode='none'"):
+            _run_hardcoded_adapt_vqe(
+                h_poly=self._hh_h(),
+                num_sites=2,
+                ordering="blocked",
+                problem="hh",
+                adapt_pool="paop_lf_std",
+                t=1.0,
+                u=2.0,
+                dv=0.0,
+                boundary="periodic",
+                omega0=1.0,
+                g_ep=0.5,
+                n_ph_max=1,
+                boson_encoding="binary",
+                max_depth=1,
+                eps_grad=1e-3,
+                eps_energy=1e-8,
+                maxiter=10,
+                seed=7,
+                allow_repeats=True,
+                finite_angle_fallback=False,
+                finite_angle=0.1,
+                finite_angle_min_improvement=1e-12,
+                adapt_continuation_mode="phase3_v1",
+                phase3_oracle_gradient_config=self._oracle_cfg(
+                    noise_mode="runtime",
+                    use_fake_backend=False,
+                    backend_name="ibm_marrakesh",
+                    execution_surface_requested="raw_measurement_v1",
+                    execution_surface="raw_measurement_v1",
+                    mitigation_mode="readout",
+                    local_readout_strategy="mthree",
+                ),
+            )
+
+    def test_phase3_raw_oracle_rejects_backend_scheduled_mode(self):
+        with pytest.raises(ValueError, match="only noise_mode='runtime'"):
+            _run_hardcoded_adapt_vqe(
+                h_poly=self._hh_h(),
+                num_sites=2,
+                ordering="blocked",
+                problem="hh",
+                adapt_pool="paop_lf_std",
+                t=1.0,
+                u=2.0,
+                dv=0.0,
+                boundary="periodic",
+                omega0=1.0,
+                g_ep=0.5,
+                n_ph_max=1,
+                boson_encoding="binary",
+                max_depth=1,
+                eps_grad=1e-3,
+                eps_energy=1e-8,
+                maxiter=10,
+                seed=7,
+                allow_repeats=True,
+                finite_angle_fallback=False,
+                finite_angle=0.1,
+                finite_angle_min_improvement=1e-12,
+                adapt_continuation_mode="phase3_v1",
+                phase3_oracle_gradient_config=self._oracle_cfg(
+                    noise_mode="backend_scheduled",
+                    use_fake_backend=True,
+                    backend_name="FakeNighthawk",
+                    execution_surface_requested="raw_measurement_v1",
+                    execution_surface="raw_measurement_v1",
+                ),
+            )
+
+    def test_phase3_raw_oracle_rejects_backend_run_transport(self):
+        with pytest.raises(ValueError, match="phase3_oracle_raw_transport"):
+            _run_hardcoded_adapt_vqe(
+                h_poly=self._hh_h(),
+                num_sites=2,
+                ordering="blocked",
+                problem="hh",
+                adapt_pool="paop_lf_std",
+                t=1.0,
+                u=2.0,
+                dv=0.0,
+                boundary="periodic",
+                omega0=1.0,
+                g_ep=0.5,
+                n_ph_max=1,
+                boson_encoding="binary",
+                max_depth=1,
+                eps_grad=1e-3,
+                eps_energy=1e-8,
+                maxiter=10,
+                seed=7,
+                allow_repeats=True,
+                finite_angle_fallback=False,
+                finite_angle=0.1,
+                finite_angle_min_improvement=1e-12,
+                adapt_continuation_mode="phase3_v1",
+                phase3_oracle_gradient_config=self._oracle_cfg(
+                    noise_mode="runtime",
+                    use_fake_backend=False,
+                    backend_name="ibm_marrakesh",
+                    execution_surface_requested="raw_measurement_v1",
+                    execution_surface="raw_measurement_v1",
+                    raw_transport="backend_run",
+                ),
+            )
+
+    def test_phase3_raw_oracle_keeps_main_run_when_symmetry_diagnostic_fails(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+    ):
+        oracle_instances = self._install_fake_oracle_bindings(
+            monkeypatch,
+            default_gradient=1.0,
+            default_sigma=0.25,
+            gradient_step=0.1,
+            raise_on_symmetry_measure=True,
+        )
+        payload, _ = _run_hardcoded_adapt_vqe(
+            h_poly=self._hh_h(),
+            num_sites=2,
+            ordering="blocked",
+            problem="hh",
+            adapt_pool="paop_lf_std",
+            t=1.0,
+            u=2.0,
+            dv=0.0,
+            boundary="periodic",
+            omega0=1.0,
+            g_ep=0.5,
+            n_ph_max=1,
+            boson_encoding="binary",
+            max_depth=1,
+            eps_grad=1e-3,
+            eps_energy=1e-8,
+            maxiter=20,
+            seed=7,
+            allow_repeats=True,
+            finite_angle_fallback=False,
+            finite_angle=0.1,
+            finite_angle_min_improvement=1e-12,
+            adapt_reopt_policy="windowed",
+            adapt_window_size=1,
+            adapt_window_topk=0,
+            adapt_continuation_mode="phase3_v1",
+            phase3_symmetry_mitigation_mode="verify_only",
+            phase3_enable_rescue=False,
+            phase3_lifetime_cost_mode="phase3_v1",
+            phase3_oracle_gradient_config=self._oracle_cfg(
+                noise_mode="runtime",
+                use_fake_backend=False,
+                backend_name="ibm_marrakesh",
+                mitigation_mode="none",
+                raw_artifact_path="artifacts/raw_phase3.ndjson.gz",
+                gradient_step=0.1,
+            ),
+        )
+
+        history_row = payload["history"][0]
+        assert payload["continuation"]["oracle_gradient_calls_total"] == 2 * len(history_row["candidate_gradient_scout"])
+        assert payload["continuation"]["oracle_symmetry_diagnostic_calls_total"] == 0
+        assert all(
+            row["raw_summary"]["symmetry_diagnostic"]["plus"]["available"] is False
+            and row["raw_summary"]["symmetry_diagnostic"]["plus"]["reason"] == "measurement_failed"
+            for row in history_row["candidate_gradient_scout"]
+        )
+        assert oracle_instances and getattr(oracle_instances[0], "closed", False) is True
+
+    def test_phase3_raw_oracle_closes_on_exception(self, monkeypatch: pytest.MonkeyPatch):
+        oracle_instances = self._install_fake_oracle_bindings(
+            monkeypatch,
+            default_gradient=1.0,
+            default_sigma=0.25,
+            gradient_step=0.1,
+            raise_on_raw_measure=True,
+        )
+
+        with pytest.raises(RuntimeError, match="synthetic raw oracle failure") as excinfo:
+            _run_hardcoded_adapt_vqe(
+                h_poly=self._hh_h(),
+                num_sites=2,
+                ordering="blocked",
+                problem="hh",
+                adapt_pool="paop_lf_std",
+                t=1.0,
+                u=2.0,
+                dv=0.0,
+                boundary="periodic",
+                omega0=1.0,
+                g_ep=0.5,
+                n_ph_max=1,
+                boson_encoding="binary",
+                max_depth=1,
+                eps_grad=1e-3,
+                eps_energy=1e-8,
+                maxiter=10,
+                seed=7,
+                allow_repeats=True,
+                finite_angle_fallback=False,
+                finite_angle=0.1,
+                finite_angle_min_improvement=1e-12,
+                adapt_continuation_mode="phase3_v1",
+                phase3_enable_rescue=False,
+                phase3_lifetime_cost_mode="phase3_v1",
+                phase3_oracle_gradient_config=self._oracle_cfg(
+                    noise_mode="runtime",
+                    use_fake_backend=False,
+                    backend_name="ibm_marrakesh",
+                    execution_surface_requested="raw_measurement_v1",
+                    execution_surface="raw_measurement_v1",
+                ),
+            )
+
+        assert "synthetic raw oracle failure" in str(excinfo.value)
+        assert oracle_instances and oracle_instances[0].calls
+        assert getattr(oracle_instances[0], "closed", False) is True
+
+    def test_phase3_oracle_gradient_mode_disables_exact_only_sidepaths(self, monkeypatch: pytest.MonkeyPatch):
+        self._install_fake_oracle_bindings(
+            monkeypatch,
+            default_gradient=1.0,
+            default_sigma=0.1,
+            gradient_step=0.1,
+        )
+        payload, _ = _run_hardcoded_adapt_vqe(
+            h_poly=self._hh_h(),
+            num_sites=2,
+            ordering="blocked",
+            problem="hh",
+            adapt_pool="paop_lf_std",
+            t=1.0,
+            u=2.0,
+            dv=0.0,
+            boundary="open",
+            omega0=1.0,
+            g_ep=0.5,
+            n_ph_max=1,
+            boson_encoding="binary",
+            max_depth=1,
+            eps_grad=1e-3,
+            eps_energy=1e-8,
+            maxiter=20,
+            seed=7,
+            allow_repeats=True,
+            finite_angle_fallback=True,
+            finite_angle=0.1,
+            finite_angle_min_improvement=1e-12,
+            adapt_reopt_policy="windowed",
+            adapt_window_size=1,
+            adapt_window_topk=0,
+            adapt_continuation_mode="phase3_v1",
+            phase3_symmetry_mitigation_mode="verify_only",
+            phase3_enable_rescue=False,
+            phase3_lifetime_cost_mode="phase3_v1",
+            phase3_oracle_gradient_config=self._oracle_cfg(
+                noise_mode="backend_scheduled",
+                use_fake_backend=True,
+                backend_name="FakeNighthawk",
+                mitigation_mode="readout",
+                local_readout_strategy="mthree",
+                gradient_step=0.1,
+            ),
+        )
+
+        assert payload["finite_angle_fallback"] is False
+        assert payload["prune_summary"]["enabled"] is False
+
+    def test_phase3_oracle_gradient_mode_rejects_non_hh_problem(self):
+        h_poly = build_hubbard_hamiltonian(
+            dims=2,
+            t=1.0,
+            U=4.0,
+            v=0.0,
+            repr_mode="JW",
+            indexing="blocked",
+            pbc=True,
+        )
+        with pytest.raises(ValueError, match="problem='hh'"):
+            _run_hardcoded_adapt_vqe(
+                h_poly=h_poly,
+                num_sites=2,
+                ordering="blocked",
+                problem="hubbard",
+                adapt_pool="uccsd",
+                t=1.0,
+                u=4.0,
+                dv=0.0,
+                boundary="periodic",
+                omega0=0.0,
+                g_ep=0.0,
+                n_ph_max=1,
+                boson_encoding="binary",
+                max_depth=1,
+                eps_grad=1e-3,
+                eps_energy=1e-8,
+                maxiter=5,
+                seed=7,
+                allow_repeats=True,
+                finite_angle_fallback=False,
+                finite_angle=0.1,
+                finite_angle_min_improvement=1e-12,
+                adapt_continuation_mode="phase3_v1",
+                phase3_oracle_gradient_config=self._oracle_cfg(),
+            )
+
+    def test_phase3_oracle_gradient_mode_rejects_legacy_mode(self):
+        with pytest.raises(ValueError, match="adapt_continuation_mode='phase3_v1'"):
+            _run_hardcoded_adapt_vqe(
+                h_poly=self._hh_h(),
+                num_sites=2,
+                ordering="blocked",
+                problem="hh",
+                adapt_pool="paop_lf_std",
+                t=1.0,
+                u=2.0,
+                dv=0.0,
+                boundary="periodic",
+                omega0=1.0,
+                g_ep=0.5,
+                n_ph_max=1,
+                boson_encoding="binary",
+                max_depth=1,
+                eps_grad=1e-3,
+                eps_energy=1e-8,
+                maxiter=20,
+                seed=7,
+                allow_repeats=True,
+                finite_angle_fallback=False,
+                finite_angle=0.1,
+                finite_angle_min_improvement=1e-12,
+                adapt_continuation_mode="legacy",
+                phase3_oracle_gradient_config=self._oracle_cfg(),
+            )
+
+    def test_phase3_sigma_hat_can_change_precap_shortlist_identity(self, monkeypatch: pytest.MonkeyPatch):
+        common_kwargs = dict(
+            h_poly=self._hh_h(),
+            num_sites=2,
+            ordering="blocked",
+            problem="hh",
+            adapt_pool="paop_lf_std",
+            t=1.0,
+            u=2.0,
+            dv=0.0,
+            boundary="periodic",
+            omega0=1.0,
+            g_ep=0.5,
+            n_ph_max=1,
+            boson_encoding="binary",
+            max_depth=1,
+            eps_grad=1e-3,
+            eps_energy=1e-8,
+            maxiter=20,
+            seed=7,
+            allow_repeats=True,
+            finite_angle_fallback=False,
+            finite_angle=0.1,
+            finite_angle_min_improvement=1e-12,
+            adapt_reopt_policy="windowed",
+            adapt_window_size=1,
+            adapt_window_topk=0,
+            adapt_continuation_mode="phase3_v1",
+            phase1_shortlist_size=1,
+            phase1_score_z_alpha=1.0,
+            phase3_symmetry_mitigation_mode="verify_only",
+            phase3_enable_rescue=False,
+            phase3_lifetime_cost_mode="phase3_v1",
+        )
+        baseline_payload, _ = _run_hardcoded_adapt_vqe(**common_kwargs)
+        baseline_label = str(baseline_payload["continuation"]["phase2_shortlist_rows"][0]["candidate_label"])
+
+        captured_phase1_labels: list[str] = []
+        original_shortlist_records = _adapt_mod.shortlist_records
+
+        def _capture_shortlist_records(records, *, cfg, score_key="simple_score", tie_break_score_key="simple_score"):
+            if score_key == "cheap_score":
+                captured_phase1_labels.extend(
+                    str(rec["feature"].candidate_label)
+                    for rec in records
+                    if rec.get("feature") is not None and hasattr(rec.get("feature"), "candidate_label")
+                )
+            return original_shortlist_records(
+                records,
+                cfg=cfg,
+                score_key=score_key,
+                tie_break_score_key=tie_break_score_key,
+            )
+
+        monkeypatch.setattr(_adapt_mod, "shortlist_records", _capture_shortlist_records)
+        monkeypatch.setattr(
+            _adapt_mod,
+            "_phase3_sigma_hat_for_label",
+            lambda **kwargs: 100.0 if str(kwargs.get("candidate_label")) == baseline_label else 0.0,
+        )
+
+        sigma_payload, _ = _run_hardcoded_adapt_vqe(**common_kwargs)
+        sigma_label = str(sigma_payload["continuation"]["phase2_shortlist_rows"][0]["candidate_label"])
+
+        assert captured_phase1_labels
+        assert baseline_label not in captured_phase1_labels
+        assert sigma_label != baseline_label
+
+    def test_phase3_oracle_gradient_sigma_can_change_precap_shortlist_identity(self, monkeypatch: pytest.MonkeyPatch):
+        common_kwargs = dict(
+            h_poly=self._hh_h(),
+            num_sites=2,
+            ordering="blocked",
+            problem="hh",
+            adapt_pool="paop_lf_std",
+            t=1.0,
+            u=2.0,
+            dv=0.0,
+            boundary="periodic",
+            omega0=1.0,
+            g_ep=0.5,
+            n_ph_max=1,
+            boson_encoding="binary",
+            max_depth=1,
+            eps_grad=1e-3,
+            eps_energy=1e-8,
+            maxiter=20,
+            seed=7,
+            allow_repeats=True,
+            finite_angle_fallback=False,
+            finite_angle=0.1,
+            finite_angle_min_improvement=1e-12,
+            adapt_reopt_policy="windowed",
+            adapt_window_size=1,
+            adapt_window_topk=0,
+            adapt_continuation_mode="phase3_v1",
+            phase1_shortlist_size=1,
+            phase1_score_z_alpha=1.0,
+            phase3_symmetry_mitigation_mode="verify_only",
+            phase3_enable_rescue=False,
+            phase3_lifetime_cost_mode="phase3_v1",
+        )
+        exact_payload, _ = _run_hardcoded_adapt_vqe(**common_kwargs)
+        target_label = str(exact_payload["continuation"]["phase2_shortlist_rows"][0]["candidate_label"])
+
+        self._install_fake_oracle_bindings(
+            monkeypatch,
+            gradient_by_label={target_label: 2.0},
+            sigma_by_label={target_label: 0.0},
+            default_gradient=1.0,
+            default_sigma=0.0,
+            gradient_step=0.1,
+        )
+        oracle_baseline_payload, _ = _run_hardcoded_adapt_vqe(
+            **common_kwargs,
+            phase3_oracle_gradient_config=self._oracle_cfg(gradient_step=0.1),
+        )
+        oracle_baseline_label = str(
+            oracle_baseline_payload["continuation"]["phase2_shortlist_rows"][0]["candidate_label"]
+        )
+
+        self._install_fake_oracle_bindings(
+            monkeypatch,
+            gradient_by_label={target_label: 2.0},
+            sigma_by_label={target_label: 5.0},
+            default_gradient=1.0,
+            default_sigma=0.0,
+            gradient_step=0.1,
+        )
+        sigma_payload, _ = _run_hardcoded_adapt_vqe(
+            **common_kwargs,
+            phase3_oracle_gradient_config=self._oracle_cfg(gradient_step=0.1),
+        )
+        sigma_label = str(sigma_payload["continuation"]["phase2_shortlist_rows"][0]["candidate_label"])
+
+        assert oracle_baseline_label == target_label
+        assert sigma_label != target_label
 
     def test_phase3_backend_cost_mode_rejects_non_hh_problem(self):
         h_poly = build_hubbard_hamiltonian(
@@ -2178,6 +3453,38 @@ class TestHHPhase3Continuation:
                 adapt_continuation_mode="phase3_v1",
                 phase3_backend_cost_mode="transpile_single_v1",
                 phase3_backend_name="ibm_boston",
+            )
+
+    def test_phase3_requires_positive_lambda_f_for_ratio_cheap_score(self):
+        with pytest.raises(ValueError, match="phase3_v1 cheap ratio scoring requires phase1_lambda_F > 0"):
+            _run_hardcoded_adapt_vqe(
+                h_poly=self._hh_h(),
+                num_sites=2,
+                ordering="blocked",
+                problem="hh",
+                adapt_pool="paop_lf_std",
+                t=1.0,
+                u=2.0,
+                dv=0.0,
+                boundary="periodic",
+                omega0=1.0,
+                g_ep=0.5,
+                n_ph_max=1,
+                boson_encoding="binary",
+                max_depth=2,
+                eps_grad=1e-3,
+                eps_energy=1e-8,
+                maxiter=20,
+                seed=7,
+                allow_repeats=True,
+                finite_angle_fallback=False,
+                finite_angle=0.1,
+                finite_angle_min_improvement=1e-12,
+                adapt_reopt_policy="windowed",
+                adapt_window_size=1,
+                adapt_window_topk=0,
+                adapt_continuation_mode="phase3_v1",
+                phase1_lambda_F=0.0,
             )
 
     def test_phase3_backend_cost_mode_emits_backend_compile_summary(self, monkeypatch: pytest.MonkeyPatch):
@@ -2631,6 +3938,7 @@ class TestHHContinuationModeGatingNegative:
                 assert "symmetry_mode" not in row
                 assert "lifetime_cost_mode" not in row
                 assert "remaining_evaluations_proxy" not in row
+                assert "cheap_score" not in row
             return
 
         continuation = payload["continuation"]
@@ -2650,6 +3958,8 @@ class TestHHContinuationModeGatingNegative:
                 assert "symmetry_mode" not in row
                 assert "lifetime_cost_mode" not in row
                 assert "remaining_evaluations_proxy" not in row
+                assert row["cheap_score_version"] == "simple_v1"
+                assert row["cheap_score"] == pytest.approx(row["simple_score"])
             return
 
         assert "optimizer_memory" in continuation
@@ -2665,6 +3975,8 @@ class TestHHContinuationModeGatingNegative:
             assert "symmetry_mode" not in row
             assert "lifetime_cost_mode" not in row
             assert "remaining_evaluations_proxy" not in row
+            assert row["cheap_score_version"] == "simple_v1"
+            assert row["cheap_score"] == pytest.approx(row["simple_score"])
 
 
 # ────────────────────────────────────────────────────────────────────
@@ -3232,3 +4544,182 @@ class TestAdaptRefExactEnergyReuse:
         mismatches = payload["adapt_ref_import"]["exact_energy_reuse_mismatches"]
         assert isinstance(mismatches, list)
         assert any(str(msg).startswith("t:") for msg in mismatches)
+
+
+class TestHHBeamRuntimeFallbackRegression:
+    def test_beam_finite_angle_fallback_splices_runtime_block(self):
+        h_poly = build_hubbard_holstein_hamiltonian(
+            dims=2,
+            J=1.0,
+            U=0.5,
+            omega0=1.0,
+            g=0.2,
+            n_ph_max=1,
+            boson_encoding="binary",
+            repr_mode="JW",
+            indexing="blocked",
+            pbc=False,
+            include_zero_point=True,
+        )
+
+        payload, _psi = _run_hardcoded_adapt_vqe(
+            h_poly=h_poly,
+            num_sites=2,
+            ordering="blocked",
+            problem="hh",
+            adapt_pool="full_meta",
+            t=1.0,
+            u=0.5,
+            dv=0.0,
+            boundary="open",
+            omega0=1.0,
+            g_ep=0.2,
+            n_ph_max=1,
+            boson_encoding="binary",
+            max_depth=6,
+            eps_grad=5e-7,
+            eps_energy=1e-9,
+            maxiter=12000,
+            seed=7,
+            adapt_inner_optimizer="POWELL",
+            allow_repeats=True,
+            finite_angle_fallback=True,
+            finite_angle=0.1,
+            finite_angle_min_improvement=1e-12,
+            adapt_state_backend="compiled",
+            adapt_reopt_policy="windowed",
+            adapt_window_size=999999,
+            adapt_window_topk=999999,
+            adapt_full_refit_every=8,
+            adapt_final_full_refit=True,
+            adapt_drop_floor=-1.0,
+            adapt_grad_floor=-1.0,
+            adapt_continuation_mode="phase3_v1",
+            phase1_prune_enabled=True,
+            phase1_prune_fraction=0.25,
+            phase1_prune_max_candidates=6,
+            phase1_prune_max_regression=1e-8,
+            phase1_shortlist_size=256,
+            phase1_probe_max_positions=999999,
+            phase1_trough_margin_ratio=1.0,
+            phase2_shortlist_fraction=1.0,
+            phase2_shortlist_size=128,
+            phase2_enable_batching=True,
+            phase2_batch_target_size=8,
+            phase2_batch_size_cap=16,
+            phase2_batch_near_degenerate_ratio=0.98,
+            phase2_lambda_H=1e-6,
+            phase2_rho=0.25,
+            phase2_gamma_N=1.0,
+            phase3_runtime_split_mode="shortlist_pauli_children_v1",
+            phase3_lifetime_cost_mode="phase3_v1",
+            phase3_symmetry_mitigation_mode="verify_only",
+            phase3_enable_rescue=True,
+            phase3_backend_cost_mode="proxy",
+            adapt_beam_live_branches=3,
+            adapt_beam_children_per_parent=2,
+            adapt_beam_terminated_keep=3,
+        )
+
+        assert payload["success"] is True
+        assert bool(payload["adapt_beam_enabled"]) is True
+        assert math.isfinite(float(payload["abs_delta_e"]))
+        assert float(payload["abs_delta_e"]) < 1e-3
+        assert int(payload["ansatz_depth"]) >= 6
+
+    def test_beam_class_filtered_run_tolerates_missing_phase3_scores(self, tmp_path: Path):
+        spec_path = tmp_path / "keep.json"
+        spec_path.write_text(
+            json.dumps(
+                {
+                    "classifier_version": _adapt_mod._HH_FULL_META_CLASSIFIER_VERSION,
+                    "source_pool": "full_meta",
+                    "source_problem": "hh",
+                    "source_num_sites": 2,
+                    "source_n_ph_max": 1,
+                    "keep_classes": ["uccsd_dbl", "paop_cloud_p"],
+                },
+                indent=2,
+            )
+            + "\n"
+        )
+
+        h_poly = build_hubbard_holstein_hamiltonian(
+            dims=2,
+            J=1.0,
+            U=0.5,
+            omega0=1.0,
+            g=0.2,
+            n_ph_max=1,
+            boson_encoding="binary",
+            repr_mode="JW",
+            indexing="blocked",
+            pbc=False,
+            include_zero_point=True,
+        )
+
+        payload, _psi = _run_hardcoded_adapt_vqe(
+            h_poly=h_poly,
+            num_sites=2,
+            ordering="blocked",
+            problem="hh",
+            adapt_pool="full_meta",
+            t=1.0,
+            u=0.5,
+            dv=0.0,
+            boundary="open",
+            omega0=1.0,
+            g_ep=0.2,
+            n_ph_max=1,
+            boson_encoding="binary",
+            max_depth=40,
+            eps_grad=5e-7,
+            eps_energy=1e-9,
+            maxiter=12000,
+            seed=7,
+            adapt_inner_optimizer="POWELL",
+            allow_repeats=True,
+            finite_angle_fallback=True,
+            finite_angle=0.1,
+            finite_angle_min_improvement=1e-12,
+            adapt_state_backend="compiled",
+            adapt_reopt_policy="windowed",
+            adapt_window_size=999999,
+            adapt_window_topk=999999,
+            adapt_full_refit_every=8,
+            adapt_final_full_refit=True,
+            adapt_drop_floor=-1.0,
+            adapt_grad_floor=-1.0,
+            adapt_continuation_mode="phase3_v1",
+            phase1_prune_enabled=True,
+            phase1_prune_fraction=0.25,
+            phase1_prune_max_candidates=6,
+            phase1_prune_max_regression=1e-8,
+            phase1_shortlist_size=256,
+            phase1_probe_max_positions=999999,
+            phase1_trough_margin_ratio=1.0,
+            phase2_shortlist_fraction=1.0,
+            phase2_shortlist_size=128,
+            phase2_enable_batching=True,
+            phase2_batch_target_size=8,
+            phase2_batch_size_cap=16,
+            phase2_batch_near_degenerate_ratio=0.98,
+            phase2_lambda_H=1e-6,
+            phase2_rho=0.25,
+            phase2_gamma_N=1.0,
+            phase3_runtime_split_mode="shortlist_pauli_children_v1",
+            phase3_lifetime_cost_mode="phase3_v1",
+            phase3_symmetry_mitigation_mode="verify_only",
+            phase3_enable_rescue=True,
+            phase3_backend_cost_mode="proxy",
+            adapt_beam_live_branches=3,
+            adapt_beam_children_per_parent=2,
+            adapt_beam_terminated_keep=3,
+            adapt_pool_class_filter_json=spec_path,
+        )
+
+        assert payload["success"] is True
+        assert bool(payload["adapt_beam_enabled"]) is True
+        assert math.isfinite(float(payload["energy"]))
+        assert math.isfinite(float(payload["abs_delta_e"]))
+        assert int(payload["ansatz_depth"]) >= 1

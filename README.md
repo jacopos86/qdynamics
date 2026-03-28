@@ -2,13 +2,17 @@
 
 This path is the canonical repository onboarding document.
 
-## Active checkout snapshot (2026-03-09)
+## Active checkout snapshot (2026-03-26)
 
 This README reflects the active non-archived toolchain in this repository:
 
-- `pipelines/hardcoded/hubbard_pipeline.py`, `pipelines/hardcoded/adapt_pipeline.py`, `pipelines/shell/run_drive_accurate.sh`
-- `pipelines/hardcoded/hh_vqe_from_adapt_family.py`, `pipelines/exact_bench/cross_check_suite.py`, `pipelines/exact_bench/hh_noise_hardware_validation.py`
-- `archive/` compare/qiskit baseline runners are not present in this checkout; historical snippets are preserved for provenance only.
+- canonical direct HH ADAPT: `pipelines/hardcoded/adapt_pipeline.py`
+- staged compatibility wrappers: `pipelines/hardcoded/hh_staged_noiseless.py`, `pipelines/hardcoded/hh_staged_noise.py`
+- replay / follow-on exact-bench surfaces: `pipelines/hardcoded/hh_vqe_from_adapt_family.py`, `pipelines/exact_bench/cross_check_suite.py`, `pipelines/exact_bench/hh_noise_hardware_validation.py`
+- fixed-manifold / realtime sweep surfaces: `pipelines/hardcoded/hh_fixed_manifold_mclachlan.py`, `pipelines/hardcoded/hh_fixed_manifold_measured.py`, `pipelines/hardcoded/hh_l2_static_realtime_pareto_sweep.py`, `pipelines/hardcoded/hh_l2_driven_realtime_pareto_sweep.py`
+- legacy shorthand helper: `pipelines/shell/run_drive_accurate.sh`
+
+Some older README examples below had drifted toward removed scripts. This pass keeps only surfaces that exist in this checkout and marks legacy-only seams explicitly.
 
 This repo implements Hubbard-Holstein (HH) simulation workflows with
 Jordan-Wigner operator construction, binary or unary bosonic encoding, blocked or periodic boundary conditions, with hardcoded HVA/ADAPT/VQE ground-state preparation, and exact vs Trotterized vs CFQM dynamics pipelines.
@@ -21,17 +25,26 @@ Jordan-Wigner operator construction, binary or unary bosonic encoding, blocked o
 - Noiseless shots and Aer simulator should match the pipeline with noise simulation turned off.
 
 
-### Warm-start chain
+### Canonical HH ADAPT path
 
-Default staged HH runs follow the active three-stage continuation contract:
+The only non-archaic HH ADAPT default path is direct `pipelines/hardcoded/adapt_pipeline.py`.
+
+- On the direct CLI, omitting `--adapt-continuation-mode` now defaults to `phase3_v1`.
+- This is the full Phase 3 HH path with the current cheap pre-cap + ratio rerank selector.
+- For new HH ADAPT work, depth-0 starts from the narrow physics-aligned core; current runtime resolves this to `paop_lf_std`.
+- `full_meta` remains a supported broad-pool preset, but only as an explicit compatibility/broad-search choice, not the default depth-0 path.
+- `legacy`, `phase1_v1`, and `phase2_v1` remain explicit historical/compatibility modes only.
+
+### Historical staged compatibility chain
+
+The staged `VQE -> ADAPT -> VQE` wrappers remain available for reproduction and compatibility, but they are not the canonical default path for new HH ADAPT work.
 
 1. Run HH-HVA VQE warm start with `hh_hva_ptw`.
-   - `hh_hva_ptw` remains the canonical staged warm-start default.
+   - `hh_hva_ptw` remains the staged warm-start default.
    - `hh_hva` remains an explicit override only.
 2. Use that warm-start state as the ADAPT reference state.
-3. Run ADAPT from that prepared state in staged HH continuation mode (`phase3_v1`, canonical default).
-   - For new HH agent work, depth-0 ADAPT starts from the narrow physics-aligned core; current runtime resolves this to `paop_lf_std`.
-   - `full_meta` remains a supported broad-pool preset, but only as controlled residual enrichment after plateau diagnosis, not the default depth-0 path.
+3. Run ADAPT from that prepared state in staged wrapper continuation mode (`phase1_v1`, historical staged default).
+   - `phase3_v1` remains an explicit override if you need the staged wrapper on the newer continuation surface.
    - Optional phase-3 follow-ons stay opt-in: `--phase3-runtime-split-mode shortlist_pauli_children_v1` is a shortlist-only continuation aid, and widened `--phase3-symmetry-mitigation-mode` choices remain phase-3 metadata/telemetry hooks on raw staged/hardcoded/replay paths.
 4. Replay conventional VQE from ADAPT with ADAPT-family matching (`--generator-family match_adapt`, fallback `full_meta`) via `pipelines/hardcoded/hh_vqe_from_adapt_family.py`.
 
@@ -46,7 +59,7 @@ Optional staged seed-refine insertion:
 - If the refine stage succeeds, the handoff bundle carries additive `seed_provenance`.
 - If the refine stage fails, the staged workflow aborts before ADAPT rather than silently skipping forward.
 
-One-shot noiseless wrapper for the default or refined contract:
+One-shot noiseless wrapper for the historical/default staged contract:
 
 ```bash
 python pipelines/hardcoded/hh_staged_noiseless.py --L 2
@@ -56,23 +69,11 @@ python pipelines/hardcoded/hh_staged_noiseless.py --L 2 \
   --seed-refine-family uccsd_otimes_paop_lf_std
 ```
 
-This wrapper keeps drive opt-in, runs final matched-family replay (not fixed `hh_hva_*` replay), and reports Suzuki/CFQM dynamics from the replay seed with GS-baseline energy error plus seeded exact-reference fidelity.
+This wrapper keeps drive opt-in, runs final matched-family replay (not fixed `hh_hva_*` replay), and reports Suzuki/CFQM dynamics from the replay seed with GS-baseline energy error plus seeded exact-reference fidelity. It remains a historical/compatibility surface rather than the default path for new HH ADAPT runs.
 
-Combined staged circuit PDF for `L=2,3`:
-
-```bash
-python pipelines/hardcoded/hh_staged_circuit_report.py
-```
-
-Default artifact:
-- `artifacts/pdf/hh_staged_circuit_report_L2_L3.pdf`
-
-Report contract:
-- one combined PDF with separate `L=2` and `L=3` sections,
-- per-`L` pages for manifest, stage summary, warm HH-HVA, ADAPT, matched-family replay, Suzuki2 macro-step, and a CFQM4 dynamics section,
-- each circuit stage/method gets both a representative view (high-level `PauliEvolutionGate` blocks) and an expanded one-level decomposition view when circuitization is supported,
-- dynamics pages show one representative macro-step only; the PDF states the repeat count and proxy totals for the full `trotter_steps` trajectory.
-- Numerical-only CFQM stage backends (`expm_multiply_sparse`, `dense_expm`) stay in the report as dynamics metadata but are marked unsupported to avoid misleading compiled-circuit artifacts; representative/expanded circuit pages and transpile/proxy summaries are skipped for those modes.
+Historical note:
+- Older docs may mention `pipelines/hardcoded/hh_staged_circuit_report.py`.
+- That script is **not present in this checkout**; treat those references as stale.
 
 ## Repository map (minimal)
 
@@ -192,14 +193,15 @@ graph TB
 - `hubbard` pools: `uccsd`, `cse`, `full_hamiltonian`.
 - `hh` pools: `hva`, `full_hamiltonian`, `paop_min`, `paop_std`, `paop_full`, `paop_lf` (`paop_lf_std` alias), `paop_lf2_std`, `paop_lf_full`.
 - Experimental offline/local exact-noiseless probe families: `paop_lf3_std`, `paop_lf4_std`, `paop_sq_std`, `paop_sq_full`.
-- HH staged continuation default for new agent work: `phase3_v1` start from the narrow HH core and runtime-resolve depth-0 HH ADAPT to `paop_lf_std`.
+- HH direct ADAPT default for new agent work: `phase3_v1` starts from the narrow HH core and runtime-resolves depth-0 HH ADAPT to `paop_lf_std`.
+- Historical staged wrappers keep `phase1_v1` as their compatibility default unless explicitly overridden.
 - HH built-in combined preset: `uccsd_paop_lf_full` = `uccsd_lifted + paop_lf_full` (deduplicated) via one CLI value.
 - HH explicit product families: `uccsd_otimes_paop_lf_std`, `uccsd_otimes_paop_lf2_std`, `uccsd_otimes_paop_bond_disp_std`.
   - These are the canonical lifted-UCCSD ⊗ boson-only-phonon constructions in this repo: one lifted fermionic UCCSD factor times one boson-only phonon motif, locality-filtered, canonicalized, and deduplicated.
   - They are available as explicit families for seed-refine, replay, and direct ADAPT pool materialization without mutating the older additive unions.
 - HH logical two-parameter product variants: `uccsd_otimes_paop_lf_std_seq2p`, `uccsd_otimes_paop_lf2_std_seq2p`, `uccsd_otimes_paop_bond_disp_std_seq2p`.
   - These treat one logical `(F_a, M_μ)` pair as separate fermion/motif parameters during execution and replay.
-  - They are additive opt-in surfaces and do not change the staged `phase3_v1` default path.
+  - They are additive opt-in surfaces and do not change the direct `phase3_v1` default path.
 - HH full-meta preset: `full_meta` = `uccsd_lifted + hva + paop_full + paop_lf_full` (deduplicated) via one CLI value; keep it as a compatibility/broad-pool preset and replay fallback, not the default depth-0 staged HH pool.
 - HH lean replay/export presets: `pareto_lean` and `pareto_lean_l2`.
   - `pareto_lean_l2` is intentionally narrow: valid only for `L=2` and `n_ph_max=1`.
@@ -213,7 +215,7 @@ graph TB
 - `paop_std`: displacement plus dressed-hopping (`hopdrag`) operators.
 - `paop_full`: `paop_std` plus doublon dressing and extended cloud operators.
 - `paop_lf_std`: `paop_std` plus LF-leading odd channel (`curdrag`).
-- These experimental families are opt-in only; they are not part of the canonical staged default and are not folded into default `full_meta`.
+- These experimental families are opt-in only; they are not part of the canonical direct `phase3_v1` default path and are not folded into default `full_meta`.
 - HH merge behavior (when `g_ep != 0`): merge `hva` + `hh_termwise_augmented` + selected `paop_*` pool, then deduplicate by polynomial signature.
 
 ### Compiled speedup stack note (2026-03-04)
@@ -255,7 +257,7 @@ python pipelines/hardcoded/hh_vqe_from_adapt_family.py \
   --output-json artifacts/json/hc_hh_L4_from_adaptB_family_matched_fastcomp.json
 ```
 
-This path matches the ADAPT generator-family contract. Replay remains canonical via `--generator-family match_adapt` with `--fallback-family full_meta`, and replay continuation modes stay `legacy | phase1_v1 | phase2_v1 | phase3_v1`.
+This path matches the ADAPT generator-family contract. Replay remains the matched-family follow-on path via `--generator-family match_adapt` with `--fallback-family full_meta`, and replay continuation modes stay `legacy | phase1_v1 | phase2_v1 | phase3_v1`.
 If an opt-in runtime split admitted child labels outside the resolved family pool, replay can still rebuild them from serialized continuation metadata when that metadata is present.
 `hubbard_pipeline.py --vqe-ansatz hh_hva_*` remains a fixed-ansatz baseline.
 
@@ -283,22 +285,43 @@ Subdirectory README files are component-scoped documentation, not repo-canonical
 onboarding docs. Use this root `README.md` first, then drill into local READMEs
 for module-specific details.
 
+## AI run/report contract
+
+For agent-run work in this repo:
+
+- frame the run around an **Objective** first: a short scientific / mathematical / physical sub-problem that could improve the real-QPU `ΔE / K` Pareto front
+- keep **Objective** separate from **Execution mode**:
+  - `fresh_run`
+  - `reuse_artifact`
+  - `compare_artifacts`
+  - `promote_candidate`
+- default emphasis is **HH**, **`L=2`**, and **driven** dynamics unless the user says otherwise; this is an **agent planning priority**, not a CLI default
+- in RepoPrompt agent mode, default to three compact lines with **no blank lines**: `Objective<...>`, `Why/Intent<...>`, `Suggested Next step/how this fits into broader picture<...>`; each line should be **1-3 sentences max**
+- frame verification as soft expectations by default, unless the user or the chosen repo surface explicitly defines a hard gate
+- the **agent wrapper** should write machine-oriented logs under:
+  - `artifacts/agent_runs/<tag>/`
+  - `artifacts/agent_runs/<tag>/logs/`
+  - with `command.sh`, `stdout.log`, `stderr.log`, and `progress.json` when supported
+- if the user says **execute**, the agent should execute without an extra permission prompt unless a real runtime/policy choice is still unresolved
+- as an **agent post-processing convention**, after each run first give a short in-chat report that retells the objective and result; only write/update markdown or PDF report files when the user explicitly asks or report output is already in scope
+
 ## Quick run examples
 
 Default hard gate policy for agent execution:
 - Final conventional VQE hard gate: `ΔE_abs < 1e-4`.
 - In this checkout, `run_drive_accurate.sh` enforces `ΔE_abs < 1e-7` with no built-in strict-mode toggle. This is stricter than the AGENTS default.
 
-ADAPT-VQE (HH, PAOP pool):
+ADAPT-VQE (HH, canonical direct phase3 path):
 
 ```bash
 python pipelines/hardcoded/adapt_pipeline.py \
   --L 2 --problem hh --omega0 1.0 --g-ep 0.5 --n-ph-max 1 \
-  --adapt-pool paop_std --paop-r 1 --paop-normalization none \
-  --adapt-max-depth 30 --adapt-eps-grad 1e-5 --adapt-maxiter 600 \
+  --adapt-max-depth 30 --adapt-eps-grad 1e-5 --adapt-maxiter 800 \
   --initial-state-source adapt_vqe --skip-pdf \
-  --output-json artifacts/json/adapt_L2_hh_paop_std.json
+  --output-json artifacts/json/adapt_L2_hh_phase3_default.json
 ```
+
+Omitting `--adapt-continuation-mode` on the direct CLI now means `phase3_v1`. Pass `legacy`, `phase1_v1`, or `phase2_v1` explicitly only when reproducing older behavior.
 
 Runtime note: ADAPT execution now applies one variational parameter per active Pauli term inside each selected generator. Exported JSON therefore distinguishes logical scaffold size (`ansatz_depth`, `logical_*`) from runtime rotation count (`num_parameters`, `optimal_point`).
 
@@ -307,20 +330,14 @@ Cross-check suite (exact benchmark; auto-scaled by L/problem defaults):
 ```bash
 python pipelines/exact_bench/cross_check_suite.py --L 2 --problem hubbard
 
-# HH single-point seed-surface comparison:
+# HH exact-benchmark point:
 python pipelines/exact_bench/cross_check_suite.py \
-  --problem hh --L 2 --omega0 1.0 --g-ep 0.8 --n-ph-max 1 \
-  --hh-seed-refine-surface
-
-# HH mini preset (L=2,3 and g=0.8,1.2):
-python pipelines/exact_bench/cross_check_suite.py \
-  --problem hh --hh-seed-benchmark-preset mini4
+  --problem hh --L 2 --omega0 1.0 --g-ep 0.5 --n-ph-max 1
 ```
 
-HH seed-surface notes:
-- `--hh-seed-refine-surface` is opt-in and HH-only.
-- The default cross-check matrix remains unchanged unless that flag or the preset is requested.
-- Seed-surface sidecars compare pre-ADAPT energy improvement against added proxy cost, with primary ranking by improvement per added `cx_proxy` and secondary views via `depth_proxy` and `sq_proxy`.
+Cross-check note:
+- In this checkout, `cross_check_suite.py --help` exposes only the benchmark-matrix CLI shown above.
+- Older README references to `--hh-seed-refine-surface` and `--hh-seed-benchmark-preset` were stale and are removed here.
 
 CFQM propagation (hardcoded pipeline):
 
@@ -352,22 +369,37 @@ CFQM propagation status (hardcoded pipeline):
 - Honest compiled/transpiled/CX/QPU artifacts exist only for `pauli_suzuki2`; dense/sparse CFQM remain numerical-only and are rejected or skipped by report/transpile/hardware-facing paths.
 - Pitfall: a `compiled/transpiled CFQM4 circuit` in this repo can describe the `pauli_suzuki2` surrogate profile rather than the true numerical CFQM4 implementation.
 
-Hardware-budget surfaces for driven Suzuki/CFQM comparisons:
-- **full-trajectory propagator budget** = one compiled/transpiled dynamics circuit to `t_final`
-- **snapshot propagator budget** = max compiled/transpiled dynamics circuit over sampled `t_i` when each sampled time is a separate job
-- **checkpoint-fit / local-fit budget** = max per-snapshot fitted surrogate circuit; this is **not** a Suzuki/CFQM propagator budget
-- `pipelines/exact_bench/hh_fixed_seed_qpu_prep_sweep.py --budget-mode full_trajectory|snapshot` is the fixed-seed propagator comparison surface.
-- `pipelines/exact_bench/hh_fixed_seed_local_checkpoint_fit.py` is intentionally different: it fits each sampled checkpoint independently to the exact driven state using a shallow local Pauli circuit on top of the imported seed. It is often a better practical low-depth QPU target, but it is not an honest sequential propagator.
-- Practical rule: if each sampled time is run as its own QPU job, the snapshot propagator budget is usually the closer hardware cost model. But checkpoint-fit/local-fit CX counts must still not be compared directly against propagator CX counts without saying that the circuit family changed.
-- Important nuance: for propagated Suzuki/CFQM circuits, snapshot budgeting does **not** automatically shrink the max CX/depth. If every sampled snapshot uses the same macro-step count `S`, the worst propagated snapshot circuit can stay equal to the `t_final` circuit. Snapshot mode changes the hardware-job interpretation; it is not a free gate-count reduction.
+Current fixed-manifold / realtime surfaces:
+- exact locked-manifold compare:
 
-HH realtime geometry-adapter honesty:
-- `pipelines/hardcoded/hh_realtime_vqs` now has a default-off `geometry_adapter` path for the fixed-structure Phase A workflow.
-- `local_system_mode=statevector_reference` is still exact/statevector for `G` / `f`.
-- `local_system_mode=hadamard_transition_fd` is a **local-only** measured backend for tiny static basis-reference cases; it is not a general HH hardware path.
-- The measured mode is capped by explicit qubit/term limits, requires a computational-basis reference state, and does not support driven segments.
-- Runtime-shaped configs may serialize through the adapter config, but actual `runtime_qpu` resolution remains blocked before any Runtime session/submission path is opened.
-- This surface is not Phase B, not adaptive growth, and not an honest IBM-backend realtime controller yet.
+```bash
+python -m pipelines.hardcoded.hh_fixed_manifold_mclachlan
+```
+
+- measured/oracle fixed-manifold run:
+
+```bash
+python -m pipelines.hardcoded.hh_fixed_manifold_measured \
+  --manifold locked_7term --enable-drive \
+  --drive-A 0.6 --exact-steps-multiplier 2
+```
+
+- L=2 static realtime sweep from saved artifacts:
+
+```bash
+python -m pipelines.hardcoded.hh_l2_static_realtime_pareto_sweep
+```
+
+- L=2 driven realtime sweep from saved artifacts:
+
+```bash
+python -m pipelines.hardcoded.hh_l2_driven_realtime_pareto_sweep
+```
+
+Notes:
+- Use `python -m ...` for these newer hardcoded modules; some do not support direct file-path invocation cleanly.
+- `hh_fixed_manifold_measured.py` currently supports `noise_mode=ideal`, `oracle_repeats=1`, and mean aggregation only.
+- The `hh_l2_*_realtime_pareto_sweep.py` surfaces are specifically `L=2` saved-artifact sweeps, not generic `run L` wrappers.
 
 CFQM6 command:
 
@@ -393,102 +425,16 @@ Acceptance highlights:
 - manufactured 1-qubit order slopes (`~4` for cfqm4, `~6` for cfqm6, `~2` with inner suzuki2)
 - small HH sanity trend vs fine piecewise reference
 
-Quantum-processor proxy benchmark (CFQM vs Suzuki):
+Missing benchmark-helper note:
+- Older README text referenced `cfqm_vs_suzuki_qproc_proxy_benchmark.py` and `cfqm_vs_suzuki_efficiency_suite.py`.
+- Those scripts are **not present in this checkout**.
+- The active CFQM surface here is `pipelines/hardcoded/hubbard_pipeline.py` plus the CFQM test trio:
 
 ```bash
-python pipelines/exact_bench/cfqm_vs_suzuki_qproc_proxy_benchmark.py \
-  --problem hubbard --L 2 \
-  --methods suzuki2,cfqm4,cfqm6 \
-  --steps-grid 64,128,256,512 \
-  --reference-steps 2048 \
-  --drive-enabled
-
-# Equal-cost policy (optional, apples-to-apples):
-python pipelines/exact_bench/cfqm_vs_suzuki_qproc_proxy_benchmark.py \
-  --problem hubbard --L 2 \
-  --methods suzuki2,cfqm4,cfqm6 \
-  --steps-grid 64,128,256,512 \
-  --reference-steps 2048 \
-  --compare-policy cost_match \
-  --cost-match-metric cx_proxy_total \
-  --cost-match-tolerance 0.0 \
-  --drive-enabled
+pytest -q test/test_cfqm_schemes.py test/test_cfqm_propagator.py test/test_cfqm_acceptance.py
 ```
 
-Why this benchmark:
-- Local runtime is machine-dependent and not the main comparison axis.
-- The benchmark ranks methods by final energy error versus processor-oriented cost proxies:
-  - term exponential count
-  - 2-qubit gate proxy (`cx_proxy_total`)
-  - 1-qubit gate proxy (`sq_proxy_total`)
-- `S` in the result tables is macro-step count (`trotter_steps`), not a cost metric.
-- Use `--compare-policy cost_match` for fair, equal-cost comparisons; default remains
-  sweep-only row listing.
-- Default cost axis for fair matching is `cx_proxy_total`; fallback metric is `term_exp_count_total` when requested.
-- CFQM runs use `pauli_suzuki2` stage exponentials in this benchmark to produce hardware-comparable termwise gate proxies (this is a benchmarking profile, not the high-order dense/sparse CFQM profile).
-- Any compiled/transpiled CFQM4 artifact from this benchmark is therefore the surrogate circuitized profile, not the true numerical dense/sparse CFQM implementation.
-
-Artifacts:
-- `artifacts/cfqm_benchmark/cfqm_vs_suzuki_proxy_runs.json`
-- `artifacts/cfqm_benchmark/cfqm_vs_suzuki_proxy_runs.csv`
-- `artifacts/cfqm_benchmark/cfqm_vs_suzuki_proxy_summary.json`
-
-CFQM efficiency suite (error-vs-cost, apples-to-apples):
-
-```bash
-python pipelines/exact_bench/cfqm_vs_suzuki_efficiency_suite.py \
-  --problem-grid hubbard_L4,hh_L2_nb1,hh_L2_nb2,hh_L2_nb3,hh_L3_nb1 \
-  --drive-grid sinusoid,gaussian_sharp \
-  --methods suzuki2,cfqm4,cfqm6 \
-  --stage-mode-grid exact_sparse,exact_dense,pauli_suzuki2 \
-  --reference-steps-multiplier 8 \
-  --equal-cost-axis cx_proxy,pauli_rot_count,expm_calls,wall_time \
-  --equal-cost-policy exact_tie_only \
-  --calibrate-transpile \
-  --output-dir artifacts/cfqm_efficiency_benchmark
-```
-
-L2 HH statevector warm-start variant:
-
-```bash
-python pipelines/exact_bench/cfqm_vs_suzuki_efficiency_suite.py \
-  --problem-grid hh_L2_nb1 \
-  --drive-grid sinusoid,gaussian_sharp \
-  --methods suzuki2,cfqm4,cfqm6 \
-  --stage-mode-grid exact_sparse,exact_dense,pauli_suzuki2 \
-  --initial-state-source adapt_json \
-  --adapt-input-json artifacts/useful/L2/H_L2_hh_termwise_regular_lbfgs_t1.0_U2.0_g1_nph1.json \
-  --no-adapt-strict-match \
-  --reference-steps-multiplier 8 \
-  --equal-cost-axis cx_proxy,pauli_rot_count,expm_calls,wall_time \
-  --equal-cost-policy exact_tie_only \
-  --calibrate-transpile \
-  --output-dir artifacts/cfqm_efficiency_benchmark/overnight_hh_L2_nb1_lbfgs_state
-```
-
-Note: strict ADAPT metadata matching is on by default; this command disables it because the referenced warm-start JSON does not carry full HH metadata keys.
-
-Efficiency-suite ADAPT pool default is `auto`:
-- `hubbard*` scenarios resolve to `--adapt-pool uccsd`
-- `hh*` scenarios resolve to `--adapt-pool paop_std`
-
-Efficiency-suite outputs:
-- `artifacts/cfqm_efficiency_benchmark/runs_full.json`
-- `artifacts/cfqm_efficiency_benchmark/runs_full.csv`
-- `artifacts/cfqm_efficiency_benchmark/summary_by_scenario.json`
-- `artifacts/cfqm_efficiency_benchmark/pareto_by_metric.json`
-- `artifacts/cfqm_efficiency_benchmark/slope_fits.json`
-- `artifacts/cfqm_efficiency_benchmark/equal_cost_exact_ties_<metric>.csv`
-- `artifacts/cfqm_efficiency_benchmark/cfqm_efficiency_suite.pdf`
-
-Efficiency-suite interpretation rules:
-- Main fair tables are exact-cost ties only (`delta=0`) for `cx_proxy`, `pauli_rot_count`, and `expm_calls`.
-- `exact_sparse` and `exact_dense` rows are numerical-only CFQM studies; only `pauli_suzuki2` rows are honest circuitized/transpile/proxy surfaces.
-- Wall-time comparisons are near-tie bins and explicitly marked approximate.
-- Fallback nearest-neighbor matches are appendix-only (non-fair direct comparisons).
-- `S` always means macro-step count (`trotter_steps`), never a fairness axis.
-
-For compare/orchestration workflows, use `pipelines/run_guide.md`.
+For compare/orchestration workflows that still exist in this checkout, use `pipelines/run_guide.md`.
 
 ## Major Markdown docs index
 
@@ -508,7 +454,7 @@ The repo now includes an HH-first noisy/hardware validation pipeline:
 
 It provides one shared expectation oracle across `ideal`, `shots`, `aer_noise`, and `runtime` modes.  
 `shots`/`aer_noise` emulate finite-shot measurement noise using Qiskit `AerSimulator`, with optional noisy ADAPT and PDF/JSON reporting.  
-Use `pipelines/run_guide.md` section 11+ for operational commands and mode-by-mode guidance.
+Use the current-surface summary at the top of `pipelines/run_guide.md` for operational commands.
 
 High-level symmetry note:
 - `--symmetry-mitigation-mode` is the active oracle-backed symmetry surface in the noise validation / robustness flows; default is `off`.
@@ -525,11 +471,3 @@ Key additions:
 - shared oracle-backed `--symmetry-mitigation-mode` surface (default `off`; active modes remain opt-in and diagnostics-backed)
 - embedded benchmark metrics in JSON/PDF (`term_exp_count_total`, `cx_proxy_total`, `sq_proxy_total`, `depth_proxy_total`, `wall_total_s`, `oracle_eval_s_total`)
 - backward-compatible `dynamics_noisy.profiles.<profile>.modes` alias mirroring `suzuki2`
-
-For a long, code/docs-only repository guide focused on noise-model behavior:
-- `pipelines/exact_bench/hh_noise_model_repo_guide.py`
-- convenience wrapper: `pipelines/shell/build_hh_noise_model_repo_guide.sh`
-
-Default guide artifacts:
-- `docs/HH_noise_model_repo_guide.pdf`
-- `artifacts/json/hh_noise_model_repo_guide_index.json`

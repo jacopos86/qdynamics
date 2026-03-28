@@ -23,6 +23,7 @@ from pipelines.hardcoded.hh_continuation_scoring import (
     full_v2_score,
     lifetime_weight_components,
     measurement_group_keys_for_term,
+    raw_f_metric_from_state,
     remaining_evaluations_proxy,
     shortlist_records,
     trust_region_drop,
@@ -293,6 +294,25 @@ def _term(label: str) -> object:
     )()
 
 
+def test_raw_f_metric_from_state_matches_centered_generator_variance() -> None:
+    psi_ref = np.zeros(2, dtype=complex)
+    psi_ref[0] = 1.0 + 0.0j
+    assert raw_f_metric_from_state(
+        psi_state=psi_ref,
+        candidate_label="x",
+        candidate_term=_term("x"),
+        compiled_cache={},
+        pauli_action_cache={},
+    ) == pytest.approx(1.0)
+    assert raw_f_metric_from_state(
+        psi_state=psi_ref,
+        candidate_label="z",
+        candidate_term=_term("z"),
+        compiled_cache={},
+        pauli_action_cache={},
+    ) == pytest.approx(0.0)
+
+
 def test_trust_region_drop_matches_newton_branch() -> None:
     got = trust_region_drop(0.4, 2.0, 1.0, 1.0)
     assert got == pytest.approx(0.04)
@@ -371,6 +391,103 @@ def test_build_full_candidate_features_clips_novelty_and_preserves_window() -> N
     assert 0.0 <= float(feat.novelty or 0.0) <= 1.0
     assert feat.refit_window_indices == [0]
     assert feat.full_v2_score is not None
+
+
+def test_phase3_cheap_ratio_materializes_beside_legacy_simple_score() -> None:
+    oracle = Phase1CompileCostOracle()
+    meas = MeasurementCacheAudit()
+    feat = build_candidate_features(
+        stage_name="core",
+        candidate_label="x",
+        candidate_family="core",
+        candidate_pool_index=0,
+        position_id=0,
+        append_position=0,
+        positions_considered=[0],
+        gradient_signed=0.4,
+        metric_proxy=0.2,
+        sigma_hat=0.0,
+        refit_window_indices=[0],
+        compile_cost=oracle.estimate(candidate_term_count=1, position_id=0, append_position=0, refit_active_count=1),
+        measurement_stats=meas.estimate(["x"]),
+        leakage_penalty=0.0,
+        stage_gate_open=True,
+        leakage_gate_open=True,
+        trough_probe_triggered=False,
+        trough_detected=False,
+        cfg=SimpleScoreConfig(lambda_F=1.0, lambda_compile=0.0, lambda_measure=0.0, lambda_leak=0.0),
+        cheap_score_cfg=FullScoreConfig(
+            lambda_F=1.0,
+            wD=0.0,
+            wG=0.0,
+            wC=0.0,
+            wP=0.0,
+            wc=0.0,
+            lifetime_weight=0.0,
+        ),
+    )
+    assert float(feat.simple_score or 0.0) == pytest.approx(0.6)
+    assert float(feat.cheap_score or 0.0) == pytest.approx(0.4)
+    assert feat.cheap_score_version == "phase3_cheap_ratio_v1"
+    assert float(feat.cheap_metric_proxy) == pytest.approx(0.2)
+    assert float(feat.cheap_benefit_proxy or 0.0) == pytest.approx(0.4)
+    assert float(feat.cheap_burden_total or 0.0) == pytest.approx(1.0)
+
+
+def test_build_full_candidate_features_preserves_phase3_cheap_fields() -> None:
+    psi_ref = np.zeros(2, dtype=complex)
+    psi_ref[0] = 1.0 + 0.0j
+    oracle = Phase1CompileCostOracle()
+    meas = MeasurementCacheAudit()
+    metric_exact = raw_f_metric_from_state(
+        psi_state=psi_ref,
+        candidate_label="x",
+        candidate_term=_term("x"),
+        compiled_cache={},
+        pauli_action_cache={},
+    )
+    base = build_candidate_features(
+        stage_name="core",
+        candidate_label="x",
+        candidate_family="core",
+        candidate_pool_index=0,
+        position_id=1,
+        append_position=1,
+        positions_considered=[1],
+        gradient_signed=0.3,
+        metric_proxy=float(metric_exact),
+        sigma_hat=0.0,
+        refit_window_indices=[0],
+        compile_cost=oracle.estimate(candidate_term_count=1, position_id=1, append_position=1, refit_active_count=1),
+        measurement_stats=meas.estimate(["x"]),
+        leakage_penalty=0.0,
+        stage_gate_open=True,
+        leakage_gate_open=True,
+        trough_probe_triggered=False,
+        trough_detected=False,
+        cfg=SimpleScoreConfig(),
+        cheap_score_cfg=FullScoreConfig(),
+    )
+    feat = build_full_candidate_features(
+        base_feature=base,
+        psi_state=psi_ref,
+        candidate_term=_term("x"),
+        window_terms=[_term("x")],
+        window_labels=["x"],
+        cfg=FullScoreConfig(shortlist_size=2),
+        novelty_oracle=Phase2NoveltyOracle(),
+        curvature_oracle=Phase2CurvatureOracle(),
+        compiled_cache={},
+        pauli_action_cache={},
+        optimizer_memory=None,
+    )
+    assert feat.cheap_score == pytest.approx(base.cheap_score or 0.0)
+    assert feat.cheap_score_version == "phase3_cheap_ratio_v1"
+    assert feat.cheap_metric_proxy == pytest.approx(base.cheap_metric_proxy)
+    assert feat.cheap_benefit_proxy == pytest.approx(base.cheap_benefit_proxy or 0.0)
+    assert feat.cheap_burden_total == pytest.approx(base.cheap_burden_total or 0.0)
+    assert feat.metric_proxy == pytest.approx(feat.cheap_metric_proxy)
+    assert feat.F_metric == pytest.approx(feat.cheap_metric_proxy)
 
 
 def test_phase1_compile_cost_oracle_penalizes_heavier_pauli_structure() -> None:
@@ -520,6 +637,30 @@ def test_shortlist_only_expensive_scoring_calls_oracles_for_shortlist() -> None:
         )
     assert len(shortlisted) == 2
     assert novelty.calls == 2
+
+
+def test_shortlist_records_can_tie_break_on_cheap_score_without_falling_back_to_simple() -> None:
+    records = [
+        {
+            "cheap_score": 1.0,
+            "simple_score": 0.1,
+            "candidate_pool_index": 0,
+            "position_id": 0,
+        },
+        {
+            "cheap_score": 1.0,
+            "simple_score": 9.0,
+            "candidate_pool_index": 1,
+            "position_id": 0,
+        },
+    ]
+    shortlisted = shortlist_records(
+        records,
+        cfg=FullScoreConfig(shortlist_fraction=1.0, shortlist_size=2),
+        score_key="cheap_score",
+        tie_break_score_key="cheap_score",
+    )
+    assert [int(rec["candidate_pool_index"]) for rec in shortlisted] == [0, 1]
 
 
 def test_remaining_evaluations_proxy_uses_remaining_depth_mode() -> None:

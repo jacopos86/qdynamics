@@ -408,8 +408,16 @@ def test_fixed_lean_noisy_replay_accepts_powell(
     assert payload["optimizer"]["objective_calls_total"] == 5
 
 
+@pytest.mark.parametrize(
+    "subject_kind",
+    [
+        "hh_marrakesh_gate_pruned_6term_drop_eyezee_v1",
+        "hh_promoted_locked_scaffold_v1",
+    ],
+)
 def test_fixed_scaffold_noisy_replay_accepts_locked_subject(
     monkeypatch: pytest.MonkeyPatch,
+    subject_kind: str,
 ) -> None:
     monkeypatch.setattr(
         report,
@@ -421,7 +429,7 @@ def test_fixed_scaffold_noisy_replay_accepts_locked_subject(
                 "adapt_vqe": {
                     "pool_type": "fixed_scaffold_locked",
                     "structure_locked": True,
-                    "fixed_scaffold_kind": "hh_marrakesh_gate_pruned_6term_drop_eyezee_v1",
+                    "fixed_scaffold_kind": str(subject_kind),
                     "fixed_scaffold_metadata": {
                         "route_family": "locked_imported_scaffold_v1",
                         "term_order_id": "source_order_pruned",
@@ -564,7 +572,7 @@ def test_fixed_scaffold_noisy_replay_accepts_locked_subject(
     assert payload["success"] is True
     assert payload["route"] == "fixed_scaffold_noisy_replay"
     assert payload["structure_locked"] is True
-    assert payload["subject_kind"] == "hh_marrakesh_gate_pruned_6term_drop_eyezee_v1"
+    assert payload["subject_kind"] == str(subject_kind)
     assert payload["term_order_id"] == "source_order_pruned"
     assert payload["theta_source"] == "imported_theta_runtime"
     assert payload["execution_mode"] == "backend_scheduled"

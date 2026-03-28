@@ -5,7 +5,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, replace
 import time
-from typing import Any, Mapping, Sequence
+from typing import TYPE_CHECKING, Any, Mapping, Sequence
 
 import numpy as np
 
@@ -21,16 +21,24 @@ from pipelines.hardcoded.hh_realtime_checkpoint_types import (
     BaselineGeometrySummary,
     CandidateProbeSummary,
     CheckpointLedgerEntry,
+    DerivedGeometryKey,
     GeometryValueKey,
     OracleValueKey,
     RealtimeCheckpointConfig,
     dataclass_to_payload,
+    hash_measurement_state,
     make_checkpoint_context,
 )
 from pipelines.hardcoded.hh_realtime_measurement import (
+    BackendScheduledRawGroupPool,
+    DerivedGeometryMemo,
     ExactCheckpointValueCache,
     OracleCheckpointValueCache,
+    TemporalMeasurementLedger,
     build_controller_oracle_tier_configs,
+    estimate_grouped_raw_mclachlan_incremental_block,
+    controller_oracle_supports_raw_group_sampling,
+    estimate_grouped_raw_mclachlan_geometry,
     planning_group_keys_for_term,
     planning_stats_for_term,
     validate_controller_oracle_base_config,
@@ -49,7 +57,16 @@ from src.quantum.compiled_polynomial import (
     apply_compiled_polynomial,
     compile_polynomial_action,
 )
+from src.quantum.drives_time_potential import (
+    build_gaussian_sinusoid_density_drive,
+    reference_method_name,
+)
 from src.quantum.vqe_latex_python_pairs import AnsatzTerm, PauliPolynomial
+
+if TYPE_CHECKING:
+    from pipelines.hardcoded.hh_fixed_manifold_measured import (
+        FixedManifoldMeasuredConfig,
+    )
 
 
 @dataclass(frozen=True)
@@ -69,6 +86,46 @@ class ControllerRunArtifacts:
     ledger: list[dict[str, Any]]
     summary: dict[str, Any]
     reference: dict[str, Any]
+
+
+@dataclass(frozen=True)
+class ControllerDriveConfig:
+    enabled: bool
+    n_sites: int
+    ordering: str
+    drive_A: float
+    drive_omega: float
+    drive_tbar: float
+    drive_phi: float
+    drive_pattern: str
+    drive_custom_weights: tuple[float, ...] | None = None
+    drive_include_identity: bool = False
+    drive_time_sampling: str = "midpoint"
+    drive_t0: float = 0.0
+    exact_steps_multiplier: int = 1
+
+
+@dataclass(frozen=True)
+class StepHamiltonianArtifacts:
+    physical_time: float
+    h_poly: Any
+    hmat: np.ndarray
+    compiled_h: Any
+    oracle_observable: Any | None
+    drive_term_count: int
+
+
+@dataclass(frozen=True)
+class MotionSchedulerTelemetry:
+    regime: str
+    direction_cosine: float | None
+    rate_change_l2: float | None
+    rate_change_ratio: float | None
+    acceleration_l2: float | None
+    curvature_cosine: float | None
+    direction_reversal: bool
+    curvature_sign_flip: bool
+    kink_score: float
 
 
 def _carrier_to_term(carrier: RuntimeTermCarrier) -> AnsatzTerm:
@@ -182,6 +239,26 @@ def _overlap_l2(lhs: np.ndarray, rhs: np.ndarray | None) -> float | None:
     return float(np.sqrt(max(total, 0.0)))
 
 
+def _align_theta_vectors(lhs: np.ndarray | Sequence[float], rhs: np.ndarray | Sequence[float]) -> tuple[np.ndarray, np.ndarray]:
+    left = np.asarray(lhs, dtype=float).reshape(-1)
+    right = np.asarray(rhs, dtype=float).reshape(-1)
+    width = max(int(left.size), int(right.size))
+    out_left = np.zeros(int(width), dtype=float)
+    out_right = np.zeros(int(width), dtype=float)
+    out_left[: int(left.size)] = left
+    out_right[: int(right.size)] = right
+    return out_left, out_right
+
+
+def _cosine_similarity(lhs: np.ndarray | Sequence[float], rhs: np.ndarray | Sequence[float]) -> float | None:
+    left, right = _align_theta_vectors(lhs, rhs)
+    left_norm = float(np.linalg.norm(left))
+    right_norm = float(np.linalg.norm(right))
+    if left_norm <= 1.0e-12 or right_norm <= 1.0e-12:
+        return None
+    return float(np.dot(left, right) / max(left_norm * right_norm, 1.0e-12))
+
+
 class RealtimeCheckpointController:
     """Exact/oracle horizon-1 stay-vs-append controller."""
 
@@ -197,6 +274,7 @@ class RealtimeCheckpointController:
         allow_repeats: bool,
         t_final: float,
         num_times: int,
+        drive_config: ControllerDriveConfig | None = None,
         oracle_base_config: Any | None = None,
         wallclock_cap_s: int | None = None,
     ) -> None:
@@ -211,6 +289,32 @@ class RealtimeCheckpointController:
         self.times = np.linspace(0.0, float(t_final), int(num_times), dtype=float)
         self._pauli_action_cache: dict[str, Any] = {}
         self._compiled_poly_cache: dict[str, Any] = {}
+        self._drive_config = (
+            None
+            if drive_config is None or not bool(drive_config.enabled)
+            else ControllerDriveConfig(
+                enabled=True,
+                n_sites=int(drive_config.n_sites),
+                ordering=str(drive_config.ordering),
+                drive_A=float(drive_config.drive_A),
+                drive_omega=float(drive_config.drive_omega),
+                drive_tbar=float(drive_config.drive_tbar),
+                drive_phi=float(drive_config.drive_phi),
+                drive_pattern=str(drive_config.drive_pattern),
+                drive_custom_weights=(
+                    None
+                    if drive_config.drive_custom_weights is None
+                    else tuple(float(x) for x in drive_config.drive_custom_weights)
+                ),
+                drive_include_identity=bool(drive_config.drive_include_identity),
+                drive_time_sampling=str(drive_config.drive_time_sampling),
+                drive_t0=float(drive_config.drive_t0),
+                exact_steps_multiplier=int(drive_config.exact_steps_multiplier),
+            )
+        )
+        self._drive_coeff_provider_exyz = None
+        self._drive_profile: dict[str, Any] | None = None
+        self._reference_states: list[np.ndarray] | None = None
         self._compiled_h = compile_polynomial_action(
             h_poly,
             tol=1e-12,
@@ -231,6 +335,7 @@ class RealtimeCheckpointController:
         self._trajectory: list[dict[str, Any]] = []
         self._ledger: list[dict[str, Any]] = []
         self._previous_theta_dot: np.ndarray | None = None
+        self._theta_dot_history: list[np.ndarray] = []
         self._previous_append_position: int | None = None
         self._run_wallclock_start: float | None = None
         self._wallclock_cap_s = (None if wallclock_cap_s is None else int(wallclock_cap_s))
@@ -239,6 +344,7 @@ class RealtimeCheckpointController:
         self._oracle_qop = None
         self._oracle_instances: dict[str, Any] = {}
         self._degraded_checkpoint_count = 0
+        self._temporal_ledger = TemporalMeasurementLedger()
 
         mode = str(cfg.mode)
         if mode not in {"exact_v1", "oracle_v1"}:
@@ -284,10 +390,75 @@ class RealtimeCheckpointController:
         for carrier in self.current_terms:
             self._planning_audit.commit(planning_group_keys_for_term(_carrier_to_term(carrier)))
 
-        evals, evecs = np.linalg.eigh(self.hmat)
-        self._exact_evals = np.asarray(evals, dtype=float)
-        self._exact_evecs = np.asarray(evecs, dtype=complex)
-        self._exact_coeffs0 = np.asarray(self._exact_evecs.conj().T @ self.psi_initial, dtype=complex)
+        if self._drive_config is not None:
+            from pipelines.hardcoded.hh_fixed_manifold_measured import (
+                FixedManifoldDriveConfig,
+                FixedManifoldMeasuredConfig,
+                _build_driven_reference_states,
+            )
+
+            drive = build_gaussian_sinusoid_density_drive(
+                n_sites=int(self._drive_config.n_sites),
+                nq_total=int(self._num_qubits),
+                indexing=str(self._drive_config.ordering),
+                A=float(self._drive_config.drive_A),
+                omega=float(self._drive_config.drive_omega),
+                tbar=float(self._drive_config.drive_tbar),
+                phi=float(self._drive_config.drive_phi),
+                pattern_mode=str(self._drive_config.drive_pattern),
+                custom_weights=(
+                    None
+                    if self._drive_config.drive_custom_weights is None
+                    else [float(x) for x in self._drive_config.drive_custom_weights]
+                ),
+                include_identity=bool(self._drive_config.drive_include_identity),
+                coeff_tol=0.0,
+            )
+            self._drive_coeff_provider_exyz = drive.coeff_map_exyz
+            self._drive_profile = {
+                "A": float(self._drive_config.drive_A),
+                "omega": float(self._drive_config.drive_omega),
+                "tbar": float(self._drive_config.drive_tbar),
+                "phi": float(self._drive_config.drive_phi),
+                "pattern": str(self._drive_config.drive_pattern),
+                "custom_weights": (
+                    None
+                    if self._drive_config.drive_custom_weights is None
+                    else [float(x) for x in self._drive_config.drive_custom_weights]
+                ),
+                "include_identity": bool(self._drive_config.drive_include_identity),
+                "time_sampling": str(self._drive_config.drive_time_sampling),
+                "t0": float(self._drive_config.drive_t0),
+            }
+            self._reference_states = _build_driven_reference_states(
+                psi_initial=np.asarray(self.psi_initial, dtype=complex),
+                times=self.times,
+                hmat_static=np.asarray(self.hmat, dtype=complex),
+                h_poly_static=self.h_poly,
+                drive_coeff_provider_exyz=self._drive_coeff_provider_exyz,
+                drive_cfg=FixedManifoldDriveConfig(
+                    enable_drive=True,
+                    drive_A=float(self._drive_config.drive_A),
+                    drive_omega=float(self._drive_config.drive_omega),
+                    drive_tbar=float(self._drive_config.drive_tbar),
+                    drive_phi=float(self._drive_config.drive_phi),
+                    drive_pattern=str(self._drive_config.drive_pattern),
+                    drive_custom_s=None,
+                    drive_include_identity=bool(self._drive_config.drive_include_identity),
+                    drive_time_sampling=str(self._drive_config.drive_time_sampling),
+                    drive_t0=float(self._drive_config.drive_t0),
+                    exact_steps_multiplier=int(self._drive_config.exact_steps_multiplier),
+                ),
+                geom_cfg=FixedManifoldMeasuredConfig(),
+            )
+            self._exact_evals = None
+            self._exact_evecs = None
+            self._exact_coeffs0 = None
+        else:
+            evals, evecs = np.linalg.eigh(self.hmat)
+            self._exact_evals = np.asarray(evals, dtype=float)
+            self._exact_evecs = np.asarray(evecs, dtype=complex)
+            self._exact_coeffs0 = np.asarray(self._exact_evecs.conj().T @ self.psi_initial, dtype=complex)
 
     def _build_executor(
         self,
@@ -305,6 +476,11 @@ class RealtimeCheckpointController:
         )
 
     def _exact_state_at(self, time_value: float) -> np.ndarray:
+        if self._reference_states is not None:
+            if len(self._reference_states) == 0:
+                return np.asarray(self.psi_initial, dtype=complex).reshape(-1)
+            idx = int(np.argmin(np.abs(self.times - float(time_value))))
+            return np.asarray(self._reference_states[int(idx)], dtype=complex).reshape(-1)
         phases = np.exp(-1.0j * np.asarray(self._exact_evals, dtype=float) * float(time_value))
         return np.asarray(self._exact_evecs @ (phases * self._exact_coeffs0), dtype=complex)
 
@@ -323,6 +499,268 @@ class RealtimeCheckpointController:
         if self._oracle_base_config is None:
             return None
         return f"oracle_{str(self._oracle_base_config.noise_mode).strip().lower()}"
+
+    def _physical_time(self, time_value: float) -> float:
+        if self._drive_config is None:
+            return float(time_value)
+        return float(time_value) + float(self._drive_config.drive_t0)
+
+    def _step_hamiltonian_artifacts(self, time_value: float) -> StepHamiltonianArtifacts:
+        if self._drive_config is None or self._drive_coeff_provider_exyz is None:
+            return StepHamiltonianArtifacts(
+                physical_time=float(time_value),
+                h_poly=self.h_poly,
+                hmat=np.asarray(self.hmat, dtype=complex),
+                compiled_h=self._compiled_h,
+                oracle_observable=self._oracle_qop,
+                drive_term_count=0,
+            )
+
+        from pipelines.exact_bench.noise_oracle_runtime import pauli_poly_to_sparse_pauli_op
+        from pipelines.hardcoded.hh_fixed_manifold_measured import (
+            FixedManifoldMeasuredConfig,
+            _build_driven_hamiltonian,
+        )
+
+        physical_time = self._physical_time(float(time_value))
+        h_poly_step, hmat_step, drive_coeff_map = _build_driven_hamiltonian(
+            h_poly_static=self.h_poly,
+            hmat_static=self.hmat,
+            drive_coeff_provider_exyz=self._drive_coeff_provider_exyz,
+            physical_time=float(physical_time),
+            nq=int(self._num_qubits),
+            geom_cfg=FixedManifoldMeasuredConfig(),
+            drive_drop_abs_tol=1.0e-15,
+        )
+        compiled_h_step = compile_polynomial_action(
+            h_poly_step,
+            tol=1e-12,
+            pauli_action_cache=self._pauli_action_cache,
+        )
+        oracle_observable = (
+            None
+            if self._oracle_base_config is None
+            else pauli_poly_to_sparse_pauli_op(h_poly_step)
+        )
+        return StepHamiltonianArtifacts(
+            physical_time=float(physical_time),
+            h_poly=h_poly_step,
+            hmat=np.asarray(hmat_step, dtype=complex),
+            compiled_h=compiled_h_step,
+            oracle_observable=oracle_observable,
+            drive_term_count=int(len(drive_coeff_map)),
+        )
+
+    def _predicted_displacement(self, *, dt: float, baseline: Mapping[str, Any]) -> float:
+        G = np.asarray(baseline.get("G", np.zeros((0, 0), dtype=float)), dtype=float)
+        theta_dot = np.asarray(baseline.get("theta_dot_step", np.zeros(0, dtype=float)), dtype=float).reshape(-1)
+        if G.size == 0 or theta_dot.size == 0:
+            return 0.0
+        quad = float(theta_dot @ G @ theta_dot)
+        return float(abs(float(dt)) * np.sqrt(max(quad, 0.0)))
+
+    def _motion_telemetry(
+        self,
+        *,
+        theta_dot: np.ndarray | Sequence[float],
+        predicted_displacement: float,
+    ) -> MotionSchedulerTelemetry:
+        current = np.asarray(theta_dot, dtype=float).reshape(-1)
+        if not self._theta_dot_history:
+            return MotionSchedulerTelemetry(
+                regime="bootstrap",
+                direction_cosine=None,
+                rate_change_l2=None,
+                rate_change_ratio=None,
+                acceleration_l2=None,
+                curvature_cosine=None,
+                direction_reversal=False,
+                curvature_sign_flip=False,
+                kink_score=0.0,
+            )
+        previous = np.asarray(self._theta_dot_history[-1], dtype=float).reshape(-1)
+        current_aligned, previous_aligned = _align_theta_vectors(current, previous)
+        delta = np.asarray(current_aligned - previous_aligned, dtype=float)
+        rate_change_l2 = float(np.linalg.norm(delta))
+        previous_norm = float(np.linalg.norm(previous_aligned))
+        current_norm = float(np.linalg.norm(current_aligned))
+        rate_change_denom = max(previous_norm, current_norm, 1.0e-12)
+        rate_change_ratio = float(rate_change_l2 / rate_change_denom)
+        direction_cosine = _cosine_similarity(current_aligned, previous_aligned)
+        direction_reversal = bool(
+            direction_cosine is not None
+            and float(direction_cosine) <= float(self.cfg.motion_direction_reversal_cosine_threshold)
+            and float(rate_change_ratio) >= float(self.cfg.motion_calm_rate_change_ratio_threshold)
+            and float(rate_change_l2) >= float(self.cfg.motion_acceleration_l2_threshold)
+        )
+        acceleration_l2 = float(np.linalg.norm(delta))
+        curvature_cosine: float | None = None
+        curvature_sign_flip = False
+        if len(self._theta_dot_history) >= 2:
+            previous_previous = np.asarray(self._theta_dot_history[-2], dtype=float).reshape(-1)
+            max_width = max(int(current.size), int(previous.size), int(previous_previous.size))
+            current_pad = np.zeros(int(max_width), dtype=float)
+            previous_pad = np.zeros(int(max_width), dtype=float)
+            previous_previous_pad = np.zeros(int(max_width), dtype=float)
+            current_pad[: int(current.size)] = current
+            previous_pad[: int(previous.size)] = previous
+            previous_previous_pad[: int(previous_previous.size)] = previous_previous
+            acceleration = np.asarray(current_pad - previous_pad, dtype=float)
+            previous_acceleration = np.asarray(previous_pad - previous_previous_pad, dtype=float)
+            acceleration_l2 = float(np.linalg.norm(acceleration))
+            previous_acceleration_l2 = float(np.linalg.norm(previous_acceleration))
+            curvature_cosine = _cosine_similarity(acceleration, previous_acceleration)
+            curvature_sign_flip = bool(
+                curvature_cosine is not None
+                and float(curvature_cosine) <= float(self.cfg.motion_curvature_flip_cosine_threshold)
+                and float(acceleration_l2) >= float(self.cfg.motion_acceleration_l2_threshold)
+                and float(previous_acceleration_l2) >= float(self.cfg.motion_acceleration_l2_threshold)
+            )
+        calm = bool(
+            direction_cosine is not None
+            and float(direction_cosine) >= float(self.cfg.motion_calm_direction_cosine_threshold)
+            and float(rate_change_ratio) <= float(self.cfg.motion_calm_rate_change_ratio_threshold)
+            and not direction_reversal
+            and not curvature_sign_flip
+            and float(predicted_displacement) <= 0.05
+        )
+        kink_score = float(
+            max(
+                0.0,
+                float(rate_change_ratio),
+                0.0 if direction_cosine is None else float(max(0.0, -direction_cosine)),
+                0.0 if curvature_cosine is None else float(max(0.0, -curvature_cosine)),
+            )
+        )
+        large_change = float(rate_change_l2) >= float(self.cfg.motion_acceleration_l2_threshold)
+        if bool(direction_reversal) or bool(curvature_sign_flip) or (
+            bool(large_change)
+            and float(rate_change_ratio) >= float(self.cfg.motion_kink_rate_change_ratio_threshold)
+        ):
+            regime = "kink"
+        elif bool(calm):
+            regime = "calm"
+        else:
+            regime = "steady"
+        return MotionSchedulerTelemetry(
+            regime=str(regime),
+            direction_cosine=(None if direction_cosine is None else float(direction_cosine)),
+            rate_change_l2=float(rate_change_l2),
+            rate_change_ratio=float(rate_change_ratio),
+            acceleration_l2=float(acceleration_l2),
+            curvature_cosine=(None if curvature_cosine is None else float(curvature_cosine)),
+            direction_reversal=bool(direction_reversal),
+            curvature_sign_flip=bool(curvature_sign_flip),
+            kink_score=float(kink_score),
+        )
+
+    def _effective_refresh_pressure(
+        self,
+        *,
+        base_refresh_pressure: str,
+        motion: MotionSchedulerTelemetry,
+    ) -> str:
+        order = {"low": 0, "medium": 1, "high": 2}
+        base = str(base_refresh_pressure).strip().lower()
+        motion_floor = (
+            "high"
+            if str(motion.regime) == "kink"
+            else ("medium" if str(motion.regime) == "bootstrap" else "low")
+        )
+        return max((base, motion_floor), key=lambda item: int(order.get(str(item), 1)))
+
+    def _shortlist_cfg_for_motion(self, motion: MotionSchedulerTelemetry) -> FullScoreConfig:
+        base_size = int(self._shortlist_cfg.shortlist_size)
+        base_fraction = float(self._shortlist_cfg.shortlist_fraction)
+        if str(motion.regime) == "calm":
+            return FullScoreConfig(
+                shortlist_fraction=float(
+                    max(0.05, base_fraction * float(self.cfg.motion_calm_shortlist_scale))
+                ),
+                shortlist_size=max(
+                    1,
+                    int(np.ceil(float(base_size) * float(self.cfg.motion_calm_shortlist_scale))),
+                ),
+            )
+        if str(motion.regime) == "kink":
+            return FullScoreConfig(
+                shortlist_fraction=float(min(1.0, base_fraction * 1.5)),
+                shortlist_size=max(1, int(base_size) + int(self.cfg.motion_kink_shortlist_bonus)),
+            )
+        return self._shortlist_cfg
+
+    def _oracle_confirm_limit_for_motion(
+        self,
+        *,
+        confirmed_count: int,
+        refresh_pressure: str,
+        motion: MotionSchedulerTelemetry,
+    ) -> int:
+        count = max(0, int(confirmed_count))
+        if count <= 0:
+            return 0
+        if str(motion.regime) == "kink" or str(refresh_pressure) == "high":
+            return int(count)
+        if str(refresh_pressure) == "medium":
+            return min(2, int(count))
+        if str(motion.regime) == "calm":
+            return min(1, int(count))
+        return min(2, int(count))
+
+    def _oracle_budget_scale_for_motion(
+        self,
+        *,
+        refresh_pressure: str,
+        motion: MotionSchedulerTelemetry,
+    ) -> float:
+        if str(motion.regime) == "kink" or str(refresh_pressure) == "high":
+            return float(max(1.0, float(self.cfg.motion_kink_oracle_budget_scale)))
+        if str(motion.regime) == "calm" and str(refresh_pressure) == "low":
+            return float(max(0.25, float(self.cfg.motion_calm_oracle_budget_scale)))
+        return 1.0
+
+    def _record_theta_dot_history(self, theta_dot: np.ndarray | Sequence[float]) -> None:
+        value = np.asarray(theta_dot, dtype=float).reshape(-1)
+        self._previous_theta_dot = np.asarray(value, dtype=float)
+        self._theta_dot_history.append(np.asarray(value, dtype=float))
+        if len(self._theta_dot_history) > 3:
+            self._theta_dot_history = list(self._theta_dot_history[-3:])
+
+    def _oracle_sampling_targets(self, *, tier_name: str, budget_scale: float) -> tuple[int, int]:
+        tier_cfg = self._oracle_tier_configs[str(tier_name)]
+        scale = max(float(budget_scale), 0.25)
+        base_samples = max(1, int(tier_cfg.oracle_repeats))
+        base_shots = max(1, int(tier_cfg.shots))
+        min_samples = max(1, int(np.ceil(float(base_samples) * float(scale))))
+        min_total_shots = max(
+            1,
+            int(np.ceil(float(base_shots) * float(base_samples) * float(scale))),
+        )
+        return int(min_total_shots), int(min_samples)
+
+    def _measured_geometry_config(self) -> FixedManifoldMeasuredConfig:
+        from pipelines.hardcoded.hh_fixed_manifold_measured import (
+            FixedManifoldMeasuredConfig,
+        )
+
+        return FixedManifoldMeasuredConfig(
+            regularization_lambda=float(self.cfg.regularization_lambda),
+            pinv_rcond=float(self.cfg.pinv_rcond),
+        )
+
+    def _measurement_state_key(
+        self,
+        *,
+        layout: AnsatzParameterLayout,
+        theta_runtime: np.ndarray | Sequence[float],
+    ) -> str:
+        scaffold_labels = [str(block.candidate_label) for block in layout.blocks]
+        return hash_measurement_state(
+            scaffold_labels=scaffold_labels,
+            logical_count=int(layout.logical_parameter_count),
+            runtime_count=int(layout.runtime_parameter_count),
+            theta=theta_runtime,
+        )
 
     def _oracle_for_tier(self, tier_name: str) -> Any:
         if str(self.cfg.mode) != "oracle_v1":
@@ -364,12 +802,16 @@ class RealtimeCheckpointController:
         *,
         checkpoint_ctx: Any,
         cache: OracleCheckpointValueCache,
+        raw_group_pool: BackendScheduledRawGroupPool | None,
         tier_name: str,
         observable_family: str,
         candidate_label: str | None,
         position_id: int | None,
         layout: AnsatzParameterLayout,
         theta_runtime: np.ndarray | Sequence[float],
+        observable: Any | None = None,
+        state_key: str | None = None,
+        budget_scale: float = 1.0,
     ) -> tuple[dict[str, Any], bool]:
         value_key = OracleValueKey(
             checkpoint_id=str(checkpoint_ctx.checkpoint_id),
@@ -380,11 +822,56 @@ class RealtimeCheckpointController:
         )
 
         def _compute() -> dict[str, Any]:
+            target_observable = self._oracle_qop if observable is None else observable
+            if target_observable is None:
+                raise ValueError("Oracle energy estimate requires an observable.")
             if self._oracle_wallclock_hit():
                 raise TimeoutError("checkpoint controller oracle_v1 wallclock cap reached")
             oracle = self._oracle_for_tier(str(tier_name))
             circuit = self._build_runtime_circuit(layout=layout, theta_runtime=theta_runtime)
-            est = oracle.evaluate(circuit, self._oracle_qop)
+            if (
+                raw_group_pool is not None
+                and self._oracle_base_config is not None
+                and str(self._oracle_base_config.noise_mode).strip().lower() in {"backend_scheduled", "runtime"}
+            ):
+                min_total_shots, min_samples = self._oracle_sampling_targets(
+                    tier_name=str(tier_name),
+                    budget_scale=float(budget_scale),
+                )
+                try:
+                    return raw_group_pool.estimate_observable(
+                        oracle=oracle,
+                        circuit=circuit,
+                        observable=target_observable,
+                        observable_family=str(observable_family),
+                        candidate_label=(None if candidate_label is None else str(candidate_label)),
+                        position_id=(None if position_id is None else int(position_id)),
+                        min_total_shots=int(min_total_shots),
+                        min_samples=int(min_samples),
+                        state_key=(None if state_key is None else str(state_key)),
+                    )
+                except Exception as raw_exc:
+                    est = oracle.evaluate(circuit, target_observable)
+                    backend_info = {
+                        "noise_mode": str(oracle.backend_info.noise_mode),
+                        "estimator_kind": str(oracle.backend_info.estimator_kind),
+                        "backend_name": oracle.backend_info.backend_name,
+                        "using_fake_backend": bool(oracle.backend_info.using_fake_backend),
+                        "details": {
+                            **dict(oracle.backend_info.details),
+                            "raw_group_pool_fallback_reason": f"{type(raw_exc).__name__}: {raw_exc}",
+                        },
+                    }
+                    return {
+                        "mean": float(est.mean),
+                        "stderr": float(est.stderr),
+                        "std": float(est.std),
+                        "stdev": float(est.stdev),
+                        "n_samples": int(est.n_samples),
+                        "aggregate": str(est.aggregate),
+                        "backend_info": backend_info,
+                    }
+            est = oracle.evaluate(circuit, target_observable)
             backend_info = {
                 "noise_mode": str(oracle.backend_info.noise_mode),
                 "estimator_kind": str(oracle.backend_info.estimator_kind),
@@ -404,6 +891,264 @@ class RealtimeCheckpointController:
 
         return cache.get_or_compute(value_key, compute=_compute)
 
+    def _oracle_measured_baseline_geometry(
+        self,
+        *,
+        checkpoint_ctx: Any,
+        cache: ExactCheckpointValueCache,
+        geometry_memo: DerivedGeometryMemo,
+        raw_group_pool: BackendScheduledRawGroupPool,
+        h_poly_step: Any,
+        tier_name: str,
+        budget_scale: float = 1.0,
+    ) -> dict[str, Any]:
+        memo_key = DerivedGeometryKey(
+            checkpoint_id=str(checkpoint_ctx.checkpoint_id),
+            memo_family="oracle_measured_baseline_geometry",
+            candidate_label=None,
+            position_id=None,
+        )
+
+        def _compute() -> dict[str, Any]:
+            oracle = self._oracle_for_tier(str(tier_name))
+            min_total_shots, min_samples = self._oracle_sampling_targets(
+                tier_name=str(tier_name),
+                budget_scale=float(budget_scale),
+            )
+            state_key = self._measurement_state_key(
+                layout=self.current_layout,
+                theta_runtime=self.current_theta,
+            )
+            measured = estimate_grouped_raw_mclachlan_geometry(
+                oracle=oracle,
+                raw_group_pool=raw_group_pool,
+                layout=self.current_layout,
+                theta_runtime=self.current_theta,
+                psi_ref=np.asarray(self.replay_context.psi_ref, dtype=complex).reshape(-1),
+                h_poly=h_poly_step,
+                geom_cfg=self._measured_geometry_config(),
+                observable_family_prefix="baseline_geometry",
+                candidate_label=None,
+                position_id=None,
+                state_key=str(state_key),
+                min_total_shots=int(min_total_shots),
+                min_samples=int(min_samples),
+            )
+            geometry = dict(measured["geometry"])
+            summary = BaselineGeometrySummary(
+                energy=float(geometry["energy"]),
+                variance=float(geometry["variance"]),
+                epsilon_proj_sq=float(geometry["epsilon_proj_sq"]),
+                epsilon_step_sq=float(geometry["epsilon_step_sq"]),
+                rho_miss=float(geometry["rho_miss"]),
+                theta_dot_l2=float(np.linalg.norm(np.asarray(geometry["theta_dot_step"], dtype=float))),
+                matrix_rank=int(geometry["matrix_rank"]),
+                condition_number=float(geometry["condition_number"]),
+                regularization_lambda=float(self.cfg.regularization_lambda),
+                solve_mode="grouped_raw_measured",
+                logical_block_count=int(self.current_layout.logical_parameter_count),
+                runtime_parameter_count=int(self.current_layout.runtime_parameter_count),
+                planning_summary=dict(self._planning_audit.summary()),
+                exact_cache_summary=dict(cache.summary()),
+            )
+            return {
+                **geometry,
+                "summary": summary,
+                "backend_info": dict(measured.get("backend_info", {})),
+                "observable_estimates": dict(measured.get("observable_estimates", {})),
+                "plan_stats": dict(measured.get("plan_stats", {})),
+                "raw_group_pool_summary": dict(measured.get("raw_group_pool_summary", {})),
+                "step_objective_value": float(measured.get("step_objective_value", 0.0)),
+                "state_key": str(measured.get("state_key", state_key)),
+            }
+
+        value, _ = geometry_memo.get_or_compute(memo_key, compute=_compute)
+        return dict(value)
+
+    def _oracle_measured_candidate_incremental_block(
+        self,
+        *,
+        checkpoint_ctx: Any,
+        geometry_memo: DerivedGeometryMemo,
+        raw_group_pool: BackendScheduledRawGroupPool,
+        tier_name: str,
+        baseline_measured: Mapping[str, Any],
+        record: Mapping[str, Any],
+        h_poly_step: Any,
+        budget_scale: float = 1.0,
+    ) -> dict[str, Any]:
+        candidate_identity = str(record.get("candidate_identity", record["candidate_label"]))
+        position_id = int(record["position_id"])
+        memo_key = DerivedGeometryKey(
+            checkpoint_id=str(checkpoint_ctx.checkpoint_id),
+            memo_family="oracle_measured_candidate_incremental_block",
+            candidate_label=str(candidate_identity),
+            position_id=int(position_id),
+        )
+
+        def _compute() -> dict[str, Any]:
+            oracle = self._oracle_for_tier(str(tier_name))
+            min_total_shots, min_samples = self._oracle_sampling_targets(
+                tier_name=str(tier_name),
+                budget_scale=float(budget_scale),
+            )
+            candidate_data = dict(record["candidate_data"])
+            state_key = self._measurement_state_key(
+                layout=candidate_data["aug_layout"],
+                theta_runtime=np.asarray(candidate_data["theta_aug"], dtype=float).reshape(-1),
+            )
+            measured = estimate_grouped_raw_mclachlan_incremental_block(
+                oracle=oracle,
+                raw_group_pool=raw_group_pool,
+                baseline_measured=baseline_measured,
+                layout=candidate_data["aug_layout"],
+                theta_runtime=np.asarray(candidate_data["theta_aug"], dtype=float).reshape(-1),
+                psi_ref=np.asarray(self.replay_context.psi_ref, dtype=complex).reshape(-1),
+                h_poly=h_poly_step,
+                candidate_runtime_indices=tuple(candidate_data["runtime_block_indices"]),
+                runtime_insert_position=int(candidate_data["runtime_insert_position"]),
+                geom_cfg=self._measured_geometry_config(),
+                candidate_regularization_lambda=float(self.cfg.candidate_regularization_lambda),
+                pinv_rcond=float(self.cfg.pinv_rcond),
+                observable_family_prefix="candidate_incremental_block",
+                candidate_label=str(candidate_identity),
+                position_id=int(position_id),
+                state_key=str(state_key),
+                min_total_shots=int(min_total_shots),
+                min_samples=int(min_samples),
+            )
+            incremental = dict(measured["incremental_block"])
+            return {
+                **incremental,
+                "backend_info": dict(measured.get("backend_info", {})),
+                "observable_estimates": dict(measured.get("observable_estimates", {})),
+                "plan_stats": dict(measured.get("plan_stats", {})),
+                "raw_group_pool_summary": dict(measured.get("raw_group_pool_summary", {})),
+                "state_key": str(measured.get("state_key", state_key)),
+                "selected_observable_names": list(measured.get("selected_observable_names", [])),
+            }
+
+        value, _ = geometry_memo.get_or_compute(memo_key, compute=_compute)
+        return dict(value)
+
+    def _confirm_candidates_oracle_geometry(
+        self,
+        *,
+        checkpoint_ctx: Any,
+        cache: ExactCheckpointValueCache,
+        geometry_memo: DerivedGeometryMemo,
+        confirmed: Sequence[Mapping[str, Any]],
+        raw_group_pool: BackendScheduledRawGroupPool,
+        h_poly_step: Any,
+        confirm_limit: int,
+        budget_scale: float = 1.0,
+    ) -> tuple[dict[str, Any] | None, list[dict[str, Any]], str | None]:
+        try:
+            baseline_measured = self._oracle_measured_baseline_geometry(
+                checkpoint_ctx=checkpoint_ctx,
+                cache=cache,
+                geometry_memo=geometry_memo,
+                raw_group_pool=raw_group_pool,
+                h_poly_step=h_poly_step,
+                tier_name="confirm",
+                budget_scale=float(budget_scale),
+            )
+        except Exception as exc:
+            return None, [dict(rec) for rec in confirmed], str(exc)
+
+        if float(baseline_measured["summary"].rho_miss) <= float(self.cfg.miss_threshold):
+            skipped: list[dict[str, Any]] = []
+            for record in confirmed:
+                rec = dict(record)
+                rec["gain_exact"] = None
+                rec["gain_ratio"] = None
+                rec["adjusted_gain"] = float("-inf")
+                rec["confirm_error"] = "skipped_due_to_measured_baseline_stay"
+                rec["candidate_summary"] = replace(
+                    rec["candidate_summary"],
+                    gain_exact=None,
+                    gain_ratio=None,
+                    admissible=False,
+                    rejection_reason="measured_baseline_below_threshold",
+                )
+                skipped.append(rec)
+            return baseline_measured, skipped, None
+
+        ranked = sorted(
+            [dict(rec) for rec in confirmed],
+            key=lambda rec: (
+                -float(rec["adjusted_gain"]),
+                float(rec["candidate_summary"].position_jump_penalty),
+                float(rec["candidate_summary"].compile_proxy_total),
+                float(rec["candidate_summary"].groups_new),
+                int(rec["candidate_summary"].candidate_pool_index),
+                int(rec["candidate_summary"].position_id),
+            ),
+        )
+        measured_records: list[dict[str, Any]] = []
+        for idx, record in enumerate(ranked):
+            rec = dict(record)
+            if int(idx) >= int(confirm_limit):
+                rec["gain_exact"] = None
+                rec["gain_ratio"] = None
+                rec["adjusted_gain"] = float("-inf")
+                rec["confirm_error"] = "deferred_by_refresh_pressure"
+                rec["candidate_summary"] = replace(
+                    rec["candidate_summary"],
+                    gain_exact=None,
+                    gain_ratio=None,
+                    admissible=False,
+                    rejection_reason="deferred_by_refresh_pressure",
+                )
+                measured_records.append(rec)
+                continue
+            try:
+                measured_candidate = self._oracle_measured_candidate_incremental_block(
+                    checkpoint_ctx=checkpoint_ctx,
+                    geometry_memo=geometry_memo,
+                    raw_group_pool=raw_group_pool,
+                    tier_name="confirm",
+                    baseline_measured=baseline_measured,
+                    record=rec,
+                    h_poly_step=h_poly_step,
+                    budget_scale=float(budget_scale),
+                )
+                theta_dot_aug = np.asarray(measured_candidate["theta_dot_step"], dtype=float).reshape(-1)
+                theta_dot_aug_existing = np.asarray(
+                    measured_candidate["theta_dot_aug_existing"],
+                    dtype=float,
+                ).reshape(-1)
+                eta_dot = np.asarray(measured_candidate["eta_dot"], dtype=float).reshape(-1)
+                directional_change_l2 = _overlap_l2(theta_dot_aug, self._previous_theta_dot)
+                gain_exact = float(measured_candidate["gain_exact"])
+                gain_ratio = float(measured_candidate["gain_ratio"])
+                directional_penalty = 0.0 if directional_change_l2 is None else float(directional_change_l2)
+                adjusted_gain = float(
+                    gain_ratio
+                    - float(self.cfg.directional_penalty_weight) * directional_penalty
+                    - float(self.cfg.measurement_penalty_weight) * float(rec.get("groups_new", 0.0))
+                )
+                rec["gain_exact"] = float(gain_exact)
+                rec["gain_ratio"] = float(gain_ratio)
+                rec["adjusted_gain"] = float(adjusted_gain)
+                rec["theta_dot_aug"] = theta_dot_aug
+                rec["theta_dot_aug_existing"] = theta_dot_aug_existing
+                rec["eta_dot"] = eta_dot
+                rec["confirm_backend_info"] = dict(measured_candidate.get("backend_info", {}))
+                rec["confirm_error"] = None
+                rec["candidate_summary"] = replace(
+                    rec["candidate_summary"],
+                    gain_exact=float(gain_exact),
+                    gain_ratio=float(gain_ratio),
+                    directional_change_l2=(None if directional_change_l2 is None else float(directional_change_l2)),
+                    decision_metric="measured_incremental_gain_ratio",
+                    oracle_estimate_kind=self._oracle_estimate_kind(),
+                )
+            except Exception as exc:
+                return None, [dict(item) for item in confirmed], f"measured_candidate_geometry_error: {exc}"
+            measured_records.append(rec)
+        return baseline_measured, measured_records, None
+
     def _confirm_candidates_oracle(
         self,
         *,
@@ -412,21 +1157,32 @@ class RealtimeCheckpointController:
         confirmed: Sequence[Mapping[str, Any]],
         dt: float,
         oracle_cache: OracleCheckpointValueCache,
+        raw_group_pool: BackendScheduledRawGroupPool | None,
+        oracle_observable: Any | None,
+        budget_scale: float = 1.0,
     ) -> tuple[list[dict[str, Any]], dict[str, Any] | None, str | None]:
         stay_theta = np.asarray(
             self.current_theta + float(dt) * np.asarray(baseline["theta_dot_step"], dtype=float),
             dtype=float,
         ).reshape(-1)
+        stay_state_key = self._measurement_state_key(
+            layout=self.current_layout,
+            theta_runtime=stay_theta,
+        )
         try:
             stay_estimate, _ = self._oracle_energy_estimate(
                 checkpoint_ctx=checkpoint_ctx,
                 cache=oracle_cache,
+                raw_group_pool=raw_group_pool,
                 tier_name="confirm",
                 observable_family="stay_step_energy",
                 candidate_label=None,
                 position_id=None,
                 layout=self.current_layout,
                 theta_runtime=stay_theta,
+                observable=oracle_observable,
+                state_key=str(stay_state_key),
+                budget_scale=float(budget_scale),
             )
         except Exception as exc:
             return [dict(rec) for rec in confirmed], None, str(exc)
@@ -435,18 +1191,27 @@ class RealtimeCheckpointController:
         for record in confirmed:
             rec = dict(record)
             try:
+                candidate_theta = np.asarray(
+                    rec["candidate_data"]["theta_aug"] + float(dt) * np.asarray(rec["theta_dot_aug"], dtype=float),
+                    dtype=float,
+                ).reshape(-1)
+                candidate_state_key = self._measurement_state_key(
+                    layout=rec["candidate_data"]["aug_layout"],
+                    theta_runtime=candidate_theta,
+                )
                 est, _ = self._oracle_energy_estimate(
                     checkpoint_ctx=checkpoint_ctx,
                     cache=oracle_cache,
+                    raw_group_pool=raw_group_pool,
                     tier_name="confirm",
                     observable_family="candidate_step_energy",
-                    candidate_label=str(rec["candidate_label"]),
+                    candidate_label=str(rec.get("candidate_identity", rec["candidate_label"])),
                     position_id=int(rec["position_id"]),
                     layout=rec["candidate_data"]["aug_layout"],
-                    theta_runtime=np.asarray(
-                        rec["candidate_data"]["theta_aug"] + float(dt) * np.asarray(rec["theta_dot_aug"], dtype=float),
-                        dtype=float,
-                    ).reshape(-1),
+                    theta_runtime=candidate_theta,
+                    observable=oracle_observable,
+                    state_key=str(candidate_state_key),
+                    budget_scale=float(budget_scale),
                 )
                 improvement_abs = float(stay_estimate["mean"] - est["mean"])
                 improvement_ratio = float(improvement_abs / max(abs(float(stay_estimate["mean"])), 1e-14))
@@ -522,10 +1287,13 @@ class RealtimeCheckpointController:
         *,
         checkpoint_ctx: Any,
         oracle_cache: OracleCheckpointValueCache,
+        raw_group_pool: BackendScheduledRawGroupPool | None,
         baseline: Mapping[str, Any],
         selected: Mapping[str, Any] | None,
         action_kind: str,
         dt: float,
+        oracle_observable: Any | None,
+        budget_scale: float = 1.0,
     ) -> tuple[dict[str, Any], str | None]:
         stay_theta = np.asarray(
             self.current_theta + float(dt) * np.asarray(baseline["theta_dot_step"], dtype=float),
@@ -540,16 +1308,24 @@ class RealtimeCheckpointController:
             "selected_noisy_improvement_ratio": None,
         }
         degraded_reason: str | None = None
+        stay_state_key = self._measurement_state_key(
+            layout=self.current_layout,
+            theta_runtime=stay_theta,
+        )
         try:
             stay_est, _ = self._oracle_energy_estimate(
                 checkpoint_ctx=checkpoint_ctx,
                 cache=oracle_cache,
+                raw_group_pool=raw_group_pool,
                 tier_name="commit",
                 observable_family="stay_step_energy",
                 candidate_label=None,
                 position_id=None,
                 layout=self.current_layout,
                 theta_runtime=stay_theta,
+                observable=oracle_observable,
+                state_key=str(stay_state_key),
+                budget_scale=float(budget_scale),
             )
             out["stay_noisy_energy_mean"] = float(stay_est["mean"])
             out["stay_noisy_energy_stderr"] = float(stay_est["stderr"])
@@ -559,18 +1335,27 @@ class RealtimeCheckpointController:
                 out["selected_noisy_improvement_abs"] = 0.0
                 out["selected_noisy_improvement_ratio"] = 0.0
                 return out, None
+            selected_theta = np.asarray(
+                selected["candidate_data"]["theta_aug"] + float(dt) * np.asarray(selected["theta_dot_aug"], dtype=float),
+                dtype=float,
+            ).reshape(-1)
+            selected_state_key = self._measurement_state_key(
+                layout=selected["candidate_data"]["aug_layout"],
+                theta_runtime=selected_theta,
+            )
             selected_est, _ = self._oracle_energy_estimate(
                 checkpoint_ctx=checkpoint_ctx,
                 cache=oracle_cache,
+                raw_group_pool=raw_group_pool,
                 tier_name="commit",
                 observable_family="candidate_step_energy",
-                candidate_label=str(selected["candidate_label"]),
+                candidate_label=str(selected.get("candidate_identity", selected["candidate_label"])),
                 position_id=int(selected["position_id"]),
                 layout=selected["candidate_data"]["aug_layout"],
-                theta_runtime=np.asarray(
-                    selected["candidate_data"]["theta_aug"] + float(dt) * np.asarray(selected["theta_dot_aug"], dtype=float),
-                    dtype=float,
-                ).reshape(-1),
+                theta_runtime=selected_theta,
+                observable=oracle_observable,
+                state_key=str(selected_state_key),
+                budget_scale=float(budget_scale),
             )
             improvement_abs = float(stay_est["mean"] - selected_est["mean"])
             out["selected_noisy_energy_mean"] = float(selected_est["mean"])
@@ -587,6 +1372,35 @@ class RealtimeCheckpointController:
         self,
         checkpoint_ctx: Any,
         cache: ExactCheckpointValueCache,
+        geometry_memo: DerivedGeometryMemo,
+        step_hamiltonian: StepHamiltonianArtifacts | None = None,
+    ) -> dict[str, Any]:
+        resolved_step = (
+            self._step_hamiltonian_artifacts(float(getattr(checkpoint_ctx, "time_start", 0.0)))
+            if step_hamiltonian is None
+            else step_hamiltonian
+        )
+        value, _ = geometry_memo.get_or_compute(
+            DerivedGeometryKey(
+                checkpoint_id=str(checkpoint_ctx.checkpoint_id),
+                memo_family="baseline_geometry",
+                candidate_label=None,
+                position_id=None,
+            ),
+            compute=lambda: self._compute_baseline_geometry(
+                checkpoint_ctx=checkpoint_ctx,
+                cache=cache,
+                step_hamiltonian=resolved_step,
+            ),
+        )
+        return dict(value)
+
+    def _compute_baseline_geometry(
+        self,
+        *,
+        checkpoint_ctx: Any,
+        cache: ExactCheckpointValueCache,
+        step_hamiltonian: StepHamiltonianArtifacts,
     ) -> dict[str, Any]:
         runtime_indices = tuple(range(int(self.current_layout.runtime_parameter_count)))
         psi, raw_tangents = cache.get_or_compute(
@@ -617,7 +1431,7 @@ class RealtimeCheckpointController:
                 grouping_mode=str(self.cfg.grouping_mode),
             ),
             tier_name="scout",
-            compute=lambda: self._energy_hpsi_variance(psi),
+            compute=lambda: self._energy_hpsi_variance(psi, compiled_h=step_hamiltonian.compiled_h),
         )[0]
 
         psi_vec = np.asarray(psi, dtype=complex).reshape(-1)
@@ -682,9 +1496,9 @@ class RealtimeCheckpointController:
             "summary": baseline_summary,
         }
 
-    def _energy_hpsi_variance(self, psi: np.ndarray) -> tuple[float, np.ndarray, float]:
+    def _energy_hpsi_variance(self, psi: np.ndarray, *, compiled_h: Any | None = None) -> tuple[float, np.ndarray, float]:
         psi_vec = np.asarray(psi, dtype=complex).reshape(-1)
-        hpsi = apply_compiled_polynomial(psi_vec, self._compiled_h)
+        hpsi = apply_compiled_polynomial(psi_vec, self._compiled_h if compiled_h is None else compiled_h)
         energy = float(np.real(np.vdot(psi_vec, hpsi)))
         variance = float(max(0.0, np.real(np.vdot(hpsi, hpsi)) - energy * energy))
         return float(energy), np.asarray(hpsi, dtype=complex), float(variance)
@@ -722,11 +1536,43 @@ class RealtimeCheckpointController:
         *,
         checkpoint_ctx: Any,
         cache: ExactCheckpointValueCache,
+        geometry_memo: DerivedGeometryMemo,
         candidate_term: AnsatzTerm,
         candidate_pool_index: int,
         position_id: int,
     ) -> dict[str, Any]:
-        unique_label = f"{candidate_term.label}__append{self._append_counter}_p{int(position_id)}"
+        memo_label = f"{candidate_term.label}__pool{int(candidate_pool_index)}"
+        value, _ = geometry_memo.get_or_compute(
+            DerivedGeometryKey(
+                checkpoint_id=str(checkpoint_ctx.checkpoint_id),
+                memo_family="candidate_executor_data",
+                candidate_label=str(memo_label),
+                position_id=int(position_id),
+            ),
+            compute=lambda: self._compute_candidate_executor_data(
+                checkpoint_ctx=checkpoint_ctx,
+                cache=cache,
+                candidate_term=candidate_term,
+                candidate_pool_index=int(candidate_pool_index),
+                position_id=int(position_id),
+            ),
+        )
+        return dict(value)
+
+    def _compute_candidate_executor_data(
+        self,
+        *,
+        checkpoint_ctx: Any,
+        cache: ExactCheckpointValueCache,
+        candidate_term: AnsatzTerm,
+        candidate_pool_index: int,
+        position_id: int,
+    ) -> dict[str, Any]:
+        candidate_identity = f"{candidate_term.label}__pool{int(candidate_pool_index)}"
+        unique_label = (
+            f"{candidate_term.label}__pool{int(candidate_pool_index)}"
+            f"__append{self._append_counter}_p{int(position_id)}"
+        )
         candidate_carrier = _build_candidate_carrier(
             candidate_term,
             logical_index=int(position_id),
@@ -749,7 +1595,7 @@ class RealtimeCheckpointController:
             GeometryValueKey(
                 checkpoint_id=str(checkpoint_ctx.checkpoint_id),
                 observable_family="candidate_insert_tangent_block",
-                candidate_label=str(candidate_term.label),
+                candidate_label=str(candidate_identity),
                 position_id=int(position_id),
                 runtime_indices=block_indices,
                 group_key=None,
@@ -780,7 +1626,10 @@ class RealtimeCheckpointController:
         *,
         checkpoint_ctx: Any,
         cache: ExactCheckpointValueCache,
+        geometry_memo: DerivedGeometryMemo,
         baseline: Mapping[str, Any],
+        predicted_displacement: float,
+        shortlist_cfg: FullScoreConfig | None = None,
     ) -> list[dict[str, Any]]:
         records: list[dict[str, Any]] = []
         current_terms_window = self.current_terms[
@@ -791,6 +1640,7 @@ class RealtimeCheckpointController:
                 candidate_data = self._candidate_executor_data(
                     checkpoint_ctx=checkpoint_ctx,
                     cache=cache,
+                    geometry_memo=geometry_memo,
                     candidate_term=candidate_term,
                     candidate_pool_index=int(candidate_pool_index),
                     position_id=int(position_id),
@@ -828,8 +1678,16 @@ class RealtimeCheckpointController:
                     except Exception:
                         novelty = None
                 position_jump_penalty = self._position_jump_penalty(int(position_id))
+                temporal_prior_bonus = float(
+                    self._temporal_ledger.candidate_probe_bonus(
+                        candidate_identity=f"{candidate_term.label}__pool{int(candidate_pool_index)}",
+                        position_id=int(position_id),
+                        predicted_displacement=float(predicted_displacement),
+                    )
+                )
                 scout_score = float(
                     residual_overlap_l2
+                    + float(temporal_prior_bonus)
                     - float(self.cfg.compile_penalty_weight) * float(compile_est.proxy_total)
                     - float(self.cfg.measurement_penalty_weight) * float(planning_stats.groups_new)
                     - float(self.cfg.directional_penalty_weight) * float(position_jump_penalty)
@@ -837,6 +1695,7 @@ class RealtimeCheckpointController:
                 records.append(
                     {
                         "candidate_label": str(candidate_term.label),
+                        "candidate_identity": f"{candidate_term.label}__pool{int(candidate_pool_index)}",
                         "candidate_pool_index": int(candidate_pool_index),
                         "position_id": int(position_id),
                         "runtime_insert_position": int(candidate_data["runtime_insert_position"]),
@@ -846,64 +1705,54 @@ class RealtimeCheckpointController:
                         "groups_new": float(planning_stats.groups_new),
                         "novelty": novelty,
                         "position_jump_penalty": float(position_jump_penalty),
+                        "temporal_prior_bonus": float(temporal_prior_bonus),
                         "simple_score": float(scout_score),
                         "candidate_data": candidate_data,
                         "candidate_term": candidate_term,
                     }
                 )
-        return shortlist_records(records, cfg=self._shortlist_cfg, score_key="simple_score")
+        return shortlist_records(
+            records,
+            cfg=(self._shortlist_cfg if shortlist_cfg is None else shortlist_cfg),
+            score_key="simple_score",
+        )
 
     def _confirm_candidates(
         self,
         *,
         checkpoint_ctx: Any,
         cache: ExactCheckpointValueCache,
+        geometry_memo: DerivedGeometryMemo,
         baseline: Mapping[str, Any],
         shortlist: Sequence[Mapping[str, Any]],
     ) -> list[dict[str, Any]]:
         confirmed: list[dict[str, Any]] = []
-        T = np.asarray(baseline["T"], dtype=complex)
-        b_bar = np.asarray(baseline["b_bar"], dtype=complex)
-        K_pinv = np.asarray(baseline["K_pinv"], dtype=float)
-        theta_dot_step = np.asarray(baseline["theta_dot_step"], dtype=float)
-        norm_b_sq = float(baseline["norm_b_sq"])
         for record in shortlist:
-            candidate_data = self._candidate_executor_data(
-                checkpoint_ctx=checkpoint_ctx,
-                cache=cache,
-                candidate_term=record["candidate_term"],
-                candidate_pool_index=int(record["candidate_pool_index"]),
-                position_id=int(record["position_id"]),
+            memo_label = f"{record['candidate_label']}__pool{int(record['candidate_pool_index'])}"
+            block_value, _ = geometry_memo.get_or_compute(
+                DerivedGeometryKey(
+                    checkpoint_id=str(checkpoint_ctx.checkpoint_id),
+                    memo_family="candidate_incremental_block",
+                    candidate_label=str(memo_label),
+                    position_id=int(record["position_id"]),
+                ),
+                compute=lambda rec=record: self._compute_candidate_incremental_block(
+                    checkpoint_ctx=checkpoint_ctx,
+                    cache=cache,
+                    geometry_memo=geometry_memo,
+                    baseline=baseline,
+                    candidate_term=rec["candidate_term"],
+                    candidate_pool_index=int(rec["candidate_pool_index"]),
+                    position_id=int(rec["position_id"]),
+                ),
             )
-            candidate_tangents = [
-                np.asarray(candidate_data["raw_tangents"][idx], dtype=complex)
-                - complex(np.vdot(baseline["psi"], candidate_data["raw_tangents"][idx])) * np.asarray(baseline["psi"], dtype=complex)
-                for idx in candidate_data["runtime_block_indices"]
-            ]
-            U = np.column_stack(candidate_tangents) if candidate_tangents else np.zeros((baseline["psi"].size, 0), dtype=complex)
-            B = np.asarray(np.real(T.conj().T @ U), dtype=float)
-            C = np.asarray(np.real(U.conj().T @ U), dtype=float)
-            q = np.asarray(np.real(U.conj().T @ b_bar), dtype=float).reshape(-1)
-            S = np.asarray(
-                C
-                + float(self.cfg.candidate_regularization_lambda) * np.eye(int(C.shape[0]))
-                - B.T @ K_pinv @ B,
-                dtype=float,
-            )
-            S_pinv = np.linalg.pinv(S, rcond=float(self.cfg.pinv_rcond)) if S.size else np.zeros((0, 0), dtype=float)
-            w = np.asarray(q - B.T @ theta_dot_step, dtype=float).reshape(-1)
-            eta_dot = np.asarray(S_pinv @ w, dtype=float).reshape(-1) if S.size else np.zeros(0, dtype=float)
-            gain_exact = float(max(0.0, float(w @ eta_dot))) if w.size else 0.0
-            gain_ratio = float(gain_exact / max(norm_b_sq, 1e-14))
-            theta_dot_aug_existing = np.asarray(theta_dot_step - K_pinv @ B @ eta_dot, dtype=float).reshape(-1)
+            candidate_data = dict(block_value["candidate_data"])
+            gain_exact = float(block_value["gain_exact"])
+            gain_ratio = float(block_value["gain_ratio"])
+            theta_dot_aug_existing = np.asarray(block_value["theta_dot_aug_existing"], dtype=float).reshape(-1)
+            theta_dot_aug = np.asarray(block_value["theta_dot_aug"], dtype=float).reshape(-1)
+            eta_dot = np.asarray(block_value["eta_dot"], dtype=float).reshape(-1)
             runtime_pos = int(candidate_data["runtime_insert_position"])
-            theta_dot_aug = np.concatenate(
-                [
-                    theta_dot_aug_existing[:runtime_pos],
-                    eta_dot,
-                    theta_dot_aug_existing[runtime_pos:],
-                ]
-            )
             directional_change_l2 = _overlap_l2(theta_dot_aug, self._previous_theta_dot)
             candidate_summary = CandidateProbeSummary(
                 candidate_label=str(record["candidate_label"]),
@@ -923,6 +1772,7 @@ class RealtimeCheckpointController:
                 admissible=True,
                 rejection_reason=None,
                 oracle_estimate_kind=self._oracle_estimate_kind(),
+                temporal_prior_bonus=float(record.get("temporal_prior_bonus", 0.0)),
             )
             directional_penalty = 0.0 if directional_change_l2 is None else float(directional_change_l2)
             adjusted_gain = float(
@@ -943,6 +1793,73 @@ class RealtimeCheckpointController:
                 }
             )
         return confirmed
+
+    def _compute_candidate_incremental_block(
+        self,
+        *,
+        checkpoint_ctx: Any,
+        cache: ExactCheckpointValueCache,
+        geometry_memo: DerivedGeometryMemo,
+        baseline: Mapping[str, Any],
+        candidate_term: AnsatzTerm,
+        candidate_pool_index: int,
+        position_id: int,
+    ) -> dict[str, Any]:
+        candidate_data = self._candidate_executor_data(
+            checkpoint_ctx=checkpoint_ctx,
+            cache=cache,
+            geometry_memo=geometry_memo,
+            candidate_term=candidate_term,
+            candidate_pool_index=int(candidate_pool_index),
+            position_id=int(position_id),
+        )
+        T = np.asarray(baseline["T"], dtype=complex)
+        b_bar = np.asarray(baseline["b_bar"], dtype=complex)
+        K_pinv = np.asarray(baseline["K_pinv"], dtype=float)
+        theta_dot_step = np.asarray(baseline["theta_dot_step"], dtype=float)
+        norm_b_sq = float(baseline["norm_b_sq"])
+        candidate_tangents = [
+            np.asarray(candidate_data["raw_tangents"][idx], dtype=complex)
+            - complex(np.vdot(baseline["psi"], candidate_data["raw_tangents"][idx])) * np.asarray(baseline["psi"], dtype=complex)
+            for idx in candidate_data["runtime_block_indices"]
+        ]
+        U = np.column_stack(candidate_tangents) if candidate_tangents else np.zeros((baseline["psi"].size, 0), dtype=complex)
+        B = np.asarray(np.real(T.conj().T @ U), dtype=float)
+        C = np.asarray(np.real(U.conj().T @ U), dtype=float)
+        q = np.asarray(np.real(U.conj().T @ b_bar), dtype=float).reshape(-1)
+        S = np.asarray(
+            C
+            + float(self.cfg.candidate_regularization_lambda) * np.eye(int(C.shape[0]))
+            - B.T @ K_pinv @ B,
+            dtype=float,
+        )
+        S_pinv = np.linalg.pinv(S, rcond=float(self.cfg.pinv_rcond)) if S.size else np.zeros((0, 0), dtype=float)
+        w = np.asarray(q - B.T @ theta_dot_step, dtype=float).reshape(-1)
+        eta_dot = np.asarray(S_pinv @ w, dtype=float).reshape(-1) if S.size else np.zeros(0, dtype=float)
+        gain_exact = float(max(0.0, float(w @ eta_dot))) if w.size else 0.0
+        gain_ratio = float(gain_exact / max(norm_b_sq, 1e-14))
+        theta_dot_aug_existing = np.asarray(theta_dot_step - K_pinv @ B @ eta_dot, dtype=float).reshape(-1)
+        runtime_pos = int(candidate_data["runtime_insert_position"])
+        theta_dot_aug = np.concatenate(
+            [
+                theta_dot_aug_existing[:runtime_pos],
+                eta_dot,
+                theta_dot_aug_existing[runtime_pos:],
+            ]
+        )
+        return {
+            "candidate_data": candidate_data,
+            "B": B,
+            "C": C,
+            "q": q,
+            "S": S,
+            "w": w,
+            "eta_dot": eta_dot,
+            "gain_exact": float(gain_exact),
+            "gain_ratio": float(gain_ratio),
+            "theta_dot_aug_existing": theta_dot_aug_existing,
+            "theta_dot_aug": theta_dot_aug,
+        }
 
     def _select_action(
         self,
@@ -983,6 +1900,7 @@ class RealtimeCheckpointController:
         self._run_wallclock_start = time.perf_counter()
         try:
             for checkpoint_index, time_value in enumerate(self.times):
+                step_hamiltonian = self._step_hamiltonian_artifacts(float(time_value))
                 time_stop = None
                 if int(checkpoint_index) + 1 < int(len(self.times)):
                     time_stop = float(self.times[int(checkpoint_index) + 1])
@@ -1004,16 +1922,52 @@ class RealtimeCheckpointController:
                     checkpoint_id=str(checkpoint_ctx.checkpoint_id),
                     grouping_mode=str(self.cfg.grouping_mode),
                 )
+                geometry_memo = DerivedGeometryMemo(
+                    checkpoint_id=str(checkpoint_ctx.checkpoint_id),
+                )
                 oracle_cache = OracleCheckpointValueCache(
                     checkpoint_id=str(checkpoint_ctx.checkpoint_id),
                 ) if str(self.cfg.mode) == "oracle_v1" else None
-                baseline = self._baseline_geometry(checkpoint_ctx, cache)
+                raw_group_pool = (
+                    BackendScheduledRawGroupPool(checkpoint_id=str(checkpoint_ctx.checkpoint_id))
+                if str(self.cfg.mode) == "oracle_v1"
+                    and self._oracle_base_config is not None
+                    and bool(controller_oracle_supports_raw_group_sampling(self._oracle_base_config))
+                    else None
+                )
+                baseline_exact = self._baseline_geometry(
+                    checkpoint_ctx,
+                    cache,
+                    geometry_memo,
+                    step_hamiltonian=step_hamiltonian,
+                )
+                baseline_for_decision = baseline_exact
                 degraded_reason: str | None = None
                 decision_backend = "exact"
                 decision_noise_mode: str | None = None
                 oracle_attempted = False
                 oracle_decision_used = False
                 oracle_estimate_kind = None
+                dt = 0.0 if time_stop is None else float(time_stop - float(time_value))
+                predicted_displacement = self._predicted_displacement(dt=float(dt), baseline=baseline_exact)
+                motion_telemetry = self._motion_telemetry(
+                    theta_dot=np.asarray(baseline_exact["theta_dot_step"], dtype=float).reshape(-1),
+                    predicted_displacement=float(predicted_displacement),
+                )
+                base_refresh_pressure = self._temporal_ledger.refresh_pressure(
+                    predicted_displacement=float(predicted_displacement),
+                    rho_miss=float(baseline_exact["summary"].rho_miss),
+                    condition_number=float(baseline_exact["summary"].condition_number),
+                )
+                refresh_pressure = self._effective_refresh_pressure(
+                    base_refresh_pressure=str(base_refresh_pressure),
+                    motion=motion_telemetry,
+                )
+                shortlist_cfg = self._shortlist_cfg_for_motion(motion_telemetry)
+                oracle_budget_scale = self._oracle_budget_scale_for_motion(
+                    refresh_pressure=str(refresh_pressure),
+                    motion=motion_telemetry,
+                )
                 oracle_commit_payload = {
                     "stay_noisy_energy_mean": None,
                     "stay_noisy_energy_stderr": None,
@@ -1025,60 +1979,161 @@ class RealtimeCheckpointController:
                 if time_stop is None:
                     shortlist = []
                     confirmed = []
+                    oracle_confirm_limit = 0
+                    oracle_budget_scale = 1.0
                     action_kind, selected = "stay", None
                 else:
                     shortlist = self._scout_candidates(
                         checkpoint_ctx=checkpoint_ctx,
                         cache=cache,
-                        baseline=baseline,
-                    ) if float(baseline["summary"].rho_miss) > float(self.cfg.miss_threshold) else []
+                        geometry_memo=geometry_memo,
+                        baseline=baseline_exact,
+                        predicted_displacement=float(predicted_displacement),
+                        shortlist_cfg=shortlist_cfg,
+                    ) if float(baseline_exact["summary"].rho_miss) > float(self.cfg.miss_threshold) else []
                     confirmed = self._confirm_candidates(
                         checkpoint_ctx=checkpoint_ctx,
                         cache=cache,
-                        baseline=baseline,
+                        geometry_memo=geometry_memo,
+                        baseline=baseline_exact,
                         shortlist=shortlist,
                     ) if shortlist else []
+                    oracle_confirm_limit = 0
                     if str(self.cfg.mode) == "oracle_v1" and shortlist and oracle_cache is not None:
                         oracle_attempted = True
-                        confirmed, _, degraded_reason = self._confirm_candidates_oracle(
-                            checkpoint_ctx=checkpoint_ctx,
-                            baseline=baseline,
-                            confirmed=confirmed,
-                            dt=float(time_stop - float(time_value)),
-                            oracle_cache=oracle_cache,
+                        oracle_confirm_limit = self._oracle_confirm_limit_for_motion(
+                            confirmed_count=len(confirmed),
+                            refresh_pressure=str(refresh_pressure),
+                            motion=motion_telemetry,
                         )
-                        if degraded_reason is None:
-                            decision_backend = "oracle"
-                            decision_noise_mode = (
-                                None if self._oracle_base_config is None else str(self._oracle_base_config.noise_mode)
-                            )
-                            oracle_decision_used = True
-                            oracle_estimate_kind = self._oracle_estimate_kind()
-                            action_kind, selected = self._select_action_oracle(
-                                baseline=baseline,
-                                confirmed=confirmed,
-                            )
-                            oracle_commit_payload, commit_degraded_reason = self._oracle_commit_payload(
+                        if raw_group_pool is not None:
+                            measured_baseline, measured_confirmed, geometry_error = self._confirm_candidates_oracle_geometry(
                                 checkpoint_ctx=checkpoint_ctx,
-                                oracle_cache=oracle_cache,
-                                baseline=baseline,
-                                selected=selected,
-                                action_kind=str(action_kind),
-                                dt=float(time_stop - float(time_value)),
+                                cache=cache,
+                                geometry_memo=geometry_memo,
+                                confirmed=confirmed,
+                                raw_group_pool=raw_group_pool,
+                                h_poly_step=step_hamiltonian.h_poly,
+                                confirm_limit=int(oracle_confirm_limit),
+                                budget_scale=float(oracle_budget_scale),
                             )
-                            if commit_degraded_reason is not None:
-                                degraded_reason = str(commit_degraded_reason)
-                        else:
-                            action_kind, selected = "stay", None
+                            if geometry_error is None and measured_baseline is not None:
+                                baseline_for_decision = measured_baseline
+                                confirmed = list(measured_confirmed)
+                                decision_backend = "oracle"
+                                decision_noise_mode = (
+                                    None if self._oracle_base_config is None else str(self._oracle_base_config.noise_mode)
+                                )
+                                oracle_decision_used = True
+                                oracle_estimate_kind = self._oracle_estimate_kind()
+                                viable_measured = [
+                                    rec
+                                    for rec in confirmed
+                                    if rec.get("gain_exact") is not None and rec.get("gain_ratio") is not None
+                                ]
+                                if float(baseline_for_decision["summary"].rho_miss) <= float(self.cfg.miss_threshold):
+                                    action_kind, selected = "stay", None
+                                elif not viable_measured:
+                                    oracle_decision_used = False
+                                    decision_backend = "exact"
+                                    decision_noise_mode = None
+                                    oracle_estimate_kind = None
+                                    degraded_reason = "measured_geometry_no_viable_candidates"
+                                else:
+                                    action_kind, selected = self._select_action(
+                                        baseline=baseline_for_decision,
+                                        confirmed=confirmed,
+                                    )
+                                if oracle_decision_used:
+                                    oracle_commit_payload, commit_degraded_reason = self._oracle_commit_payload(
+                                        checkpoint_ctx=checkpoint_ctx,
+                                        oracle_cache=oracle_cache,
+                                        raw_group_pool=raw_group_pool,
+                                        baseline=baseline_for_decision,
+                                        selected=selected,
+                                        action_kind=str(action_kind),
+                                        dt=float(dt),
+                                        oracle_observable=step_hamiltonian.oracle_observable,
+                                        budget_scale=float(oracle_budget_scale),
+                                    )
+                                    if commit_degraded_reason is not None:
+                                        degraded_reason = str(commit_degraded_reason)
+                            else:
+                                degraded_reason = str(geometry_error)
+                        if not oracle_decision_used:
+                            confirmed_ranked = sorted(
+                                confirmed,
+                                key=lambda rec: (
+                                    -float(rec["adjusted_gain"]),
+                                    float(rec["candidate_summary"].position_jump_penalty),
+                                    float(rec["candidate_summary"].compile_proxy_total),
+                                    float(rec["candidate_summary"].groups_new),
+                                    int(rec["candidate_summary"].candidate_pool_index),
+                                    int(rec["candidate_summary"].position_id),
+                                ),
+                            )
+                            confirmed_for_oracle = list(confirmed_ranked[:oracle_confirm_limit])
+                            confirmed_remainder = list(confirmed_ranked[oracle_confirm_limit:])
+                            confirmed_oracle, _, scalar_degraded_reason = self._confirm_candidates_oracle(
+                                checkpoint_ctx=checkpoint_ctx,
+                                baseline=baseline_exact,
+                                confirmed=confirmed_for_oracle,
+                                dt=float(dt),
+                                oracle_cache=oracle_cache,
+                                raw_group_pool=raw_group_pool,
+                                oracle_observable=step_hamiltonian.oracle_observable,
+                                budget_scale=float(oracle_budget_scale),
+                            )
+                            confirmed = list(confirmed_oracle)
+                            for record in confirmed_remainder:
+                                rec = dict(record)
+                                rec["predicted_noisy_energy_mean"] = None
+                                rec["predicted_noisy_energy_stderr"] = None
+                                rec["predicted_noisy_improvement_abs"] = None
+                                rec["predicted_noisy_improvement_ratio"] = None
+                                rec["predicted_noisy_improvement_stderr"] = None
+                                rec["adjusted_noisy_improvement"] = float("-inf")
+                                rec["confirm_backend_info"] = None
+                                rec["confirm_error"] = "deferred_by_refresh_pressure"
+                                confirmed.append(rec)
+                            if scalar_degraded_reason is None:
+                                decision_backend = "oracle"
+                                decision_noise_mode = (
+                                    None if self._oracle_base_config is None else str(self._oracle_base_config.noise_mode)
+                                )
+                                oracle_decision_used = True
+                                oracle_estimate_kind = self._oracle_estimate_kind()
+                                action_kind, selected = self._select_action_oracle(
+                                    baseline=baseline_exact,
+                                    confirmed=confirmed,
+                                )
+                                oracle_commit_payload, commit_degraded_reason = self._oracle_commit_payload(
+                                    checkpoint_ctx=checkpoint_ctx,
+                                    oracle_cache=oracle_cache,
+                                    raw_group_pool=raw_group_pool,
+                                    baseline=baseline_exact,
+                                    selected=selected,
+                                    action_kind=str(action_kind),
+                                    dt=float(dt),
+                                    oracle_observable=step_hamiltonian.oracle_observable,
+                                    budget_scale=float(oracle_budget_scale),
+                                )
+                                if commit_degraded_reason is not None:
+                                    degraded_reason = str(commit_degraded_reason)
+                            else:
+                                if degraded_reason is None:
+                                    degraded_reason = str(scalar_degraded_reason)
+                                action_kind, selected = "stay", None
                     else:
+                        oracle_confirm_limit = 0
+                        oracle_budget_scale = 1.0
                         action_kind, selected = self._select_action(
-                            baseline=baseline,
+                            baseline=baseline_for_decision,
                             confirmed=confirmed,
                         )
 
                 if degraded_reason is not None:
                     self._degraded_checkpoint_count += 1
-                dt = 0.0 if time_stop is None else float(time_stop - float(time_value))
                 logical_before = int(self.current_layout.logical_parameter_count)
                 runtime_before = int(self.current_layout.runtime_parameter_count)
                 selected_groups_new = 0.0
@@ -1091,12 +2146,19 @@ class RealtimeCheckpointController:
                     selected_groups_new = float(selected.get("groups_new", 0.0))
                     selected_gain_ratio = float(selected.get("gain_ratio", 0.0))
                 tier_reached = "scout"
-                rate_change_l2 = _overlap_l2(np.asarray(baseline["theta_dot_step"], dtype=float), self._previous_theta_dot)
+                rate_change_l2 = _overlap_l2(np.asarray(baseline_for_decision["theta_dot_step"], dtype=float), self._previous_theta_dot)
 
                 psi_exact = self._exact_state_at(float(time_value))
-                energy_exact, _, _ = self._energy_hpsi_variance(psi_exact)
-                energy_controller = float(baseline["summary"].energy)
-                fidelity_exact = float(abs(np.vdot(psi_exact, baseline["psi"])) ** 2)
+                energy_exact = float(
+                    np.real(
+                        np.vdot(
+                            np.asarray(psi_exact, dtype=complex).reshape(-1),
+                            step_hamiltonian.hmat @ np.asarray(psi_exact, dtype=complex).reshape(-1),
+                        )
+                    )
+                )
+                energy_controller = float(baseline_for_decision["summary"].energy)
+                fidelity_exact = float(abs(np.vdot(psi_exact, baseline_exact["psi"])) ** 2)
                 abs_energy_total_error = float(abs(float(energy_controller) - float(energy_exact)))
 
                 shortlist_payload = [
@@ -1111,6 +2173,7 @@ class RealtimeCheckpointController:
                         "groups_new": float(item["groups_new"]),
                         "novelty": (None if item.get("novelty") is None else float(item["novelty"])),
                         "position_jump_penalty": float(item["position_jump_penalty"]),
+                        "temporal_prior_bonus": float(item.get("temporal_prior_bonus", 0.0)),
                         "simple_score": float(item["simple_score"]),
                     }
                     for item in shortlist
@@ -1120,8 +2183,12 @@ class RealtimeCheckpointController:
                         "candidate_label": str(rec["candidate_label"]),
                         "candidate_pool_index": int(rec["candidate_pool_index"]),
                         "position_id": int(rec["position_id"]),
-                        "gain_exact": float(rec["gain_exact"]),
-                        "gain_ratio": float(rec["gain_ratio"]),
+                        "gain_exact": (
+                            None if rec.get("gain_exact") is None else float(rec["gain_exact"])
+                        ),
+                        "gain_ratio": (
+                            None if rec.get("gain_ratio") is None else float(rec["gain_ratio"])
+                        ),
                         "adjusted_gain": float(rec["adjusted_gain"]),
                         "adjusted_noisy_improvement": (
                             None if rec.get("adjusted_noisy_improvement") is None or not np.isfinite(rec.get("adjusted_noisy_improvement", float("nan"))) else float(rec.get("adjusted_noisy_improvement"))
@@ -1136,6 +2203,7 @@ class RealtimeCheckpointController:
                     {
                         "checkpoint_index": int(checkpoint_index),
                         "time": float(time_value),
+                        "physical_time": float(step_hamiltonian.physical_time),
                         "action_kind": str(action_kind),
                         "candidate_label": selected_candidate_label,
                         "requested_mode": str(self.cfg.mode),
@@ -1144,9 +2212,29 @@ class RealtimeCheckpointController:
                         "oracle_attempted": bool(oracle_attempted),
                         "oracle_decision_used": bool(oracle_decision_used),
                         "oracle_estimate_kind": oracle_estimate_kind,
-                        "rho_miss": float(baseline["summary"].rho_miss),
-                        "epsilon_proj_sq": float(baseline["summary"].epsilon_proj_sq),
-                        "epsilon_step_sq": float(baseline["summary"].epsilon_step_sq),
+                        "predicted_displacement": float(predicted_displacement),
+                        "motion_regime": str(motion_telemetry.regime),
+                        "motion_direction_cosine": (
+                            None if motion_telemetry.direction_cosine is None else float(motion_telemetry.direction_cosine)
+                        ),
+                        "motion_rate_change_ratio": (
+                            None if motion_telemetry.rate_change_ratio is None else float(motion_telemetry.rate_change_ratio)
+                        ),
+                        "motion_acceleration_l2": (
+                            None if motion_telemetry.acceleration_l2 is None else float(motion_telemetry.acceleration_l2)
+                        ),
+                        "motion_curvature_cosine": (
+                            None if motion_telemetry.curvature_cosine is None else float(motion_telemetry.curvature_cosine)
+                        ),
+                        "motion_direction_reversal": bool(motion_telemetry.direction_reversal),
+                        "motion_curvature_sign_flip": bool(motion_telemetry.curvature_sign_flip),
+                        "motion_kink_score": float(motion_telemetry.kink_score),
+                        "temporal_refresh_pressure": str(refresh_pressure),
+                        "oracle_confirm_limit": int(oracle_confirm_limit),
+                        "oracle_budget_scale": float(oracle_budget_scale),
+                        "rho_miss": float(baseline_for_decision["summary"].rho_miss),
+                        "epsilon_proj_sq": float(baseline_for_decision["summary"].epsilon_proj_sq),
+                        "epsilon_step_sq": float(baseline_for_decision["summary"].epsilon_step_sq),
                         "energy_total_controller": float(energy_controller),
                         "energy_total_exact": float(energy_exact),
                         "abs_energy_total_error": float(abs_energy_total_error),
@@ -1159,8 +2247,9 @@ class RealtimeCheckpointController:
                         "stay_noisy_energy_stderr": oracle_commit_payload.get("stay_noisy_energy_stderr", None),
                         "selected_noisy_improvement_abs": oracle_commit_payload.get("selected_noisy_improvement_abs", None),
                         "selected_noisy_improvement_ratio": oracle_commit_payload.get("selected_noisy_improvement_ratio", None),
+                        "drive_term_count": int(step_hamiltonian.drive_term_count),
                         "degraded_reason": degraded_reason,
-                        "baseline_geometry": dataclass_to_payload(baseline["summary"]),
+                        "baseline_geometry": dataclass_to_payload(baseline_for_decision["summary"]),
                         "shortlist": shortlist_payload,
                         "confirmed": confirmed_payload,
                     }
@@ -1179,23 +2268,28 @@ class RealtimeCheckpointController:
                     self._append_counter += 1
                     self._previous_append_position = int(selected_position_id)
                     self._planning_audit.commit(planning_group_keys_for_term(selected["candidate_term"]))
-                    self._previous_theta_dot = np.asarray(selected["theta_dot_aug"], dtype=float).reshape(-1)
+                    self._record_theta_dot_history(
+                        np.asarray(selected["theta_dot_aug"], dtype=float).reshape(-1)
+                    )
                 else:
                     self.current_theta = np.asarray(
-                        self.current_theta + float(dt) * np.asarray(baseline["theta_dot_step"], dtype=float),
+                        self.current_theta + float(dt) * np.asarray(baseline_for_decision["theta_dot_step"], dtype=float),
                         dtype=float,
                     ).reshape(-1)
-                    self._previous_theta_dot = np.asarray(baseline["theta_dot_step"], dtype=float).reshape(-1)
+                    self._record_theta_dot_history(
+                        np.asarray(baseline_for_decision["theta_dot_step"], dtype=float).reshape(-1)
+                    )
                     if shortlist:
                         tier_reached = "confirm"
 
                 ledger_entry = CheckpointLedgerEntry(
                     checkpoint_index=int(checkpoint_index),
                     time=float(time_value),
+                    physical_time=float(step_hamiltonian.physical_time),
                     action_kind=str(action_kind),
                     candidate_label=selected_candidate_label,
                     position_id=selected_position_id,
-                    rho_miss=float(baseline["summary"].rho_miss),
+                    rho_miss=float(baseline_for_decision["summary"].rho_miss),
                     gain_ratio_selected=float(selected_gain_ratio),
                     shortlist_size=int(len(shortlist)),
                     tier_reached=str(tier_reached),
@@ -1204,8 +2298,18 @@ class RealtimeCheckpointController:
                     runtime_parameter_count_before=int(runtime_before),
                     runtime_parameter_count_after=int(self.current_layout.runtime_parameter_count),
                     rate_change_l2=(None if rate_change_l2 is None else float(rate_change_l2)),
+                    motion_regime=str(motion_telemetry.regime),
+                    motion_direction_cosine=(None if motion_telemetry.direction_cosine is None else float(motion_telemetry.direction_cosine)),
+                    motion_rate_change_ratio=(None if motion_telemetry.rate_change_ratio is None else float(motion_telemetry.rate_change_ratio)),
+                    motion_acceleration_l2=(None if motion_telemetry.acceleration_l2 is None else float(motion_telemetry.acceleration_l2)),
+                    motion_curvature_cosine=(None if motion_telemetry.curvature_cosine is None else float(motion_telemetry.curvature_cosine)),
+                    motion_direction_reversal=bool(motion_telemetry.direction_reversal),
+                    motion_curvature_sign_flip=bool(motion_telemetry.curvature_sign_flip),
+                    motion_kink_score=float(motion_telemetry.kink_score),
                     exact_cache_hits=int(cache.summary()["hits"]),
                     exact_cache_misses=int(cache.summary()["misses"]),
+                    geometry_memo_hits=int(geometry_memo.summary()["hits"]),
+                    geometry_memo_misses=int(geometry_memo.summary()["misses"]),
                     planning_groups_new_selected=float(selected_groups_new),
                     energy_total_controller=float(energy_controller),
                     energy_total_exact=float(energy_exact),
@@ -1217,17 +2321,36 @@ class RealtimeCheckpointController:
                     oracle_decision_used=bool(oracle_decision_used),
                     oracle_attempted=bool(oracle_attempted),
                     oracle_estimate_kind=oracle_estimate_kind,
+                    predicted_displacement=float(predicted_displacement),
+                    temporal_refresh_pressure=str(refresh_pressure),
                     selected_noisy_energy_mean=(None if oracle_commit_payload.get("selected_noisy_energy_mean", None) is None else float(oracle_commit_payload["selected_noisy_energy_mean"])),
                     selected_noisy_energy_stderr=(None if oracle_commit_payload.get("selected_noisy_energy_stderr", None) is None else float(oracle_commit_payload["selected_noisy_energy_stderr"])),
                     stay_noisy_energy_mean=(None if oracle_commit_payload.get("stay_noisy_energy_mean", None) is None else float(oracle_commit_payload["stay_noisy_energy_mean"])),
                     stay_noisy_energy_stderr=(None if oracle_commit_payload.get("stay_noisy_energy_stderr", None) is None else float(oracle_commit_payload["stay_noisy_energy_stderr"])),
                     selected_noisy_improvement_abs=(None if oracle_commit_payload.get("selected_noisy_improvement_abs", None) is None else float(oracle_commit_payload["selected_noisy_improvement_abs"])),
                     selected_noisy_improvement_ratio=(None if oracle_commit_payload.get("selected_noisy_improvement_ratio", None) is None else float(oracle_commit_payload["selected_noisy_improvement_ratio"])),
+                    oracle_confirm_limit=int(oracle_confirm_limit),
+                    oracle_budget_scale=float(oracle_budget_scale),
                     oracle_cache_hits=(0 if oracle_cache is None else int(oracle_cache.summary()["hits"])),
                     oracle_cache_misses=(0 if oracle_cache is None else int(oracle_cache.summary()["misses"])),
+                    raw_group_cache_hits=(0 if raw_group_pool is None else int(raw_group_pool.summary()["hits"])),
+                    raw_group_cache_misses=(0 if raw_group_pool is None else int(raw_group_pool.summary()["misses"])),
+                    raw_group_cache_extensions=(0 if raw_group_pool is None else int(raw_group_pool.summary()["extensions"])),
+                    drive_term_count=int(step_hamiltonian.drive_term_count),
                     degraded_reason=degraded_reason,
                 )
                 self._ledger.append(dataclass_to_payload(ledger_entry))
+                self._temporal_ledger.record_checkpoint(
+                    checkpoint_index=int(checkpoint_index),
+                    selected_candidate_identity=(
+                        None if selected is None else str(selected.get("candidate_identity", selected_candidate_label))
+                    ),
+                    selected_position_id=selected_position_id,
+                    selected_groups_new=float(selected_groups_new),
+                    selected_gain_ratio=float(selected_gain_ratio),
+                    predicted_displacement=float(predicted_displacement),
+                    refresh_pressure=str(refresh_pressure),
+                )
 
             append_count = int(sum(1 for row in self._ledger if str(row.get("action_kind")) == "append_candidate"))
             stay_count = int(sum(1 for row in self._ledger if str(row.get("action_kind")) == "stay"))
@@ -1259,11 +2382,27 @@ class RealtimeCheckpointController:
                 "final_fidelity_exact": float(final_row.get("fidelity_exact", float("nan"))),
                 "final_abs_energy_total_error": float(final_row.get("abs_energy_total_error", float("nan"))),
                 "planning_audit": dict(self._planning_audit.summary()),
+                "temporal_measurement_ledger": dict(self._temporal_ledger.summary()),
             }
             reference = {
-                "kind": "static_exact_reference_from_replay_seed",
+                "kind": (
+                    "driven_piecewise_constant_reference_from_replay_seed"
+                    if self._drive_config is not None
+                    else "static_exact_reference_from_replay_seed"
+                ),
                 "initial_state": "stage_result.psi_final",
                 "times": [float(x) for x in self.times.tolist()],
+                "drive_profile": (None if self._drive_profile is None else dict(self._drive_profile)),
+                "reference_method": (
+                    None
+                    if self._drive_config is None
+                    else str(reference_method_name(str(self._drive_config.drive_time_sampling)))
+                ),
+                "reference_steps_multiplier": (
+                    1
+                    if self._drive_config is None
+                    else int(self._drive_config.exact_steps_multiplier)
+                ),
             }
             return ControllerRunArtifacts(
                 trajectory=[dict(row) for row in self._trajectory],
@@ -1275,4 +2414,9 @@ class RealtimeCheckpointController:
             self._close_oracles()
 
 
-__all__ = ["RealtimeCheckpointController", "ControllerRunArtifacts", "RuntimeTermCarrier"]
+__all__ = [
+    "ControllerDriveConfig",
+    "RealtimeCheckpointController",
+    "ControllerRunArtifacts",
+    "RuntimeTermCarrier",
+]
