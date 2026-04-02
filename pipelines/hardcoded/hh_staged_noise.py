@@ -29,8 +29,9 @@ def build_parser() -> argparse.ArgumentParser:
             "(d) imported fixed-lean or fixed-scaffold gate-vs-readout attribution on one shared compiled circuit, or "
             "(e) imported fixed-lean or fixed-scaffold compile-control scouting on a locked local fake-backend circuit "
             "with requested-vs-observed transpile metadata surfaced in the outputs, or "
-            "(f) imported fixed-scaffold Runtime energy-only baseline on the real Runtime path, or "
-            "(g) imported fixed-scaffold raw-shot baseline with raw sidecars: sampler-backed on real Runtime and local "
+            "(f) imported fixed-scaffold saved-theta mitigation-matrix evaluation on the local fake-backend path, or "
+            "(g) imported fixed-scaffold Runtime energy-only baseline on the real Runtime path, or "
+            "(h) imported fixed-scaffold raw-shot baseline with raw sidecars: sampler-backed on real Runtime and local "
             "fake-backend acquisition plus offline diagonal-only readout-then-symmetry postprocessing on the all-Z path. "
             "Fresh-stage staged noise also accepts opt-in phase3 oracle/raw-shot ADAPT scouting knobs. "
             "Kept for staged VQE->ADAPT->VQE reproduction and import-side audits; new HH default ADAPT work should use "
@@ -64,6 +65,14 @@ def main(argv: list[str] | None = None) -> None:
     )
     if fixed_scaffold_runtime_raw_baseline_json is not None:
         print(f"fixed_scaffold_runtime_raw_baseline_json={fixed_scaffold_runtime_raw_baseline_json}")
+    fixed_scaffold_saved_theta_mitigation_matrix_json = payload.get("artifacts", {}).get(
+        "fixed_scaffold_saved_theta_mitigation_matrix_json", None
+    )
+    if fixed_scaffold_saved_theta_mitigation_matrix_json is not None:
+        print(
+            "fixed_scaffold_saved_theta_mitigation_matrix_json="
+            f"{fixed_scaffold_saved_theta_mitigation_matrix_json}"
+        )
     intermediate = payload.get("artifacts", {}).get("intermediate", {})
     if isinstance(intermediate, dict) and intermediate.get("adapt_handoff_json", None) is not None:
         print(f"adapt_handoff_json={intermediate['adapt_handoff_json']}")

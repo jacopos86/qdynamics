@@ -259,6 +259,11 @@ python -m pipelines.hardcoded.hh_staged_noise \
 Notes:
 - `--local-gate-twirling` is an opt-in local fake-backend heuristic using Qiskit circuit-level 2Q Pauli twirling on the compiled `backend_scheduled` base circuit.
 - It is meant to approximate the Runtime gate-twirling direction locally; it is **not** a full local TREX/measurement-twirling implementation.
+- For imported-artifact routes, the deeper audit lane now cleanly splits three surfaces:
+  - `imported_prepared_state_audit` = payload `initial_state`
+  - `imported_ansatz_input_state_audit` = persisted `ansatz_input_state` only, with no variational rotations
+  - `full_circuit_import_audit` = reconstructed imported circuit, including ansatz state-prep noise
+- The CLI flag stays `--include-full-circuit-audit`; no new flag is required for the ansatz-input-state audit.
 
 ### 2.5a Fixed-scaffold noisy replay (active local 6-term replay route)
 
@@ -279,6 +284,54 @@ Contract:
 - replay optimizer runs under `backend_scheduled` noise with readout/mthree
 - `--local-gate-twirling` is the opt-in in-loop local twirling variant
 - `--dd-sequence XpXm` adds a **saved-theta local DD probe** block only; it is not optimizer-loop DD
+- isolated timeout/stall output now preserves partial replay handoff data (`objective_trace`, `runtime_job_ids`, `best_so_far`) instead of only bare timeout metadata
+- pass either the direct replay JSON or staged output JSON to `reconstruct_fixed_scaffold_runtime_recovery(..., recovery_source_json=...)`, then feed the reconstructed recovery JSON into `build_fixed_scaffold_rerun_plan()`
+
+### 2.5b Fixed-scaffold saved-theta mitigation shortlist (weak-coupling lean4)
+
+Use this when the target is the weak-coupling locked scaffold and we want only the carried-over top mitigation lanes rather than the full rectangular matrix.
+
+```bash
+python -m pipelines.hardcoded.hh_staged_noise \
+  --include-fixed-scaffold-saved-theta-mitigation-matrix \
+  --fixed-final-state-json artifacts/json/useful/L2/hh_l2_u05_g02_full_meta_class_pruned_lean4_locked_scaffold_v1.json \
+  --use-fake-backend --backend-name FakeMarrakesh \
+  --fixed-scaffold-matrix-compile-presets opt2_seed5:2:5 \
+  --fixed-scaffold-matrix-selected-cells \
+opt2_seed5__zne_on__twirl_dd,opt2_seed5__zne_on__twirl,opt2_seed5__zne_on__dd,opt2_seed5__zne_off__twirl_dd \
+  --fixed-scaffold-matrix-zne-scales 1.0,3.0,5.0 \
+  --shots 4096 --oracle-repeats 8 --oracle-aggregate mean
+```
+
+Contract:
+- locked imported weak-coupling scaffold only
+- local fake-backend only
+- compile preset pinned to weak transpile winner `opt2_seed5`
+- readout/mthree base on every shortlisted cell
+- explicit shortlisted cells, not implicit rectangular expansion
+
+### 2.5c Strong-coupling winner readout-off ablation
+
+Use this when the readout-on strong winner already exists and we want only its readout-off counterpart on the exact same `ZNE + twirl + DD` lane.
+
+```bash
+python -m pipelines.hardcoded.hh_staged_noise \
+  --include-fixed-scaffold-saved-theta-mitigation-matrix \
+  --fixed-final-state-json artifacts/json/hh_marrakesh_fixed_scaffold_6term_drop_eyezee_20260323T171528Z.json \
+  --use-fake-backend --backend-name FakeMarrakesh \
+  --fixed-scaffold-matrix-compile-presets opt2_seed0:2:0 \
+  --fixed-scaffold-matrix-selected-cells opt2_seed0__zne_on__twirl_dd \
+  --fixed-scaffold-matrix-base-mitigation-mode none \
+  --fixed-scaffold-matrix-zne-scales 1.0,3.0,5.0 \
+  --shots 4096 --oracle-repeats 8 --oracle-aggregate mean
+```
+
+Contract:
+- locked strong-coupling 6-term Marrakesh scaffold only
+- local fake-backend only
+- one-cell run; compare against the existing readout-on winner artifact
+- base mitigation mode `none`, with the same compile preset and the same ZNE/twirl/DD lane
+- selected-cell label stays `opt2_seed0__zne_on__twirl_dd`; on/off distinction lives in the mitigation-base provenance
 
 ### 2.6 Runtime energy-only baseline (active 6-term Marrakesh/Heron candidate)
 

@@ -769,11 +769,54 @@ def _combine_locked_imported_circuit_energy_evaluations(
     *,
     noisy_eval: Mapping[str, Any],
     ideal_eval: Mapping[str, Any],
+    exact_energy: float | None = None,
 ) -> dict[str, Any]:
+    def _coerce_optional_finite_float(value: Any) -> float | None:
+        if value is None:
+            return None
+        try:
+            out = float(value)
+        except Exception:
+            return None
+        return out if math.isfinite(out) else None
+
+    def _delta_payload(
+        *,
+        measured_mean: float,
+        measured_stderr: float,
+        target_mean: float,
+        target_stderr: float,
+    ) -> dict[str, float]:
+        delta_mean = float(measured_mean - target_mean)
+        delta_stderr = float(_combine_stderr(measured_stderr, target_stderr))
+        return {
+            "delta_mean": float(delta_mean),
+            "delta_stderr": float(delta_stderr),
+            "delta_abs": float(abs(delta_mean)),
+        }
+
     noisy_mean = float(noisy_eval["noisy_mean"])
     noisy_stderr = float(noisy_eval["noisy_stderr"])
     ideal_mean = float(ideal_eval["ideal_mean"])
     ideal_stderr = float(ideal_eval["ideal_stderr"])
+    ideal_delta = _delta_payload(
+        measured_mean=float(noisy_mean),
+        measured_stderr=float(noisy_stderr),
+        target_mean=float(ideal_mean),
+        target_stderr=float(ideal_stderr),
+    )
+    exact_mean = _coerce_optional_finite_float(exact_energy)
+    exact_stderr = 0.0 if exact_mean is not None else None
+    exact_delta = (
+        _delta_payload(
+            measured_mean=float(noisy_mean),
+            measured_stderr=float(noisy_stderr),
+            target_mean=float(exact_mean),
+            target_stderr=0.0,
+        )
+        if exact_mean is not None
+        else None
+    )
     return {
         "noisy_mean": noisy_mean,
         "noisy_std": float(noisy_eval["noisy_std"]),
@@ -783,8 +826,25 @@ def _combine_locked_imported_circuit_energy_evaluations(
         "ideal_std": float(ideal_eval["ideal_std"]),
         "ideal_stdev": float(ideal_eval["ideal_stdev"]),
         "ideal_stderr": ideal_stderr,
-        "delta_mean": float(noisy_mean - ideal_mean),
-        "delta_stderr": float(_combine_stderr(noisy_stderr, ideal_stderr)),
+        "exact_mean": exact_mean,
+        "exact_stderr": exact_stderr,
+        "energy_exact_mean": exact_mean,
+        "energy_exact_stderr": exact_stderr,
+        "delta_mean": float(ideal_delta["delta_mean"]),
+        "delta_stderr": float(ideal_delta["delta_stderr"]),
+        "delta_abs": float(ideal_delta["delta_abs"]),
+        "delta_to_ideal_mean": float(ideal_delta["delta_mean"]),
+        "delta_to_ideal_stderr": float(ideal_delta["delta_stderr"]),
+        "delta_to_ideal_abs": float(ideal_delta["delta_abs"]),
+        "delta_to_exact_mean": (
+            None if exact_delta is None else float(exact_delta["delta_mean"])
+        ),
+        "delta_to_exact_stderr": (
+            None if exact_delta is None else float(exact_delta["delta_stderr"])
+        ),
+        "delta_to_exact_abs": (
+            None if exact_delta is None else float(exact_delta["delta_abs"])
+        ),
         "backend_info": dict(noisy_eval.get("backend_info", {})),
     }
 
@@ -810,6 +870,7 @@ def _evaluate_locked_imported_circuit_energy(
     runtime_session_config: Mapping[str, Any] | None = None,
     runtime_job_observer: Any | None = None,
     runtime_trace_context: Mapping[str, Any] | None = None,
+    exact_energy: float | None = None,
 ) -> dict[str, Any]:
     qop = _build_locked_imported_energy_qop(
         ordered_labels_exyz=ordered_labels_exyz,
@@ -850,7 +911,342 @@ def _evaluate_locked_imported_circuit_energy(
     return _combine_locked_imported_circuit_energy_evaluations(
         noisy_eval=noisy_eval,
         ideal_eval=ideal_eval,
+        exact_energy=exact_energy,
     )
+
+
+def _build_locked_imported_fixed_theta_circuit_components(
+    *,
+    layout: Any,
+    theta_runtime: np.ndarray,
+    nq: int,
+    ref_state: np.ndarray | None,
+) -> dict[str, Any]:
+    nq_i = int(nq)
+    theta_arr = np.asarray(theta_runtime, dtype=float).reshape(-1)
+    ref_arr = None if ref_state is None else np.asarray(ref_state, dtype=complex).reshape(-1)
+    reference_circuit = QuantumCircuit(nq_i)
+    if ref_arr is not None:
+        _append_reference_state(reference_circuit, ref_arr)
+    body_circuit = _build_ansatz_circuit(layout, theta_arr, nq_i, ref_state=None)
+    full_circuit = reference_circuit.compose(body_circuit, inplace=False)
+    return {
+        "reference_circuit": reference_circuit,
+        "body_circuit": body_circuit,
+        "full_circuit": full_circuit,
+    }
+
+
+def _prepared_circuit_inverse_or_none(circuit: QuantumCircuit) -> QuantumCircuit | None:
+    try:
+        return circuit.inverse()
+    except Exception:
+        return None
+
+
+def _build_local_zne_folded_circuit(
+    *,
+    reference_circuit: QuantumCircuit,
+    body_circuit: QuantumCircuit,
+    noise_scale: float,
+) -> tuple[QuantumCircuit, dict[str, Any]]:
+    scale_val = float(noise_scale)
+    rounded = int(round(scale_val))
+    if not math.isfinite(scale_val) or rounded < 1 or rounded % 2 == 0 or not math.isclose(
+        scale_val, float(rounded), rel_tol=0.0, abs_tol=1e-9
+    ):
+        raise ValueError(
+            f"Local fixed-theta ZNE requires odd integer noise scales; got {noise_scale!r}."
+        )
+    if int(reference_circuit.num_qubits) != int(body_circuit.num_qubits):
+        raise ValueError("Reference/body circuit qubit mismatch in local fixed-theta ZNE helper.")
+    nq = int(reference_circuit.num_qubits)
+    prepared_circuit = reference_circuit.compose(body_circuit, inplace=False)
+    prepared_inverse = _prepared_circuit_inverse_or_none(prepared_circuit)
+    folded = QuantumCircuit(nq)
+    if prepared_inverse is not None:
+        folded.compose(prepared_circuit, inplace=True)
+        fold_unitary = prepared_circuit
+        fold_inverse = prepared_inverse
+        fold_scope = "prepared_circuit_full"
+        fold_engine = "prepared_circuit_unitary_folding_v1"
+        fold_warning = None
+    else:
+        folded.compose(reference_circuit, inplace=True)
+        folded.compose(body_circuit, inplace=True)
+        fold_unitary = body_circuit
+        fold_inverse = body_circuit.inverse()
+        fold_scope = "body_only"
+        fold_engine = "body_unitary_folding_v1"
+        fold_warning = "reference_state_prep_not_folded"
+    fold_pairs = int((rounded - 1) // 2)
+    for _ in range(fold_pairs):
+        if nq > 0:
+            folded.barrier(*range(nq))
+        folded.compose(fold_inverse, inplace=True)
+        if nq > 0:
+            folded.barrier(*range(nq))
+        folded.compose(fold_unitary, inplace=True)
+    return folded, {
+        "engine": str(fold_engine),
+        "noise_scale": float(scale_val),
+        "fold_pairs": int(fold_pairs),
+        "zne_fold_scope": str(fold_scope),
+        "warning": fold_warning,
+    }
+
+
+def _linear_zne_extrapolation(
+    *,
+    noise_scales: Sequence[float],
+    noisy_means: Sequence[float],
+    noisy_stderrs: Sequence[float],
+) -> dict[str, Any]:
+    x = np.asarray([float(v) for v in noise_scales], dtype=float)
+    y = np.asarray([float(v) for v in noisy_means], dtype=float)
+    s = np.asarray([float(v) for v in noisy_stderrs], dtype=float)
+    if int(x.size) != int(y.size) or int(x.size) == 0:
+        raise ValueError("Local fixed-theta ZNE extrapolation requires aligned non-empty scale/value arrays.")
+    if int(x.size) == 1:
+        return {
+            "slope": 0.0,
+            "intercept_mean": float(y[0]),
+            "intercept_stderr": float(s[0]) if np.isfinite(s[0]) else float("nan"),
+            "fit_kind": "degenerate_single_point",
+        }
+    weights = None
+    if np.all(np.isfinite(s)) and np.all(s > 0.0):
+        weights = 1.0 / s
+    coeffs: np.ndarray
+    cov: np.ndarray | None = None
+    try:
+        if weights is not None:
+            coeffs, cov = np.polyfit(x, y, deg=1, w=weights, cov=True)
+        else:
+            coeffs, cov = np.polyfit(x, y, deg=1, cov=True)
+    except Exception:
+        coeffs = np.polyfit(x, y, deg=1)
+        cov = None
+    intercept_stderr = float("nan")
+    if cov is not None and np.shape(cov) == (2, 2) and np.isfinite(cov[1, 1]) and cov[1, 1] >= 0.0:
+        intercept_stderr = float(np.sqrt(float(cov[1, 1])))
+    return {
+        "slope": float(coeffs[0]),
+        "intercept_mean": float(coeffs[1]),
+        "intercept_stderr": float(intercept_stderr),
+        "fit_kind": ("weighted_linear" if weights is not None else "linear"),
+    }
+
+
+def _evaluate_locked_imported_circuit_energy_local_zne(
+    *,
+    reference_circuit: QuantumCircuit,
+    body_circuit: QuantumCircuit,
+    ordered_labels_exyz: Sequence[str],
+    static_coeff_map_exyz: Mapping[str, complex],
+    shots: int,
+    seed: int,
+    oracle_repeats: int,
+    oracle_aggregate: str,
+    mitigation_config: Mapping[str, Any],
+    symmetry_mitigation_config: Mapping[str, Any],
+    backend_name: str | None,
+    use_fake_backend: bool,
+    allow_aer_fallback: bool,
+    omp_shm_workaround: bool,
+    seed_transpiler: int | None = None,
+    transpile_optimization_level: int = 1,
+    zne_scales: Sequence[float] = (1.0, 3.0, 5.0),
+    ideal_eval: Mapping[str, Any] | None = None,
+    exact_energy: float | None = None,
+    qop: SparsePauliOp | None = None,
+    compile_request_source: str = "fixed_scaffold_saved_theta_mitigation_matrix_cell",
+) -> dict[str, Any]:
+    qop_eval = (
+        qop
+        if qop is not None
+        else _build_locked_imported_energy_qop(
+            ordered_labels_exyz=ordered_labels_exyz,
+            static_coeff_map_exyz=static_coeff_map_exyz,
+        )
+    )
+    ideal_payload = (
+        dict(ideal_eval)
+        if isinstance(ideal_eval, Mapping)
+        else _evaluate_locked_imported_circuit_ideal_energy(
+            circuit=reference_circuit.compose(body_circuit, inplace=False),
+            ordered_labels_exyz=ordered_labels_exyz,
+            static_coeff_map_exyz=static_coeff_map_exyz,
+            shots=int(shots),
+            seed=int(seed),
+            oracle_repeats=int(oracle_repeats),
+            oracle_aggregate=str(oracle_aggregate),
+            qop=qop_eval,
+        )
+    )
+    compile_request = _build_compile_request_payload(
+        backend_name=(None if backend_name in {None, ""} else str(backend_name)),
+        seed_transpiler=(None if seed_transpiler is None else int(seed_transpiler)),
+        transpile_optimization_level=int(transpile_optimization_level),
+        source=str(compile_request_source),
+    )
+    per_factor_results: list[dict[str, Any]] = []
+    base_factor_result: dict[str, Any] | None = None
+    base_backend_info: dict[str, Any] = {}
+    base_compile_observation: dict[str, Any] = {
+        "available": False,
+        "requested": dict(compile_request),
+        "observed": None,
+        "matches_requested": None,
+        "mismatch_fields": [],
+        "reason": "missing_base_factor",
+    }
+    base_compile_metrics: dict[str, Any] = {}
+
+    for scale in [float(x) for x in zne_scales]:
+        folded_circuit, folding_metadata = _build_local_zne_folded_circuit(
+            reference_circuit=reference_circuit,
+            body_circuit=body_circuit,
+            noise_scale=float(scale),
+        )
+        noisy_eval = _evaluate_locked_imported_circuit_noisy_energy(
+            circuit=folded_circuit,
+            ordered_labels_exyz=ordered_labels_exyz,
+            static_coeff_map_exyz=static_coeff_map_exyz,
+            shots=int(shots),
+            seed=int(seed),
+            oracle_repeats=int(oracle_repeats),
+            oracle_aggregate=str(oracle_aggregate),
+            mitigation_config=mitigation_config,
+            symmetry_mitigation_config=symmetry_mitigation_config,
+            backend_name=backend_name,
+            use_fake_backend=bool(use_fake_backend),
+            allow_aer_fallback=bool(allow_aer_fallback),
+            omp_shm_workaround=bool(omp_shm_workaround),
+            seed_transpiler=seed_transpiler,
+            transpile_optimization_level=int(transpile_optimization_level),
+            qop=qop_eval,
+        )
+        combined = _combine_locked_imported_circuit_energy_evaluations(
+            noisy_eval=noisy_eval,
+            ideal_eval=ideal_payload,
+            exact_energy=exact_energy,
+        )
+        backend_info = (
+            dict(combined.get("backend_info", {}))
+            if isinstance(combined.get("backend_info", {}), Mapping)
+            else {}
+        )
+        compile_observation = _build_compile_observation_payload(
+            requested=compile_request,
+            backend_info=backend_info,
+        )
+        compile_metrics = _extract_compile_metrics_from_backend_info(backend_info)
+        factor_result = {
+            "noise_scale": float(scale),
+            "folding_metadata": dict(folding_metadata),
+            "compile_request": dict(compile_request),
+            "compile_observation": dict(compile_observation),
+            "transpile_seed": compile_metrics.get("transpile_seed", None),
+            "transpile_optimization_level": compile_metrics.get(
+                "transpile_optimization_level", None
+            ),
+            "compiled_two_qubit_count": int(compile_metrics.get("compiled_two_qubit_count", 0)),
+            "compiled_depth": int(compile_metrics.get("compiled_depth", 0)),
+            "compiled_size": int(compile_metrics.get("compiled_size", 0)),
+            "backend_info": dict(backend_info),
+            **dict(combined),
+        }
+        per_factor_results.append(factor_result)
+        if base_factor_result is None or math.isclose(float(scale), 1.0, rel_tol=0.0, abs_tol=1e-9):
+            base_factor_result = dict(factor_result)
+            base_backend_info = dict(backend_info)
+            base_compile_observation = dict(compile_observation)
+            base_compile_metrics = dict(compile_metrics)
+
+    if base_factor_result is None:
+        raise RuntimeError("Local fixed-theta ZNE helper completed without a base factor result.")
+    fit = _linear_zne_extrapolation(
+        noise_scales=[float(rec["noise_scale"]) for rec in per_factor_results],
+        noisy_means=[float(rec["noisy_mean"]) for rec in per_factor_results],
+        noisy_stderrs=[float(rec["noisy_stderr"]) for rec in per_factor_results],
+    )
+    extrapolated_energy_mean = float(fit["intercept_mean"])
+    extrapolated_energy_stderr = float(fit["intercept_stderr"])
+    ideal_mean = float(ideal_payload["ideal_mean"])
+    ideal_stderr = float(ideal_payload["ideal_stderr"])
+    extrapolated_delta_mean = float(extrapolated_energy_mean - ideal_mean)
+    extrapolated_delta_stderr = float(_combine_stderr(extrapolated_energy_stderr, ideal_stderr))
+    try:
+        exact_mean = (
+            None
+            if exact_energy is None
+            else float(exact_energy)
+            if math.isfinite(float(exact_energy))
+            else None
+        )
+    except Exception:
+        exact_mean = None
+    exact_stderr = 0.0 if exact_mean is not None else None
+    extrapolated_delta_to_exact_mean = (
+        None if exact_mean is None else float(extrapolated_energy_mean - exact_mean)
+    )
+    extrapolated_delta_to_exact_stderr = (
+        None
+        if exact_mean is None
+        else float(_combine_stderr(extrapolated_energy_stderr, 0.0))
+    )
+    base_folding_metadata = (
+        dict(base_factor_result.get("folding_metadata", {}))
+        if isinstance(base_factor_result.get("folding_metadata", {}), Mapping)
+        else {}
+    )
+    return {
+        "success": True,
+        "zne_enabled": True,
+        "zne_scales": [float(rec["noise_scale"]) for rec in per_factor_results],
+        "per_factor_results": per_factor_results,
+        "base_factor_result": dict(base_factor_result),
+        "folding_metadata": dict(base_folding_metadata),
+        "zne_fold_scope": base_folding_metadata.get("zne_fold_scope", None),
+        "zne_fold_warning": base_folding_metadata.get("warning", None),
+        "extrapolator": "linear",
+        "extrapolator_fit": dict(fit),
+        "extrapolated_energy_mean": float(extrapolated_energy_mean),
+        "extrapolated_energy_stderr": float(extrapolated_energy_stderr),
+        "noisy_mean": float(extrapolated_energy_mean),
+        "noisy_stderr": float(extrapolated_energy_stderr),
+        "ideal_mean": float(ideal_mean),
+        "ideal_stderr": float(ideal_stderr),
+        "exact_mean": exact_mean,
+        "exact_stderr": exact_stderr,
+        "energy_exact_mean": exact_mean,
+        "energy_exact_stderr": exact_stderr,
+        "delta_mean": float(extrapolated_delta_mean),
+        "delta_stderr": float(extrapolated_delta_stderr),
+        "delta_abs": float(abs(extrapolated_delta_mean)),
+        "delta_to_ideal_mean": float(extrapolated_delta_mean),
+        "delta_to_ideal_stderr": float(extrapolated_delta_stderr),
+        "delta_to_ideal_abs": float(abs(extrapolated_delta_mean)),
+        "delta_to_exact_mean": extrapolated_delta_to_exact_mean,
+        "delta_to_exact_stderr": extrapolated_delta_to_exact_stderr,
+        "delta_to_exact_abs": (
+            None
+            if extrapolated_delta_to_exact_mean is None
+            else float(abs(extrapolated_delta_to_exact_mean))
+        ),
+        "compile_request": dict(compile_request),
+        "compile_observation": dict(base_compile_observation),
+        "matches_requested": base_compile_observation.get("matches_requested", None),
+        "transpile_seed": base_compile_metrics.get("transpile_seed", None),
+        "transpile_optimization_level": base_compile_metrics.get(
+            "transpile_optimization_level", None
+        ),
+        "compiled_two_qubit_count": int(base_compile_metrics.get("compiled_two_qubit_count", 0)),
+        "compiled_depth": int(base_compile_metrics.get("compiled_depth", 0)),
+        "compiled_size": int(base_compile_metrics.get("compiled_size", 0)),
+        "backend_info": dict(base_backend_info),
+    }
 
 
 def _evaluate_locked_imported_circuit_raw_energy(
@@ -1570,6 +1966,7 @@ def _rank_imported_compile_control_candidates(
     candidates: Sequence[Mapping[str, Any]],
     *,
     rank_policy: str,
+    delta_field: str = "delta_abs",
 ) -> list[dict[str, Any]]:
     ranked: list[dict[str, Any]] = [dict(x) for x in candidates if isinstance(x, Mapping)]
     policy = str(rank_policy).strip().lower()
@@ -1579,11 +1976,47 @@ def _rank_imported_compile_control_candidates(
             f"{rank_policy!r}."
         )
 
+    primary_delta_field = str(delta_field).strip() or "delta_abs"
+
+    def _delta_abs_value(rec: Mapping[str, Any]) -> float:
+        primary = rec.get(primary_delta_field, None)
+        if primary is not None:
+            try:
+                primary_val = float(primary)
+            except Exception:
+                primary_val = float("inf")
+            if math.isfinite(primary_val):
+                return float(primary_val)
+        if primary_delta_field.endswith("_abs"):
+            mean_field = f"{primary_delta_field[:-4]}_mean"
+            mean_val = rec.get(mean_field, None)
+            if mean_val is not None:
+                try:
+                    mean_float = float(mean_val)
+                except Exception:
+                    mean_float = float("inf")
+                if math.isfinite(mean_float):
+                    return float(abs(mean_float))
+        fallback = rec.get("delta_abs", None)
+        if fallback is not None:
+            try:
+                fallback_val = float(fallback)
+            except Exception:
+                fallback_val = float("inf")
+            if math.isfinite(fallback_val):
+                return float(fallback_val)
+        delta_mean = rec.get("delta_mean", None)
+        if delta_mean is None:
+            return float("inf")
+        try:
+            delta_mean_val = float(delta_mean)
+        except Exception:
+            return float("inf")
+        return float(abs(delta_mean_val)) if math.isfinite(delta_mean_val) else float("inf")
+
     def _sort_key(rec: Mapping[str, Any]) -> tuple[float, int, int, int, int, int]:
-        delta_mean = rec.get("delta_mean", float("inf"))
-        delta_abs = abs(float(delta_mean)) if delta_mean is not None else float("inf")
         return (
-            float(delta_abs),
+            _delta_abs_value(rec),
             int(rec.get("compiled_two_qubit_count", 10**9)),
             int(rec.get("compiled_depth", 10**9)),
             int(rec.get("compiled_size", 10**9)),
@@ -3282,6 +3715,135 @@ def _run_imported_prepared_state_audit(
             "exact_energy": ctx.get("exact_energy", None),
         },
     )
+
+
+def _run_imported_ansatz_input_state_audit(
+    *,
+    artifact_json: str,
+    noise_mode: str,
+    shots: int,
+    seed: int,
+    oracle_repeats: int,
+    oracle_aggregate: str,
+    mitigation_config: dict[str, Any],
+    symmetry_mitigation_config: dict[str, Any],
+    backend_name: str | None,
+    use_fake_backend: bool,
+    allow_aer_fallback: bool,
+    omp_shm_workaround: bool,
+    seed_transpiler: int | None = None,
+    transpile_optimization_level: int | None = None,
+    compile_request_source: str | None = None,
+) -> dict[str, Any]:
+    ctx = _load_imported_artifact_context(artifact_json)
+    ansatz_input_state_meta = dict(ctx.get("ansatz_input_state_meta", {}))
+    if not bool(ansatz_input_state_meta.get("available", False)):
+        return {
+            "success": False,
+            "available": False,
+            "reason": str(
+                ansatz_input_state_meta.get(
+                    "reason",
+                    "missing_ansatz_input_state_provenance",
+                )
+            ),
+            "source_kind": str(ctx.get("source_kind", "unknown")),
+            "artifact_json": str(ctx["path"]),
+            "reference_state_embedded": False,
+            "ansatz_input_state_source": ansatz_input_state_meta.get("source", None),
+            "ansatz_input_state_kind": ansatz_input_state_meta.get(
+                "handoff_state_kind",
+                None,
+            ),
+            "error": ansatz_input_state_meta.get("error", None),
+        }
+    ansatz_input_state = ctx.get("ansatz_input_state", None)
+    if ansatz_input_state is None:
+        return {
+            "success": False,
+            "available": False,
+            "reason": "ansatz_input_state_missing",
+            "source_kind": str(ctx.get("source_kind", "unknown")),
+            "artifact_json": str(ctx["path"]),
+            "reference_state_embedded": False,
+            "ansatz_input_state_source": ansatz_input_state_meta.get("source", None),
+            "ansatz_input_state_kind": ansatz_input_state_meta.get(
+                "handoff_state_kind",
+                None,
+            ),
+            "error": None,
+        }
+    initial_circuit = QuantumCircuit(int(ctx["num_qubits"]))
+    _append_reference_state(
+        initial_circuit,
+        np.asarray(ansatz_input_state, dtype=complex).reshape(-1),
+    )
+    payload = _run_static_observable_audit_core(
+        L=int(ctx["settings"].get("L", 2)),
+        ordering=str(ctx["settings"].get("ordering", "blocked")),
+        initial_circuit=initial_circuit,
+        ordered_labels_exyz=list(ctx["ordered_labels_exyz"]),
+        static_coeff_map_exyz=dict(ctx["static_coeff_map_exyz"]),
+        drive_profile=None,
+        noise_mode=str(noise_mode),
+        shots=int(shots),
+        seed=int(seed),
+        oracle_repeats=int(oracle_repeats),
+        oracle_aggregate=str(oracle_aggregate),
+        mitigation_config=dict(mitigation_config),
+        symmetry_mitigation_config=dict(symmetry_mitigation_config),
+        backend_name=backend_name,
+        use_fake_backend=bool(use_fake_backend),
+        allow_aer_fallback=bool(allow_aer_fallback),
+        omp_shm_workaround=bool(omp_shm_workaround),
+        audit_source={
+            "kind": "imported_ansatz_input_state",
+            "includes_ansatz_stateprep_noise": False,
+            "source_kind": str(ctx.get("source_kind", "unknown")),
+            "artifact_json": str(ctx["path"]),
+            "reference_state_embedded": True,
+            "ansatz_input_state_source": ansatz_input_state_meta.get("source", None),
+            "ansatz_input_state_kind": ansatz_input_state_meta.get(
+                "handoff_state_kind",
+                None,
+            ),
+        },
+        extra_meta={
+            "artifact_full_circuit_saved_energy": ctx.get("saved_energy", None),
+            "exact_energy": ctx.get("exact_energy", None),
+            "logical_parameter_count": int(ctx["layout"].logical_parameter_count),
+            "runtime_parameter_count": int(ctx["layout"].runtime_parameter_count),
+        },
+        seed_transpiler=(None if seed_transpiler is None else int(seed_transpiler)),
+        transpile_optimization_level=(
+            None
+            if transpile_optimization_level is None
+            else int(transpile_optimization_level)
+        ),
+        compile_request_source=(
+            None if compile_request_source in {None, ""} else str(compile_request_source)
+        ),
+    )
+    energy_static = payload.get("final_observables", {}).get("energy_static", {})
+    ideal_input_state_energy = (
+        None
+        if not isinstance(energy_static, dict)
+        else energy_static.get("ideal_mean", None)
+    )
+    payload["reference_state_embedded"] = True
+    payload["ansatz_input_state_source"] = ansatz_input_state_meta.get("source", None)
+    payload["ansatz_input_state_kind"] = ansatz_input_state_meta.get(
+        "handoff_state_kind",
+        None,
+    )
+    payload["ansatz_input_state_reference"] = {
+        "artifact_full_circuit_saved_energy": ctx.get("saved_energy", None),
+        "ideal_input_state_energy": ideal_input_state_energy,
+        "exact_energy": ctx.get("exact_energy", None),
+        "logical_parameter_count": int(ctx["layout"].logical_parameter_count),
+        "runtime_parameter_count": int(ctx["layout"].runtime_parameter_count),
+    }
+    return payload
 
 
 def _run_imported_full_circuit_audit(
@@ -5156,6 +5718,19 @@ def _run_saved_theta_local_mitigation_ablation(
                 ),
             )
         )
+        phases.append(
+            (
+                "readout_plus_gate_twirling_plus_local_dd",
+                normalize_mitigation_config(
+                    {
+                        "mode": "readout",
+                        "local_readout_strategy": "mthree",
+                        "local_gate_twirling": True,
+                        "dd_sequence": str(local_dd_probe_sequence),
+                    }
+                ),
+            )
+        )
 
     results: dict[str, Any] = {}
     for label, mitigation_cfg in phases:
@@ -5217,6 +5792,931 @@ def _run_saved_theta_local_mitigation_ablation(
     }
 
 
+def _run_imported_fixed_scaffold_saved_theta_mitigation_matrix(
+    *,
+    artifact_json: str,
+    shots: int,
+    seed: int,
+    oracle_repeats: int,
+    oracle_aggregate: str,
+    backend_name: str | None,
+    use_fake_backend: bool,
+    allow_aer_fallback: bool,
+    omp_shm_workaround: bool,
+    noise_mode: str = "backend_scheduled",
+    compile_presets: Sequence[Mapping[str, Any]] = (),
+    zne_scales: Sequence[float] = (1.0, 3.0, 5.0),
+    suppression_labels: Sequence[str] = (
+        "readout_plus_gate_twirling",
+        "readout_plus_local_dd",
+        "readout_plus_gate_twirling_plus_local_dd",
+    ),
+    selected_cells: Sequence[str] = (),
+    mitigation_config_base: Mapping[str, Any] | None = None,
+    symmetry_mitigation_config: Mapping[str, Any] | None = None,
+    rank_policy: str = "delta_mean_then_two_qubit_then_depth_then_size",
+    raw_artifact_root: str | None = None,
+    progress_callback: Callable[[dict[str, Any]], None] | None = None,
+) -> dict[str, Any]:
+    ctx, ansatz_input_state_meta, subject, error_payload = _resolve_locked_imported_fixed_scaffold_context(
+        artifact_json,
+        nonfixed_reason="fixed_scaffold_saved_theta_mitigation_matrix_requires_locked_fixed_scaffold_source",
+    )
+    if error_payload is not None or ctx is None or subject is None:
+        return dict(error_payload or {})
+
+    if str(noise_mode).strip().lower() != "backend_scheduled":
+        return {
+            "success": False,
+            "available": False,
+            "reason": "fixed_scaffold_saved_theta_mitigation_matrix_requires_backend_scheduled",
+            "artifact_json": str(ctx["path"]),
+        }
+    if not bool(use_fake_backend):
+        return {
+            "success": False,
+            "available": False,
+            "reason": "fixed_scaffold_saved_theta_mitigation_matrix_requires_local_fake_backend",
+            "artifact_json": str(ctx["path"]),
+        }
+    backend_name_norm = None if backend_name in {None, "", "none"} else str(backend_name)
+    if backend_name_norm is None:
+        return {
+            "success": False,
+            "available": False,
+            "reason": "fixed_scaffold_saved_theta_mitigation_matrix_requires_backend_name",
+            "artifact_json": str(ctx["path"]),
+        }
+    mitigation_base_cfg = dict(
+        normalize_mitigation_config(
+            {
+                "mode": "readout",
+                "local_readout_strategy": "mthree",
+                **dict(mitigation_config_base or {}),
+            }
+        )
+    )
+    symmetry_cfg = dict(
+        normalize_symmetry_mitigation_config(
+            {"mode": "off", **dict(symmetry_mitigation_config or {})}
+        )
+    )
+    mitigation_base_mode = str(mitigation_base_cfg.get("mode", "none")).strip().lower()
+    if mitigation_base_mode not in {"readout", "none"}:
+        return {
+            "success": False,
+            "available": False,
+            "reason": "fixed_scaffold_saved_theta_mitigation_matrix_unsupported_base_mitigation_mode",
+            "artifact_json": str(ctx["path"]),
+            "mitigation_mode": mitigation_base_mode,
+        }
+    if mitigation_base_mode == "readout" and str(
+        mitigation_base_cfg.get("local_readout_strategy") or "mthree"
+    ) != "mthree":
+        return {
+            "success": False,
+            "available": False,
+            "reason": "fixed_scaffold_saved_theta_mitigation_matrix_requires_mthree",
+            "artifact_json": str(ctx["path"]),
+        }
+    mitigation_base_cfg["local_readout_strategy"] = (
+        "mthree" if mitigation_base_mode == "readout" else None
+    )
+    def _actual_suppression_stack_label(mitigation_cfg: Mapping[str, Any]) -> str:
+        gate_twirling = bool(mitigation_cfg.get("local_gate_twirling", False))
+        has_dd = bool(mitigation_cfg.get("dd_sequence"))
+        if mitigation_base_mode == "readout":
+            if gate_twirling and has_dd:
+                return "readout_plus_gate_twirling_plus_local_dd"
+            if gate_twirling:
+                return "readout_plus_gate_twirling"
+            if has_dd:
+                return "readout_plus_local_dd"
+            return "readout_only"
+        if gate_twirling and has_dd:
+            return "gate_twirling_plus_local_dd"
+        if gate_twirling:
+            return "gate_twirling"
+        if has_dd:
+            return "local_dd"
+        return "none"
+
+    suppression_map: dict[str, tuple[str, dict[str, Any]]] = {
+        "readout_plus_gate_twirling": (
+            "twirl",
+            normalize_mitigation_config(
+                {
+                    **dict(mitigation_base_cfg),
+                    "local_gate_twirling": True,
+                    "dd_sequence": None,
+                }
+            ),
+        ),
+        "readout_plus_local_dd": (
+            "dd",
+            normalize_mitigation_config(
+                {
+                    **dict(mitigation_base_cfg),
+                    "local_gate_twirling": False,
+                    "dd_sequence": "XpXm",
+                }
+            ),
+        ),
+        "readout_plus_gate_twirling_plus_local_dd": (
+            "twirl_dd",
+            normalize_mitigation_config(
+                {
+                    **dict(mitigation_base_cfg),
+                    "local_gate_twirling": True,
+                    "dd_sequence": "XpXm",
+                }
+            ),
+        ),
+    }
+    normalized_suppression_labels = [str(x) for x in suppression_labels]
+    unsupported_suppression = [x for x in normalized_suppression_labels if x not in suppression_map]
+    if unsupported_suppression:
+        return {
+            "success": False,
+            "available": False,
+            "reason": "fixed_scaffold_saved_theta_mitigation_matrix_unsupported_suppression_stack",
+            "artifact_json": str(ctx["path"]),
+            "unsupported_suppression_labels": unsupported_suppression,
+        }
+    if not compile_presets:
+        return {
+            "success": False,
+            "available": False,
+            "reason": "fixed_scaffold_saved_theta_mitigation_matrix_requires_compile_presets",
+            "artifact_json": str(ctx["path"]),
+        }
+    selected_cell_labels = [str(x).strip() for x in selected_cells if str(x).strip() != ""]
+    artifact_compile_recommendation = _extract_fixed_scaffold_compile_recommendation(ctx)
+    try:
+        exact_energy_ref = (
+            None
+            if ctx.get("exact_energy", None) is None
+            else float(ctx.get("exact_energy"))
+            if math.isfinite(float(ctx.get("exact_energy")))
+            else None
+        )
+    except Exception:
+        exact_energy_ref = None
+
+    def _emit_progress(event: str, **fields: Any) -> None:
+        if progress_callback is None:
+            return
+        try:
+            progress_callback(
+                {
+                    "event": str(event),
+                    "route": "fixed_scaffold_saved_theta_mitigation_matrix",
+                    "artifact_json": str(ctx["path"]),
+                    **fields,
+                }
+            )
+        except Exception:
+            pass
+
+    def _cell_counts_payload(cell_records: Sequence[Mapping[str, Any]]) -> dict[str, int]:
+        successful = sum(1 for rec in cell_records if bool(rec.get("success", False)))
+        return {
+            "total": int(len(planned_cell_specs)),
+            "completed": int(len(cell_records)),
+            "successful": int(successful),
+            "failed": int(len(cell_records) - successful),
+        }
+
+    def _best_by_group_from_records(
+        records: Sequence[Mapping[str, Any]],
+        *,
+        key_name: str,
+        key_values: Sequence[str] | None = None,
+    ) -> dict[str, Any]:
+        grouped: dict[str, list[dict[str, Any]]] = {}
+        for rec in records:
+            key_val = rec.get(key_name, None)
+            if key_val in {None, ""}:
+                continue
+            grouped.setdefault(str(key_val), []).append(dict(rec))
+        if key_values is not None:
+            for key_val in key_values:
+                grouped.setdefault(str(key_val), [])
+        out: dict[str, Any] = {}
+        for key_val, group in grouped.items():
+            out[str(key_val)] = (dict(group[0]) if group else {})
+        return out
+
+    def _rank_cell_records(
+        records: Sequence[Mapping[str, Any]],
+        *,
+        delta_field: str,
+    ) -> list[dict[str, Any]]:
+        filtered = [dict(rec) for rec in records if isinstance(rec, Mapping)]
+        if str(delta_field) == "delta_to_exact_abs":
+            filtered = [rec for rec in filtered if rec.get("delta_to_exact_abs", None) is not None]
+        return (
+            _rank_imported_compile_control_candidates(
+                filtered,
+                rank_policy=str(rank_policy),
+                delta_field=str(delta_field),
+            )
+            if filtered
+            else []
+        )
+
+    def _best_by_zne_toggle_from_records(
+        records: Sequence[Mapping[str, Any]],
+        *,
+        delta_field: str,
+    ) -> dict[str, Any]:
+        zne_off_records = [rec for rec in records if not bool(rec.get("zne_enabled", False))]
+        zne_on_records = [rec for rec in records if bool(rec.get("zne_enabled", False))]
+        ranked_zne_off = _rank_cell_records(zne_off_records, delta_field=str(delta_field))
+        ranked_zne_on = _rank_cell_records(zne_on_records, delta_field=str(delta_field))
+        return {
+            "zne_off": (dict(ranked_zne_off[0]) if ranked_zne_off else {}),
+            "zne_on": (dict(ranked_zne_on[0]) if ranked_zne_on else {}),
+        }
+
+    def _partial_payload(
+        *,
+        reason: str,
+        cell_records: Sequence[Mapping[str, Any]],
+        last_cell_label: str | None,
+        last_cell_index: int | None,
+        elapsed_s: float,
+    ) -> dict[str, Any]:
+        completed_cells = [dict(rec) for rec in cell_records]
+        successful_cells = [dict(rec) for rec in completed_cells if bool(rec.get("success", False))]
+        ranked_cells_by_ideal_abs = _rank_cell_records(
+            successful_cells,
+            delta_field="delta_to_ideal_abs",
+        )
+        ranked_cells_by_exact_abs = _rank_cell_records(
+            successful_cells,
+            delta_field="delta_to_exact_abs",
+        )
+        payload: dict[str, Any] = {
+            "success": False,
+            "available": True,
+            "route": "fixed_scaffold_saved_theta_mitigation_matrix",
+            "reason": str(reason),
+            "artifact_json": str(ctx["path"]),
+            "source_kind": str(ctx.get("source_kind", "unknown")),
+            "pool_type": str(subject.pool_type),
+            "structure_locked": True,
+            "theta_source": "imported_theta_runtime",
+            "execution_mode": "backend_scheduled",
+            "reference_state_embedded": True,
+            "ansatz_input_state_source": ansatz_input_state_meta.get("source", None),
+            "ansatz_input_state_kind": ansatz_input_state_meta.get("handoff_state_kind", None),
+            "noise_config": {
+                "noise_mode": "backend_scheduled",
+                "shots": int(shots),
+                "oracle_repeats": int(oracle_repeats),
+                "oracle_aggregate": str(oracle_aggregate),
+                "backend_name": str(backend_name_norm),
+                "mitigation_base": dict(mitigation_base_cfg),
+                "symmetry_mitigation": dict(symmetry_cfg),
+                "raw_artifact_root": (
+                    None if raw_artifact_root in {None, ""} else str(raw_artifact_root)
+                ),
+            },
+            "ideal_reference": dict(ideal_eval),
+            "exact_reference": {
+                "exact_mean": exact_energy_ref,
+                "exact_stderr": (0.0 if exact_energy_ref is not None else None),
+            },
+            "compile_presets": [dict(x) for x in compile_presets],
+            "zne_scales": [float(x) for x in zne_scales],
+            "suppression_labels": list(normalized_suppression_labels),
+            "selected_cells": list(selected_cell_labels),
+            "cells_partial": completed_cells,
+            "cell_counts": _cell_counts_payload(completed_cells),
+            "last_cell_label": (
+                None if last_cell_label in {None, ""} else str(last_cell_label)
+            ),
+            "last_cell_index": (
+                None if last_cell_index is None else int(last_cell_index)
+            ),
+            "best_cell": (
+                dict(ranked_cells_by_ideal_abs[0]) if ranked_cells_by_ideal_abs else {}
+            ),
+            "best_cell_by_ideal_abs": (
+                dict(ranked_cells_by_ideal_abs[0]) if ranked_cells_by_ideal_abs else {}
+            ),
+            "best_cell_by_exact_abs": (
+                dict(ranked_cells_by_exact_abs[0]) if ranked_cells_by_exact_abs else {}
+            ),
+            "best_by_compile_preset": _best_by_group_from_records(
+                ranked_cells_by_ideal_abs,
+                key_name="compile_preset_label",
+                key_values=[
+                    str(x.get("label", ""))
+                    for x in compile_presets
+                    if str(x.get("label", "")).strip() != ""
+                ],
+            ),
+            "best_by_compile_preset_by_ideal_abs": _best_by_group_from_records(
+                ranked_cells_by_ideal_abs,
+                key_name="compile_preset_label",
+                key_values=[
+                    str(x.get("label", ""))
+                    for x in compile_presets
+                    if str(x.get("label", "")).strip() != ""
+                ],
+            ),
+            "best_by_compile_preset_by_exact_abs": _best_by_group_from_records(
+                ranked_cells_by_exact_abs,
+                key_name="compile_preset_label",
+                key_values=[
+                    str(x.get("label", ""))
+                    for x in compile_presets
+                    if str(x.get("label", "")).strip() != ""
+                ],
+            ),
+            "best_by_zne_toggle": _best_by_zne_toggle_from_records(
+                successful_cells,
+                delta_field="delta_to_ideal_abs",
+            ),
+            "best_by_zne_toggle_by_ideal_abs": _best_by_zne_toggle_from_records(
+                successful_cells,
+                delta_field="delta_to_ideal_abs",
+            ),
+            "best_by_zne_toggle_by_exact_abs": _best_by_zne_toggle_from_records(
+                successful_cells,
+                delta_field="delta_to_exact_abs",
+            ),
+            "best_by_suppression_stack": _best_by_group_from_records(
+                ranked_cells_by_ideal_abs,
+                key_name="suppression_stack",
+                key_values=list(normalized_suppression_labels),
+            ),
+            "best_by_suppression_stack_by_ideal_abs": _best_by_group_from_records(
+                ranked_cells_by_ideal_abs,
+                key_name="suppression_stack",
+                key_values=list(normalized_suppression_labels),
+            ),
+            "best_by_suppression_stack_by_exact_abs": _best_by_group_from_records(
+                ranked_cells_by_exact_abs,
+                key_name="suppression_stack",
+                key_values=list(normalized_suppression_labels),
+            ),
+            "artifact_compile_recommendation": (
+                None
+                if artifact_compile_recommendation is None
+                else dict(artifact_compile_recommendation)
+            ),
+            "elapsed_s": float(elapsed_s),
+            **_locked_subject_payload_fields(subject),
+        }
+        return payload
+
+    nq = int(ctx["num_qubits"])
+    theta_runtime = np.asarray(ctx["theta_runtime"], dtype=float).reshape(-1)
+    ref_state = np.asarray(ctx["ansatz_input_state"], dtype=complex).reshape(-1)
+    components = _build_locked_imported_fixed_theta_circuit_components(
+        layout=ctx["layout"],
+        theta_runtime=theta_runtime,
+        nq=int(nq),
+        ref_state=ref_state,
+    )
+    full_circuit = components["full_circuit"]
+    reference_circuit = components["reference_circuit"]
+    body_circuit = components["body_circuit"]
+    qop = _build_locked_imported_energy_qop(
+        ordered_labels_exyz=list(ctx["ordered_labels_exyz"]),
+        static_coeff_map_exyz=dict(ctx["static_coeff_map_exyz"]),
+    )
+    ideal_eval = _evaluate_locked_imported_circuit_ideal_energy(
+        circuit=full_circuit,
+        ordered_labels_exyz=list(ctx["ordered_labels_exyz"]),
+        static_coeff_map_exyz=dict(ctx["static_coeff_map_exyz"]),
+        shots=int(shots),
+        seed=int(seed),
+        oracle_repeats=int(oracle_repeats),
+        oracle_aggregate=str(oracle_aggregate),
+        qop=qop,
+    )
+
+    t0 = time.perf_counter()
+    planned_cell_specs: list[dict[str, Any]] = []
+    for preset in compile_presets:
+        planned_preset_label = str(preset.get("label", "")).strip()
+        if planned_preset_label == "":
+            planned_preset_label = (
+                f"opt{int(preset.get('transpile_optimization_level'))}"
+                f"_seed{int(preset.get('seed_transpiler'))}"
+            )
+        for zne_enabled in (False, True):
+            for suppression_label in normalized_suppression_labels:
+                planned_cell_specs.append(
+                    {
+                        "preset_label": str(planned_preset_label),
+                        "opt_level": int(preset.get("transpile_optimization_level")),
+                        "seed_transpiler": int(preset.get("seed_transpiler")),
+                        "zne_enabled": bool(zne_enabled),
+                        "suppression_label": str(suppression_label),
+                        "short_label": str(suppression_map[str(suppression_label)][0]),
+                        "cell_label": (
+                            f"{planned_preset_label}__zne_{'on' if bool(zne_enabled) else 'off'}"
+                            f"__{suppression_map[str(suppression_label)][0]}"
+                        ),
+                    }
+                )
+    if selected_cell_labels:
+        planned_label_set = {str(spec["cell_label"]) for spec in planned_cell_specs}
+        unsupported_selected = [
+            str(label) for label in selected_cell_labels if str(label) not in planned_label_set
+        ]
+        if unsupported_selected:
+            return {
+                "success": False,
+                "available": False,
+                "reason": "fixed_scaffold_saved_theta_mitigation_matrix_unsupported_selected_cells",
+                "artifact_json": str(ctx["path"]),
+                "unsupported_selected_cells": unsupported_selected,
+            }
+        selected_lookup = set(selected_cell_labels)
+        planned_cell_specs = [
+            dict(spec) for spec in planned_cell_specs if str(spec["cell_label"]) in selected_lookup
+        ]
+    planned_cell_labels = [str(spec["cell_label"]) for spec in planned_cell_specs]
+    _ai_log(
+        "fixed_scaffold_saved_theta_mitigation_matrix_initialized",
+        artifact_json=str(ctx["path"]),
+        cell_total=int(len(planned_cell_specs)),
+        ideal_mean=float(ideal_eval["ideal_mean"]),
+        exact_mean=exact_energy_ref,
+    )
+    _emit_progress(
+        "fixed_scaffold_saved_theta_mitigation_matrix_initialized",
+        cell_counts=_cell_counts_payload(()),
+        cell_labels=list(planned_cell_labels),
+        ideal_mean=float(ideal_eval["ideal_mean"]),
+        ideal_stderr=float(ideal_eval["ideal_stderr"]),
+        exact_mean=exact_energy_ref,
+        exact_stderr=(0.0 if exact_energy_ref is not None else None),
+        artifact_compile_recommendation=(
+            None
+            if artifact_compile_recommendation is None
+            else dict(artifact_compile_recommendation)
+        ),
+        elapsed_s=float(time.perf_counter() - t0),
+        partial_payload=_partial_payload(
+            reason="in_progress",
+            cell_records=(),
+            last_cell_label=None,
+            last_cell_index=None,
+            elapsed_s=float(time.perf_counter() - t0),
+        ),
+    )
+    cells: list[dict[str, Any]] = []
+    for cell_index, spec in enumerate(planned_cell_specs):
+        preset_label = str(spec["preset_label"])
+        opt_level = int(spec["opt_level"])
+        seed_transpiler = int(spec["seed_transpiler"])
+        zne_enabled = bool(spec["zne_enabled"])
+        suppression_label = str(spec["suppression_label"])
+        short_label = str(spec["short_label"])
+        cell_label = str(spec["cell_label"])
+        mitigation_cfg = suppression_map[str(suppression_label)][1]
+        actual_suppression_stack = _actual_suppression_stack_label(mitigation_cfg)
+        compile_request = _build_compile_request_payload(
+            backend_name=backend_name_norm,
+            seed_transpiler=int(seed_transpiler),
+            transpile_optimization_level=int(opt_level),
+            source="fixed_scaffold_saved_theta_mitigation_matrix_cell",
+        )
+        _ai_log(
+            "fixed_scaffold_saved_theta_mitigation_matrix_cell_start",
+            cell_index=int(cell_index),
+            cell_label=str(cell_label),
+            compile_preset_label=str(preset_label),
+            suppression_stack=str(actual_suppression_stack),
+            zne_enabled=bool(zne_enabled),
+            seed_transpiler=int(seed_transpiler),
+            transpile_optimization_level=int(opt_level),
+            cell_total=int(len(planned_cell_specs)),
+        )
+        _emit_progress(
+            "fixed_scaffold_saved_theta_mitigation_matrix_cell_started",
+            cell_index=int(cell_index),
+            cell_label=str(cell_label),
+            compile_request=dict(compile_request),
+            cell_counts=_cell_counts_payload(cells),
+            elapsed_s=float(time.perf_counter() - t0),
+            partial_payload=_partial_payload(
+                reason="in_progress",
+                cell_records=cells,
+                last_cell_label=str(cell_label),
+                last_cell_index=int(cell_index),
+                elapsed_s=float(time.perf_counter() - t0),
+            ),
+        )
+        try:
+            if bool(zne_enabled):
+                cell_eval = _evaluate_locked_imported_circuit_energy_local_zne(
+                    reference_circuit=reference_circuit,
+                    body_circuit=body_circuit,
+                    ordered_labels_exyz=list(ctx["ordered_labels_exyz"]),
+                    static_coeff_map_exyz=dict(ctx["static_coeff_map_exyz"]),
+                    shots=int(shots),
+                    seed=int(seed),
+                    oracle_repeats=int(oracle_repeats),
+                    oracle_aggregate=str(oracle_aggregate),
+                    mitigation_config=dict(mitigation_cfg),
+                    symmetry_mitigation_config=dict(symmetry_cfg),
+                    backend_name=backend_name_norm,
+                    use_fake_backend=True,
+                    allow_aer_fallback=bool(allow_aer_fallback),
+                    omp_shm_workaround=bool(omp_shm_workaround),
+                    seed_transpiler=int(seed_transpiler),
+                    transpile_optimization_level=int(opt_level),
+                    zne_scales=list(zne_scales),
+                    ideal_eval=ideal_eval,
+                    exact_energy=exact_energy_ref,
+                    qop=qop,
+                    compile_request_source="fixed_scaffold_saved_theta_mitigation_matrix_cell",
+                )
+            else:
+                noisy_eval = _evaluate_locked_imported_circuit_noisy_energy(
+                    circuit=full_circuit,
+                    ordered_labels_exyz=list(ctx["ordered_labels_exyz"]),
+                    static_coeff_map_exyz=dict(ctx["static_coeff_map_exyz"]),
+                    shots=int(shots),
+                    seed=int(seed),
+                    oracle_repeats=int(oracle_repeats),
+                    oracle_aggregate=str(oracle_aggregate),
+                    mitigation_config=dict(mitigation_cfg),
+                    symmetry_mitigation_config=dict(symmetry_cfg),
+                    backend_name=backend_name_norm,
+                    use_fake_backend=True,
+                    allow_aer_fallback=bool(allow_aer_fallback),
+                    omp_shm_workaround=bool(omp_shm_workaround),
+                    seed_transpiler=int(seed_transpiler),
+                    transpile_optimization_level=int(opt_level),
+                    qop=qop,
+                )
+                combined = _combine_locked_imported_circuit_energy_evaluations(
+                    noisy_eval=noisy_eval,
+                    ideal_eval=ideal_eval,
+                    exact_energy=exact_energy_ref,
+                )
+                backend_info = (
+                    dict(combined.get("backend_info", {}))
+                    if isinstance(combined.get("backend_info", {}), Mapping)
+                    else {}
+                )
+                compile_observation = _build_compile_observation_payload(
+                    requested=compile_request,
+                    backend_info=backend_info,
+                )
+                compile_metrics = _extract_compile_metrics_from_backend_info(backend_info)
+                cell_eval = {
+                    "success": True,
+                    "zne_enabled": False,
+                    "zne_scales": [],
+                    "per_factor_results": [],
+                    "extrapolator": None,
+                    "compile_request": dict(compile_request),
+                    "compile_observation": dict(compile_observation),
+                    "matches_requested": compile_observation.get("matches_requested", None),
+                    "transpile_seed": compile_metrics.get("transpile_seed", None),
+                    "transpile_optimization_level": compile_metrics.get(
+                        "transpile_optimization_level", None
+                    ),
+                    "compiled_two_qubit_count": int(
+                        compile_metrics.get("compiled_two_qubit_count", 0)
+                    ),
+                    "compiled_depth": int(compile_metrics.get("compiled_depth", 0)),
+                    "compiled_size": int(compile_metrics.get("compiled_size", 0)),
+                    "backend_info": dict(backend_info),
+                    **dict(combined),
+                }
+            compile_observation = (
+                dict(cell_eval.get("compile_observation", {}))
+                if isinstance(cell_eval.get("compile_observation", {}), Mapping)
+                else {}
+            )
+            cell_noisy_mean = float(cell_eval.get("noisy_mean", float("nan")))
+            cell_noisy_stderr = float(cell_eval.get("noisy_stderr", float("nan")))
+            cell_ideal_mean = float(cell_eval.get("ideal_mean", float("nan")))
+            cell_ideal_stderr = float(cell_eval.get("ideal_stderr", float("nan")))
+            delta_to_ideal_mean = cell_eval.get(
+                "delta_to_ideal_mean",
+                cell_eval.get("delta_mean", None),
+            )
+            delta_to_ideal_stderr = cell_eval.get(
+                "delta_to_ideal_stderr",
+                cell_eval.get("delta_stderr", None),
+            )
+            delta_to_ideal_abs = cell_eval.get(
+                "delta_to_ideal_abs",
+                None
+                if delta_to_ideal_mean is None
+                else float(abs(float(delta_to_ideal_mean))),
+            )
+            exact_mean = cell_eval.get("exact_mean", exact_energy_ref)
+            exact_stderr = cell_eval.get(
+                "exact_stderr",
+                (0.0 if exact_mean is not None else None),
+            )
+            delta_to_exact_mean = cell_eval.get("delta_to_exact_mean", None)
+            delta_to_exact_stderr = cell_eval.get("delta_to_exact_stderr", None)
+            delta_to_exact_abs = cell_eval.get("delta_to_exact_abs", None)
+            if (
+                delta_to_exact_mean is None
+                and exact_mean is not None
+                and math.isfinite(cell_noisy_mean)
+                and math.isfinite(cell_noisy_stderr)
+            ):
+                delta_to_exact_mean = float(cell_noisy_mean - float(exact_mean))
+                delta_to_exact_stderr = float(_combine_stderr(cell_noisy_stderr, 0.0))
+                delta_to_exact_abs = float(abs(delta_to_exact_mean))
+            cells.append(
+                {
+                    "success": True,
+                    "cell_index": int(cell_index),
+                    "label": str(cell_label),
+                    "compile_preset_label": str(preset_label),
+                    "seed_transpiler": int(seed_transpiler),
+                    "transpile_optimization_level": int(opt_level),
+                    "zne_enabled": bool(zne_enabled),
+                    "suppression_stack": str(actual_suppression_stack),
+                    "suppression_stack_label": str(short_label),
+                    "mitigation_config": dict(mitigation_cfg),
+                    "compile_request": dict(cell_eval.get("compile_request", compile_request)),
+                    "compile_observation": compile_observation,
+                    "matches_requested": cell_eval.get("matches_requested", None),
+                    "transpile_seed": cell_eval.get("transpile_seed", None),
+                    "compiled_two_qubit_count": int(
+                        cell_eval.get("compiled_two_qubit_count", 0)
+                    ),
+                    "compiled_depth": int(cell_eval.get("compiled_depth", 0)),
+                    "compiled_size": int(cell_eval.get("compiled_size", 0)),
+                    "noisy_mean": float(cell_noisy_mean),
+                    "noisy_stderr": float(cell_noisy_stderr),
+                    "energy_noisy_mean": float(cell_noisy_mean),
+                    "energy_noisy_stderr": float(cell_noisy_stderr),
+                    "ideal_mean": float(cell_ideal_mean),
+                    "ideal_stderr": float(cell_ideal_stderr),
+                    "energy_ideal_mean": float(cell_ideal_mean),
+                    "energy_ideal_stderr": float(cell_ideal_stderr),
+                    "exact_mean": (
+                        None if exact_mean is None else float(exact_mean)
+                    ),
+                    "exact_stderr": (
+                        None if exact_stderr is None else float(exact_stderr)
+                    ),
+                    "energy_exact_mean": (
+                        None if exact_mean is None else float(exact_mean)
+                    ),
+                    "energy_exact_stderr": (
+                        None if exact_stderr is None else float(exact_stderr)
+                    ),
+                    "delta_mean": (
+                        float(delta_to_ideal_mean)
+                        if delta_to_ideal_mean is not None
+                        else float("nan")
+                    ),
+                    "delta_stderr": (
+                        float(delta_to_ideal_stderr)
+                        if delta_to_ideal_stderr is not None
+                        else float("nan")
+                    ),
+                    "delta_abs": (
+                        float(delta_to_ideal_abs)
+                        if delta_to_ideal_abs is not None
+                        else float("nan")
+                    ),
+                    "delta_to_ideal_mean": (
+                        float(delta_to_ideal_mean)
+                        if delta_to_ideal_mean is not None
+                        else float("nan")
+                    ),
+                    "delta_to_ideal_stderr": (
+                        float(delta_to_ideal_stderr)
+                        if delta_to_ideal_stderr is not None
+                        else float("nan")
+                    ),
+                    "delta_to_ideal_abs": (
+                        float(delta_to_ideal_abs)
+                        if delta_to_ideal_abs is not None
+                        else float("nan")
+                    ),
+                    "delta_to_exact_mean": (
+                        None if delta_to_exact_mean is None else float(delta_to_exact_mean)
+                    ),
+                    "delta_to_exact_stderr": (
+                        None if delta_to_exact_stderr is None else float(delta_to_exact_stderr)
+                    ),
+                    "delta_to_exact_abs": (
+                        None if delta_to_exact_abs is None else float(delta_to_exact_abs)
+                    ),
+                    "backend_info": dict(cell_eval.get("backend_info", {})),
+                    "zne_scales": list(cell_eval.get("zne_scales", [])),
+                    "per_factor_results": list(cell_eval.get("per_factor_results", [])),
+                    "extrapolator": cell_eval.get("extrapolator", None),
+                    "extrapolated_energy_mean": cell_eval.get(
+                        "extrapolated_energy_mean", None
+                    ),
+                    "extrapolated_delta_mean": cell_eval.get("delta_mean", None),
+                    "zne_fold_scope": cell_eval.get("zne_fold_scope", None),
+                    "zne_fold_warning": cell_eval.get("zne_fold_warning", None),
+                    "folding_metadata": (
+                        dict(cell_eval.get("folding_metadata", {}))
+                        if isinstance(cell_eval.get("folding_metadata", {}), Mapping)
+                        else {}
+                    ),
+                }
+            )
+        except Exception as exc:
+            cells.append(
+                {
+                    "success": False,
+                    "cell_index": int(cell_index),
+                    "label": str(cell_label),
+                    "compile_preset_label": str(preset_label),
+                    "seed_transpiler": int(seed_transpiler),
+                    "transpile_optimization_level": int(opt_level),
+                    "zne_enabled": bool(zne_enabled),
+                    "suppression_stack": str(actual_suppression_stack),
+                    "suppression_stack_label": str(short_label),
+                    "mitigation_config": dict(mitigation_cfg),
+                    "compile_request": dict(compile_request),
+                    "compile_observation": {
+                        "available": False,
+                        "requested": dict(compile_request),
+                        "observed": None,
+                        "matches_requested": None,
+                        "mismatch_fields": [],
+                        "reason": "cell_exception",
+                    },
+                    "reason": "cell_exception",
+                    "error": f"{type(exc).__name__}: {exc}",
+                }
+            )
+        last_cell = dict(cells[-1])
+        _ai_log(
+            "fixed_scaffold_saved_theta_mitigation_matrix_cell_done",
+            cell_index=int(cell_index),
+            cell_label=str(cell_label),
+            success=bool(last_cell.get("success", False)),
+            compile_preset_label=str(preset_label),
+            suppression_stack=str(actual_suppression_stack),
+            zne_enabled=bool(zne_enabled),
+            delta_mean=last_cell.get("delta_mean", None),
+            delta_to_ideal_mean=last_cell.get("delta_to_ideal_mean", None),
+            delta_to_exact_mean=last_cell.get("delta_to_exact_mean", None),
+            delta_stderr=last_cell.get("delta_stderr", None),
+            compiled_two_qubit_count=last_cell.get("compiled_two_qubit_count", None),
+            compiled_depth=last_cell.get("compiled_depth", None),
+            compiled_size=last_cell.get("compiled_size", None),
+            elapsed_s=float(time.perf_counter() - t0),
+        )
+        _emit_progress(
+            "fixed_scaffold_saved_theta_mitigation_matrix_cell_completed",
+            cell_index=int(cell_index),
+            cell_label=str(cell_label),
+            cell=last_cell,
+            cell_counts=_cell_counts_payload(cells),
+            elapsed_s=float(time.perf_counter() - t0),
+            partial_payload=_partial_payload(
+                reason="in_progress",
+                cell_records=cells,
+                last_cell_label=str(cell_label),
+                last_cell_index=int(cell_index),
+                elapsed_s=float(time.perf_counter() - t0),
+            ),
+        )
+
+    successful_cells = [dict(rec) for rec in cells if bool(rec.get("success", False))]
+    ranked_cells_by_ideal_abs = _rank_cell_records(
+        successful_cells,
+        delta_field="delta_to_ideal_abs",
+    )
+    ranked_cells_by_exact_abs = _rank_cell_records(
+        successful_cells,
+        delta_field="delta_to_exact_abs",
+    )
+
+    failed_count = int(sum(1 for rec in cells if not bool(rec.get("success", False))))
+    payload: dict[str, Any] = {
+        "success": bool(failed_count == 0 and len(cells) > 0),
+        "available": True,
+        "route": "fixed_scaffold_saved_theta_mitigation_matrix",
+        "artifact_json": str(ctx["path"]),
+        "source_kind": str(ctx.get("source_kind", "unknown")),
+        "pool_type": str(subject.pool_type),
+        "structure_locked": True,
+        "theta_source": "imported_theta_runtime",
+        "execution_mode": "backend_scheduled",
+        "reference_state_embedded": True,
+        "ansatz_input_state_source": ansatz_input_state_meta.get("source", None),
+        "ansatz_input_state_kind": ansatz_input_state_meta.get("handoff_state_kind", None),
+        "noise_config": {
+            "noise_mode": "backend_scheduled",
+            "shots": int(shots),
+            "oracle_repeats": int(oracle_repeats),
+            "oracle_aggregate": str(oracle_aggregate),
+            "backend_name": str(backend_name_norm),
+            "mitigation_base": dict(mitigation_base_cfg),
+            "symmetry_mitigation": dict(symmetry_cfg),
+            "raw_artifact_root": (None if raw_artifact_root in {None, ""} else str(raw_artifact_root)),
+        },
+        "ideal_reference": dict(ideal_eval),
+        "exact_reference": {
+            "exact_mean": exact_energy_ref,
+            "exact_stderr": (0.0 if exact_energy_ref is not None else None),
+        },
+        "compile_presets": [dict(x) for x in compile_presets],
+        "zne_scales": [float(x) for x in zne_scales],
+        "suppression_labels": list(normalized_suppression_labels),
+        "selected_cells": list(selected_cell_labels),
+        "cells": cells,
+        "cell_counts": _cell_counts_payload(cells),
+        "best_cell": (
+            dict(ranked_cells_by_ideal_abs[0]) if ranked_cells_by_ideal_abs else {}
+        ),
+        "best_cell_by_ideal_abs": (
+            dict(ranked_cells_by_ideal_abs[0]) if ranked_cells_by_ideal_abs else {}
+        ),
+        "best_cell_by_exact_abs": (
+            dict(ranked_cells_by_exact_abs[0]) if ranked_cells_by_exact_abs else {}
+        ),
+        "best_by_compile_preset": _best_by_group_from_records(
+            ranked_cells_by_ideal_abs,
+            key_name="compile_preset_label",
+            key_values=[
+                str(x.get("label", ""))
+                for x in compile_presets
+                if str(x.get("label", "")).strip() != ""
+            ],
+        ),
+        "best_by_compile_preset_by_ideal_abs": _best_by_group_from_records(
+            ranked_cells_by_ideal_abs,
+            key_name="compile_preset_label",
+            key_values=[
+                str(x.get("label", ""))
+                for x in compile_presets
+                if str(x.get("label", "")).strip() != ""
+            ],
+        ),
+        "best_by_compile_preset_by_exact_abs": _best_by_group_from_records(
+            ranked_cells_by_exact_abs,
+            key_name="compile_preset_label",
+            key_values=[
+                str(x.get("label", ""))
+                for x in compile_presets
+                if str(x.get("label", "")).strip() != ""
+            ],
+        ),
+        "best_by_zne_toggle": _best_by_zne_toggle_from_records(
+            successful_cells,
+            delta_field="delta_to_ideal_abs",
+        ),
+        "best_by_zne_toggle_by_ideal_abs": _best_by_zne_toggle_from_records(
+            successful_cells,
+            delta_field="delta_to_ideal_abs",
+        ),
+        "best_by_zne_toggle_by_exact_abs": _best_by_zne_toggle_from_records(
+            successful_cells,
+            delta_field="delta_to_exact_abs",
+        ),
+        "best_by_suppression_stack": _best_by_group_from_records(
+            ranked_cells_by_ideal_abs,
+            key_name="suppression_stack",
+            key_values=list(normalized_suppression_labels),
+        ),
+        "best_by_suppression_stack_by_ideal_abs": _best_by_group_from_records(
+            ranked_cells_by_ideal_abs,
+            key_name="suppression_stack",
+            key_values=list(normalized_suppression_labels),
+        ),
+        "best_by_suppression_stack_by_exact_abs": _best_by_group_from_records(
+            ranked_cells_by_exact_abs,
+            key_name="suppression_stack",
+            key_values=list(normalized_suppression_labels),
+        ),
+        "artifact_compile_recommendation": (
+            None
+            if artifact_compile_recommendation is None
+            else dict(artifact_compile_recommendation)
+        ),
+        "elapsed_s": float(time.perf_counter() - t0),
+        **_locked_subject_payload_fields(subject),
+    }
+    if not bool(payload["success"]):
+        payload["reason"] = (
+            "one_or_more_cells_failed"
+            if len(cells) > 0
+            else "fixed_scaffold_saved_theta_mitigation_matrix_no_cells"
+        )
+    return payload
+
+
 def _run_imported_fixed_scaffold_noisy_replay(
     *,
     artifact_json: str,
@@ -5250,6 +6750,7 @@ def _run_imported_fixed_scaffold_noisy_replay(
     include_final_zne_audit: bool = False,
     progress_every_s: float = 60.0,
     local_dd_probe_sequence: str | None = None,
+    progress_callback: Callable[[dict[str, Any]], None] | None = None,
 ) -> dict[str, Any]:
     ctx, ansatz_input_state_meta, subject, error_payload = _resolve_locked_imported_fixed_scaffold_context(
         artifact_json,
@@ -5330,6 +6831,7 @@ def _run_imported_fixed_scaffold_noisy_replay(
         static_coeff_map_exyz=static_coeff_map_exyz,
         drive_coeff_map_exyz=None,
     )
+    theta0_logical = np.asarray(project_runtime_theta_block_mean(theta0, layout), dtype=float).reshape(-1)
 
     noisy_mode = "backend_scheduled"
     if mitigation_mode_key == "readout":
@@ -5400,6 +6902,157 @@ def _run_imported_fixed_scaffold_noisy_replay(
         except Exception:
             return
 
+    def _emit_progress(event: str, **fields: Any) -> None:
+        if progress_callback is None:
+            return
+        try:
+            progress_callback(
+                {
+                    "event": str(event),
+                    "route": "fixed_scaffold_noisy_replay",
+                    "artifact_json": str(ctx["path"]),
+                    **fields,
+                }
+            )
+        except Exception:
+            pass
+
+    def _current_backend_info_payload(oracle: Any | None = None) -> dict[str, Any]:
+        info = getattr(oracle, "backend_info", None)
+        details = {}
+        if info is not None:
+            raw_details = getattr(info, "details", {})
+            if isinstance(raw_details, Mapping):
+                details = dict(raw_details)
+            return {
+                "noise_mode": str(getattr(info, "noise_mode", noisy_mode)),
+                "estimator_kind": str(getattr(info, "estimator_kind", "expectation_oracle")),
+                "backend_name": getattr(info, "backend_name", backend_name),
+                "using_fake_backend": bool(getattr(info, "using_fake_backend", use_fake_backend)),
+                "details": details,
+            }
+        return {
+            "noise_mode": str(noisy_mode),
+            "estimator_kind": "expectation_oracle",
+            "backend_name": backend_name,
+            "using_fake_backend": bool(use_fake_backend),
+            "details": {},
+        }
+
+    def _best_so_far_payload() -> dict[str, Any]:
+        if best_eval is None:
+            return {}
+        theta_best_runtime = np.asarray(best_eval["theta_runtime"], dtype=float).reshape(-1)
+        theta_best_logical = np.asarray(
+            project_runtime_theta_block_mean(theta_best_runtime, layout),
+            dtype=float,
+        ).reshape(-1)
+        return {
+            "call_index": int(best_eval["call_index"]),
+            "energy_noisy_mean": float(best_eval["energy_noisy_mean"]),
+            "energy_noisy_stderr": float(best_eval["energy_noisy_stderr"]),
+            "theta_runtime": [float(x) for x in theta_best_runtime.tolist()],
+            "theta_logical": [float(x) for x in theta_best_logical.tolist()],
+        }
+
+    def _partial_payload(
+        *,
+        reason: str,
+        current_backend_info: Mapping[str, Any] | None = None,
+        success: bool = False,
+        partial: bool = True,
+        optimizer_stop_reason: str = "in_progress",
+        optimizer_message: str = "in_progress",
+    ) -> dict[str, Any]:
+        best_so_far = _best_so_far_payload()
+        theta_payload: dict[str, Any] = {
+            "initial_runtime": [float(x) for x in theta0.tolist()],
+            "initial_logical": [float(x) for x in theta0_logical.tolist()],
+        }
+        if best_so_far:
+            theta_payload["best_runtime"] = list(best_so_far["theta_runtime"])
+            theta_payload["best_logical"] = list(best_so_far["theta_logical"])
+        energies: dict[str, Any] = {}
+        try:
+            saved_energy_raw = ctx.get("saved_energy", None)
+            if saved_energy_raw is not None and math.isfinite(float(saved_energy_raw)):
+                energies["saved_artifact_energy"] = float(saved_energy_raw)
+        except Exception:
+            pass
+        if best_so_far:
+            energies["best_noisy_mean"] = float(best_so_far["energy_noisy_mean"])
+            energies["best_noisy_stderr"] = float(best_so_far["energy_noisy_stderr"])
+        optimizer_iterations_completed = 0
+        if isinstance(last_spsa_payload, Mapping):
+            try:
+                optimizer_iterations_completed = int(last_spsa_payload.get("iter", 0) or 0)
+            except Exception:
+                optimizer_iterations_completed = 0
+        payload: dict[str, Any] = {
+            "success": bool(success),
+            "available": True,
+            "partial": bool(partial),
+            "route": "fixed_scaffold_noisy_replay",
+            "reason": str(reason),
+            "artifact_json": str(ctx["path"]),
+            "source_kind": str(ctx.get("source_kind", "unknown")),
+            "pool_type": str(subject.pool_type),
+            "structure_locked": True,
+            "matched_family_replay": False,
+            "full_circuit_import_audit": False,
+            "reps": 1,
+            "theta_source": "imported_theta_runtime",
+            "execution_mode": "backend_scheduled",
+            "local_mitigation_label": str(local_mitigation_label),
+            "reference_state_embedded": True,
+            "ansatz_input_state_source": ansatz_input_state_meta.get("source", None),
+            "ansatz_input_state_kind": ansatz_input_state_meta.get("handoff_state_kind", None),
+            "parameterization": {
+                "mode": "per_pauli_term_v1",
+                "logical_parameter_count": int(layout.logical_parameter_count),
+                "runtime_parameter_count": int(layout.runtime_parameter_count),
+            },
+            "optimizer": {
+                "method": ("SPSA" if optimizer_method_key == "spsa" else "Powell"),
+                "seed": int(optimizer_seed),
+                "maxiter": int(optimizer_maxiter),
+                "wallclock_cap_s": int(optimizer_wallclock_cap_s),
+                "stop_reason": str(optimizer_stop_reason),
+                "iterations_completed": int(optimizer_iterations_completed),
+                "objective_calls_total": int(objective_calls_total),
+                "message": str(optimizer_message),
+            },
+            "noise_config": {
+                "noise_mode": str(noisy_mode),
+                "shots": int(shots),
+                "oracle_repeats": int(oracle_repeats),
+                "oracle_aggregate": str(oracle_aggregate),
+                "mitigation": dict(mitigation_cfg),
+                "symmetry_mitigation": dict(symmetry_cfg),
+                "runtime_profile": dict(runtime_profile_cfg),
+                "runtime_session": dict(runtime_session_cfg),
+            },
+            "compile_control": {
+                "transpile_optimization_level": int(transpile_optimization_level),
+                "seed_transpiler": (
+                    None if seed_transpiler is None else int(seed_transpiler)
+                ),
+                "source": "fake_backend_cli",
+            },
+            "theta": theta_payload,
+            "objective_history_tail": [dict(row) for row in objective_history_tail],
+            "objective_trace": [dict(row) for row in objective_trace],
+            "runtime_job_ids": [str(x) for x in runtime_job_ids],
+            "backend_info": dict(current_backend_info or _current_backend_info_payload()),
+            "elapsed_s": float(time.perf_counter() - t0),
+            **_locked_subject_payload_fields(subject),
+        }
+        if energies:
+            payload["energies"] = energies
+        if best_so_far:
+            payload["best_so_far"] = dict(best_so_far)
+        return payload
+
     def _maybe_emit_progress(
         *,
         call_index: int,
@@ -5443,6 +7096,18 @@ def _run_imported_fixed_scaffold_noisy_replay(
         runtime_parameter_count=int(theta0.size),
         term_order_id=str(subject.term_order_id),
     )
+    _emit_progress(
+        "fixed_scaffold_noisy_replay_initialized",
+        objective_calls_total=0,
+        best_call_index=None,
+        runtime_job_ids_total=0,
+        elapsed_s=float(time.perf_counter() - t0),
+        partial_payload=_partial_payload(
+            reason="in_progress",
+            optimizer_stop_reason="in_progress",
+            optimizer_message="in_progress",
+        ),
+    )
 
     with ExpectationOracle(noisy_cfg) as noisy_oracle:
         def _objective(theta: np.ndarray) -> float:
@@ -5483,6 +7148,7 @@ def _run_imported_fixed_scaffold_noisy_replay(
                     runtime_job_ids.append(job_id)
             row = {
                 "call_index": int(objective_calls_total),
+                "status": "completed",
                 "elapsed_s": float(time.perf_counter() - t0),
                 "energy_noisy_mean": float(est.mean),
                 "energy_noisy_stderr": float(est.stderr),
@@ -5518,6 +7184,23 @@ def _run_imported_fixed_scaffold_noisy_replay(
                     best_energy_noisy_mean=float(est.mean),
                     best_energy_noisy_stderr=float(est.stderr),
                 )
+            _emit_progress(
+                "fixed_scaffold_noisy_replay_objective_completed",
+                call_index=int(objective_calls_total),
+                objective_calls_total=int(objective_calls_total),
+                current_energy_noisy_mean=float(est.mean),
+                best_call_index=(
+                    None if best_eval is None else int(best_eval["call_index"])
+                ),
+                runtime_job_ids_total=int(len(runtime_job_ids)),
+                elapsed_s=float(row["elapsed_s"]),
+                partial_payload=_partial_payload(
+                    reason="in_progress",
+                    current_backend_info=_current_backend_info_payload(noisy_oracle),
+                    optimizer_stop_reason="in_progress",
+                    optimizer_message="in_progress",
+                ),
+            )
             _maybe_emit_progress(
                 call_index=int(objective_calls_total),
                 elapsed_s=float(row["elapsed_s"]),
@@ -5578,11 +7261,21 @@ def _run_imported_fixed_scaffold_noisy_replay(
         }
 
     if optimizer_exception is not None:
+        optimizer_error = f"{type(optimizer_exception).__name__}: {optimizer_exception}"
+        if objective_trace or best_eval is not None or runtime_job_ids:
+            failure_payload = _partial_payload(
+                reason="optimizer_exception",
+                current_backend_info=backend_info,
+                optimizer_stop_reason="optimizer_exception",
+                optimizer_message=str(optimizer_error),
+            )
+            failure_payload["error"] = str(optimizer_error)
+            return failure_payload
         return {
             "success": False,
             "available": False,
             "reason": "optimizer_exception",
-            "error": f"{type(optimizer_exception).__name__}: {optimizer_exception}",
+            "error": str(optimizer_error),
             "artifact_json": str(ctx["path"]),
             "structure_locked": True,
             "pool_type": str(subject.pool_type),
@@ -5711,8 +7404,8 @@ def _run_imported_fixed_scaffold_noisy_replay(
         local_dd_probe_sequence=local_dd_probe_sequence,
     )
 
-    theta0_logical = np.asarray(project_runtime_theta_block_mean(theta0, layout), dtype=float)
     theta_best_logical = np.asarray(project_runtime_theta_block_mean(theta_best, layout), dtype=float)
+    best_so_far_payload = _best_so_far_payload()
     _emit_replay_log(
         "fixed_scaffold_replay_completed",
         stop_reason=str(stop_reason),
@@ -5732,6 +7425,7 @@ def _run_imported_fixed_scaffold_noisy_replay(
         "matched_family_replay": False,
         "full_circuit_import_audit": False,
         "reps": 1,
+        "partial": False,
         "theta_source": "imported_theta_runtime",
         "execution_mode": "backend_scheduled",
         "local_mitigation_label": str(local_mitigation_label),
@@ -5795,6 +7489,7 @@ def _run_imported_fixed_scaffold_noisy_replay(
         "objective_history_tail": list(objective_history_tail),
         "objective_trace": list(objective_trace),
         "runtime_job_ids": [str(x) for x in runtime_job_ids],
+        "best_so_far": dict(best_so_far_payload),
         "best_runtime_energy_audits": (
             dict(best_runtime_energy_audits) if isinstance(best_runtime_energy_audits, Mapping) else {}
         ),
@@ -6097,6 +7792,17 @@ def _imported_prepared_state_audit_worker_entry(queue: Any, kwargs: dict[str, An
         queue.put({"ok": False, "error": f"{type(exc).__name__}: {exc}"})
 
 
+def _imported_ansatz_input_state_audit_worker_entry(
+    queue: Any,
+    kwargs: dict[str, Any],
+) -> None:
+    try:
+        payload = _run_imported_ansatz_input_state_audit(**kwargs)
+        queue.put({"ok": True, "payload": payload})
+    except Exception as exc:  # pragma: no cover - subprocess fault path
+        queue.put({"ok": False, "error": f"{type(exc).__name__}: {exc}"})
+
+
 def _imported_full_circuit_audit_worker_entry(queue: Any, kwargs: dict[str, Any]) -> None:
     try:
         payload = _run_imported_full_circuit_audit(**kwargs)
@@ -6143,6 +7849,23 @@ def _imported_fixed_scaffold_compile_control_scout_worker_entry(queue: Any, kwar
         queue.put({"kind": "result", "ok": False, "error": f"{type(exc).__name__}: {exc}"})
 
 
+def _imported_fixed_scaffold_saved_theta_mitigation_matrix_worker_entry(
+    queue: Any,
+    kwargs: dict[str, Any],
+) -> None:
+    def _progress(payload: dict[str, Any]) -> None:
+        queue.put({"kind": "progress", "payload": dict(payload)})
+
+    try:
+        payload = _run_imported_fixed_scaffold_saved_theta_mitigation_matrix(
+            progress_callback=_progress,
+            **kwargs,
+        )
+        queue.put({"kind": "result", "ok": True, "payload": payload})
+    except Exception as exc:  # pragma: no cover - subprocess fault path
+        queue.put({"kind": "result", "ok": False, "error": f"{type(exc).__name__}: {exc}"})
+
+
 def _imported_fixed_scaffold_runtime_energy_only_worker_entry(queue: Any, kwargs: dict[str, Any]) -> None:
     try:
         payload = _run_imported_fixed_scaffold_runtime_energy_only(**kwargs)
@@ -6160,11 +7883,17 @@ def _imported_fixed_scaffold_runtime_raw_baseline_worker_entry(queue: Any, kwarg
 
 
 def _imported_fixed_scaffold_noisy_replay_worker_entry(queue: Any, kwargs: dict[str, Any]) -> None:
+    def _progress(payload: dict[str, Any]) -> None:
+        queue.put({"kind": "progress", "payload": dict(payload)})
+
     try:
-        payload = _run_imported_fixed_scaffold_noisy_replay(**kwargs)
-        queue.put({"ok": True, "payload": payload})
+        payload = _run_imported_fixed_scaffold_noisy_replay(
+            progress_callback=_progress,
+            **kwargs,
+        )
+        queue.put({"kind": "result", "ok": True, "payload": payload})
     except Exception as exc:  # pragma: no cover - subprocess fault path
-        queue.put({"ok": False, "error": f"{type(exc).__name__}: {exc}"})
+        queue.put({"kind": "result", "ok": False, "error": f"{type(exc).__name__}: {exc}"})
 
 
 def _imported_fixed_scaffold_noise_attribution_worker_entry(queue: Any, kwargs: dict[str, Any]) -> None:
@@ -6232,6 +7961,55 @@ def _run_imported_prepared_state_audit_mode_isolated(
     ctx = mp.get_context("spawn")
     queue = ctx.Queue()
     proc = ctx.Process(target=_imported_prepared_state_audit_worker_entry, args=(queue, kwargs), daemon=False)
+    proc.start()
+    proc.join(timeout=float(timeout_s))
+    if proc.is_alive():
+        proc.terminate()
+        proc.join(5.0)
+        return {
+            "success": False,
+            "env_blocked": True,
+            "reason": f"timeout_after_{int(timeout_s)}s",
+            "exitcode": proc.exitcode,
+        }
+    if int(proc.exitcode or 0) != 0:
+        return {
+            "success": False,
+            "env_blocked": True,
+            "reason": "subprocess_nonzero_exit",
+            "exitcode": int(proc.exitcode or 0),
+        }
+    if queue.empty():
+        return {
+            "success": False,
+            "env_blocked": True,
+            "reason": "subprocess_completed_without_payload",
+            "exitcode": int(proc.exitcode or 0),
+        }
+    msg = queue.get()
+    if not bool(msg.get("ok", False)):
+        return {
+            "success": False,
+            "env_blocked": True,
+            "reason": "worker_exception",
+            "error": str(msg.get("error", "unknown")),
+            "exitcode": int(proc.exitcode or 0),
+        }
+    return dict(msg.get("payload", {}))
+
+
+def _run_imported_ansatz_input_state_audit_mode_isolated(
+    *,
+    kwargs: dict[str, Any],
+    timeout_s: int,
+) -> dict[str, Any]:
+    ctx = mp.get_context("spawn")
+    queue = ctx.Queue()
+    proc = ctx.Process(
+        target=_imported_ansatz_input_state_audit_worker_entry,
+        args=(queue, kwargs),
+        daemon=False,
+    )
     proc.start()
     proc.join(timeout=float(timeout_s))
     if proc.is_alive():
@@ -6499,6 +8277,251 @@ def _run_imported_fixed_scaffold_compile_control_scout_mode_isolated(
         reason: str,
         exitcode: int | None,
     ) -> dict[str, Any]:
+        had_partial_payload = latest_partial_payload is not None
+        payload = (
+            dict(latest_partial_payload)
+            if latest_partial_payload is not None
+            else {}
+        )
+        payload.update(
+            {
+                "success": False,
+                "env_blocked": True,
+                "reason": str(reason),
+                "exitcode": exitcode,
+                "elapsed_s": float(max(0.0, time.monotonic() - started_at)),
+            }
+        )
+        if isinstance(latest_progress, Mapping):
+            payload["last_progress_event"] = latest_progress.get("event", None)
+        return payload
+
+    while True:
+        remaining = deadline - time.monotonic()
+        if remaining <= 0.0:
+            break
+        proc.join(timeout=min(0.25, remaining))
+        drained_result, drained_progress = _drain_messages()
+        if drained_progress is not None:
+            latest_progress = dict(drained_progress)
+            partial_payload = drained_progress.get("partial_payload", {})
+            if partial_payload is not None:
+                latest_partial_payload = dict(partial_payload)
+        if drained_result is not None:
+            result_msg = dict(drained_result)
+        if result_msg is not None and not proc.is_alive():
+            break
+        if not proc.is_alive():
+            break
+
+    drained_result, drained_progress = _drain_messages()
+    if drained_progress is not None:
+        latest_progress = dict(drained_progress)
+        partial_payload = drained_progress.get("partial_payload", {})
+        if partial_payload is not None:
+            latest_partial_payload = dict(partial_payload)
+    if drained_result is not None:
+        result_msg = dict(drained_result)
+
+    if result_msg is not None:
+        if proc.is_alive():
+            proc.join(0.25)
+            if proc.is_alive():
+                proc.terminate()
+                proc.join(5.0)
+        if not bool(result_msg.get("ok", False)):
+            worker_payload = _finalize_failure_payload(
+                reason="worker_exception",
+                exitcode=int(proc.exitcode or 0),
+            )
+            worker_payload["error"] = str(result_msg.get("error", "unknown"))
+            return worker_payload
+        return dict(result_msg.get("payload", {}))
+
+    if proc.is_alive():
+        proc.terminate()
+        proc.join(5.0)
+        timeout_payload = _finalize_failure_payload(
+            reason=f"timeout_after_{int(timeout_s)}s",
+            exitcode=proc.exitcode,
+        )
+        if timeout_payload:
+            return timeout_payload
+        return {
+            "success": False,
+            "env_blocked": True,
+            "reason": f"timeout_after_{int(timeout_s)}s",
+            "exitcode": proc.exitcode,
+        }
+    if int(proc.exitcode or 0) != 0:
+        nonzero_payload = _finalize_failure_payload(
+            reason="subprocess_nonzero_exit",
+            exitcode=int(proc.exitcode or 0),
+        )
+        if nonzero_payload:
+            return nonzero_payload
+        return {
+            "success": False,
+            "env_blocked": True,
+            "reason": "subprocess_nonzero_exit",
+            "exitcode": int(proc.exitcode or 0),
+        }
+    if result_msg is None:
+        grace_deadline = time.monotonic() + 0.25
+        while time.monotonic() < grace_deadline and result_msg is None:
+            drained_result, drained_progress = _drain_messages()
+            if drained_progress is not None:
+                latest_progress = dict(drained_progress)
+                partial_payload = drained_progress.get("partial_payload", {})
+                if partial_payload is not None:
+                    latest_partial_payload = dict(partial_payload)
+            if drained_result is not None:
+                result_msg = dict(drained_result)
+                break
+            time.sleep(0.01)
+    if result_msg is None:
+        grace_deadline = time.monotonic() + 0.25
+        while time.monotonic() < grace_deadline and result_msg is None:
+            drained_result, drained_progress = _drain_messages()
+            if drained_progress is not None:
+                latest_progress = dict(drained_progress)
+                partial_payload = drained_progress.get("partial_payload", {})
+                if partial_payload is not None:
+                    latest_partial_payload = dict(partial_payload)
+            if drained_result is not None:
+                result_msg = dict(drained_result)
+                break
+            time.sleep(0.01)
+    if result_msg is None:
+        grace_deadline = time.monotonic() + 0.25
+        while time.monotonic() < grace_deadline and result_msg is None:
+            drained_result, drained_progress = _drain_messages()
+            if drained_progress is not None:
+                latest_progress = dict(drained_progress)
+                partial_payload = drained_progress.get("partial_payload", {})
+                if partial_payload is not None:
+                    latest_partial_payload = dict(partial_payload)
+            if drained_result is not None:
+                result_msg = dict(drained_result)
+                break
+            time.sleep(0.01)
+    if result_msg is None:
+        missing_payload = _finalize_failure_payload(
+            reason="subprocess_completed_without_payload",
+            exitcode=int(proc.exitcode or 0),
+        )
+        if missing_payload:
+            return missing_payload
+        return {
+            "success": False,
+            "env_blocked": True,
+            "reason": "subprocess_completed_without_payload",
+            "exitcode": int(proc.exitcode or 0),
+        }
+    msg = result_msg
+    if not bool(msg.get("ok", False)):
+        return {
+            "success": False,
+            "env_blocked": True,
+            "reason": "worker_exception",
+            "error": str(msg.get("error", "unknown")),
+            "exitcode": int(proc.exitcode or 0),
+        }
+    return dict(msg.get("payload", {}))
+
+
+def _run_imported_fixed_scaffold_runtime_energy_only_mode_isolated(
+    *,
+    kwargs: dict[str, Any],
+    timeout_s: int,
+) -> dict[str, Any]:
+    ctx = mp.get_context("spawn")
+    queue = ctx.Queue()
+    proc = ctx.Process(
+        target=_imported_fixed_scaffold_runtime_energy_only_worker_entry,
+        args=(queue, kwargs),
+        daemon=False,
+    )
+    proc.start()
+    proc.join(timeout=float(timeout_s))
+    if proc.is_alive():
+        proc.terminate()
+        proc.join(5.0)
+        return {
+            "success": False,
+            "env_blocked": True,
+            "reason": f"timeout_after_{int(timeout_s)}s",
+            "exitcode": proc.exitcode,
+        }
+    if int(proc.exitcode or 0) != 0:
+        return {
+            "success": False,
+            "env_blocked": True,
+            "reason": "subprocess_nonzero_exit",
+            "exitcode": int(proc.exitcode or 0),
+        }
+    if queue.empty():
+        return {
+            "success": False,
+            "env_blocked": True,
+            "reason": "subprocess_completed_without_payload",
+            "exitcode": int(proc.exitcode or 0),
+        }
+    msg = queue.get()
+    if not bool(msg.get("ok", False)):
+        return {
+            "success": False,
+            "env_blocked": True,
+            "reason": "worker_exception",
+            "error": str(msg.get("error", "unknown")),
+            "exitcode": int(proc.exitcode or 0),
+        }
+    return dict(msg.get("payload", {}))
+
+
+def _run_imported_fixed_scaffold_saved_theta_mitigation_matrix_mode_isolated(
+    *,
+    kwargs: dict[str, Any],
+    timeout_s: int,
+) -> dict[str, Any]:
+    ctx = mp.get_context("spawn")
+    queue = ctx.Queue()
+    proc = ctx.Process(
+        target=_imported_fixed_scaffold_saved_theta_mitigation_matrix_worker_entry,
+        args=(queue, kwargs),
+        daemon=False,
+    )
+    proc.start()
+
+    def _drain_messages() -> tuple[dict[str, Any] | None, dict[str, Any] | None]:
+        result_msg: dict[str, Any] | None = None
+        latest_progress: dict[str, Any] | None = None
+        while True:
+            try:
+                msg = queue.get_nowait()
+            except pyqueue.Empty:
+                break
+            kind = str(msg.get("kind", "result"))
+            if kind == "progress":
+                payload = msg.get("payload", {})
+                if isinstance(payload, Mapping):
+                    latest_progress = dict(payload)
+            else:
+                result_msg = dict(msg)
+        return result_msg, latest_progress
+
+    started_at = time.monotonic()
+    deadline = started_at + float(timeout_s)
+    result_msg: dict[str, Any] | None = None
+    latest_progress: dict[str, Any] | None = None
+    latest_partial_payload: dict[str, Any] | None = None
+
+    def _finalize_failure_payload(
+        *,
+        reason: str,
+        exitcode: int | None,
+    ) -> dict[str, Any]:
+        had_partial_payload = latest_partial_payload is not None
         payload = (
             dict(latest_partial_payload)
             if latest_partial_payload is not None
@@ -6573,71 +8596,39 @@ def _run_imported_fixed_scaffold_compile_control_scout_mode_isolated(
             "exitcode": int(proc.exitcode or 0),
         }
     if result_msg is None:
+        grace_deadline = time.monotonic() + 0.25
+        while time.monotonic() < grace_deadline and result_msg is None:
+            drained_result, drained_progress = _drain_messages()
+            if drained_progress is not None:
+                latest_progress = dict(drained_progress)
+                partial_payload = drained_progress.get("partial_payload", {})
+                if partial_payload is not None:
+                    latest_partial_payload = dict(partial_payload)
+            if drained_result is not None:
+                result_msg = dict(drained_result)
+                break
+            time.sleep(0.01)
+    if result_msg is None:
+        missing_payload = _finalize_failure_payload(
+            reason="subprocess_completed_without_payload",
+            exitcode=int(proc.exitcode or 0),
+        )
+        if missing_payload:
+            return missing_payload
         return {
             "success": False,
             "env_blocked": True,
             "reason": "subprocess_completed_without_payload",
             "exitcode": int(proc.exitcode or 0),
         }
-    msg = result_msg
-    if not bool(msg.get("ok", False)):
-        return {
-            "success": False,
-            "env_blocked": True,
-            "reason": "worker_exception",
-            "error": str(msg.get("error", "unknown")),
-            "exitcode": int(proc.exitcode or 0),
-        }
-    return dict(msg.get("payload", {}))
-
-
-def _run_imported_fixed_scaffold_runtime_energy_only_mode_isolated(
-    *,
-    kwargs: dict[str, Any],
-    timeout_s: int,
-) -> dict[str, Any]:
-    ctx = mp.get_context("spawn")
-    queue = ctx.Queue()
-    proc = ctx.Process(
-        target=_imported_fixed_scaffold_runtime_energy_only_worker_entry,
-        args=(queue, kwargs),
-        daemon=False,
-    )
-    proc.start()
-    proc.join(timeout=float(timeout_s))
-    if proc.is_alive():
-        proc.terminate()
-        proc.join(5.0)
-        return {
-            "success": False,
-            "env_blocked": True,
-            "reason": f"timeout_after_{int(timeout_s)}s",
-            "exitcode": proc.exitcode,
-        }
-    if int(proc.exitcode or 0) != 0:
-        return {
-            "success": False,
-            "env_blocked": True,
-            "reason": "subprocess_nonzero_exit",
-            "exitcode": int(proc.exitcode or 0),
-        }
-    if queue.empty():
-        return {
-            "success": False,
-            "env_blocked": True,
-            "reason": "subprocess_completed_without_payload",
-            "exitcode": int(proc.exitcode or 0),
-        }
-    msg = queue.get()
-    if not bool(msg.get("ok", False)):
-        return {
-            "success": False,
-            "env_blocked": True,
-            "reason": "worker_exception",
-            "error": str(msg.get("error", "unknown")),
-            "exitcode": int(proc.exitcode or 0),
-        }
-    return dict(msg.get("payload", {}))
+    if not bool(result_msg.get("ok", False)):
+        worker_payload = _finalize_failure_payload(
+            reason="worker_exception",
+            exitcode=int(proc.exitcode or 0),
+        )
+        worker_payload["error"] = str(result_msg.get("error", "unknown"))
+        return worker_payload
+    return dict(result_msg.get("payload", {}))
 
 
 def _run_imported_fixed_scaffold_runtime_raw_baseline_mode_isolated(
@@ -6696,12 +8687,117 @@ def _run_imported_fixed_scaffold_noisy_replay_mode_isolated(
 ) -> dict[str, Any]:
     ctx = mp.get_context("spawn")
     queue = ctx.Queue()
-    proc = ctx.Process(target=_imported_fixed_scaffold_noisy_replay_worker_entry, args=(queue, kwargs), daemon=False)
+    proc = ctx.Process(
+        target=_imported_fixed_scaffold_noisy_replay_worker_entry,
+        args=(queue, kwargs),
+        daemon=False,
+    )
     proc.start()
-    proc.join(timeout=float(timeout_s))
+
+    def _drain_messages() -> tuple[dict[str, Any] | None, dict[str, Any] | None]:
+        result_msg: dict[str, Any] | None = None
+        latest_progress: dict[str, Any] | None = None
+        while True:
+            try:
+                msg = queue.get_nowait()
+            except pyqueue.Empty:
+                break
+            kind = str(msg.get("kind", "result"))
+            if kind == "progress":
+                payload = msg.get("payload", {})
+                if isinstance(payload, Mapping):
+                    latest_progress = dict(payload)
+            else:
+                result_msg = dict(msg)
+        return result_msg, latest_progress
+
+    started_at = time.monotonic()
+    deadline = started_at + float(timeout_s)
+    result_msg: dict[str, Any] | None = None
+    latest_progress: dict[str, Any] | None = None
+    latest_partial_payload: dict[str, Any] | None = None
+
+    def _finalize_failure_payload(
+        *,
+        reason: str,
+        exitcode: int | None,
+    ) -> dict[str, Any]:
+        had_partial_payload = latest_partial_payload is not None
+        payload = (
+            dict(latest_partial_payload)
+            if latest_partial_payload is not None
+            else {}
+        )
+        if isinstance(payload.get("optimizer", {}), Mapping):
+            optimizer = dict(payload.get("optimizer", {}))
+            optimizer["stop_reason"] = str(reason)
+            payload["optimizer"] = optimizer
+        payload.update(
+            {
+                "success": False,
+                "env_blocked": True,
+                "reason": str(reason),
+                "exitcode": exitcode,
+                "elapsed_s": float(max(0.0, time.monotonic() - started_at)),
+            }
+        )
+        if had_partial_payload:
+            payload.setdefault("partial", True)
+        if isinstance(latest_progress, Mapping):
+            payload["last_progress_event"] = latest_progress.get("event", None)
+        return payload
+
+    while True:
+        remaining = deadline - time.monotonic()
+        if remaining <= 0.0:
+            break
+        proc.join(timeout=min(0.25, remaining))
+        drained_result, drained_progress = _drain_messages()
+        if drained_progress is not None:
+            latest_progress = dict(drained_progress)
+            partial_payload = drained_progress.get("partial_payload", {})
+            if partial_payload is not None:
+                latest_partial_payload = dict(partial_payload)
+        if drained_result is not None:
+            result_msg = dict(drained_result)
+        if result_msg is not None and not proc.is_alive():
+            break
+        if not proc.is_alive():
+            break
+
+    drained_result, drained_progress = _drain_messages()
+    if drained_progress is not None:
+        latest_progress = dict(drained_progress)
+        partial_payload = drained_progress.get("partial_payload", {})
+        if partial_payload is not None:
+            latest_partial_payload = dict(partial_payload)
+    if drained_result is not None:
+        result_msg = dict(drained_result)
+
+    if result_msg is not None:
+        if proc.is_alive():
+            proc.join(0.25)
+            if proc.is_alive():
+                proc.terminate()
+                proc.join(5.0)
+        if not bool(result_msg.get("ok", False)):
+            worker_payload = _finalize_failure_payload(
+                reason="worker_exception",
+                exitcode=int(proc.exitcode or 0),
+            )
+            worker_payload["error"] = str(result_msg.get("error", "unknown"))
+            return worker_payload
+        return dict(result_msg.get("payload", {}))
+
     if proc.is_alive():
         proc.terminate()
         proc.join(5.0)
+        timeout_payload = _finalize_failure_payload(
+            reason=f"timeout_after_{int(timeout_s)}s",
+            exitcode=proc.exitcode,
+        )
+        if timeout_payload:
+            return timeout_payload
         return {
             "success": False,
             "env_blocked": True,
@@ -6709,29 +8805,52 @@ def _run_imported_fixed_scaffold_noisy_replay_mode_isolated(
             "exitcode": proc.exitcode,
         }
     if int(proc.exitcode or 0) != 0:
+        nonzero_payload = _finalize_failure_payload(
+            reason="subprocess_nonzero_exit",
+            exitcode=int(proc.exitcode or 0),
+        )
+        if nonzero_payload:
+            return nonzero_payload
         return {
             "success": False,
             "env_blocked": True,
             "reason": "subprocess_nonzero_exit",
             "exitcode": int(proc.exitcode or 0),
         }
-    if queue.empty():
+    if result_msg is None:
+        grace_deadline = time.monotonic() + 0.25
+        while time.monotonic() < grace_deadline and result_msg is None:
+            drained_result, drained_progress = _drain_messages()
+            if drained_progress is not None:
+                latest_progress = dict(drained_progress)
+                partial_payload = drained_progress.get("partial_payload", {})
+                if partial_payload is not None:
+                    latest_partial_payload = dict(partial_payload)
+            if drained_result is not None:
+                result_msg = dict(drained_result)
+                break
+            time.sleep(0.01)
+    if result_msg is None:
+        missing_payload = _finalize_failure_payload(
+            reason="subprocess_completed_without_payload",
+            exitcode=int(proc.exitcode or 0),
+        )
+        if missing_payload:
+            return missing_payload
         return {
             "success": False,
             "env_blocked": True,
             "reason": "subprocess_completed_without_payload",
             "exitcode": int(proc.exitcode or 0),
         }
-    msg = queue.get()
-    if not bool(msg.get("ok", False)):
-        return {
-            "success": False,
-            "env_blocked": True,
-            "reason": "worker_exception",
-            "error": str(msg.get("error", "unknown")),
-            "exitcode": int(proc.exitcode or 0),
-        }
-    return dict(msg.get("payload", {}))
+    if not bool(result_msg.get("ok", False)):
+        worker_payload = _finalize_failure_payload(
+            reason="worker_exception",
+            exitcode=int(proc.exitcode or 0),
+        )
+        worker_payload["error"] = str(result_msg.get("error", "unknown"))
+        return worker_payload
+    return dict(result_msg.get("payload", {}))
 
 
 def _run_imported_fixed_scaffold_noise_attribution_mode_isolated(

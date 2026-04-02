@@ -473,3 +473,20 @@ When a user asks to verify that the new noiseless-estimator path is equivalent t
 4. Record parity fields in JSON/PDF (`legacy_parity.*`) and emit the comparison plot if requested.
 
 This is a validation exception to “very light” preference: parity verdicts must use full baseline-matched settings.
+
+## 4i) HH noisy `ΔE` contract (mandatory)
+
+For HH noisy / mitigation runs and reports, the default meaning of
+`|ΔE|` is:
+
+`|ΔE| = |E_exact - E_noisy(with mitigation)|`
+
+Rules:
+
+1. `E_exact` is the exact filtered ground-state energy for the same physics point.
+2. `E_noisy(with mitigation)` is the final noisy energy after all enabled mitigation and suppression steps have been applied.
+3. Do **not** use imported-circuit ideal energy as the default `ΔE` reference.
+4. If the repo also reports noisy-vs-ideal imported-circuit bias, it must be labeled explicitly as something like:
+   - `E_noisy(with mitigation) - E_ideal(imported circuit)`, or
+   - `ΔE_to_ideal`
+5. When both exact-target and ideal-target gaps are present, exact-target `|ΔE|` is the primary metric for rankings, summaries, tables, reports, and user-facing statements.

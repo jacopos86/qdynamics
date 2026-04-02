@@ -171,7 +171,7 @@ def _canonical_shared_raw_group_key(key: RawGroupKey) -> SharedRawGroupKey:
 
 def _observable_spec_mean(
     *,
-    raw_group_pool: "BackendScheduledRawGroupPool",
+    raw_group_pool: "BackendScheduledRawGroupPool | None",
     oracle: Any,
     circuit: Any,
     spec: ObservableSpec,
@@ -193,17 +193,39 @@ def _observable_spec_mean(
             "backend_info": None,
             "term_payloads": [],
         }
-    return raw_group_pool.estimate_observable(
-        oracle=oracle,
-        circuit=circuit,
-        observable=spec.sparse_op,
-        observable_family=str(observable_family),
-        candidate_label=(None if candidate_label is None else str(candidate_label)),
-        position_id=(None if position_id is None else int(position_id)),
-        min_total_shots=int(min_total_shots),
-        min_samples=int(min_samples),
-        state_key=str(state_key),
-    )
+    if raw_group_pool is not None:
+        return raw_group_pool.estimate_observable(
+            oracle=oracle,
+            circuit=circuit,
+            observable=spec.sparse_op,
+            observable_family=str(observable_family),
+            candidate_label=(None if candidate_label is None else str(candidate_label)),
+            position_id=(None if position_id is None else int(position_id)),
+            min_total_shots=int(min_total_shots),
+            min_samples=int(min_samples),
+            state_key=str(state_key),
+        )
+    est = oracle.evaluate(circuit, spec.sparse_op)
+    return {
+        "mean": float(est.mean),
+        "stderr": float(est.stderr),
+        "std": float(est.std),
+        "stdev": float(est.stdev),
+        "n_samples": int(est.n_samples),
+        "aggregate": str(est.aggregate),
+        "backend_info": {
+            "noise_mode": str(getattr(oracle.backend_info, "noise_mode", "unknown")),
+            "estimator_kind": str(getattr(oracle.backend_info, "estimator_kind", "unknown")),
+            "backend_name": getattr(oracle.backend_info, "backend_name", None),
+            "using_fake_backend": bool(getattr(oracle.backend_info, "using_fake_backend", False)),
+            "details": {
+                **dict(getattr(oracle.backend_info, "details", {})),
+                "state_key": str(state_key),
+                "observable_name": str(spec.name),
+            },
+        },
+        "term_payloads": [],
+    }
 
 
 class ExactCheckpointValueCache:
@@ -776,7 +798,7 @@ def _assemble_measured_incremental_candidate_block(
 def estimate_grouped_raw_mclachlan_geometry(
     *,
     oracle: Any,
-    raw_group_pool: BackendScheduledRawGroupPool,
+    raw_group_pool: BackendScheduledRawGroupPool | None,
     layout: Any,
     theta_runtime: np.ndarray | Sequence[float],
     psi_ref: np.ndarray | Sequence[complex],
@@ -857,11 +879,12 @@ def estimate_grouped_raw_mclachlan_geometry(
         "details": {
             **dict(getattr(oracle.backend_info, "details", {})),
             "plan_stats": dict(plan.stats),
-            "raw_group_pool": dict(raw_group_pool.summary()),
             "state_key": str(state_key),
             "observable_count": int(len(observable_estimates)),
         },
     }
+    if raw_group_pool is not None:
+        backend_info["details"]["raw_group_pool"] = dict(raw_group_pool.summary())
     if backend_infos:
         last_backend = dict(backend_infos[-1])
         backend_info = {
@@ -877,7 +900,9 @@ def estimate_grouped_raw_mclachlan_geometry(
         "plan_stats": dict(plan.stats),
         "observable_estimates": observable_estimates,
         "backend_info": backend_info,
-        "raw_group_pool_summary": dict(raw_group_pool.summary()),
+        "raw_group_pool_summary": (
+            {} if raw_group_pool is None else dict(raw_group_pool.summary())
+        ),
         "step_objective_value": float(step_objective_value),
         "state_key": str(state_key),
     }
@@ -886,7 +911,7 @@ def estimate_grouped_raw_mclachlan_geometry(
 def estimate_grouped_raw_mclachlan_incremental_block(
     *,
     oracle: Any,
-    raw_group_pool: Any,
+    raw_group_pool: Any | None,
     baseline_measured: Mapping[str, Any],
     layout: Any,
     theta_runtime: np.ndarray | Sequence[float],
@@ -1010,11 +1035,12 @@ def estimate_grouped_raw_mclachlan_incremental_block(
         "details": {
             **dict(getattr(oracle.backend_info, "details", {})),
             "plan_stats": dict(plan_stats),
-            "raw_group_pool": dict(raw_group_pool.summary()),
             "state_key": str(state_key),
             "observable_count": int(len(observable_estimates)),
         },
     }
+    if raw_group_pool is not None:
+        backend_info["details"]["raw_group_pool"] = dict(raw_group_pool.summary())
     if backend_infos:
         last_backend = dict(backend_infos[-1])
         backend_info = {
@@ -1030,7 +1056,9 @@ def estimate_grouped_raw_mclachlan_incremental_block(
         "plan_stats": plan_stats,
         "observable_estimates": observable_estimates,
         "backend_info": backend_info,
-        "raw_group_pool_summary": dict(raw_group_pool.summary()),
+        "raw_group_pool_summary": (
+            {} if raw_group_pool is None else dict(raw_group_pool.summary())
+        ),
         "state_key": str(state_key),
         "selected_observable_names": list(observable_estimates.keys()),
     }

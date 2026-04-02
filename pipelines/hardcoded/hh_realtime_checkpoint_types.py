@@ -23,6 +23,11 @@ class MeasurementTierConfig:
 @dataclass(frozen=True)
 class RealtimeCheckpointConfig:
     mode: str = "off"
+    oracle_selection_policy: str = "measured_gain_commit_veto"
+    candidate_step_scales: tuple[float, ...] = (1.0,)
+    exact_forecast_guardrail_mode: str = "off"
+    exact_forecast_fidelity_loss_tol: float = 0.0
+    exact_forecast_abs_energy_error_increase_tol: float = 0.0
     miss_threshold: float = 0.05
     gain_ratio_threshold: float = 0.02
     append_margin_abs: float = 1e-6
@@ -189,6 +194,7 @@ class CandidateProbeSummary:
     predicted_noisy_energy_stderr: float | None = None
     predicted_noisy_improvement_abs: float | None = None
     predicted_noisy_improvement_ratio: float | None = None
+    selected_step_scale: float | None = None
 
 
 @dataclass(frozen=True)
@@ -207,6 +213,8 @@ class CheckpointLedgerEntry:
     runtime_parameter_count_before: int
     runtime_parameter_count_after: int
     rate_change_l2: float | None
+    proposed_action_kind: str | None = None
+    proposed_candidate_label: str | None = None
     physical_time: float | None = None
     motion_regime: str | None = None
     motion_direction_cosine: float | None = None
@@ -231,6 +239,18 @@ class CheckpointLedgerEntry:
     oracle_decision_used: bool = False
     oracle_attempted: bool = False
     oracle_estimate_kind: str | None = None
+    selection_metric: str | None = None
+    decision_override_reason: str | None = None
+    exact_forecast_error: str | None = None
+    selected_step_scale: float | None = None
+    forecast_stay_fidelity_exact_next: float | None = None
+    forecast_selected_fidelity_exact_next: float | None = None
+    forecast_stay_abs_energy_total_error_next: float | None = None
+    forecast_selected_abs_energy_total_error_next: float | None = None
+    forecast_stay_abs_staggered_error_next: float | None = None
+    forecast_selected_abs_staggered_error_next: float | None = None
+    forecast_stay_abs_doublon_error_next: float | None = None
+    forecast_selected_abs_doublon_error_next: float | None = None
     predicted_displacement: float | None = None
     temporal_refresh_pressure: str | None = None
     selected_noisy_energy_mean: float | None = None

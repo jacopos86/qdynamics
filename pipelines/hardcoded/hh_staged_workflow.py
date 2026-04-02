@@ -46,6 +46,7 @@ from pipelines.hardcoded.hh_realtime_checkpoint_controller import (
     RealtimeCheckpointController,
 )
 from pipelines.hardcoded.hh_realtime_checkpoint_types import (
+    MeasurementTierConfig,
     RealtimeCheckpointConfig,
     dataclass_to_payload,
     validate_scaffold_acceptance,
@@ -335,6 +336,33 @@ def _parse_drive_custom_weights(raw: str | None) -> list[float] | None:
     else:
         vals = [float(x) for x in text.split(",") if x.strip()]
     return [float(x) for x in vals]
+
+
+def _parse_checkpoint_controller_step_scales(
+    raw: str | Sequence[float] | None,
+) -> tuple[float, ...]:
+    if raw is None:
+        return (1.0,)
+    if isinstance(raw, str):
+        vals = [float(x) for x in raw.split(",") if x.strip()]
+    else:
+        vals = [float(x) for x in raw]
+    out: list[float] = []
+    seen: set[float] = set()
+    for value in vals:
+        scale = float(value)
+        if (not math.isfinite(scale)) or scale <= 0.0:
+            raise ValueError(
+                f"Checkpoint-controller candidate step scales must be finite and positive; got {value!r}."
+            )
+        rounded = round(scale, 12)
+        if rounded in seen:
+            continue
+        seen.add(rounded)
+        out.append(scale)
+    if not out:
+        raise ValueError("At least one checkpoint-controller candidate step scale is required.")
+    return tuple(out)
 
 
 def _half_filled_particles(L: int) -> tuple[int, int]:
@@ -887,6 +915,106 @@ def resolve_staged_hh_config(args: Any) -> StagedHHConfig:
     )
     realtime_checkpoint = RealtimeCheckpointConfig(
         mode=str(getattr(args, "checkpoint_controller_mode", "off")),
+        oracle_selection_policy=str(
+            getattr(
+                args,
+                "checkpoint_controller_oracle_selection_policy",
+                "measured_gain_commit_veto",
+            )
+        ),
+        candidate_step_scales=_parse_checkpoint_controller_step_scales(
+            getattr(args, "checkpoint_controller_candidate_step_scales", "1.0")
+        ),
+        exact_forecast_guardrail_mode=str(
+            getattr(args, "checkpoint_controller_exact_forecast_guardrail_mode", "off")
+        ),
+        exact_forecast_fidelity_loss_tol=float(
+            getattr(args, "checkpoint_controller_exact_forecast_fidelity_loss_tol", 0.0)
+        ),
+        exact_forecast_abs_energy_error_increase_tol=float(
+            getattr(
+                args,
+                "checkpoint_controller_exact_forecast_abs_energy_error_increase_tol",
+                0.0,
+            )
+        ),
+        miss_threshold=float(getattr(args, "checkpoint_controller_miss_threshold")),
+        gain_ratio_threshold=float(getattr(args, "checkpoint_controller_gain_ratio_threshold")),
+        append_margin_abs=float(getattr(args, "checkpoint_controller_append_margin_abs")),
+        shortlist_size=int(getattr(args, "checkpoint_controller_shortlist_size")),
+        shortlist_fraction=float(getattr(args, "checkpoint_controller_shortlist_fraction")),
+        active_window_size=int(getattr(args, "checkpoint_controller_active_window_size")),
+        max_probe_positions=int(getattr(args, "checkpoint_controller_max_probe_positions")),
+        regularization_lambda=float(getattr(args, "checkpoint_controller_regularization_lambda")),
+        candidate_regularization_lambda=float(
+            getattr(args, "checkpoint_controller_candidate_regularization_lambda")
+        ),
+        pinv_rcond=float(getattr(args, "checkpoint_controller_pinv_rcond")),
+        compile_penalty_weight=float(getattr(args, "checkpoint_controller_compile_penalty_weight")),
+        measurement_penalty_weight=float(
+            getattr(args, "checkpoint_controller_measurement_penalty_weight")
+        ),
+        directional_penalty_weight=float(
+            getattr(args, "checkpoint_controller_directional_penalty_weight")
+        ),
+        motion_calm_direction_cosine_threshold=float(
+            getattr(args, "checkpoint_controller_motion_calm_direction_cosine_threshold")
+        ),
+        motion_calm_rate_change_ratio_threshold=float(
+            getattr(args, "checkpoint_controller_motion_calm_rate_change_ratio_threshold")
+        ),
+        motion_direction_reversal_cosine_threshold=float(
+            getattr(args, "checkpoint_controller_motion_direction_reversal_cosine_threshold")
+        ),
+        motion_curvature_flip_cosine_threshold=float(
+            getattr(args, "checkpoint_controller_motion_curvature_flip_cosine_threshold")
+        ),
+        motion_acceleration_l2_threshold=float(
+            getattr(args, "checkpoint_controller_motion_acceleration_l2_threshold")
+        ),
+        motion_kink_rate_change_ratio_threshold=float(
+            getattr(args, "checkpoint_controller_motion_kink_rate_change_ratio_threshold")
+        ),
+        motion_calm_shortlist_scale=float(
+            getattr(args, "checkpoint_controller_motion_calm_shortlist_scale")
+        ),
+        motion_kink_shortlist_bonus=int(
+            getattr(args, "checkpoint_controller_motion_kink_shortlist_bonus")
+        ),
+        motion_calm_oracle_budget_scale=float(
+            getattr(args, "checkpoint_controller_motion_calm_oracle_budget_scale")
+        ),
+        motion_kink_oracle_budget_scale=float(
+            getattr(args, "checkpoint_controller_motion_kink_oracle_budget_scale")
+        ),
+        position_jump_tie_margin_abs=float(
+            getattr(args, "checkpoint_controller_position_jump_tie_margin_abs")
+        ),
+        reconstruction_tol=float(getattr(args, "checkpoint_controller_reconstruction_tol")),
+        grouping_mode=str(getattr(args, "checkpoint_controller_grouping_mode")),
+        tiers=(
+            MeasurementTierConfig(
+                tier_name="scout",
+                exact_mode_behavior="proxy_only",
+                oracle_shots=getattr(args, "checkpoint_controller_scout_shots", None),
+                oracle_repeats=getattr(args, "checkpoint_controller_scout_repeats", None),
+                oracle_aggregate="mean",
+            ),
+            MeasurementTierConfig(
+                tier_name="confirm",
+                exact_mode_behavior="incremental_exact",
+                oracle_shots=getattr(args, "checkpoint_controller_confirm_shots", None),
+                oracle_repeats=getattr(args, "checkpoint_controller_confirm_repeats", None),
+                oracle_aggregate="mean",
+            ),
+            MeasurementTierConfig(
+                tier_name="commit",
+                exact_mode_behavior="commit_exact",
+                oracle_shots=getattr(args, "checkpoint_controller_commit_shots", None),
+                oracle_repeats=getattr(args, "checkpoint_controller_commit_repeats", None),
+                oracle_aggregate="mean",
+            ),
+        ),
     )
     return StagedHHConfig(
         physics=physics,

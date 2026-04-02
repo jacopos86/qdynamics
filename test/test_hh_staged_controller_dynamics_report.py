@@ -11,6 +11,8 @@ if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 
 from pipelines.hardcoded.hh_staged_controller_dynamics_report import (
+    _interp_series,
+    _set_fidelity_ylim_top_one,
     load_workflow_report_entry,
     write_staged_controller_dynamics_pdf,
 )
@@ -46,6 +48,8 @@ def _write_workflow_artifact(
                 "time": 0.0,
                 "physical_time": 0.0,
                 "fidelity_exact": 1.0,
+                "energy_total_controller": 0.82,
+                "energy_total_exact": 0.80,
                 "abs_energy_total_error": 2.0e-2,
                 "rho_miss": 0.9,
                 "motion_kink_score": 0.1,
@@ -61,6 +65,8 @@ def _write_workflow_artifact(
                 "time": 0.1,
                 "physical_time": 0.1,
                 "fidelity_exact": 0.99,
+                "energy_total_controller": 0.81,
+                "energy_total_exact": 0.795,
                 "abs_energy_total_error": 1.5e-2,
                 "rho_miss": 0.4,
                 "motion_kink_score": 0.3,
@@ -276,6 +282,8 @@ def test_load_workflow_report_entry_round_trip(tmp_path: Path) -> None:
     assert entry.baseline.times.tolist() == [0.0, 0.05, 0.1]
     assert entry.noisy.energy_total_delta.tolist() == [-0.05, -0.04, -0.03]
     assert entry.controller.append_count == 1
+    assert entry.controller.energy_total_controller.tolist() == pytest.approx([0.82, 0.81])
+    assert entry.controller.energy_total_exact.tolist() == pytest.approx([0.8, 0.795])
     assert entry.controller.oracle_cache_hits == 3
     assert entry.controller.geometry_memo_hits == 7
 
@@ -299,6 +307,27 @@ def test_load_workflow_report_entry_env_blocked_uses_compile_log_summary(tmp_pat
     assert entry.controller.compile_summary.mean_two_qubit_count == pytest.approx(118.0)
 
 
+"plot helpers should keep fidelity top at one and align exact overlays"
+def test_plot_helpers_interpolate_and_cap_fidelity_axis() -> None:
+    matplotlib = pytest.importorskip("matplotlib")
+    matplotlib.use("Agg")
+    plt = pytest.importorskip("matplotlib.pyplot")
+
+    interp = _interp_series(
+        source_times=[0.0, 1.0, 2.0],
+        source_values=[1.0, 0.8, 0.6],
+        target_times=[0.5, 1.5],
+    )
+    assert interp.tolist() == pytest.approx([0.9, 0.7])
+
+    fig, ax = plt.subplots()
+    _set_fidelity_ylim_top_one(ax, [0.997, 0.992, 0.989], [1.0])
+    ymin, ymax = ax.get_ylim()
+    assert ymax == pytest.approx(1.0)
+    assert 0.0 <= ymin < 0.99
+    plt.close(fig)
+
+
 "pdf = write_staged_controller_dynamics_pdf(entries)"
 def test_write_staged_controller_dynamics_pdf(tmp_path: Path) -> None:
     on_path = _write_workflow_artifact(
@@ -313,11 +342,22 @@ def test_write_staged_controller_dynamics_pdf(tmp_path: Path) -> None:
         controller_status="disabled",
         include_controller_trajectory=False,
     )
+    dense_path = _write_workflow_artifact(
+        tmp_path / "run_dense" / "workflow.json",
+        controller_mode="off",
+        controller_status="disabled",
+        include_controller_trajectory=False,
+    )
+    dense_payload = json.loads(dense_path.read_text())
+    dense_payload["pipeline"] = "hh_staged_noiseless"
+    dense_payload["settings"]["dynamics"]["num_times"] = 11
+    dense_path.write_text(json.dumps(dense_payload), encoding="utf-8")
     out_pdf = tmp_path / "driven_controller_report.pdf"
 
     result = write_staged_controller_dynamics_pdf(
         input_jsons=[on_path, off_path],
         output_pdf=out_pdf,
+        dense_overlay_json=dense_path,
         run_command="pytest staged-controller-report",
     )
 

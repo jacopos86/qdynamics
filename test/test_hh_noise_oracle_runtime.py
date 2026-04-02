@@ -31,6 +31,7 @@ from pipelines.exact_bench.noise_oracle_runtime import (
     normalize_runtime_session_policy_config,
     normalize_sampler_raw_runtime_config,
     normalize_symmetry_mitigation_config,
+    preflight_backend_scheduled_fake_backend_environment,
 )
 from pipelines.hardcoded.adapt_circuit_execution import (
     bind_parameterized_ansatz_circuit,
@@ -299,25 +300,71 @@ def test_backend_scheduled_local_gate_twirling_records_details() -> None:
     assert int(details.get("twirled_metrics", {}).get("compiled_two_qubit_count", 0)) >= 1
 
 
-def test_backend_scheduled_rejects_local_dd_with_gate_twirling() -> None:
+def test_backend_scheduled_local_dd_with_gate_twirling_records_details() -> None:
     pytest.importorskip("mthree")
-    with pytest.raises(ValueError, match="not combinable with local gate twirling"):
-        ExpectationOracle(
-            OracleConfig(
-                noise_mode="backend_scheduled",
-                shots=64,
-                seed=7,
-                oracle_repeats=1,
-                backend_name="FakeGuadalupeV2",
-                use_fake_backend=True,
-                mitigation={
-                    "mode": "readout",
-                    "local_readout_strategy": "mthree",
-                    "local_gate_twirling": True,
-                    "dd_sequence": "XpXm",
-                },
-            )
+    qc = QuantumCircuit(2)
+    qc.h(0)
+    qc.cx(0, 1)
+    obs = SparsePauliOp.from_list([("ZZ", 1.0)])
+    with ExpectationOracle(
+        OracleConfig(
+            noise_mode="backend_scheduled",
+            shots=64,
+            seed=7,
+            oracle_repeats=1,
+            backend_name="FakeGuadalupeV2",
+            use_fake_backend=True,
+            mitigation={
+                "mode": "readout",
+                "local_readout_strategy": "mthree",
+                "local_gate_twirling": True,
+                "dd_sequence": "XpXm",
+            },
         )
+    ) as oracle:
+        est = oracle.evaluate(qc, obs)
+        twirling = dict(oracle.backend_info.details.get("local_gate_twirling", {}))
+        dd = dict(oracle.backend_info.details.get("local_dynamical_decoupling", {}))
+
+    assert np.isfinite(est.mean)
+    assert twirling.get("requested") is True
+    assert twirling.get("applied") is True
+    assert dd.get("requested") is True
+    assert dd.get("sequence") == "XPXM"
+
+
+def test_backend_scheduled_local_dd_with_gate_twirling_records_details_without_readout() -> None:
+    qc = QuantumCircuit(2)
+    qc.h(0)
+    qc.cx(0, 1)
+    obs = SparsePauliOp.from_list([("ZZ", 1.0)])
+    with ExpectationOracle(
+        OracleConfig(
+            noise_mode="backend_scheduled",
+            shots=64,
+            seed=7,
+            oracle_repeats=1,
+            backend_name="FakeGuadalupeV2",
+            use_fake_backend=True,
+            mitigation={
+                "mode": "none",
+                "local_gate_twirling": True,
+                "dd_sequence": "XpXm",
+            },
+        )
+    ) as oracle:
+        est = oracle.evaluate(qc, obs)
+        twirling = dict(oracle.backend_info.details.get("local_gate_twirling", {}))
+        dd = dict(oracle.backend_info.details.get("local_dynamical_decoupling", {}))
+        readout = dict(oracle.backend_info.details.get("readout_mitigation", {}))
+
+    assert np.isfinite(est.mean)
+    assert twirling.get("requested") is True
+    assert twirling.get("applied") is True
+    assert dd.get("requested") is True
+    assert dd.get("sequence") == "XPXM"
+    assert readout.get("mode") == "none"
+    assert readout.get("applied") is False
 
 
 def test_backend_scheduled_rejects_unsupported_local_dd_sequence() -> None:
@@ -1089,6 +1136,58 @@ def test_sampler_fallback_deterministic_with_fixed_seed(monkeypatch: pytest.Monk
     assert ea.mean == pytest.approx(eb.mean)
 
 
+def test_backend_scheduled_preflight_detects_openmp_shm_abort(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    nor._BACKEND_SCHEDULED_PREFLIGHT_OK_CACHE.clear()
+
+    def _fake_run(*args, **kwargs):
+        return SimpleNamespace(
+            returncode=134,
+            stdout="",
+            stderr="OMP: Error #178: Function Can't open SHM2 failed:\nOMP: System error #2: No such file or directory\n",
+        )
+
+    monkeypatch.setattr(nor.subprocess, "run", _fake_run)
+    cfg = OracleConfig(
+        noise_mode="backend_scheduled",
+        shots=128,
+        seed=7,
+        backend_name="FakeMarrakesh",
+        use_fake_backend=True,
+    )
+
+    with pytest.raises(RuntimeError, match="backend_scheduled preflight failed due to OpenMP shared-memory restrictions"):
+        preflight_backend_scheduled_fake_backend_environment(cfg)
+
+
+def test_backend_scheduled_preflight_caches_success(monkeypatch: pytest.MonkeyPatch) -> None:
+    nor._BACKEND_SCHEDULED_PREFLIGHT_OK_CACHE.clear()
+    calls = {"count": 0}
+
+    def _fake_run(*args, **kwargs):
+        calls["count"] += 1
+        return SimpleNamespace(
+            returncode=0,
+            stdout="BACKEND_SCHEDULED_PREFLIGHT_OK 2\n",
+            stderr="",
+        )
+
+    monkeypatch.setattr(nor.subprocess, "run", _fake_run)
+    cfg = OracleConfig(
+        noise_mode="backend_scheduled",
+        shots=128,
+        seed=7,
+        backend_name="FakeMarrakesh",
+        use_fake_backend=True,
+    )
+
+    preflight_backend_scheduled_fake_backend_environment(cfg)
+    preflight_backend_scheduled_fake_backend_environment(cfg)
+
+    assert calls["count"] == 1
+
+
 def test_runtime_profile_main_twirled_readout_v1_defaults() -> None:
     cfg = normalize_runtime_estimator_profile_config("main_twirled_readout_v1")
 
@@ -1518,6 +1617,52 @@ def test_raw_measurement_oracle_compile_cache_reused_across_theta_changes(
             theta_runtime=np.asarray([0.2], dtype=float),
             observable=observable,
             observable_family="unit_test",
+        )
+
+    assert compile_calls["count"] == 1
+
+
+def test_expectation_oracle_parameterized_compile_cache_reused_across_theta_changes(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    term = AnsatzTerm(
+        label="op_x",
+        polynomial=PauliPolynomial("JW", [PauliTerm(1, ps="x", pc=1.0)]),
+    )
+    layout = build_parameter_layout([term], ignore_identity=True, coefficient_tolerance=1e-12, sort_terms=True)
+    plan = build_parameterized_ansatz_plan(
+        layout,
+        nq=1,
+        ref_state=np.asarray([1.0 + 0.0j, 0.0 + 0.0j], dtype=complex),
+    )
+    observable = SparsePauliOp.from_list([("Z", 1.0)])
+    compile_calls = {"count": 0}
+    orig_compile = nor.compile_circuit_for_local_backend
+
+    def _counting_compile(*args, **kwargs):
+        compile_calls["count"] += 1
+        return orig_compile(*args, **kwargs)
+
+    monkeypatch.setattr(nor, "compile_circuit_for_local_backend", _counting_compile)
+    with ExpectationOracle(
+        OracleConfig(
+            noise_mode="backend_scheduled",
+            shots=32,
+            seed=7,
+            oracle_repeats=1,
+            backend_name="FakeGuadalupeV2",
+            use_fake_backend=True,
+        )
+    ) as oracle:
+        _ = oracle.evaluate_parameterized(
+            plan=plan,
+            theta_runtime=np.asarray([0.0], dtype=float),
+            observable=observable,
+        )
+        _ = oracle.evaluate_parameterized(
+            plan=plan,
+            theta_runtime=np.asarray([0.2], dtype=float),
+            observable=observable,
         )
 
     assert compile_calls["count"] == 1

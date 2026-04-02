@@ -1,6 +1,6 @@
 # HH VQE Replay From ADAPT Family
 
-- generated_utc: 2026-03-25T17:38:04Z
+- generated_utc: 2026-03-25T21:48:23Z
 - tag: hh_staged_L2_static_t1_U4_dv0_w1_g0.5_nph1_e1a42cefb3_replay
 - adapt_input_json: /Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/artifacts/json/hh_staged_L2_static_t1_U4_dv0_w1_g0.5_nph1_e1a42cefb3_adapt_handoff.json
 
@@ -13,9 +13,9 @@
 
 ## Metrics
 - E_exact_sector: 0.15866790412572634
-- E_best: 0.16757719624529513
-- abs_delta_e: 0.008909292119568785
-- relative_error_abs: 0.0561505628290721
+- E_best: 0.16884759849552933
+- abs_delta_e: 0.010179694369802983
+- relative_error_abs: 0.06415723725534768
 - replay_adapt_depth: 78
 - replay_logical_npar: 78
 - replay_runtime_npar_base: 78
@@ -26,10 +26,10 @@
 - handoff_state_kind: prepared_state
 - provenance_source: explicit
 - replay_contract_version: 2
-- gate_pass_1e2: True
+- gate_pass_1e2: False
 - nfev: 1779
 - nit: 889
-- runtime_s: 80.07312291767448
+- runtime_s: 82.94283820874989
 - stop_reason: converged
 
 ## Artifacts

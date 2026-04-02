@@ -219,6 +219,31 @@ def _screen_budget(runtime_parameter_count: int, oracle_repeats: int) -> dict[st
     }
 
 
+def _sequence_not_text(value: Any) -> bool:
+    return isinstance(value, Sequence) and not isinstance(value, (str, bytes, bytearray))
+
+
+def _extract_recovery_source_payload(payload: Mapping[str, Any]) -> tuple[dict[str, Any], str]:
+    if isinstance(payload, Mapping) and (
+        "objective_trace" in payload or "runtime_job_ids" in payload
+    ):
+        return dict(payload), "direct_recovery_payload"
+    nested = payload.get("fixed_scaffold_noisy_replay", {}) if isinstance(payload, Mapping) else {}
+    if isinstance(nested, Mapping) and (
+        "objective_trace" in nested or "runtime_job_ids" in nested
+    ):
+        return dict(nested), "staged_fixed_scaffold_noisy_replay"
+    return {}, "missing"
+
+
+def _finite_float_or_none(value: Any) -> float | None:
+    try:
+        numeric = float(value)
+    except Exception:
+        return None
+    return numeric if np.isfinite(numeric) else None
+
+
 def reconstruct_fixed_scaffold_runtime_recovery(
     *,
     artifact_json: str | Path,
@@ -230,17 +255,73 @@ def reconstruct_fixed_scaffold_runtime_recovery(
     payload = _load_json(artifact_json)
     objective_trace: list[dict[str, Any]] = []
     recovery_granularity = "objective_call"
-    source_payload: dict[str, Any] | None = None
+    recovery_source_payload: dict[str, Any] | None = None
+    recovery_source_kind = "missing"
+    explicit_runtime_job_ids_provided = any(
+        str(job_id).strip()
+        for job_id in (runtime_job_ids or [])
+    )
+    runtime_job_id_list = [
+        str(job_id)
+        for job_id in (runtime_job_ids or [])
+        if str(job_id).strip()
+    ]
     if recovery_source_json is not None and Path(recovery_source_json).exists():
-        source_payload = _load_json(recovery_source_json)
-        src_trace = source_payload.get("objective_trace", []) if isinstance(source_payload, Mapping) else []
-        if isinstance(src_trace, Sequence):
+        recovery_source_payload, recovery_source_kind = _extract_recovery_source_payload(
+            _load_json(recovery_source_json)
+        )
+        src_trace = recovery_source_payload.get("objective_trace", [])
+        if _sequence_not_text(src_trace):
             objective_trace = [dict(row) for row in src_trace if isinstance(row, Mapping)]
-    if not objective_trace and runtime_job_ids:
+        if not runtime_job_id_list:
+            src_runtime_job_ids = recovery_source_payload.get("runtime_job_ids", [])
+            if _sequence_not_text(src_runtime_job_ids):
+                runtime_job_id_list = [
+                    str(job_id)
+                    for job_id in src_runtime_job_ids
+                    if str(job_id).strip()
+                ]
+    if explicit_runtime_job_ids_provided and objective_trace:
+        merged_trace: list[dict[str, Any]] = []
+        explicit_job_cursor = 0
+        for idx, row in enumerate(objective_trace):
+            merged_row = dict(row)
+            source_runtime_jobs = (
+                row.get("runtime_jobs", [])
+                if isinstance(row, Mapping)
+                else []
+            )
+            group_size = (
+                len(source_runtime_jobs)
+                if _sequence_not_text(source_runtime_jobs) and len(source_runtime_jobs) > 0
+                else 1
+            )
+            row_job_ids = runtime_job_id_list[explicit_job_cursor : explicit_job_cursor + int(group_size)]
+            explicit_job_cursor += len(row_job_ids)
+            merged_row["_explicit_runtime_job_override"] = bool(row_job_ids)
+            merged_row["runtime_jobs"] = [
+                {"job_id": str(job_id)}
+                for job_id in row_job_ids
+            ]
+            merged_trace.append(merged_row)
+        for idx in range(explicit_job_cursor, len(runtime_job_id_list)):
+            merged_trace.append(
+                {
+                    "trace_index": int(len(merged_trace) + 1),
+                    "call_index": None,
+                    "status": "pending",
+                    "theta_runtime": None,
+                    "theta_logical": None,
+                    "_explicit_runtime_job_override": True,
+                    "runtime_jobs": [{"job_id": str(runtime_job_id_list[idx])}],
+                }
+            )
+        objective_trace = merged_trace
+    if not objective_trace and runtime_job_id_list:
         recovery_granularity = "runtime_job"
         refreshed = [
             asdict(_fetch_runtime_job_record(str(job_id), require_result=True))
-            for job_id in runtime_job_ids
+            for job_id in runtime_job_id_list
             if str(job_id).strip()
         ]
         refreshed.sort(key=lambda rec: str(rec.get("created_utc", "")))
@@ -268,6 +349,7 @@ def reconstruct_fixed_scaffold_runtime_recovery(
         objective_trace,
         key=lambda item: int(item.get("trace_index", item.get("call_index", 0) or 0)),
     ):
+        explicit_job_override = bool(row.get("_explicit_runtime_job_override", False))
         runtime_jobs = row.get("runtime_jobs", []) if isinstance(row, Mapping) else []
         refreshed_jobs: list[dict[str, Any]] = []
         values: list[float] = []
@@ -289,12 +371,75 @@ def reconstruct_fixed_scaffold_runtime_recovery(
             else:
                 runtime_jobs_failed += 1
         agg = _aggregate_values(values)
-        status = "completed" if int(agg["n_samples"]) > 0 else str(row.get("status", "pending"))
+        source_status_raw = row.get("status", None)
+        source_status = (
+            str(source_status_raw).lower()
+            if source_status_raw not in {None, ""}
+            else ""
+        )
+        source_energy = _finite_float_or_none(row.get("energy_noisy_mean", None))
+        source_stderr = _finite_float_or_none(row.get("energy_noisy_stderr", None))
+        source_n_samples = 0
+        try:
+            source_n_samples = int(row.get("n_samples", 1) or 1)
+        except Exception:
+            source_n_samples = 1
+        if source_n_samples < 1:
+            source_n_samples = 1
+        source_raw_values = row.get("raw_values", []) if isinstance(row, Mapping) else []
+        source_raw_values_list = [
+            float(x)
+            for x in source_raw_values
+            if _finite_float_or_none(x) is not None
+        ] if _sequence_not_text(source_raw_values) else []
+
+        status = "completed" if int(agg["n_samples"]) > 0 else str(source_status or "pending")
+        if int(agg["n_samples"]) == 0 and source_energy is not None:
+            if (
+                source_status == "failed"
+                or source_status == "pending"
+                or source_status.startswith("partial")
+            ):
+                status = source_status
+            else:
+                status = "completed"
+        if explicit_job_override and refreshed_jobs and int(agg["n_samples"]) == 0:
+            if any(
+                str(rec.get("status", "")).upper()
+                in {"QUEUED", "RUNNING", "INITIALIZING", "VALIDATING"}
+                for rec in refreshed_jobs
+            ):
+                status = "partial_pending"
+            elif any(
+                rec.get("error", None)
+                or str(rec.get("status", "")).upper() in {"FAILED", "CANCELLED", "ERROR"}
+                for rec in refreshed_jobs
+            ):
+                status = "failed"
+            else:
+                status = str(source_status or "pending")
         if status != "completed" and refreshed_jobs:
             if any(str(rec.get("status", "")).upper() in {"QUEUED", "RUNNING", "INITIALIZING", "VALIDATING"} for rec in refreshed_jobs):
                 status = "partial_pending"
             elif any(rec.get("error", None) for rec in refreshed_jobs):
                 status = "failed"
+        energy_noisy_mean = agg["mean"]
+        energy_noisy_stderr = agg["stderr"]
+        sample_count = int(agg["n_samples"])
+        raw_values = list(agg["raw_values"])
+        if sample_count == 0 and source_energy is not None and not explicit_job_override:
+            energy_noisy_mean = float(source_energy)
+            energy_noisy_stderr = (
+                float(source_stderr)
+                if source_stderr is not None
+                else 0.0
+            )
+            sample_count = int(source_n_samples)
+            raw_values = (
+                list(source_raw_values_list)
+                if source_raw_values_list
+                else [float(source_energy)]
+            )
         refreshed_row = {
             "trace_index": int(row.get("trace_index", row.get("call_index", len(refreshed_rows) + 1) or len(refreshed_rows) + 1)),
             "call_index": (
@@ -307,10 +452,10 @@ def reconstruct_fixed_scaffold_runtime_recovery(
             "theta_logical": row.get("theta_logical", None),
             "elapsed_s": row.get("elapsed_s", None),
             "runtime_jobs": refreshed_jobs,
-            "energy_noisy_mean": agg["mean"],
-            "energy_noisy_stderr": agg["stderr"],
-            "n_samples": int(agg["n_samples"]),
-            "raw_values": list(agg["raw_values"]),
+            "energy_noisy_mean": energy_noisy_mean,
+            "energy_noisy_stderr": energy_noisy_stderr,
+            "n_samples": int(sample_count),
+            "raw_values": list(raw_values),
         }
         refreshed_rows.append(refreshed_row)
         if refreshed_row["energy_noisy_mean"] is None:
@@ -340,7 +485,7 @@ def reconstruct_fixed_scaffold_runtime_recovery(
         "pipeline": "hh_fixed_scaffold_runtime_recovery_v1",
         "artifact_json": str(artifact_ref),
         "recovery_source_json": _repo_relative_str(recovery_source_json),
-        "reconstructed_from_runtime_jobs": True,
+        "reconstructed_from_runtime_jobs": bool(runtime_jobs_total > 0),
         "recovery_granularity": str(recovery_granularity),
         "success": True,
         "partial": True,
@@ -352,22 +497,46 @@ def reconstruct_fixed_scaffold_runtime_recovery(
             "trace_rows_pending": int(sum(1 for row in refreshed_rows if str(row.get("status", "")).startswith("partial") or str(row.get("status", "")) == "pending")),
             "trace_rows_failed": int(sum(1 for row in refreshed_rows if str(row.get("status", "")) == "failed")),
             "objective_calls_total": (
-                int(len(refreshed_rows))
+                int(sum(1 for row in refreshed_rows if row.get("call_index", None) is not None))
                 if str(recovery_granularity) == "objective_call"
                 else None
             ),
             "objective_calls_completed": (
-                int(sum(1 for row in refreshed_rows if row.get("energy_noisy_mean") is not None))
+                int(
+                    sum(
+                        1
+                        for row in refreshed_rows
+                        if row.get("call_index", None) is not None
+                        and row.get("energy_noisy_mean") is not None
+                    )
+                )
                 if str(recovery_granularity) == "objective_call"
                 else None
             ),
             "objective_calls_pending": (
-                int(sum(1 for row in refreshed_rows if str(row.get("status", "")).startswith("partial") or str(row.get("status", "")) == "pending"))
+                int(
+                    sum(
+                        1
+                        for row in refreshed_rows
+                        if row.get("call_index", None) is not None
+                        and (
+                            str(row.get("status", "")).startswith("partial")
+                            or str(row.get("status", "")) == "pending"
+                        )
+                    )
+                )
                 if str(recovery_granularity) == "objective_call"
                 else None
             ),
             "objective_calls_failed": (
-                int(sum(1 for row in refreshed_rows if str(row.get("status", "")) == "failed"))
+                int(
+                    sum(
+                        1
+                        for row in refreshed_rows
+                        if row.get("call_index", None) is not None
+                        and str(row.get("status", "")) == "failed"
+                    )
+                )
                 if str(recovery_granularity) == "objective_call"
                 else None
             ),
@@ -391,6 +560,14 @@ def reconstruct_fixed_scaffold_runtime_recovery(
             ),
         ],
     }
+    if str(recovery_source_kind) == "staged_fixed_scaffold_noisy_replay":
+        result["notes"].append(
+            "Recovered from fixed_scaffold_noisy_replay embedded in staged workflow output."
+        )
+    if bool(explicit_runtime_job_ids_provided):
+        result["notes"].append(
+            "Explicit runtime_job_ids took precedence over any embedded recovery-source job ids or objective trace."
+        )
     if output_json is not None:
         _write_json(output_json, result)
     return result

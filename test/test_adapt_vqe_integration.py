@@ -2280,6 +2280,8 @@ class TestHHPhase3Continuation:
                 nq = int(getattr(plan, "nq", 6))
                 repeat_count = int(getattr(self.config, "oracle_repeats", 1))
                 is_symmetry_diag = str(observable_family) == "adapt_phase3_oracle_symmetry_diagnostic"
+                objective_stage = tags.get("objective_stage", None)
+                is_inner_objective = str(observable_family) == "adapt_phase3_oracle_inner_objective"
                 if is_symmetry_diag:
                     self.diagnostic_calls.append((str(label), str(probe_sign)))
                     if raise_on_raw_measure:
@@ -2305,6 +2307,35 @@ class TestHHPhase3Continuation:
                         for repeat_idx in range(int(repeat_count))
                     ]
                     estimate_mean = 1.0
+                    compile_signatures = {str(basis_label): {"compiled_depth": 1}}
+                elif is_inner_objective:
+                    self.calls.append((str(objective_stage or "objective"), "inner"))
+                    if raise_on_raw_measure:
+                        raise RuntimeError("synthetic raw oracle failure")
+                    basis_label = "Z"
+                    counts = {"0": int(shots)}
+                    records = [
+                        {
+                            "evaluation_id": f"eval-inner-{objective_stage}-{repeat_idx}",
+                            "observable_family": str(observable_family),
+                            "basis_label": str(basis_label),
+                            "num_qubits": 1,
+                            "measured_logical_qubits": [0],
+                            "repeat_index": int(repeat_idx),
+                            "counts": dict(counts),
+                            "shots_completed": int(shots),
+                            "semantic_tags": dict(tags),
+                            "transport": str(self.transport),
+                            "compile_signature": {"compiled_depth": 1},
+                        }
+                        for repeat_idx in range(int(repeat_count))
+                    ]
+                    estimate_mean = float(
+                        objective_lookup.get(
+                            str(objective_stage),
+                            objective_mean if objective_mean is not None else 0.0,
+                        )
+                    )
                     compile_signatures = {str(basis_label): {"compiled_depth": 1}}
                 else:
                     self.calls.append((str(label), str(probe_sign)))
@@ -2393,6 +2424,7 @@ class TestHHPhase3Continuation:
                     )
                 ),
                 "pauli_poly_to_sparse_pauli_op": (lambda poly: SimpleNamespace(poly=poly)),
+                "preflight_backend_scheduled_fake_backend_environment": (lambda cfg: None),
                 "validate_controller_oracle_base_config": (lambda cfg: None),
             }
 
@@ -2840,7 +2872,12 @@ class TestHHPhase3Continuation:
         assert payload["energy_source"] == "oracle_expectation_v1"
         assert payload["energy"] == pytest.approx(-0.321)
         assert payload["phase3_oracle_inner_objective_mode"] == "noisy_v1"
+        assert payload["phase3_oracle_inner_objective_mode_requested"] == "noisy_v1"
+        assert payload["phase3_oracle_inner_objective_runtime_guard_reason"] is None
         assert payload["continuation"]["reoptimization_backend"] == "oracle_expectation_v1"
+        assert payload["continuation"]["oracle_inner_objective_mode"] == "noisy_v1"
+        assert payload["continuation"]["oracle_inner_objective_mode_requested"] == "noisy_v1"
+        assert payload["continuation"]["oracle_inner_objective_runtime_guard_reason"] is None
         assert payload["continuation"]["oracle_inner_objective_calls_total"] > 0
         assert payload["continuation"]["phase3_enable_rescue_requested"] is True
         assert payload["continuation"]["phase3_enable_rescue_effective"] is False
@@ -2870,6 +2907,110 @@ class TestHHPhase3Continuation:
         )
 
         assert resolved.execution_surface == "expectation_v1"
+
+    def test_phase3_backend_scheduled_raw_inner_objective_routes_grouped_measurement(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+    ):
+        oracle_instances = self._install_fake_oracle_bindings(
+            monkeypatch,
+            default_gradient=1.0,
+            default_sigma=0.1,
+            gradient_step=0.1,
+            objective_mean=-0.321,
+            backend_name="FakeMarrakesh",
+        )
+        preflight_calls: list[dict[str, object]] = []
+        bindings_factory = _adapt_mod._phase3_oracle_runtime_bindings
+
+        def _wrapped_bindings() -> dict[str, object]:
+            bindings = dict(bindings_factory())
+            orig_preflight = bindings["preflight_backend_scheduled_fake_backend_environment"]
+
+            def _spy_preflight(cfg: object) -> None:
+                preflight_calls.append(
+                    {
+                        "backend_name": getattr(cfg, "backend_name", None),
+                        "execution_surface": getattr(cfg, "execution_surface", None),
+                    }
+                )
+                orig_preflight(cfg)
+
+            bindings["preflight_backend_scheduled_fake_backend_environment"] = _spy_preflight
+            return bindings
+
+        monkeypatch.setattr(_adapt_mod, "_phase3_oracle_runtime_bindings", _wrapped_bindings)
+        payload, _ = _run_hardcoded_adapt_vqe(
+            h_poly=self._hh_h(),
+            num_sites=2,
+            ordering="blocked",
+            problem="hh",
+            adapt_pool="paop_lf_std",
+            t=1.0,
+            u=2.0,
+            dv=0.0,
+            boundary="periodic",
+            omega0=1.0,
+            g_ep=0.5,
+            n_ph_max=1,
+            boson_encoding="binary",
+            max_depth=1,
+            eps_grad=1e-3,
+            eps_energy=1e-8,
+            maxiter=1,
+            seed=7,
+            adapt_inner_optimizer="SPSA",
+            allow_repeats=True,
+            finite_angle_fallback=False,
+            finite_angle=0.1,
+            finite_angle_min_improvement=1e-12,
+            adapt_reopt_policy="windowed",
+            adapt_window_size=1,
+            adapt_window_topk=0,
+            adapt_continuation_mode="phase3_v1",
+            phase3_symmetry_mitigation_mode="verify_only",
+            phase3_enable_rescue=True,
+            phase3_lifetime_cost_mode="phase3_v1",
+            phase3_oracle_gradient_config=self._oracle_cfg(
+                noise_mode="backend_scheduled",
+                use_fake_backend=True,
+                backend_name="FakeMarrakesh",
+                mitigation_mode="none",
+                execution_surface_requested="raw_measurement_v1",
+                execution_surface="raw_measurement_v1",
+                raw_transport="auto",
+                gradient_step=0.1,
+            ),
+            phase3_oracle_inner_objective_mode="noisy_v1",
+        )
+
+        assert payload["energy_source"] == "oracle_raw_measurement_v1"
+        assert payload["energy"] == pytest.approx(-0.321)
+        assert payload["phase3_oracle_inner_objective_mode"] == "noisy_v1"
+        assert payload["phase3_oracle_inner_objective_mode_requested"] == "noisy_v1"
+        assert payload["phase3_oracle_inner_objective_runtime_guard_reason"] is None
+        assert payload["continuation"]["oracle_execution_surface"] == "raw_measurement_v1"
+        assert payload["continuation"]["reoptimization_backend"] == "oracle_raw_measurement_v1"
+        assert payload["continuation"]["oracle_inner_objective_mode"] == "noisy_v1"
+        assert payload["continuation"]["oracle_inner_objective_mode_requested"] == "noisy_v1"
+        assert payload["continuation"]["oracle_inner_objective_runtime_guard_reason"] is None
+        assert payload["continuation"]["oracle_inner_objective_calls_total"] > 0
+        assert payload["continuation"]["oracle_inner_objective_raw_records_total"] > 0
+        assert (
+            payload["continuation"]["oracle_backend_info"]["details"]["execution_surface"]
+            == "raw_measurement_v1"
+        )
+        assert (
+            payload["continuation"]["last_oracle_inner_objective_backend_info"]["details"]["execution_surface"]
+            == "raw_measurement_v1"
+        )
+        assert preflight_calls == [
+            {
+                "backend_name": "FakeMarrakesh",
+                "execution_surface": "raw_measurement_v1",
+            }
+        ]
+        assert oracle_instances and getattr(oracle_instances[0], "closed", False) is True
 
     def test_phase3_raw_oracle_gradient_mode_routes_sigma_and_raw_summary(self, monkeypatch: pytest.MonkeyPatch):
         oracle_instances = self._install_fake_oracle_bindings(
@@ -2977,40 +3118,55 @@ class TestHHPhase3Continuation:
                 ),
             )
 
-    def test_phase3_raw_oracle_rejects_backend_scheduled_mode(self):
-        with pytest.raises(ValueError, match="only noise_mode='runtime'"):
-            _run_hardcoded_adapt_vqe(
-                h_poly=self._hh_h(),
-                num_sites=2,
-                ordering="blocked",
-                problem="hh",
-                adapt_pool="paop_lf_std",
-                t=1.0,
-                u=2.0,
-                dv=0.0,
-                boundary="periodic",
-                omega0=1.0,
-                g_ep=0.5,
-                n_ph_max=1,
-                boson_encoding="binary",
-                max_depth=1,
-                eps_grad=1e-3,
-                eps_energy=1e-8,
-                maxiter=10,
-                seed=7,
-                allow_repeats=True,
-                finite_angle_fallback=False,
-                finite_angle=0.1,
-                finite_angle_min_improvement=1e-12,
-                adapt_continuation_mode="phase3_v1",
-                phase3_oracle_gradient_config=self._oracle_cfg(
-                    noise_mode="backend_scheduled",
-                    use_fake_backend=True,
-                    backend_name="FakeNighthawk",
-                    execution_surface_requested="raw_measurement_v1",
-                    execution_surface="raw_measurement_v1",
-                ),
-            )
+    def test_phase3_raw_oracle_accepts_backend_scheduled_mode(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+    ):
+        oracle_instances = self._install_fake_oracle_bindings(
+            monkeypatch,
+            default_gradient=1.0,
+            default_sigma=0.25,
+            gradient_step=0.1,
+            backend_name="FakeNighthawk",
+        )
+        payload, _ = _run_hardcoded_adapt_vqe(
+            h_poly=self._hh_h(),
+            num_sites=2,
+            ordering="blocked",
+            problem="hh",
+            adapt_pool="paop_lf_std",
+            t=1.0,
+            u=2.0,
+            dv=0.0,
+            boundary="periodic",
+            omega0=1.0,
+            g_ep=0.5,
+            n_ph_max=1,
+            boson_encoding="binary",
+            max_depth=1,
+            eps_grad=1e-3,
+            eps_energy=1e-8,
+            maxiter=10,
+            seed=7,
+            allow_repeats=True,
+            finite_angle_fallback=False,
+            finite_angle=0.1,
+            finite_angle_min_improvement=1e-12,
+            adapt_continuation_mode="phase3_v1",
+            phase3_oracle_gradient_config=self._oracle_cfg(
+                noise_mode="backend_scheduled",
+                use_fake_backend=True,
+                backend_name="FakeNighthawk",
+                execution_surface_requested="raw_measurement_v1",
+                execution_surface="raw_measurement_v1",
+                raw_transport="auto",
+            ),
+        )
+
+        assert payload["continuation"]["oracle_execution_surface"] == "raw_measurement_v1"
+        assert payload["continuation"]["oracle_gradient_raw_records_total"] > 0
+        assert payload["continuation"]["reoptimization_backend"] == "exact_statevector"
+        assert oracle_instances and getattr(oracle_instances[0], "closed", False) is True
 
     def test_phase3_raw_oracle_rejects_backend_run_transport(self):
         with pytest.raises(ValueError, match="phase3_oracle_raw_transport"):

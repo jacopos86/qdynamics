@@ -2546,6 +2546,7 @@ def _phase3_oracle_runtime_bindings() -> dict[str, Any]:
         build_runtime_layout_circuit,
         normalize_sampler_raw_runtime_config,
         pauli_poly_to_sparse_pauli_op,
+        preflight_backend_scheduled_fake_backend_environment,
     )
     from pipelines.hardcoded.adapt_circuit_execution import build_parameterized_ansatz_plan
     from pipelines.hardcoded.hh_realtime_measurement import validate_controller_oracle_base_config
@@ -2560,6 +2561,7 @@ def _phase3_oracle_runtime_bindings() -> dict[str, Any]:
         "build_parameterized_ansatz_plan": build_parameterized_ansatz_plan,
         "normalize_sampler_raw_runtime_config": normalize_sampler_raw_runtime_config,
         "pauli_poly_to_sparse_pauli_op": pauli_poly_to_sparse_pauli_op,
+        "preflight_backend_scheduled_fake_backend_environment": preflight_backend_scheduled_fake_backend_environment,
         "validate_controller_oracle_base_config": validate_controller_oracle_base_config,
     }
 
@@ -2620,18 +2622,33 @@ def _validate_phase3_oracle_gradient_config(
         raise ValueError(
             "phase3_oracle_execution_surface must resolve to 'expectation_v1' or 'raw_measurement_v1'."
         )
-    if noise_mode != "runtime":
-        raise ValueError("phase3 raw oracle execution currently supports only noise_mode='runtime'.")
-    if bool(config.use_fake_backend):
-        raise ValueError("phase3 raw oracle execution requires a real runtime backend.")
     if mitigation_mode != "none":
         raise ValueError("phase3 raw oracle execution requires mitigation_mode='none'.")
     if local_readout_strategy is not None:
         raise ValueError("phase3 raw oracle execution does not allow local readout strategy.")
-    if str(config.raw_transport).strip().lower() not in {"auto", "sampler_v2"}:
-        raise ValueError(
-            "phase3_oracle_raw_transport must be one of {'auto','sampler_v2'}."
-        )
+    raw_transport = str(config.raw_transport).strip().lower()
+    if noise_mode == "backend_scheduled":
+        if not bool(config.use_fake_backend):
+            raise ValueError(
+                "phase3 raw oracle execution requires --phase3-oracle-use-fake-backend when noise_mode='backend_scheduled'."
+            )
+        if raw_transport != "auto":
+            raise ValueError(
+                "phase3 backend_scheduled raw oracle execution currently requires phase3_oracle_raw_transport='auto'."
+            )
+    else:
+        if noise_mode != "runtime":
+            raise ValueError(
+                "phase3 raw oracle execution currently supports only noise_mode in {'runtime','backend_scheduled'}."
+            )
+        if bool(config.use_fake_backend):
+            raise ValueError(
+                "phase3 raw oracle execution requires a real runtime backend when noise_mode='runtime'."
+            )
+        if raw_transport not in {"auto", "sampler_v2"}:
+            raise ValueError(
+                "phase3_oracle_raw_transport must be one of {'auto','sampler_v2'}."
+            )
     if int(config.transpile_optimization_level) not in {0, 1, 2, 3}:
         raise ValueError(
             "phase3_oracle_transpile_optimization_level must be one of {0,1,2,3}."
@@ -3196,15 +3213,22 @@ def _run_hardcoded_adapt_vqe(
             problem=str(problem_key),
             continuation_mode=str(continuation_mode),
         )
-    phase3_oracle_inner_objective_mode_key = (
+    phase3_oracle_inner_objective_mode_requested_key = (
         str(phase3_oracle_inner_objective_mode).strip().lower() or "exact"
     )
-    if phase3_oracle_inner_objective_mode_key not in {"exact", "noisy_v1"}:
+    if phase3_oracle_inner_objective_mode_requested_key not in {"exact", "noisy_v1"}:
         raise ValueError(
             "phase3_oracle_inner_objective_mode must be one of {'exact','noisy_v1'}."
         )
+    phase3_oracle_inner_objective_requested = bool(
+        phase3_oracle_inner_objective_mode_requested_key == "noisy_v1"
+    )
+    phase3_oracle_inner_objective_mode_key = str(
+        phase3_oracle_inner_objective_mode_requested_key
+    )
+    phase3_oracle_inner_objective_runtime_guard_reason: str | None = None
     phase3_oracle_inner_objective_enabled = bool(
-        phase3_oracle_inner_objective_mode_key == "noisy_v1"
+        phase3_oracle_inner_objective_requested
     )
     if phase3_oracle_inner_objective_enabled:
         if phase3_oracle_gradient_config is None:
@@ -3215,10 +3239,24 @@ def _run_hardcoded_adapt_vqe(
             raise ValueError(
                 "phase3_oracle_inner_objective_mode='noisy_v1' currently requires adapt_inner_optimizer='SPSA'."
             )
-        if str(phase3_oracle_gradient_config.execution_surface).strip().lower() != "expectation_v1":
+        oracle_inner_execution_surface = str(
+            phase3_oracle_gradient_config.execution_surface
+        ).strip().lower()
+        if oracle_inner_execution_surface not in {
+            "expectation_v1",
+            "raw_measurement_v1",
+        }:
             raise ValueError(
-                "phase3_oracle_inner_objective_mode='noisy_v1' currently requires phase3_oracle_execution_surface='expectation_v1'."
+                "phase3_oracle_inner_objective_mode='noisy_v1' currently requires phase3_oracle_execution_surface in {'expectation_v1','raw_measurement_v1'}."
             )
+    phase3_oracle_inner_backend_name = "exact_statevector"
+    if phase3_oracle_inner_objective_enabled and phase3_oracle_gradient_config is not None:
+        phase3_oracle_inner_backend_name = (
+            "oracle_raw_measurement_v1"
+            if str(phase3_oracle_gradient_config.execution_surface).strip().lower()
+            == "raw_measurement_v1"
+            else "oracle_expectation_v1"
+        )
     stop_policy = _resolve_adapt_stop_policy(
         problem=str(problem_key),
         continuation_mode=str(continuation_mode),
@@ -4148,12 +4186,15 @@ def _run_hardcoded_adapt_vqe(
     )
     phase3_oracle_gradient_calls_total = 0
     phase3_oracle_backend_info: dict[str, Any] | None = None
+    phase3_last_oracle_gradient_backend_info: dict[str, Any] | None = None
+    phase3_oracle_inner_backend_info: dict[str, Any] | None = None
     phase3_last_candidate_gradient_scout: list[dict[str, Any]] = []
     phase3_last_max_gradient_stderr = 0.0
     phase3_oracle_gradient_raw_records_total = 0
     phase3_oracle_symmetry_diagnostic_calls_total = 0
     phase3_oracle_symmetry_diagnostic_raw_records_total = 0
     phase3_oracle_inner_objective_calls_total = 0
+    phase3_oracle_inner_objective_raw_records_total = 0
     phase3_oracle_raw_transport: str | None = None
     phase3_oracle_raw_artifact_path: str | None = None
     phase3_oracle = None
@@ -4163,6 +4204,22 @@ def _run_hardcoded_adapt_vqe(
     build_runtime_layout_circuit_fn = None
     build_parameterized_ansatz_plan_fn = None
     phase3_oracle_num_qubits = int(round(math.log2(psi_ref.size)))
+    phase3_oracle_plan_cache: dict[str, Any] = {}
+
+    def _get_phase3_oracle_plan(layout_now: AnsatzParameterLayout) -> Any:
+        if build_parameterized_ansatz_plan_fn is None:
+            raise RuntimeError("phase3 oracle path is missing its parameterized ansatz plan builder.")
+        cache_key = json.dumps(serialize_layout(layout_now), sort_keys=True, separators=(",", ":"))
+        cached_plan = phase3_oracle_plan_cache.get(cache_key)
+        if cached_plan is not None:
+            return cached_plan
+        plan_now = build_parameterized_ansatz_plan_fn(
+            layout_now,
+            nq=int(phase3_oracle_num_qubits),
+            ref_state=np.asarray(psi_ref, dtype=complex),
+        )
+        phase3_oracle_plan_cache[cache_key] = plan_now
+        return plan_now
 
     def _normalize_phase3_oracle_backend_info(
         *,
@@ -4272,8 +4329,28 @@ def _run_hardcoded_adapt_vqe(
             raw_artifact_path=phase3_oracle_gradient_config.raw_artifact_path,
         )
         bindings["validate_controller_oracle_base_config"](oracle_config)
+        if (
+            str(phase3_oracle_gradient_config.noise_mode).strip().lower() == "backend_scheduled"
+            and bool(phase3_oracle_gradient_config.use_fake_backend)
+        ):
+            try:
+                bindings["preflight_backend_scheduled_fake_backend_environment"](oracle_config)
+                _ai_log(
+                    "hardcoded_adapt_phase3_oracle_backend_scheduled_preflight_ok",
+                    backend_name=oracle_config.backend_name,
+                    execution_surface=str(oracle_config.execution_surface),
+                )
+            except Exception as exc:
+                _ai_log(
+                    "hardcoded_adapt_phase3_oracle_backend_scheduled_preflight_failed",
+                    backend_name=oracle_config.backend_name,
+                    execution_surface=str(oracle_config.execution_surface),
+                    error=f"{type(exc).__name__}: {exc}",
+                )
+                raise
         if str(phase3_oracle_gradient_config.execution_surface) == "raw_measurement_v1":
-            oracle_config = bindings["normalize_sampler_raw_runtime_config"](oracle_config)
+            if str(phase3_oracle_gradient_config.noise_mode).strip().lower() == "runtime":
+                oracle_config = bindings["normalize_sampler_raw_runtime_config"](oracle_config)
             phase3_oracle = bindings["RawMeasurementOracle"](oracle_config)
             phase3_oracle_all_z_qop = bindings["all_z_full_register_qop"](int(phase3_oracle_num_qubits))
             phase3_oracle_raw_transport = str(
@@ -4309,7 +4386,7 @@ def _run_hardcoded_adapt_vqe(
             append_position_now: int,
             available_indices_now: Sequence[int],
         ) -> tuple[np.ndarray, np.ndarray, dict[str, float], list[dict[str, Any]], int]:
-            nonlocal phase3_oracle_backend_info
+            nonlocal phase3_last_oracle_gradient_backend_info
             nonlocal phase3_oracle_gradient_raw_records_total
             nonlocal phase3_oracle_symmetry_diagnostic_calls_total
             nonlocal phase3_oracle_symmetry_diagnostic_raw_records_total
@@ -4489,7 +4566,7 @@ def _run_hardcoded_adapt_vqe(
                         phase3_oracle_raw_transport = str(bundle.transport)
                         if bundle.raw_artifact_path not in {None, ""}:
                             phase3_oracle_raw_artifact_path = str(bundle.raw_artifact_path)
-                        phase3_oracle_backend_info = _normalize_phase3_oracle_backend_info(raw_bundle=bundle)
+                        phase3_last_oracle_gradient_backend_info = _normalize_phase3_oracle_backend_info(raw_bundle=bundle)
 
                         diagnostic_payload = {
                             "available": False,
@@ -4618,64 +4695,128 @@ def _run_hardcoded_adapt_vqe(
                         "symmetry_diagnostic": dict(symmetry_diagnostic_local),
                     }
                 else:
-                    circuit_plus = build_runtime_layout_circuit_fn(
-                        _build_selected_layout(ops_plus),
-                        theta_plus,
-                        int(phase3_oracle_num_qubits),
-                        reference_state=np.asarray(psi_ref, dtype=complex),
-                    )
-                    circuit_minus = build_runtime_layout_circuit_fn(
-                        _build_selected_layout(ops_minus),
-                        theta_minus,
-                        int(phase3_oracle_num_qubits),
-                        reference_state=np.asarray(psi_ref, dtype=complex),
-                    )
-                    for circuit_obj, sign in ((circuit_plus, 1.0), (circuit_minus, -1.0)):
-                        try:
-                            setattr(circuit_obj, "_phase3_candidate_label", str(candidate_label))
-                            setattr(circuit_obj, "_phase3_probe_sign", float(sign))
-                        except Exception:
-                            pass
+                    layout_plus = _build_selected_layout(ops_plus)
+                    layout_minus = _build_selected_layout(ops_minus)
+                    if serialize_layout(layout_plus) != serialize_layout(layout_minus):
+                        raise RuntimeError("phase3 expectation finite-difference probe structure mismatch")
                     oracle_estimates: dict[str, Any] = {}
-                    for probe_name, circuit_obj in (("plus", circuit_plus), ("minus", circuit_minus)):
-                        eval_t0 = time.perf_counter()
-                        _ai_log(
-                            "hardcoded_adapt_phase3_oracle_eval_start",
-                            depth=int(depth + 1),
-                            candidate_pool_index=int(idx),
-                            candidate_label=str(candidate_label),
-                            probe_sign=str(probe_name),
-                        )
-                        try:
-                            estimate = phase3_oracle.evaluate(circuit_obj, phase3_oracle_h_qop)
-                        except Exception as exc:
+                    if hasattr(phase3_oracle, "evaluate_parameterized"):
+                        plan_probe = _get_phase3_oracle_plan(layout_plus)
+                        probe_iter = (("plus", np.asarray(theta_plus, dtype=float)), ("minus", np.asarray(theta_minus, dtype=float)))
+                        for probe_name, theta_probe in probe_iter:
+                            eval_t0 = time.perf_counter()
                             _ai_log(
-                                "hardcoded_adapt_phase3_oracle_eval_error",
+                                "hardcoded_adapt_phase3_oracle_eval_start",
+                                depth=int(depth + 1),
+                                candidate_pool_index=int(idx),
+                                candidate_label=str(candidate_label),
+                                probe_sign=str(probe_name),
+                            )
+                            try:
+                                estimate = phase3_oracle.evaluate_parameterized(
+                                    plan=plan_probe,
+                                    theta_runtime=theta_probe,
+                                    observable=phase3_oracle_h_qop,
+                                    runtime_trace_context={
+                                        "route": "adapt_phase3_oracle_gradient",
+                                        "candidate_pool_index": int(idx),
+                                        "candidate_label": str(candidate_label),
+                                        "probe_sign": str(probe_name),
+                                        "depth": int(depth + 1),
+                                    },
+                                )
+                            except Exception as exc:
+                                _ai_log(
+                                    "hardcoded_adapt_phase3_oracle_eval_error",
+                                    depth=int(depth + 1),
+                                    candidate_pool_index=int(idx),
+                                    candidate_label=str(candidate_label),
+                                    probe_sign=str(probe_name),
+                                    elapsed_s=float(time.perf_counter() - eval_t0),
+                                    error_type=str(type(exc).__name__),
+                                    error_repr=repr(exc),
+                                )
+                                raise
+                            oracle_calls_local += 1
+                            oracle_estimates[str(probe_name)] = estimate
+                            phase3_last_oracle_gradient_backend_info = _normalize_phase3_oracle_backend_info(
+                                oracle_obj=phase3_oracle
+                            )
+                            _ai_log(
+                                "hardcoded_adapt_phase3_oracle_eval_done",
                                 depth=int(depth + 1),
                                 candidate_pool_index=int(idx),
                                 candidate_label=str(candidate_label),
                                 probe_sign=str(probe_name),
                                 elapsed_s=float(time.perf_counter() - eval_t0),
-                                error_type=str(type(exc).__name__),
-                                error_repr=repr(exc),
+                                stderr=float(getattr(estimate, "stderr", 0.0) or 0.0),
+                                std=float(getattr(estimate, "std", 0.0) or 0.0),
+                                n_samples=int(getattr(estimate, "n_samples", 0) or 0),
+                                aggregate=str(
+                                    getattr(estimate, "aggregate", phase3_oracle_gradient_config.oracle_aggregate)
+                                ),
                             )
-                            raise
-                        oracle_calls_local += 1
-                        oracle_estimates[str(probe_name)] = estimate
-                        _ai_log(
-                            "hardcoded_adapt_phase3_oracle_eval_done",
-                            depth=int(depth + 1),
-                            candidate_pool_index=int(idx),
-                            candidate_label=str(candidate_label),
-                            probe_sign=str(probe_name),
-                            elapsed_s=float(time.perf_counter() - eval_t0),
-                            stderr=float(getattr(estimate, "stderr", 0.0) or 0.0),
-                            std=float(getattr(estimate, "std", 0.0) or 0.0),
-                            n_samples=int(getattr(estimate, "n_samples", 0) or 0),
-                            aggregate=str(
-                                getattr(estimate, "aggregate", phase3_oracle_gradient_config.oracle_aggregate)
-                            ),
+                    else:
+                        circuit_plus = build_runtime_layout_circuit_fn(
+                            layout_plus,
+                            theta_plus,
+                            int(phase3_oracle_num_qubits),
+                            reference_state=np.asarray(psi_ref, dtype=complex),
                         )
+                        circuit_minus = build_runtime_layout_circuit_fn(
+                            layout_minus,
+                            theta_minus,
+                            int(phase3_oracle_num_qubits),
+                            reference_state=np.asarray(psi_ref, dtype=complex),
+                        )
+                        for circuit_obj, sign in ((circuit_plus, 1.0), (circuit_minus, -1.0)):
+                            try:
+                                setattr(circuit_obj, "_phase3_candidate_label", str(candidate_label))
+                                setattr(circuit_obj, "_phase3_probe_sign", float(sign))
+                            except Exception:
+                                pass
+                        for probe_name, circuit_obj in (("plus", circuit_plus), ("minus", circuit_minus)):
+                            eval_t0 = time.perf_counter()
+                            _ai_log(
+                                "hardcoded_adapt_phase3_oracle_eval_start",
+                                depth=int(depth + 1),
+                                candidate_pool_index=int(idx),
+                                candidate_label=str(candidate_label),
+                                probe_sign=str(probe_name),
+                            )
+                            try:
+                                estimate = phase3_oracle.evaluate(circuit_obj, phase3_oracle_h_qop)
+                            except Exception as exc:
+                                _ai_log(
+                                    "hardcoded_adapt_phase3_oracle_eval_error",
+                                    depth=int(depth + 1),
+                                    candidate_pool_index=int(idx),
+                                    candidate_label=str(candidate_label),
+                                    probe_sign=str(probe_name),
+                                    elapsed_s=float(time.perf_counter() - eval_t0),
+                                    error_type=str(type(exc).__name__),
+                                    error_repr=repr(exc),
+                                )
+                                raise
+                            oracle_calls_local += 1
+                            oracle_estimates[str(probe_name)] = estimate
+                            phase3_last_oracle_gradient_backend_info = _normalize_phase3_oracle_backend_info(
+                                oracle_obj=phase3_oracle
+                            )
+                            _ai_log(
+                                "hardcoded_adapt_phase3_oracle_eval_done",
+                                depth=int(depth + 1),
+                                candidate_pool_index=int(idx),
+                                candidate_label=str(candidate_label),
+                                probe_sign=str(probe_name),
+                                elapsed_s=float(time.perf_counter() - eval_t0),
+                                stderr=float(getattr(estimate, "stderr", 0.0) or 0.0),
+                                std=float(getattr(estimate, "std", 0.0) or 0.0),
+                                n_samples=int(getattr(estimate, "n_samples", 0) or 0),
+                                aggregate=str(
+                                    getattr(estimate, "aggregate", phase3_oracle_gradient_config.oracle_aggregate)
+                                ),
+                            )
                     e_plus = oracle_estimates["plus"]
                     e_minus = oracle_estimates["minus"]
                 gradient_signed = float((float(e_plus.mean) - float(e_minus.mean)) / (2.0 * grad_step_local))
@@ -4731,18 +4872,18 @@ def _run_hardcoded_adapt_vqe(
             objective_stage: str,
             depth_marker: int | None = None,
         ) -> float:
-            nonlocal phase3_oracle_backend_info
+            nonlocal phase3_oracle_inner_backend_info
             nonlocal phase3_oracle_inner_objective_calls_total
+            nonlocal phase3_oracle_inner_objective_raw_records_total
             theta_eval = np.asarray(theta_now, dtype=float)
             if phase3_oracle_inner_objective_enabled:
                 if (
                     phase3_oracle is None
                     or phase3_oracle_h_qop is None
                     or phase3_oracle_gradient_config is None
-                    or build_runtime_layout_circuit_fn is None
                 ):
                     raise RuntimeError(
-                        "phase3 noisy inner objective requested without an active expectation oracle session."
+                        "phase3 noisy inner objective requested without an active oracle session."
                     )
                 layout_eval = (
                     parameter_layout_now
@@ -4750,49 +4891,127 @@ def _run_hardcoded_adapt_vqe(
                     else _build_selected_layout(list(ops_now))
                 )
                 eval_t0 = time.perf_counter()
-                circuit_obj = build_runtime_layout_circuit_fn(
-                    layout_eval,
-                    theta_eval,
-                    int(phase3_oracle_num_qubits),
-                    reference_state=np.asarray(psi_ref, dtype=complex),
+                execution_surface = (
+                    str(phase3_oracle_gradient_config.execution_surface).strip().lower()
+                    or "expectation_v1"
                 )
-                try:
-                    setattr(circuit_obj, "_phase3_objective_stage", str(objective_stage))
-                    setattr(circuit_obj, "_phase3_objective_depth", int(depth_marker or 0))
-                except Exception:
-                    pass
                 _ai_log(
                     "hardcoded_adapt_phase3_oracle_inner_eval_start",
                     stage=str(objective_stage),
                     depth=(None if depth_marker is None else int(depth_marker)),
+                    execution_surface=str(execution_surface),
                     theta_runtime_count=int(theta_eval.size),
                     operator_count=int(len(list(ops_now))),
                 )
+                bundle_record_count = 0
+                transport = None
                 try:
-                    estimate = phase3_oracle.evaluate(circuit_obj, phase3_oracle_h_qop)
+                    if execution_surface == "raw_measurement_v1":
+                        if build_parameterized_ansatz_plan_fn is None:
+                            raise RuntimeError(
+                                "phase3 noisy inner raw objective requested without an active raw oracle session."
+                            )
+                        bundle = phase3_oracle.measure_observable(
+                            plan=_get_phase3_oracle_plan(layout_eval),
+                            theta_runtime=theta_eval,
+                            observable=phase3_oracle_h_qop,
+                            observable_family="adapt_phase3_oracle_inner_objective",
+                            semantic_tags={
+                                "route": "adapt_phase3_oracle_inner_objective",
+                                "objective_stage": str(objective_stage),
+                                "depth": (
+                                    None if depth_marker is None else int(depth_marker)
+                                ),
+                                "operator_count": int(len(list(ops_now))),
+                            },
+                        )
+                        estimate = bundle.estimate
+                        bundle_record_count = int(
+                            getattr(
+                                bundle.estimate,
+                                "record_count",
+                                len(getattr(bundle, "records", ()) or ()),
+                            )
+                        )
+                        phase3_oracle_inner_objective_raw_records_total += int(
+                            bundle_record_count
+                        )
+                        phase3_oracle_inner_backend_info = _normalize_phase3_oracle_backend_info(
+                            raw_bundle=bundle
+                        )
+                        transport = str(
+                            getattr(bundle, "transport", phase3_oracle_raw_transport)
+                        )
+                    else:
+                        if hasattr(phase3_oracle, "evaluate_parameterized"):
+                            estimate = phase3_oracle.evaluate_parameterized(
+                                plan=_get_phase3_oracle_plan(layout_eval),
+                                theta_runtime=theta_eval,
+                                observable=phase3_oracle_h_qop,
+                                runtime_trace_context={
+                                    "route": "adapt_phase3_oracle_inner_objective",
+                                    "objective_stage": str(objective_stage),
+                                    "depth": (
+                                        None if depth_marker is None else int(depth_marker)
+                                    ),
+                                    "operator_count": int(len(list(ops_now))),
+                                },
+                            )
+                        else:
+                            if build_runtime_layout_circuit_fn is None:
+                                raise RuntimeError(
+                                    "phase3 noisy inner expectation objective requested without an active expectation oracle session."
+                                )
+                            circuit_obj = build_runtime_layout_circuit_fn(
+                                layout_eval,
+                                theta_eval,
+                                int(phase3_oracle_num_qubits),
+                                reference_state=np.asarray(psi_ref, dtype=complex),
+                            )
+                            try:
+                                setattr(
+                                    circuit_obj,
+                                    "_phase3_objective_stage",
+                                    str(objective_stage),
+                                )
+                                setattr(
+                                    circuit_obj,
+                                    "_phase3_objective_depth",
+                                    int(depth_marker or 0),
+                                )
+                            except Exception:
+                                pass
+                            estimate = phase3_oracle.evaluate(
+                                circuit_obj,
+                                phase3_oracle_h_qop,
+                            )
+                        phase3_oracle_inner_backend_info = _normalize_phase3_oracle_backend_info(
+                            oracle_obj=phase3_oracle
+                        )
                 except Exception as exc:
                     _ai_log(
                         "hardcoded_adapt_phase3_oracle_inner_eval_error",
                         stage=str(objective_stage),
                         depth=(None if depth_marker is None else int(depth_marker)),
+                        execution_surface=str(execution_surface),
                         elapsed_s=float(time.perf_counter() - eval_t0),
                         error_type=str(type(exc).__name__),
                         error_repr=repr(exc),
                     )
                     raise
                 phase3_oracle_inner_objective_calls_total += 1
-                phase3_oracle_backend_info = _normalize_phase3_oracle_backend_info(
-                    oracle_obj=phase3_oracle
-                )
                 _ai_log(
                     "hardcoded_adapt_phase3_oracle_inner_eval_done",
                     stage=str(objective_stage),
                     depth=(None if depth_marker is None else int(depth_marker)),
+                    execution_surface=str(execution_surface),
                     elapsed_s=float(time.perf_counter() - eval_t0),
                     mean=float(getattr(estimate, "mean", 0.0) or 0.0),
                     stderr=float(getattr(estimate, "stderr", 0.0) or 0.0),
                     std=float(getattr(estimate, "std", 0.0) or 0.0),
                     n_samples=int(getattr(estimate, "n_samples", 0) or 0),
+                    record_count=int(bundle_record_count),
+                    transport=(None if transport in {None, ""} else str(transport)),
                     aggregate=str(
                         getattr(
                             estimate,
@@ -9977,6 +10196,16 @@ def _run_hardcoded_adapt_vqe(
                 if isinstance(phase3_oracle_backend_info, Mapping)
                 else phase3_oracle_backend_info
             ),
+            "last_oracle_gradient_backend_info": (
+                dict(phase3_last_oracle_gradient_backend_info)
+                if isinstance(phase3_last_oracle_gradient_backend_info, Mapping)
+                else phase3_last_oracle_gradient_backend_info
+            ),
+            "last_oracle_inner_objective_backend_info": (
+                dict(phase3_oracle_inner_backend_info)
+                if isinstance(phase3_oracle_inner_backend_info, Mapping)
+                else phase3_oracle_inner_backend_info
+            ),
             "oracle_raw_transport": (
                 str(phase3_oracle_raw_transport)
                 if phase3_oracle_raw_transport not in {None, ""}
@@ -9996,12 +10225,19 @@ def _run_hardcoded_adapt_vqe(
             ),
             "oracle_gradient_calls_total": int(phase3_oracle_gradient_calls_total),
             "oracle_inner_objective_mode": str(phase3_oracle_inner_objective_mode_key),
-            "oracle_inner_objective_calls_total": int(phase3_oracle_inner_objective_calls_total),
-            "reoptimization_backend": (
-                "oracle_expectation_v1"
-                if phase3_oracle_inner_objective_enabled
-                else "exact_statevector"
+            "oracle_inner_objective_mode_requested": str(
+                phase3_oracle_inner_objective_mode_requested_key
             ),
+            "oracle_inner_objective_runtime_guard_reason": (
+                None
+                if phase3_oracle_inner_objective_runtime_guard_reason in {None, ""}
+                else str(phase3_oracle_inner_objective_runtime_guard_reason)
+            ),
+            "oracle_inner_objective_calls_total": int(phase3_oracle_inner_objective_calls_total),
+            "oracle_inner_objective_raw_records_total": int(
+                phase3_oracle_inner_objective_raw_records_total
+            ),
+            "reoptimization_backend": str(phase3_oracle_inner_backend_name),
             "phase3_enable_rescue_requested": bool(phase3_enable_rescue_requested),
             "phase3_enable_rescue_effective": bool(phase3_enable_rescue_effective),
             "stage_controller": {
@@ -10088,11 +10324,7 @@ def _run_hardcoded_adapt_vqe(
             "success": True,
             "method": method_name,
             "energy": float(energy_current),
-            "energy_source": (
-                "oracle_expectation_v1"
-                if phase3_oracle_inner_objective_enabled
-                else "exact_statevector"
-            ),
+            "energy_source": str(phase3_oracle_inner_backend_name),
             "exact_energy_from_final_state": float(exact_energy_from_final_state),
             "exact_gs_energy": float(exact_gs),
             "delta_e": float(energy_current - exact_gs),
@@ -10133,6 +10365,14 @@ def _run_hardcoded_adapt_vqe(
                 else None
             ),
             "phase3_oracle_inner_objective_mode": str(phase3_oracle_inner_objective_mode_key),
+            "phase3_oracle_inner_objective_mode_requested": str(
+                phase3_oracle_inner_objective_mode_requested_key
+            ),
+            "phase3_oracle_inner_objective_runtime_guard_reason": (
+                None
+                if phase3_oracle_inner_objective_runtime_guard_reason in {None, ""}
+                else str(phase3_oracle_inner_objective_runtime_guard_reason)
+            ),
             "exact_state_fidelity": (
                 float(exact_state_fidelity) if exact_state_fidelity is not None else None
             ),
@@ -10981,7 +11221,7 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
         "--phase3-oracle-inner-objective-mode",
         choices=["exact", "noisy_v1"],
         default="exact",
-        help="When noisy_v1, HH phase3_v1 inner re-optimization uses the same expectation-oracle energy as candidate scouting. v1 currently supports SPSA only.",
+        help="When noisy_v1, HH phase3_v1 inner re-optimization uses the same oracle energy surface as candidate scouting (expectation_v1 or raw_measurement_v1). The runtime path reuses parameterized compiled templates so noisy SPSA stays enabled without recompiling each evaluation from scratch.",
     )
     p.add_argument(
         "--phase3-oracle-raw-transport",
@@ -11736,7 +11976,21 @@ def main(argv: Sequence[str] | None = None) -> None:
             ),
             "phase3_backend_transpile_seed": int(args.phase3_backend_transpile_seed),
             "phase3_backend_optimization_level": int(args.phase3_backend_optimization_level),
-            "phase3_oracle_inner_objective_mode": str(args.phase3_oracle_inner_objective_mode),
+            "phase3_oracle_inner_objective_mode": str(
+                adapt_payload.get(
+                    "phase3_oracle_inner_objective_mode",
+                    args.phase3_oracle_inner_objective_mode,
+                )
+            ),
+            "phase3_oracle_inner_objective_mode_requested": str(
+                adapt_payload.get(
+                    "phase3_oracle_inner_objective_mode_requested",
+                    args.phase3_oracle_inner_objective_mode,
+                )
+            ),
+            "phase3_oracle_inner_objective_runtime_guard_reason": (
+                adapt_payload.get("phase3_oracle_inner_objective_runtime_guard_reason")
+            ),
             "adapt_ref_json": (str(args.adapt_ref_json) if args.adapt_ref_json is not None else None),
             "paop_r": int(args.paop_r),
             "paop_split_paulis": bool(args.paop_split_paulis),

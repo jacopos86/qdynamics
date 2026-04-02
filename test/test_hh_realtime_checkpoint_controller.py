@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import replace as dataclass_replace
+import json
 from pathlib import Path
 import sys
 from types import SimpleNamespace
@@ -19,10 +20,12 @@ from pipelines.hardcoded.hh_realtime_checkpoint_controller import (
     RealtimeCheckpointController,
 )
 from pipelines.hardcoded.hh_realtime_checkpoint_types import (
+    CandidateProbeSummary,
     RealtimeCheckpointConfig,
     make_checkpoint_context,
 )
 from pipelines.hardcoded.hh_realtime_measurement import DerivedGeometryMemo, ExactCheckpointValueCache
+from pipelines.hardcoded.hh_realtime_measurement import OracleCheckpointValueCache
 from pipelines.hardcoded.hh_vqe_from_adapt_family import ReplayScaffoldContext
 from src.quantum.ansatz_parameterization import build_parameter_layout
 from src.quantum.compiled_ansatz import CompiledAnsatzExecutor
@@ -56,7 +59,7 @@ def _toy_context(theta_x: float = 0.2) -> tuple[ReplayScaffoldContext, np.ndarra
     best_theta = np.array([float(theta_x)], dtype=float)
     psi_initial = executor.prepare_state(best_theta, psi_ref)
     replay_context = ReplayScaffoldContext(
-        cfg=SimpleNamespace(reps=1),
+        cfg=SimpleNamespace(reps=1, L=1, ordering="blocked"),
         h_poly=h_poly,
         psi_ref=psi_ref,
         payload_in={"adapt_vqe": {"pool_type": "phase3_v1"}},
@@ -100,7 +103,7 @@ def _duplicate_label_context() -> tuple[ReplayScaffoldContext, np.ndarray, np.nd
     best_theta = np.array([0.2], dtype=float)
     psi_initial = executor.prepare_state(best_theta, psi_ref)
     replay_context = ReplayScaffoldContext(
-        cfg=SimpleNamespace(reps=1),
+        cfg=SimpleNamespace(reps=1, L=1, ordering="blocked"),
         h_poly=h_poly,
         psi_ref=psi_ref,
         payload_in={"adapt_vqe": {"pool_type": "phase3_v1"}},
@@ -170,6 +173,362 @@ def test_realtime_controller_stays_when_miss_threshold_is_high() -> None:
 
     assert int(result.summary["append_count"]) == 0
     assert all(str(row["action_kind"]) == "stay" for row in result.ledger)
+
+
+def test_realtime_controller_writes_progress_file(tmp_path: Path) -> None:
+    replay_context, h_poly, hmat, psi_initial = _toy_context(theta_x=0.2)
+    progress_path = tmp_path / "controller_progress.json"
+    controller = RealtimeCheckpointController(
+        cfg=RealtimeCheckpointConfig(
+            mode="exact_v1",
+            miss_threshold=2.0,
+            gain_ratio_threshold=1e-9,
+            append_margin_abs=1e-12,
+        ),
+        replay_context=replay_context,
+        h_poly=h_poly,
+        hmat=hmat,
+        psi_initial=psi_initial,
+        best_theta=[0.2],
+        allow_repeats=False,
+        t_final=0.2,
+        num_times=3,
+        progress_path=progress_path,
+        progress_every_s=0.0,
+    )
+
+    result = controller.run()
+    progress = json.loads(progress_path.read_text(encoding="utf-8"))
+
+    assert progress["stage"] == "run_complete"
+    assert progress["status"] == "completed"
+    assert progress["summary"]["append_count"] == result.summary["append_count"]
+    assert progress["trajectory_points"] == len(result.trajectory)
+
+
+def test_realtime_controller_writes_partial_payload_file(tmp_path: Path) -> None:
+    replay_context, h_poly, hmat, psi_initial = _toy_context(theta_x=0.2)
+    partial_payload_path = tmp_path / "controller_partial.json"
+    controller = RealtimeCheckpointController(
+        cfg=RealtimeCheckpointConfig(
+            mode="exact_v1",
+            miss_threshold=2.0,
+            gain_ratio_threshold=1e-9,
+            append_margin_abs=1e-12,
+        ),
+        replay_context=replay_context,
+        h_poly=h_poly,
+        hmat=hmat,
+        psi_initial=psi_initial,
+        best_theta=[0.2],
+        allow_repeats=False,
+        t_final=0.2,
+        num_times=3,
+        partial_payload_path=partial_payload_path,
+    )
+
+    result = controller.run()
+    partial = json.loads(partial_payload_path.read_text(encoding="utf-8"))
+
+    assert partial["stage"] == "run_complete"
+    assert partial["status"] == "completed"
+    assert len(partial["trajectory"]) == len(result.trajectory)
+    assert len(partial["ledger"]) == len(result.ledger)
+    assert partial["summary"]["append_count"] == result.summary["append_count"]
+
+
+def test_oracle_commit_override_rejects_bootstrap_negative_noisy_improvement() -> None:
+    replay_context, h_poly, hmat, psi_initial = _toy_context(theta_x=0.2)
+    controller = RealtimeCheckpointController(
+        cfg=RealtimeCheckpointConfig(
+            mode="oracle_v1",
+            miss_threshold=0.0,
+            gain_ratio_threshold=0.02,
+            append_margin_abs=1e-6,
+        ),
+        replay_context=replay_context,
+        h_poly=h_poly,
+        hmat=hmat,
+        psi_initial=psi_initial,
+        best_theta=[0.2],
+        allow_repeats=False,
+        t_final=0.2,
+        num_times=3,
+        oracle_base_config=OracleConfig(noise_mode="shots", shots=32, oracle_repeats=1, oracle_aggregate="mean"),
+    )
+
+    reason = controller._oracle_commit_override_reason(
+        motion=MotionSchedulerTelemetry(
+            regime="bootstrap",
+            direction_cosine=None,
+            rate_change_l2=None,
+            rate_change_ratio=None,
+            acceleration_l2=None,
+            curvature_cosine=None,
+            direction_reversal=False,
+            curvature_sign_flip=False,
+            kink_score=0.0,
+        ),
+        selected={"gain_ratio": 0.049},
+        action_kind="append_candidate",
+        oracle_commit_payload={"selected_noisy_improvement_abs": -0.375},
+        predicted_displacement=0.09,
+        runtime_parameter_count_before=2,
+    )
+
+    assert reason == "bootstrap_negative_noisy_commit"
+
+
+def test_oracle_commit_override_rejects_kink_negative_noisy_improvement_even_with_strong_exact_gain() -> None:
+    replay_context, h_poly, hmat, psi_initial = _toy_context(theta_x=0.2)
+    controller = RealtimeCheckpointController(
+        cfg=RealtimeCheckpointConfig(
+            mode="oracle_v1",
+            miss_threshold=0.0,
+            gain_ratio_threshold=0.02,
+            append_margin_abs=1e-6,
+        ),
+        replay_context=replay_context,
+        h_poly=h_poly,
+        hmat=hmat,
+        psi_initial=psi_initial,
+        best_theta=[0.2],
+        allow_repeats=False,
+        t_final=0.2,
+        num_times=3,
+        oracle_base_config=OracleConfig(noise_mode="shots", shots=32, oracle_repeats=1, oracle_aggregate="mean"),
+    )
+
+    reason = controller._oracle_commit_override_reason(
+        motion=MotionSchedulerTelemetry(
+            regime="kink",
+            direction_cosine=-0.9,
+            rate_change_l2=0.4,
+            rate_change_ratio=2.5,
+            acceleration_l2=0.5,
+            curvature_cosine=-0.6,
+            direction_reversal=True,
+            curvature_sign_flip=True,
+            kink_score=1.4,
+        ),
+        selected={"gain_ratio": 0.34118721281858394},
+        action_kind="append_candidate",
+        oracle_commit_payload={"selected_noisy_improvement_abs": -2.3690836180540353},
+        predicted_displacement=0.04,
+        runtime_parameter_count_before=2,
+    )
+
+    assert reason == "kink_negative_noisy_commit"
+
+
+def test_oracle_commit_override_rejects_late_kink_reappend_with_large_displacement() -> None:
+    replay_context, h_poly, hmat, psi_initial = _toy_context(theta_x=0.2)
+    controller = RealtimeCheckpointController(
+        cfg=RealtimeCheckpointConfig(
+            mode="oracle_v1",
+            miss_threshold=0.0,
+            gain_ratio_threshold=0.02,
+            append_margin_abs=1e-6,
+        ),
+        replay_context=replay_context,
+        h_poly=h_poly,
+        hmat=hmat,
+        psi_initial=psi_initial,
+        best_theta=[0.2],
+        allow_repeats=False,
+        t_final=0.2,
+        num_times=3,
+        oracle_base_config=OracleConfig(noise_mode="shots", shots=32, oracle_repeats=1, oracle_aggregate="mean"),
+    )
+
+    reason = controller._oracle_commit_override_reason(
+        motion=MotionSchedulerTelemetry(
+            regime="kink",
+            direction_cosine=-0.8,
+            rate_change_l2=1.1,
+            rate_change_ratio=1.7,
+            acceleration_l2=1.1,
+            curvature_cosine=-0.7,
+            direction_reversal=True,
+            curvature_sign_flip=True,
+            kink_score=1.7,
+        ),
+        selected={"gain_ratio": 1.9426707547767408},
+        action_kind="append_candidate",
+        oracle_commit_payload={
+            "selected_noisy_improvement_abs": 0.5000000000001719,
+            "selected_noisy_improvement_ratio": 0.2500000000001077,
+        },
+        predicted_displacement=2.9203355642971713,
+        runtime_parameter_count_before=3,
+    )
+
+    assert reason == "kink_large_displacement_commit"
+
+
+def test_oracle_commit_override_rejects_first_kink_append_with_weak_noisy_margin() -> None:
+    replay_context, h_poly, hmat, psi_initial = _toy_context(theta_x=0.2)
+    controller = RealtimeCheckpointController(
+        cfg=RealtimeCheckpointConfig(
+            mode="oracle_v1",
+            miss_threshold=0.0,
+            gain_ratio_threshold=0.02,
+            append_margin_abs=1e-6,
+        ),
+        replay_context=replay_context,
+        h_poly=h_poly,
+        hmat=hmat,
+        psi_initial=psi_initial,
+        best_theta=[0.2],
+        allow_repeats=False,
+        t_final=0.2,
+        num_times=3,
+        oracle_base_config=OracleConfig(noise_mode="shots", shots=32, oracle_repeats=1, oracle_aggregate="mean"),
+    )
+
+    reason = controller._oracle_commit_override_reason(
+        motion=MotionSchedulerTelemetry(
+            regime="kink",
+            direction_cosine=-0.7,
+            rate_change_l2=0.45,
+            rate_change_ratio=1.2,
+            acceleration_l2=0.45,
+            curvature_cosine=-0.4,
+            direction_reversal=True,
+            curvature_sign_flip=True,
+            kink_score=0.72,
+        ),
+        selected={"gain_ratio": 2.9901167415300542},
+        action_kind="append_candidate",
+        oracle_commit_payload={
+            "selected_noisy_improvement_abs": 0.37499999999999956,
+            "selected_noisy_improvement_ratio": 0.150000128648925,
+        },
+        predicted_displacement=0.10118187545377694,
+        runtime_parameter_count_before=2,
+    )
+
+    assert reason == "kink_weak_margin_first_append"
+
+
+def test_exact_forecast_override_reason_rejects_dual_metric_regression() -> None:
+    replay_context, h_poly, hmat, psi_initial = _toy_context(theta_x=0.2)
+    controller = RealtimeCheckpointController(
+        cfg=RealtimeCheckpointConfig(
+            mode="oracle_v1",
+            exact_forecast_guardrail_mode="dual_metric_v1",
+            exact_forecast_fidelity_loss_tol=0.01,
+            exact_forecast_abs_energy_error_increase_tol=0.02,
+        ),
+        replay_context=replay_context,
+        h_poly=h_poly,
+        hmat=hmat,
+        psi_initial=psi_initial,
+        best_theta=[0.2],
+        allow_repeats=False,
+        t_final=0.2,
+        num_times=3,
+        oracle_base_config=OracleConfig(noise_mode="shots", shots=32, oracle_repeats=1, oracle_aggregate="mean"),
+    )
+
+    reason = controller._exact_forecast_override_reason(
+        stay_forecast={
+            "fidelity_exact_next": 0.80,
+            "abs_energy_total_error_next": 0.10,
+        },
+        selected_forecast={
+            "fidelity_exact_next": 0.75,
+            "abs_energy_total_error_next": 0.15,
+        },
+    )
+
+    assert reason == "exact_forecast_dual_metric_regression"
+
+
+def test_exact_forecast_override_reason_allows_single_metric_trade() -> None:
+    replay_context, h_poly, hmat, psi_initial = _toy_context(theta_x=0.2)
+    controller = RealtimeCheckpointController(
+        cfg=RealtimeCheckpointConfig(
+            mode="oracle_v1",
+            exact_forecast_guardrail_mode="dual_metric_v1",
+            exact_forecast_fidelity_loss_tol=0.01,
+            exact_forecast_abs_energy_error_increase_tol=0.02,
+        ),
+        replay_context=replay_context,
+        h_poly=h_poly,
+        hmat=hmat,
+        psi_initial=psi_initial,
+        best_theta=[0.2],
+        allow_repeats=False,
+        t_final=0.2,
+        num_times=3,
+        oracle_base_config=OracleConfig(noise_mode="shots", shots=32, oracle_repeats=1, oracle_aggregate="mean"),
+    )
+
+    reason = controller._exact_forecast_override_reason(
+        stay_forecast={
+            "fidelity_exact_next": 0.80,
+            "abs_energy_total_error_next": 0.10,
+        },
+        selected_forecast={
+            "fidelity_exact_next": 0.79,
+            "abs_energy_total_error_next": 0.08,
+        },
+    )
+
+    assert reason is None
+
+
+def test_oracle_commit_payload_reuses_measured_baseline_for_stay(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    replay_context, h_poly, hmat, psi_initial = _toy_context(theta_x=0.2)
+    controller = RealtimeCheckpointController(
+        cfg=RealtimeCheckpointConfig(
+            mode="oracle_v1",
+            miss_threshold=0.0,
+            gain_ratio_threshold=0.02,
+            append_margin_abs=1e-6,
+        ),
+        replay_context=replay_context,
+        h_poly=h_poly,
+        hmat=hmat,
+        psi_initial=psi_initial,
+        best_theta=[0.2],
+        allow_repeats=False,
+        t_final=0.2,
+        num_times=3,
+        oracle_base_config=OracleConfig(noise_mode="shots", shots=32, oracle_repeats=1, oracle_aggregate="mean"),
+    )
+
+    monkeypatch.setattr(
+        controller,
+        "_oracle_energy_estimate",
+        lambda **kwargs: (_ for _ in ()).throw(AssertionError("should not estimate stay energy twice")),
+    )
+
+    payload, degraded_reason = controller._oracle_commit_payload(
+        checkpoint_ctx=SimpleNamespace(checkpoint_index=0, checkpoint_id="cp0"),
+        oracle_cache=SimpleNamespace(),
+        raw_group_pool=None,
+        baseline={
+            "summary": SimpleNamespace(energy=1.2345),
+            "backend_info": {"noise_mode": "backend_scheduled"},
+            "observable_estimates": {"baseline": {"mean": 1.2345}},
+            "theta_dot_step": np.zeros_like(controller.current_theta),
+        },
+        selected=None,
+        action_kind="stay",
+        dt=0.1,
+        oracle_observable=None,
+        budget_scale=1.0,
+    )
+
+    assert degraded_reason is None
+    assert payload["stay_noisy_energy_mean"] == pytest.approx(1.2345)
+    assert payload["selected_noisy_energy_mean"] == pytest.approx(1.2345)
+    assert payload["selected_noisy_improvement_abs"] == pytest.approx(0.0)
+    assert payload["selected_noisy_improvement_ratio"] == pytest.approx(0.0)
 
 
 def test_incremental_candidate_gain_matches_full_augmented_recompute() -> None:
@@ -460,6 +819,1157 @@ def test_realtime_controller_drive_step_hamiltonian_uses_time_dependent_total_h(
     assert result.reference["drive_profile"]["A"] == pytest.approx(0.6)
     assert any(int(row.get("drive_term_count", 0)) >= 1 for row in result.ledger[1:])
     assert all("physical_time" in row for row in result.ledger)
+    assert all("staggered" in row and "staggered_exact" in row for row in result.trajectory)
+    assert all("doublon" in row and "doublon_exact" in row for row in result.trajectory)
+    assert all("site_occupations" in row and "site_occupations_exact" in row for row in result.trajectory)
+    assert "max_abs_staggered_error" in result.summary
+    assert "max_abs_doublon_error" in result.summary
+    assert "max_abs_site_occupations_error" in result.summary
+
+
+def test_realtime_controller_off_mode_produces_stay_only_driven_baseline(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    replay_context, h_poly, hmat, psi_initial = _toy_context(theta_x=0.2)
+
+    class _FakeDrive:
+        @staticmethod
+        def coeff_map_exyz(time_value: float) -> dict[str, float]:
+            return {"z": float(time_value)}
+
+    monkeypatch.setattr(
+        "pipelines.hardcoded.hh_realtime_checkpoint_controller.build_gaussian_sinusoid_density_drive",
+        lambda **kwargs: _FakeDrive(),
+    )
+
+    controller = RealtimeCheckpointController(
+        cfg=RealtimeCheckpointConfig(mode="off"),
+        replay_context=replay_context,
+        h_poly=h_poly,
+        hmat=hmat,
+        psi_initial=psi_initial,
+        best_theta=[0.2],
+        allow_repeats=False,
+        t_final=0.2,
+        num_times=3,
+        drive_config=ControllerDriveConfig(
+            enabled=True,
+            n_sites=1,
+            ordering="blocked",
+            drive_A=1.0,
+            drive_omega=1.0,
+            drive_tbar=1.0,
+            drive_phi=0.0,
+            drive_pattern="staggered",
+            drive_custom_weights=None,
+            drive_include_identity=False,
+            drive_time_sampling="midpoint",
+            drive_t0=0.0,
+            exact_steps_multiplier=1,
+        ),
+    )
+
+    result = controller.run()
+
+    assert str(result.summary["mode"]) == "off"
+    assert str(result.summary["decision_backend"]) == "off"
+    assert list(result.summary["executed_decision_backends"]) == ["off"]
+    assert int(result.summary["append_count"]) == 0
+    assert int(result.summary["stay_count"]) == 3
+    assert all(str(row["decision_backend"]) == "off" for row in result.trajectory)
+    assert all(str(row["action_kind"]) == "stay" for row in result.trajectory)
+    assert all(row.get("shortlist") == [] for row in result.trajectory)
+
+
+def test_realtime_controller_off_mode_uses_measured_baseline_when_oracle_surface_configured(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    replay_context, h_poly, hmat, psi_initial = _toy_context(theta_x=0.2)
+    controller = RealtimeCheckpointController(
+        cfg=RealtimeCheckpointConfig(mode="off"),
+        replay_context=replay_context,
+        h_poly=h_poly,
+        hmat=hmat,
+        psi_initial=psi_initial,
+        best_theta=[0.2],
+        allow_repeats=False,
+        t_final=0.2,
+        num_times=2,
+        oracle_base_config=OracleConfig(
+            noise_mode="backend_scheduled",
+            oracle_aggregate="mean",
+            backend_name="FakeGuadalupeV2",
+            use_fake_backend=True,
+            shots=32,
+            oracle_repeats=1,
+        ),
+    )
+
+    measured_calls = {"count": 0}
+
+    def _fake_measured_baseline(**kwargs):
+        measured_calls["count"] += 1
+        baseline = controller._baseline_geometry(
+            kwargs["checkpoint_ctx"],
+            kwargs["cache"],
+            kwargs["geometry_memo"],
+            step_hamiltonian=controller._step_hamiltonian_artifacts(float(kwargs["checkpoint_ctx"].time_start)),
+        )
+        return {
+            **baseline,
+            "summary": dataclass_replace(
+                baseline["summary"],
+                energy=float(baseline["summary"].energy) + 0.25,
+                solve_mode="grouped_raw_measured",
+            ),
+            "backend_info": {"noise_mode": "backend_scheduled"},
+            "observable_estimates": {"baseline": {"mean": float(baseline["summary"].energy) + 0.25}},
+            "raw_group_pool_summary": {"calls": 1},
+        }
+
+    monkeypatch.setattr(controller, "_oracle_measured_baseline_geometry", _fake_measured_baseline)
+
+    result = controller.run()
+
+    assert measured_calls["count"] == 1
+    assert str(result.summary["mode"]) == "off"
+    assert str(result.summary["decision_backend"]) == "off"
+    assert str(result.summary["decision_noise_mode"]) == "backend_scheduled"
+    assert str(result.summary["oracle_estimate_kind"]) == "oracle_backend_scheduled"
+    assert int(result.summary["oracle_attempted_checkpoints"]) == 1
+    assert all(str(row["decision_backend"]) == "off" for row in result.trajectory)
+    assert all(str(row["action_kind"]) == "stay" for row in result.trajectory)
+    assert str(result.trajectory[0]["decision_noise_mode"]) == "backend_scheduled"
+
+
+def test_realtime_controller_off_mode_uses_measured_baseline_when_shots_oracle_surface_configured(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    replay_context, h_poly, hmat, psi_initial = _toy_context(theta_x=0.2)
+    controller = RealtimeCheckpointController(
+        cfg=RealtimeCheckpointConfig(mode="off"),
+        replay_context=replay_context,
+        h_poly=h_poly,
+        hmat=hmat,
+        psi_initial=psi_initial,
+        best_theta=[0.2],
+        allow_repeats=False,
+        t_final=0.2,
+        num_times=2,
+        oracle_base_config=OracleConfig(
+            noise_mode="shots",
+            oracle_aggregate="mean",
+            shots=64,
+            oracle_repeats=1,
+        ),
+    )
+
+    measured_calls = {"count": 0}
+
+    def _fake_measured_baseline(**kwargs):
+        measured_calls["count"] += 1
+        assert kwargs["raw_group_pool"] is None
+        baseline = controller._baseline_geometry(
+            kwargs["checkpoint_ctx"],
+            kwargs["cache"],
+            kwargs["geometry_memo"],
+            step_hamiltonian=controller._step_hamiltonian_artifacts(float(kwargs["checkpoint_ctx"].time_start)),
+        )
+        return {
+            **baseline,
+            "summary": dataclass_replace(
+                baseline["summary"],
+                energy=float(baseline["summary"].energy) + 0.25,
+                solve_mode="grouped_oracle_measured",
+            ),
+            "backend_info": {"noise_mode": "shots"},
+            "observable_estimates": {"baseline": {"mean": float(baseline["summary"].energy) + 0.25}},
+            "raw_group_pool_summary": {},
+        }
+
+    monkeypatch.setattr(controller, "_oracle_measured_baseline_geometry", _fake_measured_baseline)
+
+    result = controller.run()
+
+    assert measured_calls["count"] == 1
+    assert str(result.summary["mode"]) == "off"
+    assert str(result.summary["decision_backend"]) == "off"
+    assert str(result.summary["decision_noise_mode"]) == "shots"
+    assert str(result.summary["oracle_estimate_kind"]) == "oracle_shots"
+    assert int(result.summary["oracle_attempted_checkpoints"]) == 1
+    assert int(result.summary["degraded_checkpoints"]) == 0
+    assert all(str(row["decision_backend"]) == "off" for row in result.trajectory)
+    assert all(str(row["action_kind"]) == "stay" for row in result.trajectory)
+    assert str(result.trajectory[0]["decision_noise_mode"]) == "shots"
+
+
+def test_oracle_for_tier_allows_off_mode_when_oracle_surface_configured(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    replay_context, h_poly, hmat, psi_initial = _toy_context(theta_x=0.2)
+    controller = RealtimeCheckpointController(
+        cfg=RealtimeCheckpointConfig(mode="off"),
+        replay_context=replay_context,
+        h_poly=h_poly,
+        hmat=hmat,
+        psi_initial=psi_initial,
+        best_theta=[0.2],
+        allow_repeats=False,
+        t_final=0.2,
+        num_times=2,
+        oracle_base_config=OracleConfig(
+            noise_mode="backend_scheduled",
+            oracle_aggregate="mean",
+            backend_name="FakeGuadalupeV2",
+            use_fake_backend=True,
+            shots=32,
+            oracle_repeats=1,
+        ),
+    )
+
+    class _DummyOracle:
+        def __init__(self, cfg):
+            self.cfg = cfg
+
+        def close(self) -> None:
+            return None
+
+    monkeypatch.setattr(
+        "pipelines.exact_bench.noise_oracle_runtime.ExpectationOracle",
+        _DummyOracle,
+    )
+
+    oracle = controller._oracle_for_tier("confirm")
+
+    assert isinstance(oracle, _DummyOracle)
+    assert str(oracle.cfg.noise_mode) == "backend_scheduled"
+
+
+def test_realtime_controller_oracle_v1_shots_uses_direct_measured_geometry_without_raw_group_pool(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    replay_context, h_poly, hmat, psi_initial = _toy_context(theta_x=0.2)
+    controller = RealtimeCheckpointController(
+        cfg=RealtimeCheckpointConfig(mode="oracle_v1", miss_threshold=0.0, gain_ratio_threshold=2.0),
+        replay_context=replay_context,
+        h_poly=h_poly,
+        hmat=hmat,
+        psi_initial=psi_initial,
+        best_theta=[0.2],
+        allow_repeats=False,
+        t_final=0.2,
+        num_times=2,
+        oracle_base_config=OracleConfig(
+            noise_mode="shots",
+            oracle_aggregate="mean",
+            shots=64,
+            oracle_repeats=1,
+        ),
+        wallclock_cap_s=60,
+    )
+
+    measured_calls = {"count": 0}
+
+    def _fake_scout_candidates(**kwargs):
+        return [
+            {
+                "candidate_label": "dummy",
+                "candidate_pool_index": 0,
+                "position_id": 0,
+                "runtime_insert_position": 0,
+                "runtime_block_indices": [],
+                "residual_overlap_l2": 0.0,
+                "compile_proxy_total": 1.0,
+                "groups_new": 0.0,
+                "novelty": None,
+                "position_jump_penalty": 0.0,
+                "temporal_prior_bonus": 0.0,
+                "simple_score": 1.0,
+            }
+        ]
+
+    def _fake_confirm_candidates(**kwargs):
+        return [
+                {
+                    "candidate_label": "dummy",
+                    "candidate_identity": "dummy",
+                    "candidate_pool_index": 0,
+                    "position_id": 0,
+                    "adjusted_gain": 1.0,
+                "gain_exact": 1.0,
+                "gain_ratio": 1.0,
+                "groups_new": 0.0,
+                "candidate_summary": CandidateProbeSummary(
+                    candidate_label="dummy",
+                    candidate_pool_index=0,
+                    position_id=0,
+                    runtime_insert_position=0,
+                    runtime_block_indices=(),
+                    residual_overlap_l2=0.0,
+                    directional_change_l2=None,
+                    gain_exact=1.0,
+                    gain_ratio=1.0,
+                    compile_proxy_total=1.0,
+                    groups_new=0.0,
+                    novelty=None,
+                    position_jump_penalty=0.0,
+                    admissible=True,
+                    rejection_reason=None,
+                    tier_reached="confirm",
+                    decision_metric="measured_incremental_gain_ratio",
+                    oracle_estimate_kind="oracle_shots",
+                ),
+                "candidate_data": {
+                    "theta_aug": np.asarray(controller.current_theta, dtype=float).copy(),
+                    "aug_layout": controller.current_layout,
+                },
+                "theta_dot_aug": np.asarray(controller.current_theta, dtype=float) * 0.0,
+            }
+        ]
+
+    def _fake_confirm_oracle_geometry(**kwargs):
+        measured_calls["count"] += 1
+        assert kwargs["raw_group_pool"] is None
+        baseline = controller._baseline_geometry(
+            kwargs["checkpoint_ctx"],
+            kwargs["cache"],
+            kwargs["geometry_memo"],
+            step_hamiltonian=controller._step_hamiltonian_artifacts(float(kwargs["checkpoint_ctx"].time_start)),
+        )
+        measured_baseline = {
+            **baseline,
+            "summary": dataclass_replace(
+                baseline["summary"],
+                energy=float(baseline["summary"].energy) + 0.1,
+                rho_miss=0.5,
+                solve_mode="grouped_oracle_measured",
+            ),
+            "backend_info": {"noise_mode": "shots"},
+            "observable_estimates": {"baseline": {"mean": float(baseline["summary"].energy) + 0.1}},
+            "raw_group_pool_summary": {},
+        }
+        return measured_baseline, list(_fake_confirm_candidates()), None
+
+    monkeypatch.setattr(controller, "_scout_candidates", _fake_scout_candidates)
+    monkeypatch.setattr(controller, "_confirm_candidates", _fake_confirm_candidates)
+    monkeypatch.setattr(controller, "_confirm_candidates_oracle_geometry", _fake_confirm_oracle_geometry)
+
+    result = controller.run()
+
+    assert measured_calls["count"] == 1
+    assert str(result.summary["mode"]) == "oracle_v1"
+    assert str(result.summary["decision_noise_mode"]) == "shots"
+    assert str(result.summary["oracle_estimate_kind"]) == "oracle_shots"
+    assert int(result.summary["oracle_decision_checkpoints"]) >= 1
+    assert int(result.summary["degraded_checkpoints"]) == 0
+    assert any(str(row["decision_backend"]) == "oracle" for row in result.trajectory)
+
+
+def test_realtime_controller_oracle_v1_policy_reranks_measured_candidates_by_noisy_energy(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    replay_context, h_poly, hmat, psi_initial = _toy_context(theta_x=0.2)
+    controller = RealtimeCheckpointController(
+        cfg=RealtimeCheckpointConfig(
+            mode="oracle_v1",
+            oracle_selection_policy="measured_topk_oracle_energy",
+            miss_threshold=0.0,
+            gain_ratio_threshold=1e-9,
+            append_margin_abs=1e-12,
+            shortlist_size=4,
+            shortlist_fraction=1.0,
+        ),
+        replay_context=replay_context,
+        h_poly=h_poly,
+        hmat=hmat,
+        psi_initial=psi_initial,
+        best_theta=[0.2],
+        allow_repeats=False,
+        t_final=0.2,
+        num_times=2,
+        oracle_base_config=OracleConfig(
+            noise_mode="shots",
+            oracle_aggregate="mean",
+            shots=64,
+            oracle_repeats=1,
+        ),
+        wallclock_cap_s=60,
+    )
+
+    rerank_sizes: list[int] = []
+
+    def _candidate_record(label: str, adjusted_gain: float, gain_exact: float, gain_ratio: float):
+        return {
+            "candidate_label": label,
+            "candidate_identity": label,
+            "candidate_pool_index": 0 if label == "candidate_a" else 1,
+            "position_id": 0 if label == "candidate_a" else 1,
+            "runtime_insert_position": 0,
+            "runtime_block_indices": [],
+            "adjusted_gain": float(adjusted_gain),
+            "gain_exact": float(gain_exact),
+            "gain_ratio": float(gain_ratio),
+            "groups_new": 0.0,
+            "candidate_term": replay_context.family_pool[0 if label == "candidate_a" else 1],
+            "candidate_summary": CandidateProbeSummary(
+                candidate_label=label,
+                candidate_pool_index=0 if label == "candidate_a" else 1,
+                position_id=0 if label == "candidate_a" else 1,
+                runtime_insert_position=0,
+                runtime_block_indices=[],
+                residual_overlap_l2=0.0,
+                directional_change_l2=None,
+                gain_exact=float(gain_exact),
+                gain_ratio=float(gain_ratio),
+                compile_proxy_total=1.0,
+                groups_new=0.0,
+                novelty=None,
+                position_jump_penalty=0.0,
+                admissible=True,
+                rejection_reason=None,
+                tier_reached="confirm",
+                decision_metric="measured_incremental_gain_ratio",
+                oracle_estimate_kind="oracle_shots",
+            ),
+            "candidate_data": {
+                "theta_aug": np.asarray(controller.current_theta, dtype=float).copy(),
+                "aug_layout": controller.current_layout,
+                "aug_executor": controller.current_executor,
+                "aug_terms": list(controller.current_terms),
+            },
+            "theta_dot_aug": np.asarray(controller.current_theta, dtype=float) * 0.0,
+        }
+
+    def _fake_scout_candidates(**kwargs):
+        return [
+            {
+                "candidate_label": "candidate_a",
+                "candidate_pool_index": 0,
+                "position_id": 0,
+                "runtime_insert_position": 0,
+                "runtime_block_indices": [],
+                "residual_overlap_l2": 0.0,
+                "compile_proxy_total": 1.0,
+                "groups_new": 0.0,
+                "novelty": None,
+                "position_jump_penalty": 0.0,
+                "temporal_prior_bonus": 0.0,
+                "simple_score": 2.0,
+            },
+            {
+                "candidate_label": "candidate_b",
+                "candidate_pool_index": 1,
+                "position_id": 1,
+                "runtime_insert_position": 0,
+                "runtime_block_indices": [],
+                "residual_overlap_l2": 0.0,
+                "compile_proxy_total": 1.0,
+                "groups_new": 0.0,
+                "novelty": None,
+                "position_jump_penalty": 0.0,
+                "temporal_prior_bonus": 0.0,
+                "simple_score": 1.5,
+            },
+        ]
+
+    def _fake_confirm_candidates(**kwargs):
+        return [
+            _candidate_record("candidate_a", adjusted_gain=3.0, gain_exact=3.0, gain_ratio=3.0),
+            _candidate_record("candidate_b", adjusted_gain=2.0, gain_exact=2.0, gain_ratio=2.0),
+        ]
+
+    def _fake_confirm_oracle_geometry(**kwargs):
+        baseline = controller._baseline_geometry(
+            kwargs["checkpoint_ctx"],
+            kwargs["cache"],
+            kwargs["geometry_memo"],
+            step_hamiltonian=controller._step_hamiltonian_artifacts(float(kwargs["checkpoint_ctx"].time_start)),
+        )
+        measured_baseline = {
+            **baseline,
+            "summary": dataclass_replace(
+                baseline["summary"],
+                energy=float(baseline["summary"].energy) + 0.1,
+                rho_miss=0.5,
+                solve_mode="grouped_oracle_measured",
+            ),
+            "backend_info": {"noise_mode": "shots"},
+            "observable_estimates": {"baseline": {"mean": float(baseline["summary"].energy) + 0.1}},
+            "raw_group_pool_summary": {},
+        }
+        return measured_baseline, list(_fake_confirm_candidates()), None
+
+    def _fake_confirm_oracle(**kwargs):
+        rerank_sizes.append(len(kwargs["confirmed"]))
+        out = []
+        for rec in kwargs["confirmed"]:
+            row = dict(rec)
+            if str(row["candidate_label"]) == "candidate_b":
+                row["predicted_noisy_improvement_abs"] = 0.25
+                row["predicted_noisy_improvement_ratio"] = 0.25
+                row["adjusted_noisy_improvement"] = 0.25
+            else:
+                row["predicted_noisy_improvement_abs"] = -0.25
+                row["predicted_noisy_improvement_ratio"] = -0.25
+                row["adjusted_noisy_improvement"] = -0.25
+            row["predicted_noisy_energy_mean"] = 0.5
+            row["predicted_noisy_energy_stderr"] = 0.0
+            row["confirm_backend_info"] = {"noise_mode": "shots"}
+            row["confirm_error"] = None
+            out.append(row)
+        return out, {"mean": 1.0, "stderr": 0.0}, None
+
+    def _fake_commit_payload(**kwargs):
+        selected = kwargs["selected"]
+        assert selected is not None
+        assert str(selected["candidate_label"]) == "candidate_b"
+        return (
+            {
+                "stay_noisy_energy_mean": 1.0,
+                "stay_noisy_energy_stderr": 0.0,
+                "selected_noisy_energy_mean": 0.75,
+                "selected_noisy_energy_stderr": 0.0,
+                "selected_noisy_improvement_abs": 0.25,
+                "selected_noisy_improvement_ratio": 0.25,
+            },
+            None,
+        )
+
+    monkeypatch.setattr(controller, "_scout_candidates", _fake_scout_candidates)
+    monkeypatch.setattr(controller, "_confirm_candidates", _fake_confirm_candidates)
+    monkeypatch.setattr(controller, "_confirm_candidates_oracle_geometry", _fake_confirm_oracle_geometry)
+    monkeypatch.setattr(controller, "_confirm_candidates_oracle", _fake_confirm_oracle)
+    monkeypatch.setattr(controller, "_oracle_confirm_limit_for_motion", lambda **kwargs: 1)
+    monkeypatch.setattr(controller, "_oracle_commit_payload", _fake_commit_payload)
+
+    result = controller.run()
+
+    assert rerank_sizes == [2]
+    assert int(result.summary["append_count"]) == 1
+    assert str(result.summary["oracle_selection_policy"]) == "measured_topk_oracle_energy"
+    assert str(result.trajectory[0]["candidate_label"]) == "candidate_b"
+    assert str(result.trajectory[0]["selection_metric"]) == "oracle_energy_improvement"
+    assert str(result.ledger[0]["candidate_label"]) == "candidate_b"
+    assert str(result.ledger[0]["selection_metric"]) == "oracle_energy_improvement"
+
+
+def test_realtime_controller_oracle_v1_policy_falls_back_to_measured_selection_on_rerank_error(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    replay_context, h_poly, hmat, psi_initial = _toy_context(theta_x=0.2)
+    controller = RealtimeCheckpointController(
+        cfg=RealtimeCheckpointConfig(
+            mode="oracle_v1",
+            oracle_selection_policy="measured_topk_oracle_energy",
+            miss_threshold=0.0,
+            gain_ratio_threshold=1e-9,
+            append_margin_abs=1e-12,
+            shortlist_size=4,
+            shortlist_fraction=1.0,
+        ),
+        replay_context=replay_context,
+        h_poly=h_poly,
+        hmat=hmat,
+        psi_initial=psi_initial,
+        best_theta=[0.2],
+        allow_repeats=False,
+        t_final=0.2,
+        num_times=2,
+        oracle_base_config=OracleConfig(
+            noise_mode="shots",
+            oracle_aggregate="mean",
+            shots=64,
+            oracle_repeats=1,
+        ),
+        wallclock_cap_s=60,
+    )
+
+    def _candidate_record(label: str, adjusted_gain: float):
+        return {
+            "candidate_label": label,
+            "candidate_identity": label,
+            "candidate_pool_index": 0 if label == "candidate_a" else 1,
+            "position_id": 0 if label == "candidate_a" else 1,
+            "runtime_insert_position": 0,
+            "runtime_block_indices": [],
+            "adjusted_gain": float(adjusted_gain),
+            "gain_exact": float(adjusted_gain),
+            "gain_ratio": float(adjusted_gain),
+            "groups_new": 0.0,
+            "candidate_term": replay_context.family_pool[0 if label == "candidate_a" else 1],
+            "candidate_summary": CandidateProbeSummary(
+                candidate_label=label,
+                candidate_pool_index=0 if label == "candidate_a" else 1,
+                position_id=0 if label == "candidate_a" else 1,
+                runtime_insert_position=0,
+                runtime_block_indices=[],
+                residual_overlap_l2=0.0,
+                directional_change_l2=None,
+                gain_exact=float(adjusted_gain),
+                gain_ratio=float(adjusted_gain),
+                compile_proxy_total=1.0,
+                groups_new=0.0,
+                novelty=None,
+                position_jump_penalty=0.0,
+                admissible=True,
+                rejection_reason=None,
+                tier_reached="confirm",
+                decision_metric="measured_incremental_gain_ratio",
+                oracle_estimate_kind="oracle_shots",
+            ),
+            "candidate_data": {
+                "theta_aug": np.asarray(controller.current_theta, dtype=float).copy(),
+                "aug_layout": controller.current_layout,
+                "aug_executor": controller.current_executor,
+                "aug_terms": list(controller.current_terms),
+            },
+            "theta_dot_aug": np.asarray(controller.current_theta, dtype=float) * 0.0,
+        }
+
+    def _fake_confirm_oracle_geometry(**kwargs):
+        baseline = controller._baseline_geometry(
+            kwargs["checkpoint_ctx"],
+            kwargs["cache"],
+            kwargs["geometry_memo"],
+            step_hamiltonian=controller._step_hamiltonian_artifacts(float(kwargs["checkpoint_ctx"].time_start)),
+        )
+        measured_baseline = {
+            **baseline,
+            "summary": dataclass_replace(
+                baseline["summary"],
+                energy=float(baseline["summary"].energy) + 0.1,
+                rho_miss=0.5,
+                solve_mode="grouped_oracle_measured",
+            ),
+            "backend_info": {"noise_mode": "shots"},
+            "observable_estimates": {"baseline": {"mean": float(baseline["summary"].energy) + 0.1}},
+            "raw_group_pool_summary": {},
+        }
+        return measured_baseline, [
+            _candidate_record("candidate_a", adjusted_gain=3.0),
+            _candidate_record("candidate_b", adjusted_gain=2.0),
+        ], None
+
+    def _fake_commit_payload(**kwargs):
+        selected = kwargs["selected"]
+        assert selected is not None
+        assert str(selected["candidate_label"]) == "candidate_a"
+        return (
+            {
+                "stay_noisy_energy_mean": 1.0,
+                "stay_noisy_energy_stderr": 0.0,
+                "selected_noisy_energy_mean": 0.8,
+                "selected_noisy_energy_stderr": 0.0,
+                "selected_noisy_improvement_abs": 0.2,
+                "selected_noisy_improvement_ratio": 0.2,
+            },
+            None,
+        )
+
+    monkeypatch.setattr(
+        controller,
+        "_scout_candidates",
+        lambda **kwargs: [
+            {
+                "candidate_label": "candidate_a",
+                "candidate_pool_index": 0,
+                "position_id": 0,
+                "runtime_insert_position": 0,
+                "runtime_block_indices": [],
+                "residual_overlap_l2": 0.0,
+                "compile_proxy_total": 1.0,
+                "groups_new": 0.0,
+                "novelty": None,
+                "position_jump_penalty": 0.0,
+                "temporal_prior_bonus": 0.0,
+                "simple_score": 2.0,
+            },
+            {
+                "candidate_label": "candidate_b",
+                "candidate_pool_index": 1,
+                "position_id": 1,
+                "runtime_insert_position": 0,
+                "runtime_block_indices": [],
+                "residual_overlap_l2": 0.0,
+                "compile_proxy_total": 1.0,
+                "groups_new": 0.0,
+                "novelty": None,
+                "position_jump_penalty": 0.0,
+                "temporal_prior_bonus": 0.0,
+                "simple_score": 1.5,
+            },
+        ],
+    )
+    monkeypatch.setattr(
+        controller,
+        "_confirm_candidates",
+        lambda **kwargs: [
+            _candidate_record("candidate_a", adjusted_gain=3.0),
+            _candidate_record("candidate_b", adjusted_gain=2.0),
+        ],
+    )
+    monkeypatch.setattr(controller, "_confirm_candidates_oracle_geometry", _fake_confirm_oracle_geometry)
+    monkeypatch.setattr(controller, "_confirm_candidates_oracle", lambda **kwargs: ([], None, "boom"))
+    monkeypatch.setattr(controller, "_oracle_confirm_limit_for_motion", lambda **kwargs: 1)
+    monkeypatch.setattr(controller, "_oracle_commit_payload", _fake_commit_payload)
+
+    result = controller.run()
+
+    assert int(result.summary["append_count"]) == 1
+    assert str(result.trajectory[0]["candidate_label"]) == "candidate_a"
+    assert str(result.trajectory[0]["selection_metric"]) == "measured_incremental_gain_ratio"
+    assert str(result.trajectory[0]["degraded_reason"]).startswith("oracle_rerank_error:")
+
+
+def test_realtime_controller_oracle_v1_exact_forecast_guardrail_vetoes_append(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    replay_context, h_poly, hmat, psi_initial = _toy_context(theta_x=0.2)
+    controller = RealtimeCheckpointController(
+        cfg=RealtimeCheckpointConfig(
+            mode="oracle_v1",
+            exact_forecast_guardrail_mode="dual_metric_v1",
+            miss_threshold=0.0,
+            gain_ratio_threshold=1e-9,
+            append_margin_abs=1e-12,
+            shortlist_size=4,
+            shortlist_fraction=1.0,
+        ),
+        replay_context=replay_context,
+        h_poly=h_poly,
+        hmat=hmat,
+        psi_initial=psi_initial,
+        best_theta=[0.2],
+        allow_repeats=False,
+        t_final=0.2,
+        num_times=2,
+        oracle_base_config=OracleConfig(
+            noise_mode="shots",
+            oracle_aggregate="mean",
+            shots=64,
+            oracle_repeats=1,
+        ),
+        wallclock_cap_s=60,
+    )
+
+    def _candidate_record(label: str, adjusted_gain: float):
+        return {
+            "candidate_label": label,
+            "candidate_identity": label,
+            "candidate_pool_index": 0,
+            "position_id": 0,
+            "runtime_insert_position": 0,
+            "runtime_block_indices": [],
+            "adjusted_gain": float(adjusted_gain),
+            "gain_exact": float(adjusted_gain),
+            "gain_ratio": float(adjusted_gain),
+            "groups_new": 0.0,
+            "candidate_term": replay_context.family_pool[0],
+            "candidate_summary": CandidateProbeSummary(
+                candidate_label=label,
+                candidate_pool_index=0,
+                position_id=0,
+                runtime_insert_position=0,
+                runtime_block_indices=[],
+                residual_overlap_l2=0.0,
+                directional_change_l2=None,
+                gain_exact=float(adjusted_gain),
+                gain_ratio=float(adjusted_gain),
+                compile_proxy_total=1.0,
+                groups_new=0.0,
+                novelty=None,
+                position_jump_penalty=0.0,
+                admissible=True,
+                rejection_reason=None,
+                tier_reached="confirm",
+                decision_metric="measured_incremental_gain_ratio",
+                oracle_estimate_kind="oracle_shots",
+            ),
+            "candidate_data": {
+                "theta_aug": np.asarray(controller.current_theta, dtype=float).copy(),
+                "aug_layout": controller.current_layout,
+                "aug_executor": controller.current_executor,
+                "aug_terms": list(controller.current_terms),
+            },
+            "theta_dot_aug": np.asarray(controller.current_theta, dtype=float) * 0.0,
+        }
+
+    def _fake_confirm_oracle_geometry(**kwargs):
+        baseline = controller._baseline_geometry(
+            kwargs["checkpoint_ctx"],
+            kwargs["cache"],
+            kwargs["geometry_memo"],
+            step_hamiltonian=controller._step_hamiltonian_artifacts(float(kwargs["checkpoint_ctx"].time_start)),
+        )
+        measured_baseline = {
+            **baseline,
+            "summary": dataclass_replace(
+                baseline["summary"],
+                energy=float(baseline["summary"].energy) + 0.1,
+                rho_miss=0.5,
+                solve_mode="grouped_oracle_measured",
+            ),
+            "backend_info": {"noise_mode": "shots"},
+            "observable_estimates": {"baseline": {"mean": float(baseline["summary"].energy) + 0.1}},
+            "raw_group_pool_summary": {},
+        }
+        return measured_baseline, [_candidate_record("candidate_a", adjusted_gain=3.0)], None
+
+    def _fake_commit_payload(**kwargs):
+        selected = kwargs["selected"]
+        assert selected is not None
+        return (
+            {
+                "stay_noisy_energy_mean": 1.0,
+                "stay_noisy_energy_stderr": 0.0,
+                "selected_noisy_energy_mean": 0.8,
+                "selected_noisy_energy_stderr": 0.0,
+                "selected_noisy_improvement_abs": 0.2,
+                "selected_noisy_improvement_ratio": 0.2,
+            },
+            None,
+        )
+
+    forecast_calls: list[str] = []
+
+    def _fake_exact_step_forecast(**kwargs):
+        forecast_calls.append("call")
+        if len(forecast_calls) == 1:
+            return {
+                "fidelity_exact_next": 0.80,
+                "abs_energy_total_error_next": 0.10,
+                "abs_staggered_error_next": 0.20,
+                "abs_doublon_error_next": 0.30,
+            }
+        return {
+            "fidelity_exact_next": 0.70,
+            "abs_energy_total_error_next": 0.20,
+            "abs_staggered_error_next": 0.25,
+            "abs_doublon_error_next": 0.35,
+        }
+
+    monkeypatch.setattr(
+        controller,
+        "_scout_candidates",
+        lambda **kwargs: [
+            {
+                "candidate_label": "candidate_a",
+                "candidate_pool_index": 0,
+                "position_id": 0,
+                "runtime_insert_position": 0,
+                "runtime_block_indices": [],
+                "residual_overlap_l2": 0.0,
+                "compile_proxy_total": 1.0,
+                "groups_new": 0.0,
+                "novelty": None,
+                "position_jump_penalty": 0.0,
+                "temporal_prior_bonus": 0.0,
+                "simple_score": 2.0,
+            }
+        ],
+    )
+    monkeypatch.setattr(
+        controller,
+        "_confirm_candidates",
+        lambda **kwargs: [_candidate_record("candidate_a", adjusted_gain=3.0)],
+    )
+    monkeypatch.setattr(controller, "_confirm_candidates_oracle_geometry", _fake_confirm_oracle_geometry)
+    monkeypatch.setattr(controller, "_oracle_commit_payload", _fake_commit_payload)
+    monkeypatch.setattr(controller, "_exact_step_forecast", _fake_exact_step_forecast)
+
+    result = controller.run()
+
+    assert int(result.summary["append_count"]) == 0
+    assert int(result.summary["stay_count"]) == 2
+    assert int(result.summary["decision_override_count"]) == 1
+    assert int(result.summary["exact_forecast_veto_count"]) == 1
+    assert str(result.summary["exact_forecast_guardrail_mode"]) == "dual_metric_v1"
+    assert str(result.trajectory[0]["action_kind"]) == "stay"
+    assert str(result.trajectory[0]["proposed_action_kind"]) == "append_candidate"
+    assert str(result.trajectory[0]["proposed_candidate_label"]) == "candidate_a"
+    assert str(result.trajectory[0]["decision_override_reason"]) == "exact_forecast_dual_metric_regression"
+    assert float(result.trajectory[0]["forecast_stay_fidelity_exact_next"]) == pytest.approx(0.80)
+    assert float(result.trajectory[0]["forecast_selected_abs_energy_total_error_next"]) == pytest.approx(0.20)
+    assert str(result.ledger[0]["decision_override_reason"]) == "exact_forecast_dual_metric_regression"
+
+
+def test_realtime_controller_oracle_v1_exact_forecast_guardrail_fails_open(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    replay_context, h_poly, hmat, psi_initial = _toy_context(theta_x=0.2)
+    controller = RealtimeCheckpointController(
+        cfg=RealtimeCheckpointConfig(
+            mode="oracle_v1",
+            exact_forecast_guardrail_mode="dual_metric_v1",
+            miss_threshold=0.0,
+            gain_ratio_threshold=1e-9,
+            append_margin_abs=1e-12,
+            shortlist_size=4,
+            shortlist_fraction=1.0,
+        ),
+        replay_context=replay_context,
+        h_poly=h_poly,
+        hmat=hmat,
+        psi_initial=psi_initial,
+        best_theta=[0.2],
+        allow_repeats=False,
+        t_final=0.2,
+        num_times=2,
+        oracle_base_config=OracleConfig(
+            noise_mode="shots",
+            oracle_aggregate="mean",
+            shots=64,
+            oracle_repeats=1,
+        ),
+        wallclock_cap_s=60,
+    )
+
+    def _candidate_record(label: str, adjusted_gain: float):
+        return {
+            "candidate_label": label,
+            "candidate_identity": label,
+            "candidate_pool_index": 0,
+            "position_id": 0,
+            "runtime_insert_position": 0,
+            "runtime_block_indices": [],
+            "adjusted_gain": float(adjusted_gain),
+            "gain_exact": float(adjusted_gain),
+            "gain_ratio": float(adjusted_gain),
+            "groups_new": 0.0,
+            "candidate_term": replay_context.family_pool[0],
+            "candidate_summary": CandidateProbeSummary(
+                candidate_label=label,
+                candidate_pool_index=0,
+                position_id=0,
+                runtime_insert_position=0,
+                runtime_block_indices=[],
+                residual_overlap_l2=0.0,
+                directional_change_l2=None,
+                gain_exact=float(adjusted_gain),
+                gain_ratio=float(adjusted_gain),
+                compile_proxy_total=1.0,
+                groups_new=0.0,
+                novelty=None,
+                position_jump_penalty=0.0,
+                admissible=True,
+                rejection_reason=None,
+                tier_reached="confirm",
+                decision_metric="measured_incremental_gain_ratio",
+                oracle_estimate_kind="oracle_shots",
+            ),
+            "candidate_data": {
+                "theta_aug": np.asarray(controller.current_theta, dtype=float).copy(),
+                "aug_layout": controller.current_layout,
+                "aug_executor": controller.current_executor,
+                "aug_terms": list(controller.current_terms),
+            },
+            "theta_dot_aug": np.asarray(controller.current_theta, dtype=float) * 0.0,
+        }
+
+    def _fake_confirm_oracle_geometry(**kwargs):
+        baseline = controller._baseline_geometry(
+            kwargs["checkpoint_ctx"],
+            kwargs["cache"],
+            kwargs["geometry_memo"],
+            step_hamiltonian=controller._step_hamiltonian_artifacts(float(kwargs["checkpoint_ctx"].time_start)),
+        )
+        measured_baseline = {
+            **baseline,
+            "summary": dataclass_replace(
+                baseline["summary"],
+                energy=float(baseline["summary"].energy) + 0.1,
+                rho_miss=0.5,
+                solve_mode="grouped_oracle_measured",
+            ),
+            "backend_info": {"noise_mode": "shots"},
+            "observable_estimates": {"baseline": {"mean": float(baseline["summary"].energy) + 0.1}},
+            "raw_group_pool_summary": {},
+        }
+        return measured_baseline, [_candidate_record("candidate_a", adjusted_gain=3.0)], None
+
+    def _fake_commit_payload(**kwargs):
+        selected = kwargs["selected"]
+        assert selected is not None
+        return (
+            {
+                "stay_noisy_energy_mean": 1.0,
+                "stay_noisy_energy_stderr": 0.0,
+                "selected_noisy_energy_mean": 0.8,
+                "selected_noisy_energy_stderr": 0.0,
+                "selected_noisy_improvement_abs": 0.2,
+                "selected_noisy_improvement_ratio": 0.2,
+            },
+            None,
+        )
+
+    monkeypatch.setattr(
+        controller,
+        "_scout_candidates",
+        lambda **kwargs: [
+            {
+                "candidate_label": "candidate_a",
+                "candidate_pool_index": 0,
+                "position_id": 0,
+                "runtime_insert_position": 0,
+                "runtime_block_indices": [],
+                "residual_overlap_l2": 0.0,
+                "compile_proxy_total": 1.0,
+                "groups_new": 0.0,
+                "novelty": None,
+                "position_jump_penalty": 0.0,
+                "temporal_prior_bonus": 0.0,
+                "simple_score": 2.0,
+            }
+        ],
+    )
+    monkeypatch.setattr(
+        controller,
+        "_confirm_candidates",
+        lambda **kwargs: [_candidate_record("candidate_a", adjusted_gain=3.0)],
+    )
+    monkeypatch.setattr(controller, "_confirm_candidates_oracle_geometry", _fake_confirm_oracle_geometry)
+    monkeypatch.setattr(controller, "_oracle_commit_payload", _fake_commit_payload)
+    monkeypatch.setattr(controller, "_exact_step_forecast", lambda **kwargs: (_ for _ in ()).throw(RuntimeError("boom")))
+
+    result = controller.run()
+
+    assert int(result.summary["append_count"]) == 1
+    assert int(result.summary["decision_override_count"]) == 0
+    assert int(result.summary["exact_forecast_veto_count"]) == 0
+    assert str(result.trajectory[0]["action_kind"]) == "append_candidate"
+    assert result.trajectory[0]["decision_override_reason"] is None
+    assert "RuntimeError: boom" in str(result.trajectory[0]["exact_forecast_error"])
+    assert "exact_forecast_error: RuntimeError: boom" in str(result.trajectory[0]["degraded_reason"])
+
+
+def test_confirm_candidates_oracle_prefers_damped_candidate_step_scale(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    replay_context, h_poly, hmat, psi_initial = _toy_context(theta_x=0.2)
+    controller = RealtimeCheckpointController(
+        cfg=RealtimeCheckpointConfig(
+            mode="oracle_v1",
+            candidate_step_scales=(0.25, 1.0),
+        ),
+        replay_context=replay_context,
+        h_poly=h_poly,
+        hmat=hmat,
+        psi_initial=psi_initial,
+        best_theta=[0.2],
+        allow_repeats=False,
+        t_final=0.2,
+        num_times=2,
+        oracle_base_config=OracleConfig(
+            noise_mode="shots",
+            oracle_aggregate="mean",
+            shots=64,
+            oracle_repeats=1,
+        ),
+        wallclock_cap_s=60,
+    )
+    checkpoint_ctx = make_checkpoint_context(
+        checkpoint_index=0,
+        time_start=0.0,
+        time_stop=0.2,
+        scaffold_labels=[str(block.candidate_label) for block in controller.current_layout.blocks],
+        theta=np.asarray(controller.current_theta, dtype=float),
+        psi=np.asarray(
+            controller.current_executor.prepare_state(
+                controller.current_theta,
+                replay_context.psi_ref,
+            ),
+            dtype=complex,
+        ),
+        logical_count=int(controller.current_layout.logical_parameter_count),
+        runtime_count=int(controller.current_layout.runtime_parameter_count),
+        resolved_family=str(replay_context.family_info.get("resolved", "toy_pool")),
+        grouping_mode=str(controller.cfg.grouping_mode),
+        structure_locked=True,
+    )
+    exact_cache = ExactCheckpointValueCache(
+        checkpoint_id=checkpoint_ctx.checkpoint_id,
+        grouping_mode=str(controller.cfg.grouping_mode),
+    )
+    geometry_memo = DerivedGeometryMemo(checkpoint_id=checkpoint_ctx.checkpoint_id)
+    candidate_data = controller._candidate_executor_data(
+        checkpoint_ctx=checkpoint_ctx,
+        cache=exact_cache,
+        geometry_memo=geometry_memo,
+        candidate_term=replay_context.family_pool[1],
+        candidate_pool_index=1,
+        position_id=1,
+    )
+    confirmed = [
+        {
+            "candidate_label": str(replay_context.family_pool[1].label),
+            "candidate_identity": f"{replay_context.family_pool[1].label}__pool1",
+            "candidate_pool_index": 1,
+            "position_id": 1,
+            "runtime_insert_position": int(candidate_data["runtime_insert_position"]),
+            "runtime_block_indices": list(candidate_data["runtime_block_indices"]),
+            "groups_new": 0.0,
+            "candidate_data": candidate_data,
+            "theta_dot_aug": np.array([0.2, 1.0], dtype=float),
+            "theta_dot_aug_existing": np.array([0.2], dtype=float),
+            "eta_dot": np.array([1.0], dtype=float),
+            "candidate_summary": CandidateProbeSummary(
+                candidate_label=str(replay_context.family_pool[1].label),
+                candidate_pool_index=1,
+                position_id=1,
+                runtime_insert_position=int(candidate_data["runtime_insert_position"]),
+                runtime_block_indices=list(candidate_data["runtime_block_indices"]),
+                residual_overlap_l2=1.0,
+                gain_exact=1.0,
+                gain_ratio=1.0,
+                compile_proxy_total=1.0,
+                groups_new=0.0,
+                novelty=None,
+                position_jump_penalty=0.0,
+                directional_change_l2=0.0,
+                tier_reached="confirm",
+                admissible=True,
+                rejection_reason=None,
+                decision_metric="measured_incremental_gain_ratio",
+                oracle_estimate_kind="oracle_shots",
+            ),
+        }
+    ]
+    baseline = {
+        "theta_dot_step": np.array([0.2], dtype=float),
+    }
+
+    def _fake_oracle_energy_estimate(**kwargs):
+        theta_runtime = np.asarray(kwargs["theta_runtime"], dtype=float).reshape(-1)
+        if kwargs["candidate_label"] is None:
+            mean = 1.0
+        else:
+            append_amp = float(theta_runtime[-1])
+            mean = 0.6 if append_amp <= 0.3 else 1.4
+        return {"mean": float(mean), "stderr": 0.0, "backend_info": {"noise_mode": "shots"}}, False
+
+    monkeypatch.setattr(controller, "_oracle_energy_estimate", _fake_oracle_energy_estimate)
+
+    confirmed_oracle, stay_estimate, degraded_reason = controller._confirm_candidates_oracle(
+        checkpoint_ctx=checkpoint_ctx,
+        baseline=baseline,
+        confirmed=confirmed,
+        dt=1.0,
+        oracle_cache=OracleCheckpointValueCache(checkpoint_id=checkpoint_ctx.checkpoint_id),
+        raw_group_pool=None,
+        oracle_observable=None,
+        budget_scale=1.0,
+    )
+
+    assert degraded_reason is None
+    assert stay_estimate is not None
+    assert stay_estimate["mean"] == pytest.approx(1.0)
+    assert len(confirmed_oracle) == 1
+    rec = confirmed_oracle[0]
+    assert float(rec["candidate_step_scale"]) == pytest.approx(0.25)
+    assert float(rec["predicted_noisy_energy_mean"]) == pytest.approx(0.6)
+    assert float(rec["predicted_noisy_improvement_abs"]) == pytest.approx(0.4)
+    assert np.asarray(rec["theta_dot_aug"], dtype=float) == pytest.approx(np.array([0.2, 0.25]))
+    assert float(rec["candidate_summary"].selected_step_scale) == pytest.approx(0.25)
 
 
 def test_oracle_sampling_targets_scale_total_shots_even_with_single_repeat() -> None:
@@ -502,6 +2012,51 @@ def test_oracle_sampling_targets_scale_total_shots_even_with_single_repeat() -> 
     assert int(calm_samples) == max(1, int(np.ceil(float(base_samples) * 0.5)))
     assert int(kink_total_shots) == int(np.ceil(float(base_total_shots) * 2.0))
     assert int(kink_samples) == max(1, int(np.ceil(float(base_samples) * 2.0)))
+
+
+def test_oracle_sampling_targets_floor_measured_baseline_to_base_surface() -> None:
+    replay_context, h_poly, hmat, psi_initial = _toy_context(theta_x=0.2)
+    controller = RealtimeCheckpointController(
+        cfg=RealtimeCheckpointConfig(mode="oracle_v1"),
+        replay_context=replay_context,
+        h_poly=h_poly,
+        hmat=hmat,
+        psi_initial=psi_initial,
+        best_theta=[0.2],
+        allow_repeats=False,
+        t_final=0.1,
+        num_times=2,
+        oracle_base_config=OracleConfig(
+            noise_mode="backend_scheduled",
+            oracle_aggregate="mean",
+            backend_name="FakeGuadalupeV2",
+            use_fake_backend=True,
+            shots=32,
+            oracle_repeats=1,
+        ),
+        wallclock_cap_s=60,
+    )
+
+    controller._oracle_tier_configs["confirm"] = dataclass_replace(
+        controller._oracle_tier_configs["confirm"],
+        shots=8,
+        oracle_repeats=1,
+    )
+
+    tier_total_shots, tier_samples = controller._oracle_sampling_targets(
+        tier_name="confirm",
+        budget_scale=1.0,
+    )
+    baseline_total_shots, baseline_samples = controller._oracle_sampling_targets(
+        tier_name="confirm",
+        budget_scale=1.0,
+        floor_to_base_config=True,
+    )
+
+    assert int(tier_total_shots) == 8
+    assert int(tier_samples) == 1
+    assert int(baseline_total_shots) == 32
+    assert int(baseline_samples) == 1
 
 
 def test_oracle_scheduler_deescalates_on_calm_motion(monkeypatch: pytest.MonkeyPatch) -> None:

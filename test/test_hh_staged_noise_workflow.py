@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 import sys
 from types import SimpleNamespace
@@ -136,6 +137,74 @@ def test_resolve_oracle_v1_accepts_runtime_controller_noise_mode() -> None:
     assert str(cfg.noise.controller_noise_mode) == "runtime"
     assert str(cfg.noise.backend_name) == "ibm_marrakesh"
     assert bool(cfg.noise.use_fake_backend) is False
+
+
+def test_resolve_oracle_v1_accepts_controller_tuning_and_tier_overrides() -> None:
+    cfg = noise_wf.resolve_staged_hh_noise_config(
+        parse_args(
+            [
+                "--L",
+                "2",
+                "--skip-pdf",
+                "--checkpoint-controller-mode",
+                "oracle_v1",
+                "--checkpoint-controller-noise-mode",
+                "backend_scheduled",
+                "--use-fake-backend",
+                "--backend-name",
+                "FakeMarrakesh",
+                "--checkpoint-controller-shortlist-size",
+                "1",
+                "--checkpoint-controller-oracle-selection-policy",
+                "measured_topk_oracle_energy",
+                "--checkpoint-controller-candidate-step-scales",
+                "0.25,0.5,1.0",
+                "--checkpoint-controller-exact-forecast-guardrail-mode",
+                "dual_metric_v1",
+                "--checkpoint-controller-exact-forecast-fidelity-loss-tol",
+                "0.01",
+                "--checkpoint-controller-exact-forecast-abs-energy-error-increase-tol",
+                "0.02",
+                "--checkpoint-controller-max-probe-positions",
+                "1",
+                "--checkpoint-controller-motion-calm-shortlist-scale",
+                "0.25",
+                "--checkpoint-controller-motion-kink-shortlist-bonus",
+                "0",
+                "--checkpoint-controller-scout-shots",
+                "8",
+                "--checkpoint-controller-confirm-shots",
+                "16",
+                "--checkpoint-controller-commit-shots",
+                "16",
+                "--checkpoint-controller-scout-repeats",
+                "1",
+                "--checkpoint-controller-confirm-repeats",
+                "1",
+                "--checkpoint-controller-commit-repeats",
+                "1",
+                "--checkpoint-controller-timeout-s",
+                "300",
+                "--checkpoint-controller-progress-every-s",
+                "2.5",
+            ]
+        )
+    )
+
+    assert int(cfg.staged.realtime_checkpoint.shortlist_size) == 1
+    assert str(cfg.staged.realtime_checkpoint.oracle_selection_policy) == "measured_topk_oracle_energy"
+    assert tuple(cfg.staged.realtime_checkpoint.candidate_step_scales) == pytest.approx((0.25, 0.5, 1.0))
+    assert str(cfg.staged.realtime_checkpoint.exact_forecast_guardrail_mode) == "dual_metric_v1"
+    assert float(cfg.staged.realtime_checkpoint.exact_forecast_fidelity_loss_tol) == pytest.approx(0.01)
+    assert float(cfg.staged.realtime_checkpoint.exact_forecast_abs_energy_error_increase_tol) == pytest.approx(0.02)
+    assert int(cfg.staged.realtime_checkpoint.max_probe_positions) == 1
+    assert float(cfg.staged.realtime_checkpoint.motion_calm_shortlist_scale) == pytest.approx(0.25)
+    assert int(cfg.staged.realtime_checkpoint.motion_kink_shortlist_bonus) == 0
+    assert int(cfg.staged.realtime_checkpoint.tiers[0].oracle_shots) == 8
+    assert int(cfg.staged.realtime_checkpoint.tiers[1].oracle_shots) == 16
+    assert int(cfg.staged.realtime_checkpoint.tiers[2].oracle_shots) == 16
+    assert int(cfg.noise.controller_timeout_s) == 300
+    assert float(cfg.noise.controller_progress_every_s) == pytest.approx(2.5)
 
 
 def test_resolve_oracle_v1_rejects_backend_scheduled_readout_with_active_symmetry() -> None:
@@ -604,6 +673,151 @@ def test_resolve_fixed_scaffold_compile_control_scout_requires_backend_name(
         )
 
 
+def test_resolve_fixed_scaffold_saved_theta_mitigation_matrix_defaults_to_marrakesh_subject(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    source_json = tmp_path / "fixed_scaffold.json"
+    source_json.write_text("{\"adapt_vqe\": {\"operators\": []}, \"ground_state\": {}, \"settings\": {}}", encoding="utf-8")
+    monkeypatch.setattr(noise_wf, "_default_fixed_scaffold_runtime_import_json", lambda: (source_json, True))
+
+    cfg = noise_wf.resolve_staged_hh_noise_config(
+        parse_args(
+            [
+                "--L",
+                "2",
+                "--skip-pdf",
+                "--include-fixed-scaffold-saved-theta-mitigation-matrix",
+            ]
+        )
+    )
+
+    assert str(cfg.source.mode) == "imported_artifact"
+    assert cfg.source.resolved_json == source_json
+    assert cfg.source.default_subject_kind == "hh_marrakesh_gate_pruned_6term_drop_eyezee_v1"
+    assert bool(cfg.fixed_scaffold_saved_theta_mitigation_matrix.enabled) is True
+    assert (
+        str(cfg.fixed_scaffold_saved_theta_mitigation_matrix.subject_kind)
+        == "hh_marrakesh_gate_pruned_6term_drop_eyezee_v1"
+    )
+    assert str(cfg.fixed_scaffold_saved_theta_mitigation_matrix.noise_mode) == "backend_scheduled"
+    assert cfg.fixed_scaffold_saved_theta_mitigation_matrix.compile_presets == (
+        {"label": "opt1_seed4", "transpile_optimization_level": 1, "seed_transpiler": 4},
+        {"label": "opt2_seed0", "transpile_optimization_level": 2, "seed_transpiler": 0},
+    )
+    assert cfg.fixed_scaffold_saved_theta_mitigation_matrix.zne_scales == (1.0, 3.0, 5.0)
+    assert cfg.fixed_scaffold_saved_theta_mitigation_matrix.suppression_labels == (
+        "readout_plus_gate_twirling",
+        "readout_plus_local_dd",
+        "readout_plus_gate_twirling_plus_local_dd",
+    )
+    assert cfg.fixed_scaffold_saved_theta_mitigation_matrix.selected_cells == ()
+    assert cfg.fixed_scaffold_saved_theta_mitigation_matrix.mitigation_config_base == {
+        "mode": "readout",
+        "zne_scales": [],
+        "dd_sequence": None,
+        "local_readout_strategy": "mthree",
+    }
+    assert cfg.fixed_scaffold_saved_theta_mitigation_matrix.symmetry_mitigation_config == {
+        "mode": "off",
+        "num_sites": 2,
+        "ordering": "blocked",
+        "sector_n_up": 1,
+        "sector_n_dn": 1,
+    }
+    assert cfg.noise.backend_name == "FakeMarrakesh"
+    assert bool(cfg.noise.use_fake_backend) is True
+
+
+def test_resolve_fixed_scaffold_saved_theta_mitigation_matrix_allows_custom_presets_and_cells(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    source_json = tmp_path / "weak_fixed_scaffold.json"
+    source_json.write_text(
+        "{\"adapt_vqe\": {\"operators\": []}, \"ground_state\": {}, \"settings\": {}}",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(
+        noise_wf, "_default_fixed_scaffold_runtime_import_json", lambda: (source_json, True)
+    )
+
+    cfg = noise_wf.resolve_staged_hh_noise_config(
+        parse_args(
+            [
+                "--L",
+                "2",
+                "--skip-pdf",
+                "--include-fixed-scaffold-saved-theta-mitigation-matrix",
+                "--fixed-scaffold-matrix-compile-presets",
+                "opt2_seed5:2:5",
+                "--fixed-scaffold-matrix-selected-cells",
+                (
+                    "opt2_seed5__zne_on__twirl_dd,"
+                    "opt2_seed5__zne_on__twirl,"
+                    "opt2_seed5__zne_on__dd,"
+                    "opt2_seed5__zne_off__twirl_dd"
+                ),
+                "--fixed-scaffold-matrix-base-mitigation-mode",
+                "none",
+                "--symmetry-mitigation-mode",
+                "projector_renorm_v1",
+                "--sector-n-up",
+                "1",
+                "--sector-n-dn",
+                "1",
+                "--fixed-final-state-json",
+                str(source_json),
+            ]
+        )
+    )
+
+    assert cfg.fixed_scaffold_saved_theta_mitigation_matrix.compile_presets == (
+        {"label": "opt2_seed5", "transpile_optimization_level": 2, "seed_transpiler": 5},
+    )
+    assert cfg.fixed_scaffold_saved_theta_mitigation_matrix.selected_cells == (
+        "opt2_seed5__zne_on__twirl_dd",
+        "opt2_seed5__zne_on__twirl",
+        "opt2_seed5__zne_on__dd",
+        "opt2_seed5__zne_off__twirl_dd",
+    )
+    assert cfg.fixed_scaffold_saved_theta_mitigation_matrix.mitigation_config_base == {
+        "mode": "none",
+        "zne_scales": [],
+        "dd_sequence": None,
+        "local_readout_strategy": None,
+    }
+    assert cfg.fixed_scaffold_saved_theta_mitigation_matrix.symmetry_mitigation_config == {
+        "mode": "projector_renorm_v1",
+        "num_sites": 2,
+        "ordering": "blocked",
+        "sector_n_up": 1,
+        "sector_n_dn": 1,
+    }
+
+
+def test_resolve_fixed_scaffold_saved_theta_mitigation_matrix_rejects_runtime_only_flags(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    source_json = tmp_path / "fixed_scaffold.json"
+    source_json.write_text("{\"adapt_vqe\": {\"operators\": []}, \"ground_state\": {}, \"settings\": {}}", encoding="utf-8")
+    monkeypatch.setattr(noise_wf, "_default_fixed_scaffold_runtime_import_json", lambda: (source_json, True))
+
+    with pytest.raises(ValueError, match="does not support the legacy Runtime final ZNE audit flag"):
+        noise_wf.resolve_staged_hh_noise_config(
+            parse_args(
+                [
+                    "--L",
+                    "2",
+                    "--skip-pdf",
+                    "--include-fixed-scaffold-saved-theta-mitigation-matrix",
+                    "--include-fixed-scaffold-runtime-final-zne-audit",
+                ]
+            )
+        )
+
+
 def test_resolve_fixed_scaffold_runtime_energy_only_defaults_to_marrakesh_subject(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
@@ -773,6 +987,48 @@ def test_resolve_imported_artifact_rejects_phase3_oracle_gradient_knobs(
                 ]
             )
         )
+
+
+def test_build_noise_summary_preserves_fixed_scaffold_saved_theta_mitigation_matrix_fields() -> None:
+    payload = {
+        "stage_pipeline": {},
+        "dynamics_noisy": {"profiles": {}},
+        "fixed_scaffold_saved_theta_mitigation_matrix": {
+            "success": True,
+            "cell_counts": {
+                "total": 12,
+                "completed": 12,
+                "successful": 12,
+                "failed": 0,
+            },
+            "best_cell": {
+                "label": "opt2_seed0__zne_on__twirl_dd",
+                "delta_mean": 0.04,
+                "compiled_two_qubit_count": 14,
+                "compiled_depth": 38,
+                "compile_preset_label": "opt2_seed0",
+                "suppression_stack": "readout_plus_gate_twirling_plus_local_dd",
+                "mitigation_config": {"mode": "readout"},
+                "zne_enabled": True,
+            },
+        },
+    }
+
+    summary = noise_wf._build_noise_summary(payload)
+
+    assert summary["fixed_scaffold_saved_theta_mitigation_matrix_completed"] == 1
+    assert summary["fixed_scaffold_saved_theta_mitigation_matrix_total"] == 1
+    assert summary["fixed_scaffold_saved_theta_mitigation_matrix_cells_total"] == 12
+    assert summary["fixed_scaffold_saved_theta_mitigation_matrix_cells_completed"] == 12
+    assert summary["fixed_scaffold_saved_theta_mitigation_matrix_cells_failed"] == 0
+    assert summary["fixed_scaffold_saved_theta_mitigation_matrix_best_label"] == "opt2_seed0__zne_on__twirl_dd"
+    assert summary["fixed_scaffold_saved_theta_mitigation_matrix_best_delta_mean"] == pytest.approx(0.04)
+    assert summary["fixed_scaffold_saved_theta_mitigation_matrix_best_compile_preset"] == "opt2_seed0"
+    assert summary["fixed_scaffold_saved_theta_mitigation_matrix_best_suppression_stack"] == (
+        "readout_plus_gate_twirling_plus_local_dd"
+    )
+    assert summary["fixed_scaffold_saved_theta_mitigation_matrix_best_zne_enabled"] is True
+    assert summary["fixed_scaffold_saved_theta_mitigation_matrix_best_mitigation_mode"] == "readout"
 
 
 def test_resolve_fixed_scaffold_noisy_replay_requires_fake_backend(
@@ -991,6 +1247,11 @@ def test_run_staged_hh_noise_merges_base_payload_and_writes(
         ),
     )
     monkeypatch.setattr(
+        noise_wf,
+        "run_adaptive_realtime_checkpoint_profile_noisy",
+        lambda stage_result_arg, cfg_arg: None,
+    )
+    monkeypatch.setattr(
         noise_wf.base_wf,
         "assemble_payload",
         lambda **kwargs: {
@@ -1144,6 +1405,7 @@ def test_prepare_adaptive_realtime_checkpoint_inputs_allows_drive_for_oracle_v1(
 
 def test_run_adaptive_realtime_checkpoint_profile_noisy_forwards_drive_config(
     monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
 ) -> None:
     cfg = noise_wf.resolve_staged_hh_noise_config(
         parse_args(
@@ -1151,6 +1413,10 @@ def test_run_adaptive_realtime_checkpoint_profile_noisy_forwards_drive_config(
                 "--L",
                 "2",
                 "--skip-pdf",
+                "--output-json",
+                str(tmp_path / "noise.json"),
+                "--output-pdf",
+                str(tmp_path / "noise.pdf"),
                 "--enable-drive",
                 "--drive-A",
                 "0.6",
@@ -1175,6 +1441,10 @@ def test_run_adaptive_realtime_checkpoint_profile_noisy_forwards_drive_config(
                 "--use-fake-backend",
                 "--backend-name",
                 "FakeMarrakesh",
+                "--checkpoint-controller-timeout-s",
+                "123",
+                "--checkpoint-controller-progress-every-s",
+                "2.0",
             ]
         )
     )
@@ -1182,8 +1452,8 @@ def test_run_adaptive_realtime_checkpoint_profile_noisy_forwards_drive_config(
     captured: dict[str, object] = {}
 
     monkeypatch.setattr(
-        base_wf,
-        "_prepare_adaptive_realtime_checkpoint_inputs",
+        noise_wf,
+        "_prepare_checkpoint_controller_inputs",
         lambda stage_result_arg, staged_cfg_arg: (
             SimpleNamespace(payload_in={}),
             ScaffoldAcceptanceResult(
@@ -1218,6 +1488,94 @@ def test_run_adaptive_realtime_checkpoint_profile_noisy_forwards_drive_config(
     assert str(drive_cfg.drive_time_sampling) == "midpoint"
     assert float(drive_cfg.drive_t0) == pytest.approx(0.0)
     assert int(drive_cfg.exact_steps_multiplier) == 1
+    assert int(controller_kwargs["wallclock_cap_s"]) == 123
+    assert Path(controller_kwargs["progress_path"]).name == "controller_progress.json"
+    assert Path(controller_kwargs["partial_payload_path"]).name == "controller_partial.json"
+    assert float(controller_kwargs["progress_every_s"]) == pytest.approx(2.0)
+
+
+def test_run_adaptive_realtime_checkpoint_profile_noisy_off_runs_local_controller(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    cfg = noise_wf.resolve_staged_hh_noise_config(
+        parse_args(
+            [
+                "--L",
+                "2",
+                "--skip-pdf",
+                "--output-json",
+                str(tmp_path / "noise_off.json"),
+                "--output-pdf",
+                str(tmp_path / "noise_off.pdf"),
+                "--enable-drive",
+                "--use-fake-backend",
+                "--checkpoint-controller-noise-mode",
+                "backend_scheduled",
+                "--checkpoint-controller-mode",
+                "off",
+                "--checkpoint-controller-timeout-s",
+                "123",
+                "--checkpoint-controller-progress-every-s",
+                "2.0",
+            ]
+        )
+    )
+    stage_result = _stage_result()
+    captured: dict[str, object] = {}
+
+    monkeypatch.setattr(
+        noise_wf,
+        "_prepare_checkpoint_controller_inputs",
+        lambda stage_result_arg, staged_cfg_arg: (
+            SimpleNamespace(payload_in={}),
+            ScaffoldAcceptanceResult(
+                accepted=True,
+                reason="ok",
+                structure_locked=True,
+                source_kind="pytest",
+            ),
+            [0.1],
+        ),
+    )
+
+    class _FakeController:
+        def __init__(self, **kwargs):
+            captured.update(kwargs)
+
+        def run(self):
+            return SimpleNamespace(
+                trajectory=[
+                    {
+                        "action_kind": "stay",
+                        "decision_backend": "off",
+                        "site_occupations": [1.0, 1.0],
+                        "site_occupations_exact": [1.0, 1.0],
+                        "staggered": 0.0,
+                        "staggered_exact": 0.0,
+                        "doublon": 0.0,
+                        "doublon_exact": 0.0,
+                    }
+                ],
+                ledger=[{"action_kind": "stay", "decision_backend": "off"}],
+                summary={"mode": "off", "status": "completed", "append_count": 0, "stay_count": 1},
+                reference={"kind": "driven_piecewise_constant_reference_from_replay_seed"},
+            )
+
+    monkeypatch.setattr(noise_wf, "RealtimeCheckpointController", _FakeController)
+
+    payload = noise_wf.run_adaptive_realtime_checkpoint_profile_noisy(stage_result, cfg)
+
+    assert payload is not None
+    assert str(captured["cfg"].mode) == "off"
+    assert captured["drive_config"] is not None
+    assert captured["oracle_base_config"] is not None
+    assert str(captured["oracle_base_config"].noise_mode) == "backend_scheduled"
+    assert int(captured["wallclock_cap_s"]) == 123
+    assert Path(captured["progress_path"]).name == "controller_progress.json"
+    assert Path(captured["partial_payload_path"]).name == "controller_partial.json"
+    assert payload["mode"] == "off"
+    assert payload["trajectory"][0]["decision_backend"] == "off"
 
 
 def test_isolated_oracle_controller_nonzero_exit_returns_env_blocked_payload(
@@ -1276,6 +1634,166 @@ def test_isolated_oracle_controller_nonzero_exit_returns_env_blocked_payload(
     assert payload["summary"]["append_count"] == 0
 
 
+def test_isolated_oracle_controller_timeout_includes_progress_snapshot(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    progress_path = tmp_path / "logs" / "controller_progress.json"
+    progress_path.parent.mkdir(parents=True, exist_ok=True)
+    progress_path.write_text(
+        json.dumps({"status": "running", "stage": "oracle_energy_estimate_start", "checkpoint_index": 0}),
+        encoding="utf-8",
+    )
+
+    class _FakeQueue:
+        def empty(self) -> bool:
+            return True
+
+    class _FakeProc:
+        exitcode = None
+
+        def start(self) -> None:
+            return None
+
+        def join(self, timeout: float | None = None) -> None:
+            _ = timeout
+            return None
+
+        def is_alive(self) -> bool:
+            return True
+
+        def terminate(self) -> None:
+            return None
+
+    class _FakeContext:
+        def Queue(self) -> _FakeQueue:
+            return _FakeQueue()
+
+        def Process(self, target, args, daemon=False) -> _FakeProc:
+            assert callable(target)
+            assert isinstance(args, tuple)
+            assert bool(daemon) is False
+            return _FakeProc()
+
+    monkeypatch.setattr(
+        noise_wf.mp,
+        "get_context",
+        lambda method: (_FakeContext() if str(method) == "spawn" else None),
+    )
+
+    payload = noise_wf._run_adaptive_realtime_checkpoint_profile_noisy_isolated(
+        controller_kwargs={"progress_path": progress_path},
+        mode="oracle_v1",
+        scaffold_acceptance_payload={"accepted": True},
+        decision_noise_mode="backend_scheduled",
+        timeout_s=30,
+    )
+
+    assert payload["status"] == "env_blocked"
+    assert payload["reason"] == "timeout_after_30s"
+    assert payload["progress_snapshot"]["stage"] == "oracle_energy_estimate_start"
+    assert payload["summary"]["last_progress"]["checkpoint_index"] == 0
+
+
+def test_isolated_oracle_controller_timeout_preserves_partial_ledger_rows(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    progress_path = tmp_path / "logs" / "controller_progress.json"
+    partial_payload_path = tmp_path / "logs" / "controller_partial.json"
+    progress_path.parent.mkdir(parents=True, exist_ok=True)
+    progress_path.write_text(
+        json.dumps({"status": "running", "stage": "checkpoint_start", "checkpoint_index": 1}),
+        encoding="utf-8",
+    )
+    partial_payload_path.write_text(
+        json.dumps(
+            {
+                "status": "running",
+                "stage": "checkpoint_done",
+                "trajectory": [{"checkpoint_index": 0, "action_kind": "append_candidate"}],
+                "ledger": [
+                    {
+                        "checkpoint_index": 0,
+                        "action_kind": "append_candidate",
+                        "decision_backend": "oracle",
+                        "oracle_attempted": True,
+                        "logical_block_count_after": 2,
+                        "runtime_parameter_count_after": 3,
+                        "fidelity_exact": 0.5,
+                        "abs_energy_total_error": 0.25,
+                    }
+                ],
+                "summary": {
+                    "append_count": 1,
+                    "stay_count": 0,
+                    "executed_decision_backends": ["oracle"],
+                    "final_logical_block_count": 2,
+                    "final_runtime_parameter_count": 3,
+                    "final_fidelity_exact": 0.5,
+                    "final_abs_energy_total_error": 0.25,
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    class _FakeQueue:
+        def empty(self) -> bool:
+            return True
+
+    class _FakeProc:
+        exitcode = None
+
+        def start(self) -> None:
+            return None
+
+        def join(self, timeout: float | None = None) -> None:
+            _ = timeout
+            return None
+
+        def is_alive(self) -> bool:
+            return True
+
+        def terminate(self) -> None:
+            return None
+
+    class _FakeContext:
+        def Queue(self) -> _FakeQueue:
+            return _FakeQueue()
+
+        def Process(self, target, args, daemon=False) -> _FakeProc:
+            assert callable(target)
+            assert isinstance(args, tuple)
+            assert bool(daemon) is False
+            return _FakeProc()
+
+    monkeypatch.setattr(
+        noise_wf.mp,
+        "get_context",
+        lambda method: (_FakeContext() if str(method) == "spawn" else None),
+    )
+
+    payload = noise_wf._run_adaptive_realtime_checkpoint_profile_noisy_isolated(
+        controller_kwargs={
+            "progress_path": progress_path,
+            "partial_payload_path": partial_payload_path,
+        },
+        mode="oracle_v1",
+        scaffold_acceptance_payload={"accepted": True},
+        decision_noise_mode="backend_scheduled",
+        timeout_s=30,
+    )
+
+    assert payload["status"] == "env_blocked"
+    assert payload["reason"] == "timeout_after_30s"
+    assert len(payload["trajectory"]) == 1
+    assert len(payload["ledger"]) == 1
+    assert payload["summary"]["append_count"] == 1
+    assert payload["summary"]["oracle_decision_checkpoints"] == 1
+    assert payload["summary"]["final_logical_block_count"] == 2
+
+
 def test_run_staged_hh_noise_import_mode_skips_stage_pipeline(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
@@ -1313,6 +1831,17 @@ def test_run_staged_hh_noise_import_mode_skips_stage_pipeline(
         "_run_imported_prepared_state_audit_mode",
         lambda source_cfg, noise_cfg, mode: {"success": True, "kind": "prepared", "mode": mode},
     )
+    seen_ansatz_kwargs: dict[str, object] = {}
+
+    def _fake_ansatz_audit_mode(source_cfg, noise_cfg, mode, **kwargs):
+        seen_ansatz_kwargs.update(kwargs)
+        return {"success": True, "kind": "ansatz_input", "mode": mode}
+
+    monkeypatch.setattr(
+        noise_wf,
+        "_run_imported_ansatz_input_state_audit_mode",
+        _fake_ansatz_audit_mode,
+    )
     seen_full_kwargs: dict[str, object] = {}
 
     def _fake_full_audit_mode(source_cfg, noise_cfg, mode, **kwargs):
@@ -1343,7 +1872,11 @@ def test_run_staged_hh_noise_import_mode_skips_stage_pipeline(
     assert payload["workflow_contract"]["noise_extension"] == "imported_adapt_circuit_audit"
     assert payload["import_source"]["mode"] == "imported_artifact"
     assert payload["imported_prepared_state_audit"]["modes"]["ideal"]["success"] is True
+    assert payload["imported_ansatz_input_state_audit"]["modes"]["ideal"]["success"] is True
     assert payload["full_circuit_import_audit"]["modes"]["backend_scheduled"]["success"] is True
+    assert seen_ansatz_kwargs["seed_transpiler"] == 5
+    assert seen_ansatz_kwargs["transpile_optimization_level"] == 2
+    assert seen_ansatz_kwargs["compile_request_source"] == "fixed_scaffold_runtime_transpile_cli"
     assert seen_full_kwargs["seed_transpiler"] == 5
     assert seen_full_kwargs["transpile_optimization_level"] == 2
     assert seen_full_kwargs["compile_request_source"] == "fixed_scaffold_runtime_transpile_cli"
@@ -1390,6 +1923,13 @@ def test_run_staged_hh_noise_import_mode_runs_fixed_lean_noisy_replay(
     )
     monkeypatch.setattr(
         noise_wf,
+        "_run_imported_ansatz_input_state_audit_mode",
+        lambda source_cfg, noise_cfg, mode, **kwargs: (_ for _ in ()).throw(
+            AssertionError("ansatz-input-state audit should stay disabled without --include-full-circuit-audit")
+        ),
+    )
+    monkeypatch.setattr(
+        noise_wf,
         "_run_imported_full_circuit_audit_mode",
         lambda source_cfg, noise_cfg, mode, **kwargs: {"success": True, "kind": "full", "mode": mode},
     )
@@ -1423,8 +1963,10 @@ def test_run_staged_hh_noise_import_mode_runs_fixed_lean_noisy_replay(
 
     assert payload["workflow_contract"]["imported_routes"]["fixed_lean_scaffold_noisy_replay"] is True
     assert payload["workflow_contract"]["imported_routes"]["fixed_lean_noise_attribution"] is False
+    assert payload["workflow_contract"]["imported_routes"]["ansatz_input_state_audit"] is False
     assert payload["settings"]["fixed_lean_noisy_replay"]["enabled"] is True
     assert payload["settings"]["fixed_lean_noise_attribution"]["enabled"] is False
+    assert payload["imported_ansatz_input_state_audit"]["modes"] == {}
     assert payload["fixed_lean_scaffold_noisy_replay"]["success"] is True
     assert payload["summary"]["fixed_lean_scaffold_noisy_replay_completed"] == 1
     assert writes["path"] == cfg.staged.artifacts.output_json
@@ -1504,6 +2046,88 @@ def test_run_staged_hh_noise_import_mode_runs_fixed_scaffold_noisy_replay(
     assert payload["settings"]["fixed_scaffold_noise_attribution"]["enabled"] is False
     assert payload["fixed_scaffold_noisy_replay"]["success"] is True
     assert payload["summary"]["fixed_scaffold_noisy_replay_completed"] == 1
+    assert writes["path"] == cfg.staged.artifacts.output_json
+
+
+def test_run_staged_hh_noise_import_mode_preserves_partial_fixed_scaffold_noisy_replay_timeout(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    source_json = tmp_path / "fixed_scaffold.json"
+    source_json.write_text("{\"adapt_vqe\": {\"operators\": []}, \"ground_state\": {}, \"settings\": {}}", encoding="utf-8")
+    cfg = noise_wf.resolve_staged_hh_noise_config(
+        parse_args(
+            [
+                "--L",
+                "2",
+                "--skip-pdf",
+                "--include-fixed-scaffold-noisy-replay",
+                "--use-fake-backend",
+                "--fixed-final-state-json",
+                str(source_json),
+                "--final-method",
+                "SPSA",
+                "--output-json",
+                str(tmp_path / "import_noise_timeout.json"),
+                "--output-pdf",
+                str(tmp_path / "import_noise_timeout.pdf"),
+            ]
+        )
+    )
+
+    monkeypatch.setattr(
+        noise_wf.base_wf,
+        "run_stage_pipeline",
+        lambda staged_cfg: (_ for _ in ()).throw(AssertionError("stage pipeline should not run in import mode")),
+    )
+    monkeypatch.setattr(
+        noise_wf,
+        "_run_imported_prepared_state_audit_mode",
+        lambda source_cfg, noise_cfg, mode: {"success": True, "kind": "prepared", "mode": mode},
+    )
+    monkeypatch.setattr(
+        noise_wf,
+        "_run_imported_full_circuit_audit_mode",
+        lambda source_cfg, noise_cfg, mode, **kwargs: {"success": True, "kind": "full", "mode": mode},
+    )
+    monkeypatch.setattr(noise_wf, "_run_fixed_lean_noisy_replay_mode", lambda source_cfg, noise_cfg, fixed_cfg: {})
+    monkeypatch.setattr(noise_wf, "_run_fixed_lean_noise_attribution_mode", lambda source_cfg, noise_cfg, attribution_cfg: {})
+    monkeypatch.setattr(
+        noise_wf,
+        "_run_fixed_scaffold_noisy_replay_mode",
+        lambda source_cfg, noise_cfg, fixed_cfg: {
+            "success": False,
+            "env_blocked": True,
+            "partial": True,
+            "route": "fixed_scaffold_noisy_replay",
+            "reason": "timeout_after_600s",
+            "theta_source": "imported_theta_runtime",
+            "execution_mode": "backend_scheduled",
+            "local_mitigation_label": "readout_only",
+            "objective_trace": [{"call_index": 1, "energy_noisy_mean": 0.4}],
+            "best_so_far": {"call_index": 1, "energy_noisy_mean": 0.4},
+        },
+    )
+    monkeypatch.setattr(
+        noise_wf,
+        "_run_fixed_scaffold_noise_attribution_mode",
+        lambda source_cfg, noise_cfg, attribution_cfg: {},
+    )
+    writes: dict[str, object] = {}
+    monkeypatch.setattr(noise_wf.base_wf, "_write_json", lambda path, payload: writes.update(path=Path(path), payload=payload))
+    monkeypatch.setattr(noise_wf, "write_staged_hh_noise_pdf", lambda payload, cfg_arg, run_command: writes.setdefault("pdf", True))
+
+    payload = noise_wf.run_staged_hh_noise(
+        cfg,
+        run_command="python pipelines/hardcoded/hh_staged_noise.py --include-fixed-scaffold-noisy-replay",
+    )
+
+    assert payload["fixed_scaffold_noisy_replay"]["partial"] is True
+    assert payload["fixed_scaffold_noisy_replay"]["reason"] == "timeout_after_600s"
+    assert payload["summary"]["fixed_scaffold_noisy_replay_completed"] == 0
+    assert payload["summary"]["fixed_scaffold_noisy_replay_total"] == 1
+    assert payload["summary"]["fixed_scaffold_noisy_replay_execution_mode"] == "backend_scheduled"
+    assert np.isnan(payload["summary"]["fixed_scaffold_best_noisy_minus_ideal"])
     assert writes["path"] == cfg.staged.artifacts.output_json
 
 

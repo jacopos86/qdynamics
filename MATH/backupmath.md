@@ -61,11 +61,9 @@ This subsection is a compact map for the symbols that recur in the adaptive-sele
 - $W_{\mathrm{new}}(p)$: the newest-parameter portion of the refit window.
 - $W_{|\theta|}(p)$: the older large-amplitude carry subset of the refit window.
 - $\mathcal P_{\mathrm{avail}}^{(3)}$: the full available set of Phase-3 candidate-position records.
-- $\mathcal C_{\mathrm{cheap}}$: the horizon-sized coarse shortlist obtained by cheap-score ranking over the full admissible Phase-3 candidate-position pool.
+- $\mathcal C_{\mathrm{cheap}}$: the cheap-pass capped candidate set retained after the first Phase-3 gradient screen.
 - $\mathcal S_2,\mathcal S_3$: the Phase-2 and Phase-3 shortlists that survive cheap screening before full reranking.
 - $\mathcal C_{\mathrm{split}}(m)$: the family of split children generated from macro generator $m$.
-- $\Gamma_{\mathrm{prune}}^{\mathrm{perm}}$: post-admission prune-permissibility gate deciding whether local scaffold simplification is attempted.
-- $\mathcal J_{\mathrm{exp}}$: the post-admission set of locally expendable scaffold coordinates or generators considered by the prune pass.
 - $\mathcal O_*$: the finally selected adaptive scaffold, i.e. the ordered generator sequence admitted by the adaptive stage.
 - $\mathcal M_{\mathrm{warm}},\mathcal M_{\mathrm{refine}},\mathcal M_{\mathrm{replay}}$: archival appendix-only warm-start, optional refine, and replay manifolds.
 - $\mathcal B$: a portable handoff/state bundle carrying manifest, amplitudes, energies, and continuation metadata.
@@ -93,10 +91,10 @@ The symbols below are the main scalar controls that appear in the adaptive-selec
 - $\lambda_F$: cheap-stage normalization weight multiplying the tangent metric term.
 - $\lambda_H$: regularization strength for inherited-window Hessian blocks.
 - $\rho$: trust-region radius scale used in one-dimensional local improvement models.
-- $N_{\mathrm{cheap}}^{\max}$: absolute cap on the horizon-sized Phase-3 coarse shortlist.
+- $N_{\mathrm{cheap}}^{\max}$: maximum cheap-pass size before shortlist construction.
 - $N_{\max}$: maximum shortlist size.
 - $f_{\mathrm{short}}$: shortlist fraction used in Phase 3.
-- $w_R$: weight on useful-horizon lifetime burden.
+- $w_R$: weight on remaining-depth or remaining-evaluations burden.
 - $w_D$: weight on lifetime depth/compile burden.
 - $w_G$: weight on newly introduced grouped-measurement burden.
 - $w_C$: weight on newly introduced compile or circuit burden.
@@ -110,39 +108,14 @@ The symbols below are the main scalar controls that appear in the adaptive-selec
 - $\tau_{\mathrm{split}}$: split-replacement margin required before a split child or child-set beats its parent.
 - $\tau_{\mathrm{drop}}$: minimum per-depth absolute-error improvement regarded as meaningful by the stage controller.
 - $M$: patience window used when counting repeated small-drop depths.
-- $D_{\mathrm{left}}(t)$: remaining controller depth budget at selector step $t$.
-- $S_t(k)$: survival factor for having a still-useful admission opportunity $k$ selector steps ahead.
-- $Q_t(k)$: conditional usefulness factor for the $k$-ahead admission opportunity.
-- $\widehat N_{\mathrm{rem}}(t)$: heuristic forecast of useful remaining admissions at selector step $t$.
-- $C_t$: confidence attached to the current useful-runway forecast.
-- $K_{\mathrm{coarse}}(t)$: dynamic coarse-cap induced by the current useful-runway forecast.
-- $H_t$: effective useful-depth horizon,
-  $$
-  H_t=\min\bigl(D_{\mathrm{left}}(t),\widehat N_{\mathrm{rem}}(t)\bigr).
-  $$
-- $W_{\mathrm{sat}}(t)$: saturation pressure induced by the current useful-runway forecast.
-- $\pi_t$: selector mode tag, e.g. fast / mixed / high-fidelity.
-- $\mathrm{regime}_{\mathrm{sat}}(t)$: hungry / watch / plateau saturation regime.
-- $\eta_{\mathrm{ret}}$: minimum retained-gain fraction required by the post-admission prune accept rule.
-- $\beta_{\mathrm{keep}}$: repo-facing retained-gain floor used in prune acceptance; in this manuscript it plays the same role as $\eta_{\mathrm{ret}}$.
 - $\tau_{\mathrm{miss}}$: projected-miss threshold used in manifold-growth logic.
 - $B_{\mathrm{child}}$: beam child cap per parent branch-expansion round.
-- $B_{\mathrm{target}}(t)$: active batch target size at selector step $t$.
 - $B_{\mathrm{live}}$: live-frontier beam width retained after pruning.
 - $B_{\mathrm{term}}$: cap on stored terminal branches.
 - $M_{\mathrm{probe}}$: cap on distinct probed insertion positions retained in order.
-- $a_j(t)$: admission age of scaffold coordinate or generator $j$ at selector step $t$.
-- $\varrho_j(t)$: normalized admission-rank score of coordinate or generator $j$ at selector step $t$.
-- $\mathcal P_{\mathrm{protect}}(t)$: hard-protected coordinate set excluded from the live prune pass.
-- $c_j^{\mathrm{cool}}(t)$: local prune cooldown on coordinate $j$.
-- $S_\theta(j,t)$: optional small-angle prescreen score used only to save local prune work.
-- $\tau_{\mathrm{stale}}$: minimum local expendability score required before a prune trial is even considered.
-- $\Xi_t^{\mathrm{trial}}$: exact rollback snapshot taken before a local prune/remove-refit trial.
 - $\Delta k_{\mathrm{cp}}$: checkpoint advance used in the projected-dynamics beam of §17, not in the scaffold beam of §11.
 - $\Delta k_{\mathrm{probe}}$: probe advance used in the projected-dynamics beam of §17, not in the scaffold beam of §11.
 - $C$: final beam round index / number of retained beam-update rounds.
-
-In §11, the index $t$ denotes a selector/controller step rather than the real-time variable used later in the dynamics sections.
 
 ## 1.3 Non-negotiable representational conventions
 
@@ -1206,8 +1179,6 @@ S_1(g,p)
 $$
 where $\underline{\delta E}$ is a lower-bound or surrogate estimate of useful post-refit energy drop.
 
-This broad score is intentionally early-stage: it privileges immediate drop estimates when the controller still has long useful runway. Later phases keep the candidate-position language but no longer value raw $\underline{\delta E}$ in the same dominant way; the later cheap/full surfaces progressively downweight immediate-drop dominance as the useful horizon contracts.
-
 ### 11.2.4 Position probing, trough detection, and effective selector
 
 Rather than selecting only by generator identity, one probes positions $p$ and computes
@@ -1333,9 +1304,7 @@ $$
 
 ## 11.4 Phase 3 primary selector surface
 
-This section describes the full symbolic Phase-3 selector surface: position-aware candidate records, inherited refit windows, split-aware reranking, and post-admission local simplification. In current HH mainline, Phase 3 is not a separate reverse-order fallback pass; it reuses the earlier cheap-screen and shortlist/full-rerank machinery, then adds the highest-level augmentations used in runtime policy.
-
-The formulas in §§11.4.1--11.4.4 are the corrected canonical Phase-3 target contract. Current repo code may still lag some details of this contract; that implementation lag is stated explicitly later in §19.4 rather than folded back into the symbolic definitions here.
+This section describes the full symbolic Phase-3 selector surface: position-aware candidate records, inherited refit windows, and split-aware reranking. In current HH mainline, Phase 3 is not a separate reverse-order fallback pass; it reuses the Phase-1 cheap screen and the Phase-2 shortlist/full-rerank machinery, then adds the highest-level augmentations used in runtime policy.
 
 ### 11.4.1 Core signal, append position, refit window, and cheap screen
 
@@ -1365,86 +1334,25 @@ m\in\mathcal G^{(3)}_{\mathrm{avail}},
 \ p\in\mathcal P_m
 \right\}.
 $$
-
-Let $t$ denote the current selector step, let $D_{\mathrm{left}}(t)$ be the remaining controller depth budget, let $\widehat N_{\mathrm{rem}}(t)$ be a heuristic forecast of useful remaining admissions, and define the effective useful horizon
+Let
 $$
-H_t=\min\!\bigl(D_{\mathrm{left}}(t),\widehat N_{\mathrm{rem}}(t)\bigr).
+N_{\mathrm{cheap}}
+=
+\min\!\left\{
+N_{\mathrm{cheap}}^{\max},
+\left|\mathcal P_{\mathrm{avail}}^{(3)}\right|
+\right\}
 $$
-One useful controller-level estimator writes
+be the active cheap-pass size, where $N_{\mathrm{cheap}}^{\max}$ is the Phase-3 cheap-pass cap. Then the cheap universe is the gradient-ranked capped subset
 $$
-S_t(k)=\prod_{j=1}^{k}\bigl(1-h_t(j)\bigr),
-\qquad
-\widehat N_{\mathrm{rem}}(t)=\sum_{k=1}^{D_{\mathrm{left}}(t)} S_t(k)\,Q_t(k),
+\mathcal C_{\mathrm{cheap}}
+=
+\operatorname{Top}_{N_{\mathrm{cheap}}}\!\left(
+\mathcal P_{\mathrm{avail}}^{(3)};
+g_{\mathrm{lcb}}
+\right),
 $$
-where $S_t(k)$ is a survival factor for still having a useful admission opportunity $k$ selector steps ahead, $Q_t(k)$ is the conditional usefulness of that future opportunity, and $h_t(j)$ is the corresponding controller hazard. A compact controller-level realization is
-$$
-u_{\mathrm{pat}}(t)=\operatorname{clip}\!\left(\max\!\left(\frac{\mathrm{plateau\_streak}(t)}{P},\frac{\mathrm{low\_streak}(t)}{L}\right),0,1\right),
-$$
-$$
-u_{\mathrm{front}}(t)=
-\left(1-\frac{s_1^{\mathrm{cheap}}(t)-s_2^{\mathrm{cheap}}(t)}{s_1^{\mathrm{cheap}}(t)+\varepsilon}\right)
-\left(1+\frac{s_1^{\mathrm{cheap}}(t)}{c_s\,s_{\mathrm{ref}}^{\mathrm{cheap}}(t)+\varepsilon}\right)^{-1},
-$$
-$$
-h_t(j)=\sigma\!\Bigl(\beta_0+\beta_{\mathrm{pat}}\nu_{\mathrm{pat}}(t)+\beta_{\mathrm{front}}\nu_{\mathrm{front}}(t)+\eta_h(j-1)\Bigr),
-$$
-$$
-m_t=\operatorname{EWMA}_{s\in W_t^+}\!\bigl(\log \Delta_{\mathrm{adm}}(s)\bigr),
-\qquad
-\rho_t=\operatorname{clip}\!\left(\frac{\operatorname{EWMA}_{\mathrm{recent}}(\Delta_{\mathrm{adm}})}{\operatorname{EWMA}_{\mathrm{older}}(\Delta_{\mathrm{adm}})+\varepsilon},\rho_{\min},1\right),
-$$
-$$
-\gamma_t=[-\log \rho_t]_+,
-\qquad
-s_t=\max\!\Bigl(s_{\min},\operatorname{MAD}_{s\in W_t^+}\!\bigl(\log \Delta_{\mathrm{adm}}(s)\bigr)\Bigr),
-$$
-$$
-Q_t(k)=\Phi\!\left(\frac{m_t-\gamma_t(k-1)-\log \tau_{\mathrm{use},t}}{s_t}\right).
-$$
-If optimistic and pessimistic runway envelopes
-$$
-\widehat N_{\mathrm{rem}}^{\mathrm{lo}}(t)\le \widehat N_{\mathrm{rem}}(t)\le \widehat N_{\mathrm{rem}}^{\mathrm{hi}}(t)
-$$
-are also tracked, one convenient band construction is
-$$
-\operatorname{logit} h_t^{\mathrm{pess}}(j)=\operatorname{logit} h_t(j)+\Delta_h,
-\qquad
-\operatorname{logit} h_t^{\mathrm{opt}}(j)=\operatorname{logit} h_t(j)-\Delta_h,
-$$
-$$
-m_t^{\mathrm{pess}}=m_t-\Delta_m,\quad s_t^{\mathrm{pess}}=s_t+\Delta_s,
-\qquad
-m_t^{\mathrm{opt}}=m_t+\Delta_m,\quad s_t^{\mathrm{opt}}=\max(s_{\min},s_t-\Delta_s),
-$$
-$$
-\widehat N_{\mathrm{rem}}^{\mathrm{lo}}(t)=\sum_{k=1}^{D_{\mathrm{left}}(t)} S_t^{\mathrm{pess}}(k)\,Q_t^{\mathrm{pess}}(k),
-\qquad
-\widehat N_{\mathrm{rem}}^{\mathrm{hi}}(t)=\sum_{k=1}^{D_{\mathrm{left}}(t)} S_t^{\mathrm{opt}}(k)\,Q_t^{\mathrm{opt}}(k),
-$$
-and then a compact confidence and saturation summary is
-$$
-C_t=\frac{\widehat N_{\mathrm{rem}}^{\mathrm{lo}}(t)}{\widehat N_{\mathrm{rem}}^{\mathrm{hi}}(t)+\varepsilon},
-\qquad
-W_{\mathrm{sat}}(t)=1-\frac{\widehat N_{\mathrm{rem}}(t)}{D_{\mathrm{left}}(t)+\varepsilon}.
-$$
-The corresponding selector mode and saturation regime may be written as
-$$
-\pi_t=
-\begin{cases}
-\mathrm{fast},&\widehat N_{\mathrm{rem}}^{\mathrm{lo}}(t)>n_{\mathrm{fast}},\\
-\mathrm{high\mbox{-}fidelity},&\widehat N_{\mathrm{rem}}^{\mathrm{hi}}(t)\le n_{\mathrm{slow}},\\
-\mathrm{mixed},&\text{otherwise},
-\end{cases}
-$$
-$$
-\mathrm{regime}_{\mathrm{sat}}(t)=
-\begin{cases}
-\mathrm{hungry},&W_{\mathrm{sat}}(t)<\tau_{\mathrm{off}},\\
-\mathrm{plateau},&W_{\mathrm{sat}}(t)>\tau_{\mathrm{on}},\\
-\mathrm{watch},&\text{otherwise}.
-\end{cases}
-$$
-The quantity $\widehat N_{\mathrm{rem}}(t)$ is controller telemetry rather than a physical observable: it summarizes recent selector progress and remaining useful runway, but it is not itself a hard admissibility certificate.
+that is, the set of the top $N_{\mathrm{cheap}}$ records in $\mathcal P_{\mathrm{avail}}^{(3)}$ ranked by the lower-confidence gradient signal $g_{\mathrm{lcb}}(r)$ defined below.
 
 For $r=(m,p)$, let
 $$
@@ -1459,16 +1367,68 @@ g_r&=\left.\partial_\alpha\langle \psi_r(\alpha)|H|\psi_r(\alpha)\rangle\right|_
 g_{\mathrm{lcb}}(r)&=\max\{|g_r|-z_\alpha\sigma_r,0\},\\
 \Gamma_{\mathrm{stage}}(r)&:=\Gamma_{\mathrm{stage}}(m),\\
 \Gamma_{\mathrm{sym}}(r)&:=\Gamma_{\mathrm{sym}}(m,p),\\
-K_{\mathrm{cheap}}(r;t)
-&=1+w_R\bar R_{\mathrm{rem}}(r;t)+w_D\bar D_{\mathrm{life}}(r)\\
+K_{\mathrm{cheap}}(r)
+&=1+w_R\bar R_{\mathrm{rem}}(r)+w_D\bar D_{\mathrm{life}}(r)\\
 &\quad +w_G\bar G_{\mathrm{new}}(r)+w_C\bar C_{\mathrm{new}}(r)+w_c\bar c(r).
 \end{aligned}
 $$
+Yes—here is the full term expansion you asked for, in symbolic form:
+
+$$
+K_{\mathrm{cheap}}(r)=1+w_R\bar R_{\mathrm{rem}}(r)+w_D\bar D_{\mathrm{life}}(r)+w_G\bar G_{\mathrm{new}}(r)+w_C\bar C_{\mathrm{new}}(r)+w_c\bar c(r)
+$$
 with
 $$
-p_{\mathrm{app}}:=|\mathcal O|
+\bar D_{\mathrm{life}}(r)=\frac{D_{\mathrm{raw}}(r)}{\text{depth\_ref}},\quad
+D_{\mathrm{raw}}(r)=\sum_{\ell\in\mathcal L_r}\!\left[2\max(\mathrm{wt}(\ell)-1,0)+\frac12(2\,\#_{X,Y}(\ell)+1)\right]+|p_{\text{app}}-p|,
 $$
-for the current append slot, and
+where $\mathcal L_r$ is the active Pauli-label set for the candidate term (fallback is $\max(1,\text{candidate\_term\_count})+|p_{\text{app}}-p|$).
+
+$$
+\bar G_{\mathrm{new}}(r)=\frac{G_{\mathrm{new}}(r)}{\text{group\_ref}},\quad G_{\mathrm{new}}(r)=|\mathcal G_{\mathrm{new}}(r)|,
+$$
+$$
+\bar C_{\mathrm{new}}(r)=\frac{C_{\mathrm{new}}(r)}{\text{shot\_ref}},\quad C_{\mathrm{new}}(r)=G_{\mathrm{new}}(r)\cdot n_{\text{shots/group}},
+$$
+$$
+\bar c(r)=\frac{c(r)}{\text{reuse\_ref}},\quad c(r)=\text{groups\_new}(r),
+$$
+$$
+\bar R_{\mathrm{rem}}(r)=N_{\mathrm{rem}}\!\left(\bar D_{\mathrm{life}}+\bar G_{\mathrm{new}}+\bar C_{\mathrm{new}}+\bar c+\bar P_{\mathrm{opt}}\right)\mathbf{1}_{\text{lifetime mode}},\quad
+N_{\mathrm{rem}}=\max(1,d_{\max}-d+1),\quad \bar P_{\mathrm{opt}}=\frac{|W(p)|}{\text{optdim\_ref}}.
+$$
+
+Qualitatively: $\bar D_{\mathrm{life}\!}$ is circuit/compile burden at the candidate record, $\bar G_{\mathrm{new}}$ and $\bar C_{\mathrm{new}}$ are measurement-group and shot burden of the new term, $\bar c$ is the reuse penalty, and $\bar R_{\mathrm{rem}}$ is the remaining-depth lifetime discount/multiplier applied only when lifetime-cost mode is on.
+So the Phase-1-style cheap screen reused inside the cumulative Phase-3 selector is not only symbolically but explicitly
+$$
+\begin{aligned}
+S_{3,\mathrm{cheap}}(r)
+&=\Gamma_{\mathrm{stage}}(r)\Gamma_{\mathrm{sym}}(r)\frac{g_{\mathrm{lcb}}(r)^2}{2\lambda_FF_{\mathrm{raw}}(r)}\frac{1}{K_{\mathrm{cheap}}(r)+\varepsilon}\\
+&=\Gamma_{\mathrm{stage}}(r)\Gamma_{\mathrm{sym}}(r)
+\frac{\max\{|2\Re\langle \psi|H|d_r\rangle|-z_\alpha\sigma_r,0\}^2}{2\lambda_F\langle d_r|Q_\psi|d_r\rangle\,(K_{\mathrm{cheap}}(r)+\varepsilon)}.
+\end{aligned}
+$$
+This cheap screen is meant to be wide relative to the final shortlist but still inexpensive relative to a full local-model rebuild: it keeps only the strongest cheap gradient proposals before the later shortlist, local geometry, novelty, and rerank machinery is applied.
+
+**Math**
+
+$$
+K_{\mathrm{cheap}}(r)
+=
+1
++
+w_R\,\bar R_{\mathrm{rem}}(r)
++
+w_D\,\bar D_{\mathrm{life}}(r)
++
+w_G\,\bar G_{\mathrm{new}}(r)
++
+w_C\,\bar C_{\mathrm{new}}(r)
++
+w_c\,\bar c(r),
+\qquad r=(m,p).
+$$
+
 $$
 \bar D_{\mathrm{life}}(r)=\frac{D_{\mathrm{raw}}(r)}{\mathrm{depth}_{\mathrm{ref}}},
 \qquad
@@ -1478,85 +1438,38 @@ D_{\mathrm{raw}}(r)
 \left[
 2\max(\mathrm{wt}(\ell)-1,0)
 +
-\frac12\bigl(2\,\#_{X,Y}(\ell)+1\bigr)
+\frac12\!\left(2\,\#_{X,Y}(\ell)+1\right)
 \right]
 +
 |p_{\mathrm{app}}-p|,
 $$
+
 $$
 \bar G_{\mathrm{new}}(r)=\frac{G_{\mathrm{new}}(r)}{\mathrm{group}_{\mathrm{ref}}},
 \qquad
 \bar C_{\mathrm{new}}(r)=\frac{C_{\mathrm{new}}(r)}{\mathrm{shot}_{\mathrm{ref}}},
 \qquad
 \bar c(r)=\frac{c(r)}{\mathrm{reuse}_{\mathrm{ref}}},
-$$
-$$
+\qquad
 C_{\mathrm{new}}(r)=G_{\mathrm{new}}(r)\,n_{\mathrm{shots/group}},
 \qquad
 c(r)=\mathrm{groups}_{\mathrm{new}}(r),
+$$
+
+$$
+\bar R_{\mathrm{rem}}(r)
+=
+N_{\mathrm{rem}}
+\left(
+\bar D_{\mathrm{life}}+\bar G_{\mathrm{new}}+\bar C_{\mathrm{new}}+\bar c+\bar P_{\mathrm{opt}}
+\right)\mathbf 1_{\mathrm{lifetime}},
 \qquad
-\bar P_{\mathrm{opt}}(r)=\frac{|W(p)|}{\mathrm{optdim}_{\mathrm{ref}}},
+N_{\mathrm{rem}}=\max(1,d_{\max}-d+1),
+\qquad
+\bar P_{\mathrm{opt}}=\frac{|W(p)|}{\mathrm{optdim}_{\mathrm{ref}}}.
 $$
-$$
-\bar R_{\mathrm{rem}}(r;t)
-=
-H_t\Bigl(
-\bar D_{\mathrm{life}}(r)+\bar G_{\mathrm{new}}(r)+\bar C_{\mathrm{new}}(r)+\bar c(r)+\bar P_{\mathrm{opt}}(r)
-\Bigr)\mathbf 1_{\mathrm{lifetime}}.
-$$
-Here $\bar D_{\mathrm{life}}$ is circuit/compile burden at the candidate record, $\bar G_{\mathrm{new}}$ and $\bar C_{\mathrm{new}}$ are measurement-group and shot burden of the new term, $\bar c$ is the reuse penalty, and $\bar R_{\mathrm{rem}}$ is the horizon-weighted lifetime multiplier applied only when lifetime-cost mode is on. The offset $|p_{\mathrm{app}}-p|$ is a local insertion-displacement penalty; it measures how far the proposal sits from the append slot and should not be conflated with expected remaining depth.
 
-To interpolate between a wide early-stage gradient screen and a later-stage cost-aware screen, define
-$$
-\lambda_t=\frac{H_t}{H_t+c_\lambda},
-\qquad c_\lambda>0,
-$$
-$$
-K_{\mathrm{coarse}}(t)=K_{\min}+\left\lfloor (K_{\max}-K_{\min})\frac{\widehat N_{\mathrm{rem}}^{\mathrm{hi}}(t)}{D_{\mathrm{left}}(t)+\varepsilon}\right\rfloor,
-$$
-and
-$$
-\begin{aligned}
-S_{3,\nabla}(r)
-&=
-\Gamma_{\mathrm{stage}}(r)\Gamma_{\mathrm{sym}}(r)\,
-\frac{g_{\mathrm{lcb}}(r)^2}{2\lambda_FF_{\mathrm{raw}}(r)},\\
-S_{3,\mathrm{late}}(r;t)
-&=
-\Gamma_{\mathrm{stage}}(r)\Gamma_{\mathrm{sym}}(r)\,
-\frac{g_{\mathrm{lcb}}(r)^2}{2\lambda_FF_{\mathrm{raw}}(r)}
-\frac{1}{K_{\mathrm{cheap}}(r;t)+\varepsilon},\\
-S_{3,\mathrm{cheap}}(r;t)
-&=
-\lambda_t\,S_{3,\nabla}(r)
-+
-\bigl(1-\lambda_t\bigr)S_{3,\mathrm{late}}(r;t).
-\end{aligned}
-$$
-Then the active coarse-shortlist size is
-$$
-N_{\mathrm{cheap}}(t)
-=
-\min\!\left\{
-\left|\mathcal P_{\mathrm{avail}}^{(3)}\right|,
-N_{\mathrm{cheap}}^{\max},
-K_{\mathrm{coarse}}(t)
-\right\},
-$$
-and the Phase-3 cheap universe is the full-pool cheap-score shortlist
-$$
-\mathcal C_{\mathrm{cheap}}
-=
-\operatorname{Top}_{N_{\mathrm{cheap}}(t)}\!\left(
-\mathcal P_{\mathrm{avail}}^{(3)};
-S_{3,\mathrm{cheap}}(\cdot;t)
-\right).
-$$
-So the cumulative Phase-3 cheap screen is applied over the full admissible candidate-position pool, not behind a separate upstream $g_{\mathrm{lcb}}$-only cap. The gates $\Gamma_{\mathrm{stage}}$ and $\Gamma_{\mathrm{sym}}$ determine admissibility, while $S_{3,\mathrm{cheap}}$ ranks only within that admissible pool. The horizon $H_t$ smooths cheap-stage width and burden, but it is not itself a new hard gate and it is not a theorem-level invariant of the Hamiltonian.
-
-The term $S_{3,\nabla}(r)$ is the direct continuation of the early drop-dominant surface $S_1$. It matters most when useful runway is still long. The late-stage factor $S_{3,\mathrm{late}}(r;t)$ matters more once that runway contracts.
-
-From first principles, $K_{\mathrm{cheap}}(r;t)$ is a dimensionless burden functional: the numerator of $S_{3,\mathrm{cheap}}(r;t)$ estimates local utility, and $K_{\mathrm{cheap}}(r;t)$ discounts that utility by how expensive it is to admit $r$ now and, through $\bar R_{\mathrm{rem}}(r;t)$, how expensive that decision is expected to remain over the useful horizon of the current run. The $2\max(\mathrm{wt}(\ell)-1,0)$ piece is a two-qubit-style burden proxy, the $\frac12(2\,\#_{X,Y}(\ell)+1)$ piece is a basis-change / one-qubit rotation proxy, and $|p_{\mathrm{app}}-p|$ penalizes inserting far from the current append location.
+From first principles, $K_{\mathrm{cheap}}(r)$ is a dimensionless burden functional: the numerator of $S_{3,\mathrm{cheap}}(r)$ estimates local benefit, and $K_{\mathrm{cheap}}(r)$ discounts that benefit by how expensive it is to admit $r$ now and, through $\bar R_{\mathrm{rem}}$, how expensive that decision is likely to remain over the rest of the run. The $2\max(\mathrm{wt}(\ell)-1,0)$ piece is a two-qubit-style burden proxy, the $\frac12(2\,\#_{X,Y}(\ell)+1)$ piece is a basis-change / one-qubit rotation proxy, and $|p_{\mathrm{app}}-p|$ penalizes inserting far from the current append location.
 
 ### 11.4.2 Shortlist, reduced-path geometry, novelty, full rerank score, and split-aware augmentation
 
@@ -1578,7 +1491,7 @@ $$
 \ \text{or}\
 \arg\max_{r\in\mathcal S_3} S_{3,\mathrm{aug}}(r),
 $$
-where the first arrow is the horizon-smoothed cheap ranking over the full admissible pool, the middle arrow forms the internal shortlist, and the later arrows perform the richer reranking and Phase-3 augmentation built on top of the earlier surfaces. The horizon forecast enters here only as a controller-side burden/width modulator; it does not turn shortlist membership into a theorem of global optimality.
+where the first arrow is the reused Phase-1 cheap screen, the middle arrow forms the internal shortlist, and the later arrows perform the richer reranking and Phase-3 augmentation built on top of the earlier surfaces.
 
 For each shortlisted record $r=(m,p)$, let $W_r=W(m,p)$ be the inherited window that would actually be refit if $m$ were admitted at position $p$, and let $\{t_j\}_{j\in W_r}$ be the current horizontal tangents in that inherited window. Then
 $$
@@ -1597,29 +1510,29 @@ q_r^{\mathrm{red}}&=q_r-Q_rM_r^{-1}b_r,\\
 \Delta E_{\mathrm{TR}}(r)
 &=\max_{|\alpha|\le \rho/\sqrt{F_r^{\mathrm{red}}}}
 \left[g_{\mathrm{lcb}}(r)|\alpha|-\tfrac12\max(\widetilde h_r,0)\alpha^2\right],\\
-K_{\mathrm{full}}(r;t)
-&=1+w_R\bar R_{\mathrm{rem}}(r;t)+w_D\bar D_{\mathrm{life}}(r)\\
+K_{\mathrm{full}}(r)
+&=1+w_R\bar R_{\mathrm{rem}}(r)+w_D\bar D_{\mathrm{life}}(r)\\
 &\quad +w_G\bar G_{\mathrm{new}}(r)+w_C\bar C_{\mathrm{new}}(r)+w_c\bar c(r).
 \end{aligned}
 $$
 So the base rerank score closes to
 $$
 \begin{aligned}
-S_{3,\mathrm{base}}(r;t)
-&=\Gamma_{\mathrm{stage}}(m)\Gamma_{\mathrm{sym}}(r)\,\nu_r^{\gamma_N}\frac{\Delta E_{\mathrm{TR}}(r)}{K_{\mathrm{full}}(r;t)+\varepsilon}\\
+S_{3,\mathrm{base}}(r)
+&=\Gamma_{\mathrm{stage}}(m)\Gamma_{\mathrm{sym}}(r)\,\nu_r^{\gamma_N}\frac{\Delta E_{\mathrm{TR}}(r)}{K_{\mathrm{full}}(r)+\varepsilon}\\
 &=\Gamma_{\mathrm{stage}}(m)\Gamma_{\mathrm{sym}}(r)
 \left[\operatorname{clip}_{[0,1]}\!\left(1-\frac{(q_r^{\mathrm{red}})^\top(Q_r+\varepsilon_{\mathrm{nov}}I)^{-1}q_r^{\mathrm{red}}}{F_r^{\mathrm{red}}}\right)\right]^{\gamma_N}
-\frac{\Delta E_{\mathrm{TR}}(r)}{K_{\mathrm{full}}(r;t)+\varepsilon}.
+\frac{\Delta E_{\mathrm{TR}}(r)}{K_{\mathrm{full}}(r)+\varepsilon}.
 \end{aligned}
 $$
 The augmented selector score is therefore
 $$
 \begin{aligned}
-S_{3,\mathrm{aug}}(r;t)
-&=S_{3,\mathrm{base}}(r;t)+\beta_{\mathrm{split}}\Sigma(r)+\beta_{\mathrm{motif}}M(r)+\beta_{\mathrm{sym}}Y(r)-\beta_{\mathrm{dup}}D_{\mathrm{dup}}(r)\\
+S_{3,\mathrm{aug}}(r)
+&=S_{3,\mathrm{base}}(r)+\beta_{\mathrm{split}}\Sigma(r)+\beta_{\mathrm{motif}}M(r)+\beta_{\mathrm{sym}}Y(r)-\beta_{\mathrm{dup}}D_{\mathrm{dup}}(r)\\
 &=\Gamma_{\mathrm{stage}}(m)\Gamma_{\mathrm{sym}}(r)
 \left[\operatorname{clip}_{[0,1]}\!\left(1-\frac{(q_r^{\mathrm{red}})^\top(Q_r+\varepsilon_{\mathrm{nov}}I)^{-1}q_r^{\mathrm{red}}}{F_r^{\mathrm{red}}}\right)\right]^{\gamma_N}
-\frac{\Delta E_{\mathrm{TR}}(r)}{K_{\mathrm{full}}(r;t)+\varepsilon}\\
+\frac{\Delta E_{\mathrm{TR}}(r)}{K_{\mathrm{full}}(r)+\varepsilon}\\
 &\qquad+\beta_{\mathrm{split}}\Sigma(r)+\beta_{\mathrm{motif}}M(r)+\beta_{\mathrm{sym}}Y(r)-\beta_{\mathrm{dup}}D_{\mathrm{dup}}(r).
 \end{aligned}
 $$
@@ -1656,9 +1569,9 @@ s(r)\ge \eta_{\mathrm{nd}}\,s(r_{\max}),
 $$
 where $r_{\max}$ is the top shortlisted record and $0<\eta_{\mathrm{nd}}\le 1$ is the near-degeneracy ratio. In other words, only candidates whose score is sufficiently close to the best score are even allowed to compete for the same batch.
 
-Then define a baseline pairwise incompatibility penalty
+Then define a pairwise incompatibility penalty
 $$
-\Pi_0(r,r')
+\Pi(r,r')
 =
 w_{\mathrm{ov}}\,\Omega(r,r')
 +
@@ -1693,34 +1606,14 @@ The greedy admission rule is then
 $$
 r\ \text{is appended to}\ \mathcal B_{\mathrm{batch}}
 \quad\Longrightarrow\quad
-s(r)-\sum_{r'\in\mathcal B_{\mathrm{batch}}}\Pi_t(r,r')>0,
+s(r)-\sum_{r'\in\mathcal B_{\mathrm{batch}}}\Pi(r,r')>0,
 $$
 together with
 $$
-|\mathcal B_{\mathrm{batch}}|<B_{\mathrm{target}}(t)
+|\mathcal B_{\mathrm{batch}}|<B_{\mathrm{target}}
 \quad\text{or at worst}\quad
 |\mathcal B_{\mathrm{batch}}|<B_{\mathrm{cap}}.
 $$
-Here the batch target should itself depend on useful remaining runway. A canonical controller-level rule is
-$$
-B_{\mathrm{target}}(t)
-=
-B_{\min}
-+
-\left\lfloor
-(B_{\max}-B_{\min})
-\frac{\widehat N_{\mathrm{rem}}(t)}{D_{\mathrm{left}}(t)+\varepsilon}\,
-C_t
-\right\rfloor,
-$$
-where $B_{\min}$ and $B_{\max}$ are controller lower/upper batch-width bounds. So batch growth is largest only when useful runway is still long and the runway estimate is confident. The scheduler-scaled compatibility penalty is
-$$
-\Pi_t(r,r')=\gamma_{\mathrm{compat}}(t)\,\Pi_0(r,r'),
-\qquad
-\gamma_{\mathrm{compat}}(t)=\gamma_{\min}+(\gamma_{\max}-\gamma_{\min})W_{\mathrm{sat}}(t).
-$$
-Here $\gamma_{\min}$ and $\gamma_{\max}$ are controller lower/upper compatibility-pressure bounds.
-Thus both the allowed batch width and the effective pairwise compatibility pressure depend on expected useful depth remaining; batch is deliberately more permissive when the selector still expects several useful admissions and tighter when saturation pressure is high.
 So batch selection is a greedy set-building rule:
 $$
 \mathcal B_{\mathrm{batch},0}=\varnothing,
@@ -1733,160 +1626,9 @@ $$
 
 Qualitatively, batch means “several shortlisted candidates are so similarly good that we admit more than one at the same ADAPT depth, provided they do not clash too much.” It is not beam: beam keeps multiple alternative scaffolds alive, while batch commits multiple compatible admissions into one scaffold immediately. It is also not a joint global optimizer over subsets; it is a greedy compatibility-filtered multi-admission rule.
 
-### 11.4.3 Post-admission local simplification: permissibility, expendability, and gain-retention safety
-
-After Phase 3 admits its winning payload, the selector surface does not terminate immediately. Let $\mathcal A_d^\star$ denote the payload admitted at adaptive depth $d$: either a singleton $\{r^\star\}$ or a greedy batch $\mathcal B_{\mathrm{batch}}^\star$. Let
-$$
-(\mathcal O_d,\theta_d,E_d)
-$$
-be the scaffold state immediately before that admission, and let
-$$
-(\mathcal O_d^+,\theta_d^+,E_d^+)
-$$
-be the post-insertion state after the ordinary local reoptimization on the admitted scaffold has completed. The admitted-step gain is
-$$
-\Delta_{\mathrm{adm}}(\mathcal A_d^\star)=E_d-E_d^+.
-$$
-
-The local simplification pass is guarded first by a prune-permissibility gate
-$$
-\Gamma_{\mathrm{prune}}^{\mathrm{perm}}(\mathcal O_d^+,\mathcal A_d^\star)\in\{0,1\},
-$$
-which decides whether any post-admission removal attempt is allowed at all. A canonical controller-facing form is
-$$
-\Gamma_{\mathrm{prune}}^{\mathrm{perm}}(t)
-=
-\mathbf 1[\text{accepted admission at }t]\,
-\mathbf 1[\text{rollback-safe}]\,
-\mathbf 1\!\Bigl[
-W_{\mathrm{sat}}(t)\ge \tau_{\mathrm{hi}}
-\ \vee\
-\bigl(W_{\mathrm{sat}}(t)\ge \tau_{\mathrm{med}}
-\wedge
-\Delta_{\mathrm{adm}}(\mathcal A_d^\star)\le c_{\mathrm{weak}}\Delta_{\mathrm{scr}}(t)\bigr)
-\Bigr],
-$$
-with screening scale
-$$
-\Delta_{\mathrm{scr}}(t)=\max\!\Bigl(\tau_{\mathrm{use},t},\operatorname{EWMA}(\Delta_{\mathrm{adm}}^+),\Delta_{\mathrm{num}}\Bigr).
-$$
-Here $\tau_{\mathrm{hi}},\tau_{\mathrm{med}},c_{\mathrm{weak}},\tau_{\mathrm{use},t}$, and $\Delta_{\mathrm{num}}$ are controller thresholds or numerical safety scales.
-So the permissibility gate depends on global saturation/runway state and local step quality, but it is not itself a ranking score.
-
-If $\Gamma_{\mathrm{prune}}^{\mathrm{perm}}=1$, define the locally expendable set
-$$
-\mathcal J_{\mathrm{exp}}(\mathcal A_d^\star)\subseteq\{1,\dots,|\mathcal O_d^+|\},
-$$
-obtained from the mature eligible set
-$$
-\mathcal M_t
-=
-\Bigl\{
-j:
-a_j(t)\ge a_{\min},\ 
-j\notin\mathcal P_{\mathrm{protect}}(t),\ 
-c_j^{\mathrm{cool}}(t)=0
-\Bigr\},
-$$
-after excluding coordinates introduced by the just-admitted payload. Thus prune permissibility and local expendability remain separate notions: the first asks whether simplification may be attempted, while the second asks which previously active coordinates are locally weakest once admission has already succeeded.
-
-If a cheap local prescreen is desired, define
-$$
-\theta_{\mathrm{ref}}(t)=\max\!\Bigl(\theta_{\mathrm{abs}},c_\theta\,\operatorname{median}_{j\in\mathcal M_t}|\operatorname{wrap}(\theta_j(t))|\Bigr),
-$$
-$$
-S_\theta(j,t)=\left[1+\left(\frac{|\operatorname{wrap}(\theta_j(t))|}{\theta_{\mathrm{ref}}(t)+\varepsilon_\theta}\right)^{p_\theta}\right]^{-1},
-$$
-and let
-$$
-\mathcal P_{\mathrm{probe}}(t)=
-\begin{cases}
-\operatorname{Top}_{K_p}\bigl(\mathcal M_t;S_\theta(\cdot,t)\bigr),&\text{if angle prescreen is enabled},\\
-\mathcal M_t,&\text{otherwise}.
-\end{cases}
-$$
-This prescreen is computational only. It is not the authoritative local prune score.
-
-For each $j\in\mathcal P_{\mathrm{probe}}(t)$, let $E_{-j}^{\mathrm{frz}}$ denote the frozen-ablation energy obtained by removing coordinate $j$ from the post-admission scaffold while holding all remaining post-admission coordinates fixed at their values in $\theta_d^+$. The local frozen-ablation loss is then
-$$
-L_j^{\mathrm{frz}}(\mathcal A_d^\star)=E_{-j}^{\mathrm{frz}}-E_d^+.
-$$
-Coordinates with smaller $L_j^{\mathrm{frz}}$ are more expendable, so the canonical local prune ranking is
-$$
-X_j(t)
-=
-\left[
-1+\frac{L_j^{\mathrm{frz}}(\mathcal A_d^\star)}{\kappa_\delta\Delta_{\mathrm{scr}}(t)+\varepsilon}
-\right]^{-1},
-$$
-and the live prune candidate set is
-$$
-\mathcal C_{\mathrm{exp}}(t)=\{j\in\mathcal P_{\mathrm{probe}}(t):X_j(t)\ge \tau_{\mathrm{stale}}\}.
-$$
-A weak age/rank regularizer may then be written as
-$$
-B_j(t)=1+\lambda_{\mathrm{age}}\bigl(2\varrho_j(t)-1\bigr),
-\qquad 0\le \lambda_{\mathrm{age}}\le 0.1,
-$$
-$$
-R_j(t)=X_j(t)\,B_j(t),
-\qquad
-j_t^\star=\arg\max_{j\in\mathcal C_{\mathrm{exp}}(t)}R_j(t).
-$$
-Thus $X_j(t)$ is the authoritative local expendability score, while $B_j(t)$ is only a weak policy bias. The frozen-ablation loss is therefore a local, solver-relative expendability score; it is not a theorem that the corresponding coordinate is globally redundant in the full optimization landscape. The global saturation variable $W_{\mathrm{sat}}(t)$ belongs in $\Gamma_{\mathrm{prune}}^{\mathrm{perm}}(t)$, not in $X_j(t)$ or $R_j(t)$ themselves.
-
-Before the actual remove-refit trial, take the exact rollback snapshot
-$$
-\Xi_t^{\mathrm{trial}}
-=
-\bigl(
-\mathcal O_d^+,\theta_d^+,E_d^+,\mathcal M_{\mathrm{opt}}^+,\text{local prune metadata}
-\bigr).
-$$
-Each ranked removal attempt is then tested by a local remove-refit trial on the reduced scaffold. If $E_t^{(-j_t^\star)}$ is the post-refit energy of the scaffold with $j_t^\star$ removed, then the retained admitted-step gain is
-$$
-\Delta_{\mathrm{keep}}^{(j_t^\star)}=E_d-E_t^{(-j_t^\star)}.
-$$
-The canonical Phase-3 prune accept rule requires both a numerical safety guard and gain retention:
-$$
-E_t^{(-j_t^\star)}\le E_d^+ + \Delta_{\mathrm{safe}},
-\qquad
-\Delta_{\mathrm{keep}}^{(j_t^\star)}
-\ge
-\eta_{\mathrm{ret}}\,\Delta_{\mathrm{adm}}(\mathcal A_d^\star).
-$$
-In repo-facing notation, with
-$$
-E_t^-:=E_d,\qquad E_t:=E_d^+,\qquad \delta_t:=\Delta_{\mathrm{adm}}(\mathcal A_d^\star),\qquad \beta_{\mathrm{keep}}:=\eta_{\mathrm{ret}},
-$$
-the same accept rule is
-$$
-E_t^{(-j_t^\star)}
-\le
-E_t^- - \beta_{\mathrm{keep}}\delta_t + \Delta_{\mathrm{safe}}.
-$$
-The first form shows explicit retained gain. The second is the concise repo-facing energy inequality. If a trial fails, the state is restored exactly to $\Xi_t^{\mathrm{trial}}$.
-
-So the post-admission local simplification contract is
-$$
-\text{admit }\mathcal A_d^\star
-\;\longrightarrow\;
-\text{local reopt}
-\;\longrightarrow\;
-\text{snapshot }\Xi_t^{\mathrm{trial}}
-\;\longrightarrow\;
-\begin{cases}
-\text{keep that state},&\Gamma_{\mathrm{prune}}^{\mathrm{perm}}=0,\\
-\text{rank } \mathcal C_{\mathrm{exp}}(t) \text{ by }R_j(t),&\Gamma_{\mathrm{prune}}^{\mathrm{perm}}=1,
-\end{cases}
-$$
-followed, when pruning is permitted, by sequential remove-refit trials with exact rollback on every rejected trial. A failed local prune attempt restores the last committed post-admission state; prune rejection never invalidates the original admission event itself. In particular, prune permissibility is not a local expendability score, frozen ablation is not a global redundancy theorem, and global progress or stopping logic remain controller-level surfaces rather than consequences of the local prune ranking alone.
-
-### 11.4.4 Beam-adapt over scaffold alternatives: branch state, pruning, and effective selector
+### 11.4.3 Beam-adapt over scaffold alternatives: branch state, pruning, and effective selector
 
 In this section beam-adapt is **purely structural**: each branch carries an alternative ADAPT scaffold together with its locally refit amplitudes. There is no time checkpoint, probe rollout, or projected-dynamics integral in this section. Those belong to the separate time-dynamics beam surface developed in §17.
-
-Within each branch, the local cheap-screen / shortlist chain reuses §§11.4.1--11.4.2: the branch-local cheap universe is obtained by ranking the full branch-local admissible record set with $S_{3,\mathrm{cheap}}$, not by inserting a separate upstream gradient-only cap. The branch-level frontier-prune operators introduced below remain beam-management surfaces and are distinct from the post-admission scaffold-simplification prune contract of §11.4.3.
 
 The cleanest way to read a live scaffold branch is
 $$
@@ -2033,7 +1775,7 @@ $$
 \begin{aligned}
 N_{\mathrm{cheap}}(\mathfrak b)
 &=
-\min\!\left\{N_{\mathrm{cheap}}^{\max},|\mathcal R_b^{\mathrm{raw}}|,K_{\mathrm{coarse}}(\mathfrak b)\right\},\\
+\min\!\left\{N_{\mathrm{cheap}}^{\max},|\mathcal R_b^{\mathrm{raw}}|\right\},\\
 \mathcal C_{\mathrm{cheap}}(\mathfrak b)
 &=
 \operatorname{Top}_{N_{\mathrm{cheap}}(\mathfrak b)}\!\left(\mathcal R_b^{\mathrm{raw}};S_{3,\mathrm{cheap}}\right),\\
@@ -2045,33 +1787,7 @@ N_{\mathrm{short}}(\mathfrak b)
 \operatorname{Top}_{N_{\mathrm{short}}(\mathfrak b)}\!\left(\mathcal C_{\mathrm{cheap}}(\mathfrak b);S_{3,\mathrm{cheap}}\right).
 \end{aligned}
 $$
-where
-$$
-H_b=\min\!\bigl(D_{\mathrm{left}}(\mathfrak b),\widehat N_{\mathrm{rem}}(\mathfrak b)\bigr)
-$$
-is the branch-local useful horizon. The same controller layer may also induce
-$$
-K_{\mathrm{coarse}}(\mathfrak b)
-=
-K_{\min}+\left\lfloor (K_{\max}-K_{\min})\frac{\widehat N_{\mathrm{rem}}^{\mathrm{hi}}(\mathfrak b)}{D_{\mathrm{left}}(\mathfrak b)+\varepsilon}\right\rfloor,
-$$
-$$
-B_{\mathrm{target}}(\mathfrak b)
-=
-B_{\min}+\left\lfloor (B_{\max}-B_{\min})\frac{\widehat N_{\mathrm{rem}}(\mathfrak b)}{D_{\mathrm{left}}(\mathfrak b)+\varepsilon}C(\mathfrak b)\right\rfloor,
-$$
-$$
-\Pi_{\mathfrak b}(r,r')=\gamma_{\mathrm{compat}}(\mathfrak b)\,\Pi_0(r,r'),
-\qquad
-\gamma_{\mathrm{compat}}(\mathfrak b)=\gamma_{\min}+(\gamma_{\max}-\gamma_{\min})W_{\mathrm{sat}}(\mathfrak b),
-$$
-and mode/regime labels
-$$
-\pi(\mathfrak b)\in\{\mathrm{fast},\mathrm{mixed},\mathrm{high\mbox{-}fidelity}\},
-\qquad
-\mathrm{regime}_{\mathrm{sat}}(\mathfrak b)\in\{\mathrm{hungry},\mathrm{watch},\mathrm{plateau}\}.
-$$
-Using the same cumulative chain from §§11.4.1--11.4.2 — first the reused cheap screen, then the shortlist/full rerank, and finally the Phase-3 augmentations — this branch-local screen is now evaluated on the current branch state $(\mathcal O_b,\theta_b)$ with
+using the same cumulative chain from §§11.4.1--11.4.2 — first the reused cheap screen, then the shortlist/full rerank, and finally the Phase-3 augmentations — but now evaluated on the current branch state $(\mathcal O_b,\theta_b)$ with
 $$
 \Gamma_{\mathrm{stage}}(m)=\Gamma_{\mathrm{stage},b}(m),
 \qquad
@@ -2733,8 +2449,6 @@ where:
 - $\Xi$ is symmetry information,
 - $\mathcal R$ is rescue or recovery history,
 - $\mathcal P$ is optional historical replay-policy metadata when such provenance is still being carried.
-
-When controller forecast telemetry is persisted, quantities such as $D_{\mathrm{left}}(t)$, $\widehat N_{\mathrm{rem}}(t)$, and $H_t$ belong naturally to this policy/provenance layer. They remain heuristic controller state rather than operator-level observables.
 
 ## 14.3 General handoff map
 
@@ -3842,23 +3556,16 @@ $$
 
 For the backend-facing follow-up at this same weak-coupling point, the Heron/Marrakesh optimization should be done as a **transpile-only** sweep rather than through the noisy staged wrapper: run `python -m pipelines.hardcoded.adapt_circuit_cost` on the promoted locked scaffold `hh_l2_u05_g02_full_meta_class_pruned_lean4_locked_scaffold_v1.json` over `\texttt{optimization\_level}\in\{1,2\}` and `\texttt{seed\_transpiler}\in\{0,\dots,9\}`, then rank by compiled two-qubit count, depth, and size. On `\texttt{FakeMarrakesh}` the winning setting was `\texttt{optimization\_level}=2`, `\texttt{seed\_transpiler}=5`, reducing the same 4-operator, 6-runtime-term scaffold from about `25` two-qubit gates, depth `63`, size `109` to `18` two-qubit gates, depth `43`, size `83` without changing the physics or operator order.
 
-## 19.4 Relation to live Phase-3 selector/pruning implementation
+## 19.4 Relation to live pruning
 
-The canonical Phase-3 target contract is the one stated in §§11.4.1--11.4.3. Current live repo code still lags that contract in two visible ways.
+The redundancy story above is consistent with the live pruning machinery, but it should not be conflated with it. The implemented scaffold-pruning pass is active and ranks removal candidates primarily by small amplitude, then by weaker prior proxy benefit. Schematically, the ordering is lexicographic in
+$$
+\bigl(\lvert \theta_j\rvert,\ \text{prior proxy benefit}_j\bigr).
+$$
 
-First, the live selector path still applies a hard uncertainty-adjusted gradient pre-cap before the cheap screen and still uses a raw remaining-depth / remaining-evaluations proxy inside the lifetime-burden term. The corrected canonical contract in §11.4.1 instead ranks the full admissible candidate-position pool with the horizon-smoothed cheap score $S_{3,\mathrm{cheap}}(r;t)$, forms a horizon-sized coarse shortlist $\mathcal C_{\mathrm{cheap}}$, and uses the useful horizon
-$$
-H_t=\min\!\bigl(D_{\mathrm{left}}(t),\widehat N_{\mathrm{rem}}(t)\bigr)
-$$
-inside the lifetime multiplier. Here $\widehat N_{\mathrm{rem}}(t)$ is controller telemetry and therefore a ranking/burden aid, not a hard admissibility theorem.
+A candidate removal is then accepted only after a local refit if the post-removal regression remains below the allowed prune threshold; otherwise it is rejected, and later symmetry or energy failure can trigger a rollback. So pruning is a live remove-refit-verify mechanism, not a static heuristic deletion list.
 
-Second, the live pruning path still ranks removals primarily by small amplitude together with weaker prior proxy-benefit tie-breaks and accepts removals through a standalone post-refit regression threshold. The corrected canonical contract in §11.4.3 instead separates prune permissibility from local expendability, ranks permissible removals by frozen-ablation loss, and uses retained admitted-step gain as the principal energetic safety condition. Thus frozen ablation is to be read as a local, solver-relative expendability heuristic, while the gain-retention inequality is the actual prune safety condition.
-
-So the honest status note is: current code still trails the canonical Phase-3 mathematics, but the intended direction of alignment is
-$$
-\text{live implementation}\longrightarrow \text{corrected canonical contract of §§11.4.1--11.4.3},
-$$
-not the reverse.
+It is also important that estimated remaining depth is **not** part of the prune accept/reject rule itself. Remaining-depth information enters the lifetime-burden term of the selector score, whereas pruning uses the small-$\lvert \theta\rvert$ plus local-regression logic above.
 
 ## 19.5 Data provenance note
 
@@ -3930,13 +3637,7 @@ So on this $L=2$ HH debug line the dominant cost is backend-scheduled term execu
 
 For the locked Marrakesh/Heron 6-term HH scaffold `artifacts/json/hh_marrakesh_fixed_scaffold_6term_drop_eyezee_20260323T171528Z.json`, the useful local compile-control test is a transpile-only scout on `FakeMarrakesh` with fixed circuit/parameters, `shots=4096`, `oracle_repeats=8`, readout/mthree mitigation, and grid $(\texttt{optimization\_level},\texttt{seed\_transpiler})\in\{1,2\}\times\{0,\dots,4\}$, ranking by $\Delta E=E_{\mathrm{noisy}}-E_{\mathrm{ideal}}$ then by compiled cost; among the saved `8/10` completed candidates in `artifacts/agent_runs/20260328_direct_fixed_scaffold_compile_scout_fullaccess_attempt2_timeout7200/json/20260328_direct_fixed_scaffold_compile_scout_fullaccess_attempt2_timeout7200.json`, the best-so-far setting was `opt1_seed4` with $\Delta E\approx 9.9899\times 10^{-2}$, two-qubit count `14`, and depth `48`, whereas the completed lower-depth `opt2_*` candidates kept the same two-qubit count `14` but had depth `38` and worse $\Delta E$: `opt2_seed0\approx 1.1726\times 10^{-1}`, `opt2_seed1\approx 1.2245\times 10^{-1}`, `opt2_seed2\approx 1.2029\times 10^{-1}`, so lower compiled depth alone did not improve noisy accuracy and the current hardware-facing compile preset is `(optimization_level=1, seed_transpiler=4)`.
 
-As an $L=2$ run-planning prior rather than a theorem, the earlier local FakeMarrakesh ablations were mixed between readout-only and twirl while DD usually underperformed, but the completed 12-cell saved-$\theta^\star$ mitigation matrix in `artifacts/json/20260328_fixed_scaffold_saved_theta_mitigation_matrix_attempt5_timeout86400_delta_logs_fixed_scaffold_saved_theta_mitigation_matrix.json` now supersedes that partial prior: the top three cells were `opt2_seed0__zne_on__twirl_dd` with $\Delta E\approx-6.6431\times 10^{-4}$ and stderr $\approx1.2322\times 10^{-2}$ at 14 two-qubit gates and depth 38, `opt1_seed4__zne_on__twirl_dd` with $\Delta E\approx8.2990\times 10^{-3}$ and stderr $\approx2.6104\times 10^{-2}$ at 14 two-qubit gates and depth 48, and `opt2_seed0__zne_on__twirl` with $\Delta E\approx1.4807\times 10^{-2}$ and stderr $\approx1.1157\times 10^{-2}$ at 14 two-qubit gates and depth 38. For a real-QPU first pass on this locked 6-term scaffold, the current best local starting lane is therefore `(optimization_level=2, seed_transpiler=0)` with `ZNE on + twirl + DD`, with `(optimization_level=1, seed_transpiler=4)` plus the same mitigation stack as the nearest fallback if one wants to hedge against ZNE-fit variance while staying on the same two-qubit count.
-
-For the weak-coupling locked scaffold `artifacts/json/useful/L2/hh_l2_u05_g02_full_meta_class_pruned_lean4_locked_scaffold_v1.json`, the completed 4-cell readout+mthree shortlist in `artifacts/json/20260329_weak_fixed_scaffold_top4_mitigation_readout_opt2seed5_fixed_scaffold_saved_theta_mitigation_matrix.json` had top two cells `opt2_seed5__zne_on__twirl_dd` with $\Delta E\approx1.0800\times 10^{-2}$ and stderr $\approx4.7014\times 10^{-3}$, and `opt2_seed5__zne_on__dd` with $\Delta E\approx1.6984\times 10^{-2}$ and stderr $\approx1.9163\times 10^{-3}$, both at 18 two-qubit gates and depth 43.
-
-The later readout-on versus readout-off ablations showed that base readout mitigation was helping rather than hurting on both fixed-scaffold winner lines. For the strong-coupling local winner, the same `opt2_seed0__zne_on__twirl_dd` lane moved from $\Delta E\approx-6.6431\times 10^{-4}$ with readout on in `artifacts/json/20260328_fixed_scaffold_saved_theta_mitigation_matrix_attempt5_timeout86400_delta_logs_fixed_scaffold_saved_theta_mitigation_matrix.json` to $\Delta E\approx5.4456\times 10^{-2}$ with readout off in `artifacts/json/20260329_strong_fixed_scaffold_winner_readout_off_ablation_opt2seed0_twirl_dd_retry2_fixed_scaffold_saved_theta_mitigation_matrix.json`, at the same compiled cost (14 two-qubit gates, depth 38). For the weak-coupling 18-two-qubit compile `opt2_seed5`, the analogous readout-off follow-up in `artifacts/json/20260330_weak_fixed_scaffold_top2_readout_off_ablation_opt2seed5_fixed_scaffold_saved_theta_mitigation_matrix.json` gave `opt2_seed5__zne_on__twirl_dd` at $\Delta E\approx5.6830\times 10^{-2}$ and `opt2_seed5__zne_on__dd` at $\Delta E\approx5.8131\times 10^{-2}$, versus the readout-on values $\approx1.0800\times 10^{-2}$ and $\approx1.6984\times 10^{-2}$ respectively, so turning readout off worsened the best weak lanes by about $4.60\times10^{-2}$ and $4.11\times10^{-2}$.
-
-The surprising regime comparison is therefore not in the noiseless scaffold bias but in the noisy response. The strong locked scaffold had $E_{\mathrm{ideal}}-E_{\mathrm{exact}}\approx4.6131\times10^{-3}$ from `artifacts/json/hh_marrakesh_fixed_scaffold_6term_drop_eyezee_20260323T171528Z.json`, while the weak locked scaffold had $E_{\mathrm{ideal}}-E_{\mathrm{exact}}\approx2.7761\times10^{-5}$ from `artifacts/json/useful/L2/hh_l2_u05_g02_full_meta_class_pruned_lean4_locked_scaffold_v1.json`. Thus the weak scaffold was much closer to exact in the noiseless sense, yet still produced a worse noisy $\Delta E$ after the current suppression stack; the deficit is therefore a noise-response / mitigation-effect issue rather than a larger ideal-state approximation error.
+As an $L=2$ run-planning prior rather than a theorem, the same locked 6-term scaffold should enter a real-QPU lane with compile preset `(optimization_level=1, seed_transpiler=4)` and mitigation shortlist `readout_plus_gate_twirling` first, `readout_only` second, while local DD is de-prioritized: earlier local FakeMarrakesh ablations were mixed between readout-only and twirl (`9.2775\times 10^{-2}` vs `1.1359\times 10^{-1}` in `artifacts/json/hh_marrakesh_6term_local_mitigation_ablation_20260324T001622Z.json`, and `1.0333\times 10^{-1}` vs `1.0550\times 10^{-1}` in `artifacts/json/hh_marrakesh_6term_local_dd_probe_only_20260324T140754Z.json`), but later saved-$\theta^\*$ replay-smoke probes favored twirl (`2.4787\times 10^{-2}` vs `4.8352\times 10^{-2}`, `-8.0091\times 10^{-4}` vs `6.2745\times 10^{-2}`, and `3.1530\times 10^{-2}` vs `5.4904\times 10^{-2}` in the three `hh_marrakesh_6term_local_replay_smoke_*_20260325T161933Z.json` artifacts), whereas DD either failed or worsened to about `1.0194\times 10^{-1}` where it completed, so the main value of this note is to save QPU search budget by starting from the strongest local noisy prior instead of reopening the full compile/mitigation grid from scratch.
 
 ## 19.9 Heron transpile Pareto front and noisy replay for fixed L=2 scaffolds
 

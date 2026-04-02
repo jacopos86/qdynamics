@@ -88,6 +88,8 @@ class ControllerTelemetry:
     reason: str | None
     time_axis: np.ndarray
     fidelity_exact: np.ndarray
+    energy_total_controller: np.ndarray
+    energy_total_exact: np.ndarray
     abs_energy_total_error: np.ndarray
     rho_miss: np.ndarray
     motion_kink_score: np.ndarray
@@ -126,6 +128,17 @@ class WorkflowReportEntry:
     baseline: BaselineDynamics
     noisy: NoisyDynamics
     controller: ControllerTelemetry
+
+
+"dense_overlay = noiseless driven baseline used for smooth reference plotting"
+@dataclass(frozen=True)
+class DenseBaselineOverlay:
+    json_path: Path
+    payload: dict[str, Any]
+    physics: dict[str, Any]
+    dynamics: dict[str, Any]
+    drive_profile: dict[str, Any]
+    baseline: BaselineDynamics
 
 
 "payload = json(path)"
@@ -174,6 +187,45 @@ def _positive_floor(values: np.ndarray, eps: float = 1.0e-18) -> np.ndarray:
     return np.maximum(np.abs(arr), float(eps))
 
 
+"ylim_fidelity = [max(0, min(series)-pad), 1]"
+def _set_fidelity_ylim_top_one(ax: Any, *series: np.ndarray) -> None:
+    finite_chunks = [
+        np.asarray(chunk, dtype=float)[np.isfinite(np.asarray(chunk, dtype=float))]
+        for chunk in series
+        if np.asarray(chunk, dtype=float).size
+    ]
+    if not finite_chunks:
+        ax.set_ylim(0.0, 1.0)
+        return
+    finite_values = np.concatenate(finite_chunks)
+    lower = float(np.min(finite_values))
+    span = max(1.0 - lower, 0.05)
+    lower_pad = 0.08 * span
+    ax.set_ylim(max(0.0, lower - lower_pad), 1.0)
+
+
+"y(target) = interp(source_times, source_values; target_times)"
+def _interp_series(source_times: np.ndarray, source_values: np.ndarray, target_times: np.ndarray) -> np.ndarray:
+    src_t = np.asarray(source_times, dtype=float)
+    src_y = np.asarray(source_values, dtype=float)
+    tgt_t = np.asarray(target_times, dtype=float)
+    if not src_t.size or not src_y.size or not tgt_t.size:
+        return np.asarray([], dtype=float)
+    mask = np.isfinite(src_t) & np.isfinite(src_y)
+    if not np.any(mask):
+        return np.full(tgt_t.shape, np.nan, dtype=float)
+    src_t = src_t[mask]
+    src_y = src_y[mask]
+    order = np.argsort(src_t)
+    src_t = src_t[order]
+    src_y = src_y[order]
+    unique_t, unique_idx = np.unique(src_t, return_index=True)
+    unique_y = src_y[unique_idx]
+    if unique_t.size == 1:
+        return np.full(tgt_t.shape, float(unique_y[0]), dtype=float)
+    return np.interp(tgt_t, unique_t, unique_y)
+
+
 "label = human_readable_controller_identity(payload)"
 def _default_label(payload: Mapping[str, Any], path: Path) -> str:
     settings = payload.get("settings", {}) if isinstance(payload.get("settings", {}), Mapping) else {}
@@ -188,6 +240,14 @@ def _default_label(payload: Mapping[str, Any], path: Path) -> str:
     if mode == "off":
         return "controller off"
     return f"{mode} ({status})"
+
+
+"method = first requested noiseless propagator"
+def _primary_method_name(dynamics: Mapping[str, Any]) -> str:
+    methods = dynamics.get("methods", [])
+    if not isinstance(methods, Sequence) or not methods:
+        raise KeyError("Missing settings.dynamics.methods in staged workflow payload.")
+    return str(methods[0])
 
 
 "summary = parse(stdout.log)"
@@ -371,6 +431,8 @@ def _load_controller_telemetry(payload: Mapping[str, Any], *, stdout_log: Path |
         time_axis = _time_axis_from_rows(trajectory_rows, primary="physical_time", fallback="time")
         action_kinds = tuple(str(row.get("action_kind", "unknown")) for row in trajectory_rows)
         fidelity_exact = _array_from_rows(trajectory_rows, "fidelity_exact")
+        energy_total_controller = _array_from_rows(trajectory_rows, "energy_total_controller")
+        energy_total_exact = _array_from_rows(trajectory_rows, "energy_total_exact")
         abs_energy_total_error = _array_from_rows(trajectory_rows, "abs_energy_total_error")
         rho_miss = _array_from_rows(trajectory_rows, "rho_miss")
         motion_kink_score = _array_from_rows(trajectory_rows, "motion_kink_score")
@@ -385,6 +447,8 @@ def _load_controller_telemetry(payload: Mapping[str, Any], *, stdout_log: Path |
         time_axis = empty
         action_kinds = tuple()
         fidelity_exact = empty
+        energy_total_controller = empty
+        energy_total_exact = empty
         abs_energy_total_error = empty
         rho_miss = empty
         motion_kink_score = empty
@@ -399,6 +463,8 @@ def _load_controller_telemetry(payload: Mapping[str, Any], *, stdout_log: Path |
         reason=(None if adaptive.get("reason") in {None, ""} else str(adaptive.get("reason"))),
         time_axis=time_axis,
         fidelity_exact=fidelity_exact,
+        energy_total_controller=energy_total_controller,
+        energy_total_exact=energy_total_exact,
         abs_energy_total_error=abs_energy_total_error,
         rho_miss=rho_miss,
         motion_kink_score=motion_kink_score,
@@ -444,10 +510,7 @@ def load_workflow_report_entry(
         raise KeyError(f"Missing physics setting keys in {path}: {', '.join(missing_physics)}")
     dynamics = dict(settings.get("dynamics", {})) if isinstance(settings.get("dynamics", {}), Mapping) else {}
     noise = dict(settings.get("noise", {})) if isinstance(settings.get("noise", {}), Mapping) else {}
-    methods = dynamics.get("methods", [])
-    if not isinstance(methods, Sequence) or not methods:
-        raise KeyError(f"Missing settings.dynamics.methods in {path}.")
-    method_name = str(methods[0])
+    method_name = _primary_method_name(dynamics)
     noise_modes = noise.get("modes", [])
     if not isinstance(noise_modes, Sequence) or not noise_modes:
         raise KeyError(f"Missing settings.noise.modes in {path}.")
@@ -489,6 +552,59 @@ def load_workflow_report_entry(
     )
 
 
+"overlay = load dense noiseless baseline artifact"
+def load_dense_baseline_overlay(
+    json_path: str | Path,
+    *,
+    profile_name: str = "drive",
+) -> DenseBaselineOverlay:
+    path = Path(json_path).resolve()
+    payload = _read_json(path)
+    pipeline_name = str(payload.get("pipeline", ""))
+    if pipeline_name not in {"hh_staged_noiseless", "hh_staged_noise"}:
+        raise ValueError(
+            f"Expected hh_staged_noiseless or hh_staged_noise payload for dense overlay, got {pipeline_name!r}."
+        )
+    settings = payload.get("settings", {})
+    if not isinstance(settings, Mapping):
+        raise KeyError(f"Missing settings in {path}.")
+    physics = dict(settings.get("physics", {})) if isinstance(settings.get("physics", {}), Mapping) else {}
+    missing_physics = [key for key in _REQUIRED_PHYSICS_KEYS if key not in physics]
+    if missing_physics:
+        raise KeyError(f"Missing physics setting keys in {path}: {', '.join(missing_physics)}")
+    dynamics = dict(settings.get("dynamics", {})) if isinstance(settings.get("dynamics", {}), Mapping) else {}
+    method_name = _primary_method_name(dynamics)
+    profiles = (
+        payload.get("dynamics_noiseless", {}).get("profiles", {})
+        if isinstance(payload.get("dynamics_noiseless", {}), Mapping)
+        else {}
+    )
+    drive_profile = {}
+    if isinstance(profiles, Mapping):
+        profile_payload = profiles.get(profile_name, {})
+        if isinstance(profile_payload, Mapping) and isinstance(profile_payload.get("drive_profile", {}), Mapping):
+            drive_profile = dict(profile_payload.get("drive_profile", {}))
+    if not drive_profile:
+        drive_profile = {
+            "A": dynamics.get("drive_A"),
+            "omega": dynamics.get("drive_omega"),
+            "tbar": dynamics.get("drive_tbar"),
+            "phi": dynamics.get("drive_phi"),
+            "pattern": dynamics.get("drive_pattern"),
+            "custom_weights": dynamics.get("drive_custom_s"),
+            "time_sampling": dynamics.get("drive_time_sampling"),
+            "t0": dynamics.get("drive_t0"),
+        }
+    return DenseBaselineOverlay(
+        json_path=path,
+        payload=payload,
+        physics=physics,
+        dynamics=dynamics,
+        drive_profile=drive_profile,
+        baseline=_load_baseline_dynamics(payload, profile_name=profile_name, method_name=method_name),
+    )
+
+
 "signature = common_physics_and_drive(entry)"
 def _compatibility_signature(entry: WorkflowReportEntry) -> tuple[Any, ...]:
     return (
@@ -512,6 +628,34 @@ def _validate_compatibility(entries: Sequence[WorkflowReportEntry]) -> None:
     signatures = {_compatibility_signature(entry) for entry in entries}
     if len(signatures) != 1:
         raise ValueError("All report inputs must share the same driven HH physics and fake-backend surface.")
+
+
+"validate(dense_overlay, entries) = same physics/drive/t_final/method, denser grid allowed"
+def _validate_dense_overlay(
+    dense_overlay: DenseBaselineOverlay | None,
+    entries: Sequence[WorkflowReportEntry],
+) -> None:
+    if dense_overlay is None or not entries:
+        return
+    first = entries[0]
+    shared_keys = (
+        *(dense_overlay.physics.get(key) == first.physics.get(key) for key in _REQUIRED_PHYSICS_KEYS),
+        bool(dense_overlay.dynamics.get("enable_drive", False)) == bool(first.dynamics.get("enable_drive", False)),
+        dense_overlay.dynamics.get("drive_A") == first.dynamics.get("drive_A"),
+        dense_overlay.dynamics.get("drive_omega") == first.dynamics.get("drive_omega"),
+        dense_overlay.dynamics.get("drive_tbar") == first.dynamics.get("drive_tbar"),
+        dense_overlay.dynamics.get("drive_phi") == first.dynamics.get("drive_phi"),
+        dense_overlay.dynamics.get("drive_pattern") == first.dynamics.get("drive_pattern"),
+        dense_overlay.dynamics.get("drive_time_sampling") == first.dynamics.get("drive_time_sampling"),
+        dense_overlay.dynamics.get("drive_t0") == first.dynamics.get("drive_t0"),
+        dense_overlay.dynamics.get("t_final") == first.dynamics.get("t_final"),
+        dense_overlay.dynamics.get("trotter_steps") == first.dynamics.get("trotter_steps"),
+        _primary_method_name(dense_overlay.dynamics) == _primary_method_name(first.dynamics),
+    )
+    if not all(shared_keys):
+        raise ValueError(
+            "Dense overlay artifact must match physics, drive surface, t_final, propagator, and trotter_steps."
+        )
 
 
 "row = headline_metrics(entry)"
@@ -574,7 +718,11 @@ def _manifest_extra(entries: Sequence[WorkflowReportEntry]) -> dict[str, Any]:
 
 
 "lines = prose(summary(entries))"
-def _overview_lines(entries: Sequence[WorkflowReportEntry]) -> list[str]:
+def _overview_lines(
+    entries: Sequence[WorkflowReportEntry],
+    *,
+    dense_overlay: DenseBaselineOverlay | None = None,
+) -> list[str]:
     lines = [
         "Driven HH staged controller time-dynamics report",
         "",
@@ -592,6 +740,17 @@ def _overview_lines(entries: Sequence[WorkflowReportEntry]) -> list[str]:
         lines.append(f"- {entry.label}: {entry.json_path}")
         if entry.controller.compile_summary.log_path is not None:
             lines.append(f"  stdout log: {entry.controller.compile_summary.log_path}")
+    if dense_overlay is not None:
+        lines.extend(
+            [
+                "",
+                "Dense driven baseline overlay",
+                f"- source: {dense_overlay.json_path}",
+                f"- method: {_primary_method_name(dense_overlay.dynamics)}",
+                f"- num_times: {dense_overlay.dynamics.get('num_times')}",
+                f"- exact_steps_multiplier: {dense_overlay.dynamics.get('exact_steps_multiplier')}",
+            ]
+        )
     return lines
 
 
@@ -643,7 +802,14 @@ def _render_overlay_page(pdf: Any, entries: Sequence[WorkflowReportEntry]) -> No
     fig, axes = plt.subplots(2, 2, figsize=(11.0, 8.5), sharex=True)
     ax_fid, ax_err, ax_noisy_e, ax_noisy_stag = axes.ravel()
     for entry in entries:
-        ax_fid.plot(entry.baseline.times, entry.baseline.fidelity, linewidth=2.0, label=entry.label)
+        ax_fid.plot(
+            entry.baseline.times,
+            entry.baseline.fidelity,
+            linewidth=2.0,
+            marker="o",
+            markersize=4,
+            label=entry.label,
+        )
         ax_err.semilogy(
             entry.baseline.times,
             _positive_floor(entry.baseline.abs_energy_total_error),
@@ -657,9 +823,10 @@ def _render_overlay_page(pdf: Any, entries: Sequence[WorkflowReportEntry]) -> No
             linewidth=2.0,
             label=entry.label,
         )
-    ax_fid.set_title("Driven replay fidelity vs exact reference")
+    ax_fid.set_title("Fidelity to exact state vs time")
     ax_fid.set_ylabel("Fidelity")
     ax_fid.grid(True, alpha=0.25)
+    _set_fidelity_ylim_top_one(ax_fid, *[entry.baseline.fidelity for entry in entries])
     ax_err.set_title("Driven replay |ΔE_total|")
     ax_err.set_ylabel("|ΔE_total|")
     ax_err.grid(True, alpha=0.25)
@@ -680,41 +847,262 @@ def _render_overlay_page(pdf: Any, entries: Sequence[WorkflowReportEntry]) -> No
     plt.close(fig)
 
 
+"primary_page = fidelity(t), energy_total(t) with exact + replay + controller"
+def _render_primary_compare_page(
+    pdf: Any,
+    entries: Sequence[WorkflowReportEntry],
+    *,
+    dense_overlay: DenseBaselineOverlay | None = None,
+) -> None:
+    require_matplotlib()
+    plt = get_plt()
+    fig, axes = plt.subplots(3, 1, figsize=(11.0, 8.5), sharex=True)
+    ax_fid, ax_energy, ax_ctrl_energy = axes
+
+    first = entries[0]
+    baseline_source = dense_overlay.baseline if dense_overlay is not None else first.baseline
+    dense_label = (
+        f"dense {_primary_method_name(dense_overlay.dynamics)}"
+        if dense_overlay is not None
+        else f"{_primary_method_name(first.dynamics)}"
+    )
+    ax_energy.plot(
+        baseline_source.times,
+        baseline_source.energy_total_exact,
+        color="#111111",
+        linewidth=2.2,
+        linestyle="--",
+        label="exact dynamics",
+    )
+
+    fidelity_series: list[np.ndarray] = []
+    ax_fid.plot(
+        baseline_source.times,
+        baseline_source.fidelity,
+        color="#1f77b4",
+        linewidth=2.2,
+        label=dense_label,
+    )
+    ax_energy.plot(
+        baseline_source.times,
+        baseline_source.energy_total_trotter,
+        color="#1f77b4",
+        linewidth=2.2,
+        label=dense_label,
+    )
+    fidelity_series.append(baseline_source.fidelity)
+    if dense_overlay is not None:
+        ax_fid.plot(
+            first.baseline.times,
+            first.baseline.fidelity,
+            color="#1f77b4",
+            linestyle="none",
+            marker="o",
+            markersize=4,
+            alpha=0.7,
+            label="5-pt samples",
+        )
+        ax_energy.plot(
+            first.baseline.times,
+            first.baseline.energy_total_trotter,
+            color="#1f77b4",
+            linestyle="none",
+            marker="o",
+            markersize=4,
+            alpha=0.7,
+            label="5-pt samples",
+        )
+    for entry in entries:
+        if entry.controller.time_axis.size:
+            ax_fid.plot(
+                entry.controller.time_axis,
+                entry.controller.fidelity_exact,
+                linewidth=2.4,
+                marker="s",
+                markersize=5,
+                label=f"{entry.label} controller",
+            )
+            ax_energy.plot(
+                entry.controller.time_axis,
+                entry.controller.energy_total_controller,
+                linewidth=2.4,
+                marker="s",
+                markersize=5,
+                label=f"{entry.label} controller",
+            )
+            fidelity_series.append(entry.controller.fidelity_exact)
+
+    ax_fid.set_title("Fidelity to exact state vs time")
+    ax_fid.set_ylabel("Fidelity")
+    ax_fid.grid(True, alpha=0.25)
+    _set_fidelity_ylim_top_one(ax_fid, *fidelity_series)
+    ax_fid.text(
+        0.02,
+        0.06,
+        "Exact-state curve omitted: fidelity(exact, exact) = 1 by construction.",
+        transform=ax_fid.transAxes,
+        fontsize=8,
+        color="#444444",
+        bbox={"boxstyle": "round,pad=0.2", "facecolor": "white", "alpha": 0.75, "edgecolor": "#cccccc"},
+    )
+    ax_fid.legend(fontsize=8, loc="best")
+
+    ax_energy.set_title("CFQM/Suzuki total energy vs exact driven reference")
+    ax_energy.set_ylabel("Energy")
+    ax_energy.grid(True, alpha=0.25)
+    ax_energy.legend(fontsize=8, loc="best")
+
+    has_controller_energy = False
+    for entry in entries:
+        if entry.controller.time_axis.size:
+            has_controller_energy = True
+            if dense_overlay is not None:
+                ax_ctrl_energy.plot(
+                    baseline_source.times,
+                    baseline_source.energy_total_exact,
+                    color="#111111",
+                    linewidth=2.0,
+                    linestyle="--",
+                    label="exact dynamics",
+                )
+            else:
+                ax_ctrl_energy.plot(
+                    entry.controller.time_axis,
+                    entry.controller.energy_total_exact,
+                    color="#111111",
+                    linewidth=2.0,
+                    linestyle="--",
+                    marker="o",
+                    markersize=4,
+                    label=f"{entry.label} exact ref",
+                )
+            ax_ctrl_energy.plot(
+                entry.controller.time_axis,
+                entry.controller.energy_total_controller,
+                linewidth=2.2,
+                marker="s",
+                markersize=5,
+                label=f"{entry.label} controller",
+            )
+    ax_ctrl_energy.set_title("Controller total energy vs exact driven reference")
+    ax_ctrl_energy.set_xlabel("Time")
+    ax_ctrl_energy.set_ylabel("Energy")
+    ax_ctrl_energy.grid(True, alpha=0.25)
+    if has_controller_energy:
+        ax_ctrl_energy.legend(fontsize=8, loc="best")
+    else:
+        ax_ctrl_energy.text(
+            0.5,
+            0.5,
+            "No controller energy trajectory available.",
+            ha="center",
+            va="center",
+            transform=ax_ctrl_energy.transAxes,
+            fontsize=10,
+            color="#555555",
+        )
+
+    fig.suptitle("Primary driven comparison", fontsize=13, y=0.985)
+    fig.tight_layout(rect=(0.0, 0.0, 1.0, 0.96))
+    pdf.savefig(fig)
+    plt.close(fig)
+
+
 "run_page(entry) = driven replay + noisy traces"
-def _render_run_page(pdf: Any, entry: WorkflowReportEntry) -> None:
+def _render_run_page(
+    pdf: Any,
+    entry: WorkflowReportEntry,
+    *,
+    dense_overlay: DenseBaselineOverlay | None = None,
+) -> None:
     require_matplotlib()
     plt = get_plt()
     fig, axes = plt.subplots(3, 2, figsize=(11.0, 8.5), sharex=True)
     ax_fid, ax_energy, ax_err, ax_noisy_e, ax_stag, ax_doublon = axes.ravel()
+    baseline_source = dense_overlay.baseline if dense_overlay is not None else entry.baseline
+    baseline_label = (
+        f"dense {_primary_method_name(dense_overlay.dynamics)}"
+        if dense_overlay is not None
+        else f"{_primary_method_name(entry.dynamics)}"
+    )
 
-    ax_fid.plot(entry.baseline.times, entry.baseline.fidelity, color="#1f77b4", linewidth=2.0)
-    ax_fid.set_title("Driven replay fidelity vs exact reference")
+    ax_fid.plot(
+        baseline_source.times,
+        baseline_source.fidelity,
+        color="#1f77b4",
+        linewidth=2.0,
+        label=baseline_label,
+    )
+    if dense_overlay is not None:
+        ax_fid.plot(
+            entry.baseline.times,
+            entry.baseline.fidelity,
+            color="#1f77b4",
+            linestyle="none",
+            marker="o",
+            markersize=4,
+            alpha=0.7,
+            label="5-pt samples",
+        )
+    if entry.controller.time_axis.size:
+        ax_fid.plot(
+            entry.controller.time_axis,
+            entry.controller.fidelity_exact,
+            color="#ff7f0e",
+            linewidth=2.3,
+            marker="s",
+            markersize=5,
+            label="controller",
+        )
+    ax_fid.set_title("Fidelity to exact state vs time")
     ax_fid.set_ylabel("Fidelity")
     ax_fid.grid(True, alpha=0.25)
+    _set_fidelity_ylim_top_one(ax_fid, baseline_source.fidelity, entry.controller.fidelity_exact)
+    ax_fid.text(
+        0.02,
+        0.06,
+        "Exact-state curve omitted: fidelity(exact, exact) = 1 by construction.",
+        transform=ax_fid.transAxes,
+        fontsize=8,
+        color="#444444",
+        bbox={"boxstyle": "round,pad=0.2", "facecolor": "white", "alpha": 0.75, "edgecolor": "#cccccc"},
+    )
+    ax_fid.legend(fontsize=8, loc="best")
 
     ax_energy.plot(
-        entry.baseline.times,
-        entry.baseline.energy_total_exact,
+        baseline_source.times,
+        baseline_source.energy_total_exact,
         color="#d62728",
         linewidth=1.8,
         linestyle="--",
         label="exact replay ref",
     )
     ax_energy.plot(
-        entry.baseline.times,
-        entry.baseline.energy_total_trotter,
+        baseline_source.times,
+        baseline_source.energy_total_trotter,
         color="#1f77b4",
         linewidth=2.0,
-        label="baseline replay",
+        label=baseline_label,
     )
-    ax_energy.set_title("Driven replay energy traces")
+    if dense_overlay is not None:
+        ax_energy.plot(
+            entry.baseline.times,
+            entry.baseline.energy_total_trotter,
+            color="#1f77b4",
+            linestyle="none",
+            marker="o",
+            markersize=4,
+            alpha=0.7,
+            label="5-pt samples",
+        )
+    ax_energy.set_title("CFQM/Suzuki total energy vs exact driven reference")
     ax_energy.set_ylabel("Energy")
     ax_energy.grid(True, alpha=0.25)
     ax_energy.legend(fontsize=8, loc="best")
 
     ax_err.semilogy(
-        entry.baseline.times,
-        _positive_floor(entry.baseline.abs_energy_total_error),
+        baseline_source.times,
+        _positive_floor(baseline_source.abs_energy_total_error),
         color="#9467bd",
         linewidth=2.0,
     )
@@ -722,6 +1110,22 @@ def _render_run_page(pdf: Any, entry: WorkflowReportEntry) -> None:
     ax_err.set_ylabel("|ΔE_total|")
     ax_err.grid(True, alpha=0.25)
 
+    noisy_exact_energy = _interp_series(
+        baseline_source.times,
+        baseline_source.energy_total_exact,
+        entry.noisy.times,
+    )
+    noisy_exact_staggered = _interp_series(
+        baseline_source.times,
+        baseline_source.staggered,
+        entry.noisy.times,
+    )
+    noisy_exact_doublon = _interp_series(
+        baseline_source.times,
+        baseline_source.doublon,
+        entry.noisy.times,
+    )
+    ax_noisy_e.plot(entry.noisy.times, noisy_exact_energy, color="black", linewidth=1.0, linestyle="--", label="exact")
     ax_noisy_e.plot(entry.noisy.times, entry.noisy.energy_total_ideal, color="#2ca02c", linewidth=1.8, label="ideal")
     ax_noisy_e.plot(entry.noisy.times, entry.noisy.energy_total_noisy, color="#ff7f0e", linewidth=2.0, label="noisy")
     ax_noisy_e.set_title("Driven noisy total energy")
@@ -729,6 +1133,7 @@ def _render_run_page(pdf: Any, entry: WorkflowReportEntry) -> None:
     ax_noisy_e.grid(True, alpha=0.25)
     ax_noisy_e.legend(fontsize=8, loc="best")
 
+    ax_stag.plot(entry.noisy.times, noisy_exact_staggered, color="black", linewidth=1.0, linestyle="--", label="exact")
     ax_stag.plot(entry.noisy.times, entry.noisy.staggered_ideal, color="#2ca02c", linewidth=1.8, label="ideal")
     ax_stag.plot(entry.noisy.times, entry.noisy.staggered_noisy, color="#ff7f0e", linewidth=2.0, label="noisy")
     ax_stag.set_title("Driven staggered density")
@@ -737,6 +1142,7 @@ def _render_run_page(pdf: Any, entry: WorkflowReportEntry) -> None:
     ax_stag.grid(True, alpha=0.25)
     ax_stag.legend(fontsize=8, loc="best")
 
+    ax_doublon.plot(entry.noisy.times, noisy_exact_doublon, color="black", linewidth=1.0, linestyle="--", label="exact")
     ax_doublon.plot(entry.noisy.times, entry.noisy.doublon_ideal, color="#2ca02c", linewidth=1.8, label="ideal")
     ax_doublon.plot(entry.noisy.times, entry.noisy.doublon_noisy, color="#ff7f0e", linewidth=2.0, label="noisy")
     ax_doublon.set_title("Driven doublon response")
@@ -760,29 +1166,20 @@ def _render_controller_page(pdf: Any, entry: WorkflowReportEntry) -> None:
             "",
             f"status: {controller.status}",
             f"reason: {controller.reason}",
-            f"append_count: {controller.append_count}",
-            f"stay_count: {controller.stay_count}",
-            f"oracle_decision_checkpoints: {controller.oracle_decision_checkpoints}",
-            f"exact_decision_checkpoints: {controller.exact_decision_checkpoints}",
             "",
-            "Backend-scheduled compile summary",
-            f"- stdout_log: {controller.compile_summary.log_path}",
-            f"- compile_start_count: {controller.compile_summary.compile_start_count}",
-            f"- compile_done_count: {controller.compile_summary.compile_done_count}",
-            f"- compile_cache_hit_count: {controller.compile_summary.compile_cache_hit_count}",
-            f"- unique_circuit_count: {controller.compile_summary.unique_circuit_count}",
-            f"- mean_two_qubit_count: {controller.compile_summary.mean_two_qubit_count}",
-            f"- max_two_qubit_count: {controller.compile_summary.max_two_qubit_count}",
-            f"- mean_depth: {controller.compile_summary.mean_depth}",
-            f"- max_depth: {controller.compile_summary.max_depth}",
-            f"- first_ts_utc: {controller.compile_summary.first_ts_utc}",
-            f"- last_ts_utc: {controller.compile_summary.last_ts_utc}",
-            "",
-            "Interpretation",
-            "- This run does not contain an adaptive controller trajectory yet.",
-            "- The replay/noisy pages in this PDF are still valid driven baseline diagnostics.",
-            "- A true controller-efficacy verdict requires a completed adaptive_realtime_checkpoint trajectory.",
+            "No adaptive controller trajectory was produced for this run.",
+            "The replay and noisy pages above remain valid driven baseline diagnostics.",
         ]
+        cs = controller.compile_summary
+        if cs.compile_done_count or cs.compile_cache_hit_count:
+            lines.extend([
+                "",
+                "Backend-scheduled compile summary",
+                f"- compile done / cache hit: {cs.compile_done_count} / {cs.compile_cache_hit_count}",
+                f"- unique circuits: {cs.unique_circuit_count}",
+                f"- mean / max 2Q count: {cs.mean_two_qubit_count:.1f} / {cs.max_two_qubit_count}",
+                f"- mean / max depth: {cs.mean_depth:.1f} / {cs.max_depth}",
+            ])
         render_text_page(pdf, lines, fontsize=10, line_spacing=0.03)
         return
 
@@ -791,10 +1188,21 @@ def _render_controller_page(pdf: Any, entry: WorkflowReportEntry) -> None:
     fig, axes = plt.subplots(3, 2, figsize=(11.0, 8.5), sharex=True)
     ax_fid, ax_err, ax_rho, ax_size, ax_energy, ax_table = axes.ravel()
 
-    ax_fid.plot(controller.time_axis, controller.fidelity_exact, color="#1f77b4", linewidth=2.0)
-    ax_fid.set_title("Controller fidelity vs exact reference")
+    ax_fid.plot(controller.time_axis, controller.fidelity_exact, color="#1f77b4", linewidth=2.0, label="controller")
+    ax_fid.set_title("Controller fidelity to exact state")
     ax_fid.set_ylabel("Fidelity")
     ax_fid.grid(True, alpha=0.25)
+    _set_fidelity_ylim_top_one(ax_fid, controller.fidelity_exact)
+    ax_fid.text(
+        0.02,
+        0.06,
+        "Exact-state curve omitted: fidelity(exact, exact) = 1 by construction.",
+        transform=ax_fid.transAxes,
+        fontsize=8,
+        color="#444444",
+        bbox={"boxstyle": "round,pad=0.2", "facecolor": "white", "alpha": 0.75, "edgecolor": "#cccccc"},
+    )
+    ax_fid.legend(fontsize=8, loc="best")
 
     ax_err.semilogy(
         controller.time_axis,
@@ -897,17 +1305,81 @@ def write_staged_controller_dynamics_pdf(
     input_jsons: Sequence[str | Path],
     output_pdf: str | Path,
     *,
+    dense_overlay_json: str | Path | None = None,
     run_command: str | None = None,
 ) -> Path:
     require_matplotlib()
     entries = [load_workflow_report_entry(path) for path in input_jsons]
     _validate_compatibility(entries)
+    dense_overlay = (
+        load_dense_baseline_overlay(dense_overlay_json) if dense_overlay_json is not None else None
+    )
+    _validate_dense_overlay(dense_overlay, entries)
     output_path = Path(output_pdf).resolve()
     output_path.parent.mkdir(parents=True, exist_ok=True)
     first = entries[0]
     PdfPages = get_PdfPages()
     plt = get_plt()
     with PdfPages(str(output_path)) as pdf:
+        # ── Page 1: headline metrics (the verdict) ──────────────────
+        fig, ax = plt.subplots(figsize=(11.0, 8.5))
+        ax.axis("off")
+        ax.set_title(
+            "Driven HH controller calibration — headline metrics",
+            fontsize=16,
+            fontweight="bold",
+            pad=20,
+        )
+        col_labels = [
+            "Run",
+            "Ctrl\nstatus",
+            "Replay final\nfidelity",
+            "Replay final\n|ΔE|",
+            "Noisy final\nΔE",
+            "Ctrl final\nfidelity",
+            "Ctrl final\n|ΔE|",
+            "Append\n/ Stay",
+        ]
+        headline_rows = [_headline_row(entry) for entry in entries]
+        tbl = ax.table(
+            cellText=headline_rows,
+            colLabels=col_labels,
+            loc="upper center",
+            cellLoc="center",
+            colLoc="center",
+        )
+        tbl.auto_set_font_size(False)
+        tbl.set_fontsize(11)
+        tbl.auto_set_column_width(list(range(len(col_labels))))
+        tbl.scale(1.0, 2.2)
+        for (row_idx, col_idx), cell in tbl.get_celld().items():
+            if row_idx == 0:
+                cell.set_facecolor("#e0e0e0")
+                cell.set_text_props(fontweight="bold", fontsize=10)
+            cell.set_edgecolor("#999999")
+        fig.tight_layout()
+        pdf.savefig(fig)
+        plt.close(fig)
+
+        # ── Page 2: primary driven comparison ───────────────────────
+        _render_primary_compare_page(pdf, entries, dense_overlay=dense_overlay)
+
+        # ── Page 3 (if multi-run): overlay comparison ───────────────
+        if len(entries) > 1:
+            _render_overlay_page(pdf, entries)
+
+        # ── Per-run detail pages: replay baseline + controller ──────
+        for entry in entries:
+            _render_run_page(pdf, entry, dense_overlay=dense_overlay)
+            _render_controller_page(pdf, entry)
+
+        # ── Secondary context: drive waveform ───────────────────────
+        _render_drive_page(pdf, entries)
+
+        # ── Reference appendix: how-to-read guide ──────────────────
+        render_text_page(pdf, _overview_lines(entries, dense_overlay=dense_overlay), fontsize=10, line_spacing=0.03)
+
+        # ── Reference appendix: parameter manifest ─────────────────
         render_parameter_manifest(
             pdf,
             model="Hubbard-Holstein",
@@ -919,35 +1391,8 @@ def write_staged_controller_dynamics_pdf(
             extra=_manifest_extra(entries),
             command=run_command or current_command_string(),
         )
-        render_text_page(pdf, _overview_lines(entries), fontsize=10, line_spacing=0.03)
 
-        fig, ax = plt.subplots(figsize=(11.0, 8.5))
-        render_compact_table(
-            ax,
-            title="Driven headline metrics",
-            col_labels=[
-                "Run",
-                "Ctrl status",
-                "Replay final fidelity",
-                "Replay final |ΔE|",
-                "Noisy final ΔE",
-                "Ctrl final fidelity",
-                "Ctrl final |ΔE|",
-                "Append/Stay",
-            ],
-            rows=[_headline_row(entry) for entry in entries],
-            fontsize=8,
-        )
-        fig.tight_layout()
-        pdf.savefig(fig)
-        plt.close(fig)
-
-        _render_drive_page(pdf, entries)
-        if len(entries) > 1:
-            _render_overlay_page(pdf, entries)
-        for entry in entries:
-            _render_run_page(pdf, entry)
-            _render_controller_page(pdf, entry)
+        # ── Last page: provenance / command ─────────────────────────
         render_command_page(
             pdf,
             run_command or current_command_string(),
@@ -955,6 +1400,7 @@ def write_staged_controller_dynamics_pdf(
             extra_header_lines=[
                 f"output_pdf: {output_path}",
                 *[f"input_json[{idx}]: {entry.json_path}" for idx, entry in enumerate(entries)],
+                *([f"dense_overlay_json: {dense_overlay.json_path}"] if dense_overlay is not None else []),
             ],
         )
     return output_path
@@ -976,6 +1422,11 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
         required=True,
         help="Output PDF path.",
     )
+    parser.add_argument(
+        "--dense-overlay-json",
+        default=None,
+        help="Optional staged HH noiseless/noise workflow JSON whose driven noiseless baseline should be used as a dense overlay.",
+    )
     return parser.parse_args(argv)
 
 
@@ -985,6 +1436,7 @@ def main(argv: Sequence[str] | None = None) -> Path:
     return write_staged_controller_dynamics_pdf(
         input_jsons=args.input_json,
         output_pdf=args.output_pdf,
+        dense_overlay_json=args.dense_overlay_json,
         run_command=current_command_string(),
     )
 

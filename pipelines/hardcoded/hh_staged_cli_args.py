@@ -234,6 +234,82 @@ def add_staged_hh_base_args(p: argparse.ArgumentParser) -> argparse.ArgumentPars
             "exact_v1 is exact/noiseless; oracle_v1 is the fresh-stage noisy/oracle scoring slice."
         ),
     )
+    p.add_argument(
+        "--checkpoint-controller-oracle-selection-policy",
+        choices=["measured_gain_commit_veto", "measured_topk_oracle_energy"],
+        default="measured_gain_commit_veto",
+        help=(
+            "Selection policy inside oracle_v1 after measured geometry succeeds. "
+            "Default preserves measured-gain selection plus noisy commit veto; "
+            "measured_topk_oracle_energy reranks the top measured candidates by noisy horizon-1 energy."
+        ),
+    )
+    p.add_argument(
+        "--checkpoint-controller-candidate-step-scales",
+        type=str,
+        default="1.0",
+        help=(
+            "Comma-separated oracle-side rollout scales for append candidates. "
+            "Use values below 1.0 to test damped append steps before rejecting a direction."
+        ),
+    )
+    p.add_argument(
+        "--checkpoint-controller-exact-forecast-guardrail-mode",
+        choices=["off", "dual_metric_v1"],
+        default="off",
+        help=(
+            "Optional oracle_v1 calibration guardrail that uses the controller's exact next-step reference "
+            "to veto proposed appends without adding measurement work."
+        ),
+    )
+    p.add_argument(
+        "--checkpoint-controller-exact-forecast-fidelity-loss-tol",
+        type=float,
+        default=0.0,
+        help="Forecast veto tolerance on next-step fidelity loss relative to stay.",
+    )
+    p.add_argument(
+        "--checkpoint-controller-exact-forecast-abs-energy-error-increase-tol",
+        type=float,
+        default=0.0,
+        help="Forecast veto tolerance on next-step absolute total-energy-error increase relative to stay.",
+    )
+    p.add_argument("--checkpoint-controller-miss-threshold", type=float, default=0.05)
+    p.add_argument("--checkpoint-controller-gain-ratio-threshold", type=float, default=0.02)
+    p.add_argument("--checkpoint-controller-append-margin-abs", type=float, default=1e-6)
+    p.add_argument("--checkpoint-controller-shortlist-size", type=int, default=4)
+    p.add_argument("--checkpoint-controller-shortlist-fraction", type=float, default=0.15)
+    p.add_argument("--checkpoint-controller-active-window-size", type=int, default=3)
+    p.add_argument("--checkpoint-controller-max-probe-positions", type=int, default=4)
+    p.add_argument("--checkpoint-controller-regularization-lambda", type=float, default=1e-8)
+    p.add_argument("--checkpoint-controller-candidate-regularization-lambda", type=float, default=1e-8)
+    p.add_argument("--checkpoint-controller-pinv-rcond", type=float, default=1e-10)
+    p.add_argument("--checkpoint-controller-compile-penalty-weight", type=float, default=0.05)
+    p.add_argument("--checkpoint-controller-measurement-penalty-weight", type=float, default=0.02)
+    p.add_argument("--checkpoint-controller-directional-penalty-weight", type=float, default=0.01)
+    p.add_argument("--checkpoint-controller-motion-calm-direction-cosine-threshold", type=float, default=0.98)
+    p.add_argument("--checkpoint-controller-motion-calm-rate-change-ratio-threshold", type=float, default=0.15)
+    p.add_argument("--checkpoint-controller-motion-direction-reversal-cosine-threshold", type=float, default=-0.05)
+    p.add_argument("--checkpoint-controller-motion-curvature-flip-cosine-threshold", type=float, default=-0.10)
+    p.add_argument("--checkpoint-controller-motion-acceleration-l2-threshold", type=float, default=0.05)
+    p.add_argument("--checkpoint-controller-motion-kink-rate-change-ratio-threshold", type=float, default=0.50)
+    p.add_argument("--checkpoint-controller-motion-calm-shortlist-scale", type=float, default=0.5)
+    p.add_argument("--checkpoint-controller-motion-kink-shortlist-bonus", type=int, default=2)
+    p.add_argument("--checkpoint-controller-motion-calm-oracle-budget-scale", type=float, default=0.5)
+    p.add_argument("--checkpoint-controller-motion-kink-oracle-budget-scale", type=float, default=2.0)
+    p.add_argument("--checkpoint-controller-position-jump-tie-margin-abs", type=float, default=1e-6)
+    p.add_argument("--checkpoint-controller-reconstruction-tol", type=float, default=1e-10)
+    p.add_argument(
+        "--checkpoint-controller-grouping-mode",
+        choices=["qwc_basis_cover_reuse"],
+        default="qwc_basis_cover_reuse",
+    )
+    p.add_argument("--checkpoint-controller-scout-shots", type=int, default=None)
+    p.add_argument("--checkpoint-controller-scout-repeats", type=int, default=None)
+    p.add_argument("--checkpoint-controller-confirm-shots", type=int, default=None)
+    p.add_argument("--checkpoint-controller-confirm-repeats", type=int, default=None)
+    p.add_argument("--checkpoint-controller-commit-shots", type=int, default=None)
+    p.add_argument("--checkpoint-controller-commit-repeats", type=int, default=None)
 
     # Dynamics
     p.add_argument("--noiseless-methods", type=str, default="suzuki2,cfqm4")
@@ -348,6 +424,8 @@ def add_staged_hh_noise_args(p: argparse.ArgumentParser) -> argparse.ArgumentPar
     p.add_argument("--omp-shm-workaround", dest="omp_shm_workaround", action="store_true")
     p.add_argument("--no-omp-shm-workaround", dest="omp_shm_workaround", action="store_false")
     p.add_argument("--noisy-mode-timeout-s", type=int, default=1200)
+    p.add_argument("--checkpoint-controller-timeout-s", type=int, default=None)
+    p.add_argument("--checkpoint-controller-progress-every-s", type=float, default=5.0)
     p.add_argument(
         "--checkpoint-controller-noise-mode",
         choices=["inherit", "ideal", "shots", "aer_noise", "runtime", "backend_scheduled"],
@@ -361,7 +439,10 @@ def add_staged_hh_noise_args(p: argparse.ArgumentParser) -> argparse.ArgumentPar
     p.add_argument(
         "--include-full-circuit-audit",
         action="store_true",
-        help="Enable imported lean ADAPT full-circuit audit. If no import JSON is given, defaults to the latest lean pareto_lean_l2 rerun artifact.",
+        help=(
+            "Enable the deeper imported-circuit audit lane: ansatz-input-state audit plus full imported-circuit audit. "
+            "If no import JSON is given, defaults to the latest lean pareto_lean_l2 rerun artifact."
+        ),
     )
     p.add_argument(
         "--include-fixed-lean-noisy-replay",
@@ -412,6 +493,53 @@ def add_staged_hh_noise_args(p: argparse.ArgumentParser) -> argparse.ArgumentPar
             "transpile seed / optimization-level grid under backend_scheduled + readout/mthree while recording "
             "requested-vs-observed compile metadata for each candidate. "
             "Requires an explicit --backend-name so the scout stays pinned to the intended local fake backend."
+        ),
+    )
+    p.add_argument(
+        "--include-fixed-scaffold-saved-theta-mitigation-matrix",
+        action="store_true",
+        help=(
+            "Enable imported fixed-scaffold fixed-theta local mitigation-matrix evaluation on an imported "
+            "locked fixed scaffold. Keeps the imported theta_runtime fixed, stays local-only on a fake "
+            "backend, defaults to readout+mthree as the base, and evaluates the compile-preset x ZNE x "
+            "suppression-stack matrix without running optimizer-loop replay."
+        ),
+    )
+    p.add_argument(
+        "--fixed-scaffold-matrix-zne-scales",
+        type=str,
+        default="1.0,3.0,5.0",
+        help=(
+            "Noise-scale factors for the imported fixed-scaffold saved-theta mitigation matrix local ZNE helper. "
+            "Used only with --include-fixed-scaffold-saved-theta-mitigation-matrix."
+        ),
+    )
+    p.add_argument(
+        "--fixed-scaffold-matrix-compile-presets",
+        type=str,
+        default=None,
+        help=(
+            "Optional comma-separated compile-preset override for the imported fixed-scaffold saved-theta "
+            "mitigation matrix. Format: label:optimization_level:seed_transpiler."
+        ),
+    )
+    p.add_argument(
+        "--fixed-scaffold-matrix-selected-cells",
+        type=str,
+        default=None,
+        help=(
+            "Optional comma-separated explicit cell whitelist for the imported fixed-scaffold saved-theta "
+            "mitigation matrix. Labels use the form preset__zne_on|off__twirl|dd|twirl_dd."
+        ),
+    )
+    p.add_argument(
+        "--fixed-scaffold-matrix-base-mitigation-mode",
+        choices=["readout", "none"],
+        default="readout",
+        help=(
+            "Base mitigation mode for the imported fixed-scaffold saved-theta mitigation matrix. "
+            "readout keeps the current readout+mthree default; none disables readout so on/off ablations "
+            "can reuse the same fixed ZNE/twirl/DD lanes."
         ),
     )
     p.add_argument(

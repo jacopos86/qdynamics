@@ -1216,6 +1216,9 @@ _OMP_SHM_MARKERS = (
     "OMP: System error",
 )
 _AER_PREFLIGHT_OK_CACHE: set[tuple[str, int, int | None, bool, bool]] = set()
+_BACKEND_SCHEDULED_PREFLIGHT_OK_CACHE: set[
+    tuple[str, int | None, int, int | None, bool]
+] = set()
 BACKEND_SCHEDULED_ATTRIBUTION_SLICES: tuple[str, ...] = (
     "readout_only",
     "gate_stateprep_only",
@@ -1330,6 +1333,106 @@ print("AER_PREFLIGHT_OK")
         )
 
     _AER_PREFLIGHT_OK_CACHE.add(key)
+
+
+def preflight_backend_scheduled_fake_backend_environment(cfg: OracleConfig) -> None:
+    mode = str(cfg.noise_mode).strip().lower()
+    if mode != "backend_scheduled" or not bool(cfg.use_fake_backend):
+        return
+
+    backend_name = (
+        None if getattr(cfg, "backend_name", None) in {None, ""} else str(getattr(cfg, "backend_name"))
+    )
+    key = (
+        str(backend_name or "FakeManilaV2"),
+        (None if cfg.seed is None else int(cfg.seed)),
+        int(cfg.transpile_optimization_level),
+        (None if cfg.seed_transpiler is None else int(cfg.seed_transpiler)),
+        bool(cfg.omp_shm_workaround),
+    )
+    if key in _BACKEND_SCHEDULED_PREFLIGHT_OK_CACHE:
+        return
+
+    payload = {
+        "backend_name": backend_name,
+        "seed": (None if cfg.seed is None else int(cfg.seed)),
+        "seed_transpiler": (
+            None if cfg.seed_transpiler is None else int(cfg.seed_transpiler)
+        ),
+        "transpile_optimization_level": int(cfg.transpile_optimization_level),
+        "shots": min(32, int(cfg.shots)),
+    }
+    script = r"""
+import json
+import sys
+
+from qiskit import QuantumCircuit, transpile
+from pipelines.qiskit_backend_tools import load_local_fake_backend
+
+cfg = json.loads(sys.argv[1])
+backend_name = cfg.get("backend_name")
+backend, _resolved_name = load_local_fake_backend(backend_name)
+qc = QuantumCircuit(1, 1)
+qc.x(0)
+qc.measure(0, 0)
+seed = cfg.get("seed", None)
+seed_transpiler = cfg.get("seed_transpiler", None)
+if seed_transpiler is None:
+    seed_transpiler = seed
+compiled = transpile(
+    qc,
+    backend=backend,
+    optimization_level=int(cfg.get("transpile_optimization_level", 1)),
+    seed_transpiler=(None if seed_transpiler is None else int(seed_transpiler)),
+)
+kwargs = {"shots": int(cfg.get("shots", 32))}
+if seed is not None:
+    kwargs["seed_simulator"] = int(seed)
+job = backend.run(compiled, **kwargs)
+result = job.result()
+counts = result.get_counts()
+if isinstance(counts, list):
+    counts = counts[0]
+print("BACKEND_SCHEDULED_PREFLIGHT_OK", len(dict(counts)))
+"""
+    env = dict(os.environ)
+    if bool(cfg.omp_shm_workaround):
+        env["KMP_USE_SHM"] = "0"
+        env["OMP_NUM_THREADS"] = "1"
+    repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+    existing_pythonpath = str(env.get("PYTHONPATH", "")).strip()
+    env["PYTHONPATH"] = (
+        repo_root
+        if existing_pythonpath == ""
+        else f"{repo_root}{os.pathsep}{existing_pythonpath}"
+    )
+    result = subprocess.run(
+        [sys.executable, "-c", script, json.dumps(payload, sort_keys=True)],
+        env=env,
+        cwd=repo_root,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if int(result.returncode) != 0:
+        combined = f"{result.stdout}\n{result.stderr}"
+        detail_tail = _tail_text(combined)
+        if _looks_like_openmp_shm_abort(combined):
+            dev_shm_present = bool(os.path.isdir("/dev/shm"))
+            raise RuntimeError(
+                "backend_scheduled preflight failed due to OpenMP shared-memory restrictions in this environment "
+                "(detected OMP/SHM2 failure). Fake-backend direct execution requires a runtime with functional "
+                f"shared-memory support; /dev/shm present={str(dev_shm_present).lower()}. Run the "
+                "backend_scheduled/noisy-inner matrix on a host with working /dev/shm (typically Linux or an "
+                "equivalent runtime surface). "
+                f"Preflight stderr/stdout tail:\n{detail_tail}"
+            )
+        raise RuntimeError(
+            "backend_scheduled preflight failed before fake-backend execution started. "
+            f"Preflight stderr/stdout tail:\n{detail_tail}"
+        )
+
+    _BACKEND_SCHEDULED_PREFLIGHT_OK_CACHE.add(key)
 
 
 def _build_estimator(
@@ -4785,6 +4888,8 @@ class ExpectationOracle:
         self._backend_target = None
         self._compiled_base_cache: dict[int, dict[str, Any]] = {}
         self._compiled_base_cache_hit_logged: set[int] = set()
+        self._compiled_plan_base_cache: dict[tuple[Any, ...], dict[str, Any]] = {}
+        self._compiled_plan_base_cache_hit_logged: set[tuple[Any, ...]] = set()
         self._backend_scheduled_repeat_base_cache: dict[tuple[int, int], dict[str, Any]] = {}
         self._backend_scheduled_attribution_targets: dict[str, dict[str, Any]] = {}
         self._backend_scheduled_noise_model = None
@@ -4819,17 +4924,9 @@ class ExpectationOracle:
             dd_sequence = mitigation_cfg.get("dd_sequence", None)
             if dd_sequence not in {None, "", "none"}:
                 dd_sequence_norm = str(dd_sequence).strip().upper()
-                if str(mitigation_cfg.get("mode", "none")) != "readout":
-                    raise ValueError(
-                        "backend_scheduled local DD requires mitigation mode 'readout'."
-                    )
                 if dd_sequence_norm != "XPXM":
                     raise ValueError(
                         "backend_scheduled local DD currently supports only dd_sequence='XpXm'."
-                    )
-                if bool(mitigation_cfg.get("local_gate_twirling", False)):
-                    raise ValueError(
-                        "backend_scheduled local DD is not combinable with local gate twirling."
                     )
             if str(mitigation_cfg.get("mode", "none")) == "readout":
                 if str(symmetry_cfg.get("mode", "off")) not in {"off", "verify_only"}:
@@ -5066,6 +5163,294 @@ class ExpectationOracle:
             n_samples=int(arr.size),
             raw_values=[float(x) for x in arr.tolist()],
             aggregate=self.config.oracle_aggregate,
+        )
+
+    def _parameterized_plan_cache_key(self, plan: Any) -> tuple[Any, ...]:
+        transpile_seed = int(
+            self.config.seed if self.config.seed_transpiler is None else self.config.seed_transpiler
+        )
+        return (
+            str(getattr(plan, "plan_digest")),
+            str(self.config.noise_mode),
+            str(getattr(self.backend_info, "backend_name", None) or ""),
+            bool(getattr(self.backend_info, "using_fake_backend", False)),
+            str(getattr(self.backend_info, "estimator_kind", "")),
+            int(transpile_seed),
+            int(self.config.transpile_optimization_level),
+        )
+
+    def _bind_compiled_parameterized_template(
+        self,
+        compiled: QuantumCircuit,
+        plan: Any,
+        theta_runtime: np.ndarray | Sequence[float],
+    ) -> QuantumCircuit:
+        theta_arr = np.asarray(theta_runtime, dtype=float).reshape(-1)
+        if int(theta_arr.size) != int(getattr(plan.layout, "runtime_parameter_count")):
+            raise ValueError(
+                f"theta_runtime length mismatch: got {theta_arr.size}, expected {plan.layout.runtime_parameter_count}."
+            )
+        value_by_name = {
+            str(getattr(param, "name", str(param))): float(theta_arr[idx])
+            for idx, param in enumerate(tuple(getattr(plan, "parameters")))
+        }
+        assignments = {}
+        for param in tuple(getattr(compiled, "parameters", ())):
+            name = str(getattr(param, "name", str(param)))
+            if name not in value_by_name:
+                raise RuntimeError(
+                    f"Compiled parameterized template parameter {name!r} is missing from the ansatz plan."
+                )
+            assignments[param] = float(value_by_name[name])
+        return compiled.assign_parameters(assignments, inplace=False)
+
+    def _get_parameterized_backend_scheduled_base(self, plan: Any) -> dict[str, Any]:
+        cache_key = self._parameterized_plan_cache_key(plan)
+        cached = self._compiled_plan_base_cache.get(cache_key, None)
+        if cached is not None:
+            if cache_key not in self._compiled_plan_base_cache_hit_logged:
+                self._compiled_plan_base_cache_hit_logged.add(cache_key)
+                _oracle_compile_heartbeat(
+                    "noise_oracle_backend_scheduled_parameterized_compile_cache_hit",
+                    noise_mode=str(self.config.noise_mode),
+                    backend_name=self.backend_info.backend_name,
+                    transpile_seed=int(
+                        self.config.seed if self.config.seed_transpiler is None else self.config.seed_transpiler
+                    ),
+                    optimization_level=int(self.config.transpile_optimization_level),
+                    cache_hit=True,
+                    circuit=plan.circuit,
+                    compiled_payload=cached,
+                )
+            return cached
+        if self._backend_target is None:
+            raise RuntimeError("backend_scheduled backend target is unavailable.")
+        transpile_seed = int(self.config.seed if self.config.seed_transpiler is None else self.config.seed_transpiler)
+        optimization_level = int(self.config.transpile_optimization_level)
+        compile_t0 = time.perf_counter()
+        _oracle_compile_heartbeat(
+            "noise_oracle_backend_scheduled_parameterized_compile_start",
+            noise_mode=str(self.config.noise_mode),
+            backend_name=self.backend_info.backend_name,
+            transpile_seed=int(transpile_seed),
+            optimization_level=int(optimization_level),
+            cache_hit=False,
+            circuit=plan.circuit,
+        )
+        cached = compile_circuit_for_local_backend(
+            plan.circuit,
+            self._backend_target,
+            seed_transpiler=transpile_seed,
+            optimization_level=optimization_level,
+        )
+        _oracle_compile_heartbeat(
+            "noise_oracle_backend_scheduled_parameterized_compile_done",
+            noise_mode=str(self.config.noise_mode),
+            backend_name=self.backend_info.backend_name,
+            transpile_seed=int(transpile_seed),
+            optimization_level=int(optimization_level),
+            cache_hit=False,
+            circuit=plan.circuit,
+            elapsed_s=float(time.perf_counter() - compile_t0),
+            compiled_payload=cached,
+        )
+        self._compiled_plan_base_cache[cache_key] = cached
+        compiled = cached["compiled"]
+        self._update_backend_details(
+            transpile_optimization_level=int(optimization_level),
+            transpile_seed=int(transpile_seed),
+            layout_physical_qubits=[int(x) for x in cached["logical_to_physical"]],
+            compiled_num_qubits=int(cached["compiled_num_qubits"]),
+            parameterized_plan_digest=str(getattr(plan, "plan_digest", "")),
+            **_compiled_metrics_payload(compiled),
+        )
+        return cached
+
+    def _get_parameterized_runtime_isa_base(self, plan: Any) -> dict[str, Any]:
+        cache_key = self._parameterized_plan_cache_key(plan)
+        cached = self._compiled_plan_base_cache.get(cache_key, None)
+        if cached is not None:
+            if cache_key not in self._compiled_plan_base_cache_hit_logged:
+                self._compiled_plan_base_cache_hit_logged.add(cache_key)
+                _oracle_compile_heartbeat(
+                    "noise_oracle_runtime_parameterized_compile_cache_hit",
+                    noise_mode=str(self.config.noise_mode),
+                    backend_name=self.backend_info.backend_name,
+                    transpile_seed=int(
+                        self.config.seed if self.config.seed_transpiler is None else self.config.seed_transpiler
+                    ),
+                    optimization_level=int(self.config.transpile_optimization_level),
+                    cache_hit=True,
+                    circuit=plan.circuit,
+                    compiled_payload=cached,
+                )
+            return cached
+        if self._backend_target is None:
+            raise RuntimeError("runtime backend target is unavailable.")
+        transpile_seed = int(self.config.seed if self.config.seed_transpiler is None else self.config.seed_transpiler)
+        optimization_level = int(self.config.transpile_optimization_level)
+        compile_t0 = time.perf_counter()
+        _oracle_compile_heartbeat(
+            "noise_oracle_runtime_parameterized_compile_start",
+            noise_mode=str(self.config.noise_mode),
+            backend_name=self.backend_info.backend_name,
+            transpile_seed=int(transpile_seed),
+            optimization_level=int(optimization_level),
+            cache_hit=False,
+            circuit=plan.circuit,
+        )
+        cached = compile_circuit_for_local_backend(
+            plan.circuit,
+            self._backend_target,
+            seed_transpiler=transpile_seed,
+            optimization_level=optimization_level,
+        )
+        _oracle_compile_heartbeat(
+            "noise_oracle_runtime_parameterized_compile_done",
+            noise_mode=str(self.config.noise_mode),
+            backend_name=self.backend_info.backend_name,
+            transpile_seed=int(transpile_seed),
+            optimization_level=int(optimization_level),
+            cache_hit=False,
+            circuit=plan.circuit,
+            elapsed_s=float(time.perf_counter() - compile_t0),
+            compiled_payload=cached,
+        )
+        self._compiled_plan_base_cache[cache_key] = cached
+        compiled = cached["compiled"]
+        self._update_backend_details(
+            transpile_optimization_level=int(optimization_level),
+            transpile_seed=int(transpile_seed),
+            layout_physical_qubits=[int(x) for x in cached["logical_to_physical"]],
+            compiled_num_qubits=int(cached["compiled_num_qubits"]),
+            parameterized_plan_digest=str(getattr(plan, "plan_digest", "")),
+            **_compiled_metrics_payload(compiled),
+        )
+        return cached
+
+    def _evaluate_runtime_isa_bound(
+        self,
+        isa_circuit: QuantumCircuit,
+        observable: SparsePauliOp,
+        *,
+        runtime_job_observer: Callable[[dict[str, Any]], None] | None = None,
+        runtime_trace_context: Mapping[str, Any] | None = None,
+    ) -> OracleEstimate:
+        isa_observable = _apply_observable_layout_for_compiled_circuit(observable, isa_circuit)
+
+        mitigation_cfg = normalize_mitigation_config(getattr(self.config, "mitigation", "none"))
+        runtime_readout_details = {
+            "mode": str(mitigation_cfg.get("mode", "none")),
+            "requested_strategy": mitigation_cfg.get("local_readout_strategy", None),
+            "engine": self.backend_info.details.get("runtime_mitigation", {}).get("engine", "none"),
+            "applied": bool(self.backend_info.details.get("runtime_mitigation", {}).get("applied", False)),
+        }
+
+        vals: list[float] = []
+        runtime_jobs: list[dict[str, Any]] = []
+        repeats = max(1, int(self.config.oracle_repeats))
+        for rep in range(repeats):
+            if self._sampler_fallback is not None:
+                val = _run_sampler_fallback_job(self._sampler_fallback, isa_circuit, isa_observable)
+                vals.append(float(np.real(val)))
+                continue
+            try:
+                execution = _run_estimator_job(
+                    self._estimator,
+                    isa_circuit,
+                    isa_observable,
+                    repeat_index=int(rep),
+                    job_observer=runtime_job_observer,
+                    job_context=runtime_trace_context,
+                )
+                vals.append(float(np.real(execution.expectation_value)))
+                runtime_jobs.extend(asdict(rec) for rec in execution.job_records)
+            except SubmittedRuntimeJobError as exc:
+                runtime_jobs.append(asdict(exc.record))
+                raise
+            except Exception as exc:
+                if self._can_fallback_from_error(exc):
+                    self._activate_sampler_fallback(reason=str(exc), aer_failed=True)
+                    val = _run_sampler_fallback_job(self._sampler_fallback, isa_circuit, isa_observable)
+                    vals.append(float(np.real(val)))
+                else:
+                    raise
+
+        self._update_backend_details(
+            isa_observable_num_qubits=int(isa_observable.num_qubits),
+            readout_mitigation=dict(runtime_readout_details),
+            runtime_job_ids=[
+                str(rec.get("job_id"))
+                for rec in runtime_jobs
+                if isinstance(rec, Mapping) and rec.get("job_id", None) not in {None, ""}
+            ],
+            runtime_jobs=list(runtime_jobs),
+            last_runtime_trace_context=(
+                {} if runtime_trace_context is None else {str(k): v for k, v in dict(runtime_trace_context).items()}
+            ),
+        )
+        return _oracle_estimate_from_samples(vals, aggregate=str(self.config.oracle_aggregate))
+
+    def evaluate_parameterized(
+        self,
+        plan: Any,
+        theta_runtime: np.ndarray | Sequence[float],
+        observable: SparsePauliOp,
+        *,
+        runtime_job_observer: Callable[[dict[str, Any]], None] | None = None,
+        runtime_trace_context: Mapping[str, Any] | None = None,
+    ) -> OracleEstimate:
+        if self._closed:
+            raise RuntimeError("ExpectationOracle is closed.")
+        if not hasattr(plan, "circuit") or not hasattr(plan, "parameters") or not hasattr(plan, "layout"):
+            raise TypeError("plan must provide circuit, parameters, and layout attributes.")
+        theta_arr = np.asarray(theta_runtime, dtype=float).reshape(-1)
+        if int(theta_arr.size) != int(getattr(plan.layout, "runtime_parameter_count")):
+            raise ValueError(
+                f"theta_runtime length mismatch: got {theta_arr.size}, expected {plan.layout.runtime_parameter_count}."
+            )
+        bound_reference_circuit = plan.circuit.assign_parameters(
+            {
+                param: float(theta_arr[idx])
+                for idx, param in enumerate(tuple(getattr(plan, "parameters")))
+            },
+            inplace=False,
+        )
+        symmetry_est = self._maybe_evaluate_symmetry_mitigated(bound_reference_circuit, observable)
+        if symmetry_est is not None:
+            return symmetry_est
+        if str(self.config.noise_mode) == "backend_scheduled":
+            base = self._get_parameterized_backend_scheduled_base(plan)
+            bound_compiled = self._bind_compiled_parameterized_template(
+                base["compiled"],
+                plan,
+                theta_arr,
+            )
+            estimate, details = self._evaluate_backend_scheduled_with_target(
+                bound_compiled,
+                base["logical_to_physical"],
+                observable,
+            )
+            self._update_backend_details(**details)
+            return estimate
+        if str(self.config.noise_mode) == "runtime":
+            base = self._get_parameterized_runtime_isa_base(plan)
+            bound_compiled = self._bind_compiled_parameterized_template(
+                base["compiled"],
+                plan,
+                theta_arr,
+            )
+            return self._evaluate_runtime_isa_bound(
+                bound_compiled,
+                observable,
+                runtime_job_observer=runtime_job_observer,
+                runtime_trace_context=runtime_trace_context,
+            )
+        return self.evaluate(
+            bound_reference_circuit,
+            observable,
+            runtime_job_observer=runtime_job_observer,
+            runtime_trace_context=runtime_trace_context,
         )
 
     def _get_backend_scheduled_base(self, circuit: QuantumCircuit) -> dict[str, Any]:

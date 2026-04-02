@@ -4,6 +4,8 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, replace
+import json
+from pathlib import Path
 import time
 from typing import TYPE_CHECKING, Any, Mapping, Sequence
 
@@ -113,6 +115,66 @@ class StepHamiltonianArtifacts:
     compiled_h: Any
     oracle_observable: Any | None
     drive_term_count: int
+
+
+@dataclass(frozen=True)
+class StateObservableSnapshot:
+    n_up_site: np.ndarray
+    n_dn_site: np.ndarray
+    n_site: np.ndarray
+    doublon: float
+    staggered: float
+
+
+def _spin_orbital_bit_index(site: int, spin: int, num_sites: int, ordering: str) -> int:
+    ord_norm = str(ordering).strip().lower()
+    if ord_norm == "blocked":
+        return int(site) if int(spin) == 0 else int(num_sites) + int(site)
+    if ord_norm == "interleaved":
+        return (2 * int(site)) + int(spin)
+    raise ValueError(f"Unsupported ordering {ordering!r}")
+
+
+def _site_resolved_number_observables(
+    psi: np.ndarray,
+    *,
+    num_sites: int,
+    ordering: str,
+) -> StateObservableSnapshot:
+    probs = np.abs(np.asarray(psi, dtype=complex).reshape(-1)) ** 2
+    n_up = np.zeros(int(num_sites), dtype=float)
+    n_dn = np.zeros(int(num_sites), dtype=float)
+    doublon_total = 0.0
+    up_bits = [_spin_orbital_bit_index(site, 0, num_sites, ordering) for site in range(int(num_sites))]
+    dn_bits = [_spin_orbital_bit_index(site, 1, num_sites, ordering) for site in range(int(num_sites))]
+
+    for idx, prob in enumerate(probs):
+        p = float(prob)
+        if p <= 0.0:
+            continue
+        for site in range(int(num_sites)):
+            up = int((idx >> up_bits[site]) & 1)
+            dn = int((idx >> dn_bits[site]) & 1)
+            n_up[site] += float(up) * p
+            n_dn[site] += float(dn) * p
+            doublon_total += float(up * dn) * p
+
+    n_site = np.asarray(n_up + n_dn, dtype=float)
+    if n_site.size == 0:
+        staggered = float("nan")
+    else:
+        signs = np.array(
+            [1.0 if (site % 2 == 0) else -1.0 for site in range(int(n_site.size))],
+            dtype=float,
+        )
+        staggered = float(np.sum(signs * n_site) / float(n_site.size))
+    return StateObservableSnapshot(
+        n_up_site=np.asarray(n_up, dtype=float),
+        n_dn_site=np.asarray(n_dn, dtype=float),
+        n_site=n_site,
+        doublon=float(doublon_total),
+        staggered=float(staggered),
+    )
 
 
 @dataclass(frozen=True)
@@ -277,6 +339,9 @@ class RealtimeCheckpointController:
         drive_config: ControllerDriveConfig | None = None,
         oracle_base_config: Any | None = None,
         wallclock_cap_s: int | None = None,
+        progress_path: str | Path | None = None,
+        partial_payload_path: str | Path | None = None,
+        progress_every_s: float = 5.0,
     ) -> None:
         validate_controller_tiers_mean_only(cfg.tiers)
         self.cfg = cfg
@@ -315,6 +380,20 @@ class RealtimeCheckpointController:
         self._drive_coeff_provider_exyz = None
         self._drive_profile: dict[str, Any] | None = None
         self._reference_states: list[np.ndarray] | None = None
+        self._num_sites = int(
+            getattr(
+                getattr(replay_context, "cfg", None),
+                "L",
+                (1 if self._drive_config is None else int(self._drive_config.n_sites)),
+            )
+        )
+        self._ordering = str(
+            getattr(
+                getattr(replay_context, "cfg", None),
+                "ordering",
+                ("blocked" if self._drive_config is None else str(self._drive_config.ordering)),
+            )
+        )
         self._compiled_h = compile_polynomial_action(
             h_poly,
             tol=1e-12,
@@ -339,6 +418,18 @@ class RealtimeCheckpointController:
         self._previous_append_position: int | None = None
         self._run_wallclock_start: float | None = None
         self._wallclock_cap_s = (None if wallclock_cap_s is None else int(wallclock_cap_s))
+        self._progress_path = (
+            None
+            if progress_path in {None, ""}
+            else Path(progress_path).resolve()
+        )
+        self._partial_payload_path = (
+            None
+            if partial_payload_path in {None, ""}
+            else Path(partial_payload_path).resolve()
+        )
+        self._progress_every_s = max(0.0, float(progress_every_s))
+        self._last_progress_emit_wallclock: float | None = None
         self._oracle_base_config = None
         self._oracle_tier_configs: dict[str, Any] = {}
         self._oracle_qop = None
@@ -347,11 +438,23 @@ class RealtimeCheckpointController:
         self._temporal_ledger = TemporalMeasurementLedger()
 
         mode = str(cfg.mode)
-        if mode not in {"exact_v1", "oracle_v1"}:
+        if mode not in {"off", "exact_v1", "oracle_v1"}:
             raise ValueError(f"Unsupported realtime checkpoint controller mode {mode!r}.")
-        if mode == "oracle_v1":
-            if oracle_base_config is None:
-                raise ValueError("checkpoint controller oracle_v1 requires oracle_base_config.")
+        forecast_guardrail_mode = str(getattr(cfg, "exact_forecast_guardrail_mode", "off"))
+        if forecast_guardrail_mode not in {"off", "dual_metric_v1"}:
+            raise ValueError(
+                f"Unsupported exact forecast guardrail mode {forecast_guardrail_mode!r}."
+            )
+        for field_name in (
+            "exact_forecast_fidelity_loss_tol",
+            "exact_forecast_abs_energy_error_increase_tol",
+        ):
+            raw_value = float(getattr(cfg, field_name))
+            if (not np.isfinite(raw_value)) or raw_value < 0.0:
+                raise ValueError(
+                    f"{field_name} must be finite and nonnegative; got {raw_value!r}."
+                )
+        if mode in {"oracle_v1", "off"} and oracle_base_config is not None:
             validate_controller_oracle_base_config(oracle_base_config)
             from pipelines.exact_bench.noise_oracle_runtime import pauli_poly_to_sparse_pauli_op
 
@@ -361,6 +464,8 @@ class RealtimeCheckpointController:
                 cfg.tiers,
             )
             self._oracle_qop = pauli_poly_to_sparse_pauli_op(h_poly)
+        elif mode == "oracle_v1":
+            raise ValueError("checkpoint controller oracle_v1 requires oracle_base_config.")
 
         if not bool(replay_context.pool_meta.get("candidate_pool_complete", True)):
             raise ValueError(
@@ -460,6 +565,82 @@ class RealtimeCheckpointController:
             self._exact_evecs = np.asarray(evecs, dtype=complex)
             self._exact_coeffs0 = np.asarray(self._exact_evecs.conj().T @ self.psi_initial, dtype=complex)
 
+    def _progress_payload(self, *, stage: str, **extra: Any) -> dict[str, Any]:
+        elapsed = (
+            None
+            if self._run_wallclock_start is None
+            else float(time.perf_counter() - float(self._run_wallclock_start))
+        )
+        payload: dict[str, Any] = {
+            "status": "running",
+            "stage": str(stage),
+            "mode": str(self.cfg.mode),
+            "append_count": int(self._append_counter),
+            "trajectory_points": int(len(self._trajectory)),
+            "ledger_entries": int(len(self._ledger)),
+            "logical_block_count": int(self.current_layout.logical_parameter_count),
+            "runtime_parameter_count": int(self.current_layout.runtime_parameter_count),
+            "total_checkpoints": int(len(self.times)),
+            "wallclock_elapsed_s": elapsed,
+        }
+        payload.update(extra)
+        return payload
+
+    def _write_progress(self, *, stage: str, force: bool = False, **extra: Any) -> None:
+        if self._progress_path is None:
+            return
+        now = time.perf_counter()
+        if (
+            not force
+            and self._last_progress_emit_wallclock is not None
+            and float(self._progress_every_s) > 0.0
+            and (float(now) - float(self._last_progress_emit_wallclock)) < float(self._progress_every_s)
+        ):
+            return
+        payload = self._progress_payload(stage=str(stage), **extra)
+        tmp_path = self._progress_path.with_suffix(f"{self._progress_path.suffix}.tmp")
+        tmp_path.parent.mkdir(parents=True, exist_ok=True)
+        tmp_path.write_text(json.dumps(payload, indent=2, sort_keys=True), encoding="utf-8")
+        tmp_path.replace(self._progress_path)
+        self._last_progress_emit_wallclock = float(now)
+
+    def _write_partial_payload(
+        self,
+        *,
+        status: str = "running",
+        stage: str,
+        summary: Mapping[str, Any] | None = None,
+    ) -> None:
+        if self._partial_payload_path is None:
+            return
+        executed_backends = sorted({str(row.get("decision_backend", "exact")) for row in self._ledger})
+        payload_summary = (
+            dict(summary)
+            if summary is not None
+            else {
+                "append_count": int(sum(1 for row in self._ledger if str(row.get("action_kind")) == "append_candidate")),
+                "stay_count": int(sum(1 for row in self._ledger if str(row.get("action_kind")) == "stay")),
+                "executed_decision_backends": list(executed_backends),
+                "final_logical_block_count": int(self.current_layout.logical_parameter_count),
+                "final_runtime_parameter_count": int(self.current_layout.runtime_parameter_count),
+            }
+        )
+        payload = {
+            "status": str(status),
+            "stage": str(stage),
+            "mode": str(self.cfg.mode),
+            "trajectory": [dict(row) for row in self._trajectory],
+            "ledger": [dict(row) for row in self._ledger],
+            "reference": {
+                "controller_state": self._controller_state_payload(),
+            },
+            "summary": payload_summary,
+        }
+        tmp_path = self._partial_payload_path.with_suffix(f"{self._partial_payload_path.suffix}.tmp")
+        tmp_path.parent.mkdir(parents=True, exist_ok=True)
+        tmp_path.write_text(json.dumps(payload, indent=2, sort_keys=True), encoding="utf-8")
+        tmp_path.replace(self._partial_payload_path)
+
     def _build_executor(
         self,
         carriers: Sequence[RuntimeTermCarrier],
@@ -483,6 +664,87 @@ class RealtimeCheckpointController:
             return np.asarray(self._reference_states[int(idx)], dtype=complex).reshape(-1)
         phases = np.exp(-1.0j * np.asarray(self._exact_evals, dtype=float) * float(time_value))
         return np.asarray(self._exact_evecs @ (phases * self._exact_coeffs0), dtype=complex)
+
+    def _observable_snapshot(self, psi: np.ndarray) -> dict[str, Any]:
+        snapshot = _site_resolved_number_observables(
+            np.asarray(psi, dtype=complex).reshape(-1),
+            num_sites=int(max(1, self._num_sites)),
+            ordering=str(self._ordering),
+        )
+        return {
+            "n_up_site": [float(x) for x in np.asarray(snapshot.n_up_site, dtype=float).tolist()],
+            "n_dn_site": [float(x) for x in np.asarray(snapshot.n_dn_site, dtype=float).tolist()],
+            "site_occupations": [float(x) for x in np.asarray(snapshot.n_site, dtype=float).tolist()],
+            "doublon": float(snapshot.doublon),
+            "staggered": float(snapshot.staggered),
+        }
+
+    def _exact_step_forecast(
+        self,
+        *,
+        time_stop: float,
+        executor: CompiledAnsatzExecutor,
+        theta_runtime: np.ndarray | Sequence[float],
+    ) -> dict[str, Any]:
+        psi_pred = np.asarray(
+            executor.prepare_state(
+                np.asarray(theta_runtime, dtype=float).reshape(-1),
+                self.replay_context.psi_ref,
+            ),
+            dtype=complex,
+        ).reshape(-1)
+        psi_exact = np.asarray(self._exact_state_at(float(time_stop)), dtype=complex).reshape(-1)
+        step_hamiltonian = self._step_hamiltonian_artifacts(float(time_stop))
+        energy_total_controller_next = float(
+            np.real(np.vdot(psi_pred, step_hamiltonian.hmat @ psi_pred))
+        )
+        energy_total_exact_next = float(
+            np.real(np.vdot(psi_exact, step_hamiltonian.hmat @ psi_exact))
+        )
+        pred_obs = self._observable_snapshot(psi_pred)
+        exact_obs = self._observable_snapshot(psi_exact)
+        return {
+            "fidelity_exact_next": float(abs(np.vdot(psi_exact, psi_pred)) ** 2),
+            "energy_total_controller_next": float(energy_total_controller_next),
+            "energy_total_exact_next": float(energy_total_exact_next),
+            "abs_energy_total_error_next": float(
+                abs(float(energy_total_controller_next) - float(energy_total_exact_next))
+            ),
+            "abs_staggered_error_next": float(
+                abs(float(pred_obs["staggered"]) - float(exact_obs["staggered"]))
+            ),
+            "abs_doublon_error_next": float(
+                abs(float(pred_obs["doublon"]) - float(exact_obs["doublon"]))
+            ),
+        }
+
+    def _exact_forecast_override_reason(
+        self,
+        *,
+        stay_forecast: Mapping[str, Any],
+        selected_forecast: Mapping[str, Any],
+    ) -> str | None:
+        mode = str(getattr(self.cfg, "exact_forecast_guardrail_mode", "off"))
+        if mode == "off":
+            return None
+        if mode != "dual_metric_v1":
+            return None
+        fidelity_loss_tol = float(getattr(self.cfg, "exact_forecast_fidelity_loss_tol", 0.0))
+        energy_increase_tol = float(
+            getattr(self.cfg, "exact_forecast_abs_energy_error_increase_tol", 0.0)
+        )
+        fidelity_delta = float(selected_forecast["fidelity_exact_next"]) - float(
+            stay_forecast["fidelity_exact_next"]
+        )
+        energy_error_delta = float(selected_forecast["abs_energy_total_error_next"]) - float(
+            stay_forecast["abs_energy_total_error_next"]
+        )
+        if (
+            fidelity_delta < -float(fidelity_loss_tol)
+            and energy_error_delta > float(energy_increase_tol)
+        ):
+            return "exact_forecast_dual_metric_regression"
+        return None
 
     def _current_scaffold_labels(self) -> list[str]:
         return [str(carrier.label) for carrier in self.current_terms]
@@ -726,7 +988,13 @@ class RealtimeCheckpointController:
         if len(self._theta_dot_history) > 3:
             self._theta_dot_history = list(self._theta_dot_history[-3:])
 
-    def _oracle_sampling_targets(self, *, tier_name: str, budget_scale: float) -> tuple[int, int]:
+    def _oracle_sampling_targets(
+        self,
+        *,
+        tier_name: str,
+        budget_scale: float,
+        floor_to_base_config: bool = False,
+    ) -> tuple[int, int]:
         tier_cfg = self._oracle_tier_configs[str(tier_name)]
         scale = max(float(budget_scale), 0.25)
         base_samples = max(1, int(tier_cfg.oracle_repeats))
@@ -736,6 +1004,14 @@ class RealtimeCheckpointController:
             1,
             int(np.ceil(float(base_shots) * float(base_samples) * float(scale))),
         )
+        if bool(floor_to_base_config) and self._oracle_base_config is not None:
+            base_cfg_samples = max(1, int(self._oracle_base_config.oracle_repeats))
+            base_cfg_shots = max(1, int(self._oracle_base_config.shots))
+            min_samples = max(int(min_samples), int(base_cfg_samples))
+            min_total_shots = max(
+                int(min_total_shots),
+                int(base_cfg_shots) * int(base_cfg_samples),
+            )
         return int(min_total_shots), int(min_samples)
 
     def _measured_geometry_config(self) -> FixedManifoldMeasuredConfig:
@@ -762,9 +1038,75 @@ class RealtimeCheckpointController:
             theta=theta_runtime,
         )
 
+    def _candidate_step_scales(self) -> tuple[float, ...]:
+        raw_values = tuple(getattr(self.cfg, "candidate_step_scales", (1.0,)))
+        out: list[float] = []
+        seen: set[float] = set()
+        for raw in raw_values:
+            value = float(raw)
+            if (not np.isfinite(value)) or value <= 0.0:
+                continue
+            rounded = round(value, 12)
+            if rounded in seen:
+                continue
+            seen.add(rounded)
+            out.append(value)
+        return tuple(out) if out else (1.0,)
+
+    def _candidate_scale_tag(self, scale: float) -> str:
+        text = f"{float(scale):.6f}".rstrip("0").rstrip(".")
+        if text == "":
+            text = "1"
+        return text.replace("-", "m").replace(".", "p")
+
+    def _baseline_theta_dot_augmented_for_candidate(
+        self,
+        *,
+        candidate_data: Mapping[str, Any],
+        baseline_theta_dot: np.ndarray | Sequence[float],
+    ) -> np.ndarray:
+        theta_dot_step = np.asarray(baseline_theta_dot, dtype=float).reshape(-1)
+        runtime_pos = int(candidate_data["runtime_insert_position"])
+        width = int(len(candidate_data["runtime_block_indices"]))
+        return np.concatenate(
+            [
+                theta_dot_step[:runtime_pos],
+                np.zeros(width, dtype=float),
+                theta_dot_step[runtime_pos:],
+            ]
+        )
+
+    def _scale_candidate_theta_dot(
+        self,
+        *,
+        candidate_data: Mapping[str, Any],
+        baseline_theta_dot: np.ndarray | Sequence[float],
+        theta_dot_aug: np.ndarray | Sequence[float],
+        step_scale: float,
+    ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+        theta_dot_full = np.asarray(theta_dot_aug, dtype=float).reshape(-1)
+        theta_dot_baseline_aug = self._baseline_theta_dot_augmented_for_candidate(
+            candidate_data=candidate_data,
+            baseline_theta_dot=baseline_theta_dot,
+        )
+        scaled = np.asarray(
+            theta_dot_baseline_aug + float(step_scale) * (theta_dot_full - theta_dot_baseline_aug),
+            dtype=float,
+        ).reshape(-1)
+        runtime_pos = int(candidate_data["runtime_insert_position"])
+        width = int(len(candidate_data["runtime_block_indices"]))
+        eta_dot = np.asarray(scaled[runtime_pos : runtime_pos + width], dtype=float).reshape(-1)
+        theta_dot_existing = np.concatenate(
+            [
+                scaled[:runtime_pos],
+                scaled[runtime_pos + width :],
+            ]
+        )
+        return scaled, theta_dot_existing, eta_dot
+
     def _oracle_for_tier(self, tier_name: str) -> Any:
-        if str(self.cfg.mode) != "oracle_v1":
-            raise ValueError("Oracle tier access requested while controller mode is not oracle_v1.")
+        if self._oracle_base_config is None or str(self.cfg.mode) not in {"oracle_v1", "off"}:
+            raise ValueError("Oracle tier access requested while controller oracle surface is unavailable.")
         tier_key = str(tier_name)
         oracle = self._oracle_instances.get(tier_key)
         if oracle is None:
@@ -826,6 +1168,16 @@ class RealtimeCheckpointController:
             if target_observable is None:
                 raise ValueError("Oracle energy estimate requires an observable.")
             if self._oracle_wallclock_hit():
+                self._write_progress(
+                    stage="wallclock_cap_hit",
+                    force=True,
+                    status="timeout",
+                    checkpoint_index=int(checkpoint_ctx.checkpoint_index),
+                    tier_name=str(tier_name),
+                    observable_family=str(observable_family),
+                    candidate_label=(None if candidate_label is None else str(candidate_label)),
+                    position_id=(None if position_id is None else int(position_id)),
+                )
                 raise TimeoutError("checkpoint controller oracle_v1 wallclock cap reached")
             oracle = self._oracle_for_tier(str(tier_name))
             circuit = self._build_runtime_circuit(layout=layout, theta_runtime=theta_runtime)
@@ -838,8 +1190,20 @@ class RealtimeCheckpointController:
                     tier_name=str(tier_name),
                     budget_scale=float(budget_scale),
                 )
+                self._write_progress(
+                    stage="oracle_energy_estimate_start",
+                    force=True,
+                    checkpoint_index=int(checkpoint_ctx.checkpoint_index),
+                    tier_name=str(tier_name),
+                    observable_family=str(observable_family),
+                    candidate_label=(None if candidate_label is None else str(candidate_label)),
+                    position_id=(None if position_id is None else int(position_id)),
+                    min_total_shots=int(min_total_shots),
+                    min_samples=int(min_samples),
+                    budget_scale=float(budget_scale),
+                )
                 try:
-                    return raw_group_pool.estimate_observable(
+                    result = raw_group_pool.estimate_observable(
                         oracle=oracle,
                         circuit=circuit,
                         observable=target_observable,
@@ -850,6 +1214,17 @@ class RealtimeCheckpointController:
                         min_samples=int(min_samples),
                         state_key=(None if state_key is None else str(state_key)),
                     )
+                    self._write_progress(
+                        stage="oracle_energy_estimate_done",
+                        force=True,
+                        checkpoint_index=int(checkpoint_ctx.checkpoint_index),
+                        tier_name=str(tier_name),
+                        observable_family=str(observable_family),
+                        candidate_label=(None if candidate_label is None else str(candidate_label)),
+                        position_id=(None if position_id is None else int(position_id)),
+                        backend="raw_group_pool",
+                    )
+                    return result
                 except Exception as raw_exc:
                     est = oracle.evaluate(circuit, target_observable)
                     backend_info = {
@@ -871,6 +1246,16 @@ class RealtimeCheckpointController:
                         "aggregate": str(est.aggregate),
                         "backend_info": backend_info,
                     }
+            self._write_progress(
+                stage="oracle_energy_estimate_start",
+                force=True,
+                checkpoint_index=int(checkpoint_ctx.checkpoint_index),
+                tier_name=str(tier_name),
+                observable_family=str(observable_family),
+                candidate_label=(None if candidate_label is None else str(candidate_label)),
+                position_id=(None if position_id is None else int(position_id)),
+                budget_scale=float(budget_scale),
+            )
             est = oracle.evaluate(circuit, target_observable)
             backend_info = {
                 "noise_mode": str(oracle.backend_info.noise_mode),
@@ -879,7 +1264,7 @@ class RealtimeCheckpointController:
                 "using_fake_backend": bool(oracle.backend_info.using_fake_backend),
                 "details": dict(oracle.backend_info.details),
             }
-            return {
+            result = {
                 "mean": float(est.mean),
                 "stderr": float(est.stderr),
                 "std": float(est.std),
@@ -888,6 +1273,17 @@ class RealtimeCheckpointController:
                 "aggregate": str(est.aggregate),
                 "backend_info": backend_info,
             }
+            self._write_progress(
+                stage="oracle_energy_estimate_done",
+                force=True,
+                checkpoint_index=int(checkpoint_ctx.checkpoint_index),
+                tier_name=str(tier_name),
+                observable_family=str(observable_family),
+                candidate_label=(None if candidate_label is None else str(candidate_label)),
+                position_id=(None if position_id is None else int(position_id)),
+                backend="direct_oracle",
+            )
+            return result
 
         return cache.get_or_compute(value_key, compute=_compute)
 
@@ -897,7 +1293,7 @@ class RealtimeCheckpointController:
         checkpoint_ctx: Any,
         cache: ExactCheckpointValueCache,
         geometry_memo: DerivedGeometryMemo,
-        raw_group_pool: BackendScheduledRawGroupPool,
+        raw_group_pool: BackendScheduledRawGroupPool | None,
         h_poly_step: Any,
         tier_name: str,
         budget_scale: float = 1.0,
@@ -914,6 +1310,7 @@ class RealtimeCheckpointController:
             min_total_shots, min_samples = self._oracle_sampling_targets(
                 tier_name=str(tier_name),
                 budget_scale=float(budget_scale),
+                floor_to_base_config=True,
             )
             state_key = self._measurement_state_key(
                 layout=self.current_layout,
@@ -970,7 +1367,7 @@ class RealtimeCheckpointController:
         *,
         checkpoint_ctx: Any,
         geometry_memo: DerivedGeometryMemo,
-        raw_group_pool: BackendScheduledRawGroupPool,
+        raw_group_pool: BackendScheduledRawGroupPool | None,
         tier_name: str,
         baseline_measured: Mapping[str, Any],
         record: Mapping[str, Any],
@@ -1038,7 +1435,7 @@ class RealtimeCheckpointController:
         cache: ExactCheckpointValueCache,
         geometry_memo: DerivedGeometryMemo,
         confirmed: Sequence[Mapping[str, Any]],
-        raw_group_pool: BackendScheduledRawGroupPool,
+        raw_group_pool: BackendScheduledRawGroupPool | None,
         h_poly_step: Any,
         confirm_limit: int,
         budget_scale: float = 1.0,
@@ -1191,55 +1588,109 @@ class RealtimeCheckpointController:
         for record in confirmed:
             rec = dict(record)
             try:
-                candidate_theta = np.asarray(
-                    rec["candidate_data"]["theta_aug"] + float(dt) * np.asarray(rec["theta_dot_aug"], dtype=float),
-                    dtype=float,
+                best_est: dict[str, Any] | None = None
+                best_improvement_abs: float | None = None
+                best_improvement_ratio: float | None = None
+                best_improvement_stderr: float | None = None
+                best_adjusted_noisy_improvement: float | None = None
+                best_scale: float | None = None
+                best_theta_dot_aug: np.ndarray | None = None
+                best_theta_dot_existing: np.ndarray | None = None
+                best_eta_dot: np.ndarray | None = None
+                candidate_data = dict(rec["candidate_data"])
+                for step_scale in self._candidate_step_scales():
+                    scaled_theta_dot_aug, scaled_theta_dot_existing, scaled_eta_dot = (
+                        self._scale_candidate_theta_dot(
+                            candidate_data=candidate_data,
+                            baseline_theta_dot=baseline["theta_dot_step"],
+                            theta_dot_aug=rec["theta_dot_aug"],
+                            step_scale=float(step_scale),
+                        )
+                    )
+                    candidate_theta = np.asarray(
+                        candidate_data["theta_aug"] + float(dt) * np.asarray(scaled_theta_dot_aug, dtype=float),
+                        dtype=float,
+                    ).reshape(-1)
+                    candidate_state_key = self._measurement_state_key(
+                        layout=candidate_data["aug_layout"],
+                        theta_runtime=candidate_theta,
+                    )
+                    est, _ = self._oracle_energy_estimate(
+                        checkpoint_ctx=checkpoint_ctx,
+                        cache=oracle_cache,
+                        raw_group_pool=raw_group_pool,
+                        tier_name="confirm",
+                        observable_family=f"candidate_step_energy_scale_{self._candidate_scale_tag(float(step_scale))}",
+                        candidate_label=str(rec.get("candidate_identity", rec["candidate_label"])),
+                        position_id=int(rec["position_id"]),
+                        layout=candidate_data["aug_layout"],
+                        theta_runtime=candidate_theta,
+                        observable=oracle_observable,
+                        state_key=str(candidate_state_key),
+                        budget_scale=float(budget_scale),
+                    )
+                    improvement_abs = float(stay_estimate["mean"] - est["mean"])
+                    improvement_ratio = float(
+                        improvement_abs / max(abs(float(stay_estimate["mean"])), 1e-14)
+                    )
+                    improvement_stderr = float(
+                        np.sqrt(float(stay_estimate["stderr"]) ** 2 + float(est["stderr"]) ** 2)
+                    )
+                    directional_penalty = (
+                        0.0
+                        if rec["candidate_summary"].directional_change_l2 is None
+                        else float(rec["candidate_summary"].directional_change_l2)
+                    )
+                    adjusted_noisy_improvement = float(
+                        improvement_ratio
+                        - float(self.cfg.directional_penalty_weight) * directional_penalty
+                        - float(self.cfg.measurement_penalty_weight) * float(rec.get("groups_new", 0.0))
+                    )
+                    choose = False
+                    if best_est is None or best_improvement_abs is None:
+                        choose = True
+                    elif improvement_abs > float(best_improvement_abs) + 1e-12:
+                        choose = True
+                    elif abs(improvement_abs - float(best_improvement_abs)) <= 1e-12:
+                        if float(step_scale) < float(best_scale):
+                            choose = True
+                    if choose:
+                        best_est = dict(est)
+                        best_improvement_abs = float(improvement_abs)
+                        best_improvement_ratio = float(improvement_ratio)
+                        best_improvement_stderr = float(improvement_stderr)
+                        best_adjusted_noisy_improvement = float(adjusted_noisy_improvement)
+                        best_scale = float(step_scale)
+                        best_theta_dot_aug = np.asarray(scaled_theta_dot_aug, dtype=float).reshape(-1)
+                        best_theta_dot_existing = np.asarray(
+                            scaled_theta_dot_existing, dtype=float
+                        ).reshape(-1)
+                        best_eta_dot = np.asarray(scaled_eta_dot, dtype=float).reshape(-1)
+                if best_est is None:
+                    raise RuntimeError("no oracle candidate step-scale estimates were produced")
+                rec["theta_dot_aug"] = np.asarray(best_theta_dot_aug, dtype=float).reshape(-1)
+                rec["theta_dot_aug_existing"] = np.asarray(
+                    best_theta_dot_existing, dtype=float
                 ).reshape(-1)
-                candidate_state_key = self._measurement_state_key(
-                    layout=rec["candidate_data"]["aug_layout"],
-                    theta_runtime=candidate_theta,
-                )
-                est, _ = self._oracle_energy_estimate(
-                    checkpoint_ctx=checkpoint_ctx,
-                    cache=oracle_cache,
-                    raw_group_pool=raw_group_pool,
-                    tier_name="confirm",
-                    observable_family="candidate_step_energy",
-                    candidate_label=str(rec.get("candidate_identity", rec["candidate_label"])),
-                    position_id=int(rec["position_id"]),
-                    layout=rec["candidate_data"]["aug_layout"],
-                    theta_runtime=candidate_theta,
-                    observable=oracle_observable,
-                    state_key=str(candidate_state_key),
-                    budget_scale=float(budget_scale),
-                )
-                improvement_abs = float(stay_estimate["mean"] - est["mean"])
-                improvement_ratio = float(improvement_abs / max(abs(float(stay_estimate["mean"])), 1e-14))
-                improvement_stderr = float(
-                    np.sqrt(float(stay_estimate["stderr"]) ** 2 + float(est["stderr"]) ** 2)
-                )
-                directional_penalty = 0.0 if rec["candidate_summary"].directional_change_l2 is None else float(rec["candidate_summary"].directional_change_l2)
-                adjusted_noisy_improvement = float(
-                    improvement_ratio
-                    - float(self.cfg.directional_penalty_weight) * directional_penalty
-                    - float(self.cfg.measurement_penalty_weight) * float(rec.get("groups_new", 0.0))
-                )
-                rec["predicted_noisy_energy_mean"] = float(est["mean"])
-                rec["predicted_noisy_energy_stderr"] = float(est["stderr"])
-                rec["predicted_noisy_improvement_abs"] = float(improvement_abs)
-                rec["predicted_noisy_improvement_ratio"] = float(improvement_ratio)
-                rec["predicted_noisy_improvement_stderr"] = float(improvement_stderr)
-                rec["adjusted_noisy_improvement"] = float(adjusted_noisy_improvement)
-                rec["confirm_backend_info"] = dict(est.get("backend_info", {}))
+                rec["eta_dot"] = np.asarray(best_eta_dot, dtype=float).reshape(-1)
+                rec["candidate_step_scale"] = float(best_scale)
+                rec["predicted_noisy_energy_mean"] = float(best_est["mean"])
+                rec["predicted_noisy_energy_stderr"] = float(best_est["stderr"])
+                rec["predicted_noisy_improvement_abs"] = float(best_improvement_abs)
+                rec["predicted_noisy_improvement_ratio"] = float(best_improvement_ratio)
+                rec["predicted_noisy_improvement_stderr"] = float(best_improvement_stderr)
+                rec["adjusted_noisy_improvement"] = float(best_adjusted_noisy_improvement)
+                rec["confirm_backend_info"] = dict(best_est.get("backend_info", {}))
                 rec["confirm_error"] = None
                 rec["candidate_summary"] = replace(
                     rec["candidate_summary"],
                     decision_metric="oracle_energy_improvement",
                     oracle_estimate_kind=self._oracle_estimate_kind(),
-                    predicted_noisy_energy_mean=float(est["mean"]),
-                    predicted_noisy_energy_stderr=float(est["stderr"]),
-                    predicted_noisy_improvement_abs=float(improvement_abs),
-                    predicted_noisy_improvement_ratio=float(improvement_ratio),
+                    predicted_noisy_energy_mean=float(best_est["mean"]),
+                    predicted_noisy_energy_stderr=float(best_est["stderr"]),
+                    predicted_noisy_improvement_abs=float(best_improvement_abs),
+                    predicted_noisy_improvement_ratio=float(best_improvement_ratio),
+                    selected_step_scale=float(best_scale),
                 )
             except Exception as exc:
                 rec["predicted_noisy_energy_mean"] = None
@@ -1248,6 +1699,7 @@ class RealtimeCheckpointController:
                 rec["predicted_noisy_improvement_ratio"] = None
                 rec["predicted_noisy_improvement_stderr"] = None
                 rec["adjusted_noisy_improvement"] = float("-inf")
+                rec["candidate_step_scale"] = None
                 rec["confirm_backend_info"] = None
                 rec["confirm_error"] = str(exc)
             confirmed_oracle.append(rec)
@@ -1308,6 +1760,33 @@ class RealtimeCheckpointController:
             "selected_noisy_improvement_ratio": None,
         }
         degraded_reason: str | None = None
+        baseline_summary = baseline.get("summary", None)
+        baseline_energy_raw = (
+            None
+            if baseline_summary is None
+            else (
+                baseline_summary.get("energy", None)
+                if isinstance(baseline_summary, Mapping)
+                else getattr(baseline_summary, "energy", None)
+            )
+        )
+        baseline_has_measured_energy = bool(
+            baseline.get("backend_info")
+            or baseline.get("observable_estimates")
+            or baseline.get("raw_group_pool_summary")
+        )
+        if (
+            (str(action_kind) == "stay" or selected is None)
+            and baseline_has_measured_energy
+            and baseline_energy_raw is not None
+        ):
+            out["stay_noisy_energy_mean"] = float(baseline_energy_raw)
+            out["stay_noisy_energy_stderr"] = None
+            out["selected_noisy_energy_mean"] = float(baseline_energy_raw)
+            out["selected_noisy_energy_stderr"] = None
+            out["selected_noisy_improvement_abs"] = 0.0
+            out["selected_noisy_improvement_ratio"] = 0.0
+            return out, None
         stay_state_key = self._measurement_state_key(
             layout=self.current_layout,
             theta_runtime=stay_theta,
@@ -1367,6 +1846,64 @@ class RealtimeCheckpointController:
         except Exception as exc:
             degraded_reason = str(exc)
         return out, degraded_reason
+
+    def _oracle_commit_override_reason(
+        self,
+        *,
+        motion: MotionSchedulerTelemetry,
+        selected: Mapping[str, Any] | None,
+        action_kind: str,
+        oracle_commit_payload: Mapping[str, Any],
+        predicted_displacement: float,
+        runtime_parameter_count_before: int,
+    ) -> str | None:
+        if str(action_kind) != "append_candidate" or selected is None:
+            return None
+        improvement_abs_raw = oracle_commit_payload.get("selected_noisy_improvement_abs", None)
+        if improvement_abs_raw is None:
+            return None
+        improvement_ratio_raw = oracle_commit_payload.get("selected_noisy_improvement_ratio", None)
+        try:
+            improvement_abs = float(improvement_abs_raw)
+        except Exception:
+            return None
+        try:
+            improvement_ratio = (
+                None if improvement_ratio_raw is None else float(improvement_ratio_raw)
+            )
+        except Exception:
+            improvement_ratio = None
+        if not np.isfinite(improvement_abs):
+            return None
+        if improvement_abs >= -float(self.cfg.append_margin_abs):
+            regime = str(motion.regime)
+            if (
+                regime == "kink"
+                and int(runtime_parameter_count_before) <= 2
+                and float(predicted_displacement) >= 0.08
+                and improvement_ratio is not None
+                and np.isfinite(improvement_ratio)
+                and float(improvement_ratio) < 0.20
+            ):
+                return "kink_weak_margin_first_append"
+            if (
+                regime == "kink"
+                and int(runtime_parameter_count_before) >= 3
+                and float(predicted_displacement) >= 0.5
+                and improvement_ratio is not None
+                and np.isfinite(improvement_ratio)
+                and float(improvement_ratio) < 0.30
+            ):
+                return "kink_large_displacement_commit"
+            return None
+        regime = str(motion.regime)
+        if regime == "bootstrap":
+            return "bootstrap_negative_noisy_commit"
+        # Under driven kink motion, a negative measured commit signal is more trustworthy
+        # than the exact geometry preview for deciding whether to spend a new append.
+        if regime == "kink":
+            return "kink_negative_noisy_commit"
+        return None
 
     def _baseline_geometry(
         self,
@@ -1889,6 +2426,46 @@ class RealtimeCheckpointController:
             return "stay", None
         return "append_candidate", best
 
+    def _sorted_confirmed_by_gain(
+        self,
+        confirmed: Sequence[Mapping[str, Any]],
+    ) -> list[dict[str, Any]]:
+        return sorted(
+            [dict(rec) for rec in confirmed],
+            key=lambda rec: (
+                -float(rec["adjusted_gain"]),
+                float(rec["candidate_summary"].position_jump_penalty),
+                float(rec["candidate_summary"].compile_proxy_total),
+                float(rec["candidate_summary"].groups_new),
+                int(rec["candidate_summary"].candidate_pool_index),
+                int(rec["candidate_summary"].position_id),
+            ),
+        )
+
+    def _oracle_confirm_limit_with_selection_policy(
+        self,
+        *,
+        confirmed_count: int,
+        refresh_pressure: str,
+        motion: MotionSchedulerTelemetry,
+    ) -> int:
+        base_limit = self._oracle_confirm_limit_for_motion(
+            confirmed_count=int(confirmed_count),
+            refresh_pressure=str(refresh_pressure),
+            motion=motion,
+        )
+        if int(confirmed_count) <= 0:
+            return 0
+        if str(self.cfg.oracle_selection_policy) != "measured_topk_oracle_energy":
+            return int(base_limit)
+        if self._oracle_base_config is None:
+            return int(base_limit)
+        noise_mode = str(getattr(self._oracle_base_config, "noise_mode", ""))
+        if noise_mode not in {"shots", "ideal"}:
+            return int(base_limit)
+        floor_limit = min(int(confirmed_count), 3)
+        return int(min(int(confirmed_count), max(int(base_limit), int(floor_limit))))
+
     def _controller_state_payload(self) -> dict[str, Any]:
         return {
             "logical_block_count": int(self.current_layout.logical_parameter_count),
@@ -1899,8 +2476,18 @@ class RealtimeCheckpointController:
     def run(self) -> ControllerRunArtifacts:
         self._run_wallclock_start = time.perf_counter()
         try:
+            self._write_progress(stage="run_start", force=True)
+            self._write_partial_payload(stage="run_start")
             for checkpoint_index, time_value in enumerate(self.times):
                 step_hamiltonian = self._step_hamiltonian_artifacts(float(time_value))
+                self._write_progress(
+                    stage="checkpoint_start",
+                    force=True,
+                    checkpoint_index=int(checkpoint_index),
+                    time=float(time_value),
+                    physical_time=float(step_hamiltonian.physical_time),
+                    drive_term_count=int(step_hamiltonian.drive_term_count),
+                )
                 time_stop = None
                 if int(checkpoint_index) + 1 < int(len(self.times)):
                     time_stop = float(self.times[int(checkpoint_index) + 1])
@@ -1930,8 +2517,7 @@ class RealtimeCheckpointController:
                 ) if str(self.cfg.mode) == "oracle_v1" else None
                 raw_group_pool = (
                     BackendScheduledRawGroupPool(checkpoint_id=str(checkpoint_ctx.checkpoint_id))
-                if str(self.cfg.mode) == "oracle_v1"
-                    and self._oracle_base_config is not None
+                    if self._oracle_base_config is not None
                     and bool(controller_oracle_supports_raw_group_sampling(self._oracle_base_config))
                     else None
                 )
@@ -1948,6 +2534,11 @@ class RealtimeCheckpointController:
                 oracle_attempted = False
                 oracle_decision_used = False
                 oracle_estimate_kind = None
+                selection_metric = (
+                    "off_stay_baseline"
+                    if str(self.cfg.mode) == "off"
+                    else "incremental_gain_ratio"
+                )
                 dt = 0.0 if time_stop is None else float(time_stop - float(time_value))
                 predicted_displacement = self._predicted_displacement(dt=float(dt), baseline=baseline_exact)
                 motion_telemetry = self._motion_telemetry(
@@ -1976,12 +2567,38 @@ class RealtimeCheckpointController:
                     "selected_noisy_improvement_abs": None,
                     "selected_noisy_improvement_ratio": None,
                 }
+                noisy_override_reason: str | None = None
                 if time_stop is None:
                     shortlist = []
                     confirmed = []
                     oracle_confirm_limit = 0
-                    oracle_budget_scale = 1.0
+                    oracle_budget_scale = 0.0
+                    if str(self.cfg.mode) == "off":
+                        decision_backend = "off"
                     action_kind, selected = "stay", None
+                elif str(self.cfg.mode) == "off":
+                    shortlist = []
+                    confirmed = []
+                    oracle_confirm_limit = 0
+                    action_kind, selected = "stay", None
+                    decision_backend = "off"
+                    if self._oracle_base_config is not None:
+                        oracle_attempted = True
+                        decision_noise_mode = str(self._oracle_base_config.noise_mode)
+                        oracle_estimate_kind = self._oracle_estimate_kind()
+                        selection_metric = "measured_baseline_energy"
+                        try:
+                            baseline_for_decision = self._oracle_measured_baseline_geometry(
+                                checkpoint_ctx=checkpoint_ctx,
+                                cache=cache,
+                                geometry_memo=geometry_memo,
+                                raw_group_pool=raw_group_pool,
+                                h_poly_step=step_hamiltonian.h_poly,
+                                tier_name="confirm",
+                                budget_scale=float(oracle_budget_scale),
+                            )
+                        except Exception as exc:
+                            degraded_reason = f"measured_off_baseline_error: {exc}"
                 else:
                     shortlist = self._scout_candidates(
                         checkpoint_ctx=checkpoint_ctx,
@@ -2001,65 +2618,117 @@ class RealtimeCheckpointController:
                     oracle_confirm_limit = 0
                     if str(self.cfg.mode) == "oracle_v1" and shortlist and oracle_cache is not None:
                         oracle_attempted = True
-                        oracle_confirm_limit = self._oracle_confirm_limit_for_motion(
+                        oracle_confirm_limit = self._oracle_confirm_limit_with_selection_policy(
                             confirmed_count=len(confirmed),
                             refresh_pressure=str(refresh_pressure),
                             motion=motion_telemetry,
                         )
-                        if raw_group_pool is not None:
-                            measured_baseline, measured_confirmed, geometry_error = self._confirm_candidates_oracle_geometry(
-                                checkpoint_ctx=checkpoint_ctx,
-                                cache=cache,
-                                geometry_memo=geometry_memo,
-                                confirmed=confirmed,
-                                raw_group_pool=raw_group_pool,
-                                h_poly_step=step_hamiltonian.h_poly,
-                                confirm_limit=int(oracle_confirm_limit),
-                                budget_scale=float(oracle_budget_scale),
+                        geometry_error = None
+                        measured_baseline, measured_confirmed, geometry_error = self._confirm_candidates_oracle_geometry(
+                            checkpoint_ctx=checkpoint_ctx,
+                            cache=cache,
+                            geometry_memo=geometry_memo,
+                            confirmed=confirmed,
+                            raw_group_pool=raw_group_pool,
+                            h_poly_step=step_hamiltonian.h_poly,
+                            confirm_limit=int(oracle_confirm_limit),
+                            budget_scale=float(oracle_budget_scale),
+                        )
+                        if geometry_error is None and measured_baseline is not None:
+                            baseline_for_decision = measured_baseline
+                            confirmed = list(measured_confirmed)
+                            decision_backend = "oracle"
+                            decision_noise_mode = (
+                                None if self._oracle_base_config is None else str(self._oracle_base_config.noise_mode)
                             )
-                            if geometry_error is None and measured_baseline is not None:
-                                baseline_for_decision = measured_baseline
-                                confirmed = list(measured_confirmed)
-                                decision_backend = "oracle"
-                                decision_noise_mode = (
-                                    None if self._oracle_base_config is None else str(self._oracle_base_config.noise_mode)
-                                )
-                                oracle_decision_used = True
-                                oracle_estimate_kind = self._oracle_estimate_kind()
-                                viable_measured = [
-                                    rec
-                                    for rec in confirmed
-                                    if rec.get("gain_exact") is not None and rec.get("gain_ratio") is not None
-                                ]
-                                if float(baseline_for_decision["summary"].rho_miss) <= float(self.cfg.miss_threshold):
-                                    action_kind, selected = "stay", None
-                                elif not viable_measured:
-                                    oracle_decision_used = False
-                                    decision_backend = "exact"
-                                    decision_noise_mode = None
-                                    oracle_estimate_kind = None
-                                    degraded_reason = "measured_geometry_no_viable_candidates"
+                            oracle_decision_used = True
+                            oracle_estimate_kind = self._oracle_estimate_kind()
+                            viable_measured = [
+                                rec
+                                for rec in confirmed
+                                if rec.get("gain_exact") is not None and rec.get("gain_ratio") is not None
+                            ]
+                            if float(baseline_for_decision["summary"].rho_miss) <= float(self.cfg.miss_threshold):
+                                action_kind, selected = "stay", None
+                                selection_metric = "measured_incremental_gain_ratio"
+                            elif not viable_measured:
+                                oracle_decision_used = False
+                                decision_backend = "exact"
+                                decision_noise_mode = None
+                                oracle_estimate_kind = None
+                                degraded_reason = "measured_geometry_no_viable_candidates"
+                            else:
+                                selection_metric = "measured_incremental_gain_ratio"
+                                if str(self.cfg.oracle_selection_policy) == "measured_topk_oracle_energy":
+                                    confirmed_ranked = self._sorted_confirmed_by_gain(confirmed)
+                                    confirmed_for_oracle = list(confirmed_ranked[:oracle_confirm_limit])
+                                    confirmed_remainder = list(confirmed_ranked[oracle_confirm_limit:])
+                                    reranked_confirmed, _, rerank_error = self._confirm_candidates_oracle(
+                                        checkpoint_ctx=checkpoint_ctx,
+                                        baseline=baseline_for_decision,
+                                        confirmed=confirmed_for_oracle,
+                                        dt=float(dt),
+                                        oracle_cache=oracle_cache,
+                                        raw_group_pool=raw_group_pool,
+                                        oracle_observable=step_hamiltonian.oracle_observable,
+                                        budget_scale=float(oracle_budget_scale),
+                                    )
+                                    if rerank_error is None:
+                                        confirmed = list(reranked_confirmed)
+                                        for record in confirmed_remainder:
+                                            rec = dict(record)
+                                            rec["predicted_noisy_energy_mean"] = None
+                                            rec["predicted_noisy_energy_stderr"] = None
+                                            rec["predicted_noisy_improvement_abs"] = None
+                                            rec["predicted_noisy_improvement_ratio"] = None
+                                            rec["predicted_noisy_improvement_stderr"] = None
+                                            rec["adjusted_noisy_improvement"] = float("-inf")
+                                            rec["confirm_backend_info"] = None
+                                            rec["confirm_error"] = "deferred_by_oracle_rerank_limit"
+                                            confirmed.append(rec)
+                                        action_kind, selected = self._select_action_oracle(
+                                            baseline=baseline_for_decision,
+                                            confirmed=confirmed,
+                                        )
+                                        selection_metric = "oracle_energy_improvement"
+                                    else:
+                                        if degraded_reason is None:
+                                            degraded_reason = f"oracle_rerank_error: {rerank_error}"
+                                        action_kind, selected = self._select_action(
+                                            baseline=baseline_for_decision,
+                                            confirmed=confirmed,
+                                        )
                                 else:
                                     action_kind, selected = self._select_action(
                                         baseline=baseline_for_decision,
                                         confirmed=confirmed,
                                     )
-                                if oracle_decision_used:
-                                    oracle_commit_payload, commit_degraded_reason = self._oracle_commit_payload(
-                                        checkpoint_ctx=checkpoint_ctx,
-                                        oracle_cache=oracle_cache,
-                                        raw_group_pool=raw_group_pool,
-                                        baseline=baseline_for_decision,
-                                        selected=selected,
-                                        action_kind=str(action_kind),
-                                        dt=float(dt),
-                                        oracle_observable=step_hamiltonian.oracle_observable,
-                                        budget_scale=float(oracle_budget_scale),
-                                    )
-                                    if commit_degraded_reason is not None:
-                                        degraded_reason = str(commit_degraded_reason)
-                            else:
-                                degraded_reason = str(geometry_error)
+                            if oracle_decision_used:
+                                oracle_commit_payload, commit_degraded_reason = self._oracle_commit_payload(
+                                    checkpoint_ctx=checkpoint_ctx,
+                                    oracle_cache=oracle_cache,
+                                    raw_group_pool=raw_group_pool,
+                                    baseline=baseline_for_decision,
+                                    selected=selected,
+                                    action_kind=str(action_kind),
+                                    dt=float(dt),
+                                    oracle_observable=step_hamiltonian.oracle_observable,
+                                    budget_scale=float(oracle_budget_scale),
+                                )
+                                if commit_degraded_reason is not None:
+                                    degraded_reason = str(commit_degraded_reason)
+                                override_reason = self._oracle_commit_override_reason(
+                                    motion=motion_telemetry,
+                                    selected=selected,
+                                    action_kind=str(action_kind),
+                                    oracle_commit_payload=oracle_commit_payload,
+                                    predicted_displacement=float(predicted_displacement),
+                                    runtime_parameter_count_before=int(self.current_layout.runtime_parameter_count),
+                                )
+                                if override_reason is not None:
+                                    noisy_override_reason = str(override_reason)
+                        if geometry_error is not None and degraded_reason is None:
+                            degraded_reason = str(geometry_error)
                         if not oracle_decision_used:
                             confirmed_ranked = sorted(
                                 confirmed,
@@ -2103,6 +2772,7 @@ class RealtimeCheckpointController:
                                 )
                                 oracle_decision_used = True
                                 oracle_estimate_kind = self._oracle_estimate_kind()
+                                selection_metric = "oracle_energy_improvement"
                                 action_kind, selected = self._select_action_oracle(
                                     baseline=baseline_exact,
                                     confirmed=confirmed,
@@ -2120,6 +2790,16 @@ class RealtimeCheckpointController:
                                 )
                                 if commit_degraded_reason is not None:
                                     degraded_reason = str(commit_degraded_reason)
+                                override_reason = self._oracle_commit_override_reason(
+                                    motion=motion_telemetry,
+                                    selected=selected,
+                                    action_kind=str(action_kind),
+                                    oracle_commit_payload=oracle_commit_payload,
+                                    predicted_displacement=float(predicted_displacement),
+                                    runtime_parameter_count_before=int(self.current_layout.runtime_parameter_count),
+                                )
+                                if override_reason is not None:
+                                    noisy_override_reason = str(override_reason)
                             else:
                                 if degraded_reason is None:
                                     degraded_reason = str(scalar_degraded_reason)
@@ -2127,10 +2807,72 @@ class RealtimeCheckpointController:
                     else:
                         oracle_confirm_limit = 0
                         oracle_budget_scale = 1.0
+                        selection_metric = "incremental_gain_ratio"
                         action_kind, selected = self._select_action(
                             baseline=baseline_for_decision,
                             confirmed=confirmed,
                         )
+
+                proposed_action_kind = str(action_kind)
+                proposed_selected = selected
+                proposed_candidate_label = (
+                    None
+                    if proposed_selected is None
+                    else str(proposed_selected["candidate_label"])
+                )
+                decision_override_reason: str | None = (
+                    None if noisy_override_reason is None else str(noisy_override_reason)
+                )
+                exact_forecast_error: str | None = None
+                forecast_stay: dict[str, Any] | None = None
+                forecast_selected: dict[str, Any] | None = None
+                if (
+                    str(self.cfg.mode) == "oracle_v1"
+                    and time_stop is not None
+                    and str(proposed_action_kind) == "append_candidate"
+                    and proposed_selected is not None
+                    and str(getattr(self.cfg, "exact_forecast_guardrail_mode", "off")) != "off"
+                ):
+                    try:
+                        stay_theta_forecast = np.asarray(
+                            self.current_theta
+                            + float(dt) * np.asarray(baseline_for_decision["theta_dot_step"], dtype=float),
+                            dtype=float,
+                        ).reshape(-1)
+                        selected_theta_forecast = np.asarray(
+                            proposed_selected["candidate_data"]["theta_aug"]
+                            + float(dt) * np.asarray(proposed_selected["theta_dot_aug"], dtype=float),
+                            dtype=float,
+                        ).reshape(-1)
+                        forecast_stay = self._exact_step_forecast(
+                            time_stop=float(time_stop),
+                            executor=self.current_executor,
+                            theta_runtime=stay_theta_forecast,
+                        )
+                        forecast_selected = self._exact_step_forecast(
+                            time_stop=float(time_stop),
+                            executor=proposed_selected["candidate_data"]["aug_executor"],
+                            theta_runtime=selected_theta_forecast,
+                        )
+                    except Exception as exc:
+                        exact_forecast_error = f"{type(exc).__name__}: {exc}"
+                        forecast_stay = None
+                        forecast_selected = None
+                        msg = f"exact_forecast_error: {exact_forecast_error}"
+                        degraded_reason = msg if degraded_reason is None else f"{degraded_reason}; {msg}"
+                if (
+                    decision_override_reason is None
+                    and forecast_stay is not None
+                    and forecast_selected is not None
+                ):
+                    forecast_override_reason = self._exact_forecast_override_reason(
+                        stay_forecast=forecast_stay,
+                        selected_forecast=forecast_selected,
+                    )
+                    if forecast_override_reason is not None:
+                        decision_override_reason = str(forecast_override_reason)
+                if decision_override_reason is not None:
+                    action_kind, selected = "stay", None
 
                 if degraded_reason is not None:
                     self._degraded_checkpoint_count += 1
@@ -2145,6 +2887,11 @@ class RealtimeCheckpointController:
                     selected_position_id = int(selected["position_id"])
                     selected_groups_new = float(selected.get("groups_new", 0.0))
                     selected_gain_ratio = float(selected.get("gain_ratio", 0.0))
+                selected_step_scale = (
+                    None
+                    if selected is None or selected.get("candidate_step_scale", None) is None
+                    else float(selected["candidate_step_scale"])
+                )
                 tier_reached = "scout"
                 rate_change_l2 = _overlap_l2(np.asarray(baseline_for_decision["theta_dot_step"], dtype=float), self._previous_theta_dot)
 
@@ -2160,6 +2907,37 @@ class RealtimeCheckpointController:
                 energy_controller = float(baseline_for_decision["summary"].energy)
                 fidelity_exact = float(abs(np.vdot(psi_exact, baseline_exact["psi"])) ** 2)
                 abs_energy_total_error = float(abs(float(energy_controller) - float(energy_exact)))
+                controller_obs = self._observable_snapshot(
+                    np.asarray(baseline_exact["psi"], dtype=complex).reshape(-1)
+                )
+                exact_obs = self._observable_snapshot(np.asarray(psi_exact, dtype=complex).reshape(-1))
+                site_occ_controller = np.asarray(controller_obs["site_occupations"], dtype=float)
+                site_occ_exact = np.asarray(exact_obs["site_occupations"], dtype=float)
+                site_occ_abs_error = np.abs(site_occ_controller - site_occ_exact)
+                abs_staggered_error = float(
+                    abs(float(controller_obs["staggered"]) - float(exact_obs["staggered"]))
+                )
+                abs_doublon_error = float(
+                    abs(float(controller_obs["doublon"]) - float(exact_obs["doublon"]))
+                )
+                fidelity_initial_controller = float(
+                    abs(
+                        np.vdot(
+                            np.asarray(self.psi_initial, dtype=complex).reshape(-1),
+                            np.asarray(baseline_exact["psi"], dtype=complex).reshape(-1),
+                        )
+                    )
+                    ** 2
+                )
+                fidelity_initial_exact = float(
+                    abs(
+                        np.vdot(
+                            np.asarray(self.psi_initial, dtype=complex).reshape(-1),
+                            np.asarray(psi_exact, dtype=complex).reshape(-1),
+                        )
+                    )
+                    ** 2
+                )
 
                 shortlist_payload = [
                     {
@@ -2193,6 +2971,9 @@ class RealtimeCheckpointController:
                         "adjusted_noisy_improvement": (
                             None if rec.get("adjusted_noisy_improvement") is None or not np.isfinite(rec.get("adjusted_noisy_improvement", float("nan"))) else float(rec.get("adjusted_noisy_improvement"))
                         ),
+                        "candidate_step_scale": (
+                            None if rec.get("candidate_step_scale", None) is None else float(rec["candidate_step_scale"])
+                        ),
                         "confirm_error": rec.get("confirm_error", None),
                         "candidate_summary": dataclass_to_payload(rec["candidate_summary"]),
                     }
@@ -2206,12 +2987,56 @@ class RealtimeCheckpointController:
                         "physical_time": float(step_hamiltonian.physical_time),
                         "action_kind": str(action_kind),
                         "candidate_label": selected_candidate_label,
+                        "proposed_action_kind": str(proposed_action_kind),
+                        "proposed_candidate_label": proposed_candidate_label,
                         "requested_mode": str(self.cfg.mode),
                         "decision_backend": str(decision_backend),
                         "decision_noise_mode": decision_noise_mode,
                         "oracle_attempted": bool(oracle_attempted),
                         "oracle_decision_used": bool(oracle_decision_used),
                         "oracle_estimate_kind": oracle_estimate_kind,
+                        "selection_metric": str(selection_metric),
+                        "decision_override_reason": decision_override_reason,
+                        "exact_forecast_error": exact_forecast_error,
+                        "selected_step_scale": selected_step_scale,
+                        "forecast_stay_fidelity_exact_next": (
+                            None if forecast_stay is None else float(forecast_stay["fidelity_exact_next"])
+                        ),
+                        "forecast_selected_fidelity_exact_next": (
+                            None
+                            if forecast_selected is None
+                            else float(forecast_selected["fidelity_exact_next"])
+                        ),
+                        "forecast_stay_abs_energy_total_error_next": (
+                            None
+                            if forecast_stay is None
+                            else float(forecast_stay["abs_energy_total_error_next"])
+                        ),
+                        "forecast_selected_abs_energy_total_error_next": (
+                            None
+                            if forecast_selected is None
+                            else float(forecast_selected["abs_energy_total_error_next"])
+                        ),
+                        "forecast_stay_abs_staggered_error_next": (
+                            None
+                            if forecast_stay is None
+                            else float(forecast_stay["abs_staggered_error_next"])
+                        ),
+                        "forecast_selected_abs_staggered_error_next": (
+                            None
+                            if forecast_selected is None
+                            else float(forecast_selected["abs_staggered_error_next"])
+                        ),
+                        "forecast_stay_abs_doublon_error_next": (
+                            None
+                            if forecast_stay is None
+                            else float(forecast_stay["abs_doublon_error_next"])
+                        ),
+                        "forecast_selected_abs_doublon_error_next": (
+                            None
+                            if forecast_selected is None
+                            else float(forecast_selected["abs_doublon_error_next"])
+                        ),
                         "predicted_displacement": float(predicted_displacement),
                         "motion_regime": str(motion_telemetry.regime),
                         "motion_direction_cosine": (
@@ -2235,10 +3060,29 @@ class RealtimeCheckpointController:
                         "rho_miss": float(baseline_for_decision["summary"].rho_miss),
                         "epsilon_proj_sq": float(baseline_for_decision["summary"].epsilon_proj_sq),
                         "epsilon_step_sq": float(baseline_for_decision["summary"].epsilon_step_sq),
+                        "energy_total": float(energy_controller),
                         "energy_total_controller": float(energy_controller),
                         "energy_total_exact": float(energy_exact),
                         "abs_energy_total_error": float(abs_energy_total_error),
                         "fidelity_exact": float(fidelity_exact),
+                        "fidelity_initial_controller": float(fidelity_initial_controller),
+                        "fidelity_initial_exact": float(fidelity_initial_exact),
+                        "staggered": float(controller_obs["staggered"]),
+                        "staggered_exact": float(exact_obs["staggered"]),
+                        "abs_staggered_error": float(abs_staggered_error),
+                        "doublon": float(controller_obs["doublon"]),
+                        "doublon_exact": float(exact_obs["doublon"]),
+                        "abs_doublon_error": float(abs_doublon_error),
+                        "site_occupations": list(controller_obs["site_occupations"]),
+                        "site_occupations_exact": list(exact_obs["site_occupations"]),
+                        "site_occupations_up": list(controller_obs["n_up_site"]),
+                        "site_occupations_up_exact": list(exact_obs["n_up_site"]),
+                        "site_occupations_dn": list(controller_obs["n_dn_site"]),
+                        "site_occupations_dn_exact": list(exact_obs["n_dn_site"]),
+                        "site_occupations_abs_error": [float(x) for x in site_occ_abs_error.tolist()],
+                        "site_occupations_abs_error_max": (
+                            float(np.max(site_occ_abs_error)) if site_occ_abs_error.size > 0 else float("nan")
+                        ),
                         "logical_block_count": int(logical_before),
                         "runtime_parameter_count": int(runtime_before),
                         "selected_noisy_energy_mean": oracle_commit_payload.get("selected_noisy_energy_mean", None),
@@ -2288,6 +3132,8 @@ class RealtimeCheckpointController:
                     physical_time=float(step_hamiltonian.physical_time),
                     action_kind=str(action_kind),
                     candidate_label=selected_candidate_label,
+                    proposed_action_kind=str(proposed_action_kind),
+                    proposed_candidate_label=proposed_candidate_label,
                     position_id=selected_position_id,
                     rho_miss=float(baseline_for_decision["summary"].rho_miss),
                     gain_ratio_selected=float(selected_gain_ratio),
@@ -2321,6 +3167,48 @@ class RealtimeCheckpointController:
                     oracle_decision_used=bool(oracle_decision_used),
                     oracle_attempted=bool(oracle_attempted),
                     oracle_estimate_kind=oracle_estimate_kind,
+                    selection_metric=str(selection_metric),
+                    decision_override_reason=decision_override_reason,
+                    exact_forecast_error=exact_forecast_error,
+                    selected_step_scale=selected_step_scale,
+                    forecast_stay_fidelity_exact_next=(
+                        None if forecast_stay is None else float(forecast_stay["fidelity_exact_next"])
+                    ),
+                    forecast_selected_fidelity_exact_next=(
+                        None
+                        if forecast_selected is None
+                        else float(forecast_selected["fidelity_exact_next"])
+                    ),
+                    forecast_stay_abs_energy_total_error_next=(
+                        None
+                        if forecast_stay is None
+                        else float(forecast_stay["abs_energy_total_error_next"])
+                    ),
+                    forecast_selected_abs_energy_total_error_next=(
+                        None
+                        if forecast_selected is None
+                        else float(forecast_selected["abs_energy_total_error_next"])
+                    ),
+                    forecast_stay_abs_staggered_error_next=(
+                        None
+                        if forecast_stay is None
+                        else float(forecast_stay["abs_staggered_error_next"])
+                    ),
+                    forecast_selected_abs_staggered_error_next=(
+                        None
+                        if forecast_selected is None
+                        else float(forecast_selected["abs_staggered_error_next"])
+                    ),
+                    forecast_stay_abs_doublon_error_next=(
+                        None
+                        if forecast_stay is None
+                        else float(forecast_stay["abs_doublon_error_next"])
+                    ),
+                    forecast_selected_abs_doublon_error_next=(
+                        None
+                        if forecast_selected is None
+                        else float(forecast_selected["abs_doublon_error_next"])
+                    ),
                     predicted_displacement=float(predicted_displacement),
                     temporal_refresh_pressure=str(refresh_pressure),
                     selected_noisy_energy_mean=(None if oracle_commit_payload.get("selected_noisy_energy_mean", None) is None else float(oracle_commit_payload["selected_noisy_energy_mean"])),
@@ -2351,17 +3239,55 @@ class RealtimeCheckpointController:
                     predicted_displacement=float(predicted_displacement),
                     refresh_pressure=str(refresh_pressure),
                 )
+                self._write_progress(
+                    stage="checkpoint_done",
+                    force=True,
+                    checkpoint_index=int(checkpoint_index),
+                    time=float(time_value),
+                    physical_time=float(step_hamiltonian.physical_time),
+                    action_kind=str(action_kind),
+                    decision_backend=str(decision_backend),
+                    oracle_decision_used=bool(oracle_decision_used),
+                    shortlist_size=int(len(shortlist)),
+                    oracle_confirm_limit=int(oracle_confirm_limit),
+                    oracle_budget_scale=float(oracle_budget_scale),
+                    degraded_reason=(None if degraded_reason is None else str(degraded_reason)),
+                )
+                self._write_partial_payload(stage="checkpoint_done")
 
             append_count = int(sum(1 for row in self._ledger if str(row.get("action_kind")) == "append_candidate"))
             stay_count = int(sum(1 for row in self._ledger if str(row.get("action_kind")) == "stay"))
             exact_decision_checkpoints = int(sum(1 for row in self._ledger if str(row.get("decision_backend")) == "exact"))
             oracle_decision_checkpoints = int(sum(1 for row in self._ledger if str(row.get("decision_backend")) == "oracle"))
             oracle_attempted_checkpoints = int(sum(1 for row in self._ledger if bool(row.get("oracle_attempted", False))))
+            decision_override_count = int(
+                sum(1 for row in self._ledger if row.get("decision_override_reason") not in {None, ""})
+            )
+            exact_forecast_veto_count = int(
+                sum(
+                    1
+                    for row in self._ledger
+                    if str(row.get("decision_override_reason", "")).startswith("exact_forecast_")
+                )
+            )
             executed_backends = sorted({str(row.get("decision_backend", "exact")) for row in self._ledger}) or ["exact"]
             final_row = self._trajectory[-1] if self._trajectory else {}
+            staggered_error_vals = [
+                float(row.get("abs_staggered_error", float("nan"))) for row in self._trajectory
+            ]
+            doublon_error_vals = [
+                float(row.get("abs_doublon_error", float("nan"))) for row in self._trajectory
+            ]
+            site_occupation_error_vals = [
+                float(row.get("site_occupations_abs_error_max", float("nan"))) for row in self._trajectory
+            ]
             summary = {
                 "mode": str(self.cfg.mode),
-                "requested_decision_backend": ("oracle" if str(self.cfg.mode) == "oracle_v1" else "exact"),
+                "requested_decision_backend": (
+                    "oracle"
+                    if str(self.cfg.mode) == "oracle_v1"
+                    else ("off" if str(self.cfg.mode) == "off" else "exact")
+                ),
                 "status": ("completed_with_fallback" if int(self._degraded_checkpoint_count) > 0 else "completed"),
                 "decision_backend": (
                     executed_backends[0]
@@ -2369,8 +3295,21 @@ class RealtimeCheckpointController:
                     else "mixed"
                 ),
                 "executed_decision_backends": list(executed_backends),
-                "decision_noise_mode": (None if oracle_decision_checkpoints <= 0 or self._oracle_base_config is None else str(self._oracle_base_config.noise_mode)),
-                "oracle_estimate_kind": (None if oracle_decision_checkpoints <= 0 else self._oracle_estimate_kind()),
+                "decision_noise_mode": (
+                    None
+                    if oracle_attempted_checkpoints <= 0 or self._oracle_base_config is None
+                    else str(self._oracle_base_config.noise_mode)
+                ),
+                "oracle_estimate_kind": (
+                    None if oracle_attempted_checkpoints <= 0 else self._oracle_estimate_kind()
+                ),
+                "oracle_selection_policy": str(self.cfg.oracle_selection_policy),
+                "candidate_step_scales": [float(x) for x in self._candidate_step_scales()],
+                "exact_forecast_guardrail_mode": str(
+                    getattr(self.cfg, "exact_forecast_guardrail_mode", "off")
+                ),
+                "decision_override_count": int(decision_override_count),
+                "exact_forecast_veto_count": int(exact_forecast_veto_count),
                 "append_count": int(append_count),
                 "stay_count": int(stay_count),
                 "exact_decision_checkpoints": int(exact_decision_checkpoints),
@@ -2381,6 +3320,22 @@ class RealtimeCheckpointController:
                 "final_runtime_parameter_count": int(self.current_layout.runtime_parameter_count),
                 "final_fidelity_exact": float(final_row.get("fidelity_exact", float("nan"))),
                 "final_abs_energy_total_error": float(final_row.get("abs_energy_total_error", float("nan"))),
+                "final_staggered": float(final_row.get("staggered", float("nan"))),
+                "final_staggered_exact": float(final_row.get("staggered_exact", float("nan"))),
+                "final_abs_staggered_error": float(final_row.get("abs_staggered_error", float("nan"))),
+                "max_abs_staggered_error": float(np.nanmax(np.asarray(staggered_error_vals, dtype=float))),
+                "final_doublon": float(final_row.get("doublon", float("nan"))),
+                "final_doublon_exact": float(final_row.get("doublon_exact", float("nan"))),
+                "final_abs_doublon_error": float(final_row.get("abs_doublon_error", float("nan"))),
+                "max_abs_doublon_error": float(np.nanmax(np.asarray(doublon_error_vals, dtype=float))),
+                "final_site_occupations": list(final_row.get("site_occupations", [])),
+                "final_site_occupations_exact": list(final_row.get("site_occupations_exact", [])),
+                "final_site_occupations_abs_error_max": float(
+                    final_row.get("site_occupations_abs_error_max", float("nan"))
+                ),
+                "max_abs_site_occupations_error": float(
+                    np.nanmax(np.asarray(site_occupation_error_vals, dtype=float))
+                ),
                 "planning_audit": dict(self._planning_audit.summary()),
                 "temporal_measurement_ledger": dict(self._temporal_ledger.summary()),
             }
@@ -2404,6 +3359,17 @@ class RealtimeCheckpointController:
                     else int(self._drive_config.exact_steps_multiplier)
                 ),
             }
+            self._write_progress(
+                stage="run_complete",
+                force=True,
+                status="completed",
+                summary=summary,
+            )
+            self._write_partial_payload(
+                status="completed",
+                stage="run_complete",
+                summary=summary,
+            )
             return ControllerRunArtifacts(
                 trajectory=[dict(row) for row in self._trajectory],
                 ledger=[dict(row) for row in self._ledger],

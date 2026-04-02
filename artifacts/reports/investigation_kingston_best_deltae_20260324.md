@@ -1,7 +1,7 @@
 # Investigation: Kingston next shot for best |ΔE|
 
 ## Summary
-For the strict goal of minimizing the next real-QPU `|ΔE|`, the strongest evidence still favors a **7-term Kingston fixed-theta energy-only baseline** over a fresh 6-term Kingston rerun. For the different goal of learning whether the lean circuit is salvageable, the best experiment is instead a **fresh 6-term Kingston SPSA rerun**.
+For the strict goal of minimizing the next real-QPU `|ΔE|`, the strongest evidence still favors a **7-term Kingston fixed-theta energy-only baseline** over a fresh 6-term Kingston rerun. For the different goal of learning whether the lean circuit is salvageable, the best experiment is instead a **fresh 6-term Kingston SPSA rerun**, but it should now use a **Kingston-specific compile preflight** rather than inherit the older Marrakesh-conditioned compile recommendation.
 
 ## Symptoms
 - The 6-term fixed-theta runtime baseline was poor on Marrakesh.
@@ -75,6 +75,17 @@ For the strict goal of minimizing the next real-QPU `|ΔE|`, the strongest evide
 - `artifacts/json/hh_marrakesh_7term_local_exact_spsa128_perturbed_20260323T182846Z.json:14-212`
 **Conclusion:** Confirmed. The local perturbation evidence slightly favors the 7-term anchor on robustness as well.
 
+### Phase 8 - Kingston-specific compile preflight
+**Hypothesis:** The 6-term Kingston line is not yet physically fixed; a Kingston-targeted compile preflight can still improve the exact same logical circuit before any future runtime replay.
+**Findings:** Upgrading `qiskit_ibm_runtime` to `0.46.1` did not expose a `FakeKingston` class, but a Kingston-local surrogate path is available through `QiskitRuntimeService().backend("ibm_kingston")` plus `AerSimulator.from_backend(backend)`. An initial no-QPU compile scout on the pinned 6-term artifact selected `optimization_level=2`, `seed_transpiler=0`, with `14` CZ, compiled depth `41`, size `83`, and physical layout `[107,108,110,109,97,118]`. A broader 256-candidate sweep over `optimization_level in {0,1,2,3}` and `seed_transpiler in [0,63]` confirmed that same Kingston winner; the only metric-tied alternative was `optimization_level=3`, `seed_transpiler=0` on a different physical patch.
+**Evidence:**
+- `artifacts/json/hh_kingston_6term_compile_scout_20260325T221406Z.json`
+- `artifacts/logs/hh_kingston_6term_compile_scout_20260325T221406Z.log`
+- `artifacts/agent_runs/kingston_6term_compile_opt_20260326T181714Z/kingston_6term_compile_sweep.json`
+- `artifacts/agent_runs/kingston_6term_compile_opt_20260326T181714Z/logs/stdout.log`
+- local environment check: `qiskit_ibm_runtime 0.46.1`, `FakeKingston` unavailable, `AerSimulator.from_backend(ibm_kingston)` succeeds
+**Conclusion:** Confirmed. The 6-term Kingston line should now be treated as compile-searchable on the real target backend, and any future Kingston lean-line attempt should use the Kingston-specific compile winner (`opt=2`, `seed=0`, layout `[107,108,110,109,97,118]`) rather than the old Marrakesh-conditioned recommendation.
+
 ## Root Cause
 The current tension is not a code bug; it is an evidence mismatch plus a physics tradeoff. The 6-term candidate is the lean executable circuit, but it starts from a materially worse exact `|ΔE|` than the 7-term anchor and lives in a noise regime where gate/state-prep dominates readout (`artifacts/json/hh_gate_pruned_fixed_scaffold_attr_20260323T013814Z.json:1138-1141`). That makes the extra retained direction in the 7-term anchor more valuable than pure gate-count reduction if the goal is the next lowest likely real-QPU `|ΔE|`. The interrupted Kingston 6-term SPSA trace is still the best direct evidence for lean-circuit viability, but because it is only job-level recovery (`artifacts/json/hh_kingston_6term_spsa48_runtime_partial_recovery_20260323.json:1-20`) it is not strong enough to overrule the anchor as the safer minimization bet.
 
@@ -82,12 +93,13 @@ The current tension is not a code bug; it is an evidence mismatch plus a physics
 1. **If the goal is the lowest likely next real-QPU `|ΔE|`, run the 7-term Kingston fixed-theta energy-only baseline first.**
    - Route: fixed-scaffold runtime energy-only baseline with `--fixed-final-state-json artifacts/json/hh_prune_nighthawk_gate_pruned_7term.json`
    - Why: best local starting point, slightly better local robustness, and directly fills the missing matched Kingston anchor datum.
-2. **If the goal is instead “is the lean candidate salvageable on Kingston?”, rerun the 6-term Kingston SPSA screen as a fresh rerun, not a resume.**
-   - Why: the partial Kingston trace is the best direct lean-circuit evidence, but it does not preserve a faithful best-theta restart point.
+2. **If the goal is instead “is the lean candidate salvageable on Kingston?”, rerun the 6-term Kingston SPSA screen as a fresh rerun, not a resume, and anchor it to the Kingston compile winner (`opt=2`, `seed=0`).**
+   - Why: the partial Kingston trace is the best direct lean-circuit evidence, but it does not preserve a faithful best-theta restart point, and the circuit is now known to remain compile-sensitive on the target backend.
 3. **Do not spend the very next shot on final-ZNE.**
    - If an add-on probe is needed after a clean baseline, prefer runtime DD-probe before final-ZNE.
 
 ## Preventive Measures
 - Keep a theta journal or objective-trace sidecar for any future real-runtime optimizer-style experiment so interrupted runs are restartable.
 - Separate “best likely next `|ΔE|` shot” from “best learning experiment for the lean candidate” in future run plans; they are not the same decision.
+- Run a backend-specific compile preflight before any new Kingston lean-line attempt; do not inherit Marrakesh compile recommendations blindly.
 - When comparing 6-term and 7-term on hardware, keep the backend and route contract matched (same backend, same energy-only surface) before drawing Pareto conclusions.
