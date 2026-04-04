@@ -47,11 +47,11 @@ def test_resolve_staged_defaults_from_run_guide_formulae() -> None:
     assert int(cfg.adapt.maxiter) == 5000
     assert float(cfg.adapt.eps_grad) == pytest.approx(5e-7)
     assert float(cfg.adapt.eps_energy) == pytest.approx(1e-9)
-    assert str(cfg.adapt.continuation_mode) == "phase1_v1"
+    assert str(cfg.adapt.continuation_mode) == "phase3_v1"
     assert int(cfg.replay.reps) == 3
     assert int(cfg.replay.restarts) == 5
     assert int(cfg.replay.maxiter) == 4000
-    assert str(cfg.replay.continuation_mode) == "phase1_v1"
+    assert str(cfg.replay.continuation_mode) == "phase3_v1"
     assert int(cfg.dynamics.t_final) == 15
     assert int(cfg.dynamics.trotter_steps) == 192
     assert int(cfg.dynamics.num_times) == 201
@@ -67,6 +67,29 @@ def test_nondefault_sector_override_rejected_cleanly() -> None:
     args = parse_args(["--L", "2", "--sector-n-up", "2", "--skip-pdf"])
     with pytest.raises(ValueError, match="half-filled sector"):
         resolve_staged_hh_config(args)
+
+
+def test_handoff_continuation_meta_keeps_curated_details_and_drops_large_rows() -> None:
+    meta = wf._handoff_continuation_meta(
+        {
+            "continuation_mode": "phase3_v1",
+            "scaffold_fingerprint_lite": {"num_parameters": 3},
+            "continuation": {
+                "mode": "phase3_v1",
+                "optimizer_memory": {"cached": True},
+                "runtime_split_summary": {"selected_child_count": 2},
+                "score_version": "phase3_reduced_rerank_v1",
+                "phase1_feature_rows": [{"drop": True}],
+                "phase2_shortlist_rows": [{"drop": True}],
+            },
+        }
+    )
+    assert meta["continuation_mode"] == "phase3_v1"
+    assert meta["continuation_scaffold"] == {"num_parameters": 3}
+    assert meta["continuation_details"]["runtime_split_summary"]["selected_child_count"] == 2
+    assert meta["continuation_details"]["score_version"] == "phase3_reduced_rerank_v1"
+    assert "phase1_feature_rows" not in meta["continuation_details"]
+    assert "phase2_shortlist_rows" not in meta["continuation_details"]
 
 
 def test_resolve_preserves_explicit_pareto_lean_pool() -> None:
@@ -203,7 +226,7 @@ def test_workflow_runs_matched_family_replay_and_static_plus_drive_profiles(
             "ansatz_depth": 2,
             "num_parameters": 3,
             "logical_num_parameters": 2,
-            "pool_type": "phase1_v1",
+            "pool_type": "phase3_v1",
             "continuation_mode": str(kwargs["adapt_continuation_mode"]),
             "stop_reason": "eps_grad",
             "operators": ["op_1", "op_2"],
@@ -231,7 +254,7 @@ def test_workflow_runs_matched_family_replay_and_static_plus_drive_profiles(
                     "depth": 1,
                     "depth_cumulative": 1,
                     "batch_size": 1,
-                    "candidate_family": "phase1_v1",
+                    "candidate_family": "phase3_v1",
                     "selection_mode": "append",
                     "energy_after_opt": -1.03,
                     "delta_abs_current": 0.01,
@@ -341,7 +364,7 @@ def test_workflow_runs_matched_family_replay_and_static_plus_drive_profiles(
     assert handoff_kwargs["adapt_logical_num_parameters"] == 2
     assert handoff_kwargs["adapt_parameterization"]["mode"] == "per_pauli_term_v1"
     assert replay_cfg.generator_family == "match_adapt"
-    assert replay_cfg.replay_continuation_mode == "phase1_v1"
+    assert replay_cfg.replay_continuation_mode == "phase3_v1"
     assert payload["stage_pipeline"]["conventional_replay"]["generator_family"]["requested"] == "match_adapt"
     assert payload["stage_pipeline"]["adapt_vqe"]["measurement_cache_summary"]["groups_known"] == pytest.approx(3.0)
     assert payload["stage_pipeline"]["adapt_vqe"]["num_parameters"] == 3

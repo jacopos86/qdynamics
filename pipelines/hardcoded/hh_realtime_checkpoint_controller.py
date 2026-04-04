@@ -762,6 +762,22 @@ class RealtimeCheckpointController:
             return None
         return f"oracle_{str(self._oracle_base_config.noise_mode).strip().lower()}"
 
+    def _projection_sample_time(self, time_start: float, time_stop: float | None) -> float:
+        if self._drive_config is None:
+            return float(time_start)
+        sampling = str(self._drive_config.drive_time_sampling).strip().lower()
+        if sampling not in {"midpoint", "left", "right"}:
+            raise ValueError(
+                f"Unsupported drive_time_sampling {self._drive_config.drive_time_sampling!r}."
+            )
+        if time_stop is None:
+            return float(time_start)
+        if sampling == "midpoint":
+            return 0.5 * (float(time_start) + float(time_stop))
+        if sampling == "left":
+            return float(time_start)
+        return float(time_stop)
+
     def _physical_time(self, time_value: float) -> float:
         if self._drive_config is None:
             return float(time_value)
@@ -1913,7 +1929,12 @@ class RealtimeCheckpointController:
         step_hamiltonian: StepHamiltonianArtifacts | None = None,
     ) -> dict[str, Any]:
         resolved_step = (
-            self._step_hamiltonian_artifacts(float(getattr(checkpoint_ctx, "time_start", 0.0)))
+            self._step_hamiltonian_artifacts(
+                self._projection_sample_time(
+                    float(getattr(checkpoint_ctx, "time_start", 0.0)),
+                    getattr(checkpoint_ctx, "time_stop", None),
+                )
+            )
             if step_hamiltonian is None
             else step_hamiltonian
         )
@@ -2479,7 +2500,11 @@ class RealtimeCheckpointController:
             self._write_progress(stage="run_start", force=True)
             self._write_partial_payload(stage="run_start")
             for checkpoint_index, time_value in enumerate(self.times):
-                step_hamiltonian = self._step_hamiltonian_artifacts(float(time_value))
+                time_stop = None
+                if int(checkpoint_index) + 1 < int(len(self.times)):
+                    time_stop = float(self.times[int(checkpoint_index) + 1])
+                step_sample_time = self._projection_sample_time(float(time_value), time_stop)
+                step_hamiltonian = self._step_hamiltonian_artifacts(float(step_sample_time))
                 self._write_progress(
                     stage="checkpoint_start",
                     force=True,
@@ -2488,9 +2513,6 @@ class RealtimeCheckpointController:
                     physical_time=float(step_hamiltonian.physical_time),
                     drive_term_count=int(step_hamiltonian.drive_term_count),
                 )
-                time_stop = None
-                if int(checkpoint_index) + 1 < int(len(self.times)):
-                    time_stop = float(self.times[int(checkpoint_index) + 1])
                 psi_current = self.current_executor.prepare_state(self.current_theta, self.replay_context.psi_ref)
                 checkpoint_ctx = make_checkpoint_context(
                     checkpoint_index=int(checkpoint_index),
@@ -3357,6 +3379,16 @@ class RealtimeCheckpointController:
                     1
                     if self._drive_config is None
                     else int(self._drive_config.exact_steps_multiplier)
+                ),
+                "projection_time_sampling": (
+                    "left"
+                    if self._drive_config is None
+                    else str(self._drive_config.drive_time_sampling)
+                ),
+                "geometry_sample_time_policy": (
+                    "checkpoint_time"
+                    if self._drive_config is None
+                    else f"interval_{str(self._drive_config.drive_time_sampling).strip().lower()}_plus_t0_with_final_endpoint_fallback"
                 ),
             }
             self._write_progress(

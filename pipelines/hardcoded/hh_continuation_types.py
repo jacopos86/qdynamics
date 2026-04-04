@@ -8,6 +8,50 @@ from typing import Any, Mapping, Protocol, Sequence
 
 
 @dataclass(frozen=True)
+class PhaseControllerSnapshot:
+    step_index: int
+    depth_local: int
+    depth_left: int
+    runway_ratio: float
+    early_coordinate: float
+    late_coordinate: float
+    frontier_ratio: float
+    phase_thresholds: dict[str, float] = field(default_factory=dict)
+    phase_caps: dict[str, int] = field(default_factory=dict)
+    phase_shots: dict[str, int] = field(default_factory=dict)
+    phase_uncertainty: dict[str, float] = field(default_factory=dict)
+    snapshot_version: str = "phase123_controller_v1"
+
+
+@dataclass(frozen=True)
+class ScaffoldCoordinateMetadata:
+    candidate_label: str
+    generator_id: str | None
+    admission_step: int
+    first_seen_step: int
+    selector_score: float
+    selector_burden: float
+    cooldown_remaining: int = 0
+    cumulative_abs_motion: float = 0.0
+    recent_abs_motion: float = 0.0
+    stagnation_score: float = 0.0
+
+
+@dataclass(frozen=True)
+class MaturePruneTrial:
+    selector_step: int
+    gate_open: bool
+    probe_indices: list[int]
+    selected_index: int | None
+    selected_label: str | None
+    frozen_regression: float | None
+    refit_energy: float | None
+    retained_gain: float | None
+    accepted: bool
+    rollback_reason: str | None = None
+
+
+@dataclass(frozen=True)
 class CandidateFeatures:
     stage_name: str
     candidate_label: str
@@ -87,6 +131,27 @@ class CandidateFeatures:
     compile_gate_open: bool = True
     compile_failure_reason: str | None = None
     compiled_position_cost_backend: dict[str, Any] | None = None
+    phase_score_components: dict[str, float] = field(default_factory=dict)
+    phase_cost_components: dict[str, float] = field(default_factory=dict)
+    confidence_factor: float = 1.0
+    phase2_raw_overlap_max: float | None = None
+    phase2_raw_novelty: float | None = None
+    phase2_raw_trust_gain: float | None = None
+    phase2_raw_score: float | None = None
+    phase2_burden_total: float | None = None
+    phase3_reduced_novelty: float | None = None
+    phase3_reduced_trust_gain: float | None = None
+    phase3_burden_total: float | None = None
+    selector_score: float | None = None
+    selector_burden: float | None = None
+    controller_snapshot: dict[str, Any] | None = None
+    window_origin: str = "legacy"
+    window_new_indices: list[int] = field(default_factory=list)
+    window_age_indices: list[int] = field(default_factory=list)
+    phase1_shortlisted: bool = False
+    phase2_shortlisted: bool = False
+    phase3_shortlisted: bool = False
+    phase3_duplicate_penalty: float = 0.0
 
 
 @dataclass(frozen=True)
@@ -173,6 +238,11 @@ class PruneDecision:
     energy_after: float
     regression: float
     reason: str
+    safe_regression_ok: bool = True
+    retained_gain_ok: bool = True
+    regression_threshold: float | None = None
+    retained_gain: float | None = None
+    retained_gain_threshold: float | None = None
 
 
 @dataclass(frozen=True)

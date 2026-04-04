@@ -22,6 +22,7 @@ from pipelines.hardcoded.hh_continuation_scoring import (
     compatibility_penalty,
     full_v2_score,
     lifetime_weight_components,
+    reduced_plane_batch_select,
     measurement_group_keys_for_term,
     raw_f_metric_from_state,
     remaining_evaluations_proxy,
@@ -31,6 +32,7 @@ from pipelines.hardcoded.hh_continuation_scoring import (
 from pipelines.hardcoded.hh_continuation_generators import build_generator_metadata
 from pipelines.hardcoded.hh_continuation_types import CompileCostEstimate
 from pipelines.hardcoded.hh_continuation_symmetry import build_symmetry_spec
+from src.quantum.compiled_polynomial import apply_compiled_polynomial, compile_polynomial_action
 from src.quantum.pauli_polynomial_class import PauliPolynomial
 from src.quantum.pauli_words import PauliTerm
 
@@ -170,7 +172,7 @@ def test_backend_compile_cost_replaces_proxy_term_in_simple_score() -> None:
     )
     assert feat.compile_cost_source == "backend_transpile_v1"
     assert float(feat.compile_cost_total) == pytest.approx(7.5)
-    assert float(feat.simple_score or 0.0) == pytest.approx(-7.5)
+    assert float(feat.simple_score or 0.0) == pytest.approx(0.0)
     assert feat.compiled_position_cost_proxy["proxy_total"] == pytest.approx(99.0)
     assert feat.compiled_position_cost_backend is not None
     assert feat.compiled_position_cost_backend["selected_backend_name"] == "FakeNighthawk"
@@ -294,6 +296,33 @@ def _term(label: str) -> object:
     )()
 
 
+def _poly(label: str) -> PauliPolynomial:
+    return PauliPolynomial("JW", [PauliTerm(len(str(label)), ps=str(label), pc=1.0)])
+
+
+def _scaffold_context(
+    *,
+    psi_state: np.ndarray,
+    selected_ops: list[object],
+    theta: list[float],
+    refit_window_indices: list[int],
+    h_label: str = "z",
+) -> tuple[object, object]:
+    h_compiled = compile_polynomial_action(_poly(h_label), pauli_action_cache={})
+    hpsi_state = apply_compiled_polynomial(np.asarray(psi_state, dtype=complex), h_compiled)
+    scaffold_context = Phase2NoveltyOracle().prepare_scaffold_context(
+        selected_ops=list(selected_ops),
+        theta=np.asarray(theta, dtype=float),
+        psi_ref=np.asarray(psi_state, dtype=complex),
+        psi_state=np.asarray(psi_state, dtype=complex),
+        h_compiled=h_compiled,
+        hpsi_state=np.asarray(hpsi_state, dtype=complex),
+        refit_window_indices=list(refit_window_indices),
+        pauli_action_cache={},
+    )
+    return scaffold_context, h_compiled
+
+
 def test_raw_f_metric_from_state_matches_centered_generator_variance() -> None:
     psi_ref = np.zeros(2, dtype=complex)
     psi_ref[0] = 1.0 + 0.0j
@@ -346,7 +375,7 @@ def test_full_v2_score_falls_back_safely_without_window_curvature() -> None:
     feat = type(feat)(**{**feat.__dict__, "h_hat": 0.5, "curvature_mode": "self_only"})
     score, fallback = full_v2_score(feat, cfg)
     assert score > 0.0
-    assert fallback == "self_curvature_only"
+    assert fallback == "legacy_metric_path"
 
 
 def test_build_full_candidate_features_clips_novelty_and_preserves_window() -> None:
@@ -375,15 +404,20 @@ def test_build_full_candidate_features_clips_novelty_and_preserves_window() -> N
         trough_detected=False,
         cfg=SimpleScoreConfig(),
     )
+    scaffold_context, h_compiled = _scaffold_context(
+        psi_state=psi_ref,
+        selected_ops=[_term("x")],
+        theta=[0.0],
+        refit_window_indices=[0],
+    )
     feat = build_full_candidate_features(
         base_feature=base,
-        psi_state=psi_ref,
         candidate_term=_term("x"),
-        window_terms=[_term("x")],
-        window_labels=["x"],
         cfg=FullScoreConfig(shortlist_size=2),
         novelty_oracle=Phase2NoveltyOracle(),
         curvature_oracle=Phase2CurvatureOracle(),
+        scaffold_context=scaffold_context,
+        h_compiled=h_compiled,
         compiled_cache={},
         pauli_action_cache={},
         optimizer_memory=None,
@@ -426,7 +460,7 @@ def test_phase3_cheap_ratio_materializes_beside_legacy_simple_score() -> None:
             lifetime_weight=0.0,
         ),
     )
-    assert float(feat.simple_score or 0.0) == pytest.approx(0.6)
+    assert float(feat.simple_score or 0.0) == pytest.approx(0.4)
     assert float(feat.cheap_score or 0.0) == pytest.approx(0.4)
     assert feat.cheap_score_version == "phase3_cheap_ratio_v1"
     assert float(feat.cheap_metric_proxy) == pytest.approx(0.2)
@@ -468,15 +502,20 @@ def test_build_full_candidate_features_preserves_phase3_cheap_fields() -> None:
         cfg=SimpleScoreConfig(),
         cheap_score_cfg=FullScoreConfig(),
     )
+    scaffold_context, h_compiled = _scaffold_context(
+        psi_state=psi_ref,
+        selected_ops=[_term("x")],
+        theta=[0.0],
+        refit_window_indices=[0],
+    )
     feat = build_full_candidate_features(
         base_feature=base,
-        psi_state=psi_ref,
         candidate_term=_term("x"),
-        window_terms=[_term("x")],
-        window_labels=["x"],
         cfg=FullScoreConfig(shortlist_size=2),
         novelty_oracle=Phase2NoveltyOracle(),
         curvature_oracle=Phase2CurvatureOracle(),
+        scaffold_context=scaffold_context,
+        h_compiled=h_compiled,
         compiled_cache={},
         pauli_action_cache={},
         optimizer_memory=None,
@@ -488,6 +527,218 @@ def test_build_full_candidate_features_preserves_phase3_cheap_fields() -> None:
     assert feat.cheap_burden_total == pytest.approx(base.cheap_burden_total or 0.0)
     assert feat.metric_proxy == pytest.approx(feat.cheap_metric_proxy)
     assert feat.F_metric == pytest.approx(feat.cheap_metric_proxy)
+
+
+def _full_record(
+    *,
+    label: str,
+    candidate_label: str,
+    candidate_pool_index: int,
+    gradient_signed: float,
+    psi_state: np.ndarray,
+    selected_ops: list[object],
+    theta: list[float],
+    refit_window_indices: list[int],
+    full_cfg: FullScoreConfig,
+    simple_cfg: SimpleScoreConfig,
+    h_label: str = "z",
+) -> tuple[dict[str, object], object]:
+    oracle = Phase1CompileCostOracle()
+    meas = MeasurementCacheAudit()
+    candidate_term = _term(label)
+    metric_exact = raw_f_metric_from_state(
+        psi_state=psi_state,
+        candidate_label=str(candidate_label),
+        candidate_term=candidate_term,
+        compiled_cache={},
+        pauli_action_cache={},
+    )
+    base = build_candidate_features(
+        stage_name="core",
+        candidate_label=str(candidate_label),
+        candidate_family="core",
+        candidate_pool_index=int(candidate_pool_index),
+        position_id=0,
+        append_position=0,
+        positions_considered=[0],
+        gradient_signed=float(gradient_signed),
+        metric_proxy=float(metric_exact),
+        sigma_hat=0.0,
+        refit_window_indices=list(refit_window_indices),
+        compile_cost=oracle.estimate(
+            candidate_term_count=1,
+            position_id=0,
+            append_position=0,
+            refit_active_count=len(refit_window_indices),
+            candidate_term=candidate_term,
+        ),
+        measurement_stats=meas.estimate(measurement_group_keys_for_term(candidate_term)),
+        leakage_penalty=0.0,
+        stage_gate_open=True,
+        leakage_gate_open=True,
+        trough_probe_triggered=False,
+        trough_detected=False,
+        cfg=simple_cfg,
+        cheap_score_cfg=full_cfg,
+    )
+    scaffold_context, h_compiled = _scaffold_context(
+        psi_state=psi_state,
+        selected_ops=list(selected_ops),
+        theta=list(theta),
+        refit_window_indices=list(refit_window_indices),
+        h_label=h_label,
+    )
+    feat = build_full_candidate_features(
+        base_feature=base,
+        candidate_term=candidate_term,
+        cfg=full_cfg,
+        novelty_oracle=Phase2NoveltyOracle(),
+        curvature_oracle=Phase2CurvatureOracle(),
+        scaffold_context=scaffold_context,
+        h_compiled=h_compiled,
+        compiled_cache={},
+        pauli_action_cache={},
+        optimizer_memory=None,
+    )
+    return (
+        {
+            "feature": feat,
+            "full_v2_score": float(feat.full_v2_score or 0.0),
+            "phase2_raw_score": float(feat.phase2_raw_score or 0.0),
+            "candidate_pool_index": int(candidate_pool_index),
+            "position_id": 0,
+            "candidate_term": candidate_term,
+        },
+        h_compiled,
+    )
+
+
+def test_reduced_plane_batch_select_can_keep_two_orthogonal_records() -> None:
+    psi_ref = np.zeros(2, dtype=complex)
+    psi_ref[0] = 1.0 + 0.0j
+    full_cfg = FullScoreConfig(
+        z_alpha=0.0,
+        lambda_F=1.0,
+        rho=0.5,
+        gamma_N=1.0,
+        wD=0.0,
+        wG=0.0,
+        wC=0.0,
+        wP=0.0,
+        wc=0.0,
+        lifetime_weight=0.0,
+        batch_target_size=2,
+        batch_size_cap=2,
+        batch_near_degenerate_ratio=0.95,
+        batch_additivity_tol=1.0,
+    )
+    simple_cfg = SimpleScoreConfig(lambda_compile=0.0, lambda_measure=0.0, lambda_leak=0.0, z_alpha=0.0)
+    rec_x, h_compiled = _full_record(
+        label="x",
+        candidate_label="x",
+        candidate_pool_index=0,
+        gradient_signed=0.8,
+        psi_state=psi_ref,
+        selected_ops=[],
+        theta=[],
+        refit_window_indices=[],
+        full_cfg=full_cfg,
+        simple_cfg=simple_cfg,
+    )
+    rec_y, _ = _full_record(
+        label="y",
+        candidate_label="y",
+        candidate_pool_index=1,
+        gradient_signed=0.8,
+        psi_state=psi_ref,
+        selected_ops=[],
+        theta=[],
+        refit_window_indices=[],
+        full_cfg=full_cfg,
+        simple_cfg=simple_cfg,
+    )
+    selected, summary = reduced_plane_batch_select(
+        [rec_x, rec_y],
+        cfg=full_cfg,
+        selected_ops=[],
+        theta=np.zeros(0, dtype=float),
+        psi_ref=psi_ref,
+        psi_state=psi_ref,
+        h_compiled=h_compiled,
+        novelty_oracle=Phase2NoveltyOracle(),
+        curvature_oracle=Phase2CurvatureOracle(),
+        compiled_cache={},
+        pauli_action_cache={},
+        tie_break_score_key="phase2_raw_score",
+    )
+    assert len(selected) == 2
+    assert {str(rec["candidate_term"].label) for rec in selected} == {"x", "y"}
+    assert float(summary.get("joint_gain", 0.0)) > 0.0
+    assert float(summary.get("additivity_defect", 1.0)) <= 1.0
+
+
+def test_reduced_plane_batch_select_rejects_rank_deficient_addon() -> None:
+    psi_ref = np.zeros(2, dtype=complex)
+    psi_ref[0] = 1.0 + 0.0j
+    full_cfg = FullScoreConfig(
+        z_alpha=0.0,
+        lambda_F=1.0,
+        rho=0.5,
+        gamma_N=1.0,
+        wD=0.0,
+        wG=0.0,
+        wC=0.0,
+        wP=0.0,
+        wc=0.0,
+        lifetime_weight=0.0,
+        batch_target_size=2,
+        batch_size_cap=2,
+        batch_near_degenerate_ratio=0.95,
+        batch_rank_rel_tol=1e-6,
+        batch_additivity_tol=1.0,
+    )
+    simple_cfg = SimpleScoreConfig(lambda_compile=0.0, lambda_measure=0.0, lambda_leak=0.0, z_alpha=0.0)
+    rec_a, h_compiled = _full_record(
+        label="x",
+        candidate_label="x_a",
+        candidate_pool_index=0,
+        gradient_signed=0.8,
+        psi_state=psi_ref,
+        selected_ops=[],
+        theta=[],
+        refit_window_indices=[],
+        full_cfg=full_cfg,
+        simple_cfg=simple_cfg,
+    )
+    rec_b, _ = _full_record(
+        label="x",
+        candidate_label="x_b",
+        candidate_pool_index=1,
+        gradient_signed=0.79,
+        psi_state=psi_ref,
+        selected_ops=[],
+        theta=[],
+        refit_window_indices=[],
+        full_cfg=full_cfg,
+        simple_cfg=simple_cfg,
+    )
+    selected, summary = reduced_plane_batch_select(
+        [rec_a, rec_b],
+        cfg=full_cfg,
+        selected_ops=[],
+        theta=np.zeros(0, dtype=float),
+        psi_ref=psi_ref,
+        psi_state=psi_ref,
+        h_compiled=h_compiled,
+        novelty_oracle=Phase2NoveltyOracle(),
+        curvature_oracle=Phase2CurvatureOracle(),
+        compiled_cache={},
+        pauli_action_cache={},
+        tie_break_score_key="phase2_raw_score",
+    )
+    assert len(selected) == 1
+    assert str(selected[0]["candidate_term"].label) == "x"
+    assert float(summary.get("joint_gain", 0.0)) > 0.0
 
 
 def test_phase1_compile_cost_oracle_penalizes_heavier_pauli_structure() -> None:
@@ -622,15 +873,20 @@ def test_shortlist_only_expensive_scoring_calls_oracles_for_shortlist() -> None:
     shortlisted = shortlist_records(cheap_records, cfg=FullScoreConfig(shortlist_fraction=0.5, shortlist_size=2))
     novelty = _CountingNovelty()
     for rec in shortlisted:
+        scaffold_context, h_compiled = _scaffold_context(
+            psi_state=psi_ref,
+            selected_ops=[],
+            theta=[],
+            refit_window_indices=[],
+        )
         build_full_candidate_features(
             base_feature=rec["feature"],
-            psi_state=psi_ref,
             candidate_term=rec["candidate_term"],
-            window_terms=[],
-            window_labels=[],
             cfg=FullScoreConfig(shortlist_fraction=0.5, shortlist_size=2),
             novelty_oracle=novelty,
             curvature_oracle=Phase2CurvatureOracle(),
+            scaffold_context=scaffold_context,
+            h_compiled=h_compiled,
             compiled_cache={},
             pauli_action_cache={},
             optimizer_memory=None,

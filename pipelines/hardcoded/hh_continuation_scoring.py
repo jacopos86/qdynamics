@@ -69,9 +69,14 @@ class FullScoreConfig:
     cheap_score_eps: float = 1e-12
     shortlist_fraction: float = 0.2
     shortlist_size: int = 12
+    phase2_frontier_ratio: float = 0.9
+    phase3_frontier_ratio: float = 0.9
     batch_target_size: int = 2
     batch_size_cap: int = 3
     batch_near_degenerate_ratio: float = 0.9
+    batch_rank_rel_tol: float = 1e-6
+    batch_additivity_tol: float = 0.25
+    duplicate_penalty_weight: float = 0.0
     compat_overlap_weight: float = 0.4
     compat_comm_weight: float = 0.2
     compat_curv_weight: float = 0.2
@@ -381,14 +386,12 @@ def simple_v1_score(
     shots_new = float(feat.measurement_cache_stats.get("shots_new", 0.0))
     reuse_count_cost = float(feat.measurement_cache_stats.get("reuse_count_cost", 0.0))
     leakage_penalty = float(feat.leakage_penalty)
-
-    score = (
-        float(feat.g_abs) + float(cfg.lambda_F) * float(feat.metric_proxy)
-        - float(cfg.lambda_compile) * compile_proxy
-        - float(cfg.lambda_measure) * (groups_new + shots_new + reuse_count_cost)
-        - float(cfg.lambda_leak) * leakage_penalty
+    burden_total = (
+        float(cfg.lambda_compile) * compile_proxy
+        + float(cfg.lambda_measure) * (groups_new + shots_new + reuse_count_cost)
+        + float(cfg.lambda_leak) * leakage_penalty
     )
-    return float(score)
+    return float(float(feat.g_abs) / float(1.0 + max(0.0, burden_total)))
 
 
 def normalize(value: float, ref: float) -> float:
@@ -493,6 +496,119 @@ def _cheap_burden_total(
     lifetime_components = lifetime_weight_components(feat, cfg)
     K = float(K + float(cfg.lifetime_weight) * float(lifetime_components.get("total", 0.0)))
     return float(K)
+
+
+def _clip01(value: float) -> float:
+    return float(max(0.0, min(1.0, float(value))))
+
+
+def _phase_confidence_factor(
+    g_abs: float,
+    sigma_hat: float,
+    *,
+    z_alpha: float,
+    eps: float = 1e-12,
+) -> float:
+    denom = float(max(abs(float(g_abs)), float(eps)))
+    return _clip01(1.0 - float(z_alpha) * float(max(0.0, sigma_hat)) / denom)
+
+
+def phase2_raw_geometry_score(
+    feat: CandidateFeatures,
+    *,
+    F_raw: float,
+    h_raw: float,
+    q_window: Sequence[float],
+    Q_window: np.ndarray,
+    cfg: FullScoreConfig,
+) -> dict[str, float]:
+    F_safe = float(max(float(F_raw), float(cfg.metric_floor)))
+    q_vec = np.asarray(q_window, dtype=float).reshape(-1)
+    Q_mat = np.asarray(Q_window, dtype=float)
+    overlap_max = 0.0
+    if q_vec.size > 0 and Q_mat.size > 0:
+        diag = np.diag(Q_mat)
+        denom_base = math.sqrt(F_safe)
+        for idx, q_val in enumerate(q_vec.tolist()):
+            diag_val = float(diag[idx]) if idx < int(diag.size) else 0.0
+            denom = denom_base * math.sqrt(max(float(diag_val), float(cfg.metric_floor)))
+            if denom <= 0.0:
+                continue
+            overlap_max = max(overlap_max, abs(float(q_val)) / denom)
+    raw_novelty = _clip01(1.0 - overlap_max)
+    confidence = _phase_confidence_factor(
+        float(feat.g_abs),
+        float(feat.sigma_hat),
+        z_alpha=float(cfg.z_alpha),
+    )
+    burden_total = float(_cheap_burden_total(feat, cfg))
+    trust_gain = float(trust_region_drop(float(feat.g_lcb), float(max(0.0, h_raw)), F_safe, float(cfg.rho)))
+    score = float(trust_gain * confidence * raw_novelty / max(burden_total, float(cfg.cheap_score_eps)))
+    return {
+        "confidence_factor": float(confidence),
+        "phase2_raw_overlap_max": float(overlap_max),
+        "phase2_raw_novelty": float(raw_novelty),
+        "phase2_raw_trust_gain": float(trust_gain),
+        "phase2_burden_total": float(burden_total),
+        "phase2_raw_score": float(score),
+    }
+
+
+def phase_shortlist_records(
+    records: Sequence[Mapping[str, Any]],
+    *,
+    score_key: str,
+    threshold: float,
+    cap: int,
+    frontier_ratio: float,
+    tie_break_score_key: str | None = None,
+    shortlist_flag: str | None = None,
+    score_eps: float = 1e-12,
+) -> list[dict[str, Any]]:
+    def _record_score(rec: Mapping[str, Any], key: str | None, default: float = float("-inf")) -> float:
+        if key is None:
+            return 0.0
+        raw = rec.get(key, default)
+        if raw is None:
+            return float(default)
+        return float(raw)
+
+    ranked = sorted(
+        [dict(rec) for rec in records if float(_record_score(rec, score_key)) >= float(threshold)],
+        key=lambda rec: (
+            -_record_score(rec, score_key),
+            -_record_score(rec, tie_break_score_key),
+            int(rec.get("candidate_pool_index", -1)),
+            int(rec.get("position_id", -1)),
+        ),
+    )
+    if not ranked:
+        return []
+    cap_eff = int(max(1, min(int(cap), len(ranked))))
+    shortlist_size = int(cap_eff)
+    frontier_cut = float(max(0.0, min(1.0, frontier_ratio)))
+    if cap_eff > 1 and frontier_cut > 0.0:
+        for idx in range(cap_eff - 1):
+            s_cur = float(_record_score(ranked[idx], score_key))
+            s_next = float(_record_score(ranked[idx + 1], score_key))
+            ratio = float((s_next + float(score_eps)) / (s_cur + float(score_eps)))
+            if ratio <= frontier_cut:
+                shortlist_size = int(idx + 1)
+                break
+    out: list[dict[str, Any]] = []
+    for idx, rec in enumerate(ranked[:shortlist_size], start=1):
+        updated = dict(rec)
+        feat = updated.get("feature")
+        if isinstance(feat, CandidateFeatures):
+            replacement_kwargs: dict[str, Any] = {
+                "shortlist_rank": int(idx),
+                "shortlist_size": int(shortlist_size),
+            }
+            if shortlist_flag is not None and hasattr(feat, str(shortlist_flag)):
+                replacement_kwargs[str(shortlist_flag)] = True
+            updated["feature"] = _replace_feature(feat, **replacement_kwargs)
+        out.append(updated)
+    return out
 
 
 def phase3_cheap_ratio_v1(
@@ -1197,6 +1313,14 @@ def build_full_candidate_features(
         cfg=cfg,
         optimizer_memory=optimizer_memory,
     )
+    raw_geometry = phase2_raw_geometry_score(
+        base_feature,
+        F_raw=float(max(0.0, novelty_info.get("F_raw", base_feature.F_metric))),
+        h_raw=float(curvature_info.get("h_raw", 0.0)),
+        q_window=list(novelty_info.get("q_window", [])),
+        Q_window=np.asarray(novelty_info.get("Q_window", scaffold_context.Q_window), dtype=float),
+        cfg=cfg,
+    )
     feat = _replace_feature(
         base_feature,
         novelty=float(curvature_info.get("novelty", 1.0)),
@@ -1212,6 +1336,12 @@ def build_full_candidate_features(
         b_hat=[float(x) for x in curvature_info.get("b_mixed", [])],
         H_window=[[float(x) for x in row] for row in curvature_info.get("H_window_hessian", [])],
         score_version=str(cfg.score_version),
+        confidence_factor=float(raw_geometry.get("confidence_factor", 1.0)),
+        phase2_raw_overlap_max=float(raw_geometry.get("phase2_raw_overlap_max", 0.0)),
+        phase2_raw_novelty=float(raw_geometry.get("phase2_raw_novelty", 1.0)),
+        phase2_raw_trust_gain=float(raw_geometry.get("phase2_raw_trust_gain", 0.0)),
+        phase2_raw_score=float(raw_geometry.get("phase2_raw_score", 0.0)),
+        phase2_burden_total=float(raw_geometry.get("phase2_burden_total", 1.0)),
         placeholder_hooks={
             **dict(base_feature.placeholder_hooks),
             "novelty_oracle": True,
@@ -1241,9 +1371,31 @@ def build_full_candidate_features(
         remaining_evaluations_proxy_mode=str(cfg.remaining_evaluations_proxy_mode),
     )
     score, fallback_mode = full_v2_score(feat, cfg)
+    phase_score_components = {
+        **dict(feat.phase_score_components),
+        "phase2_raw_score": float(feat.phase2_raw_score or 0.0),
+        "phase2_raw_trust_gain": float(feat.phase2_raw_trust_gain or 0.0),
+        "phase2_raw_novelty": float(feat.phase2_raw_novelty or 0.0),
+        "phase3_reduced_score": float(score),
+        "phase3_reduced_novelty": float(feat.novelty if feat.novelty is not None else 1.0),
+    }
+    phase_cost_components = {
+        **dict(feat.phase_cost_components),
+        "phase2_burden_total": float(feat.phase2_burden_total or 0.0),
+        "phase3_burden_total": float(_cheap_burden_total(feat, cfg)),
+    }
     return _replace_feature(
         feat,
         full_v2_score=float(score),
+        phase3_reduced_novelty=float(feat.novelty if feat.novelty is not None else 1.0),
+        phase3_reduced_trust_gain=float(
+            trust_region_drop(float(max(0.0, feat.g_lcb)), float(max(0.0, feat.h_eff or 0.0)), float(max(feat.F_red or feat.F_metric, cfg.metric_floor)), float(cfg.rho))
+        ),
+        phase3_burden_total=float(_cheap_burden_total(feat, cfg)),
+        selector_score=float(score),
+        selector_burden=float(_cheap_burden_total(feat, cfg)),
+        phase_score_components=phase_score_components,
+        phase_cost_components=phase_cost_components,
         actual_fallback_mode=str(fallback_mode),
     )
 
@@ -1355,6 +1507,340 @@ class CompatibilityPenaltyOracle:
             compiled_cache=self.compiled_cache,
             pauli_action_cache=self.pauli_action_cache,
         )
+
+
+def _batch_sort_key(record: Mapping[str, Any], tie_break_score_key: str) -> tuple[float, float, int, int]:
+    full_score = record.get("full_v2_score", float("-inf"))
+    if full_score is None:
+        full_score = float("-inf")
+    tie_score = record.get(tie_break_score_key, float("-inf"))
+    if tie_score is None:
+        tie_score = float("-inf")
+    return (
+        -float(full_score),
+        -float(tie_score),
+        int(record.get("candidate_pool_index", -1)),
+        int(record.get("position_id", -1)),
+    )
+
+
+def _solve_joint_trust_region_gain(
+    *,
+    g_vec: np.ndarray,
+    G_mat: np.ndarray,
+    H_mat: np.ndarray,
+    rho: float,
+) -> tuple[float, np.ndarray]:
+    g = np.asarray(g_vec, dtype=float).reshape(-1)
+    G = 0.5 * (np.asarray(G_mat, dtype=float) + np.asarray(G_mat, dtype=float).T)
+    H = 0.5 * (np.asarray(H_mat, dtype=float) + np.asarray(H_mat, dtype=float).T)
+    n = int(g.size)
+    if n == 0:
+        return 0.0, np.zeros(0, dtype=float)
+    eye = np.eye(n, dtype=float)
+    rho_sq = float(max(0.0, rho)) ** 2
+
+    def _alpha(lam: float) -> np.ndarray:
+        trial = H + float(lam) * G + 1e-12 * eye
+        sol = np.linalg.solve(trial, g)
+        return np.asarray(np.maximum(sol, 0.0), dtype=float)
+
+    def _constraint(alpha: np.ndarray) -> float:
+        return float(alpha.T @ G @ alpha)
+
+    alpha0 = _alpha(0.0)
+    if _constraint(alpha0) <= rho_sq:
+        alpha = alpha0
+    else:
+        lo = 0.0
+        hi = 1.0
+        alpha_hi = _alpha(hi)
+        while _constraint(alpha_hi) > rho_sq and hi < 1e12:
+            lo = hi
+            hi *= 2.0
+            alpha_hi = _alpha(hi)
+        alpha = alpha_hi
+        for _ in range(64):
+            mid = 0.5 * (lo + hi)
+            alpha_mid = _alpha(mid)
+            if _constraint(alpha_mid) > rho_sq:
+                lo = mid
+            else:
+                hi = mid
+                alpha = alpha_mid
+    gain = float(g.T @ alpha - 0.5 * alpha.T @ H @ alpha)
+    return float(max(0.0, gain)), np.asarray(alpha, dtype=float)
+
+
+def _batch_geometry_summary(
+    records: Sequence[Mapping[str, Any]],
+    *,
+    cfg: FullScoreConfig,
+    selected_ops: Sequence[Any],
+    theta: np.ndarray,
+    psi_ref: np.ndarray,
+    psi_state: np.ndarray,
+    h_compiled: CompiledPolynomialAction,
+    novelty_oracle: Any,
+    curvature_oracle: Any,
+    compiled_cache: dict[str, CompiledPolynomialAction] | None = None,
+    pauli_action_cache: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    prepared: list[tuple[dict[str, Any], CandidateFeatures, Any]] = []
+    common_window = sorted(
+        {
+            int(idx)
+            for rec in records
+            for idx in (
+                rec.get("feature").refit_window_indices
+                if isinstance(rec.get("feature"), CandidateFeatures)
+                else []
+            )
+        }
+    )
+    scaffold_context = novelty_oracle.prepare_scaffold_context(
+        selected_ops=list(selected_ops),
+        theta=np.asarray(theta, dtype=float),
+        psi_ref=np.asarray(psi_ref, dtype=complex),
+        psi_state=np.asarray(psi_state, dtype=complex),
+        h_compiled=h_compiled,
+        hpsi_state=apply_compiled_polynomial(np.asarray(psi_state, dtype=complex), h_compiled),
+        refit_window_indices=list(common_window),
+        pauli_action_cache=pauli_action_cache,
+    )
+    H_window = np.asarray(scaffold_context.H_window_hessian, dtype=float)
+    Q_window = np.asarray(scaffold_context.Q_window, dtype=float)
+    for rec in records:
+        feat = rec.get("feature")
+        candidate_term = rec.get("candidate_term")
+        if not isinstance(feat, CandidateFeatures) or candidate_term is None:
+            return {"feasible": False, "reason": "invalid_record"}
+        novelty_info = novelty_oracle.estimate(
+            scaffold_context=scaffold_context,
+            candidate_label=str(feat.candidate_label),
+            candidate_term=candidate_term,
+            compiled_cache=compiled_cache,
+            pauli_action_cache=pauli_action_cache,
+            novelty_eps=float(cfg.novelty_eps),
+        )
+        curvature_info = curvature_oracle.estimate(
+            base_feature=feat,
+            novelty_info=novelty_info,
+            scaffold_context=scaffold_context,
+            h_compiled=h_compiled,
+            cfg=cfg,
+            optimizer_memory=None,
+        )
+        b_vec = np.asarray(curvature_info.get("b_mixed", []), dtype=float).reshape(-1)
+        if H_window.size == 0 or b_vec.size == 0:
+            v_vec = np.zeros_like(b_vec, dtype=float)
+        else:
+            v_vec, _ridge, _trial = _regularized_solve(
+                H_window,
+                b_vec,
+                base_ridge=float(max(cfg.lambda_H, 0.0)),
+                growth_factor=float(max(cfg.ridge_growth_factor, 2.0)),
+                max_steps=int(max(1, cfg.ridge_max_steps)),
+                require_pd=True,
+            )
+        prepared.append(
+            (
+                dict(rec),
+                feat,
+                {
+                    "novelty_info": novelty_info,
+                    "curvature_info": curvature_info,
+                    "b_vec": np.asarray(b_vec, dtype=float),
+                    "v_vec": np.asarray(v_vec, dtype=float),
+                    "candidate_tangent": np.asarray(novelty_info.get("candidate_tangent"), dtype=complex).reshape(-1),
+                    "q_vec": np.asarray(novelty_info.get("q_window", []), dtype=float).reshape(-1),
+                    "h_eff": float(curvature_info.get("h_eff", 0.0)),
+                    "g_lcb": float(
+                        max(
+                            float(feat.g_abs) - float(cfg.z_alpha) * float(max(0.0, feat.sigma_hat)),
+                            0.0,
+                        )
+                    ),
+                },
+            )
+        )
+    n = int(len(prepared))
+    G = np.zeros((n, n), dtype=float)
+    H = np.zeros((n, n), dtype=float)
+    for i in range(n):
+        feat_i = prepared[i][1]
+        aux_i = prepared[i][2]
+        tau_i = np.asarray(aux_i["candidate_tangent"], dtype=complex)
+        q_i = np.asarray(aux_i["q_vec"], dtype=float)
+        v_i = np.asarray(aux_i["v_vec"], dtype=float)
+        H[i, i] = float(max(0.0, aux_i["h_eff"]))
+        for j in range(i, n):
+            aux_j = prepared[j][2]
+            tau_j = np.asarray(aux_j["candidate_tangent"], dtype=complex)
+            q_j = np.asarray(aux_j["q_vec"], dtype=float)
+            v_j = np.asarray(aux_j["v_vec"], dtype=float)
+            c_ij = float(np.real(np.vdot(tau_i, tau_j)))
+            if Q_window.size == 0:
+                g_ij = float(c_ij)
+            else:
+                g_ij = float(c_ij - q_i.T @ v_j - q_j.T @ v_i + v_i.T @ Q_window @ v_j)
+            G[i, j] = g_ij
+            G[j, i] = g_ij
+    trace_G = float(np.trace(G))
+    lambda_min = float(np.min(np.linalg.eigvalsh(G))) if n > 0 else 0.0
+    rank_floor = float(cfg.batch_rank_rel_tol) * float(trace_G / max(1, n))
+    if n > 1 and lambda_min < rank_floor:
+        return {
+            "feasible": False,
+            "reason": "rank_gate",
+            "lambda_min": float(lambda_min),
+            "rank_floor": float(rank_floor),
+            "common_window_indices": [int(x) for x in common_window],
+        }
+    g_vec = np.asarray([float(item[2]["g_lcb"]) for item in prepared], dtype=float)
+    joint_gain, alpha = _solve_joint_trust_region_gain(
+        g_vec=g_vec,
+        G_mat=G,
+        H_mat=H,
+        rho=float(cfg.rho),
+    )
+    contextual_single = [
+        float(trust_region_drop(float(g_vec[i]), float(H[i, i]), float(max(G[i, i], cfg.metric_floor)), float(cfg.rho)))
+        for i in range(n)
+    ]
+    single_total = float(sum(contextual_single))
+    additivity_defect = float(max(0.0, 1.0 - joint_gain / (single_total + float(cfg.cheap_score_eps))))
+    if n > 1 and additivity_defect > float(cfg.batch_additivity_tol):
+        return {
+            "feasible": False,
+            "reason": "additivity_gate",
+            "joint_gain": float(joint_gain),
+            "contextual_single_total": float(single_total),
+            "additivity_defect": float(additivity_defect),
+            "common_window_indices": [int(x) for x in common_window],
+        }
+    mu_tan = 0.0
+    for i in range(n):
+        for j in range(i + 1, n):
+            denom = math.sqrt(max(G[i, i], 0.0) * max(G[j, j], 0.0)) + float(cfg.cheap_score_eps)
+            mu_tan = max(mu_tan, abs(float(G[i, j])) / denom)
+    return {
+        "feasible": True,
+        "joint_gain": float(joint_gain),
+        "contextual_single_total": float(single_total),
+        "additivity_defect": float(additivity_defect),
+        "lambda_min": float(lambda_min),
+        "rank_floor": float(rank_floor),
+        "mu_tan": float(mu_tan),
+        "alpha": [float(x) for x in alpha.tolist()],
+        "common_window_indices": [int(x) for x in common_window],
+        "G": [[float(x) for x in row] for row in G.tolist()],
+    }
+
+
+def reduced_plane_batch_select(
+    ranked_records: Sequence[Mapping[str, Any]],
+    *,
+    cfg: FullScoreConfig,
+    selected_ops: Sequence[Any],
+    theta: np.ndarray,
+    psi_ref: np.ndarray,
+    psi_state: np.ndarray,
+    h_compiled: CompiledPolynomialAction,
+    novelty_oracle: Any,
+    curvature_oracle: Any,
+    compiled_cache: dict[str, CompiledPolynomialAction] | None = None,
+    pauli_action_cache: dict[str, Any] | None = None,
+    tie_break_score_key: str = "simple_score",
+) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    ranked = sorted([dict(rec) for rec in ranked_records], key=lambda rec: _batch_sort_key(rec, tie_break_score_key))
+    if not ranked:
+        return [], {"selected": False, "reason": "empty_shortlist"}
+    top_score = float(ranked[0].get("full_v2_score", float("-inf")))
+    shell = [
+        dict(rec)
+        for rec in ranked
+        if float(rec.get("full_v2_score", float("-inf"))) > 0.0
+        and float(rec.get("full_v2_score", float("-inf"))) >= float(cfg.batch_near_degenerate_ratio) * float(top_score)
+    ]
+    if not shell:
+        return [dict(ranked[0])], {"selected": False, "reason": "nonpositive_shell"}
+    batch = [dict(shell[0])]
+    batch_summary = _batch_geometry_summary(
+        batch,
+        cfg=cfg,
+        selected_ops=selected_ops,
+        theta=theta,
+        psi_ref=psi_ref,
+        psi_state=psi_state,
+        h_compiled=h_compiled,
+        novelty_oracle=novelty_oracle,
+        curvature_oracle=curvature_oracle,
+        compiled_cache=compiled_cache,
+        pauli_action_cache=pauli_action_cache,
+    )
+    current_gain = float(batch_summary.get("joint_gain", batch[0].get("full_v2_score", 0.0)))
+    while len(batch) < int(max(1, cfg.batch_size_cap)) and len(batch) < int(max(1, cfg.batch_target_size)):
+        best_candidate: dict[str, Any] | None = None
+        best_summary: dict[str, Any] | None = None
+        best_marginal = 0.0
+        batch_keys = {
+            (str(rec.get("candidate_label", rec.get("feature").candidate_label if isinstance(rec.get("feature"), CandidateFeatures) else "")), int(rec.get("position_id", -1)))
+            for rec in batch
+        }
+        for rec in shell[1:]:
+            feat = rec.get("feature")
+            rec_key = (
+                str(rec.get("candidate_label", feat.candidate_label if isinstance(feat, CandidateFeatures) else "")),
+                int(rec.get("position_id", -1)),
+            )
+            if rec_key in batch_keys:
+                continue
+            trial_batch = [dict(x) for x in batch] + [dict(rec)]
+            trial_summary = _batch_geometry_summary(
+                trial_batch,
+                cfg=cfg,
+                selected_ops=selected_ops,
+                theta=theta,
+                psi_ref=psi_ref,
+                psi_state=psi_state,
+                h_compiled=h_compiled,
+                novelty_oracle=novelty_oracle,
+                curvature_oracle=curvature_oracle,
+                compiled_cache=compiled_cache,
+                pauli_action_cache=pauli_action_cache,
+            )
+            if not bool(trial_summary.get("feasible", False)):
+                continue
+            marginal = float(trial_summary.get("joint_gain", 0.0)) - float(current_gain)
+            if marginal > float(best_marginal):
+                best_candidate = dict(rec)
+                best_summary = dict(trial_summary)
+                best_marginal = float(marginal)
+        if best_candidate is None or float(best_marginal) <= 0.0:
+            break
+        batch.append(best_candidate)
+        batch_summary = dict(best_summary) if isinstance(best_summary, Mapping) else batch_summary
+        current_gain = float(batch_summary.get("joint_gain", current_gain))
+    annotated: list[dict[str, Any]] = []
+    for rec in batch:
+        updated = dict(rec)
+        feat = updated.get("feature")
+        if isinstance(feat, CandidateFeatures):
+            updated["feature"] = _replace_feature(
+                feat,
+                compatibility_penalty_total=float(batch_summary.get("additivity_defect", 0.0)),
+            )
+        updated["compatibility_penalty"] = {
+            "total": float(batch_summary.get("additivity_defect", 0.0)),
+            "joint_gain": float(batch_summary.get("joint_gain", 0.0)),
+            "contextual_single_total": float(batch_summary.get("contextual_single_total", 0.0)),
+            "lambda_min": float(batch_summary.get("lambda_min", 0.0)),
+            "rank_floor": float(batch_summary.get("rank_floor", 0.0)),
+            "mu_tan": float(batch_summary.get("mu_tan", 0.0)),
+        }
+        annotated.append(updated)
+    return annotated, dict(batch_summary)
 
 
 def greedy_batch_select(
@@ -1616,16 +2102,49 @@ def build_candidate_features(
                 "trial_compiled_count_2q": compile_cost.trial_compiled_count_2q,
                 "trial_compiled_depth": compile_cost.trial_compiled_depth,
                 "trial_compiled_size": compile_cost.trial_compiled_size,
-            }
+                }
         ),
+        phase_score_components={},
+        phase_cost_components={},
+        controller_snapshot=None,
+        window_origin="legacy",
+        window_new_indices=[int(i) for i in refit_window_indices],
+        window_age_indices=[],
+        phase1_shortlisted=False,
+        phase2_shortlisted=False,
+        phase3_shortlisted=False,
+        phase3_duplicate_penalty=0.0,
     )
     score = simple_v1_score(feat, cfg)
+    phase_cost_components = {
+        "compile_proxy": float(compile_cost_total),
+        "measurement_groups_new": float(measurement_stats.groups_new),
+        "measurement_shots_new": float(measurement_stats.shots_new),
+        "measurement_reuse_cost": float(measurement_stats.reuse_count_cost),
+        "leakage_penalty": float(max(0.0, leakage_penalty)),
+        "burden_total": float(
+            float(cfg.lambda_compile) * float(compile_cost_total)
+            + float(cfg.lambda_measure)
+            * float(
+                float(measurement_stats.groups_new)
+                + float(measurement_stats.shots_new)
+                + float(measurement_stats.reuse_count_cost)
+            )
+            + float(cfg.lambda_leak) * float(max(0.0, leakage_penalty))
+        ),
+    }
+    phase_score_components = {
+        "phase1_gradient_abs": float(g_abs),
+        "phase1_score": float(score),
+    }
     feat = _replace_feature(
         feat,
         simple_score=float(score),
         cheap_score=float(score),
         cheap_score_version=str(cfg.score_version),
         cheap_metric_proxy=float(max(0.0, metric_proxy)),
+        phase_score_components=dict(phase_score_components),
+        phase_cost_components=dict(phase_cost_components),
     )
     if cheap_score_cfg is not None:
         feat = _replace_feature(

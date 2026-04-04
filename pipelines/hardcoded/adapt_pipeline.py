@@ -26,7 +26,7 @@ import re
 import sys
 import time
 import weakref
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import datetime, timezone
 from pathlib import Path
 from types import SimpleNamespace
@@ -115,7 +115,10 @@ from src.quantum.vqe_latex_python_pairs import (
 )
 from pipelines.hardcoded.hh_continuation_types import (
     CandidateFeatures,
+    MaturePruneTrial,
     Phase2OptimizerMemoryAdapter,
+    PhaseControllerSnapshot,
+    ScaffoldCoordinateMetadata,
     ScaffoldFingerprintLite,
 )
 from pipelines.hardcoded.hh_continuation_generators import (
@@ -161,12 +164,15 @@ from pipelines.hardcoded.hh_continuation_scoring import (
     family_repeat_cost_from_history,
     greedy_batch_select,
     measurement_group_keys_for_term,
+    phase_shortlist_records,
     raw_f_metric_from_state,
+    reduced_plane_batch_select,
     shortlist_records,
 )
 from pipelines.hardcoded.hh_continuation_pruning import (
     PruneConfig,
     apply_pruning,
+    cheap_prune_score,
     post_prune_refit,
     rank_prune_candidates,
 )
@@ -659,8 +665,12 @@ class _BeamBranchState:
     phase1_features_history: list[dict[str, Any]]
     phase1_stage_events: list[dict[str, Any]]
     phase1_measure_cache: MeasurementCacheAudit
+    phase1_last_retained_records: list[dict[str, Any]]
     phase2_optimizer_memory: dict[str, Any]
     phase2_last_shortlist_records: list[dict[str, Any]]
+    phase2_last_geometric_shortlist_records: list[dict[str, Any]]
+    phase2_last_retained_shortlist_records: list[dict[str, Any]]
+    phase2_last_admitted_records: list[dict[str, Any]]
     phase2_last_batch_selected: bool
     phase2_last_batch_penalty_total: float
     phase2_last_optimizer_memory_reused: bool
@@ -673,6 +683,13 @@ class _BeamBranchState:
     phase3_runtime_split_summary: dict[str, Any]
     phase3_motif_usage: dict[str, Any]
     phase3_rescue_history: list[dict[str, Any]]
+    phase1_prune_metadata: list[ScaffoldCoordinateMetadata]
+    phase1_prune_first_seen_steps: dict[str, int]
+    phase1_last_prune_summary: dict[str, Any]
+    last_transition_kind: str
+    last_admission_record_count: int
+    cumulative_selector_score: float
+    cumulative_selector_burden: float
     nfev_total_local: int
 
     def clone_for_child(self, *, branch_id: int) -> "_BeamBranchState":
@@ -700,8 +717,12 @@ class _BeamBranchState:
             phase1_features_history=copy.deepcopy(self.phase1_features_history),
             phase1_stage_events=copy.deepcopy(self.phase1_stage_events),
             phase1_measure_cache=self.phase1_measure_cache.clone(),
+            phase1_last_retained_records=copy.deepcopy(self.phase1_last_retained_records),
             phase2_optimizer_memory=copy.deepcopy(self.phase2_optimizer_memory),
             phase2_last_shortlist_records=copy.deepcopy(self.phase2_last_shortlist_records),
+            phase2_last_geometric_shortlist_records=copy.deepcopy(self.phase2_last_geometric_shortlist_records),
+            phase2_last_retained_shortlist_records=copy.deepcopy(self.phase2_last_retained_shortlist_records),
+            phase2_last_admitted_records=copy.deepcopy(self.phase2_last_admitted_records),
             phase2_last_batch_selected=bool(self.phase2_last_batch_selected),
             phase2_last_batch_penalty_total=float(self.phase2_last_batch_penalty_total),
             phase2_last_optimizer_memory_reused=bool(self.phase2_last_optimizer_memory_reused),
@@ -714,6 +735,17 @@ class _BeamBranchState:
             phase3_runtime_split_summary=copy.deepcopy(self.phase3_runtime_split_summary),
             phase3_motif_usage=copy.deepcopy(self.phase3_motif_usage),
             phase3_rescue_history=copy.deepcopy(self.phase3_rescue_history),
+            phase1_prune_metadata=[
+                ScaffoldCoordinateMetadata(**dict(x.__dict__)) for x in self.phase1_prune_metadata
+            ],
+            phase1_prune_first_seen_steps={
+                str(k): int(v) for k, v in self.phase1_prune_first_seen_steps.items()
+            },
+            phase1_last_prune_summary=copy.deepcopy(self.phase1_last_prune_summary),
+            last_transition_kind=str(self.last_transition_kind),
+            last_admission_record_count=int(self.last_admission_record_count),
+            cumulative_selector_score=float(self.cumulative_selector_score),
+            cumulative_selector_burden=float(self.cumulative_selector_burden),
             nfev_total_local=int(self.nfev_total_local),
         )
 
@@ -752,7 +784,11 @@ class _BranchStepScratch:
     phase1_last_trough_detected: bool
     phase1_last_trough_probe_triggered: bool
     phase1_last_selected_score: float | None
+    phase1_last_retained_records: list[dict[str, Any]]
     phase2_last_shortlist_records: list[dict[str, Any]]
+    phase2_last_geometric_shortlist_records: list[dict[str, Any]]
+    phase2_last_retained_shortlist_records: list[dict[str, Any]]
+    phase2_last_admitted_records: list[dict[str, Any]]
     phase2_last_batch_selected: bool
     phase2_last_batch_penalty_total: float
     phase2_last_optimizer_memory_reused: bool
@@ -2441,17 +2477,18 @@ def _make_reduced_objective(
 
 
 def _resolve_adapt_continuation_mode(*, problem: str, requested_mode: str | None) -> str:
-    mode_raw = "phase3_v1" if requested_mode is None else str(requested_mode).strip().lower()
+    problem_key = str(problem).strip().lower()
+    if requested_mode is None:
+        return "phase3_v1" if problem_key == "hh" else "legacy"
+    mode_raw = str(requested_mode).strip().lower()
     if mode_raw == "":
-        return "phase3_v1"
+        return "phase3_v1" if problem_key == "hh" else "legacy"
     if mode_raw not in {"legacy", "phase1_v1", "phase2_v1", "phase3_v1"}:
         raise ValueError("adapt_continuation_mode must be one of {'legacy','phase1_v1','phase2_v1','phase3_v1'}.")
     return str(mode_raw)
 
 
 def _resolve_cli_adapt_continuation_mode(*, problem: str, requested_mode: str | None) -> str:
-    if requested_mode is None or str(requested_mode).strip() == "":
-        return "phase3_v1" if str(problem).strip().lower() == "hh" else "legacy"
     return _resolve_adapt_continuation_mode(problem=problem, requested_mode=requested_mode)
 
 
@@ -4089,6 +4126,14 @@ def _run_hardcoded_adapt_vqe(
         max_probe_positions=int(max(1, phase1_probe_max_positions)),
         append_admit_threshold=0.05,
         family_repeat_patience=int(max(1, phase1_plateau_patience)),
+        cap_phase1_min=int(max(1, phase1_shortlist_size_val)),
+        cap_phase1_max=int(max(1, phase1_shortlist_size_val)),
+        cap_phase2_min=int(max(1, phase2_shortlist_size)),
+        cap_phase2_max=int(max(1, phase2_shortlist_size)),
+        cap_phase3_min=int(max(1, phase2_shortlist_size)),
+        cap_phase3_max=int(max(1, phase2_shortlist_size)),
+        shot_min=1,
+        shot_max=1,
     )
     phase1_stage = StageController(phase1_stage_cfg)
     if phase1_enabled:
@@ -4137,6 +4182,8 @@ def _run_hardcoded_adapt_vqe(
         gamma_N=float(max(0.0, phase2_gamma_N)),
         shortlist_fraction=float(max(0.05, phase2_shortlist_fraction)),
         shortlist_size=int(max(1, phase2_shortlist_size)),
+        phase2_frontier_ratio=float(max(0.0, min(1.0, phase2_batch_near_degenerate_ratio))),
+        phase3_frontier_ratio=float(max(0.0, min(1.0, phase2_batch_near_degenerate_ratio))),
         batch_target_size=int(max(1, phase2_batch_target_size)),
         batch_size_cap=int(max(1, phase2_batch_size_cap)),
         batch_near_degenerate_ratio=float(max(0.0, min(1.0, phase2_batch_near_degenerate_ratio))),
@@ -4162,6 +4209,169 @@ def _run_hardcoded_adapt_vqe(
         parameter_count=int(theta.size),
         reason="pre_seed_state",
     )
+
+    def _controller_snapshot_dict(snapshot: Any | None) -> dict[str, Any] | None:
+        if snapshot is None:
+            return None
+        return {
+            "step_index": int(getattr(snapshot, "step_index", 0)),
+            "depth_local": int(getattr(snapshot, "depth_local", 0)),
+            "depth_left": int(getattr(snapshot, "depth_left", 0)),
+            "runway_ratio": float(getattr(snapshot, "runway_ratio", 0.0)),
+            "early_coordinate": float(getattr(snapshot, "early_coordinate", 0.0)),
+            "late_coordinate": float(getattr(snapshot, "late_coordinate", 0.0)),
+            "frontier_ratio": float(getattr(snapshot, "frontier_ratio", 1.0)),
+            "phase_thresholds": dict(getattr(snapshot, "phase_thresholds", {})),
+            "phase_caps": dict(getattr(snapshot, "phase_caps", {})),
+            "phase_shots": dict(getattr(snapshot, "phase_shots", {})),
+            "phase_uncertainty": dict(getattr(snapshot, "phase_uncertainty", {})),
+            "snapshot_version": str(getattr(snapshot, "snapshot_version", "phase123_controller_v1")),
+        }
+
+    def _selector_score_value(row: Mapping[str, Any] | None) -> float:
+        if not isinstance(row, Mapping):
+            return 0.0
+        for key in ("selector_score", "full_v2_score", "phase2_raw_score", "cheap_score", "simple_score"):
+            raw = row.get(key)
+            if raw is None:
+                continue
+            try:
+                return float(raw)
+            except (TypeError, ValueError):
+                continue
+        return 0.0
+
+    def _selector_burden_value(row: Mapping[str, Any] | None) -> float:
+        if not isinstance(row, Mapping):
+            return 0.0
+        for key in ("selector_burden", "phase3_burden_total", "phase2_burden_total", "cheap_burden_total"):
+            raw = row.get(key)
+            if raw is None:
+                continue
+            try:
+                return float(raw)
+            except (TypeError, ValueError):
+                continue
+        return 0.0
+
+    def _attach_controller_snapshot(
+        records: Sequence[Mapping[str, Any]],
+        *,
+        snapshot: Any | None,
+    ) -> list[dict[str, Any]]:
+        snapshot_dict = _controller_snapshot_dict(snapshot)
+        out: list[dict[str, Any]] = []
+        for rec in records:
+            updated = dict(rec)
+            feat_obj = updated.get("feature")
+            if isinstance(feat_obj, CandidateFeatures) and snapshot_dict is not None:
+                updated["feature"] = CandidateFeatures(
+                    **{
+                        **feat_obj.__dict__,
+                        "controller_snapshot": dict(snapshot_dict),
+                    }
+                )
+                updated.update(
+                    {
+                        "simple_score": float(updated["feature"].simple_score or updated.get("simple_score", float("-inf"))),
+                        "cheap_score": float(updated["feature"].cheap_score or updated.get("cheap_score", float("-inf"))),
+                        "phase2_raw_score": float(updated["feature"].phase2_raw_score or updated.get("phase2_raw_score", float("-inf"))),
+                        "full_v2_score": float(updated["feature"].full_v2_score or updated.get("full_v2_score", float("-inf"))),
+                    }
+                )
+            out.append(updated)
+        return out
+
+    def _phase1_shortlist_score_key() -> str:
+        return "cheap_score" if bool(phase2_enabled) else "simple_score"
+
+    def _phase_shortlist_with_legacy_hook(
+        records: Sequence[Mapping[str, Any]],
+        *,
+        score_key: str,
+        threshold: float,
+        cap: int,
+        frontier_ratio: float,
+        tie_break_score_key: str | None = None,
+        shortlist_flag: str | None = None,
+    ) -> list[dict[str, Any]]:
+        records_list = [dict(rec) for rec in records]
+        if records_list:
+            legacy_cfg = replace(
+                phase2_score_cfg,
+                shortlist_fraction=1.0,
+                shortlist_size=max(1, len(records_list)),
+            )
+            shortlist_records(
+                records_list,
+                cfg=legacy_cfg,
+                score_key=score_key,
+                tie_break_score_key=tie_break_score_key,
+            )
+        shortlisted = phase_shortlist_records(
+            records_list,
+            score_key=score_key,
+            threshold=threshold,
+            cap=cap,
+            frontier_ratio=frontier_ratio,
+            tie_break_score_key=tie_break_score_key,
+            shortlist_flag=shortlist_flag,
+        )
+        if shortlisted:
+            return shortlisted
+        if not records_list:
+            return []
+        return phase_shortlist_records(
+            records_list,
+            score_key=score_key,
+            threshold=float("-inf"),
+            cap=1,
+            frontier_ratio=0.0,
+            tie_break_score_key=tie_break_score_key,
+            shortlist_flag=shortlist_flag,
+        )
+
+    def _selection_record_key(rec: Mapping[str, Any]) -> tuple[str, int, int]:
+        return (
+            str(rec.get("candidate_label") or getattr(rec.get("candidate_term"), "label", "")),
+            int(rec.get("candidate_pool_index", -1)),
+            int(rec.get("position_id", -1)),
+        )
+
+    def _positive_full_v2_records(records: Sequence[Mapping[str, Any]]) -> list[dict[str, Any]]:
+        return [
+            dict(rec)
+            for rec in records
+            if float(rec.get("full_v2_score", float("-inf"))) > 0.0
+        ]
+
+    def _selection_pool_from_shortlist(
+        shortlist_records_in: Sequence[Mapping[str, Any]],
+        full_records_in: Sequence[Mapping[str, Any]],
+    ) -> list[dict[str, Any]]:
+        out = [dict(rec) for rec in shortlist_records_in]
+        seen = {_selection_record_key(rec) for rec in out}
+        positive_full_records = _positive_full_v2_records(full_records_in)
+        fallback_candidates = positive_full_records if positive_full_records else [dict(rec) for rec in full_records_in[:1]]
+        for rec in fallback_candidates[:1]:
+            rec_key = _selection_record_key(rec)
+            if rec_key not in seen:
+                out.append(dict(rec))
+                seen.add(rec_key)
+        return sorted(out, key=_phase2_record_sort_key)
+
+    def _controller_cap(snapshot: Any | None, phase_name: str, default_value: int) -> int:
+        if snapshot is None:
+            return int(max(1, default_value))
+        caps = getattr(snapshot, "phase_caps", {})
+        return int(max(1, caps.get(str(phase_name), default_value)))
+
+    def _controller_threshold(snapshot: Any | None, phase_name: str) -> float:
+        if snapshot is None:
+            return 0.0
+        thresholds = getattr(snapshot, "phase_thresholds", {})
+        return float(thresholds.get(str(phase_name), 0.0))
+
     phase1_residual_opened = False
     phase1_last_probe_reason = "none"
     phase1_last_positions_considered: list[int] = []
@@ -4171,7 +4381,711 @@ def _run_hardcoded_adapt_vqe(
     phase1_features_history: list[dict[str, Any]] = []
     phase1_stage_events: list[dict[str, Any]] = []
     phase1_scaffold_pre_prune: dict[str, Any] | None = None
+    phase1_prune_cfg = PruneConfig(
+        max_candidates=int(max(1, phase1_prune_max_candidates)),
+        min_candidates=1,
+        fraction_candidates=float(max(0.0, phase1_prune_fraction)),
+        max_regression=float(max(0.0, phase1_prune_max_regression)),
+        retained_gain_ratio=0.5,
+        protect_steps=2,
+        stale_age=2,
+        stagnation_threshold=0.0,
+        small_theta_abs=1e-3,
+        small_theta_relative=0.5,
+        cooldown_steps=2,
+        local_window_size=4,
+        old_fraction=0.25,
+    )
+    phase1_prune_live_mode = bool(phase1_enabled and phase1_prune_enabled)
+    phase1_prune_checkpoint_period = 3
+    phase1_prune_maturity_threshold = 0.5
+    phase1_prune_snr_threshold = 1.0
+
+    def _default_prune_summary(*, reason: str, energy: float) -> dict[str, Any]:
+        return {
+            "enabled": bool(phase1_enabled and phase1_prune_enabled),
+            "executed": False,
+            "rolled_back": False,
+            "permission_open": False,
+            "permission_reason": str(reason),
+            "mature_open": False,
+            "runway_ratio": 1.0,
+            "u_sat": 0.0,
+            "maturity_threshold": float(phase1_prune_maturity_threshold),
+            "checkpoint_due": False,
+            "checkpoint_period": int(max(1, phase1_prune_checkpoint_period)),
+            "sigma_phase3": 0.0,
+            "gain_floor": 0.0,
+            "gain_ewma_recent": 0.0,
+            "snr_adm": 0.0,
+            "snr_threshold": float(phase1_prune_snr_threshold),
+            "snr_low_enough": True,
+            "protect_steps": int(phase1_prune_cfg.protect_steps),
+            "stale_age": int(phase1_prune_cfg.stale_age),
+            "stagnation_threshold": float(phase1_prune_cfg.stagnation_threshold),
+            "cooldown_steps": int(phase1_prune_cfg.cooldown_steps),
+            "theta_small": float(max(0.0, phase1_prune_cfg.small_theta_abs)),
+            "gate_rows": [],
+            "stale_age_pass_indices": [],
+            "stagnation_pass_indices": [],
+            "protected_indices": [],
+            "cooldown_blocked_indices": [],
+            "mature_eligible_indices": [],
+            "small_angle_pool_indices": [],
+            "accepted_count": 0,
+            "candidate_count": 0,
+            "probe_indices": [],
+            "probe_labels": [],
+            "frozen_scores": [],
+            "selected_index": None,
+            "selected_label": None,
+            "decisions": [],
+            "trial": None,
+            "metadata": [],
+            "energy_before": float(energy),
+            "energy_after_prune": float(energy),
+            "energy_after_post_refit": float(energy),
+            "post_refit_executed": False,
+        }
+
+    def _fallback_prune_metadata(*, label: str, theta_value: float) -> ScaffoldCoordinateMetadata:
+        theta_abs = abs(float(theta_value))
+        return ScaffoldCoordinateMetadata(
+            candidate_label=str(label),
+            generator_id=None,
+            admission_step=0,
+            first_seen_step=0,
+            selector_score=0.0,
+            selector_burden=0.0,
+            cooldown_remaining=0,
+            cumulative_abs_motion=0.0,
+            recent_abs_motion=0.0,
+            stagnation_score=float(1.0 / (1.0 + theta_abs + 1e-12)),
+        )
+
+    def _reconstruct_prune_first_seen_steps(history_rows: Sequence[Mapping[str, Any]]) -> dict[str, int]:
+        out: dict[str, int] = {}
+        for step_idx, row in enumerate(history_rows, start=1):
+            labels_raw = row.get("selected_ops")
+            labels = (
+                [str(x) for x in labels_raw]
+                if isinstance(labels_raw, Sequence) and not isinstance(labels_raw, (str, bytes))
+                else [str(row.get("selected_op", ""))]
+            )
+            for label in labels:
+                out.setdefault(str(label), int(step_idx))
+        return out
+
+    def _initialize_prune_metadata_state(
+        *,
+        labels_now: list[str],
+        theta_logical_now: np.ndarray,
+    ) -> tuple[list[ScaffoldCoordinateMetadata], dict[str, int]]:
+        entries: list[ScaffoldCoordinateMetadata] = []
+        first_seen_by_label = _reconstruct_prune_first_seen_steps(history)
+        for step_idx, row in enumerate(history, start=1):
+            if not isinstance(row, Mapping):
+                continue
+            labels_step_raw = row.get("selected_ops")
+            labels_step = (
+                [str(x) for x in labels_step_raw]
+                if isinstance(labels_step_raw, Sequence) and not isinstance(labels_step_raw, (str, bytes))
+                else [str(row.get("selected_op", ""))]
+            )
+            positions_step_raw = row.get("selected_positions")
+            positions_step = (
+                [int(x) for x in positions_step_raw]
+                if isinstance(positions_step_raw, Sequence) and not isinstance(positions_step_raw, (str, bytes))
+                else [int(row.get("selected_position", len(entries)))]
+            )
+            feature_rows_raw = row.get("selected_feature_rows")
+            feature_rows = (
+                list(feature_rows_raw)
+                if isinstance(feature_rows_raw, Sequence) and not isinstance(feature_rows_raw, (str, bytes))
+                else []
+            )
+            original_positions_seen: list[int] = []
+            for item_idx, label_step in enumerate(labels_step):
+                pos_orig = int(positions_step[item_idx]) if item_idx < len(positions_step) else int(len(entries))
+                pos_eff = int(pos_orig + sum(1 for prev in original_positions_seen if int(prev) <= int(pos_orig)))
+                feature_row = feature_rows[item_idx] if item_idx < len(feature_rows) else row
+                feature_mapping = feature_row if isinstance(feature_row, Mapping) else row
+                meta = ScaffoldCoordinateMetadata(
+                    candidate_label=str(label_step),
+                    generator_id=(
+                        str(feature_mapping.get("generator_id"))
+                        if feature_mapping.get("generator_id") is not None
+                        else None
+                    ),
+                    admission_step=int(step_idx),
+                    first_seen_step=int(first_seen_by_label.setdefault(str(label_step), int(step_idx))),
+                    selector_score=float(_selector_score_value(feature_mapping)),
+                    selector_burden=float(_selector_burden_value(feature_mapping)),
+                    cooldown_remaining=0,
+                    cumulative_abs_motion=0.0,
+                    recent_abs_motion=0.0,
+                    stagnation_score=0.0,
+                )
+                entries.insert(max(0, min(int(pos_eff), len(entries))), meta)
+                original_positions_seen.append(int(pos_orig))
+        aligned: list[ScaffoldCoordinateMetadata] = []
+        theta_vals = np.asarray(theta_logical_now, dtype=float).reshape(-1)
+        theta_scale = float(max(np.median(np.abs(theta_vals)) if theta_vals.size > 0 else 0.0, 1e-12))
+        cursor = 0
+        for idx_now, label_now in enumerate(labels_now):
+            match_idx = None
+            for entry_idx in range(cursor, len(entries)):
+                if str(entries[entry_idx].candidate_label) == str(label_now):
+                    match_idx = int(entry_idx)
+                    break
+            base_meta = (
+                entries[int(match_idx)]
+                if match_idx is not None
+                else _fallback_prune_metadata(
+                    label=str(label_now),
+                    theta_value=(float(theta_vals[idx_now]) if idx_now < int(theta_vals.size) else 0.0),
+                )
+            )
+            if match_idx is not None:
+                cursor = int(match_idx + 1)
+            theta_abs = abs(float(theta_vals[idx_now])) if idx_now < int(theta_vals.size) else 0.0
+            aligned.append(
+                ScaffoldCoordinateMetadata(
+                    **{
+                        **base_meta.__dict__,
+                        "first_seen_step": int(first_seen_by_label.setdefault(str(label_now), int(base_meta.first_seen_step))),
+                        "stagnation_score": float(max(0.0, 1.0 - theta_abs / theta_scale)),
+                    }
+                )
+            )
+        return aligned, first_seen_by_label
+
+    def _refresh_prune_metadata_stagnation(
+        metadata_rows: Sequence[ScaffoldCoordinateMetadata],
+        theta_logical_now: np.ndarray,
+    ) -> list[ScaffoldCoordinateMetadata]:
+        theta_vals = np.asarray(theta_logical_now, dtype=float).reshape(-1)
+        theta_scale = float(max(np.median(np.abs(theta_vals)) if theta_vals.size > 0 else 0.0, 1e-12))
+        out: list[ScaffoldCoordinateMetadata] = []
+        for idx, meta in enumerate(metadata_rows):
+            theta_abs = abs(float(theta_vals[idx])) if idx < int(theta_vals.size) else 0.0
+            out.append(
+                ScaffoldCoordinateMetadata(
+                    **{
+                        **meta.__dict__,
+                        "stagnation_score": float(max(0.0, 1.0 - theta_abs / theta_scale)),
+                    }
+                )
+            )
+        return out
+
+    def _transport_prune_metadata_after_admission(
+        *,
+        metadata_rows: Sequence[ScaffoldCoordinateMetadata],
+        labels_added: Sequence[str],
+        positions_added: Sequence[int],
+        feature_rows_added: Sequence[Mapping[str, Any]],
+        selector_step: int,
+        first_seen_steps: Mapping[str, int],
+    ) -> tuple[list[ScaffoldCoordinateMetadata], dict[str, int]]:
+        out = [
+            ScaffoldCoordinateMetadata(
+                **{**meta.__dict__, "cooldown_remaining": int(max(0, meta.cooldown_remaining - 1))}
+            )
+            for meta in metadata_rows
+        ]
+        first_seen = {str(k): int(v) for k, v in first_seen_steps.items()}
+        original_positions_seen: list[int] = []
+        for item_idx, label in enumerate(labels_added):
+            pos_orig = int(positions_added[item_idx]) if item_idx < len(positions_added) else int(len(out))
+            pos_eff = int(pos_orig + sum(1 for prev in original_positions_seen if int(prev) <= int(pos_orig)))
+            feature_mapping = (
+                feature_rows_added[item_idx]
+                if item_idx < len(feature_rows_added) and isinstance(feature_rows_added[item_idx], Mapping)
+                else {}
+            )
+            first_seen_step = int(first_seen.setdefault(str(label), int(selector_step)))
+            out.insert(
+                max(0, min(int(pos_eff), len(out))),
+                ScaffoldCoordinateMetadata(
+                    candidate_label=str(label),
+                    generator_id=(
+                        str(feature_mapping.get("generator_id"))
+                        if feature_mapping.get("generator_id") is not None
+                        else None
+                    ),
+                    admission_step=int(selector_step),
+                    first_seen_step=int(first_seen_step),
+                    selector_score=float(_selector_score_value(feature_mapping)),
+                    selector_burden=float(_selector_burden_value(feature_mapping)),
+                    cooldown_remaining=0,
+                    cumulative_abs_motion=0.0,
+                    recent_abs_motion=0.0,
+                    stagnation_score=0.0,
+                ),
+            )
+            original_positions_seen.append(int(pos_orig))
+        return out, first_seen
+
+    def _prune_refit_window_indices_live(
+        *,
+        removal_index: int,
+        metadata_rows: Sequence[ScaffoldCoordinateMetadata],
+        n_plus: int,
+    ) -> list[int]:
+        n_after = int(max(0, n_plus - 1))
+        if n_after <= 0:
+            return []
+        omega_eff = int(max(1, min(int(phase1_prune_cfg.local_window_size), n_after)))
+        local_start = int(max(0, min(int(removal_index) - (omega_eff - 1) // 2, n_after - omega_eff)))
+        local_window = list(range(int(local_start), int(local_start + omega_eff)))
+        nonlocal_indices = [idx for idx in range(n_after) if idx not in set(local_window)]
+        oldest_count = int(math.ceil(float(phase1_prune_cfg.old_fraction) * float(len(nonlocal_indices))))
+        oldest_count = int(max(0, min(oldest_count, len(nonlocal_indices))))
+        oldest_tail = (
+            sorted(
+                nonlocal_indices,
+                key=lambda idx: (
+                    int(metadata_rows[idx].admission_step),
+                    int(metadata_rows[idx].first_seen_step),
+                    str(metadata_rows[idx].candidate_label),
+                ),
+            )[:oldest_count]
+            if oldest_count > 0
+            else []
+        )
+        return sorted({int(x) for x in [*local_window, *oldest_tail]})
+
+    phase1_prune_metadata_state: list[ScaffoldCoordinateMetadata] = []
+    phase1_prune_first_seen_steps: dict[str, int] = {}
+    prune_summary = _default_prune_summary(reason="pre_energy_init", energy=0.0)
+
+    def _execute_live_mature_prune_pass(
+        *,
+        ops_now: list[AnsatzTerm],
+        theta_now: np.ndarray,
+        energy_now: float,
+        optimizer_memory_now: dict[str, Any],
+        metadata_rows: Sequence[ScaffoldCoordinateMetadata],
+        first_seen_steps: Mapping[str, int],
+        controller_snapshot: Mapping[str, Any] | None,
+        selector_step: int,
+        admitted_gain: float,
+        history_rows: Sequence[Mapping[str, Any]] | None = None,
+    ) -> tuple[list[AnsatzTerm], np.ndarray, float, dict[str, Any], list[ScaffoldCoordinateMetadata], dict[str, int], dict[str, Any]]:
+        summary = _default_prune_summary(reason="live_after_admission", energy=float(energy_now))
+        if (not phase1_prune_live_mode) or int(len(ops_now)) <= 1:
+            return list(ops_now), np.asarray(theta_now, dtype=float), float(energy_now), dict(optimizer_memory_now), [ScaffoldCoordinateMetadata(**dict(x.__dict__)) for x in metadata_rows], {str(k): int(v) for k, v in first_seen_steps.items()}, summary
+
+        snapshot = dict(controller_snapshot) if isinstance(controller_snapshot, Mapping) else {}
+        runway_ratio = float(max(0.0, min(1.0, snapshot.get("runway_ratio", 1.0))))
+        u_sat = float(max(0.0, min(1.0, 1.0 - runway_ratio)))
+        phase_uncertainty = snapshot.get("phase_uncertainty", {})
+        sigma_phase3 = float(phase_uncertainty.get("phase3", 0.0)) if isinstance(phase_uncertainty, Mapping) else 0.0
+        history_source = list(history_rows) if history_rows is not None else list(history)
+        recent_gains = [
+            max(0.0, float(row.get("energy_before_opt", 0.0)) - float(row.get("energy_after_opt", 0.0)))
+            for row in history_source[-4:]
+            if isinstance(row, Mapping)
+        ]
+        gain_ewma_recent = 0.0
+        for gain_value in recent_gains:
+            gain_ewma_recent = (
+                float(gain_value)
+                if not math.isfinite(float(gain_ewma_recent)) or float(gain_ewma_recent) <= 0.0
+                else float(0.5 * float(gain_ewma_recent) + 0.5 * float(gain_value))
+            )
+        gain_floor = float(max(float(phase1_stage_cfg.weak_drop_threshold), float(gain_ewma_recent), 1e-12))
+        noise_scale = float((1.0 + max(0.0, sigma_phase3)) * gain_floor)
+        snr_adm = float(max(0.0, admitted_gain) / max(noise_scale, 1e-12))
+        checkpoint_due = bool(int(selector_step) % int(max(1, phase1_prune_checkpoint_period)) == 0)
+        mature_open = bool(float(u_sat) >= float(phase1_prune_maturity_threshold))
+        permission_open = bool(mature_open and (float(snr_adm) <= float(phase1_prune_snr_threshold) or checkpoint_due))
+        summary["runway_ratio"] = float(runway_ratio)
+        summary["u_sat"] = float(u_sat)
+        summary["mature_open"] = bool(mature_open)
+        summary["checkpoint_due"] = bool(checkpoint_due)
+        summary["sigma_phase3"] = float(sigma_phase3)
+        summary["gain_floor"] = float(gain_floor)
+        summary["gain_ewma_recent"] = float(gain_ewma_recent)
+        summary["snr_adm"] = float(snr_adm)
+        summary["snr_threshold"] = float(phase1_prune_snr_threshold)
+        summary["snr_low_enough"] = bool(float(snr_adm) <= float(phase1_prune_snr_threshold))
+        summary["permission_open"] = bool(permission_open)
+        summary["permission_reason"] = (
+            "checkpoint" if checkpoint_due and mature_open else ("low_snr" if permission_open else ("immature" if not mature_open else "admitted_gain_resolved"))
+        )
+
+        labels_now = [str(op.label) for op in ops_now]
+        layout_now = _build_selected_layout(ops_now)
+        theta_runtime_now = np.asarray(theta_now, dtype=float)
+        theta_logical_now = np.asarray(_logical_theta_alias(theta_runtime_now, layout_now), dtype=float)
+        metadata_live = _refresh_prune_metadata_stagnation(
+            [ScaffoldCoordinateMetadata(**dict(x.__dict__)) for x in metadata_rows],
+            theta_logical_now,
+        )
+        summary["metadata"] = [dict(x.__dict__) for x in metadata_live]
+        theta_abs_wrapped = [
+            float(abs((float(theta_val) + math.pi) % (2.0 * math.pi) - math.pi))
+            for theta_val in np.asarray(theta_logical_now, dtype=float).reshape(-1).tolist()
+        ]
+        stale_age_pass_indices: list[int] = []
+        stagnation_pass_indices: list[int] = []
+        protected_indices: list[int] = []
+        cooldown_blocked_indices: list[int] = []
+        mature_eligible_indices: list[int] = []
+        gate_rows: list[dict[str, Any]] = []
+        for idx_meta, meta in enumerate(metadata_live):
+            first_seen_age = int(max(0, int(selector_step) - int(meta.first_seen_step)))
+            admission_age = int(max(0, int(selector_step) - int(meta.admission_step)))
+            stale_age_pass = bool(first_seen_age >= int(phase1_prune_cfg.stale_age))
+            stagnation_pass = bool(float(meta.stagnation_score) >= float(phase1_prune_cfg.stagnation_threshold))
+            protected = bool(admission_age < int(phase1_prune_cfg.protect_steps))
+            cooldown_blocked = bool(int(meta.cooldown_remaining) > 0)
+            mature_eligible = bool(stale_age_pass and stagnation_pass and (not protected) and (not cooldown_blocked))
+            if stale_age_pass:
+                stale_age_pass_indices.append(int(idx_meta))
+            if stagnation_pass:
+                stagnation_pass_indices.append(int(idx_meta))
+            if protected:
+                protected_indices.append(int(idx_meta))
+            if cooldown_blocked:
+                cooldown_blocked_indices.append(int(idx_meta))
+            if mature_eligible:
+                mature_eligible_indices.append(int(idx_meta))
+            gate_rows.append(
+                {
+                    "index": int(idx_meta),
+                    "label": str(meta.candidate_label),
+                    "theta_abs_wrapped": (
+                        float(theta_abs_wrapped[idx_meta])
+                        if idx_meta < len(theta_abs_wrapped)
+                        else 0.0
+                    ),
+                    "first_seen_age": int(first_seen_age),
+                    "admission_age": int(admission_age),
+                    "cooldown_remaining": int(meta.cooldown_remaining),
+                    "stagnation_score": float(meta.stagnation_score),
+                    "selector_burden": float(meta.selector_burden),
+                    "stale_age_pass": bool(stale_age_pass),
+                    "stagnation_pass": bool(stagnation_pass),
+                    "protected": bool(protected),
+                    "cooldown_blocked": bool(cooldown_blocked),
+                    "mature_eligible": bool(mature_eligible),
+                }
+            )
+        theta_small = (
+            float(
+                max(
+                    float(max(0.0, phase1_prune_cfg.small_theta_abs)),
+                    float(max(0.0, phase1_prune_cfg.small_theta_relative))
+                    * float(np.median([theta_abs_wrapped[i] for i in mature_eligible_indices])),
+                )
+            )
+            if mature_eligible_indices
+            else float(max(0.0, phase1_prune_cfg.small_theta_abs))
+        )
+        small_angle_pool_indices = [
+            int(i)
+            for i in mature_eligible_indices
+            if float(theta_abs_wrapped[i]) <= float(theta_small) + 1e-15
+        ]
+        summary["protect_steps"] = int(phase1_prune_cfg.protect_steps)
+        summary["stale_age"] = int(phase1_prune_cfg.stale_age)
+        summary["stagnation_threshold"] = float(phase1_prune_cfg.stagnation_threshold)
+        summary["cooldown_steps"] = int(phase1_prune_cfg.cooldown_steps)
+        summary["theta_small"] = float(theta_small)
+        summary["gate_rows"] = [dict(x) for x in gate_rows]
+        summary["stale_age_pass_indices"] = [int(x) for x in stale_age_pass_indices]
+        summary["stagnation_pass_indices"] = [int(x) for x in stagnation_pass_indices]
+        summary["protected_indices"] = [int(x) for x in protected_indices]
+        summary["cooldown_blocked_indices"] = [int(x) for x in cooldown_blocked_indices]
+        summary["mature_eligible_indices"] = [int(x) for x in mature_eligible_indices]
+        summary["small_angle_pool_indices"] = [int(x) for x in small_angle_pool_indices]
+        if not permission_open:
+            return list(ops_now), theta_runtime_now, float(energy_now), dict(optimizer_memory_now), metadata_live, {str(k): int(v) for k, v in first_seen_steps.items()}, summary
+
+        prune_proxy_benefit = [
+            float(meta.selector_score) / float(1.0 + max(0.0, meta.selector_burden))
+            if math.isfinite(float(meta.selector_score))
+            else float("inf")
+            for meta in metadata_live
+        ]
+        candidate_indices = rank_prune_candidates(
+            theta=np.asarray(theta_logical_now, dtype=float),
+            labels=list(labels_now),
+            marginal_proxy_benefit=list(prune_proxy_benefit),
+            max_candidates=int(phase1_prune_cfg.max_candidates),
+            min_candidates=int(phase1_prune_cfg.min_candidates),
+            fraction_candidates=float(phase1_prune_cfg.fraction_candidates),
+            selector_burden=[float(meta.selector_burden) for meta in metadata_live],
+            admission_steps=[int(meta.admission_step) for meta in metadata_live],
+            first_seen_steps=[int(meta.first_seen_step) for meta in metadata_live],
+            cooldown_remaining=[int(meta.cooldown_remaining) for meta in metadata_live],
+            stagnation_scores=[float(meta.stagnation_score) for meta in metadata_live],
+            current_step=int(selector_step),
+            protect_steps=int(phase1_prune_cfg.protect_steps),
+            stale_age=int(phase1_prune_cfg.stale_age),
+            stagnation_threshold=float(phase1_prune_cfg.stagnation_threshold),
+            small_theta_abs=float(phase1_prune_cfg.small_theta_abs),
+            small_theta_relative=float(phase1_prune_cfg.small_theta_relative),
+        )
+        summary["candidate_count"] = int(len(candidate_indices))
+        summary["probe_indices"] = [int(x) for x in candidate_indices]
+        summary["probe_labels"] = [str(labels_now[int(i)]) for i in candidate_indices]
+        if not candidate_indices:
+            return list(ops_now), theta_runtime_now, float(energy_now), dict(optimizer_memory_now), metadata_live, {str(k): int(v) for k, v in first_seen_steps.items()}, summary
+
+        def _ops_from_labels(labels_cur: Sequence[str]) -> list[AnsatzTerm]:
+            buckets: dict[str, list[AnsatzTerm]] = {}
+            for op_ref in ops_now:
+                buckets.setdefault(str(op_ref.label), []).append(op_ref)
+            rebuilt: list[AnsatzTerm] = []
+            for lbl in labels_cur:
+                bucket = buckets.get(str(lbl), [])
+                if bucket:
+                    rebuilt.append(bucket.pop(0))
+            return rebuilt
+
+        def _refit_given_ops_live(
+            ops_refit: list[AnsatzTerm],
+            theta0: np.ndarray,
+            active_logical_indices: list[int] | None,
+            optimizer_memory_in: dict[str, Any],
+        ) -> tuple[np.ndarray, float, dict[str, Any]]:
+            if len(ops_refit) == 0:
+                return np.zeros(0, dtype=float), float(energy_now), dict(optimizer_memory_in)
+            layout_refit = _build_selected_layout(ops_refit)
+            executor_refit = _build_compiled_executor(ops_refit) if adapt_state_backend_key == "compiled" else None
+            theta_full = np.asarray(theta0, dtype=float).reshape(-1)
+            active_runtime_indices = (
+                list(range(int(layout_refit.runtime_parameter_count)))
+                if active_logical_indices is None
+                else runtime_indices_for_logical_indices(layout_refit, [int(i) for i in active_logical_indices])
+            )
+            def _obj_prune_live(x: np.ndarray) -> float:
+                return _evaluate_selected_energy_objective(
+                    ops_now=ops_refit,
+                    theta_now=np.asarray(x, dtype=float),
+                    executor_now=executor_refit,
+                    parameter_layout_now=layout_refit,
+                    objective_stage="prune_refit_live",
+                    depth_marker=int(selector_step),
+                )
+            if not active_runtime_indices:
+                return np.asarray(theta_full, dtype=float), float(_obj_prune_live(theta_full)), dict(optimizer_memory_in)
+            _obj_reduced, opt_x0 = _make_reduced_objective(theta_full, active_runtime_indices, _obj_prune_live)
+            if adapt_inner_optimizer_key == "SPSA":
+                refit_memory = phase2_memory_adapter.select_active(
+                    optimizer_memory_in,
+                    active_indices=list(active_runtime_indices),
+                    source="adapt.live_prune_refit.active_subset",
+                ) if phase2_enabled else None
+                res = spsa_minimize(
+                    fun=_obj_reduced,
+                    x0=opt_x0,
+                    maxiter=int(max(25, min(int(maxiter), 120))),
+                    seed=int(seed) + 800000 + int(len(ops_refit)),
+                    a=float(adapt_spsa_a),
+                    c=float(adapt_spsa_c),
+                    alpha=float(adapt_spsa_alpha),
+                    gamma=float(adapt_spsa_gamma),
+                    A=float(adapt_spsa_A),
+                    bounds=None,
+                    project="none",
+                    eval_repeats=int(adapt_spsa_eval_repeats),
+                    eval_agg=str(adapt_spsa_eval_agg_key),
+                    avg_last=int(adapt_spsa_avg_last),
+                    memory=(dict(refit_memory) if isinstance(refit_memory, Mapping) else None),
+                    refresh_every=0,
+                    precondition_mode=("diag_rms_grad" if phase2_enabled else "none"),
+                )
+                theta_out = np.asarray(theta_full, dtype=float).copy()
+                result_x = np.asarray(res.x, dtype=float).ravel()
+                for k, idx_active in enumerate(active_runtime_indices):
+                    theta_out[int(idx_active)] = float(result_x[k])
+                optimizer_out = dict(optimizer_memory_in)
+                if phase2_enabled:
+                    optimizer_out = phase2_memory_adapter.merge_active(
+                        optimizer_memory_in,
+                        active_indices=list(active_runtime_indices),
+                        active_state=phase2_memory_adapter.from_result(
+                            res,
+                            method=str(adapt_inner_optimizer_key),
+                            parameter_count=int(len(active_runtime_indices)),
+                            source="adapt.live_prune_refit.result",
+                        ),
+                        source="adapt.live_prune_refit.merge",
+                    )
+                return theta_out, float(res.fun), optimizer_out
+            res = _run_scipy_adapt_optimizer(
+                method_key=str(adapt_inner_optimizer_key),
+                objective=_obj_reduced,
+                x0=opt_x0,
+                maxiter=int(max(25, min(int(maxiter), 120))),
+                context_label="live prune refit",
+                scipy_minimize_fn=scipy_minimize,
+            )
+            theta_out = np.asarray(theta_full, dtype=float).copy()
+            result_x = np.asarray(res.x, dtype=float).ravel()
+            for k, idx_active in enumerate(active_runtime_indices):
+                theta_out[int(idx_active)] = float(result_x[k])
+            return theta_out, float(res.fun), dict(optimizer_memory_now)
+
+        def _frozen_ablation_energy_live(idx_remove: int) -> tuple[float, np.ndarray]:
+            runtime_remove_indices = runtime_indices_for_logical_indices(layout_now, [int(idx_remove)])
+            ops_trial = list(ops_now)
+            del ops_trial[int(idx_remove)]
+            theta_trial0 = np.delete(theta_runtime_now, runtime_remove_indices)
+            executor_trial = _build_compiled_executor(ops_trial) if adapt_state_backend_key == "compiled" and ops_trial else None
+            energy_trial = _evaluate_selected_energy_objective(
+                ops_now=ops_trial,
+                theta_now=np.asarray(theta_trial0, dtype=float),
+                executor_now=executor_trial,
+                parameter_layout_now=_build_selected_layout(ops_trial),
+                objective_stage="prune_frozen_live",
+                depth_marker=int(selector_step),
+            )
+            return float(energy_trial), np.asarray(theta_trial0, dtype=float)
+
+        best_candidate_index = None
+        best_candidate_label = None
+        best_trial_window_logical: list[int] = []
+        best_frozen_score = float("inf")
+        best_frozen_regression = float("inf")
+        frozen_rows: list[dict[str, Any]] = []
+        for idx_probe in candidate_indices:
+            frozen_energy, _theta_frozen = _frozen_ablation_energy_live(int(idx_probe))
+            frozen_regression = float(frozen_energy - float(energy_now))
+            selector_burden = float(metadata_live[int(idx_probe)].selector_burden) if int(idx_probe) < len(metadata_live) else 0.0
+            cheap_score_prune = cheap_prune_score(
+                frozen_regression=float(frozen_regression),
+                selector_burden=float(selector_burden),
+            )
+            metadata_after = [meta for meta_idx, meta in enumerate(metadata_live) if int(meta_idx) != int(idx_probe)]
+            prune_window_logical = _prune_refit_window_indices_live(
+                removal_index=int(idx_probe),
+                metadata_rows=metadata_after,
+                n_plus=int(len(ops_now)),
+            )
+            frozen_rows.append({
+                "index": int(idx_probe),
+                "label": str(labels_now[int(idx_probe)]),
+                "frozen_energy": float(frozen_energy),
+                "frozen_regression": float(frozen_regression),
+                "selector_burden": float(selector_burden),
+                "cheap_prune_score": float(cheap_score_prune),
+                "refit_window_indices": [int(x) for x in prune_window_logical],
+            })
+            candidate_key = (float(cheap_score_prune), float(frozen_regression), int(idx_probe), str(labels_now[int(idx_probe)]))
+            incumbent_key = (float(best_frozen_score), float(best_frozen_regression), int(best_candidate_index if best_candidate_index is not None else 10**9), str(best_candidate_label or ""))
+            if best_candidate_index is None or candidate_key < incumbent_key:
+                best_candidate_index = int(idx_probe)
+                best_candidate_label = str(labels_now[int(idx_probe)])
+                best_trial_window_logical = [int(x) for x in prune_window_logical]
+                best_frozen_score = float(cheap_score_prune)
+                best_frozen_regression = float(frozen_regression)
+        summary["frozen_scores"] = [dict(x) for x in frozen_rows]
+        summary["selected_index"] = int(best_candidate_index) if best_candidate_index is not None else None
+        summary["selected_label"] = str(best_candidate_label) if best_candidate_label is not None else None
+        retained_reference_energy = float(energy_now + max(0.0, admitted_gain))
+
+        def _eval_with_removal_live(idx_remove: int, theta_cur: np.ndarray, labels_cur: list[str]) -> tuple[float, np.ndarray]:
+            ops_current = _ops_from_labels(labels_cur)
+            layout_current = _build_selected_layout(ops_current)
+            runtime_remove_indices = runtime_indices_for_logical_indices(layout_current, [int(idx_remove)])
+            ops_trial = list(ops_current)
+            del ops_trial[int(idx_remove)]
+            theta_trial0 = np.delete(np.asarray(theta_cur, dtype=float), runtime_remove_indices)
+            theta_trial_opt, energy_trial, _optimizer_unused = _refit_given_ops_live(
+                ops_trial,
+                theta_trial0,
+                [int(x) for x in best_trial_window_logical],
+                dict(optimizer_memory_now),
+            )
+            return float(energy_trial), np.asarray(theta_trial_opt, dtype=float)
+
+        theta_pruned, labels_pruned, prune_decisions, energy_after_prune = apply_pruning(
+            theta=np.asarray(theta_runtime_now, dtype=float),
+            labels=list(labels_now),
+            candidate_indices=([int(best_candidate_index)] if best_candidate_index is not None else []),
+            eval_with_removal=_eval_with_removal_live,
+            energy_before=float(energy_now),
+            max_regression=float(phase1_prune_cfg.max_regression),
+            retained_reference_energy=float(retained_reference_energy),
+            admitted_gain=float(max(0.0, admitted_gain)),
+            retained_gain_ratio=float(phase1_prune_cfg.retained_gain_ratio),
+        )
+        accepted_count = int(sum(1 for d in prune_decisions if bool(d.accepted)))
+        summary["executed"] = bool(best_candidate_index is not None)
+        summary["accepted_count"] = int(accepted_count)
+        summary["energy_after_prune"] = float(energy_after_prune)
+        summary["energy_after_post_refit"] = float(energy_after_prune)
+        summary["decisions"] = [dict(d.__dict__) for d in prune_decisions]
+        summary["trial"] = dict(MaturePruneTrial(
+            selector_step=int(selector_step),
+            gate_open=bool(summary.get("permission_open", False)),
+            probe_indices=[int(x) for x in candidate_indices],
+            selected_index=(int(best_candidate_index) if best_candidate_index is not None else None),
+            selected_label=(str(best_candidate_label) if best_candidate_label is not None else None),
+            frozen_regression=(float(best_frozen_regression) if best_candidate_index is not None and math.isfinite(best_frozen_regression) else None),
+            refit_energy=(float(energy_after_prune) if best_candidate_index is not None else None),
+            retained_gain=(float(retained_reference_energy - float(energy_after_prune)) if best_candidate_index is not None else None),
+            accepted=bool(accepted_count > 0),
+            rollback_reason=(str(prune_decisions[0].reason) if prune_decisions and not bool(prune_decisions[0].accepted) else None),
+        ).__dict__)
+
+        metadata_out = [ScaffoldCoordinateMetadata(**dict(x.__dict__)) for x in metadata_live]
+        first_seen_out = {str(k): int(v) for k, v in first_seen_steps.items()}
+        optimizer_out = dict(optimizer_memory_now)
+        if accepted_count > 0:
+            accepted_remove_indices = [int(d.index) for d in prune_decisions if bool(d.accepted)]
+            accepted_runtime_remove_indices = runtime_indices_for_logical_indices(layout_now, accepted_remove_indices)
+            if phase2_enabled:
+                optimizer_out = phase2_memory_adapter.remap_remove(
+                    optimizer_out,
+                    indices=list(accepted_runtime_remove_indices),
+                )
+            label_to_ops: dict[str, list[AnsatzTerm]] = {}
+            for op in ops_now:
+                label_to_ops.setdefault(str(op.label), []).append(op)
+            rebuilt_ops: list[AnsatzTerm] = []
+            for lbl in labels_pruned:
+                bucket = label_to_ops.get(str(lbl), [])
+                if bucket:
+                    rebuilt_ops.append(bucket.pop(0))
+            metadata_out = [
+                meta for meta_idx, meta in enumerate(metadata_out)
+                if int(meta_idx) not in set(accepted_remove_indices)
+            ]
+            return rebuilt_ops, np.asarray(theta_pruned, dtype=float), float(energy_after_prune), optimizer_out, metadata_out, first_seen_out, summary
+
+        if best_candidate_index is not None and int(best_candidate_index) < len(metadata_out):
+            cooled = dict(metadata_out[int(best_candidate_index)].__dict__)
+            cooled["cooldown_remaining"] = int(phase1_prune_cfg.cooldown_steps)
+            metadata_out[int(best_candidate_index)] = ScaffoldCoordinateMetadata(**cooled)
+            summary["metadata"] = [dict(x.__dict__) for x in metadata_out]
+        return list(ops_now), np.asarray(theta_runtime_now, dtype=float), float(energy_now), optimizer_out, metadata_out, first_seen_out, summary
+
+    def _candidate_feature_rows(records: Sequence[Mapping[str, Any]] | None) -> list[dict[str, Any]]:
+        out: list[dict[str, Any]] = []
+        if not isinstance(records, Sequence):
+            return out
+        for rec in records:
+            if not isinstance(rec, Mapping):
+                continue
+            feat_obj = rec.get("feature")
+            if isinstance(feat_obj, CandidateFeatures):
+                out.append(dict(feat_obj.__dict__))
+            elif rec.get("candidate_label") is not None:
+                out.append(dict(rec))
+        return out
+
+    phase1_last_retained_records: list[dict[str, Any]] = []
     phase2_last_shortlist_records: list[dict[str, Any]] = []
+    phase2_last_geometric_shortlist_records: list[dict[str, Any]] = []
+    phase2_last_retained_shortlist_records: list[dict[str, Any]] = []
+    phase2_last_admitted_records: list[dict[str, Any]] = []
     phase2_last_batch_selected = False
     phase2_last_batch_penalty_total = 0.0
     phase2_last_optimizer_memory_reused = False
@@ -5338,6 +6252,12 @@ def _run_hardcoded_adapt_vqe(
                     source_tag=str(phase3_motif_usage.get("source_tag")),
                 )
 
+        phase1_prune_metadata_state, phase1_prune_first_seen_steps = _initialize_prune_metadata_state(
+            labels_now=[str(op.label) for op in selected_ops],
+            theta_logical_now=np.asarray(_logical_theta_alias(theta, _build_selected_layout(selected_ops)), dtype=float),
+        )
+        prune_summary = _default_prune_summary(reason="live_loop_init", energy=float(energy_current))
+
         rescue_cfg = RescueConfig(enabled=bool(phase3_enable_rescue_effective))
 
         def _phase3_try_rescue(
@@ -5438,8 +6358,503 @@ def _run_hardcoded_adapt_vqe(
         beam_branch_counter = 1
         beam_search_diagnostics: dict[str, Any] = {
             "beam_enabled": bool(beam_policy.beam_enabled),
+            "live_branches": int(beam_policy.live_branches_effective),
+            "children_per_parent": int(beam_policy.children_per_parent_effective),
+            "terminated_keep": int(beam_policy.terminated_keep_effective),
+            "fingerprint_version": "beam_scaffold_theta10_v1",
+            "prune_key_version": "beam_energy_neg_score_burden_size_labels_theta10_id_v1",
+            "admission_surface_version": "beam_phase3_shortlist_structural_stop_v1",
             "rounds": [],
         }
+
+        def _compact_prune_audit(summary_raw: Mapping[str, Any] | None) -> dict[str, Any]:
+            summary = dict(summary_raw) if isinstance(summary_raw, Mapping) else {}
+            return {
+                "enabled": bool(summary.get("enabled", False)),
+                "permission_open": bool(summary.get("permission_open", False)),
+                "permission_reason": str(summary.get("permission_reason", "unknown")),
+                "executed": bool(summary.get("executed", False)),
+                "accepted_count": int(summary.get("accepted_count", 0) or 0),
+                "candidate_count": int(summary.get("candidate_count", 0) or 0),
+                "selected_index": summary.get("selected_index"),
+                "selected_label": summary.get("selected_label"),
+                "snr_adm": float(summary.get("snr_adm", 0.0) or 0.0),
+                "u_sat": float(summary.get("u_sat", 0.0) or 0.0),
+                "probe_indices": [int(x) for x in summary.get("probe_indices", [])],
+                "small_angle_pool_indices": [int(x) for x in summary.get("small_angle_pool_indices", [])],
+            }
+
+        def _surface_rows_summary(rows_raw: Sequence[Mapping[str, Any]] | None) -> dict[str, Any]:
+            rows = [dict(row) for row in rows_raw if isinstance(row, Mapping)] if isinstance(rows_raw, Sequence) else []
+            return {
+                "count": int(len(rows)),
+                "operator_labels": list(
+                    dict.fromkeys(
+                        str(row.get("candidate_label", ""))
+                        for row in rows
+                        if str(row.get("candidate_label", "")) != ""
+                    )
+                ),
+                "generator_ids": list(
+                    dict.fromkeys(
+                        str(row.get("generator_id", ""))
+                        for row in rows
+                        if str(row.get("generator_id", "")) != ""
+                    )
+                ),
+                "position_ids": list(
+                    dict.fromkeys(
+                        int(row.get("position_id"))
+                        for row in rows
+                        if row.get("position_id") is not None
+                    )
+                ),
+                "runtime_split_modes": list(
+                    dict.fromkeys(
+                        str(row.get("runtime_split_mode", "off"))
+                        for row in rows
+                    )
+                ),
+            }
+
+        def _phase3_surface_audit_payload(
+            *,
+            scored_rows: Sequence[Mapping[str, Any]] | None,
+            retained_rows: Sequence[Mapping[str, Any]] | None,
+            admitted_rows: Sequence[Mapping[str, Any]] | None,
+            beam_enabled: bool,
+        ) -> dict[str, Any]:
+            return {
+                "scored_surface_notation": ("R_3(b)" if beam_enabled else "R_3(t)"),
+                "scored_surface_key": "phase2_scored_rows",
+                "scored_surface_semantics": "last_scored_candidate_surface",
+                "retained_shortlist_notation": ("S_3(b)" if beam_enabled else "S_3(t)"),
+                "retained_shortlist_key": "phase2_retained_shortlist_rows",
+                "retained_shortlist_semantics": "controller_retained_shortlist",
+                "admitted_set_notation": ("A_b" if beam_enabled else "B_t^*"),
+                "admitted_set_key": "phase2_admitted_rows",
+                "admitted_set_semantics": (
+                    "branch_local_retained_admission_set"
+                    if beam_enabled
+                    else "reduced_plane_admitted_set"
+                ),
+                "scored_surface": _surface_rows_summary(scored_rows),
+                "retained_shortlist": _surface_rows_summary(retained_rows),
+                "admitted_set": _surface_rows_summary(admitted_rows),
+            }
+
+        def _active_hh_pool_summary_payload(
+            *,
+            phase1_rows: Sequence[Mapping[str, Any]] | None,
+            phase2_rows: Sequence[Mapping[str, Any]] | None,
+            phase3_rows: Sequence[Mapping[str, Any]] | None,
+        ) -> dict[str, Any]:
+            phase1_rows_list = [dict(row) for row in phase1_rows if isinstance(row, Mapping)] if isinstance(phase1_rows, Sequence) else []
+            phase2_rows_list = [dict(row) for row in phase2_rows if isinstance(row, Mapping)] if isinstance(phase2_rows, Sequence) else []
+            phase3_rows_list = [dict(row) for row in phase3_rows if isinstance(row, Mapping)] if isinstance(phase3_rows, Sequence) else []
+            phase1_summary = _surface_rows_summary(phase1_rows_list)
+            phase2_summary = _surface_rows_summary(phase2_rows_list)
+            phase3_summary = _surface_rows_summary(phase3_rows_list)
+
+            def _split_closed_labels(
+                seed_labels: set[str],
+                rows_extra: Sequence[Mapping[str, Any]],
+            ) -> set[str]:
+                closed = set(str(x) for x in seed_labels)
+                changed = True
+                while changed:
+                    changed = False
+                    for row in rows_extra:
+                        label = str(row.get("candidate_label", ""))
+                        parent_label = str(row.get("runtime_split_parent_label", ""))
+                        if not label:
+                            continue
+                        if parent_label and parent_label in closed and label not in closed:
+                            closed.add(label)
+                            changed = True
+                return closed
+
+            phase1_labels_raw = set(str(x) for x in phase1_summary.get("operator_labels", []))
+            phase2_labels_raw = set(str(x) for x in phase2_summary.get("operator_labels", []))
+            phase3_labels_raw = set(str(x) for x in phase3_summary.get("operator_labels", []))
+            phase1_labels_effective = _split_closed_labels(
+                phase1_labels_raw,
+                [*phase2_rows_list, *phase3_rows_list],
+            )
+            phase2_labels_effective = _split_closed_labels(phase2_labels_raw, phase3_rows_list)
+            phase3_labels_effective = set(phase3_labels_raw)
+            phase1_summary["generator_image_labels_effective"] = sorted(phase1_labels_effective)
+            phase1_summary["generator_image_count_effective"] = int(len(phase1_labels_effective))
+            phase2_summary["generator_image_labels_effective"] = sorted(phase2_labels_effective)
+            phase2_summary["generator_image_count_effective"] = int(len(phase2_labels_effective))
+            phase3_summary["generator_image_labels_effective"] = sorted(phase3_labels_effective)
+            phase3_summary["generator_image_count_effective"] = int(len(phase3_labels_effective))
+            return {
+                "summary_label": "Omega_HH_active",
+                "omega_chain": ["Omega_HH^(1)", "Omega_HH^(2)", "Omega_HH^(3)"],
+                "nested_generator_image_inclusion": {
+                    "phase2_in_phase1": bool(phase2_labels_effective.issubset(phase1_labels_effective)),
+                    "phase3_in_phase2": bool(phase3_labels_effective.issubset(phase2_labels_effective)),
+                    "phase3_in_phase1": bool(phase3_labels_effective.issubset(phase1_labels_effective)),
+                },
+                "phases": {
+                    "phase1": {
+                        "omega_label": "Omega_HH^(1)",
+                        "generator_image_notation": "G^(1)",
+                        "rows_key": "phase1_retained_rows",
+                        "rows_semantics": "phase1_retained_record_shortlist",
+                        "generator_family_notation": "G_adapt^(1)",
+                        **dict(phase1_summary),
+                    },
+                    "phase2": {
+                        "omega_label": "Omega_HH^(2)",
+                        "generator_image_notation": "G^(2)",
+                        "rows_key": "phase2_geometric_shortlist_rows",
+                        "rows_semantics": "phase2_retained_geometric_shortlist",
+                        "generator_family_notation": "G_adapt^(2)",
+                        **dict(phase2_summary),
+                    },
+                    "phase3": {
+                        "omega_label": "Omega_HH^(3)",
+                        "generator_image_notation": "G^(3)",
+                        "rows_key": "phase2_retained_shortlist_rows",
+                        "rows_semantics": "phase3_retained_shortlist_generator_image",
+                        "generator_family_notation": "G_adapt^(3)",
+                        **dict(phase3_summary),
+                    },
+                },
+            }
+
+        def _controller_snapshot_payload(snapshot_raw: Any | None) -> dict[str, Any] | None:
+            if not isinstance(snapshot_raw, PhaseControllerSnapshot):
+                return None
+            return {
+                "snapshot_version": str(snapshot_raw.snapshot_version),
+                "step_index": int(snapshot_raw.step_index),
+                "depth_local": int(snapshot_raw.depth_local),
+                "depth_left": int(snapshot_raw.depth_left),
+                "runway_ratio": float(snapshot_raw.runway_ratio),
+                "early_coordinate": float(snapshot_raw.early_coordinate),
+                "late_coordinate": float(snapshot_raw.late_coordinate),
+                "frontier_ratio": float(snapshot_raw.frontier_ratio),
+                "phase_thresholds": {
+                    str(k): float(v) for k, v in dict(snapshot_raw.phase_thresholds).items()
+                },
+                "phase_caps": {
+                    str(k): int(v) for k, v in dict(snapshot_raw.phase_caps).items()
+                },
+                "phase_shots": {
+                    str(k): int(v) for k, v in dict(snapshot_raw.phase_shots).items()
+                },
+                "phase_uncertainty": {
+                    str(k): float(v) for k, v in dict(snapshot_raw.phase_uncertainty).items()
+                },
+            }
+
+        def _controller_telemetry_summary_payload(
+            *,
+            stage_name: str | None,
+            residual_opened: bool,
+            last_probe_reason: str | None,
+            stage_events: Sequence[Mapping[str, Any]] | None,
+            last_snapshot: Any | None,
+        ) -> dict[str, Any]:
+            stage_rows = (
+                [dict(row) for row in stage_events if isinstance(row, Mapping)]
+                if isinstance(stage_events, Sequence)
+                else []
+            )
+            return {
+                "telemetry_label": "T_b^ctrl",
+                "stage_name": (None if stage_name is None else str(stage_name)),
+                "residual_opened": bool(residual_opened),
+                "last_probe_reason": (None if last_probe_reason is None else str(last_probe_reason)),
+                "stage_event_count": int(len(stage_rows)),
+                "last_stage_event": (dict(stage_rows[-1]) if stage_rows else None),
+                "last_snapshot": _controller_snapshot_payload(last_snapshot),
+            }
+
+        def _branch_state_summary_payload(
+            *,
+            beam_enabled: bool,
+            branch_id: int | None,
+            parent_branch_id: int | None,
+            history_rows: Sequence[Mapping[str, Any]] | None,
+            depth_local: int,
+            ansatz_depth: int,
+            terminated: bool,
+            termination_label: str | None,
+            cumulative_selector_score: float,
+            cumulative_selector_burden: float,
+            stage_name: str | None,
+            residual_opened: bool,
+            last_probe_reason: str | None,
+            stage_events: Sequence[Mapping[str, Any]] | None,
+            last_snapshot: Any | None,
+        ) -> dict[str, Any]:
+            rows = (
+                [dict(row) for row in history_rows if isinstance(row, Mapping)]
+                if isinstance(history_rows, Sequence)
+                else []
+            )
+            return {
+                "branch_state_notation": "\\mathfrak b_*",
+                "status": ("terminal" if bool(terminated) else "frontier"),
+                "termination_label": (
+                    str(termination_label) if bool(terminated) and termination_label is not None else None
+                ),
+                "beam_enabled": bool(beam_enabled),
+                "branch_id": (None if branch_id is None else int(branch_id)),
+                "parent_branch_id": (
+                    None if parent_branch_id is None else int(parent_branch_id)
+                ),
+                "depth_local": int(depth_local),
+                "history_step_count": int(len(rows)),
+                "ansatz_depth": int(ansatz_depth),
+                "cumulative_selector_score": float(cumulative_selector_score),
+                "cumulative_selector_burden": float(cumulative_selector_burden),
+                "controller_telemetry": _controller_telemetry_summary_payload(
+                    stage_name=stage_name,
+                    residual_opened=bool(residual_opened),
+                    last_probe_reason=last_probe_reason,
+                    stage_events=stage_events,
+                    last_snapshot=last_snapshot,
+                ),
+            }
+
+        def _scaffold_fingerprint_payload(
+            *,
+            operator_labels: Sequence[str],
+            generator_ids: Sequence[str],
+            num_parameters: int,
+        ) -> dict[str, Any]:
+            payload = {
+                "selected_operator_labels": [str(x) for x in operator_labels],
+                "selected_generator_ids": [str(x) for x in generator_ids if str(x) != ""],
+                "num_parameters": int(num_parameters),
+            }
+            digest = hashlib.sha256(
+                json.dumps(payload, sort_keys=True, default=str).encode("utf-8")
+            ).hexdigest()
+            return {
+                "fingerprint_notation": "fp(O_*)",
+                "fingerprint_version": "scaffold_labels_generator_ids_params_v1",
+                "fingerprint_sha256": str(digest),
+                **payload,
+            }
+
+        def _optimizer_memory_contract_summary_payload(
+            *,
+            beam_enabled: bool,
+            branch_id: int | None,
+            memory_state: Mapping[str, Any] | None,
+            operator_labels: Sequence[str],
+            generator_ids: Sequence[str],
+            num_parameters: int,
+            last_active_subset_source: str | None,
+            last_active_subset_reused: bool,
+        ) -> dict[str, Any]:
+            state = dict(memory_state) if isinstance(memory_state, Mapping) else {}
+            remap_events = [
+                dict(row)
+                for row in state.get("remap_events", [])
+                if isinstance(row, Mapping)
+            ]
+            structural_transport = any(
+                str(row.get("op", "")) in {"insert", "remove"} for row in remap_events
+            )
+            memory_source_value = (
+                str(state.get("source"))
+                if state.get("source") not in {None, ""}
+                else (
+                    str(last_active_subset_source)
+                    if last_active_subset_source not in {None, ""}
+                    else "unavailable"
+                )
+            )
+            if not bool(state.get("available", False)):
+                observed_transport_mode = "unavailable"
+            elif structural_transport:
+                observed_transport_mode = "canonical_embedding_or_index_remap"
+            else:
+                observed_transport_mode = "same_scaffold_active_subset"
+            return {
+                "contract_label": "phase2_optimizer_memory_contract",
+                "beam_enabled": bool(beam_enabled),
+                "branch_id": (None if branch_id is None else int(branch_id)),
+                "scaffold_fingerprint": _scaffold_fingerprint_payload(
+                    operator_labels=operator_labels,
+                    generator_ids=generator_ids,
+                    num_parameters=int(num_parameters),
+                ),
+                "exact_reuse_rule": "requires_matching_scaffold_fingerprint",
+                "fingerprint_match_required": True,
+                "canonical_embedding_notation": "theta -> theta⊕_p 0",
+                "refit_window_notation": "W(r;t)",
+                "memory_available": bool(state.get("available", False)),
+                "memory_optimizer": str(state.get("optimizer", "unknown")),
+                "memory_parameter_count": int(state.get("parameter_count", max(0, int(num_parameters)))),
+                "memory_source": str(memory_source_value),
+                "last_active_subset_source": (
+                    None
+                    if last_active_subset_source in {None, ""}
+                    else str(last_active_subset_source)
+                ),
+                "last_active_subset_reused": bool(last_active_subset_reused),
+                "structural_transport_detected": bool(structural_transport),
+                "observed_transport_mode": str(observed_transport_mode),
+                "remap_event_count": int(len(remap_events)),
+                "remap_event_tail": [dict(row) for row in remap_events[-8:]],
+            }
+
+        def _controller_runtime_boundary_summary_payload(
+            *,
+            phase_enabled: bool,
+            cfg: StageControllerConfig,
+            stage_controller_payload: Mapping[str, Any] | None,
+            current_snapshot_payload: Mapping[str, Any] | None,
+            beam_enabled: bool,
+            branch_id: int | None,
+        ) -> dict[str, Any]:
+            return {
+                "summary_label": "appendix_a_runtime_boundary",
+                "beam_enabled": bool(beam_enabled),
+                "branch_id": (None if branch_id is None else int(branch_id)),
+                "phase_enabled": bool(phase_enabled),
+                "symbolic_result_keys": [
+                    "selected_scaffold_summary",
+                    "selected_scaffold_final_choice",
+                    "selected_scaffold_branch_state",
+                    "selected_state_summary",
+                    "selected_scaffold_history",
+                    "selected_scaffold_record_chain",
+                    "active_hh_pool_summary",
+                    "active_phase3_surface_summary",
+                ],
+                "runtime_controller_keys": [
+                    "stage_controller",
+                    "selected_scaffold_branch_state.controller_telemetry",
+                    "selected_scaffold_optimizer_memory_contract",
+                ],
+                "runtime_law_notation": {
+                    "thresholds": "tau_k(t)",
+                    "caps": "N_k(t)",
+                    "shots_phase1": "N_shot,1(t)",
+                    "shots_phasek": "N_shot,k(t)",
+                },
+                "runtime_dependencies": [
+                    "available_depth",
+                    "wall_clock",
+                    "sampling_budget",
+                    "device_noise",
+                ],
+                "calibration_status": "runtime_calibrated_not_symbolic",
+                "configured_bounds": {
+                    "tau_phase1_min": float(cfg.tau_phase1_min),
+                    "tau_phase1_max": float(cfg.tau_phase1_max),
+                    "tau_phase2_min": float(cfg.tau_phase2_min),
+                    "tau_phase2_max": float(cfg.tau_phase2_max),
+                    "tau_phase3_min": float(cfg.tau_phase3_min),
+                    "tau_phase3_max": float(cfg.tau_phase3_max),
+                    "cap_phase1_min": int(cfg.cap_phase1_min),
+                    "cap_phase1_max": int(cfg.cap_phase1_max),
+                    "cap_phase2_min": int(cfg.cap_phase2_min),
+                    "cap_phase2_max": int(cfg.cap_phase2_max),
+                    "cap_phase3_min": int(cfg.cap_phase3_min),
+                    "cap_phase3_max": int(cfg.cap_phase3_max),
+                    "shot_min": int(cfg.shot_min),
+                    "shot_max": int(cfg.shot_max),
+                },
+                "stage_controller_payload": (
+                    dict(stage_controller_payload)
+                    if isinstance(stage_controller_payload, Mapping)
+                    else None
+                ),
+                "current_controller_snapshot": (
+                    dict(current_snapshot_payload)
+                    if isinstance(current_snapshot_payload, Mapping)
+                    else None
+                ),
+            }
+
+        def _beam_branch_summary(branch: _BeamBranchState) -> dict[str, Any]:
+            prune_history = [
+                _compact_prune_audit(row.get("post_admission_prune"))
+                for row in branch.history
+                if isinstance(row, Mapping) and isinstance(row.get("post_admission_prune"), Mapping)
+            ]
+            branch_controller_snapshot = branch.phase1_stage.snapshot().get("last_snapshot")
+            branch_generator_ids = [
+                str(meta.get("generator_id", ""))
+                for meta in selected_generator_metadata_for_labels(
+                    [str(op.label) for op in branch.selected_ops],
+                    pool_generator_registry,
+                )
+                if str(meta.get("generator_id", "")) != ""
+            ]
+            return {
+                "branch_id": int(branch.branch_id),
+                "parent_branch_id": (
+                    None if branch.parent_branch_id is None else int(branch.parent_branch_id)
+                ),
+                "depth_local": int(branch.depth_local),
+                "stop_reason": (None if branch.stop_reason is None else str(branch.stop_reason)),
+                "terminated": bool(branch.terminated),
+                "status": ("terminal" if bool(branch.terminated) else "frontier"),
+                "termination_label": (
+                    str(branch.stop_reason)
+                    if bool(branch.terminated) and branch.stop_reason is not None
+                    else None
+                ),
+                "last_transition_kind": str(branch.last_transition_kind),
+                "last_admission_record_count": int(branch.last_admission_record_count),
+                "energy": float(branch.energy_current),
+                "cumulative_selector_score": float(branch.cumulative_selector_score),
+                "cumulative_selector_burden": float(branch.cumulative_selector_burden),
+                "scored_surface_count": int(len(branch.phase2_last_shortlist_records)),
+                "retained_shortlist_count": int(len(branch.phase2_last_retained_shortlist_records)),
+                "admitted_count": int(len(branch.phase2_last_admitted_records)),
+                "phase3_surface_summary": _phase3_surface_audit_payload(
+                    scored_rows=branch.phase2_last_shortlist_records,
+                    retained_rows=branch.phase2_last_retained_shortlist_records,
+                    admitted_rows=branch.phase2_last_admitted_records,
+                    beam_enabled=True,
+                ),
+                "prune_key": dict(_beam_prune_key_payload(branch)),
+                "last_prune": _compact_prune_audit(branch.phase1_last_prune_summary),
+                "prune_history": [dict(x) for x in prune_history],
+                "branch_state_summary": _branch_state_summary_payload(
+                    beam_enabled=True,
+                    branch_id=int(branch.branch_id),
+                    parent_branch_id=(
+                        None if branch.parent_branch_id is None else int(branch.parent_branch_id)
+                    ),
+                    history_rows=branch.history,
+                    depth_local=int(branch.depth_local),
+                    ansatz_depth=int(len(branch.selected_ops)),
+                    terminated=bool(branch.terminated),
+                    termination_label=(
+                        None if branch.stop_reason is None else str(branch.stop_reason)
+                    ),
+                    cumulative_selector_score=float(branch.cumulative_selector_score),
+                    cumulative_selector_burden=float(branch.cumulative_selector_burden),
+                    stage_name=str(branch.phase1_stage.stage_name),
+                    residual_opened=bool(branch.phase1_residual_opened),
+                    last_probe_reason=str(branch.phase1_last_probe_reason),
+                    stage_events=branch.phase1_stage_events,
+                    last_snapshot=branch_controller_snapshot,
+                ),
+                "optimizer_memory_contract_summary": _optimizer_memory_contract_summary_payload(
+                    beam_enabled=True,
+                    branch_id=int(branch.branch_id),
+                    memory_state=branch.phase2_optimizer_memory,
+                    operator_labels=[str(op.label) for op in branch.selected_ops],
+                    generator_ids=branch_generator_ids,
+                    num_parameters=int(np.asarray(branch.theta, dtype=float).size),
+                    last_active_subset_source=str(branch.phase2_last_optimizer_memory_source),
+                    last_active_subset_reused=bool(branch.phase2_last_optimizer_memory_reused),
+                ),
+            }
 
         def _beam_clone_branch(
             branch: _BeamBranchState,
@@ -5466,20 +6881,18 @@ def _run_hardcoded_adapt_vqe(
                 beam_executor_memo[key] = executor
             return executor
 
+        def _beam_label_signature(ops: Sequence[AnsatzTerm]) -> tuple[str, ...]:
+            return tuple(str(op.label) for op in ops)
+
+        def _beam_round10_theta(theta_now: np.ndarray) -> tuple[float, ...]:
+            theta_vec = np.asarray(theta_now, dtype=float).reshape(-1)
+            return tuple(round(float(x), 10) for x in theta_vec.tolist())
+
         def _branch_state_fingerprint(branch: _BeamBranchState) -> str:
             payload = {
-                "ops": [str(op.label) for op in branch.selected_ops],
-                "theta": [round(float(x), 12) for x in np.asarray(branch.theta, dtype=float).tolist()],
-                "available_indices": sorted(int(x) for x in branch.available_indices),
-                "selection_counts": [int(x) for x in np.asarray(branch.selection_counts, dtype=np.int64).tolist()],
-                "stop_reason": branch.stop_reason,
-                "phase1_stage": str(branch.phase1_stage.stage_name),
-                "phase1_residual_opened": bool(branch.phase1_residual_opened),
-                "measurement_cache": branch.phase1_measure_cache.snapshot(),
-                "optimizer_memory": branch.phase2_optimizer_memory,
-                "drop_plateau_hits": int(branch.drop_plateau_hits),
-                "eps_energy_low_streak": int(branch.eps_energy_low_streak),
-                "history_tail": [dict(x) for x in branch.history[-3:]],
+                "depth_local": int(branch.depth_local),
+                "labels": list(_beam_label_signature(branch.selected_ops)),
+                "theta_round10": list(_beam_round10_theta(branch.theta)),
             }
             return hashlib.sha256(
                 json.dumps(payload, sort_keys=True, default=str).encode("utf-8")
@@ -5522,32 +6935,28 @@ def _run_hardcoded_adapt_vqe(
             ).digest()
             return int.from_bytes(digest[:8], "big") % (2**31 - 1)
 
-        def _beam_sort_float(value: Any, default: float = float("-inf")) -> float:
-            if value is None:
-                return float(default)
-            try:
-                return float(value)
-            except (TypeError, ValueError):
-                return float(default)
-
-        def _beam_sort_int(value: Any, default: int) -> int:
-            if value is None:
-                return int(default)
-            try:
-                return int(value)
-            except (TypeError, ValueError):
-                return int(default)
+        def _beam_prune_key_payload(branch: _BeamBranchState) -> dict[str, Any]:
+            return {
+                "energy": float(branch.energy_current),
+                "cumulative_selector_score": float(branch.cumulative_selector_score),
+                "cumulative_selector_burden": float(branch.cumulative_selector_burden),
+                "ansatz_depth": int(len(branch.selected_ops)),
+                "labels": list(_beam_label_signature(branch.selected_ops)),
+                "theta_round10": [float(x) for x in _beam_round10_theta(branch.theta)],
+                "theta_round10_digits": 10,
+                "branch_id": int(branch.branch_id),
+            }
 
         def _beam_prune_key(branch: _BeamBranchState) -> tuple[Any, ...]:
-            last = branch.history[-1] if branch.history else {}
+            payload = _beam_prune_key_payload(branch)
             return (
-                float(branch.energy_current),
-                -_beam_sort_float(last.get("full_v2_score"), float("-inf")),
-                -_beam_sort_float(last.get("simple_score"), float("-inf")),
-                _beam_sort_int(last.get("pool_index"), -1),
-                _beam_sort_int(last.get("selected_position"), len(branch.selected_ops)),
-                str(last.get("selected_op", "")),
-                _branch_state_fingerprint(branch),
+                float(payload["energy"]),
+                -float(payload["cumulative_selector_score"]),
+                float(payload["cumulative_selector_burden"]),
+                int(payload["ansatz_depth"]),
+                tuple(str(x) for x in payload["labels"]),
+                tuple(float(x) for x in payload["theta_round10"]),
+                int(payload["branch_id"]),
             )
 
         def _beam_dedup(branches: Sequence[_BeamBranchState]) -> list[_BeamBranchState]:
@@ -5638,7 +7047,11 @@ def _run_hardcoded_adapt_vqe(
             phase1_last_trough_detected_local = False
             phase1_last_trough_probe_triggered_local = False
             phase1_last_selected_score_local: float | None = None
+            phase1_last_retained_records_local: list[dict[str, Any]] = []
             phase2_last_shortlist_records_local: list[dict[str, Any]] = []
+            phase2_last_geometric_shortlist_records_local: list[dict[str, Any]] = []
+            phase2_last_retained_shortlist_records_local: list[dict[str, Any]] = []
+            phase2_last_admitted_records_local: list[dict[str, Any]] = []
             phase2_last_batch_selected_local = False
             phase2_last_batch_penalty_total_local = 0.0
             phase2_last_optimizer_memory_reused_local = False
@@ -5679,7 +7092,11 @@ def _run_hardcoded_adapt_vqe(
                     phase1_last_trough_detected=bool(phase1_last_trough_detected_local),
                     phase1_last_trough_probe_triggered=bool(phase1_last_trough_probe_triggered_local),
                     phase1_last_selected_score=phase1_last_selected_score_local,
+                    phase1_last_retained_records=[],
                     phase2_last_shortlist_records=[],
+                    phase2_last_geometric_shortlist_records=[],
+                    phase2_last_retained_shortlist_records=[],
+                    phase2_last_admitted_records=[],
                     phase2_last_batch_selected=False,
                     phase2_last_batch_penalty_total=0.0,
                     phase2_last_optimizer_memory_reused=False,
@@ -5868,6 +7285,7 @@ def _run_hardcoded_adapt_vqe(
             best_idx_local = int(score_eval_local["best_idx"])
             selected_position_local = int(score_eval_local["best_position"])
             phase1_last_selected_score_local = float(score_eval_local["best_score"])
+            controller_snapshot_local = None
 
             if phase2_enabled:
                 cheap_records = shortlist_records(
@@ -5884,6 +7302,7 @@ def _run_hardcoded_adapt_vqe(
                     cfg=phase2_score_cfg,
                     score_key="simple_score",
                 )
+                phase1_last_retained_records_local = _candidate_feature_rows(cheap_records)
                 full_records: list[dict[str, Any]] = []
                 phase2_scaffold_context_cache: dict[tuple[int, ...], Any] = {}
                 for rec in cheap_records:
@@ -6055,6 +7474,7 @@ def _run_hardcoded_adapt_vqe(
                             **dict(rec),
                             "feature": feat_full,
                             "simple_score": float(feat_full.simple_score or float("-inf")),
+                            "phase2_raw_score": float(feat_full.phase2_raw_score or float("-inf")),
                             "full_v2_score": float(feat_full.full_v2_score or float("-inf")),
                             "candidate_pool_index": int(feat_full.candidate_pool_index),
                             "position_id": int(feat_full.position_id),
@@ -6129,37 +7549,104 @@ def _run_hardcoded_adapt_vqe(
                     candidate_variants = sorted(candidate_variants, key=_phase2_record_sort_key)
                     if candidate_variants:
                         full_records.append(dict(candidate_variants[0]))
-                full_records = sorted(full_records, key=_phase2_record_sort_key)
+                full_records = _attach_controller_snapshot(
+                    sorted(full_records, key=_phase2_record_sort_key),
+                    snapshot=controller_snapshot_local,
+                )
                 phase2_last_shortlist_eval_records_local = [dict(rec) for rec in full_records]
-                phase2_last_shortlist_records_local = [
-                    dict(rec["feature"].__dict__)
-                    for rec in full_records
-                    if isinstance(rec.get("feature"), CandidateFeatures)
-                ]
-                eligible_full_records = [
+                phase2_shortlisted_records_local = _phase_shortlist_with_legacy_hook(
+                    full_records,
+                    score_key="phase2_raw_score",
+                    threshold=_controller_threshold(controller_snapshot_local, "phase2"),
+                    cap=_controller_cap(controller_snapshot_local, "phase2", phase2_score_cfg.shortlist_size),
+                    frontier_ratio=float(phase2_score_cfg.phase2_frontier_ratio),
+                    tie_break_score_key="cheap_score",
+                    shortlist_flag="phase2_shortlisted",
+                )
+                phase2_last_geometric_shortlist_records_local = _candidate_feature_rows(
+                    phase2_shortlisted_records_local
+                )
+                phase3_shortlisted_records_local = (
+                    _phase_shortlist_with_legacy_hook(
+                        phase2_shortlisted_records_local,
+                        score_key="full_v2_score",
+                        threshold=_controller_threshold(controller_snapshot_local, "phase3"),
+                        cap=_controller_cap(controller_snapshot_local, "phase3", phase2_score_cfg.shortlist_size),
+                        frontier_ratio=float(phase2_score_cfg.phase3_frontier_ratio),
+                        tie_break_score_key="phase2_raw_score",
+                        shortlist_flag="phase3_shortlisted",
+                    )
+                    if phase3_enabled
+                    else list(phase2_shortlisted_records_local)
+                )
+                phase2_last_shortlist_records_local = _candidate_feature_rows(full_records)
+                admission_source_records_local = (
+                    phase3_shortlisted_records_local
+                    if phase3_enabled
+                    else phase2_shortlisted_records_local
+                )
+                phase2_last_retained_shortlist_records_local = _candidate_feature_rows(
+                    admission_source_records_local
+                )
+                retained_records_local = [dict(rec) for rec in admission_source_records_local]
+                if (
+                    phase3_enabled
+                    and bool(phase2_enable_batching)
+                    and str(stage_name_local) == "core"
+                    and retained_records_local
+                ):
+                    retained_records_local, batch_summary_local = reduced_plane_batch_select(
+                        retained_records_local,
+                        cfg=phase2_score_cfg,
+                        selected_ops=list(branch.selected_ops),
+                        theta=np.asarray(theta_logical_branch, dtype=float),
+                        psi_ref=np.asarray(psi_ref, dtype=complex),
+                        psi_state=np.asarray(psi_current_local, dtype=complex),
+                        h_compiled=h_compiled,
+                        novelty_oracle=phase2_novelty_oracle,
+                        curvature_oracle=phase2_curvature_oracle,
+                        compiled_cache=phase2_compiled_term_cache,
+                        pauli_action_cache=pauli_action_cache,
+                        tie_break_score_key="phase2_raw_score",
+                    )
+                    phase2_last_batch_penalty_total_local = float(
+                        batch_summary_local.get("additivity_defect", 0.0)
+                    )
+                    phase2_last_batch_selected_local = bool(len(retained_records_local) > 1)
+                phase2_last_admitted_records_local = _candidate_feature_rows(retained_records_local)
+                eligible_records_local = [
                     dict(rec)
-                    for rec in full_records
+                    for rec in retained_records_local
                     if float(rec.get("full_v2_score", float("-inf"))) > 0.0
                 ]
-                if eligible_full_records:
-                    top_record = dict(eligible_full_records[0])
+                if eligible_records_local:
+                    top_record = dict(eligible_records_local[0])
                     top_feat = top_record.get("feature")
                     if isinstance(top_feat, CandidateFeatures):
                         phase1_feature_selected_local = dict(top_feat.__dict__)
                         phase1_last_selected_score_local = float(
-                            top_feat.full_v2_score
-                            if top_feat.full_v2_score is not None
-                            else top_feat.simple_score or float("-inf")
+                            top_feat.selector_score
+                            if top_feat.selector_score is not None
+                            else (
+                                top_feat.full_v2_score
+                                if top_feat.full_v2_score is not None
+                                else (
+                                    top_feat.phase2_raw_score
+                                    if top_feat.phase2_raw_score is not None
+                                    else top_feat.simple_score or float("-inf")
+                                )
+                            )
                         )
                         best_idx_local = int(top_feat.candidate_pool_index)
                         selected_position_local = int(top_feat.position_id)
                     selection_mode_local = (
-                        "full_v2_split"
-                        if isinstance(top_feat, CandidateFeatures)
+                        "phase3_rerank_split"
+                        if phase3_enabled
+                        and isinstance(top_feat, CandidateFeatures)
                         and str(top_feat.runtime_split_mode) != "off"
-                        else "full_v2"
+                        else ("phase3_rerank" if phase3_enabled else "phase2_raw")
                     )
-                    for rec in eligible_full_records[: int(max(1, children_cap))]:
+                    for rec in eligible_records_local[: int(max(1, children_cap))]:
                         feat_obj = rec.get("feature")
                         feat_row = (
                             dict(feat_obj.__dict__)
@@ -6207,7 +7694,7 @@ def _run_hardcoded_adapt_vqe(
                     best_feat_local.get("simple_score", float("-inf"))
                 )
                 simple_records = sorted(
-                    list(score_eval_local.get("records", [])),
+                    list(phase1_shortlist_records_local),
                     key=lambda rec: (
                         -float(rec.get("simple_score", float("-inf"))),
                         int(rec.get("candidate_pool_index", -1)),
@@ -6342,7 +7829,15 @@ def _run_hardcoded_adapt_vqe(
                             phase1_last_trough_detected=bool(phase1_last_trough_detected_local),
                             phase1_last_trough_probe_triggered=bool(phase1_last_trough_probe_triggered_local),
                             phase1_last_selected_score=phase1_last_selected_score_local,
+                            phase1_last_retained_records=[dict(x) for x in phase1_last_retained_records_local],
                             phase2_last_shortlist_records=[dict(x) for x in phase2_last_shortlist_records_local],
+                            phase2_last_geometric_shortlist_records=[
+                                dict(x) for x in phase2_last_geometric_shortlist_records_local
+                            ],
+                            phase2_last_retained_shortlist_records=[
+                                dict(x) for x in phase2_last_retained_shortlist_records_local
+                            ],
+                            phase2_last_admitted_records=[dict(x) for x in phase2_last_admitted_records_local],
                             phase2_last_batch_selected=bool(phase2_last_batch_selected_local),
                             phase2_last_batch_penalty_total=float(phase2_last_batch_penalty_total_local),
                             phase2_last_optimizer_memory_reused=False,
@@ -6381,7 +7876,15 @@ def _run_hardcoded_adapt_vqe(
                         phase1_last_trough_detected=bool(phase1_last_trough_detected_local),
                         phase1_last_trough_probe_triggered=bool(phase1_last_trough_probe_triggered_local),
                         phase1_last_selected_score=phase1_last_selected_score_local,
+                        phase1_last_retained_records=[dict(x) for x in phase1_last_retained_records_local],
                         phase2_last_shortlist_records=[dict(x) for x in phase2_last_shortlist_records_local],
+                        phase2_last_geometric_shortlist_records=[
+                            dict(x) for x in phase2_last_geometric_shortlist_records_local
+                        ],
+                        phase2_last_retained_shortlist_records=[
+                            dict(x) for x in phase2_last_retained_shortlist_records_local
+                        ],
+                        phase2_last_admitted_records=[dict(x) for x in phase2_last_admitted_records_local],
                         phase2_last_batch_selected=bool(phase2_last_batch_selected_local),
                         phase2_last_batch_penalty_total=float(phase2_last_batch_penalty_total_local),
                         phase2_last_optimizer_memory_reused=False,
@@ -6422,7 +7925,15 @@ def _run_hardcoded_adapt_vqe(
                 phase1_last_trough_detected=bool(phase1_last_trough_detected_local),
                 phase1_last_trough_probe_triggered=bool(phase1_last_trough_probe_triggered_local),
                 phase1_last_selected_score=phase1_last_selected_score_local,
+                phase1_last_retained_records=[dict(x) for x in phase1_last_retained_records_local],
                 phase2_last_shortlist_records=[dict(x) for x in phase2_last_shortlist_records_local],
+                phase2_last_geometric_shortlist_records=[
+                    dict(x) for x in phase2_last_geometric_shortlist_records_local
+                ],
+                phase2_last_retained_shortlist_records=[
+                    dict(x) for x in phase2_last_retained_shortlist_records_local
+                ],
+                phase2_last_admitted_records=[dict(x) for x in phase2_last_admitted_records_local],
                 phase2_last_batch_selected=bool(phase2_last_batch_selected_local),
                 phase2_last_batch_penalty_total=float(phase2_last_batch_penalty_total_local),
                 phase2_last_optimizer_memory_reused=False,
@@ -6826,8 +8337,18 @@ def _run_hardcoded_adapt_vqe(
                 "stage_transition_reason": str(scratch.phase1_stage_transition_reason),
                 "selected_position": int(selected_position_local),
                 "selected_positions": [int(selected_position_local)],
+                "selected_feature_rows": (
+                    [dict(phase1_feature_selected_local)]
+                    if isinstance(phase1_feature_selected_local, Mapping)
+                    else []
+                ),
                 "batch_selected": False,
                 "batch_size": 1,
+                "beam_structural_mode": "stop_or_single_admission",
+                "beam_parent_proposal_family_size": int(len(scratch.proposals)),
+                "beam_parent_stop_terminal_also_materialized": True,
+                "selector_score": _selector_score_value(phase1_feature_selected_local),
+                "selector_burden": _selector_burden_value(phase1_feature_selected_local),
                 "positions_considered": [int(x) for x in scratch.phase1_last_positions_considered],
                 "score_version": (
                     str(phase1_feature_selected_local.get("score_version"))
@@ -6913,6 +8434,12 @@ def _run_hardcoded_adapt_vqe(
                 ),
                 "trough_probe_triggered": bool(scratch.phase1_last_trough_probe_triggered),
                 "trough_detected": bool(scratch.phase1_last_trough_detected),
+                "phase2_raw_score": (
+                    float(phase1_feature_selected_local.get("phase2_raw_score"))
+                    if isinstance(phase1_feature_selected_local, dict)
+                    and phase1_feature_selected_local.get("phase2_raw_score") is not None
+                    else None
+                ),
                 "full_v2_score": (
                     float(phase1_feature_selected_local.get("full_v2_score"))
                     if isinstance(phase1_feature_selected_local, dict)
@@ -6921,6 +8448,14 @@ def _run_hardcoded_adapt_vqe(
                 ),
                 "shortlist_size": int(len(child.phase2_last_shortlist_records)),
                 "shortlisted_records": [dict(x) for x in child.phase2_last_shortlist_records],
+                "scored_surface_size": int(len(child.phase2_last_shortlist_records)),
+                "scored_surface_records": [dict(x) for x in child.phase2_last_shortlist_records],
+                "retained_shortlist_size": int(len(child.phase2_last_retained_shortlist_records)),
+                "retained_shortlist_records": [
+                    dict(x) for x in child.phase2_last_retained_shortlist_records
+                ],
+                "admitted_record_count": int(len(child.phase2_last_admitted_records)),
+                "admitted_records": [dict(x) for x in child.phase2_last_admitted_records],
                 "compatibility_penalty_total": float(child.phase2_last_batch_penalty_total),
                 "optimizer_memory_reused": bool(child.phase2_last_optimizer_memory_reused),
                 "optimizer_memory_source": str(child.phase2_last_optimizer_memory_source),
@@ -7025,9 +8560,52 @@ def _run_hardcoded_adapt_vqe(
             if adapt_inner_optimizer_key == "SPSA":
                 history_row_local["spsa_params"] = dict(adapt_spsa_params)
             child.history.append(history_row_local)
+            child.last_transition_kind = "admission_child"
+            child.last_admission_record_count = int(len(history_row_local.get("selected_feature_rows", [])))
+            child.cumulative_selector_score = float(child.cumulative_selector_score) + float(
+                history_row_local.get("selector_score", 0.0)
+            )
+            child.cumulative_selector_burden = float(child.cumulative_selector_burden) + float(
+                history_row_local.get("selector_burden", 0.0)
+            )
+            child.phase1_stage.record_admission(
+                selector_step=int(depth + 1),
+                energy_before=float(energy_prev_local),
+                energy_after_refit=float(child.energy_current),
+            )
             if isinstance(phase1_feature_selected_local, dict):
                 child.phase1_features_history.append(dict(phase1_feature_selected_local))
             child.phase1_measure_cache.commit([str(selected_primary_term.label)])
+            child.phase1_prune_metadata, child.phase1_prune_first_seen_steps = _transport_prune_metadata_after_admission(
+                metadata_rows=child.phase1_prune_metadata,
+                labels_added=[str(selected_primary_term.label)],
+                positions_added=[int(selected_position_local)],
+                feature_rows_added=(
+                    [dict(phase1_feature_selected_local)]
+                    if isinstance(phase1_feature_selected_local, Mapping)
+                    else [{}]
+                ),
+                selector_step=int(depth + 1),
+                first_seen_steps=child.phase1_prune_first_seen_steps,
+            )
+            prune_controller_snapshot_local = (
+                phase1_feature_selected_local.get("controller_snapshot")
+                if isinstance(phase1_feature_selected_local, Mapping)
+                else None
+            )
+            child.selected_ops, child.theta, child.energy_current, child.phase2_optimizer_memory, child.phase1_prune_metadata, child.phase1_prune_first_seen_steps, child.phase1_last_prune_summary = _execute_live_mature_prune_pass(
+                ops_now=list(child.selected_ops),
+                theta_now=np.asarray(child.theta, dtype=float),
+                energy_now=float(child.energy_current),
+                optimizer_memory_now=dict(child.phase2_optimizer_memory),
+                metadata_rows=child.phase1_prune_metadata,
+                first_seen_steps=child.phase1_prune_first_seen_steps,
+                controller_snapshot=(prune_controller_snapshot_local if isinstance(prune_controller_snapshot_local, Mapping) else None),
+                selector_step=int(depth + 1),
+                admitted_gain=float(max(0.0, float(energy_prev_local) - float(child.energy_current))),
+                history_rows=child.history,
+            )
+            child.history[-1]["post_admission_prune"] = copy.deepcopy(child.phase1_last_prune_summary)
 
             if (
                 drop_policy_enabled
@@ -7089,8 +8667,16 @@ def _run_hardcoded_adapt_vqe(
                 phase1_features_history=[dict(x) for x in phase1_features_history],
                 phase1_stage_events=[dict(x) for x in phase1_stage_events],
                 phase1_measure_cache=phase1_measure_cache.clone(),
+                phase1_last_retained_records=[dict(x) for x in phase1_last_retained_records],
                 phase2_optimizer_memory=copy.deepcopy(phase2_optimizer_memory),
                 phase2_last_shortlist_records=[dict(x) for x in phase2_last_shortlist_records],
+                phase2_last_geometric_shortlist_records=[
+                    dict(x) for x in phase2_last_geometric_shortlist_records
+                ],
+                phase2_last_retained_shortlist_records=[
+                    dict(x) for x in phase2_last_retained_shortlist_records
+                ],
+                phase2_last_admitted_records=[dict(x) for x in phase2_last_admitted_records],
                 phase2_last_batch_selected=bool(phase2_last_batch_selected),
                 phase2_last_batch_penalty_total=float(phase2_last_batch_penalty_total),
                 phase2_last_optimizer_memory_reused=bool(phase2_last_optimizer_memory_reused),
@@ -7103,6 +8689,17 @@ def _run_hardcoded_adapt_vqe(
                 phase3_runtime_split_summary=copy.deepcopy(phase3_runtime_split_summary),
                 phase3_motif_usage=copy.deepcopy(phase3_motif_usage),
                 phase3_rescue_history=[dict(x) for x in phase3_rescue_history],
+                phase1_prune_metadata=[
+                    ScaffoldCoordinateMetadata(**dict(x.__dict__)) for x in phase1_prune_metadata_state
+                ],
+                phase1_prune_first_seen_steps={
+                    str(k): int(v) for k, v in phase1_prune_first_seen_steps.items()
+                },
+                phase1_last_prune_summary=copy.deepcopy(prune_summary),
+                last_transition_kind="root",
+                last_admission_record_count=0,
+                cumulative_selector_score=float(sum(_selector_score_value(row) for row in history)),
+                cumulative_selector_burden=float(sum(_selector_burden_value(row) for row in history)),
                 nfev_total_local=int(nfev_total),
             )
             frontier: list[_BeamBranchState] = [root_branch]
@@ -7112,8 +8709,11 @@ def _run_hardcoded_adapt_vqe(
                     break
                 child_frontier: list[_BeamBranchState] = []
                 round_terminals: list[_BeamBranchState] = []
+                round_admission_children: list[_BeamBranchState] = []
                 parents_expanded_count = 0
                 proposals_selected_count = 0
+                proposal_family_count = 0
+                stop_children_count = 0
                 frontier_input_count = int(len(frontier))
                 for parent in frontier:
                     parents_expanded_count += 1
@@ -7147,8 +8747,20 @@ def _run_hardcoded_adapt_vqe(
                         scratch.phase1_last_trough_probe_triggered
                     )
                     base_branch.phase1_last_selected_score = scratch.phase1_last_selected_score
+                    base_branch.phase1_last_retained_records = [
+                        dict(x) for x in scratch.phase1_last_retained_records
+                    ]
                     base_branch.phase2_last_shortlist_records = [
                         dict(x) for x in scratch.phase2_last_shortlist_records
+                    ]
+                    base_branch.phase2_last_geometric_shortlist_records = [
+                        dict(x) for x in scratch.phase2_last_geometric_shortlist_records
+                    ]
+                    base_branch.phase2_last_retained_shortlist_records = [
+                        dict(x) for x in scratch.phase2_last_retained_shortlist_records
+                    ]
+                    base_branch.phase2_last_admitted_records = [
+                        dict(x) for x in scratch.phase2_last_admitted_records
                     ]
                     base_branch.phase2_last_batch_selected = bool(
                         scratch.phase2_last_batch_selected
@@ -7168,14 +8780,23 @@ def _run_hardcoded_adapt_vqe(
                     base_branch.phase3_runtime_split_summary = copy.deepcopy(
                         scratch.phase3_runtime_split_summary_after_eval
                     )
+                    proposal_family_count += int(len(scratch.proposals))
+                    terminal_branch = _beam_clone_branch(
+                        base_branch,
+                        branch_id=int(base_branch.branch_id),
+                        parent_branch_id=base_branch.parent_branch_id,
+                    )
+                    terminal_branch.last_transition_kind = "stop_child"
+                    terminal_branch.last_admission_record_count = 0
+                    terminal_branch.terminated = True
+                    terminal_branch.stop_reason = (
+                        str(scratch.stop_reason)
+                        if scratch.stop_reason is not None
+                        else ("stop" if scratch.proposals else "empty")
+                    )
+                    round_terminals.append(terminal_branch)
+                    stop_children_count += 1
                     if scratch.stop_reason is not None or not scratch.proposals:
-                        base_branch.terminated = True
-                        base_branch.stop_reason = (
-                            str(scratch.stop_reason)
-                            if scratch.stop_reason is not None
-                            else "eps_grad"
-                        )
-                        round_terminals.append(base_branch)
                         continue
                     selected_plans = scratch.proposals[
                         : int(max(1, beam_policy.children_per_parent_effective))
@@ -7190,6 +8811,7 @@ def _run_hardcoded_adapt_vqe(
                             branch_id=int(beam_branch_counter),
                         )
                         beam_branch_counter += 1
+                        round_admission_children.append(child)
                         if child.terminated:
                             round_terminals.append(child)
                         else:
@@ -7205,12 +8827,22 @@ def _run_hardcoded_adapt_vqe(
                     child_frontier,
                     cap=int(beam_policy.live_branches_effective),
                 )
+                round_prune_audits = [
+                    _compact_prune_audit(branch.phase1_last_prune_summary)
+                    for branch in round_admission_children
+                ]
+                round_prune_reason_counts: dict[str, int] = {}
+                for audit in round_prune_audits:
+                    reason_key = str(audit.get("permission_reason", "unknown"))
+                    round_prune_reason_counts[reason_key] = int(round_prune_reason_counts.get(reason_key, 0)) + 1
                 beam_search_diagnostics["rounds"].append(
                     {
                         "depth": int(depth + 1),
                         "frontier_input_count": int(frontier_input_count),
                         "parents_expanded_count": int(parents_expanded_count),
                         "proposals_selected_count": int(proposals_selected_count),
+                        "proposal_family_count": int(proposal_family_count),
+                        "stop_children_count": int(stop_children_count),
                         "children_materialized_count": int(len(child_frontier) + len(round_terminals)),
                         "active_children_raw_count": int(len(child_frontier)),
                         "active_children_unique_count": int(len(frontier_unique)),
@@ -7219,6 +8851,12 @@ def _run_hardcoded_adapt_vqe(
                         "terminal_pool_candidate_count": int(len(terminal_candidates)),
                         "terminal_pool_unique_count": int(len(terminal_unique)),
                         "terminal_kept_count": int(len(terminals)),
+                        "prune_child_count": int(len(round_admission_children)),
+                        "prune_permission_open_count": int(sum(1 for audit in round_prune_audits if bool(audit.get("permission_open", False)))),
+                        "prune_executed_count": int(sum(1 for audit in round_prune_audits if bool(audit.get("executed", False)))),
+                        "prune_accepted_count": int(sum(int(audit.get("accepted_count", 0) or 0) for audit in round_prune_audits)),
+                        "prune_permission_reason_counts": dict(round_prune_reason_counts),
+                        "prune_audits": [dict(audit) for audit in round_prune_audits],
                     }
                 )
             finalists = _beam_dedup([*frontier, *terminals])
@@ -7240,6 +8878,23 @@ def _run_hardcoded_adapt_vqe(
                         else int(winner_branch.parent_branch_id)
                     ),
                     "winner_stop_reason": str(winner_branch.stop_reason or "max_depth"),
+                    "winner_fingerprint": str(_branch_state_fingerprint(winner_branch)),
+                    "winner_prune_key": dict(_beam_prune_key_payload(winner_branch)),
+                    "winner_prune_summary": _compact_prune_audit(winner_branch.phase1_last_prune_summary),
+                    "winner_branch_summary": _beam_branch_summary(winner_branch),
+                    "winner_branch_state_summary": dict(
+                        _beam_branch_summary(winner_branch).get("branch_state_summary", {})
+                    ),
+                    "winner_optimizer_memory_contract": dict(
+                        _beam_branch_summary(winner_branch).get(
+                            "optimizer_memory_contract_summary",
+                            {},
+                        )
+                    ),
+                    "finalist_summaries": [
+                        _beam_branch_summary(branch)
+                        for branch in sorted(finalists, key=_beam_prune_key)
+                    ],
                 }
             )
             selected_ops = list(winner_branch.selected_ops)
@@ -7265,9 +8920,19 @@ def _run_hardcoded_adapt_vqe(
             phase1_features_history = [dict(x) for x in winner_branch.phase1_features_history]
             phase1_stage_events = [dict(x) for x in winner_branch.phase1_stage_events]
             phase1_measure_cache = winner_branch.phase1_measure_cache.clone()
+            phase1_last_retained_records = [dict(x) for x in winner_branch.phase1_last_retained_records]
             phase2_optimizer_memory = copy.deepcopy(winner_branch.phase2_optimizer_memory)
             phase2_last_shortlist_records = [
                 dict(x) for x in winner_branch.phase2_last_shortlist_records
+            ]
+            phase2_last_geometric_shortlist_records = [
+                dict(x) for x in winner_branch.phase2_last_geometric_shortlist_records
+            ]
+            phase2_last_retained_shortlist_records = [
+                dict(x) for x in winner_branch.phase2_last_retained_shortlist_records
+            ]
+            phase2_last_admitted_records = [
+                dict(x) for x in winner_branch.phase2_last_admitted_records
             ]
             phase2_last_batch_selected = bool(winner_branch.phase2_last_batch_selected)
             phase2_last_batch_penalty_total = float(
@@ -7292,6 +8957,13 @@ def _run_hardcoded_adapt_vqe(
             )
             phase3_motif_usage = copy.deepcopy(winner_branch.phase3_motif_usage)
             phase3_rescue_history = [dict(x) for x in winner_branch.phase3_rescue_history]
+            phase1_prune_metadata_state = [
+                ScaffoldCoordinateMetadata(**dict(x.__dict__)) for x in winner_branch.phase1_prune_metadata
+            ]
+            phase1_prune_first_seen_steps = {
+                str(k): int(v) for k, v in winner_branch.phase1_prune_first_seen_steps.items()
+            }
+            prune_summary = copy.deepcopy(winner_branch.phase1_last_prune_summary)
 
         for depth in ([] if bool(beam_policy.beam_enabled) else range(int(max_depth))):
             iter_t0 = time.perf_counter()
@@ -7412,8 +9084,12 @@ def _run_hardcoded_adapt_vqe(
             phase1_stage_transition_reason = "legacy"
             append_position = int(len(selected_ops))
             phase1_append_best_score = float("-inf")
+            phase1_last_retained_records = []
             phase2_selected_records: list[dict[str, Any]] = []
             phase2_last_shortlist_records = []
+            phase2_last_geometric_shortlist_records = []
+            phase2_last_retained_shortlist_records = []
+            phase2_last_admitted_records = []
             phase2_last_shortlist_eval_records = []
             phase2_last_batch_selected = False
             phase2_last_batch_penalty_total = 0.0
@@ -7722,25 +9398,51 @@ def _run_hardcoded_adapt_vqe(
                 best_idx = int(score_eval["best_idx"])
                 selected_position = int(score_eval["best_position"])
                 selection_mode = _cheap_selection_mode(best_feat, probe=False)
+                controller_pre_snapshot = phase1_stage.pre_step_snapshot(
+                    depth_local=int(depth),
+                    max_depth=int(max_depth),
+                )
+                phase1_shortlist_score_key = _phase1_shortlist_score_key()
+                controller_snapshot = phase1_stage.finalize_step_snapshot(
+                    pre_snapshot=controller_pre_snapshot,
+                    phase1_raw_scores=[
+                        float(
+                            rec.get(
+                                phase1_shortlist_score_key,
+                                rec.get("simple_score", float("-inf")),
+                            )
+                        )
+                        for rec in score_eval.get("records", [])
+                    ],
+                )
+                phase1_records = _attach_controller_snapshot(
+                    list(score_eval.get("records", [])),
+                    snapshot=controller_snapshot,
+                )
+                phase1_shortlisted_records = _phase_shortlist_with_legacy_hook(
+                    phase1_records,
+                    score_key=phase1_shortlist_score_key,
+                    threshold=_controller_threshold(controller_snapshot, "phase1"),
+                    cap=_controller_cap(controller_snapshot, "phase1", phase1_shortlist_size_val),
+                    frontier_ratio=float(phase2_score_cfg.phase2_frontier_ratio),
+                    tie_break_score_key="simple_score",
+                    shortlist_flag="phase1_shortlisted",
+                )
+                phase1_last_retained_records = _candidate_feature_rows(phase1_shortlisted_records)
                 if phase2_enabled:
-                    cheap_records = shortlist_records(
-                        [
-                            {
-                                **dict(rec),
-                                "feature": rec["feature"],
-                                "cheap_score": float(
-                                    rec.get("cheap_score", rec.get("simple_score", float("-inf")))
-                                ),
-                                "simple_score": float(rec.get("simple_score", float("-inf"))),
-                                "candidate_pool_index": int(rec.get("candidate_pool_index", -1)),
-                                "position_id": int(rec.get("position_id", append_position)),
-                            }
-                            for rec in score_eval.get("records", [])
-                        ],
-                        cfg=phase2_score_cfg,
-                        score_key="cheap_score",
-                        tie_break_score_key="cheap_score",
-                    )
+                    cheap_records = [
+                        {
+                            **dict(rec),
+                            "feature": rec.get("feature"),
+                            "cheap_score": float(
+                                rec.get("cheap_score", rec.get("simple_score", float("-inf")))
+                            ),
+                            "simple_score": float(rec.get("simple_score", float("-inf"))),
+                            "candidate_pool_index": int(rec.get("candidate_pool_index", -1)),
+                            "position_id": int(rec.get("position_id", append_position)),
+                        }
+                        for rec in phase1_shortlisted_records
+                    ]
                     full_records: list[dict[str, Any]] = []
                     phase2_scaffold_context_cache: dict[tuple[int, ...], Any] = {}
                     for rec in cheap_records:
@@ -7960,6 +9662,7 @@ def _run_hardcoded_adapt_vqe(
                                     else feat_full.simple_score or float("-inf")
                                 ),
                                 "simple_score": float(feat_full.simple_score or float("-inf")),
+                                "phase2_raw_score": float(feat_full.phase2_raw_score or float("-inf")),
                                 "full_v2_score": float(feat_full.full_v2_score or float("-inf")),
                                 "candidate_pool_index": int(feat_full.candidate_pool_index),
                                 "position_id": int(feat_full.position_id),
@@ -8247,47 +9950,110 @@ def _run_hardcoded_adapt_vqe(
                         if not finite_full_records:
                             stop_reason = "backend_compile_exhausted"
                             break
+                    full_records = _attach_controller_snapshot(
+                        full_records,
+                        snapshot=controller_snapshot,
+                    )
                     phase2_last_shortlist_eval_records = [dict(rec) for rec in full_records]
-                    phase2_last_shortlist_records = [
-                        dict(rec["feature"].__dict__)
-                        for rec in full_records
-                        if isinstance(rec.get("feature"), CandidateFeatures)
-                    ]
+                    phase2_shortlisted_records = _phase_shortlist_with_legacy_hook(
+                        full_records,
+                        score_key="phase2_raw_score",
+                        threshold=_controller_threshold(controller_snapshot, "phase2"),
+                        cap=_controller_cap(controller_snapshot, "phase2", phase2_score_cfg.shortlist_size),
+                        frontier_ratio=float(phase2_score_cfg.phase2_frontier_ratio),
+                        tie_break_score_key="cheap_score",
+                        shortlist_flag="phase2_shortlisted",
+                    )
+                    phase2_last_geometric_shortlist_records = _candidate_feature_rows(
+                        phase2_shortlisted_records
+                    )
+                    phase3_shortlisted_records = (
+                        _phase_shortlist_with_legacy_hook(
+                            phase2_shortlisted_records,
+                            score_key="full_v2_score",
+                            threshold=_controller_threshold(controller_snapshot, "phase3"),
+                            cap=_controller_cap(controller_snapshot, "phase3", phase2_score_cfg.shortlist_size),
+                            frontier_ratio=float(phase2_score_cfg.phase3_frontier_ratio),
+                            tie_break_score_key="phase2_raw_score",
+                            shortlist_flag="phase3_shortlisted",
+                        )
+                        if phase3_enabled
+                        else list(phase2_shortlisted_records)
+                    )
+                    phase2_last_shortlist_records = _candidate_feature_rows(full_records)
+                    phase2_last_retained_shortlist_records = _candidate_feature_rows(
+                        phase3_shortlisted_records if phase3_enabled else phase2_shortlisted_records
+                    )
                     if full_records:
                         if bool(phase2_enable_batching) and str(stage_name) == "core":
-                            compat_oracle = CompatibilityPenaltyOracle(
-                                cfg=phase2_score_cfg,
-                                psi_state=np.asarray(psi_current, dtype=complex),
-                                compiled_cache=phase2_compiled_term_cache,
-                                pauli_action_cache=pauli_action_cache,
-                            )
-                            phase2_selected_records, phase2_last_batch_penalty_total = greedy_batch_select(
-                                full_records,
-                                compat_oracle,
-                                phase2_score_cfg,
-                                tie_break_score_key="cheap_score",
-                            )
+                            if phase3_enabled:
+                                batch_source_records = (
+                                    phase3_shortlisted_records
+                                    if phase3_shortlisted_records
+                                    else [dict(full_records[0])]
+                                )
+                                phase2_selected_records, batch_summary = reduced_plane_batch_select(
+                                    batch_source_records,
+                                    cfg=phase2_score_cfg,
+                                    selected_ops=list(selected_ops),
+                                    theta=np.asarray(theta_logical_current, dtype=float),
+                                    psi_ref=np.asarray(psi_ref, dtype=complex),
+                                    psi_state=np.asarray(psi_current, dtype=complex),
+                                    h_compiled=h_compiled,
+                                    novelty_oracle=phase2_novelty_oracle,
+                                    curvature_oracle=phase2_curvature_oracle,
+                                    compiled_cache=phase2_compiled_term_cache,
+                                    pauli_action_cache=pauli_action_cache,
+                                    tie_break_score_key="phase2_raw_score",
+                                )
+                                phase2_last_batch_penalty_total = float(
+                                    batch_summary.get("additivity_defect", 0.0)
+                                )
+                                if not phase2_selected_records:
+                                    phase2_selected_records = [dict(full_records[0])]
+                            else:
+                                compat_oracle = CompatibilityPenaltyOracle(
+                                    cfg=phase2_score_cfg,
+                                    psi_state=np.asarray(psi_current, dtype=complex),
+                                    compiled_cache=phase2_compiled_term_cache,
+                                    pauli_action_cache=pauli_action_cache,
+                                )
+                                phase2_selected_records, phase2_last_batch_penalty_total = greedy_batch_select(
+                                    full_records,
+                                    compat_oracle,
+                                    phase2_score_cfg,
+                                    tie_break_score_key="cheap_score",
+                                )
                         else:
                             phase2_selected_records = [dict(full_records[0])]
                         phase2_selected_records = sorted(phase2_selected_records, key=_phase2_record_sort_key)
                         phase2_last_batch_selected = bool(len(phase2_selected_records) > 1)
+                        phase2_last_admitted_records = _candidate_feature_rows(phase2_selected_records)
                         top_feat = phase2_selected_records[0].get("feature")
                         if isinstance(top_feat, CandidateFeatures):
                             phase1_feature_selected = dict(top_feat.__dict__)
                             phase1_feature_selected["trough_detected"] = bool(trough)
                             phase1_last_selected_score = float(
-                                top_feat.full_v2_score
-                                if top_feat.full_v2_score is not None
+                                top_feat.selector_score
+                                if top_feat.selector_score is not None
                                 else (
-                                    top_feat.cheap_score
-                                    if top_feat.cheap_score is not None
-                                    else top_feat.simple_score or float("-inf")
+                                    top_feat.full_v2_score
+                                    if top_feat.full_v2_score is not None
+                                    else (
+                                        top_feat.phase2_raw_score
+                                        if top_feat.phase2_raw_score is not None
+                                        else top_feat.simple_score or float("-inf")
+                                    )
                                 )
                             )
                             best_idx = int(top_feat.candidate_pool_index)
                             selected_position = int(top_feat.position_id)
                             split_selected = bool(str(top_feat.runtime_split_mode) != "off")
-                            selection_mode = "full_v2_split" if split_selected else "full_v2"
+                            selection_mode = (
+                                "phase3_rerank_split"
+                                if phase3_enabled and split_selected
+                                else ("phase3_rerank" if phase3_enabled else "phase2_raw")
+                            )
                     elif best_feat is not None:
                         best_feat["trough_detected"] = bool(trough)
                         phase1_feature_selected = dict(best_feat)
@@ -9236,6 +11002,9 @@ def _run_hardcoded_adapt_vqe(
                         "selected_positions": [int(x) for x in selected_batch_positions],
                         "batch_selected": bool(phase2_enabled and phase2_last_batch_selected),
                         "batch_size": int(len(selected_batch_labels)),
+                        "selector_score": _selector_score_value(phase1_feature_selected),
+                        "selector_burden": _selector_burden_value(phase1_feature_selected),
+                        "selected_feature_rows": [dict(x) for x in selected_batch_records_for_history],
                         "positions_considered": [int(x) for x in phase1_last_positions_considered],
                         "score_version": (
                             str(phase1_feature_selected.get("score_version"))
@@ -9389,6 +11158,12 @@ def _run_hardcoded_adapt_vqe(
                 if phase2_enabled:
                     history_row.update(
                         {
+                            "phase2_raw_score": (
+                                float(phase1_feature_selected.get("phase2_raw_score"))
+                                if isinstance(phase1_feature_selected, dict)
+                                and phase1_feature_selected.get("phase2_raw_score") is not None
+                                else None
+                            ),
                             "full_v2_score": (
                                 float(phase1_feature_selected.get("full_v2_score"))
                                 if isinstance(phase1_feature_selected, dict)
@@ -9397,6 +11172,14 @@ def _run_hardcoded_adapt_vqe(
                             ),
                             "shortlist_size": int(len(phase2_last_shortlist_records)),
                             "shortlisted_records": [dict(x) for x in phase2_last_shortlist_records],
+                            "scored_surface_size": int(len(phase2_last_shortlist_records)),
+                            "scored_surface_records": [dict(x) for x in phase2_last_shortlist_records],
+                            "retained_shortlist_size": int(len(phase2_last_retained_shortlist_records)),
+                            "retained_shortlist_records": [
+                                dict(x) for x in phase2_last_retained_shortlist_records
+                            ],
+                            "admitted_record_count": int(len(phase2_last_admitted_records)),
+                            "admitted_records": [dict(x) for x in phase2_last_admitted_records],
                             "compatibility_penalty_total": float(phase2_last_batch_penalty_total),
                             "optimizer_memory_reused": bool(phase2_last_optimizer_memory_reused),
                             "optimizer_memory_source": str(phase2_last_optimizer_memory_source),
@@ -9528,6 +11311,11 @@ def _run_hardcoded_adapt_vqe(
                 history_row["spsa_params"] = dict(adapt_spsa_params)
             history.append(history_row)
             if phase1_enabled:
+                phase1_stage.record_admission(
+                    selector_step=int(depth + 1),
+                    energy_before=float(energy_prev),
+                    energy_after_refit=float(energy_current),
+                )
                 if selected_batch_records_for_history:
                     for rec in selected_batch_records_for_history:
                         phase1_features_history.append(dict(rec))
@@ -9538,6 +11326,40 @@ def _run_hardcoded_adapt_vqe(
                     if selected_batch_measurement_keys
                     else measurement_group_keys_for_term(pool[int(best_idx)])
                 )
+                phase1_prune_metadata_state, phase1_prune_first_seen_steps = _transport_prune_metadata_after_admission(
+                    metadata_rows=phase1_prune_metadata_state,
+                    labels_added=[str(x) for x in selected_batch_labels],
+                    positions_added=[int(x) for x in selected_batch_positions],
+                    feature_rows_added=[
+                        dict(x) if isinstance(x, Mapping) else {}
+                        for x in selected_batch_records_for_history
+                    ],
+                    selector_step=int(depth + 1),
+                    first_seen_steps=phase1_prune_first_seen_steps,
+                )
+                prune_controller_snapshot = None
+                if selected_batch_records_for_history and isinstance(selected_batch_records_for_history[0], Mapping):
+                    prune_controller_snapshot = selected_batch_records_for_history[0].get("controller_snapshot")
+                elif isinstance(phase1_feature_selected, Mapping):
+                    prune_controller_snapshot = phase1_feature_selected.get("controller_snapshot")
+                selected_ops, theta, energy_current, phase2_optimizer_memory, phase1_prune_metadata_state, phase1_prune_first_seen_steps, prune_summary = _execute_live_mature_prune_pass(
+                    ops_now=list(selected_ops),
+                    theta_now=np.asarray(theta, dtype=float),
+                    energy_now=float(energy_current),
+                    optimizer_memory_now=dict(phase2_optimizer_memory),
+                    metadata_rows=phase1_prune_metadata_state,
+                    first_seen_steps=phase1_prune_first_seen_steps,
+                    controller_snapshot=(prune_controller_snapshot if isinstance(prune_controller_snapshot, Mapping) else None),
+                    selector_step=int(depth + 1),
+                    admitted_gain=float(max(0.0, float(energy_prev) - float(energy_current))),
+                    history_rows=history,
+                )
+                history[-1]["post_admission_prune"] = copy.deepcopy(prune_summary)
+                selected_layout = _build_selected_layout(selected_ops)
+                if adapt_state_backend_key == "compiled":
+                    selected_executor = _build_compiled_executor(selected_ops) if len(selected_ops) > 0 else None
+                else:
+                    selected_executor = None
 
             _ai_log(
                 "hardcoded_adapt_iter_done",
@@ -9823,19 +11645,12 @@ def _run_hardcoded_adapt_vqe(
                     nfev=int(final_nfev),
                 )
 
-        prune_summary: dict[str, Any] = {
-            "enabled": bool(phase1_enabled and phase1_prune_enabled),
-            "executed": False,
-            "rolled_back": False,
-            "accepted_count": 0,
-            "candidate_count": 0,
-            "decisions": [],
-            "energy_before": float(energy_current),
-            "energy_after_prune": float(energy_current),
-            "energy_after_post_refit": float(energy_current),
-            "post_refit_executed": False,
-        }
-        if phase1_enabled and bool(phase1_prune_enabled) and int(len(selected_ops)) > 1:
+        prune_summary = (
+            dict(prune_summary)
+            if isinstance(prune_summary, Mapping)
+            else _default_prune_summary(reason="final_checkpoint", energy=float(energy_current))
+        )
+        if (not phase1_prune_live_mode) and phase1_enabled and bool(phase1_prune_enabled) and int(len(selected_ops)) > 1:
             phase1_scaffold_pre_prune = {
                 "operators": [str(op.label) for op in selected_ops],
                 "optimal_point": [float(x) for x in np.asarray(theta, dtype=float).tolist()],
@@ -9843,9 +11658,18 @@ def _run_hardcoded_adapt_vqe(
             }
             prune_cfg = PruneConfig(
                 max_candidates=int(max(1, phase1_prune_max_candidates)),
-                min_candidates=2,
+                min_candidates=1,
                 fraction_candidates=float(max(0.0, phase1_prune_fraction)),
                 max_regression=float(max(0.0, phase1_prune_max_regression)),
+                retained_gain_ratio=0.5,
+                protect_steps=2,
+                stale_age=2,
+                stagnation_threshold=0.0,
+                small_theta_abs=1e-3,
+                small_theta_relative=0.5,
+                cooldown_steps=2,
+                local_window_size=4,
+                old_fraction=0.25,
             )
 
             def _reconstruct_phase1_proxy_benefits() -> list[float]:
@@ -9857,18 +11681,163 @@ def _run_hardcoded_adapt_vqe(
                         continue
                     pos = int(row.get("selected_position", len(benefits)))
                     pos = max(0, min(len(benefits), pos))
-                    benefit = row.get("full_v2_score", None)
+                    benefit = row.get("selector_score", None)
+                    burden = row.get("selector_burden", 0.0)
+                    if benefit is None:
+                        benefit = row.get("full_v2_score", None)
                     if benefit is None:
                         benefit = row.get("cheap_score", row.get("simple_score", None))
                     if benefit is None:
                         benefit = row.get("metric_proxy", row.get("selected_grad_abs", float("inf")))
-                    benefit_f = float(benefit)
+                    benefit_f = float(benefit) / float(1.0 + max(0.0, float(burden or 0.0)))
                     if not math.isfinite(benefit_f):
                         benefit_f = float("inf")
                     benefits.insert(pos, benefit_f)
                 while len(benefits) < int(len(selected_ops)):
                     benefits.append(float("inf"))
                 return [float(x) for x in benefits[: int(len(selected_ops))]]
+
+            def _fallback_prune_metadata(
+                *,
+                label: str,
+                theta_value: float,
+                index: int,
+            ) -> ScaffoldCoordinateMetadata:
+                theta_abs = abs(float(theta_value))
+                return ScaffoldCoordinateMetadata(
+                    candidate_label=str(label),
+                    generator_id=None,
+                    admission_step=0,
+                    first_seen_step=0,
+                    selector_score=0.0,
+                    selector_burden=0.0,
+                    cooldown_remaining=0,
+                    cumulative_abs_motion=0.0,
+                    recent_abs_motion=0.0,
+                    stagnation_score=float(1.0 / (1.0 + theta_abs + 1e-12)),
+                )
+
+            def _reconstruct_prune_coordinate_metadata(
+                *,
+                labels_now: list[str],
+                theta_logical_now: np.ndarray,
+            ) -> list[ScaffoldCoordinateMetadata]:
+                entries: list[ScaffoldCoordinateMetadata] = []
+                first_seen_by_label: dict[str, int] = {}
+                for step_idx, row in enumerate(history, start=1):
+                    if not isinstance(row, dict):
+                        continue
+                    if row.get("continuation_mode") not in {"phase1_v1", "phase2_v1", "phase3_v1"}:
+                        continue
+                    labels_step_raw = row.get("selected_ops")
+                    labels_step = (
+                        [str(x) for x in labels_step_raw]
+                        if isinstance(labels_step_raw, Sequence) and not isinstance(labels_step_raw, (str, bytes))
+                        else [str(row.get("selected_op", ""))]
+                    )
+                    positions_step_raw = row.get("selected_positions")
+                    positions_step = (
+                        [int(x) for x in positions_step_raw]
+                        if isinstance(positions_step_raw, Sequence) and not isinstance(positions_step_raw, (str, bytes))
+                        else [int(row.get("selected_position", len(entries)))]
+                    )
+                    feature_rows_raw = row.get("selected_feature_rows")
+                    feature_rows = (
+                        list(feature_rows_raw)
+                        if isinstance(feature_rows_raw, Sequence) and not isinstance(feature_rows_raw, (str, bytes))
+                        else []
+                    )
+                    original_positions_seen: list[int] = []
+                    for item_idx, label_step in enumerate(labels_step):
+                        pos_orig = (
+                            int(positions_step[item_idx])
+                            if item_idx < len(positions_step)
+                            else int(len(entries))
+                        )
+                        pos_eff = int(
+                            pos_orig + sum(1 for prev in original_positions_seen if int(prev) <= int(pos_orig))
+                        )
+                        feature_row = feature_rows[item_idx] if item_idx < len(feature_rows) else row
+                        feature_mapping = feature_row if isinstance(feature_row, Mapping) else row
+                        first_seen_step = int(first_seen_by_label.setdefault(str(label_step), int(step_idx)))
+                        meta = ScaffoldCoordinateMetadata(
+                            candidate_label=str(label_step),
+                            generator_id=(
+                                str(feature_mapping.get("generator_id"))
+                                if feature_mapping.get("generator_id") is not None
+                                else None
+                            ),
+                            admission_step=int(step_idx),
+                            first_seen_step=int(first_seen_step),
+                            selector_score=float(_selector_score_value(feature_mapping)),
+                            selector_burden=float(_selector_burden_value(feature_mapping)),
+                            cooldown_remaining=0,
+                            cumulative_abs_motion=0.0,
+                            recent_abs_motion=0.0,
+                            stagnation_score=0.0,
+                        )
+                        pos_clamped = max(0, min(int(pos_eff), len(entries)))
+                        entries.insert(pos_clamped, meta)
+                        original_positions_seen.append(int(pos_orig))
+                aligned: list[ScaffoldCoordinateMetadata] = []
+                cursor = 0
+                theta_vals = np.asarray(theta_logical_now, dtype=float).reshape(-1)
+                theta_scale = float(np.median(np.abs(theta_vals))) if theta_vals.size > 0 else 0.0
+                theta_scale = float(max(theta_scale, 1e-12))
+                for idx_now, label_now in enumerate(labels_now):
+                    match_idx: int | None = None
+                    for entry_idx in range(cursor, len(entries)):
+                        if str(entries[entry_idx].candidate_label) == str(label_now):
+                            match_idx = int(entry_idx)
+                            break
+                    if match_idx is None:
+                        base_meta = _fallback_prune_metadata(
+                            label=str(label_now),
+                            theta_value=(float(theta_vals[idx_now]) if idx_now < int(theta_vals.size) else 0.0),
+                            index=int(idx_now),
+                        )
+                    else:
+                        cursor = int(match_idx + 1)
+                        base_meta = entries[int(match_idx)]
+                    theta_abs = abs(float(theta_vals[idx_now])) if idx_now < int(theta_vals.size) else 0.0
+                    stagnation_score = float(max(0.0, 1.0 - theta_abs / theta_scale))
+                    aligned.append(
+                        ScaffoldCoordinateMetadata(
+                            **{
+                                **base_meta.__dict__,
+                                "stagnation_score": float(stagnation_score),
+                            }
+                        )
+                    )
+                return aligned
+
+            def _prune_refit_window_indices(
+                *,
+                removal_index: int,
+                metadata_rows: list[ScaffoldCoordinateMetadata],
+                n_plus: int,
+            ) -> list[int]:
+                n_after = int(max(0, n_plus - 1))
+                if n_after <= 0:
+                    return []
+                omega_eff = int(max(1, min(int(prune_cfg.local_window_size), n_after)))
+                local_start = int(max(0, min(int(removal_index) - (omega_eff - 1) // 2, n_after - omega_eff)))
+                local_window = list(range(int(local_start), int(local_start + omega_eff)))
+                nonlocal_indices = [idx for idx in range(n_after) if idx not in set(local_window)]
+                oldest_count = int(math.ceil(float(prune_cfg.old_fraction) * float(len(nonlocal_indices))))
+                oldest_count = int(max(0, min(oldest_count, len(nonlocal_indices))))
+                if oldest_count > 0:
+                    oldest_tail = sorted(
+                        nonlocal_indices,
+                        key=lambda idx: (
+                            int(metadata_rows[idx].admission_step),
+                            int(metadata_rows[idx].first_seen_step),
+                            str(metadata_rows[idx].candidate_label),
+                        ),
+                    )[:oldest_count]
+                else:
+                    oldest_tail = []
+                return sorted({int(x) for x in local_window + oldest_tail})
 
             pre_prune_ops = list(selected_ops)
             pre_prune_layout = _build_selected_layout(pre_prune_ops)
@@ -9884,21 +11853,46 @@ def _run_hardcoded_adapt_vqe(
                 else []
             )
             prune_proxy_benefit = _reconstruct_phase1_proxy_benefits()
+            theta_logical_prune_current = np.asarray(_logical_theta_alias(theta, selected_layout), dtype=float)
+            prune_metadata = _reconstruct_prune_coordinate_metadata(
+                labels_now=[str(op.label) for op in selected_ops],
+                theta_logical_now=np.asarray(theta_logical_prune_current, dtype=float),
+            )
             candidate_indices = rank_prune_candidates(
-                theta=np.asarray(_logical_theta_alias(theta, selected_layout), dtype=float),
+                theta=np.asarray(theta_logical_prune_current, dtype=float),
                 labels=[str(op.label) for op in selected_ops],
                 marginal_proxy_benefit=list(prune_proxy_benefit),
                 max_candidates=int(prune_cfg.max_candidates),
                 min_candidates=int(prune_cfg.min_candidates),
                 fraction_candidates=float(prune_cfg.fraction_candidates),
+                selector_burden=[float(meta.selector_burden) for meta in prune_metadata],
+                admission_steps=[int(meta.admission_step) for meta in prune_metadata],
+                first_seen_steps=[int(meta.first_seen_step) for meta in prune_metadata],
+                cooldown_remaining=[int(meta.cooldown_remaining) for meta in prune_metadata],
+                stagnation_scores=[float(meta.stagnation_score) for meta in prune_metadata],
+                current_step=int(len(history)),
+                protect_steps=int(prune_cfg.protect_steps),
+                stale_age=int(prune_cfg.stale_age),
+                stagnation_threshold=float(prune_cfg.stagnation_threshold),
+                small_theta_abs=float(prune_cfg.small_theta_abs),
+                small_theta_relative=float(prune_cfg.small_theta_relative),
             )
+            prune_summary["permission_open"] = bool(int(len(history)) >= int(prune_cfg.stale_age))
             prune_summary["candidate_count"] = int(len(candidate_indices))
             prune_summary["marginal_proxy_benefit"] = [float(x) for x in prune_proxy_benefit]
+            prune_summary["probe_indices"] = [int(x) for x in candidate_indices]
+            prune_summary["probe_labels"] = [str(selected_ops[int(i)].label) for i in candidate_indices]
+            prune_summary["metadata"] = [dict(meta.__dict__) for meta in prune_metadata]
 
-            def _refit_given_ops(ops_refit: list[AnsatzTerm], theta0: np.ndarray) -> tuple[np.ndarray, float]:
+            def _refit_given_ops(
+                ops_refit: list[AnsatzTerm],
+                theta0: np.ndarray,
+                active_logical_indices: list[int] | None = None,
+            ) -> tuple[np.ndarray, float]:
                 nonlocal phase2_optimizer_memory
                 if len(ops_refit) == 0:
                     return np.zeros(0, dtype=float), float(energy_current)
+                layout_refit = _build_selected_layout(ops_refit)
                 executor_refit = _build_compiled_executor(ops_refit) if adapt_state_backend_key == "compiled" else None
 
                 def _obj_prune(x: np.ndarray) -> float:
@@ -9906,23 +11900,37 @@ def _run_hardcoded_adapt_vqe(
                         ops_now=ops_refit,
                         theta_now=np.asarray(x, dtype=float),
                         executor_now=executor_refit,
-                        parameter_layout_now=_build_selected_layout(ops_refit),
+                        parameter_layout_now=layout_refit,
                         objective_stage="prune_refit",
                         depth_marker=int(len(history)),
                     )
 
-                x0 = np.asarray(theta0, dtype=float).reshape(-1)
+                theta_full = np.asarray(theta0, dtype=float).reshape(-1)
+                if active_logical_indices is None:
+                    active_runtime_indices = list(range(int(layout_refit.runtime_parameter_count)))
+                else:
+                    active_runtime_indices = runtime_indices_for_logical_indices(
+                        layout_refit,
+                        [int(i) for i in active_logical_indices],
+                    )
+                if not active_runtime_indices:
+                    return np.asarray(theta_full, dtype=float), float(_obj_prune(theta_full))
+                _obj_prune_reduced, opt_x0 = _make_reduced_objective(
+                    np.asarray(theta_full, dtype=float),
+                    active_runtime_indices,
+                    _obj_prune,
+                )
                 if adapt_inner_optimizer_key == "SPSA":
                     refit_memory = None
                     if phase2_enabled:
                         refit_memory = phase2_memory_adapter.select_active(
                             phase2_optimizer_memory,
-                            active_indices=list(range(int(x0.size))),
+                            active_indices=list(active_runtime_indices),
                             source="adapt.post_prune_refit.active_subset",
                         )
                     res = spsa_minimize(
-                        fun=_obj_prune,
-                        x0=x0,
+                        fun=_obj_prune_reduced,
+                        x0=opt_x0,
                         maxiter=int(max(25, min(int(maxiter), 120))),
                         seed=int(seed) + 700000 + int(len(ops_refit)),
                         a=float(adapt_spsa_a),
@@ -9939,28 +11947,43 @@ def _run_hardcoded_adapt_vqe(
                         refresh_every=0,
                         precondition_mode=("diag_rms_grad" if phase2_enabled else "none"),
                     )
+                    theta_out = np.asarray(theta_full, dtype=float).copy()
+                    if len(active_runtime_indices) == int(theta_out.size):
+                        theta_out = np.asarray(res.x, dtype=float)
+                    else:
+                        result_x = np.asarray(res.x, dtype=float).ravel()
+                        for k, idx_active in enumerate(active_runtime_indices):
+                            theta_out[int(idx_active)] = float(result_x[k])
+                    energy_out = float(res.fun)
                     if phase2_enabled:
                         phase2_optimizer_memory = phase2_memory_adapter.merge_active(
                             phase2_optimizer_memory,
-                            active_indices=list(range(int(x0.size))),
+                            active_indices=list(active_runtime_indices),
                             active_state=phase2_memory_adapter.from_result(
                                 res,
                                 method=str(adapt_inner_optimizer_key),
-                                parameter_count=int(x0.size),
+                                parameter_count=int(len(active_runtime_indices)),
                                 source="adapt.post_prune_refit.result",
                             ),
                             source="adapt.post_prune_refit.merge",
                         )
-                    return np.asarray(res.x, dtype=float), float(res.fun)
+                    return np.asarray(theta_out, dtype=float), float(energy_out)
                 res = _run_scipy_adapt_optimizer(
                     method_key=str(adapt_inner_optimizer_key),
-                    objective=_obj_prune,
-                    x0=x0,
+                    objective=_obj_prune_reduced,
+                    x0=opt_x0,
                     maxiter=int(max(25, min(int(maxiter), 120))),
                     context_label="prune refit",
                     scipy_minimize_fn=scipy_minimize,
                 )
-                return np.asarray(res.x, dtype=float), float(res.fun)
+                theta_out = np.asarray(theta_full, dtype=float).copy()
+                if len(active_runtime_indices) == int(theta_out.size):
+                    theta_out = np.asarray(res.x, dtype=float)
+                else:
+                    result_x = np.asarray(res.x, dtype=float).ravel()
+                    for k, idx_active in enumerate(active_runtime_indices):
+                        theta_out[int(idx_active)] = float(result_x[k])
+                return np.asarray(theta_out, dtype=float), float(res.fun)
 
             def _ops_from_labels(labels_cur: list[str]) -> list[AnsatzTerm]:
                 buckets: dict[str, list[AnsatzTerm]] = {}
@@ -9975,6 +11998,107 @@ def _run_hardcoded_adapt_vqe(
                     rebuilt.append(buckets[key_lbl].pop(0))
                 return rebuilt
 
+            def _frozen_ablation_energy(
+                idx_remove: int,
+                theta_cur: np.ndarray,
+                labels_cur: list[str],
+            ) -> tuple[float, np.ndarray]:
+                ops_current = _ops_from_labels(list(labels_cur))
+                layout_current = _build_selected_layout(ops_current)
+                runtime_remove_indices = runtime_indices_for_logical_indices(layout_current, [int(idx_remove)])
+                ops_trial = list(ops_current)
+                del ops_trial[int(idx_remove)]
+                theta_trial0 = np.delete(np.asarray(theta_cur, dtype=float), runtime_remove_indices)
+                executor_trial = (
+                    _build_compiled_executor(ops_trial)
+                    if adapt_state_backend_key == "compiled" and len(ops_trial) > 0
+                    else None
+                )
+                energy_trial = _evaluate_selected_energy_objective(
+                    ops_now=ops_trial,
+                    theta_now=np.asarray(theta_trial0, dtype=float),
+                    executor_now=executor_trial,
+                    parameter_layout_now=_build_selected_layout(ops_trial),
+                    objective_stage="prune_frozen",
+                    depth_marker=int(len(history)),
+                )
+                return float(energy_trial), np.asarray(theta_trial0, dtype=float)
+
+            best_candidate_index: int | None = None
+            best_candidate_label: str | None = None
+            best_trial_window_logical: list[int] = []
+            best_frozen_score = float("inf")
+            best_frozen_regression = float("inf")
+            prune_frozen_rows: list[dict[str, Any]] = []
+            for idx_probe in candidate_indices:
+                frozen_energy, _theta_frozen = _frozen_ablation_energy(
+                    int(idx_probe),
+                    np.asarray(theta, dtype=float),
+                    [str(op.label) for op in selected_ops],
+                )
+                frozen_regression = float(frozen_energy - pre_prune_energy)
+                selector_burden = (
+                    float(prune_metadata[int(idx_probe)].selector_burden)
+                    if int(idx_probe) < len(prune_metadata)
+                    else 0.0
+                )
+                cheap_score_prune = cheap_prune_score(
+                    frozen_regression=float(frozen_regression),
+                    selector_burden=float(selector_burden),
+                )
+                metadata_after = [
+                    meta for meta_idx, meta in enumerate(prune_metadata)
+                    if int(meta_idx) != int(idx_probe)
+                ]
+                prune_window_logical = _prune_refit_window_indices(
+                    removal_index=int(idx_probe),
+                    metadata_rows=list(metadata_after),
+                    n_plus=int(len(pre_prune_ops)),
+                )
+                prune_frozen_rows.append(
+                    {
+                        "index": int(idx_probe),
+                        "label": str(selected_ops[int(idx_probe)].label),
+                        "frozen_energy": float(frozen_energy),
+                        "frozen_regression": float(frozen_regression),
+                        "selector_burden": float(selector_burden),
+                        "cheap_prune_score": float(cheap_score_prune),
+                        "refit_window_indices": [int(x) for x in prune_window_logical],
+                    }
+                )
+                candidate_key = (
+                    float(cheap_score_prune),
+                    float(frozen_regression),
+                    int(idx_probe),
+                    str(selected_ops[int(idx_probe)].label),
+                )
+                incumbent_key = (
+                    float(best_frozen_score),
+                    float(best_frozen_regression),
+                    int(best_candidate_index if best_candidate_index is not None else 10**9),
+                    str(best_candidate_label or ""),
+                )
+                if best_candidate_index is None or candidate_key < incumbent_key:
+                    best_candidate_index = int(idx_probe)
+                    best_candidate_label = str(selected_ops[int(idx_probe)].label)
+                    best_trial_window_logical = [int(x) for x in prune_window_logical]
+                    best_frozen_score = float(cheap_score_prune)
+                    best_frozen_regression = float(frozen_regression)
+
+            prune_summary["frozen_scores"] = [dict(x) for x in prune_frozen_rows]
+            prune_summary["selected_index"] = (
+                int(best_candidate_index) if best_candidate_index is not None else None
+            )
+            prune_summary["selected_label"] = (
+                str(best_candidate_label) if best_candidate_label is not None else None
+            )
+            retained_reference_energy = (
+                float(history[-1].get("energy_before_opt", pre_prune_energy))
+                if history and isinstance(history[-1], Mapping)
+                else float(pre_prune_energy)
+            )
+            admitted_gain = float(max(0.0, retained_reference_energy - float(pre_prune_energy)))
+
             def _eval_with_removal(
                 idx_remove: int,
                 theta_cur: np.ndarray,
@@ -9986,18 +12110,60 @@ def _run_hardcoded_adapt_vqe(
                 ops_trial = list(ops_current)
                 del ops_trial[int(idx_remove)]
                 theta_trial0 = np.delete(np.asarray(theta_cur, dtype=float), runtime_remove_indices)
-                theta_trial_opt, e_trial = _refit_given_ops(ops_trial, theta_trial0)
+                theta_trial_opt, e_trial = _refit_given_ops(
+                    ops_trial,
+                    theta_trial0,
+                    active_logical_indices=[int(x) for x in best_trial_window_logical],
+                )
                 return float(e_trial), np.asarray(theta_trial_opt, dtype=float)
 
             theta_pruned, labels_pruned, prune_decisions, energy_after_prune = apply_pruning(
                 theta=np.asarray(theta, dtype=float),
                 labels=[str(op.label) for op in selected_ops],
-                candidate_indices=[int(i) for i in candidate_indices],
+                candidate_indices=([int(best_candidate_index)] if best_candidate_index is not None else []),
                 eval_with_removal=_eval_with_removal,
                 energy_before=float(energy_current),
                 max_regression=float(prune_cfg.max_regression),
+                retained_reference_energy=float(retained_reference_energy),
+                admitted_gain=float(admitted_gain),
+                retained_gain_ratio=float(prune_cfg.retained_gain_ratio),
             )
             accepted_count = int(sum(1 for d in prune_decisions if bool(d.accepted)))
+            retained_gain_after_prune = (
+                float(retained_reference_energy - float(energy_after_prune))
+                if best_candidate_index is not None
+                else None
+            )
+            prune_summary["trial"] = dict(
+                MaturePruneTrial(
+                    selector_step=int(len(history)),
+                    gate_open=bool(prune_summary.get("permission_open", False)),
+                    probe_indices=[int(x) for x in candidate_indices],
+                    selected_index=(int(best_candidate_index) if best_candidate_index is not None else None),
+                    selected_label=(str(best_candidate_label) if best_candidate_label is not None else None),
+                    frozen_regression=(
+                        float(best_frozen_regression)
+                        if best_candidate_index is not None and math.isfinite(best_frozen_regression)
+                        else None
+                    ),
+                    refit_energy=(
+                        float(energy_after_prune)
+                        if best_candidate_index is not None
+                        else None
+                    ),
+                    retained_gain=(
+                        float(retained_gain_after_prune)
+                        if retained_gain_after_prune is not None
+                        else None
+                    ),
+                    accepted=bool(accepted_count > 0),
+                    rollback_reason=(
+                        str(prune_decisions[0].reason)
+                        if prune_decisions and not bool(prune_decisions[0].accepted)
+                        else None
+                    ),
+                ).__dict__
+            )
             if accepted_count > 0:
                 accepted_remove_indices = [int(d.index) for d in prune_decisions if bool(d.accepted)]
                 accepted_runtime_remove_indices = runtime_indices_for_logical_indices(
@@ -10028,17 +12194,6 @@ def _run_hardcoded_adapt_vqe(
                     selected_executor = _build_compiled_executor(selected_ops) if len(selected_ops) > 0 else None
                 else:
                     selected_executor = None
-                theta_post, e_post = post_prune_refit(
-                    theta=np.asarray(theta, dtype=float),
-                    refit_fn=lambda x: _refit_given_ops(list(selected_ops), np.asarray(x, dtype=float)),
-                )
-                theta = np.asarray(theta_post, dtype=float)
-                energy_current = float(e_post)
-                if adapt_state_backend_key == "compiled":
-                    selected_executor = _build_compiled_executor(selected_ops) if len(selected_ops) > 0 else None
-                else:
-                    selected_executor = None
-                prune_summary["post_refit_executed"] = True
                 if phase3_enabled and str(phase3_symmetry_mitigation_mode_key) != "off":
                     post_prune_generator_meta = selected_generator_metadata_for_labels(
                         [str(op.label) for op in selected_ops],
@@ -10073,19 +12228,10 @@ def _run_hardcoded_adapt_vqe(
                             selected_executor = None
                         prune_summary["rolled_back"] = True
                         prune_summary["rollback_reason"] = "symmetry_verify_failed"
-                if float(energy_current) > float(pre_prune_energy) + float(prune_cfg.max_regression):
-                    selected_ops = list(pre_prune_ops)
-                    selected_layout = _build_selected_layout(selected_ops)
-                    theta = np.asarray(pre_prune_theta, dtype=float)
-                    energy_current = float(pre_prune_energy)
-                    if phase2_enabled and isinstance(pre_prune_memory, dict):
-                        phase2_optimizer_memory = dict(pre_prune_memory)
-                    if adapt_state_backend_key == "compiled":
-                        selected_executor = _build_compiled_executor(selected_ops) if len(selected_ops) > 0 else None
-                    else:
-                        selected_executor = None
-                    prune_summary["rolled_back"] = True
-                    prune_summary["rollback_reason"] = "post_prune_regression_exceeded"
+            elif best_candidate_index is not None and int(best_candidate_index) < len(prune_metadata):
+                cooled = dict(prune_metadata[int(best_candidate_index)].__dict__)
+                cooled["cooldown_remaining"] = int(prune_cfg.cooldown_steps)
+                prune_summary["metadata"][int(best_candidate_index)] = cooled
 
             prune_summary.update(
                 {
@@ -10135,6 +12281,454 @@ def _run_hardcoded_adapt_vqe(
             if phase3_enabled
             else None
         )
+        selected_prune_history = [
+            _compact_prune_audit(row.get("post_admission_prune"))
+            for row in history
+            if isinstance(row, Mapping) and isinstance(row.get("post_admission_prune"), Mapping)
+        ]
+        selected_prune_key = (
+            dict(beam_search_diagnostics.get("winner_prune_key", {}))
+            if bool(beam_policy.beam_enabled)
+            else {
+                "energy": float(energy_current),
+                "cumulative_selector_score": float(sum(_selector_score_value(row) for row in history)),
+                "cumulative_selector_burden": float(sum(_selector_burden_value(row) for row in history)),
+                "ansatz_depth": int(len(selected_ops)),
+                "labels": [str(op.label) for op in selected_ops],
+                "theta_round10": [round(float(x), 10) for x in np.asarray(theta, dtype=float).reshape(-1).tolist()],
+                "theta_round10_digits": 10,
+                "branch_id": None,
+            }
+        )
+        selected_operator_labels = [str(op.label) for op in selected_ops]
+        selected_generator_ids = [
+            str(meta.get("generator_id", ""))
+            for meta in selected_generator_metadata
+            if str(meta.get("generator_id", "")) != ""
+        ]
+        selected_theta_adapt = [float(x) for x in np.asarray(theta_logical_final, dtype=float).tolist()]
+        selected_controller_snapshot = phase1_stage.snapshot().get("last_snapshot")
+        selected_controller_snapshot_payload = _controller_snapshot_payload(
+            selected_controller_snapshot
+        )
+        selected_branch_state_summary = _branch_state_summary_payload(
+            beam_enabled=bool(beam_policy.beam_enabled),
+            branch_id=(
+                int(beam_search_diagnostics.get("winner_branch_id"))
+                if bool(beam_policy.beam_enabled) and beam_search_diagnostics.get("winner_branch_id") is not None
+                else None
+            ),
+            parent_branch_id=(
+                int(beam_search_diagnostics.get("winner_parent_branch_id"))
+                if bool(beam_policy.beam_enabled)
+                and beam_search_diagnostics.get("winner_parent_branch_id") is not None
+                else None
+            ),
+            history_rows=history,
+            depth_local=int(len(history)),
+            ansatz_depth=int(len(selected_ops)),
+            terminated=(
+                bool(beam_search_diagnostics.get("winner_branch_summary", {}).get("terminated", False))
+                if bool(beam_policy.beam_enabled)
+                else True
+            ),
+            termination_label=(
+                beam_search_diagnostics.get("winner_branch_summary", {}).get("termination_label")
+                if bool(beam_policy.beam_enabled)
+                else str(stop_reason)
+            ),
+            cumulative_selector_score=float(
+                selected_prune_key.get(
+                    "cumulative_selector_score",
+                    sum(_selector_score_value(row) for row in history),
+                )
+            ),
+            cumulative_selector_burden=float(
+                selected_prune_key.get(
+                    "cumulative_selector_burden",
+                    sum(_selector_burden_value(row) for row in history),
+                )
+            ),
+            stage_name=str(phase1_stage.stage_name),
+            residual_opened=bool(phase1_residual_opened),
+            last_probe_reason=str(phase1_last_probe_reason),
+            stage_events=phase1_stage_events,
+            last_snapshot=selected_controller_snapshot,
+        )
+        stage_controller_payload = {
+            "shortlist_size": int(phase1_shortlist_size_val),
+            "plateau_patience": int(phase1_stage_cfg.plateau_patience),
+            "probe_margin_ratio": float(phase1_stage_cfg.probe_margin_ratio),
+            "max_probe_positions": int(phase1_stage_cfg.max_probe_positions),
+            "append_admit_threshold": float(phase1_stage_cfg.append_admit_threshold),
+        }
+        selected_scaffold_audit = {
+            "source_kind": ("beam_winner" if bool(beam_policy.beam_enabled) else "main_branch"),
+            "beam_enabled": bool(beam_policy.beam_enabled),
+            "branch_id": (
+                int(beam_search_diagnostics.get("winner_branch_id"))
+                if bool(beam_policy.beam_enabled) and beam_search_diagnostics.get("winner_branch_id") is not None
+                else None
+            ),
+            "parent_branch_id": (
+                int(beam_search_diagnostics.get("winner_parent_branch_id"))
+                if bool(beam_policy.beam_enabled) and beam_search_diagnostics.get("winner_parent_branch_id") is not None
+                else None
+            ),
+            "depth_local": int(len(history)),
+            "stop_reason": str(stop_reason),
+            "energy": float(energy_current),
+            "operators": list(selected_operator_labels),
+            "generator_ids": list(selected_generator_ids),
+            "prune_key": dict(selected_prune_key),
+            "last_prune": _compact_prune_audit(prune_summary),
+            "prune_history": [dict(x) for x in selected_prune_history],
+            "phase3_surface_summary": _phase3_surface_audit_payload(
+                scored_rows=phase2_last_shortlist_records,
+                retained_rows=phase2_last_retained_shortlist_records,
+                admitted_rows=phase2_last_admitted_records,
+                beam_enabled=bool(beam_policy.beam_enabled),
+            ),
+            "stage_events": [dict(row) for row in phase1_stage_events],
+            "last_probe_reason": str(phase1_last_probe_reason),
+            "residual_opened": bool(phase1_residual_opened),
+            "branch_state_summary": dict(selected_branch_state_summary),
+        }
+        selected_scaffold_history: list[dict[str, Any]] = []
+        for step_idx, row in enumerate(history, start=1):
+            if not isinstance(row, Mapping):
+                continue
+            labels_step_raw = row.get("selected_ops")
+            labels_step = (
+                [str(x) for x in labels_step_raw]
+                if isinstance(labels_step_raw, Sequence) and not isinstance(labels_step_raw, (str, bytes))
+                else [str(row.get("selected_op", ""))]
+            )
+            positions_step_raw = row.get("selected_positions")
+            positions_step = (
+                [int(x) for x in positions_step_raw]
+                if isinstance(positions_step_raw, Sequence) and not isinstance(positions_step_raw, (str, bytes))
+                else [int(row.get("selected_position", 0))]
+            )
+            feature_rows_raw = row.get("selected_feature_rows")
+            feature_rows = (
+                list(feature_rows_raw)
+                if isinstance(feature_rows_raw, Sequence) and not isinstance(feature_rows_raw, (str, bytes))
+                else []
+            )
+            selected_records_step: list[dict[str, Any]] = []
+            for item_idx, label_step in enumerate(labels_step):
+                feature_mapping = (
+                    feature_rows[item_idx]
+                    if item_idx < len(feature_rows) and isinstance(feature_rows[item_idx], Mapping)
+                    else row
+                )
+                selected_records_step.append(
+                    {
+                        "generator_label": str(label_step),
+                        "position_id": (
+                            int(positions_step[item_idx])
+                            if item_idx < len(positions_step)
+                            else int(row.get("selected_position", 0))
+                        ),
+                        "generator_id": (
+                            str(feature_mapping.get("generator_id"))
+                            if feature_mapping.get("generator_id") is not None
+                            else None
+                        ),
+                        "template_id": (
+                            str(feature_mapping.get("template_id"))
+                            if feature_mapping.get("template_id") is not None
+                            else None
+                        ),
+                        "selection_mode": str(row.get("selection_mode", "")),
+                        "runtime_split_mode": str(
+                            feature_mapping.get("runtime_split_mode", row.get("runtime_split_mode", "off"))
+                        ),
+                    }
+                )
+            selected_scaffold_history.append(
+                {
+                    "step_index": int(row.get("depth", step_idx)),
+                    "batch_selected": bool(row.get("batch_selected", False)),
+                    "beam_structural_mode": (
+                        None
+                        if row.get("beam_structural_mode") is None
+                        else str(row.get("beam_structural_mode"))
+                    ),
+                    "selection_mode": str(row.get("selection_mode", "")),
+                    "energy_after_opt": float(row.get("energy_after_opt", energy_current)),
+                    "selected_records": selected_records_step,
+                    "post_admission_prune": _compact_prune_audit(row.get("post_admission_prune")),
+                }
+            )
+        selected_scaffold_record_chain: list[dict[str, Any]] = []
+        for step in selected_scaffold_history:
+            step_index = int(step.get("step_index", len(selected_scaffold_record_chain) + 1))
+            selected_records_raw = step.get("selected_records", [])
+            selected_records_step = (
+                list(selected_records_raw)
+                if isinstance(selected_records_raw, Sequence) and not isinstance(selected_records_raw, (str, bytes))
+                else []
+            )
+            for record_idx, record in enumerate(selected_records_step, start=1):
+                if not isinstance(record, Mapping):
+                    continue
+                selected_scaffold_record_chain.append(
+                    {
+                        "history_label": "H_*",
+                        "step_index": int(step_index),
+                        "record_index": int(record_idx),
+                        "beam_structural_mode": step.get("beam_structural_mode"),
+                        "selection_mode": str(step.get("selection_mode", "")),
+                        "energy_after_opt": float(step.get("energy_after_opt", energy_current)),
+                        "generator_label": str(record.get("generator_label", "")),
+                        "position_id": int(record.get("position_id", 0)),
+                        "generator_id": (
+                            str(record.get("generator_id"))
+                            if record.get("generator_id") is not None
+                            else None
+                        ),
+                        "template_id": (
+                            str(record.get("template_id"))
+                            if record.get("template_id") is not None
+                            else None
+                        ),
+                        "runtime_split_mode": str(record.get("runtime_split_mode", "off")),
+                    }
+                )
+        selected_scaffold_last_step = (
+            selected_scaffold_history[-1]
+            if selected_scaffold_history and isinstance(selected_scaffold_history[-1], Mapping)
+            else None
+        )
+        final_choice_summary: dict[str, Any]
+        if bool(beam_policy.beam_enabled):
+            winner_branch_summary = (
+                dict(beam_search_diagnostics.get("winner_branch_summary", {}))
+                if isinstance(beam_search_diagnostics.get("winner_branch_summary"), Mapping)
+                else {}
+            )
+            transition_kind = str(winner_branch_summary.get("last_transition_kind", "unknown"))
+            admitted_count = int(winner_branch_summary.get("last_admission_record_count", 0) or 0)
+            final_choice_summary = {
+                "selection_source": str(selected_scaffold_audit["source_kind"]),
+                "beam_enabled": True,
+                "structural_choice": (
+                    "stop"
+                    if transition_kind == "stop_child"
+                    else ("admit" if transition_kind == "admission_child" else "none")
+                ),
+                "transition_kind": str(transition_kind),
+                "beam_child_kind": (
+                    "stop_child"
+                    if transition_kind == "stop_child"
+                    else ("non_stop_child" if transition_kind == "admission_child" else str(transition_kind))
+                ),
+                "admission_kind": (
+                    "none"
+                    if admitted_count <= 0
+                    else (
+                        "reduced_plane_batch_admission"
+                        if admitted_count > 1
+                        else "singleton_admission"
+                    )
+                ),
+                "selected_record_count": int(admitted_count),
+                "batch_selected": bool(admitted_count > 1),
+                "branch_terminated": bool(winner_branch_summary.get("terminated", False)),
+                "branch_stop_reason": (
+                    None
+                    if winner_branch_summary.get("stop_reason") is None
+                    else str(winner_branch_summary.get("stop_reason"))
+                ),
+                "step_index": (
+                    int(selected_scaffold_last_step.get("step_index"))
+                    if transition_kind == "admission_child" and isinstance(selected_scaffold_last_step, Mapping)
+                    else None
+                ),
+                "selection_mode": (
+                    str(selected_scaffold_last_step.get("selection_mode", ""))
+                    if transition_kind == "admission_child" and isinstance(selected_scaffold_last_step, Mapping)
+                    else None
+                ),
+                "beam_structural_mode": (
+                    selected_scaffold_last_step.get("beam_structural_mode")
+                    if transition_kind == "admission_child" and isinstance(selected_scaffold_last_step, Mapping)
+                    else None
+                ),
+            }
+        else:
+            admitted_count = (
+                len(selected_scaffold_last_step.get("selected_records", []))
+                if isinstance(selected_scaffold_last_step, Mapping)
+                and isinstance(selected_scaffold_last_step.get("selected_records"), Sequence)
+                else 0
+            )
+            batch_selected = bool(
+                isinstance(selected_scaffold_last_step, Mapping)
+                and selected_scaffold_last_step.get("batch_selected", False)
+            )
+            final_choice_summary = {
+                "selection_source": str(selected_scaffold_audit["source_kind"]),
+                "beam_enabled": False,
+                "structural_choice": ("admit" if admitted_count > 0 else "none"),
+                "transition_kind": ("main_path_admission" if admitted_count > 0 else "none"),
+                "beam_child_kind": None,
+                "admission_kind": (
+                    "none"
+                    if admitted_count <= 0
+                    else (
+                        "reduced_plane_batch_admission"
+                        if batch_selected or admitted_count > 1
+                        else "singleton_admission"
+                    )
+                ),
+                "selected_record_count": int(admitted_count),
+                "batch_selected": bool(batch_selected or admitted_count > 1),
+                "branch_terminated": None,
+                "branch_stop_reason": str(stop_reason),
+                "step_index": (
+                    int(selected_scaffold_last_step.get("step_index"))
+                    if isinstance(selected_scaffold_last_step, Mapping)
+                    else None
+                ),
+                "selection_mode": (
+                    str(selected_scaffold_last_step.get("selection_mode", ""))
+                    if isinstance(selected_scaffold_last_step, Mapping)
+                    else None
+                ),
+                "beam_structural_mode": (
+                    selected_scaffold_last_step.get("beam_structural_mode")
+                    if isinstance(selected_scaffold_last_step, Mapping)
+                    else None
+                ),
+            }
+        selected_scaffold_summary = {
+            "selection_source": str(selected_scaffold_audit["source_kind"]),
+            "scaffold_label": "O_*",
+            "theta_label": "theta_*^adapt",
+            "history_label": "H_*",
+            "manifold_label": "M_scaf(O_*)",
+            "operator_labels": list(selected_operator_labels),
+            "theta_adapt": list(selected_theta_adapt),
+            "generator_ids": list(selected_generator_ids),
+            "ansatz_depth": int(len(selected_ops)),
+            "manifold_dimension": int(len(selected_ops)),
+            "history_step_count": int(len(selected_scaffold_history)),
+            "history_record_count": int(len(selected_scaffold_record_chain)),
+            "history_record_chain_label": "H_*",
+            "beam_enabled": bool(beam_policy.beam_enabled),
+            "branch_id": selected_scaffold_audit.get("branch_id"),
+            "final_choice_summary": dict(final_choice_summary),
+            "branch_state_summary": dict(selected_branch_state_summary),
+        }
+        selected_scaffold_audit["final_choice_summary"] = dict(final_choice_summary)
+        selected_state_summary = {
+            "state_label": "|psi_*>",
+            "state_preparation_label": "U(theta_*^adapt; O_*)|phi_0>",
+            "reference_state_label": "|phi_0>",
+            "scaffold_label": "O_*",
+            "theta_label": "theta_*^adapt",
+            "manifold_label": "M_scaf(O_*)",
+            "coordinate_space_notation": "R^{|O_*|}",
+            "ansatz_depth": int(len(selected_ops)),
+            "manifold_dimension": int(len(selected_ops)),
+            "beam_enabled": bool(beam_policy.beam_enabled),
+            "branch_id": selected_scaffold_audit.get("branch_id"),
+            "state_norm": float(np.linalg.norm(np.asarray(psi_adapt, dtype=complex))),
+        }
+        selected_memory_contract_summary = _optimizer_memory_contract_summary_payload(
+            beam_enabled=bool(beam_policy.beam_enabled),
+            branch_id=selected_scaffold_audit.get("branch_id"),
+            memory_state=phase2_optimizer_memory,
+            operator_labels=selected_operator_labels,
+            generator_ids=selected_generator_ids,
+            num_parameters=int(theta.size),
+            last_active_subset_source=str(phase2_last_optimizer_memory_source),
+            last_active_subset_reused=bool(phase2_last_optimizer_memory_reused),
+        )
+        selected_scaffold_summary["selected_state_summary"] = dict(selected_state_summary)
+        selected_scaffold_summary["optimizer_memory_contract_summary"] = dict(
+            selected_memory_contract_summary
+        )
+        selected_scaffold_audit["selected_state_summary"] = dict(selected_state_summary)
+        selected_scaffold_audit["optimizer_memory_contract_summary"] = dict(
+            selected_memory_contract_summary
+        )
+        controller_runtime_boundary_summary = _controller_runtime_boundary_summary_payload(
+            phase_enabled=bool(phase1_enabled),
+            cfg=phase1_stage_cfg,
+            stage_controller_payload=stage_controller_payload,
+            current_snapshot_payload=selected_controller_snapshot_payload,
+            beam_enabled=bool(beam_policy.beam_enabled),
+            branch_id=selected_scaffold_audit.get("branch_id"),
+        )
+        active_phase3_surface_summary: dict[str, Any] | None = None
+        active_hh_pool_summary: dict[str, Any] | None = None
+        if phase3_enabled:
+            phase3_scored_rows = [dict(row) for row in phase2_last_shortlist_records[-200:]]
+            phase3_retained_rows = [
+                dict(row) for row in phase2_last_retained_shortlist_records[-200:]
+            ]
+            phase3_admitted_rows = [dict(row) for row in phase2_last_admitted_records[-200:]]
+            active_phase3_surface_summary = {
+                "surface_label": "Omega_HH^(3)",
+                "source_rows_key": "phase2_shortlist_rows",
+                "source_row_semantics": "last_scored_candidate_surface",
+                "scored_rows_key": "phase2_scored_rows",
+                "scored_rows_semantics": "last_scored_candidate_surface",
+                "retained_rows_key": "phase2_retained_shortlist_rows",
+                "retained_rows_semantics": "controller_retained_shortlist",
+                "admitted_rows_key": "phase2_admitted_rows",
+                "admitted_rows_semantics": "reduced_plane_admitted_set",
+                "candidate_count": int(len(phase3_scored_rows)),
+                "retained_shortlist_count": int(len(phase3_retained_rows)),
+                "admitted_count": int(len(phase3_admitted_rows)),
+                "phase2_shortlisted_count": int(
+                    sum(bool(row.get("phase2_shortlisted", False)) for row in phase3_scored_rows)
+                ),
+                "phase3_shortlisted_count": int(
+                    sum(bool(row.get("phase3_shortlisted", False)) for row in phase3_scored_rows)
+                ),
+                "operator_labels": list(
+                    dict.fromkeys(
+                        str(row.get("candidate_label", ""))
+                        for row in phase3_scored_rows
+                        if str(row.get("candidate_label", "")) != ""
+                    )
+                ),
+                "generator_ids": list(
+                    dict.fromkeys(
+                        str(row.get("generator_id", ""))
+                        for row in phase3_scored_rows
+                        if str(row.get("generator_id", "")) != ""
+                    )
+                ),
+                "position_ids": list(
+                    dict.fromkeys(
+                        int(row.get("position_id"))
+                        for row in phase3_scored_rows
+                        if row.get("position_id") is not None
+                    )
+                ),
+                "runtime_split_modes": list(
+                    dict.fromkeys(
+                        str(row.get("runtime_split_mode", "off"))
+                        for row in phase3_scored_rows
+                    )
+                ),
+                "score_version": str(phase2_score_cfg.score_version),
+                "batch_selected": bool(phase2_last_batch_selected),
+                "compatibility_penalty_total": float(phase2_last_batch_penalty_total),
+                "selected_operator_labels": list(selected_operator_labels),
+                "selected_generator_ids": list(selected_generator_ids),
+            }
+            active_hh_pool_summary = _active_hh_pool_summary_payload(
+                phase1_rows=phase1_last_retained_records,
+                phase2_rows=phase2_last_geometric_shortlist_records,
+                phase3_rows=phase2_last_retained_shortlist_records,
+            )
         exact_energy_from_final_state, _ = energy_via_one_apply(psi_adapt, h_compiled)
         exact_energy_from_final_state = float(exact_energy_from_final_state)
         phase3_output_motif_library = (
@@ -10240,17 +12834,25 @@ def _run_hardcoded_adapt_vqe(
             "reoptimization_backend": str(phase3_oracle_inner_backend_name),
             "phase3_enable_rescue_requested": bool(phase3_enable_rescue_requested),
             "phase3_enable_rescue_effective": bool(phase3_enable_rescue_effective),
-            "stage_controller": {
-                "shortlist_size": int(phase1_shortlist_size_val),
-                "plateau_patience": int(phase1_stage_cfg.plateau_patience),
-                "probe_margin_ratio": float(phase1_stage_cfg.probe_margin_ratio),
-                "max_probe_positions": int(phase1_stage_cfg.max_probe_positions),
-                "append_admit_threshold": float(phase1_stage_cfg.append_admit_threshold),
-            },
+            "stage_controller": dict(stage_controller_payload),
             "stage_events": [dict(row) for row in phase1_stage_events],
             "phase1_feature_rows": [dict(row) for row in phase1_features_history[-200:]],
             "last_probe_reason": str(phase1_last_probe_reason),
             "residual_opened": bool(phase1_residual_opened),
+            "selected_scaffold_summary": dict(selected_scaffold_summary),
+            "selected_scaffold_final_choice": dict(final_choice_summary),
+            "selected_scaffold_branch_state": dict(selected_branch_state_summary),
+            "selected_state_summary": dict(selected_state_summary),
+            "selected_scaffold_optimizer_memory_contract": dict(
+                selected_memory_contract_summary
+            ),
+            "controller_runtime_boundary_summary": dict(
+                controller_runtime_boundary_summary
+            ),
+            "selected_scaffold_history": [dict(row) for row in selected_scaffold_history],
+            "selected_scaffold_record_chain": [dict(row) for row in selected_scaffold_record_chain],
+            "selected_scaffold_audit": dict(selected_scaffold_audit),
+            "beam_search": copy.deepcopy(beam_search_diagnostics),
         }
         backend_compile_summary: dict[str, Any] | None = None
         if backend_compile_oracle is not None:
@@ -10269,7 +12871,21 @@ def _run_hardcoded_adapt_vqe(
         if phase2_enabled:
             continuation_payload.update(
                 {
+                    "phase1_retained_rows": [dict(row) for row in phase1_last_retained_records[-200:]],
                     "phase2_shortlist_rows": [dict(row) for row in phase2_last_shortlist_records[-200:]],
+                    "phase2_scored_rows": [dict(row) for row in phase2_last_shortlist_records[-200:]],
+                    "phase2_geometric_shortlist_rows": [
+                        dict(row) for row in phase2_last_geometric_shortlist_records[-200:]
+                    ],
+                    "phase2_retained_shortlist_rows": [
+                        dict(row) for row in phase2_last_retained_shortlist_records[-200:]
+                    ],
+                    "phase2_admitted_rows": [dict(row) for row in phase2_last_admitted_records[-200:]],
+                    "active_hh_pool_summary": (
+                        dict(active_hh_pool_summary)
+                        if isinstance(active_hh_pool_summary, Mapping)
+                        else None
+                    ),
                     "optimizer_memory": dict(phase2_optimizer_memory),
                     "phase2": {
                         "shortlist_fraction": float(phase2_score_cfg.shortlist_fraction),
@@ -10284,6 +12900,11 @@ def _run_hardcoded_adapt_vqe(
             continuation_payload.update(
                 {
                     "selected_generator_metadata": [dict(x) for x in selected_generator_metadata],
+                    "active_phase3_surface_summary": (
+                        dict(active_phase3_surface_summary)
+                        if isinstance(active_phase3_surface_summary, Mapping)
+                        else None
+                    ),
                     "generator_split_events": [dict(x) for x in phase3_split_events],
                     "runtime_split_summary": dict(phase3_runtime_split_summary),
                     "motif_library": (

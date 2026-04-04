@@ -292,6 +292,11 @@ class TestWriteStateBundleRoundTrip:
             adapt_pool_type="pool_a",
             continuation_mode="phase1_v1",
             continuation_scaffold={"num_parameters": 3, "post_prune": True},
+            continuation_details={
+                "score_version": "phase3_reduced_rerank_v1",
+                "runtime_split_summary": {"mode": "shortlist_pauli_children_v1", "selected_child_count": 1},
+                "phase1_feature_rows": [{"should_not": "override_reserved_fields"}],
+            },
             optimizer_memory={"version": "phase2_optimizer_memory_v1", "parameter_count": 3, "available": True},
             selected_generator_metadata=[
                 {
@@ -375,6 +380,9 @@ class TestWriteStateBundleRoundTrip:
         assert payload["continuation"]["motif_library"]["records"][0]["motif_id"] == "motif:1"
         assert payload["continuation"]["symmetry_mitigation"]["mode"] == "verify_only"
         assert payload["continuation"]["rescue_history"][0]["reason"] == "disabled"
+        assert payload["continuation"]["score_version"] == "phase3_reduced_rerank_v1"
+        assert payload["continuation"]["runtime_split_summary"]["selected_child_count"] == 1
+        assert payload["continuation"]["phase1_feature_rows"][0]["should_not"] == "override_reserved_fields"
         assert payload["adapt_vqe"]["pre_prune_scaffold"]["operators"] == ["op_x", "op_y", "op_z"]
         assert payload["adapt_vqe"]["prune_summary"]["executed"] is True
 

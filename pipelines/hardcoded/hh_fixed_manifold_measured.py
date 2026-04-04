@@ -393,6 +393,28 @@ def _build_driven_reference_states(
     return out
 
 
+def _projection_sample_time(
+    *,
+    time_start: float,
+    time_stop: float | None,
+    drive_cfg: FixedManifoldDriveConfig,
+) -> float:
+    if not bool(drive_cfg.enable_drive):
+        return float(time_start)
+    sampling = str(drive_cfg.drive_time_sampling).strip().lower()
+    if sampling not in {"midpoint", "left", "right"}:
+        raise ValueError(f"Unsupported drive_time_sampling {drive_cfg.drive_time_sampling!r}.")
+    if time_stop is None:
+        sample_time = float(time_start)
+    elif sampling == "midpoint":
+        sample_time = 0.5 * (float(time_start) + float(time_stop))
+    elif sampling == "left":
+        sample_time = float(time_start)
+    else:
+        sample_time = float(time_stop)
+    return float(sample_time) + float(drive_cfg.drive_t0)
+
+
 def _compiled_executor(loaded: Any) -> CompiledAnsatzExecutor:
     layout = loaded.replay_context.base_layout
     return CompiledAnsatzExecutor(
@@ -624,7 +646,16 @@ def run_fixed_manifold_measured(
     oracle = ExpectationOracle(oracle_cfg)
     try:
         for checkpoint_index, time_value in enumerate(times):
-            physical_time = float(time_value) + float(drive_cfg.drive_t0 if bool(drive_cfg.enable_drive) else 0.0)
+            time_stop = (
+                None
+                if int(checkpoint_index) + 1 >= int(len(times))
+                else float(times[int(checkpoint_index) + 1])
+            )
+            physical_time = _projection_sample_time(
+                time_start=float(time_value),
+                time_stop=time_stop,
+                drive_cfg=drive_cfg,
+            )
             h_poly_step, hmat_step, drive_coeff_map = _build_driven_hamiltonian(
                 h_poly_static=loaded.replay_context.h_poly,
                 hmat_static=hmat,
@@ -814,14 +845,20 @@ def run_fixed_manifold_measured(
                 else 0
             ),
             "geometry_sample_time_policy": (
-                "checkpoint_time_plus_t0" if bool(drive_cfg.enable_drive) else "checkpoint_time"
+                f"interval_{str(drive_cfg.drive_time_sampling).strip().lower()}_plus_t0_with_final_endpoint_fallback"
+                if bool(drive_cfg.enable_drive)
+                else "checkpoint_time"
             ),
         },
         "projection_config": {
             "integrator": "explicit_euler",
-            "time_sampling": "left",
+            "time_sampling": (
+                str(drive_cfg.drive_time_sampling) if bool(drive_cfg.enable_drive) else "left"
+            ),
             "geometry_sample_time_policy": (
-                "checkpoint_time_plus_t0" if bool(drive_cfg.enable_drive) else "checkpoint_time"
+                f"interval_{str(drive_cfg.drive_time_sampling).strip().lower()}_plus_t0_with_final_endpoint_fallback"
+                if bool(drive_cfg.enable_drive)
+                else "checkpoint_time"
             ),
         },
         "summary": dict(summary),

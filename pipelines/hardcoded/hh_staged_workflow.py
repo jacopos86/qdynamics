@@ -1069,6 +1069,24 @@ def _handoff_continuation_meta(adapt_payload: Mapping[str, Any]) -> dict[str, An
     continuation = adapt_payload.get("continuation", {})
     if not isinstance(continuation, Mapping):
         continuation = {}
+    reserved_keys = {
+        "mode",
+        "scaffold",
+        "optimizer_memory",
+        "selected_generator_metadata",
+        "generator_split_events",
+        "motif_library",
+        "motif_usage",
+        "symmetry_mitigation",
+        "rescue_history",
+        "replay_contract_hint",
+    }
+    excluded_keys = {"phase1_feature_rows", "phase2_shortlist_rows"}
+    continuation_details = {
+        str(key): value
+        for key, value in continuation.items()
+        if str(key) not in reserved_keys and str(key) not in excluded_keys
+    }
     return {
         "continuation_mode": str(adapt_payload.get("continuation_mode", continuation.get("mode", "legacy"))),
         "continuation_scaffold": (
@@ -1109,6 +1127,11 @@ def _handoff_continuation_meta(adapt_payload: Mapping[str, Any]) -> dict[str, An
         "rescue_history": (
             [dict(x) for x in continuation.get("rescue_history", [])]
             if isinstance(continuation.get("rescue_history", []), Sequence)
+            else None
+        ),
+        "continuation_details": (
+            dict(continuation_details)
+            if continuation_details
             else None
         ),
         "prune_summary": (
@@ -1178,6 +1201,7 @@ def _write_adapt_handoff(
         handoff_state_kind="prepared_state",
         continuation_mode=str(continuation_meta.get("continuation_mode", cfg.adapt.continuation_mode)),
         continuation_scaffold=continuation_meta.get("continuation_scaffold"),
+        continuation_details=continuation_meta.get("continuation_details"),
         optimizer_memory=continuation_meta.get("optimizer_memory"),
         selected_generator_metadata=continuation_meta.get("selected_generator_metadata"),
         generator_split_events=continuation_meta.get("generator_split_events"),

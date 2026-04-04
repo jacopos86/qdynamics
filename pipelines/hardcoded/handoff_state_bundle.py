@@ -8,7 +8,7 @@ import math
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
+from typing import Any, Mapping, Sequence
 
 import numpy as np
 
@@ -101,6 +101,20 @@ def build_statevector_manifest(
     return manifest
 
 
+def _json_safe_tree(value: Any) -> Any:
+    if isinstance(value, Mapping):
+        return {str(k): _json_safe_tree(v) for k, v in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [_json_safe_tree(v) for v in value]
+    if isinstance(value, np.ndarray):
+        return _json_safe_tree(value.tolist())
+    if isinstance(value, (str, bool, int)) or value is None:
+        return value
+    if isinstance(value, float):
+        return float(value) if math.isfinite(value) else str(value)
+    return str(value)
+
+
 def write_handoff_state_bundle(
     *,
     path: Path,
@@ -121,6 +135,7 @@ def write_handoff_state_bundle(
     handoff_state_kind: str | None = None,
     continuation_mode: str | None = None,
     continuation_scaffold: dict[str, Any] | None = None,
+    continuation_details: Mapping[str, Any] | None = None,
     optimizer_memory: dict[str, Any] | None = None,
     selected_generator_metadata: list[dict[str, Any]] | None = None,
     generator_split_events: list[dict[str, Any]] | None = None,
@@ -190,7 +205,11 @@ def write_handoff_state_bundle(
             handoff_state_kind=ansatz_input_state_handoff_state_kind,
             amplitude_cutoff=float(amplitude_cutoff),
         )
-    continuation_block: dict[str, Any] = {}
+    continuation_block: dict[str, Any] = (
+        dict(_json_safe_tree(continuation_details))
+        if isinstance(continuation_details, Mapping)
+        else {}
+    )
     if continuation_mode is not None:
         continuation_block["mode"] = str(continuation_mode)
     if continuation_scaffold is not None:

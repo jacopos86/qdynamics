@@ -294,6 +294,71 @@ def test_measured_geometry_matches_exact_baseline_on_toy_case() -> None:
     assert abs(float(geom["rho_miss"]) - rho_exact) < 1.0e-10
 
 
+def test_drive_changes_force_but_not_metric_on_toy_case() -> None:
+    replay_context, executor, h_poly_static = _toy_runtime_context()
+    theta = np.asarray(replay_context.adapt_theta_runtime, dtype=float)
+    psi = executor.prepare_state(theta, replay_context.psi_ref)
+    h_poly_driven = PauliPolynomial(
+        "JW",
+        [
+            PauliTerm(1, ps="z", pc=1.0),
+            PauliTerm(1, ps="x", pc=0.35),
+        ],
+    )
+
+    def _measured(plan):
+        energy = float(expval_pauli_polynomial(psi, plan.energy.poly))
+        h2 = float(expval_pauli_polynomial(psi, plan.variance_h2.poly))
+        generator_means = [float(expval_pauli_polynomial(psi, spec.poly)) for spec in plan.generator_means]
+        pair_expectations = {
+            pair: (0.0 if spec.is_zero else float(expval_pauli_polynomial(psi, spec.poly)))
+            for pair, spec in plan.pair_anticommutators.items()
+        }
+        force_expectations = [
+            (0.0 if spec.is_zero else float(expval_pauli_polynomial(psi, spec.poly)))
+            for spec in plan.force_anticommutators
+        ]
+        return assemble_measured_geometry(
+            plan=plan,
+            energy=energy,
+            h2=h2,
+            generator_means=generator_means,
+            pair_expectations=pair_expectations,
+            force_expectations=force_expectations,
+            geom_cfg=FixedManifoldMeasuredConfig(),
+        )
+
+    static_plan = build_checkpoint_observable_plan(
+        replay_context,
+        theta,
+        h_poly=h_poly_static,
+        drop_abs_tol=1.0e-12,
+        hermiticity_tol=1.0e-10,
+        max_observable_terms=128,
+    )
+    driven_plan = build_checkpoint_observable_plan(
+        replay_context,
+        theta,
+        h_poly=h_poly_driven,
+        drop_abs_tol=1.0e-12,
+        hermiticity_tol=1.0e-10,
+        max_observable_terms=128,
+    )
+    geom_static = _measured(static_plan)
+    geom_driven = _measured(driven_plan)
+
+    assert static_plan.energy.term_count == 1
+    assert driven_plan.energy.term_count == 2
+    assert [spec.term_count for spec in static_plan.generator_means] == [spec.term_count for spec in driven_plan.generator_means]
+    assert {
+        tuple(pair): int(spec.term_count) for pair, spec in static_plan.pair_anticommutators.items()
+    } == {
+        tuple(pair): int(spec.term_count) for pair, spec in driven_plan.pair_anticommutators.items()
+    }
+    assert np.allclose(np.asarray(geom_static["G"], dtype=float), np.asarray(geom_driven["G"], dtype=float), atol=1.0e-10)
+    assert not np.allclose(np.asarray(geom_static["f"], dtype=float), np.asarray(geom_driven["f"], dtype=float), atol=1.0e-8)
+
+
 def test_pareto_lean_l2_checkpoint0_observable_plan_within_cap() -> None:
     loaded = load_run_context(
         FixedManifoldRunSpec(
@@ -652,13 +717,13 @@ def test_measured_runner_toy_drive_schema(tmp_path: Path) -> None:
     assert result["reference_config"]["method"] == "exponential_midpoint_magnus2_order2"
     assert result["reference_config"]["reference_steps_multiplier"] == 2
     assert result["reference_config"]["reference_steps"] == 4
-    assert result["reference_config"]["geometry_sample_time_policy"] == "checkpoint_time_plus_t0"
+    assert result["reference_config"]["geometry_sample_time_policy"] == "interval_midpoint_plus_t0_with_final_endpoint_fallback"
     assert result["projection_config"]["integrator"] == "explicit_euler"
-    assert result["projection_config"]["time_sampling"] == "left"
-    assert result["projection_config"]["geometry_sample_time_policy"] == "checkpoint_time_plus_t0"
+    assert result["projection_config"]["time_sampling"] == "midpoint"
+    assert result["projection_config"]["geometry_sample_time_policy"] == "interval_midpoint_plus_t0_with_final_endpoint_fallback"
     assert result["drive_profile"]["A"] == pytest.approx(0.25)
-    assert result["trajectory"][0]["physical_time"] == pytest.approx(0.3)
-    assert result["trajectory"][1]["physical_time"] == pytest.approx(0.4)
+    assert result["trajectory"][0]["physical_time"] == pytest.approx(0.35)
+    assert result["trajectory"][1]["physical_time"] == pytest.approx(0.45)
     assert int(result["trajectory"][0]["geometry"]["drive_term_count"]) > 0
 
 

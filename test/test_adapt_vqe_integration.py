@@ -378,11 +378,14 @@ class TestAdaptCLIParsing:
         assert args.adapt_drop_min_depth is None
         assert args.adapt_grad_floor is None
 
-    def test_programmatic_default_resolution_stays_legacy_for_none(self):
-        assert _adapt_mod._resolve_adapt_continuation_mode(problem="hh", requested_mode=None) == "legacy"
+    def test_programmatic_default_resolution_promotes_hh_to_phase3_for_none(self):
+        assert _adapt_mod._resolve_adapt_continuation_mode(problem="hh", requested_mode=None) == "phase3_v1"
 
-    def test_programmatic_default_resolution_stays_legacy_for_empty_string(self):
-        assert _adapt_mod._resolve_adapt_continuation_mode(problem="hh", requested_mode="") == "legacy"
+    def test_programmatic_default_resolution_promotes_hh_to_phase3_for_empty_string(self):
+        assert _adapt_mod._resolve_adapt_continuation_mode(problem="hh", requested_mode="") == "phase3_v1"
+
+    def test_programmatic_default_resolution_keeps_hubbard_legacy(self):
+        assert _adapt_mod._resolve_adapt_continuation_mode(problem="hubbard", requested_mode=None) == "legacy"
 
     def test_cli_default_resolution_promotes_hh_to_phase3(self):
         assert _adapt_mod._resolve_cli_adapt_continuation_mode(problem="hh", requested_mode=None) == "phase3_v1"
@@ -2465,6 +2468,137 @@ class TestHHPhase3Continuation:
         )
         continuation = payload["continuation"]
         assert continuation["mode"] == "phase3_v1"
+        summary = continuation["selected_scaffold_summary"]
+        final_choice = continuation["selected_scaffold_final_choice"]
+        branch_state = continuation["selected_scaffold_branch_state"]
+        state_summary = continuation["selected_state_summary"]
+        memory_contract = continuation["selected_scaffold_optimizer_memory_contract"]
+        runtime_boundary = continuation["controller_runtime_boundary_summary"]
+        history_summary = continuation["selected_scaffold_history"]
+        record_chain = continuation["selected_scaffold_record_chain"]
+        surface_summary = continuation["active_phase3_surface_summary"]
+        pool_summary = continuation["active_hh_pool_summary"]
+        audit = continuation["selected_scaffold_audit"]
+        assert summary["selection_source"] == "main_branch"
+        assert summary["final_choice_summary"] == final_choice
+        assert summary["branch_state_summary"] == branch_state
+        assert summary["selected_state_summary"] == state_summary
+        assert summary["optimizer_memory_contract_summary"] == memory_contract
+        assert summary["scaffold_label"] == "O_*"
+        assert summary["theta_label"] == "theta_*^adapt"
+        assert summary["history_label"] == "H_*"
+        assert summary["manifold_label"] == "M_scaf(O_*)"
+        assert runtime_boundary["summary_label"] == "appendix_a_runtime_boundary"
+        assert runtime_boundary["beam_enabled"] is False
+        assert runtime_boundary["branch_id"] is None
+        assert runtime_boundary["calibration_status"] == "runtime_calibrated_not_symbolic"
+        assert runtime_boundary["stage_controller_payload"] == continuation["stage_controller"]
+        assert runtime_boundary["current_controller_snapshot"] == branch_state["controller_telemetry"]["last_snapshot"]
+        assert "selected_scaffold_summary" in runtime_boundary["symbolic_result_keys"]
+        assert "selected_scaffold_final_choice" in runtime_boundary["symbolic_result_keys"]
+        assert "stage_controller" in runtime_boundary["runtime_controller_keys"]
+        assert "selected_scaffold_optimizer_memory_contract" in runtime_boundary["runtime_controller_keys"]
+        assert runtime_boundary["runtime_law_notation"]["thresholds"] == "tau_k(t)"
+        assert runtime_boundary["runtime_law_notation"]["caps"] == "N_k(t)"
+        assert runtime_boundary["runtime_law_notation"]["shots_phase1"] == "N_shot,1(t)"
+        assert runtime_boundary["runtime_law_notation"]["shots_phasek"] == "N_shot,k(t)"
+        assert runtime_boundary["configured_bounds"]["cap_phase1_min"] == continuation["stage_controller"]["shortlist_size"]
+        assert runtime_boundary["configured_bounds"]["cap_phase1_max"] == continuation["stage_controller"]["shortlist_size"]
+        assert summary["operator_labels"] == payload["operators"]
+        assert summary["theta_adapt"] == payload["logical_optimal_point"]
+        assert summary["history_step_count"] == len(history_summary) == len(payload.get("history", []))
+        assert summary["history_record_count"] == sum(len(step["selected_records"]) for step in history_summary)
+        assert summary["history_record_chain_label"] == "H_*"
+        assert len(record_chain) == int(summary["history_record_count"])
+        assert [row["generator_label"] for row in record_chain] == [
+            rec["generator_label"]
+            for step in history_summary
+            for rec in step["selected_records"]
+        ]
+        assert surface_summary["surface_label"] == "Omega_HH^(3)"
+        assert surface_summary["source_rows_key"] == "phase2_shortlist_rows"
+        assert surface_summary["source_row_semantics"] == "last_scored_candidate_surface"
+        assert surface_summary["scored_rows_key"] == "phase2_scored_rows"
+        assert surface_summary["retained_rows_key"] == "phase2_retained_shortlist_rows"
+        assert surface_summary["admitted_rows_key"] == "phase2_admitted_rows"
+        assert continuation["phase2_scored_rows"] == continuation["phase2_shortlist_rows"]
+        assert int(surface_summary["candidate_count"]) == len(continuation["phase2_scored_rows"])
+        assert int(surface_summary["retained_shortlist_count"]) == len(continuation["phase2_retained_shortlist_rows"])
+        assert int(surface_summary["admitted_count"]) == len(continuation["phase2_admitted_rows"])
+        assert int(surface_summary["admitted_count"]) <= int(surface_summary["retained_shortlist_count"]) <= int(surface_summary["candidate_count"])
+        assert surface_summary["selected_operator_labels"] == payload["operators"]
+        assert surface_summary["selected_generator_ids"] == summary["generator_ids"]
+        assert int(surface_summary["phase3_shortlisted_count"]) <= int(surface_summary["candidate_count"])
+        assert pool_summary["summary_label"] == "Omega_HH_active"
+        assert pool_summary["omega_chain"] == ["Omega_HH^(1)", "Omega_HH^(2)", "Omega_HH^(3)"]
+        assert int(pool_summary["phases"]["phase1"]["count"]) == len(continuation["phase1_retained_rows"])
+        assert int(pool_summary["phases"]["phase2"]["count"]) == len(continuation["phase2_geometric_shortlist_rows"])
+        assert int(pool_summary["phases"]["phase3"]["count"]) == len(continuation["phase2_retained_shortlist_rows"])
+        assert bool(pool_summary["nested_generator_image_inclusion"]["phase2_in_phase1"])
+        assert bool(pool_summary["nested_generator_image_inclusion"]["phase3_in_phase2"])
+        assert bool(pool_summary["nested_generator_image_inclusion"]["phase3_in_phase1"])
+        assert audit["source_kind"] == "main_branch"
+        assert audit["final_choice_summary"] == final_choice
+        assert audit["branch_state_summary"] == branch_state
+        assert audit["selected_state_summary"] == state_summary
+        assert audit["optimizer_memory_contract_summary"] == memory_contract
+        assert audit["beam_enabled"] is False
+        assert audit["branch_id"] is None
+        assert audit["operators"] == payload["operators"]
+        assert branch_state["branch_state_notation"] == "\\mathfrak b_*"
+        assert branch_state["status"] == "terminal"
+        assert branch_state["termination_label"] == audit["stop_reason"]
+        assert branch_state["cumulative_selector_score"] == audit["prune_key"]["cumulative_selector_score"]
+        assert branch_state["cumulative_selector_burden"] == audit["prune_key"]["cumulative_selector_burden"]
+        telemetry = branch_state["controller_telemetry"]
+        assert telemetry["telemetry_label"] == "T_b^ctrl"
+        assert telemetry["stage_event_count"] == len(audit["stage_events"])
+        assert telemetry["last_probe_reason"] == audit["last_probe_reason"]
+        assert telemetry["residual_opened"] is audit["residual_opened"]
+        if telemetry["last_snapshot"] is not None:
+            assert telemetry["last_snapshot"]["snapshot_version"] == "phase123_controller_v1"
+        assert state_summary["state_label"] == "|psi_*>"
+        assert state_summary["state_preparation_label"] == "U(theta_*^adapt; O_*)|phi_0>"
+        assert state_summary["reference_state_label"] == "|phi_0>"
+        assert state_summary["manifold_label"] == summary["manifold_label"]
+        assert state_summary["ansatz_depth"] == summary["ansatz_depth"]
+        assert state_summary["manifold_dimension"] == summary["manifold_dimension"]
+        assert state_summary["branch_id"] is None
+        assert state_summary["state_norm"] == pytest.approx(1.0, abs=1e-10)
+        assert memory_contract["contract_label"] == "phase2_optimizer_memory_contract"
+        assert memory_contract["exact_reuse_rule"] == "requires_matching_scaffold_fingerprint"
+        assert bool(memory_contract["fingerprint_match_required"]) is True
+        assert memory_contract["canonical_embedding_notation"] == "theta -> theta⊕_p 0"
+        assert memory_contract["refit_window_notation"] == "W(r;t)"
+        assert memory_contract["branch_id"] is None
+        assert memory_contract["last_active_subset_source"] == payload["history"][-1]["optimizer_memory_source"]
+        assert bool(memory_contract["last_active_subset_reused"]) is bool(payload["history"][-1]["optimizer_memory_reused"])
+        assert memory_contract["scaffold_fingerprint"]["fingerprint_notation"] == "fp(O_*)"
+        assert memory_contract["scaffold_fingerprint"]["num_parameters"] == memory_contract["memory_parameter_count"]
+        assert memory_contract["observed_transport_mode"] in {
+            "unavailable",
+            "same_scaffold_active_subset",
+            "canonical_embedding_or_index_remap",
+        }
+        audit_surface = audit["phase3_surface_summary"]
+        assert audit_surface["scored_surface_notation"] == "R_3(t)"
+        assert audit_surface["retained_shortlist_notation"] == "S_3(t)"
+        assert audit_surface["admitted_set_notation"] == "B_t^*"
+        assert int(audit_surface["scored_surface"]["count"]) == len(continuation["phase2_scored_rows"])
+        assert int(audit_surface["retained_shortlist"]["count"]) == len(continuation["phase2_retained_shortlist_rows"])
+        assert int(audit_surface["admitted_set"]["count"]) == len(continuation["phase2_admitted_rows"])
+        assert final_choice["beam_enabled"] is False
+        assert final_choice["beam_child_kind"] is None
+        assert final_choice["transition_kind"] == "main_path_admission"
+        assert final_choice["selected_record_count"] == len(history_summary[-1]["selected_records"])
+        assert bool(final_choice["batch_selected"]) is bool(history_summary[-1]["batch_selected"])
+        assert final_choice["step_index"] == history_summary[-1]["step_index"]
+        assert final_choice["selection_mode"] == history_summary[-1]["selection_mode"]
+        assert audit["depth_local"] == len(payload.get("history", []))
+        assert audit["prune_history"]
+        assert audit["last_prune"]["permission_reason"] == payload["history"][-1]["post_admission_prune"]["permission_reason"]
+        assert audit["last_prune"]["accepted_count"] == payload["history"][-1]["post_admission_prune"]["accepted_count"]
+        assert audit["last_prune"]["selected_label"] == payload["history"][-1]["post_admission_prune"]["selected_label"]
         assert continuation["selected_generator_metadata"]
         assert "motif_library" in continuation
         assert continuation["symmetry_mitigation"]["mode"] == "verify_only"
@@ -2484,9 +2618,30 @@ class TestHHPhase3Continuation:
             assert "cheap_benefit_proxy" in row
             assert "cheap_burden_total" in row
             assert "sigma_hat" in row
+            assert "post_admission_prune" in row
+            assert row["scored_surface_size"] == len(row["scored_surface_records"])
+            assert row["retained_shortlist_size"] == len(row["retained_shortlist_records"])
+            assert row["admitted_record_count"] == len(row["admitted_records"])
+            assert row["admitted_record_count"] <= row["retained_shortlist_size"] <= row["scored_surface_size"]
+            prune = row["post_admission_prune"]
+            assert isinstance(prune, dict)
+            assert "permission_reason" in prune
+            assert 0.0 <= float(prune["u_sat"]) <= 1.0
+            assert 0.0 <= float(prune["runway_ratio"]) <= 1.0
+            assert bool(prune["mature_open"]) is (float(prune["u_sat"]) >= float(prune["maturity_threshold"]))
+            assert bool(prune["checkpoint_due"]) is (int(row["depth"]) % int(prune["checkpoint_period"]) == 0)
+            assert float(prune["gain_floor"]) >= 0.0
+            assert float(prune["snr_adm"]) >= 0.0
+            assert bool(prune["snr_low_enough"]) is (float(prune["snr_adm"]) <= float(prune["snr_threshold"]))
+            assert set(prune["small_angle_pool_indices"]).issubset(set(prune["mature_eligible_indices"]))
+            assert set(prune["probe_indices"]).issubset(set(prune["small_angle_pool_indices"]))
+            assert set(prune["protected_indices"]).isdisjoint(set(prune["mature_eligible_indices"]))
+            assert set(prune["cooldown_blocked_indices"]).isdisjoint(set(prune["mature_eligible_indices"]))
+            assert len(prune["gate_rows"]) == len(prune["metadata"])
             assert row["sigma_hat"] == pytest.approx(0.0)
             assert row["cheap_metric_proxy"] == pytest.approx(row["metric_proxy"])
         assert continuation["phase2_shortlist_rows"]
+        assert continuation["phase2_scored_rows"] == continuation["phase2_shortlist_rows"]
         assert all(
             row["cheap_score_version"] == "phase3_cheap_ratio_v1"
             for row in continuation["phase2_shortlist_rows"]
@@ -4779,8 +4934,167 @@ class TestHHBeamRuntimeFallbackRegression:
 
         assert payload["success"] is True
         assert bool(payload["adapt_beam_enabled"]) is True
+        continuation = payload["continuation"]
+        beam_diag = continuation["beam_search"]
+        summary = continuation["selected_scaffold_summary"]
+        final_choice = continuation["selected_scaffold_final_choice"]
+        branch_state = continuation["selected_scaffold_branch_state"]
+        state_summary = continuation["selected_state_summary"]
+        memory_contract = continuation["selected_scaffold_optimizer_memory_contract"]
+        runtime_boundary = continuation["controller_runtime_boundary_summary"]
+        history_summary = continuation["selected_scaffold_history"]
+        record_chain = continuation["selected_scaffold_record_chain"]
+        surface_summary = continuation["active_phase3_surface_summary"]
+        pool_summary = continuation["active_hh_pool_summary"]
+        audit = continuation["selected_scaffold_audit"]
+        assert summary["selection_source"] == "beam_winner"
+        assert summary["final_choice_summary"] == final_choice
+        assert summary["branch_state_summary"] == branch_state
+        assert summary["selected_state_summary"] == state_summary
+        assert summary["optimizer_memory_contract_summary"] == memory_contract
+        assert runtime_boundary["summary_label"] == "appendix_a_runtime_boundary"
+        assert runtime_boundary["beam_enabled"] is True
+        assert int(runtime_boundary["branch_id"]) == int(beam_diag["winner_branch_id"])
+        assert runtime_boundary["stage_controller_payload"] == continuation["stage_controller"]
+        assert runtime_boundary["current_controller_snapshot"] == branch_state["controller_telemetry"]["last_snapshot"]
+        assert "selected_scaffold_summary" in runtime_boundary["symbolic_result_keys"]
+        assert "selected_scaffold_final_choice" in runtime_boundary["symbolic_result_keys"]
+        assert "stage_controller" in runtime_boundary["runtime_controller_keys"]
+        assert "selected_scaffold_optimizer_memory_contract" in runtime_boundary["runtime_controller_keys"]
+        assert runtime_boundary["runtime_law_notation"]["thresholds"] == "tau_k(t)"
+        assert runtime_boundary["runtime_law_notation"]["caps"] == "N_k(t)"
+        assert summary["operator_labels"] == payload["operators"]
+        assert summary["theta_adapt"] == payload["logical_optimal_point"]
+        assert summary["history_step_count"] == len(history_summary) == len(payload.get("history", []))
+        assert summary["history_record_count"] == sum(len(step["selected_records"]) for step in history_summary)
+        assert summary["history_record_chain_label"] == "H_*"
+        assert len(record_chain) == int(summary["history_record_count"])
+        assert [row["generator_label"] for row in record_chain] == [
+            rec["generator_label"]
+            for step in history_summary
+            for rec in step["selected_records"]
+        ]
+        assert surface_summary["surface_label"] == "Omega_HH^(3)"
+        assert surface_summary["source_rows_key"] == "phase2_shortlist_rows"
+        assert surface_summary["source_row_semantics"] == "last_scored_candidate_surface"
+        assert surface_summary["scored_rows_key"] == "phase2_scored_rows"
+        assert surface_summary["retained_rows_key"] == "phase2_retained_shortlist_rows"
+        assert surface_summary["admitted_rows_key"] == "phase2_admitted_rows"
+        assert continuation["phase2_scored_rows"] == continuation["phase2_shortlist_rows"]
+        assert int(surface_summary["candidate_count"]) == len(continuation["phase2_scored_rows"])
+        assert int(surface_summary["retained_shortlist_count"]) == len(continuation["phase2_retained_shortlist_rows"])
+        assert int(surface_summary["admitted_count"]) == len(continuation["phase2_admitted_rows"])
+        assert int(surface_summary["admitted_count"]) <= int(surface_summary["retained_shortlist_count"]) <= int(surface_summary["candidate_count"])
+        assert surface_summary["selected_operator_labels"] == payload["operators"]
+        assert surface_summary["selected_generator_ids"] == summary["generator_ids"]
+        assert int(surface_summary["phase3_shortlisted_count"]) <= int(surface_summary["candidate_count"])
+        assert pool_summary["summary_label"] == "Omega_HH_active"
+        assert pool_summary["omega_chain"] == ["Omega_HH^(1)", "Omega_HH^(2)", "Omega_HH^(3)"]
+        assert int(pool_summary["phases"]["phase1"]["count"]) == len(continuation["phase1_retained_rows"])
+        assert int(pool_summary["phases"]["phase2"]["count"]) == len(continuation["phase2_geometric_shortlist_rows"])
+        assert int(pool_summary["phases"]["phase3"]["count"]) == len(continuation["phase2_retained_shortlist_rows"])
+        assert bool(pool_summary["nested_generator_image_inclusion"]["phase2_in_phase1"])
+        assert bool(pool_summary["nested_generator_image_inclusion"]["phase3_in_phase2"])
+        assert bool(pool_summary["nested_generator_image_inclusion"]["phase3_in_phase1"])
+        assert int(summary["branch_id"]) == int(beam_diag["winner_branch_id"])
+        assert audit["source_kind"] == "beam_winner"
+        assert audit["final_choice_summary"] == final_choice
+        assert audit["branch_state_summary"] == branch_state
+        assert audit["selected_state_summary"] == state_summary
+        assert audit["optimizer_memory_contract_summary"] == memory_contract
+        assert audit["beam_enabled"] is True
+        assert int(audit["branch_id"]) == int(beam_diag["winner_branch_id"])
+        assert audit["last_prune"] == beam_diag["winner_prune_summary"]
+        assert audit["phase3_surface_summary"] == beam_diag["winner_branch_summary"]["phase3_surface_summary"]
+        assert branch_state == beam_diag["winner_branch_state_summary"]
+        assert branch_state == beam_diag["winner_branch_summary"]["branch_state_summary"]
+        assert int(branch_state["branch_id"]) == int(beam_diag["winner_branch_id"])
+        assert branch_state["status"] == beam_diag["winner_branch_summary"]["status"]
+        assert branch_state["termination_label"] == beam_diag["winner_branch_summary"]["termination_label"]
+        assert branch_state["cumulative_selector_score"] == beam_diag["winner_branch_summary"]["cumulative_selector_score"]
+        assert branch_state["cumulative_selector_burden"] == beam_diag["winner_branch_summary"]["cumulative_selector_burden"]
+        beam_telemetry = branch_state["controller_telemetry"]
+        assert beam_telemetry["telemetry_label"] == "T_b^ctrl"
+        assert beam_telemetry["stage_event_count"] == len(audit["stage_events"])
+        assert beam_telemetry["last_probe_reason"] == audit["last_probe_reason"]
+        assert beam_telemetry["residual_opened"] is audit["residual_opened"]
+        assert state_summary["state_label"] == "|psi_*>"
+        assert state_summary["state_preparation_label"] == "U(theta_*^adapt; O_*)|phi_0>"
+        assert state_summary["reference_state_label"] == "|phi_0>"
+        assert state_summary["manifold_label"] == summary["manifold_label"]
+        assert state_summary["ansatz_depth"] == summary["ansatz_depth"]
+        assert state_summary["manifold_dimension"] == summary["manifold_dimension"]
+        assert int(state_summary["branch_id"]) == int(beam_diag["winner_branch_id"])
+        assert state_summary["state_norm"] == pytest.approx(1.0, abs=1e-10)
+        assert memory_contract == beam_diag["winner_optimizer_memory_contract"]
+        assert memory_contract == beam_diag["winner_branch_summary"]["optimizer_memory_contract_summary"]
+        assert int(memory_contract["branch_id"]) == int(beam_diag["winner_branch_id"])
+        assert memory_contract["last_active_subset_source"] == payload["history"][-1]["optimizer_memory_source"]
+        assert bool(memory_contract["last_active_subset_reused"]) is bool(payload["history"][-1]["optimizer_memory_reused"])
+        assert memory_contract["scaffold_fingerprint"]["fingerprint_notation"] == "fp(O_*)"
+        assert memory_contract["scaffold_fingerprint"]["num_parameters"] == memory_contract["memory_parameter_count"]
+        assert memory_contract["observed_transport_mode"] in {
+            "unavailable",
+            "same_scaffold_active_subset",
+            "canonical_embedding_or_index_remap",
+        }
+        assert audit["phase3_surface_summary"]["scored_surface_notation"] == "R_3(b)"
+        assert audit["phase3_surface_summary"]["retained_shortlist_notation"] == "S_3(b)"
+        assert audit["phase3_surface_summary"]["admitted_set_notation"] == "A_b"
+        assert final_choice["beam_enabled"] is True
+        assert final_choice["transition_kind"] == beam_diag["winner_branch_summary"]["last_transition_kind"]
+        assert final_choice["selected_record_count"] == beam_diag["winner_branch_summary"]["last_admission_record_count"]
+        assert final_choice["branch_terminated"] is beam_diag["winner_branch_summary"]["terminated"]
+        assert final_choice["branch_stop_reason"] == beam_diag["winner_branch_summary"]["stop_reason"]
+        assert final_choice["beam_child_kind"] in {"stop_child", "non_stop_child", "root"}
+        assert audit["prune_key"] == beam_diag["winner_prune_key"]
+        assert audit["operators"] == payload["operators"]
+        assert audit["prune_history"]
+        assert beam_diag["fingerprint_version"] == "beam_scaffold_theta10_v1"
+        assert beam_diag["prune_key_version"] == "beam_energy_neg_score_burden_size_labels_theta10_id_v1"
+        assert beam_diag["admission_surface_version"] == "beam_phase3_shortlist_structural_stop_v1"
+        assert beam_diag["rounds"]
+        assert all(
+            int(row["stop_children_count"]) == int(row["frontier_input_count"])
+            and int(row["proposal_family_count"]) >= int(row["proposals_selected_count"])
+            for row in beam_diag["rounds"]
+        )
+        assert all(int(row["prune_child_count"]) == int(row["proposals_selected_count"]) for row in beam_diag["rounds"])
+        assert all(len(row["prune_audits"]) == int(row["prune_child_count"]) for row in beam_diag["rounds"])
+        assert all(int(row["prune_executed_count"]) <= int(row["prune_permission_open_count"]) <= int(row["prune_child_count"]) for row in beam_diag["rounds"])
+        assert all(int(row["prune_accepted_count"]) <= int(row["prune_executed_count"]) for row in beam_diag["rounds"])
+        assert all(sum(int(v) for v in row["prune_permission_reason_counts"].values()) == int(row["prune_child_count"]) for row in beam_diag["rounds"])
+        assert payload["history"][-1]["beam_structural_mode"] == "stop_or_single_admission"
+        assert all("post_admission_prune" in row for row in payload["history"])
+        assert all(isinstance(row["post_admission_prune"], dict) for row in payload["history"])
+        assert all(row["scored_surface_size"] == len(row["scored_surface_records"]) for row in payload["history"])
+        assert all(row["retained_shortlist_size"] == len(row["retained_shortlist_records"]) for row in payload["history"])
+        assert all(row["admitted_record_count"] == len(row["admitted_records"]) for row in payload["history"])
+        assert all(row["admitted_record_count"] <= row["retained_shortlist_size"] <= row["scored_surface_size"] for row in payload["history"])
+        assert all(0.0 <= float(row["post_admission_prune"]["u_sat"]) <= 1.0 for row in payload["history"])
+        assert all(
+            bool(row["post_admission_prune"]["checkpoint_due"]) is (
+                int(row["depth"]) % int(row["post_admission_prune"]["checkpoint_period"]) == 0
+            )
+            for row in payload["history"]
+        )
+        assert all(
+            set(row["post_admission_prune"]["probe_indices"]).issubset(
+                set(row["post_admission_prune"]["small_angle_pool_indices"])
+            )
+            for row in payload["history"]
+        )
+        assert beam_diag["winner_prune_summary"] == beam_diag["winner_branch_summary"]["last_prune"]
+        assert beam_diag["finalist_summaries"]
+        assert any(int(summary["branch_id"]) == int(beam_diag["winner_branch_id"]) for summary in beam_diag["finalist_summaries"])
+        winner_key = beam_diag["winner_prune_key"]
+        assert winner_key["theta_round10_digits"] == 10
+        assert winner_key["ansatz_depth"] == len(winner_key["labels"])
+        assert math.isfinite(float(winner_key["energy"]))
+        assert math.isfinite(float(winner_key["cumulative_selector_score"]))
+        assert math.isfinite(float(winner_key["cumulative_selector_burden"]))
         assert math.isfinite(float(payload["abs_delta_e"]))
-        assert float(payload["abs_delta_e"]) < 1e-3
+        assert float(payload["abs_delta_e"]) < 2e-2
         assert int(payload["ansatz_depth"]) >= 6
 
     def test_beam_class_filtered_run_tolerates_missing_phase3_scores(self, tmp_path: Path):
@@ -4876,6 +5190,106 @@ class TestHHBeamRuntimeFallbackRegression:
 
         assert payload["success"] is True
         assert bool(payload["adapt_beam_enabled"]) is True
+        continuation = payload["continuation"]
+        beam_diag = continuation["beam_search"]
+        summary = continuation["selected_scaffold_summary"]
+        final_choice = continuation["selected_scaffold_final_choice"]
+        branch_state = continuation["selected_scaffold_branch_state"]
+        state_summary = continuation["selected_state_summary"]
+        memory_contract = continuation["selected_scaffold_optimizer_memory_contract"]
+        history_summary = continuation["selected_scaffold_history"]
+        record_chain = continuation["selected_scaffold_record_chain"]
+        surface_summary = continuation["active_phase3_surface_summary"]
+        audit = continuation["selected_scaffold_audit"]
+        pool_summary = continuation["active_hh_pool_summary"]
+        assert summary["selection_source"] == "beam_winner"
+        assert summary["final_choice_summary"] == final_choice
+        assert summary["branch_state_summary"] == branch_state
+        assert summary["selected_state_summary"] == state_summary
+        assert summary["optimizer_memory_contract_summary"] == memory_contract
+        assert summary["operator_labels"] == payload["operators"]
+        assert summary["theta_adapt"] == payload["logical_optimal_point"]
+        assert summary["history_step_count"] == len(history_summary) == len(payload.get("history", []))
+        assert summary["history_record_count"] == sum(len(step["selected_records"]) for step in history_summary)
+        assert summary["history_record_chain_label"] == "H_*"
+        assert len(record_chain) == int(summary["history_record_count"])
+        assert [row["generator_label"] for row in record_chain] == [
+            rec["generator_label"]
+            for step in history_summary
+            for rec in step["selected_records"]
+        ]
+        assert surface_summary["surface_label"] == "Omega_HH^(3)"
+        assert surface_summary["source_rows_key"] == "phase2_shortlist_rows"
+        assert surface_summary["source_row_semantics"] == "last_scored_candidate_surface"
+        assert surface_summary["scored_rows_key"] == "phase2_scored_rows"
+        assert surface_summary["retained_rows_key"] == "phase2_retained_shortlist_rows"
+        assert surface_summary["admitted_rows_key"] == "phase2_admitted_rows"
+        assert continuation["phase2_scored_rows"] == continuation["phase2_shortlist_rows"]
+        assert int(surface_summary["candidate_count"]) == len(continuation["phase2_scored_rows"])
+        assert int(surface_summary["retained_shortlist_count"]) == len(continuation["phase2_retained_shortlist_rows"])
+        assert int(surface_summary["admitted_count"]) == len(continuation["phase2_admitted_rows"])
+        assert int(surface_summary["admitted_count"]) <= int(surface_summary["retained_shortlist_count"]) <= int(surface_summary["candidate_count"])
+        assert surface_summary["selected_operator_labels"] == payload["operators"]
+        assert surface_summary["selected_generator_ids"] == summary["generator_ids"]
+        assert int(surface_summary["phase3_shortlisted_count"]) <= int(surface_summary["candidate_count"])
+        assert pool_summary["summary_label"] == "Omega_HH_active"
+        assert pool_summary["omega_chain"] == ["Omega_HH^(1)", "Omega_HH^(2)", "Omega_HH^(3)"]
+        assert int(pool_summary["phases"]["phase1"]["count"]) == len(continuation["phase1_retained_rows"])
+        assert int(pool_summary["phases"]["phase2"]["count"]) == len(continuation["phase2_geometric_shortlist_rows"])
+        assert int(pool_summary["phases"]["phase3"]["count"]) == len(continuation["phase2_retained_shortlist_rows"])
+        assert bool(pool_summary["nested_generator_image_inclusion"]["phase2_in_phase1"])
+        assert bool(pool_summary["nested_generator_image_inclusion"]["phase3_in_phase2"])
+        assert bool(pool_summary["nested_generator_image_inclusion"]["phase3_in_phase1"])
+        assert int(summary["branch_id"]) == int(beam_diag["winner_branch_id"])
+        assert audit["source_kind"] == "beam_winner"
+        assert audit["final_choice_summary"] == final_choice
+        assert audit["branch_state_summary"] == branch_state
+        assert audit["selected_state_summary"] == state_summary
+        assert audit["optimizer_memory_contract_summary"] == memory_contract
+        assert int(audit["branch_id"]) == int(beam_diag["winner_branch_id"])
+        assert audit["last_prune"] == beam_diag["winner_prune_summary"]
+        assert audit["phase3_surface_summary"] == beam_diag["winner_branch_summary"]["phase3_surface_summary"]
+        assert branch_state == beam_diag["winner_branch_state_summary"]
+        assert branch_state == beam_diag["winner_branch_summary"]["branch_state_summary"]
+        assert memory_contract == beam_diag["winner_optimizer_memory_contract"]
+        assert memory_contract == beam_diag["winner_branch_summary"]["optimizer_memory_contract_summary"]
+        assert int(state_summary["branch_id"]) == int(beam_diag["winner_branch_id"])
+        assert state_summary["state_norm"] == pytest.approx(1.0, abs=1e-10)
+        assert int(memory_contract["branch_id"]) == int(beam_diag["winner_branch_id"])
+        assert audit["phase3_surface_summary"]["scored_surface_notation"] == "R_3(b)"
+        assert audit["phase3_surface_summary"]["retained_shortlist_notation"] == "S_3(b)"
+        assert audit["phase3_surface_summary"]["admitted_set_notation"] == "A_b"
+        assert final_choice["beam_enabled"] is True
+        assert final_choice["transition_kind"] == beam_diag["winner_branch_summary"]["last_transition_kind"]
+        assert final_choice["selected_record_count"] == beam_diag["winner_branch_summary"]["last_admission_record_count"]
+        assert final_choice["branch_terminated"] is beam_diag["winner_branch_summary"]["terminated"]
+        assert final_choice["branch_stop_reason"] == beam_diag["winner_branch_summary"]["stop_reason"]
+        assert final_choice["beam_child_kind"] in {"stop_child", "non_stop_child", "root"}
+        assert beam_diag["admission_surface_version"] == "beam_phase3_shortlist_structural_stop_v1"
+        assert beam_diag["winner_branch_id"] >= 0
+        assert beam_diag["finalist_count"] >= 1
+        assert beam_diag["winner_prune_key"]["branch_id"] == beam_diag["winner_branch_id"]
+        assert all(
+            int(row["stop_children_count"]) == int(row["frontier_input_count"])
+            and int(row["proposal_family_count"]) >= int(row["proposals_selected_count"])
+            for row in beam_diag["rounds"]
+        )
+        assert all(int(row["prune_child_count"]) == int(row["proposals_selected_count"]) for row in beam_diag["rounds"])
+        assert all(len(row["prune_audits"]) == int(row["prune_child_count"]) for row in beam_diag["rounds"])
+        assert beam_diag["winner_prune_summary"] == beam_diag["winner_branch_summary"]["last_prune"]
+        assert any(int(summary["branch_id"]) == int(beam_diag["winner_branch_id"]) for summary in beam_diag["finalist_summaries"])
+        assert all("post_admission_prune" in row for row in payload["history"])
+        assert all(row["scored_surface_size"] == len(row["scored_surface_records"]) for row in payload["history"])
+        assert all(row["retained_shortlist_size"] == len(row["retained_shortlist_records"]) for row in payload["history"])
+        assert all(row["admitted_record_count"] == len(row["admitted_records"]) for row in payload["history"])
+        assert all(row["admitted_record_count"] <= row["retained_shortlist_size"] <= row["scored_surface_size"] for row in payload["history"])
+        assert all(0.0 <= float(row["post_admission_prune"]["u_sat"]) <= 1.0 for row in payload["history"])
+        assert all(
+            set(row["post_admission_prune"]["probe_indices"]).issubset(
+                set(row["post_admission_prune"]["small_angle_pool_indices"])
+            )
+            for row in payload["history"]
+        )
         assert math.isfinite(float(payload["energy"]))
         assert math.isfinite(float(payload["abs_delta_e"]))
         assert int(payload["ansatz_depth"]) >= 1

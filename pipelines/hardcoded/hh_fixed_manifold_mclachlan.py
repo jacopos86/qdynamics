@@ -2,7 +2,7 @@
 """Fixed-manifold HH McLachlan runner.
 
 V1 contract:
-- static / no-drive only
+- static or driven fixed-manifold McLachlan
 - local exact geometry only
 - stay-only controller behavior via large miss threshold
 - two loader routes:
@@ -31,6 +31,7 @@ from pipelines.hardcoded.hh_continuation_generators import (  # noqa: E402
     rebuild_polynomial_from_serialized_terms,
 )
 from pipelines.hardcoded.hh_realtime_checkpoint_controller import (  # noqa: E402
+    ControllerDriveConfig,
     RealtimeCheckpointController,
 )
 from pipelines.hardcoded.hh_realtime_checkpoint_types import (  # noqa: E402
@@ -97,6 +98,58 @@ def _read_json(path: Path) -> dict[str, Any]:
 def _write_json(path: Path, payload: Mapping[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+
+
+def _parse_drive_custom_weights(raw: str | None) -> tuple[float, ...] | None:
+    if raw is None:
+        return None
+    text = str(raw).strip()
+    if text == "":
+        return None
+    if text.startswith("["):
+        vals = json.loads(text)
+    else:
+        vals = [float(x) for x in text.split(",") if x.strip()]
+    return tuple(float(x) for x in vals)
+
+
+def _controller_drive_config(
+    *,
+    loaded: LoadedRunContext,
+    enable_drive: bool,
+    drive_A: float,
+    drive_omega: float,
+    drive_tbar: float,
+    drive_phi: float,
+    drive_pattern: str,
+    drive_custom_s: str | None,
+    drive_include_identity: bool,
+    drive_time_sampling: str,
+    drive_t0: float,
+    exact_steps_multiplier: int,
+) -> ControllerDriveConfig | None:
+    if not bool(enable_drive):
+        return None
+    custom_weights = None
+    if str(drive_pattern).strip().lower() == "custom":
+        custom_weights = _parse_drive_custom_weights(drive_custom_s)
+        if custom_weights is None:
+            raise ValueError("--drive-custom-s is required when --drive-pattern custom.")
+    return ControllerDriveConfig(
+        enabled=True,
+        n_sites=int(loaded.cfg.L),
+        ordering=str(loaded.cfg.ordering),
+        drive_A=float(drive_A),
+        drive_omega=float(drive_omega),
+        drive_tbar=float(drive_tbar),
+        drive_phi=float(drive_phi),
+        drive_pattern=str(drive_pattern),
+        drive_custom_weights=custom_weights,
+        drive_include_identity=bool(drive_include_identity),
+        drive_time_sampling=str(drive_time_sampling),
+        drive_t0=float(drive_t0),
+        exact_steps_multiplier=int(exact_steps_multiplier),
+    )
 
 
 def _boolish(raw: Any, default: bool) -> bool:
@@ -633,8 +686,33 @@ def run_fixed_manifold_exact(
     miss_threshold: float,
     gain_ratio_threshold: float,
     append_margin_abs: float,
+    enable_drive: bool = False,
+    drive_A: float = 0.0,
+    drive_omega: float = 1.0,
+    drive_tbar: float = 1.0,
+    drive_phi: float = 0.0,
+    drive_pattern: str = "staggered",
+    drive_custom_s: str | None = None,
+    drive_include_identity: bool = False,
+    drive_time_sampling: str = "midpoint",
+    drive_t0: float = 0.0,
+    exact_steps_multiplier: int = 1,
 ) -> dict[str, Any]:
     loaded = load_run_context(spec, tag=tag)
+    controller_drive_cfg = _controller_drive_config(
+        loaded=loaded,
+        enable_drive=bool(enable_drive),
+        drive_A=float(drive_A),
+        drive_omega=float(drive_omega),
+        drive_tbar=float(drive_tbar),
+        drive_phi=float(drive_phi),
+        drive_pattern=str(drive_pattern),
+        drive_custom_s=drive_custom_s,
+        drive_include_identity=bool(drive_include_identity),
+        drive_time_sampling=str(drive_time_sampling),
+        drive_t0=float(drive_t0),
+        exact_steps_multiplier=int(exact_steps_multiplier),
+    )
     controller_cfg = RealtimeCheckpointConfig(
         mode="exact_v1",
         miss_threshold=float(miss_threshold),
@@ -652,6 +730,7 @@ def run_fixed_manifold_exact(
         allow_repeats=False,
         t_final=float(t_final),
         num_times=int(num_times),
+        drive_config=controller_drive_cfg,
     )
     result = controller.run()
     extra_summary = summarize_result_artifact(
@@ -672,7 +751,7 @@ def run_fixed_manifold_exact(
         "manifest": {
             "model_family": "Hubbard-Holstein",
             "ansatz_type": str(spec.name),
-            "drive_enabled": False,
+            "drive_enabled": bool(controller_drive_cfg is not None),
             "t": float(settings.get("t", loaded.cfg.t)),
             "U": float(settings.get("u", loaded.cfg.u)),
             "dv": float(settings.get("dv", loaded.cfg.dv)),
@@ -689,7 +768,13 @@ def run_fixed_manifold_exact(
             "structure_policy": "fixed_manifold_locked_pool",
             "controller": asdict(controller_cfg),
             "effective_pool_kind": "replay_terms_only",
+            "projection_time_sampling": (
+                "left"
+                if controller_drive_cfg is None
+                else str(controller_drive_cfg.drive_time_sampling)
+            ),
         },
+        "drive_profile": dict(result.reference.get("drive_profile", {})) if controller_drive_cfg is not None else None,
         "summary": dict(result.summary),
         "extra_summary": dict(extra_summary),
         "reference": dict(result.reference),
@@ -706,6 +791,8 @@ def run_fixed_manifold_exact(
         "output_json": str(output_path),
         "loader_mode": str(loaded.loader_summary.get("loader_mode", "")),
         "resolved_family": str(loaded.replay_context.family_info.get("resolved", "")),
+        "manifest": dict(run_payload["manifest"]),
+        "drive_profile": (None if run_payload["drive_profile"] is None else dict(run_payload["drive_profile"])),
         "summary": dict(result.summary),
         "extra_summary": dict(extra_summary),
         "loader": dict(loaded.loader_summary),
@@ -720,6 +807,10 @@ def build_compare_summary(
     t_final: float,
     num_times: int,
     miss_threshold: float,
+    drive_enabled: bool = False,
+    drive_profile: Mapping[str, Any] | None = None,
+    projection_time_sampling: str = "left",
+    reference_steps_multiplier: int = 1,
 ) -> dict[str, Any]:
     successes = [dict(row) for row in run_records if str(row.get("status", "")) == "completed"]
     failures = [dict(row) for row in run_records if str(row.get("status", "")) != "completed"]
@@ -745,14 +836,17 @@ def build_compare_summary(
         "output_dir": str(output_dir),
         "manifest": {
             "model_family": "Hubbard-Holstein",
-            "drive_enabled": False,
+            "drive_enabled": bool(drive_enabled),
             "decision_mode": "exact_v1",
             "structure_policy": "fixed_manifold_locked_pool",
             "effective_pool_kind": "replay_terms_only",
             "t_final": float(t_final),
             "num_times": int(num_times),
             "miss_threshold": float(miss_threshold),
+            "projection_time_sampling": str(projection_time_sampling),
+            "reference_steps_multiplier": int(reference_steps_multiplier),
         },
+        "drive_profile": (None if drive_profile is None else dict(drive_profile)),
         "completed_runs": int(len(successes)),
         "failed_runs": int(len(failures)),
         "runs": [dict(row) for row in run_records],
@@ -800,6 +894,25 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
         type=str,
         default=str(DEFAULT_LOCKED_7TERM_ARTIFACT),
     )
+    parser.add_argument("--enable-drive", action="store_true", help="Enable time-dependent onsite density drive.")
+    parser.add_argument("--drive-A", type=float, default=0.0)
+    parser.add_argument("--drive-omega", type=float, default=1.0)
+    parser.add_argument("--drive-tbar", type=float, default=1.0)
+    parser.add_argument("--drive-phi", type=float, default=0.0)
+    parser.add_argument(
+        "--drive-pattern",
+        choices=["dimer_bias", "staggered", "custom"],
+        default="staggered",
+    )
+    parser.add_argument("--drive-custom-s", type=str, default=None)
+    parser.add_argument("--drive-include-identity", action="store_true")
+    parser.add_argument(
+        "--drive-time-sampling",
+        choices=["midpoint", "left", "right"],
+        default="midpoint",
+    )
+    parser.add_argument("--drive-t0", type=float, default=0.0)
+    parser.add_argument("--exact-steps-multiplier", type=int, default=1)
     return parser.parse_args(argv)
 
 
@@ -827,6 +940,23 @@ def main(argv: Sequence[str] | None = None) -> int:
         ),
     ]
 
+    drive_profile = None
+    if bool(args.enable_drive):
+        drive_profile = {
+            "A": float(args.drive_A),
+            "omega": float(args.drive_omega),
+            "tbar": float(args.drive_tbar),
+            "phi": float(args.drive_phi),
+            "pattern": str(args.drive_pattern),
+            "custom_weights": (
+                None
+                if str(args.drive_pattern).strip().lower() != "custom"
+                else list(_parse_drive_custom_weights(args.drive_custom_s) or [])
+            ),
+            "include_identity": bool(args.drive_include_identity),
+            "time_sampling": str(args.drive_time_sampling),
+            "t0": float(args.drive_t0),
+        }
     run_records: list[dict[str, Any]] = []
     failures = 0
     for spec in run_specs:
@@ -841,6 +971,17 @@ def main(argv: Sequence[str] | None = None) -> int:
                     miss_threshold=float(args.miss_threshold),
                     gain_ratio_threshold=float(args.gain_ratio_threshold),
                     append_margin_abs=float(args.append_margin_abs),
+                    enable_drive=bool(args.enable_drive),
+                    drive_A=float(args.drive_A),
+                    drive_omega=float(args.drive_omega),
+                    drive_tbar=float(args.drive_tbar),
+                    drive_phi=float(args.drive_phi),
+                    drive_pattern=str(args.drive_pattern),
+                    drive_custom_s=args.drive_custom_s,
+                    drive_include_identity=bool(args.drive_include_identity),
+                    drive_time_sampling=str(args.drive_time_sampling),
+                    drive_t0=float(args.drive_t0),
+                    exact_steps_multiplier=int(args.exact_steps_multiplier),
                 )
             )
         except Exception as exc:
@@ -862,6 +1003,10 @@ def main(argv: Sequence[str] | None = None) -> int:
         t_final=float(args.t_final),
         num_times=int(args.num_times),
         miss_threshold=float(args.miss_threshold),
+        drive_enabled=bool(args.enable_drive),
+        drive_profile=drive_profile,
+        projection_time_sampling=(str(args.drive_time_sampling) if bool(args.enable_drive) else "left"),
+        reference_steps_multiplier=(int(args.exact_steps_multiplier) if bool(args.enable_drive) else 1),
     )
     summary_path = (
         Path(args.compare_summary_json)

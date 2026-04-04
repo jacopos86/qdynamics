@@ -54,10 +54,10 @@ def add_staged_hh_base_args(p: argparse.ArgumentParser) -> argparse.ArgumentPars
     p.add_argument(
         "--adapt-continuation-mode",
         choices=["legacy", "phase1_v1", "phase2_v1", "phase3_v1"],
-        default="phase1_v1",
+        default="phase3_v1",
         help=(
-            "Historical staged-wrapper continuation mode. The staged VQE->ADAPT->VQE wrappers keep phase1_v1 as their compatibility default; "
-            "use pipelines/hardcoded/adapt_pipeline.py for the canonical direct HH phase3_v1 path."
+            "Default staged continuation mode. The manuscript-aligned default is the full all-phase shortlist path phase3_v1; "
+            "override explicitly to legacy/phase1_v1/phase2_v1 when needed."
         ),
     )
     p.add_argument("--adapt-max-depth", type=int, default=None)
@@ -214,7 +214,7 @@ def add_staged_hh_base_args(p: argparse.ArgumentParser) -> argparse.ArgumentPars
         choices=["auto", "legacy", "phase1_v1", "phase2_v1", "phase3_v1"],
         default="auto",
         help=(
-            "Historical staged replay continuation mode. 'auto' inherits the staged ADAPT mode, so the staged wrappers keep their phase1_v1 compatibility behavior unless explicitly overridden."
+            "Replay continuation mode. 'auto' inherits the staged ADAPT continuation mode, which now defaults to the manuscript-aligned all-phase path."
         ),
     )
     p.add_argument("--replay-wallclock-cap-s", type=int, default=43200)

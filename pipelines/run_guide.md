@@ -30,7 +30,7 @@ Use this section first. Sections 1-6 remain the narrow Marrakesh 7-term line; th
 | staged HH noisy/import-side follow-ons | `pipelines/hardcoded/hh_staged_noise.py` | local noisy extension and imported fixed-scaffold routes | current |
 | HH noise validation / parity | `pipelines/exact_bench/hh_noise_hardware_validation.py` | structured JSON/PDF validator | current |
 | HH exact cross-check matrix | `pipelines/exact_bench/cross_check_suite.py` | current CLI only; older seed-surface flags are absent here | current |
-| fixed-manifold exact compare | `python -m pipelines.hardcoded.hh_fixed_manifold_mclachlan` | use `-m` | current saved-artifact exact compare |
+| fixed-manifold exact compare | `python -m pipelines.hardcoded.hh_fixed_manifold_mclachlan --enable-drive --drive-A 0.6 --exact-steps-multiplier 2` | use `-m`; drive flags now supported here too | current saved-artifact exact compare |
 | fixed-manifold measured/oracle run | `python -m pipelines.hardcoded.hh_fixed_manifold_measured --manifold locked_7term --enable-drive --drive-A 0.6 --exact-steps-multiplier 2` | use `-m`; currently `noise_mode=ideal` only | current |
 | L=2 static realtime sweep | `python -m pipelines.hardcoded.hh_l2_static_realtime_pareto_sweep` | use `-m`; writes `summary.json` + `progress.json` | current L=2-only |
 | L=2 driven realtime sweep | `python -m pipelines.hardcoded.hh_l2_driven_realtime_pareto_sweep` | use `-m`; writes `summary.json` + `progress.json` + PNG | current L=2-only |
@@ -49,6 +49,10 @@ python pipelines/hardcoded/adapt_pipeline.py \
 # Current fixed-manifold exact compare
 python -m pipelines.hardcoded.hh_fixed_manifold_mclachlan
 
+# Current fixed-manifold exact/driven compare
+python -m pipelines.hardcoded.hh_fixed_manifold_mclachlan \
+  --enable-drive --drive-A 0.6 --exact-steps-multiplier 2
+
 # Current fixed-manifold measured/driven run
 python -m pipelines.hardcoded.hh_fixed_manifold_measured \
   --manifold locked_7term --enable-drive \
@@ -61,6 +65,7 @@ python -m pipelines.hardcoded.hh_l2_driven_realtime_pareto_sweep
 Notes:
 - Use `python -m` for the newer fixed-manifold / realtime sweep modules; direct file-path invocation can fail on imports.
 - `hh_fixed_manifold_measured.py` currently supports only `noise_mode=ideal`, `oracle_repeats=1`, and mean aggregation.
+- For driven fixed-manifold JSON, `time` is the checkpoint time while `physical_time` is the sampled Hamiltonian time (`midpoint`/`left`/`right` plus `drive_t0`, with final-checkpoint endpoint fallback).
 - `hh_l2_static_realtime_pareto_sweep.py` and `hh_l2_driven_realtime_pareto_sweep.py` are saved-artifact `L=2` workflows, not generic `run L` wrappers.
 - `run_drive_accurate.sh` remains a legacy shorthand helper with a stricter `1e-7` gate than the AGENTS/README shorthand target.
 

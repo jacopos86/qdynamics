@@ -817,6 +817,11 @@ def test_realtime_controller_drive_step_hamiltonian_uses_time_dependent_total_h(
 
     assert str(result.reference["kind"]) == "driven_piecewise_constant_reference_from_replay_seed"
     assert result.reference["drive_profile"]["A"] == pytest.approx(0.6)
+    assert result.reference["projection_time_sampling"] == "midpoint"
+    assert result.reference["geometry_sample_time_policy"] == "interval_midpoint_plus_t0_with_final_endpoint_fallback"
+    assert result.trajectory[0]["physical_time"] == pytest.approx(0.05)
+    assert result.trajectory[1]["physical_time"] == pytest.approx(0.15)
+    assert result.trajectory[2]["physical_time"] == pytest.approx(0.2)
     assert any(int(row.get("drive_term_count", 0)) >= 1 for row in result.ledger[1:])
     assert all("physical_time" in row for row in result.ledger)
     assert all("staggered" in row and "staggered_exact" in row for row in result.trajectory)
@@ -825,6 +830,69 @@ def test_realtime_controller_drive_step_hamiltonian_uses_time_dependent_total_h(
     assert "max_abs_staggered_error" in result.summary
     assert "max_abs_doublon_error" in result.summary
     assert "max_abs_site_occupations_error" in result.summary
+
+
+@pytest.mark.parametrize(
+    ("sampling", "expected_physical_times"),
+    [
+        ("midpoint", [0.25, 0.35, 0.4]),
+        ("left", [0.2, 0.3, 0.4]),
+        ("right", [0.3, 0.4, 0.4]),
+    ],
+)
+def test_realtime_controller_projection_sample_time_variants(
+    monkeypatch: pytest.MonkeyPatch,
+    sampling: str,
+    expected_physical_times: list[float],
+) -> None:
+    replay_context, h_poly, hmat, psi_initial = _toy_context(theta_x=0.2)
+
+    class _FakeDrive:
+        @staticmethod
+        def coeff_map_exyz(time_value: float) -> dict[str, float]:
+            return {"z": float(time_value)}
+
+    monkeypatch.setattr(
+        "pipelines.hardcoded.hh_realtime_checkpoint_controller.build_gaussian_sinusoid_density_drive",
+        lambda **kwargs: _FakeDrive(),
+    )
+
+    controller = RealtimeCheckpointController(
+        cfg=RealtimeCheckpointConfig(mode="exact_v1"),
+        replay_context=replay_context,
+        h_poly=h_poly,
+        hmat=hmat,
+        psi_initial=psi_initial,
+        best_theta=[0.2],
+        allow_repeats=False,
+        t_final=0.2,
+        num_times=3,
+        drive_config=ControllerDriveConfig(
+            enabled=True,
+            n_sites=1,
+            ordering="blocked",
+            drive_A=0.6,
+            drive_omega=1.0,
+            drive_tbar=1.0,
+            drive_phi=0.0,
+            drive_pattern="staggered",
+            drive_custom_weights=None,
+            drive_include_identity=False,
+            drive_time_sampling=str(sampling),
+            drive_t0=0.2,
+            exact_steps_multiplier=1,
+        ),
+    )
+
+    observed_physical_times = []
+    for idx, time_start in enumerate(controller.times):
+        time_stop = None if idx + 1 >= len(controller.times) else float(controller.times[idx + 1])
+        sample_time = controller._projection_sample_time(float(time_start), time_stop)
+        observed_physical_times.append(
+            float(controller._step_hamiltonian_artifacts(float(sample_time)).physical_time)
+        )
+
+    assert observed_physical_times == pytest.approx(expected_physical_times)
 
 
 def test_realtime_controller_off_mode_produces_stay_only_driven_baseline(

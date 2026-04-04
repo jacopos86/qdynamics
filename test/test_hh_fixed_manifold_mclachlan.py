@@ -310,6 +310,105 @@ def test_run_fixed_manifold_exact_stays_for_locked_toy_payload(tmp_path: Path) -
     assert written["run_config"]["structure_policy"] == "fixed_manifold_locked_pool"
 
 
+def test_run_fixed_manifold_exact_drive_schema_on_toy_payload(tmp_path: Path) -> None:
+    payload = _toy_fixed_scaffold_payload()
+    artifact_json = tmp_path / "toy_locked_drive.json"
+    artifact_json.write_text(json.dumps(payload), encoding="utf-8")
+
+    record = run_fixed_manifold_exact(
+        FixedManifoldRunSpec(
+            name="toy_locked_drive",
+            artifact_json=artifact_json,
+            loader_mode="fixed_scaffold",
+        ),
+        tag="pytest_fixed_manifold_drive",
+        output_dir=tmp_path / "out",
+        t_final=0.2,
+        num_times=3,
+        miss_threshold=1.0e9,
+        gain_ratio_threshold=1.0e-9,
+        append_margin_abs=1.0e-12,
+        enable_drive=True,
+        drive_A=0.25,
+        drive_omega=1.1,
+        drive_tbar=0.8,
+        drive_phi=0.4,
+        drive_time_sampling="midpoint",
+        drive_t0=0.2,
+        exact_steps_multiplier=2,
+    )
+
+    written = json.loads(Path(record["output_json"]).read_text(encoding="utf-8"))
+    assert written["manifest"]["drive_enabled"] is True
+    assert written["drive_profile"]["A"] == pytest.approx(0.25)
+    assert written["reference"]["kind"] == "driven_piecewise_constant_reference_from_replay_seed"
+    assert written["reference"]["reference_method"] == "exponential_midpoint_magnus2_order2"
+    assert written["reference"]["projection_time_sampling"] == "midpoint"
+    assert written["reference"]["geometry_sample_time_policy"] == "interval_midpoint_plus_t0_with_final_endpoint_fallback"
+    assert written["trajectory"][0]["physical_time"] == pytest.approx(0.25)
+    assert written["trajectory"][1]["physical_time"] == pytest.approx(0.35)
+    assert any(int(row.get("drive_term_count", 0)) >= 1 for row in written["trajectory"])
+
+
+def test_run_fixed_manifold_exact_drive_a0_matches_static_on_toy_payload(tmp_path: Path) -> None:
+    payload = _toy_fixed_scaffold_payload()
+    artifact_json = tmp_path / "toy_locked_a0.json"
+    artifact_json.write_text(json.dumps(payload), encoding="utf-8")
+
+    static_record = run_fixed_manifold_exact(
+        FixedManifoldRunSpec(
+            name="toy_locked_static",
+            artifact_json=artifact_json,
+            loader_mode="fixed_scaffold",
+        ),
+        tag="pytest_fixed_manifold_static",
+        output_dir=tmp_path / "out_static",
+        t_final=0.2,
+        num_times=3,
+        miss_threshold=1.0e9,
+        gain_ratio_threshold=1.0e-9,
+        append_margin_abs=1.0e-12,
+    )
+    drive_record = run_fixed_manifold_exact(
+        FixedManifoldRunSpec(
+            name="toy_locked_drive_a0",
+            artifact_json=artifact_json,
+            loader_mode="fixed_scaffold",
+        ),
+        tag="pytest_fixed_manifold_drive_a0",
+        output_dir=tmp_path / "out_drive",
+        t_final=0.2,
+        num_times=3,
+        miss_threshold=1.0e9,
+        gain_ratio_threshold=1.0e-9,
+        append_margin_abs=1.0e-12,
+        enable_drive=True,
+        drive_A=0.0,
+        drive_omega=1.1,
+        drive_tbar=0.8,
+        drive_phi=0.3,
+        drive_time_sampling="midpoint",
+        exact_steps_multiplier=2,
+    )
+
+    static_payload = json.loads(Path(static_record["output_json"]).read_text(encoding="utf-8"))
+    drive_payload = json.loads(Path(drive_record["output_json"]).read_text(encoding="utf-8"))
+    assert drive_payload["manifest"]["drive_enabled"] is True
+    for row_static, row_drive in zip(static_payload["trajectory"], drive_payload["trajectory"]):
+        assert abs(float(row_static["rho_miss"]) - float(row_drive["rho_miss"])) < 1.0e-10
+        assert (
+            abs(
+                float(row_static["baseline_geometry"]["condition_number"])
+                - float(row_drive["baseline_geometry"]["condition_number"])
+            )
+            < 1.0e-10
+        )
+        assert abs(float(row_static["fidelity_exact"]) - float(row_drive["fidelity_exact"])) < 1.0e-10
+        assert abs(float(row_static["abs_energy_total_error"]) - float(row_drive["abs_energy_total_error"])) < 1.0e-10
+        assert abs(float(row_static["energy_total_controller"]) - float(row_drive["energy_total_controller"])) < 1.0e-10
+        assert abs(float(row_static["energy_total_exact"]) - float(row_drive["energy_total_exact"])) < 1.0e-10
+
+
 def test_run_fixed_manifold_exact_rejects_corrupted_prepared_state(tmp_path: Path) -> None:
     payload = _toy_fixed_scaffold_payload()
     payload["adapt_vqe"]["optimal_point"] = [0.2]
