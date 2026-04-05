@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+.venv/
+conda-env/
+psi4_*.out
+h2_*.json
+molecule_*.json
+smoke_h2_result.json
+h2_vibronic_*.json
+smoke_h2_vibronic_result.json

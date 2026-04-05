@@ -856,7 +856,7 @@ def test_fixed_scaffold_runtime_raw_baseline_rejects_non_none_mitigation(
     assert payload["reason"] == "fixed_scaffold_runtime_raw_baseline_requires_no_mitigation"
 
 
-def test_fixed_scaffold_runtime_raw_baseline_rejects_nonlegacy_runtime_profile(
+def test_fixed_scaffold_runtime_raw_baseline_rejects_estimator_style_runtime_profile(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
@@ -886,10 +886,10 @@ def test_fixed_scaffold_runtime_raw_baseline_rejects_nonlegacy_runtime_profile(
 
     assert payload["success"] is False
     assert payload["available"] is False
-    assert payload["reason"] == "fixed_scaffold_runtime_raw_baseline_requires_legacy_runtime_profile"
+    assert payload["reason"] == "fixed_scaffold_runtime_raw_baseline_requires_sampler_safe_runtime_profile"
 
 
-def test_fixed_scaffold_runtime_raw_baseline_rejects_verify_only_symmetry(
+def test_fixed_scaffold_runtime_raw_baseline_accepts_verify_only_symmetry(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
@@ -897,6 +897,97 @@ def test_fixed_scaffold_runtime_raw_baseline_rejects_verify_only_symmetry(
         report,
         "_resolve_locked_imported_fixed_scaffold_context",
         lambda artifact_json, nonfixed_reason: _locked_fixed_scaffold_ctx(tmp_path),
+    )
+    monkeypatch.setattr(
+        report,
+        "build_parameterized_ansatz_plan",
+        lambda layout, nq, ref_state=None: SimpleNamespace(
+            layout=layout,
+            nq=int(nq),
+            plan_digest="plan",
+            structure_digest="structure",
+            reference_state_digest="ref",
+        ),
+    )
+    monkeypatch.setattr(
+        report,
+        "_evaluate_locked_imported_circuit_raw_energy",
+        lambda **kwargs: {
+            "noisy_mean": 1.2,
+            "noisy_std": 0.1,
+            "noisy_stdev": 0.1,
+            "noisy_stderr": 0.05,
+            "ideal_mean": 1.0,
+            "ideal_std": 0.0,
+            "ideal_stdev": 0.0,
+            "ideal_stderr": 0.0,
+            "delta_mean": 0.2,
+            "delta_stderr": 0.05,
+            "backend_info": {
+                "noise_mode": "runtime",
+                "estimator_kind": "raw_measurement_oracle",
+                "backend_name": "ibm_test_backend",
+                "using_fake_backend": False,
+                "details": {
+                    "execution_surface": "raw_measurement_v1",
+                    "transport": "sampler_v2",
+                    "raw_artifact_path": "artifacts/raw.ndjson.gz",
+                    "seed_transpiler": 7,
+                    "transpile_optimization_level": 1,
+                },
+            },
+        },
+    )
+    monkeypatch.setattr(
+        report,
+        "_evaluate_locked_imported_circuit_raw_symmetry_diagnostic",
+        lambda **kwargs: {
+            "success": True,
+            "available": True,
+            "reason": None,
+            "observable_family": "fixed_scaffold_runtime_all_z_symmetry_diagnostic",
+            "evaluation_id": "diag-eval-verify-only",
+            "transport": "sampler_v2",
+            "raw_artifact_path": "artifacts/raw.ndjson.gz",
+            "record_count": 2,
+            "group_count": 1,
+            "term_count": 1,
+            "compile_signatures_by_basis": {"ZZ": {"compiled_depth": 2}},
+            "summary": {"sector_weight_mean": 0.75},
+            "diagonal_postprocessing": {
+                "success": False,
+                "available": False,
+                "reason": "local_fake_backend_only",
+            },
+            "error_type": None,
+            "error_message": None,
+        },
+    )
+    monkeypatch.setattr(
+        report,
+        "_evaluate_locked_imported_circuit_raw_symmetry_validation",
+        lambda **kwargs: {
+            "success": True,
+            "available": True,
+            "reason": None,
+            "reference_source": "ideal_diagonal_v1",
+            "metrics": {},
+            "notes": ["diagnostic_only", "no_energy_correction"],
+            "error_type": None,
+            "error_message": None,
+        },
+    )
+    monkeypatch.setattr(
+        report,
+        "_evaluate_locked_imported_circuit_raw_symmetry_bootstrap",
+        lambda **kwargs: {
+            "success": True,
+            "available": True,
+            "reason": None,
+            "summary": {"source": "hh_full_register_z_bootstrap_v1", "metrics": {}},
+            "error_type": None,
+            "error_message": None,
+        },
     )
 
     payload = report._run_imported_fixed_scaffold_runtime_raw_baseline(
@@ -911,16 +1002,17 @@ def test_fixed_scaffold_runtime_raw_baseline_rejects_verify_only_symmetry(
         omp_shm_workaround=True,
         mitigation_config={"mode": "none"},
         symmetry_mitigation_config={"mode": "verify_only"},
-        runtime_profile_config={"name": "legacy_runtime_v0"},
+        runtime_profile_config={"name": "raw_sampler_twirled_v1"},
         runtime_session_config={"mode": "prefer_session"},
         transpile_optimization_level=1,
         seed_transpiler=7,
         raw_transport="sampler_v2",
     )
 
-    assert payload["success"] is False
-    assert payload["available"] is False
-    assert payload["reason"] == "fixed_scaffold_runtime_raw_baseline_requires_symmetry_off"
+    assert payload["success"] is True
+    assert payload["available"] is True
+    assert payload["noise_config"]["symmetry_mitigation"]["mode"] == "verify_only"
+    assert payload["noise_config"]["runtime_profile"]["name"] == "raw_sampler_twirled_v1"
 
 
 def test_imported_fixed_scaffold_noisy_replay_allows_symmetry_only_backend_scheduled(

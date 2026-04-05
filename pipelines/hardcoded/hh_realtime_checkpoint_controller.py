@@ -61,8 +61,10 @@ from src.quantum.compiled_polynomial import (
 )
 from src.quantum.drives_time_potential import (
     build_gaussian_sinusoid_density_drive,
+    default_spatial_weights,
     reference_method_name,
 )
+from src.quantum.hubbard_latex_python_pairs import build_hubbard_holstein_drive
 from src.quantum.vqe_latex_python_pairs import AnsatzTerm, PauliPolynomial
 
 if TYPE_CHECKING:
@@ -177,6 +179,130 @@ def _site_resolved_number_observables(
     )
 
 
+def _drive_aligned_density_label(*, pattern: str) -> str:
+    return f"drive_aligned_density(pattern={str(pattern)})"
+
+
+"""
+psi(theta, 0_drive) = psi(theta) while adding a drive-aligned density tangent.
+"""
+def _augment_replay_context_with_drive_aligned_density(
+    replay_context: ReplayScaffoldContext,
+    *,
+    best_theta: np.ndarray | Sequence[float],
+    drive_config: ControllerDriveConfig | None,
+    num_qubits: int,
+) -> tuple[ReplayScaffoldContext, np.ndarray, bool, str | None]:
+    best_theta_arr = np.asarray(best_theta, dtype=float).reshape(-1)
+    if drive_config is None or not bool(drive_config.enabled):
+        return replay_context, best_theta_arr, False, None
+    if abs(float(drive_config.drive_A)) <= 1.0e-12:
+        return replay_context, best_theta_arr, False, None
+    # Some unit-test toy contexts use a reduced single-qubit register to exercise
+    # drive timing logic. Those fixtures do not carry the HH spin-orbital register
+    # needed to synthesize the staggered density generator, so skip augmentation.
+    if int(num_qubits) < (2 * int(drive_config.n_sites)):
+        return replay_context, best_theta_arr, False, None
+
+    label = _drive_aligned_density_label(pattern=str(drive_config.drive_pattern))
+    replay_term_labels = {str(term.label) for term in replay_context.replay_terms}
+    if label in replay_term_labels:
+        return replay_context, best_theta_arr, True, str(label)
+
+    custom_weights = (
+        None
+        if drive_config.drive_custom_weights is None
+        else [float(x) for x in drive_config.drive_custom_weights]
+    )
+    weights = default_spatial_weights(
+        int(drive_config.n_sites),
+        mode=str(drive_config.drive_pattern),
+        custom=custom_weights,
+    )
+    drive_poly = build_hubbard_holstein_drive(
+        dims=int(drive_config.n_sites),
+        v_t=[float(x) for x in np.asarray(weights, dtype=float).tolist()],
+        v0=[0.0] * int(drive_config.n_sites),
+        repr_mode="JW",
+        indexing=str(drive_config.ordering),
+        nq_override=int(num_qubits),
+    )
+    pool_match = next(
+        (term for term in replay_context.family_pool if str(term.label) == str(label)),
+        None,
+    )
+    extra_term = (
+        pool_match
+        if pool_match is not None
+        else AnsatzTerm(label=str(label), polynomial=drive_poly)
+    )
+
+    old_layout = replay_context.base_layout
+    new_replay_terms = tuple(replay_context.replay_terms) + (extra_term,)
+    new_layout = build_parameter_layout(
+        list(new_replay_terms),
+        ignore_identity=bool(old_layout.ignore_identity),
+        coefficient_tolerance=float(old_layout.coefficient_tolerance),
+        sort_terms=(str(old_layout.term_order).strip().lower() == "sorted"),
+    )
+    old_blocks = tuple(old_layout.blocks)
+    new_blocks = tuple(new_layout.blocks)
+    if new_blocks[: len(old_blocks)] != old_blocks:
+        raise ValueError("Drive-aligned density augmentation changed replay runtime layout prefix.")
+
+    runtime_delta = int(new_layout.runtime_parameter_count) - int(old_layout.runtime_parameter_count)
+    if runtime_delta < 0:
+        raise ValueError("Drive-aligned density augmentation reduced runtime parameter count unexpectedly.")
+    logical_delta = int(new_layout.logical_parameter_count) - int(old_layout.logical_parameter_count)
+    if logical_delta != 1:
+        raise ValueError(
+            f"Drive-aligned density augmentation expected one logical block; got delta={logical_delta}."
+        )
+
+    new_family_pool = (
+        tuple(replay_context.family_pool)
+        if pool_match is not None
+        else tuple(replay_context.family_pool) + (extra_term,)
+    )
+    new_best_theta = np.concatenate(
+        [
+            best_theta_arr,
+            np.zeros(runtime_delta, dtype=float),
+        ]
+    )
+    new_theta_runtime = np.concatenate(
+        [
+            np.asarray(replay_context.adapt_theta_runtime, dtype=float).reshape(-1),
+            np.zeros(runtime_delta, dtype=float),
+        ]
+    )
+    new_theta_logical = np.concatenate(
+        [
+            np.asarray(replay_context.adapt_theta_logical, dtype=float).reshape(-1),
+            np.zeros(1, dtype=float),
+        ]
+    )
+    pool_meta = dict(replay_context.pool_meta)
+    pool_meta["drive_generator_mode"] = "aligned_density"
+    pool_meta["drive_aligned_density_active"] = True
+    family_info = dict(replay_context.family_info)
+    family_info["drive_generator_mode"] = "aligned_density"
+    family_info["drive_aligned_density_label"] = str(label)
+    replay_context_aug = replace(
+        replay_context,
+        family_info=family_info,
+        family_pool=tuple(new_family_pool),
+        pool_meta=pool_meta,
+        replay_terms=tuple(new_replay_terms),
+        base_layout=new_layout,
+        adapt_theta_runtime=np.asarray(new_theta_runtime, dtype=float).reshape(-1),
+        adapt_theta_logical=np.asarray(new_theta_logical, dtype=float).reshape(-1),
+        adapt_depth=int(len(new_replay_terms)),
+        family_terms_count=int(len(new_family_pool)),
+    )
+    return replay_context_aug, np.asarray(new_best_theta, dtype=float).reshape(-1), True, str(label)
+
+
 @dataclass(frozen=True)
 class MotionSchedulerTelemetry:
     regime: str
@@ -283,6 +409,18 @@ def _insert_theta_block(theta: np.ndarray, *, runtime_position: int, width: int)
     )
 
 
+def _delete_theta_block(
+    theta: np.ndarray | Sequence[float],
+    *,
+    runtime_start: int,
+    runtime_stop: int,
+) -> np.ndarray:
+    arr = np.asarray(theta, dtype=float).reshape(-1)
+    start = max(0, int(runtime_start))
+    stop = max(start, min(int(runtime_stop), int(arr.size)))
+    return np.concatenate([arr[:start], arr[stop:]])
+
+
 def _overlap_l2(lhs: np.ndarray, rhs: np.ndarray | None) -> float | None:
     if rhs is None:
         return None
@@ -322,7 +460,7 @@ def _cosine_similarity(lhs: np.ndarray | Sequence[float], rhs: np.ndarray | Sequ
 
 
 class RealtimeCheckpointController:
-    """Exact/oracle horizon-1 stay-vs-append controller."""
+    """Exact/oracle horizon-1 stay/append/prune adaptive checkpoint controller."""
 
     def __init__(
         self,
@@ -345,7 +483,6 @@ class RealtimeCheckpointController:
     ) -> None:
         validate_controller_tiers_mean_only(cfg.tiers)
         self.cfg = cfg
-        self.replay_context = replay_context
         self.h_poly = h_poly
         self.hmat = np.asarray(hmat, dtype=complex)
         self.psi_initial = np.asarray(psi_initial, dtype=complex).reshape(-1)
@@ -380,16 +517,33 @@ class RealtimeCheckpointController:
         self._drive_coeff_provider_exyz = None
         self._drive_profile: dict[str, Any] | None = None
         self._reference_states: list[np.ndarray] | None = None
+        replay_context_local = replay_context
+        best_theta_arr = np.asarray(best_theta, dtype=float).reshape(-1)
+        self._drive_aligned_density_active = False
+        self._drive_aligned_density_label: str | None = None
+        if self._drive_config is not None and str(cfg.mode) == "exact_v1":
+            (
+                replay_context_local,
+                best_theta_arr,
+                self._drive_aligned_density_active,
+                self._drive_aligned_density_label,
+            ) = _augment_replay_context_with_drive_aligned_density(
+                replay_context_local,
+                best_theta=best_theta_arr,
+                drive_config=self._drive_config,
+                num_qubits=int(self._num_qubits),
+            )
+        self.replay_context = replay_context_local
         self._num_sites = int(
             getattr(
-                getattr(replay_context, "cfg", None),
+                getattr(self.replay_context, "cfg", None),
                 "L",
                 (1 if self._drive_config is None else int(self._drive_config.n_sites)),
             )
         )
         self._ordering = str(
             getattr(
-                getattr(replay_context, "cfg", None),
+                getattr(self.replay_context, "cfg", None),
                 "ordering",
                 ("blocked" if self._drive_config is None else str(self._drive_config.ordering)),
             )
@@ -416,6 +570,12 @@ class RealtimeCheckpointController:
         self._previous_theta_dot: np.ndarray | None = None
         self._theta_dot_history: list[np.ndarray] = []
         self._previous_append_position: int | None = None
+        self._block_birth_checkpoint: dict[str, int] = {}
+        self._block_cooldown: dict[str, int] = {}
+        self._block_burden: dict[str, float] = {}
+        self._block_motion_history: dict[str, list[float]] = {}
+        self._block_fit_history: dict[str, list[float]] = {}
+        self._previous_block_theta_snapshot: dict[str, np.ndarray] = {}
         self._run_wallclock_start: float | None = None
         self._wallclock_cap_s = (None if wallclock_cap_s is None else int(wallclock_cap_s))
         self._progress_path = (
@@ -445,15 +605,113 @@ class RealtimeCheckpointController:
             raise ValueError(
                 f"Unsupported exact forecast guardrail mode {forecast_guardrail_mode!r}."
             )
+        confirm_score_mode = str(getattr(cfg, "confirm_score_mode", "exact_gain_ratio"))
+        if confirm_score_mode not in {"exact_gain_ratio", "compressed_whitened_v1"}:
+            raise ValueError(f"Unsupported confirm score mode {confirm_score_mode!r}.")
+        prune_mode = str(getattr(cfg, "prune_mode", "off"))
+        if prune_mode not in {"off", "exact_local_v1"}:
+            raise ValueError(f"Unsupported prune mode {prune_mode!r}.")
         for field_name in (
             "exact_forecast_fidelity_loss_tol",
             "exact_forecast_abs_energy_error_increase_tol",
+            "exact_forecast_energy_slope_weight",
+            "exact_forecast_energy_curvature_weight",
+            "confirm_compress_fraction",
+            "prune_miss_threshold",
+            "prune_stagnation_alpha",
+            "prune_stale_score_threshold",
+            "prune_loss_threshold",
+            "prune_safe_miss_increase_tol",
+            "prune_state_jump_l2_tol",
+            "prune_theta_block_tol",
         ):
             raw_value = float(getattr(cfg, field_name))
             if (not np.isfinite(raw_value)) or raw_value < 0.0:
                 raise ValueError(
                     f"{field_name} must be finite and nonnegative; got {raw_value!r}."
                 )
+        forecast_horizon_steps = int(getattr(cfg, "exact_forecast_tracking_horizon_steps", 1))
+        if forecast_horizon_steps < 1:
+            raise ValueError(
+                "exact_forecast_tracking_horizon_steps must be >= 1."
+            )
+        baseline_step_refine_rounds = int(
+            getattr(cfg, "exact_forecast_baseline_step_refine_rounds", 0)
+        )
+        if baseline_step_refine_rounds < 0:
+            raise ValueError(
+                "exact_forecast_baseline_step_refine_rounds must be >= 0."
+            )
+        baseline_blend_weights = tuple(
+            float(x) for x in getattr(cfg, "exact_forecast_baseline_blend_weights", ())
+        )
+        for weight in baseline_blend_weights:
+            if (not np.isfinite(weight)) or weight < -1.0 or weight > 1.0:
+                raise ValueError(
+                    "exact_forecast_baseline_blend_weights must be finite and lie in [-1, 1]."
+                )
+        baseline_gain_scales = tuple(
+            float(x) for x in getattr(cfg, "exact_forecast_baseline_gain_scales", ())
+        )
+        for scale in baseline_gain_scales:
+            if (not np.isfinite(scale)) or scale <= 0.0:
+                raise ValueError(
+                    "exact_forecast_baseline_gain_scales must be finite and positive."
+                )
+        forecast_horizon_weights = tuple(
+            float(x) for x in getattr(cfg, "exact_forecast_tracking_horizon_weights", ())
+        )
+        for weight in forecast_horizon_weights:
+            if (not np.isfinite(weight)) or weight <= 0.0:
+                raise ValueError(
+                    f"exact_forecast_tracking_horizon_weights must be finite and positive; got {weight!r}."
+                )
+        excursion_under_weight = float(
+            getattr(cfg, "exact_forecast_energy_excursion_under_weight", 0.0)
+        )
+        if (not np.isfinite(excursion_under_weight)) or excursion_under_weight < 0.0:
+            raise ValueError(
+                "exact_forecast_energy_excursion_under_weight must be finite and nonnegative."
+            )
+        excursion_over_weight = float(
+            getattr(cfg, "exact_forecast_energy_excursion_over_weight", 0.0)
+        )
+        if (not np.isfinite(excursion_over_weight)) or excursion_over_weight < 0.0:
+            raise ValueError(
+                "exact_forecast_energy_excursion_over_weight must be finite and nonnegative."
+            )
+        excursion_rel_tolerance = float(
+            getattr(cfg, "exact_forecast_energy_excursion_rel_tolerance", 0.0)
+        )
+        if (not np.isfinite(excursion_rel_tolerance)) or excursion_rel_tolerance < 0.0:
+            raise ValueError(
+                "exact_forecast_energy_excursion_rel_tolerance must be finite and nonnegative."
+            )
+        if forecast_horizon_weights and len(forecast_horizon_weights) != forecast_horizon_steps:
+            raise ValueError(
+                "exact_forecast_tracking_horizon_weights must be empty or match exact_forecast_tracking_horizon_steps."
+            )
+        if float(cfg.confirm_compress_fraction) > 1.0:
+            raise ValueError("confirm_compress_fraction must be <= 1.0.")
+        if not (0.0 <= float(cfg.prune_stagnation_alpha) <= 1.0):
+            raise ValueError("prune_stagnation_alpha must lie in [0, 1].")
+        if float(cfg.prune_stale_score_threshold) > 1.0:
+            raise ValueError("prune_stale_score_threshold must be <= 1.0.")
+        for field_name in (
+            "confirm_compress_min_modes",
+            "confirm_compress_max_modes",
+            "prune_protection_steps",
+            "prune_stagnation_window",
+            "prune_max_candidates",
+            "prune_cooldown_steps",
+        ):
+            raw_value = int(getattr(cfg, field_name))
+            if raw_value < 0:
+                raise ValueError(f"{field_name} must be nonnegative; got {raw_value!r}.")
+        if int(cfg.confirm_compress_max_modes) > 0 and int(cfg.confirm_compress_min_modes) > int(cfg.confirm_compress_max_modes):
+            raise ValueError("confirm_compress_min_modes must be <= confirm_compress_max_modes.")
+        if str(prune_mode) != "off" and float(cfg.prune_miss_threshold) > float(cfg.miss_threshold):
+            raise ValueError("prune_miss_threshold must be <= miss_threshold when prune_mode is active.")
         if mode in {"oracle_v1", "off"} and oracle_base_config is not None:
             validate_controller_oracle_base_config(oracle_base_config)
             from pipelines.exact_bench.noise_oracle_runtime import pauli_poly_to_sparse_pauli_op
@@ -473,10 +731,10 @@ class RealtimeCheckpointController:
             )
 
         self.current_terms, self.current_layout = _build_replay_runtime_terms(
-            replay_context,
-            reps=int(replay_context.cfg.reps),
+            self.replay_context,
+            reps=int(self.replay_context.cfg.reps),
         )
-        self.current_theta = np.asarray(best_theta, dtype=float).reshape(-1)
+        self.current_theta = np.asarray(best_theta_arr, dtype=float).reshape(-1)
         self.current_executor = self._build_executor(self.current_terms, self.current_layout)
         if int(self.current_theta.size) != int(self.current_layout.runtime_parameter_count):
             raise ValueError(
@@ -484,7 +742,7 @@ class RealtimeCheckpointController:
             )
         psi_reconstructed = self.current_executor.prepare_state(
             self.current_theta,
-            np.asarray(replay_context.psi_ref, dtype=complex).reshape(-1),
+            np.asarray(self.replay_context.psi_ref, dtype=complex).reshape(-1),
         )
         reconstruction_error = float(np.linalg.norm(psi_reconstructed - self.psi_initial))
         if reconstruction_error > float(cfg.reconstruction_tol):
@@ -494,6 +752,7 @@ class RealtimeCheckpointController:
 
         for carrier in self.current_terms:
             self._planning_audit.commit(planning_group_keys_for_term(_carrier_to_term(carrier)))
+        self._initialize_prune_state()
 
         if self._drive_config is not None:
             from pipelines.hardcoded.hh_fixed_manifold_measured import (
@@ -576,6 +835,7 @@ class RealtimeCheckpointController:
             "stage": str(stage),
             "mode": str(self.cfg.mode),
             "append_count": int(self._append_counter),
+            "prune_count": int(sum(1 for row in self._ledger if str(row.get("action_kind")) == "prune_coordinate")),
             "trajectory_points": int(len(self._trajectory)),
             "ledger_entries": int(len(self._ledger)),
             "logical_block_count": int(self.current_layout.logical_parameter_count),
@@ -619,6 +879,7 @@ class RealtimeCheckpointController:
             if summary is not None
             else {
                 "append_count": int(sum(1 for row in self._ledger if str(row.get("action_kind")) == "append_candidate")),
+                "prune_count": int(sum(1 for row in self._ledger if str(row.get("action_kind")) == "prune_coordinate")),
                 "stay_count": int(sum(1 for row in self._ledger if str(row.get("action_kind")) == "stay")),
                 "executed_decision_backends": list(executed_backends),
                 "final_logical_block_count": int(self.current_layout.logical_parameter_count),
@@ -703,6 +964,11 @@ class RealtimeCheckpointController:
         )
         pred_obs = self._observable_snapshot(psi_pred)
         exact_obs = self._observable_snapshot(psi_exact)
+        pred_site = np.asarray(pred_obs["site_occupations"], dtype=float)
+        exact_site = np.asarray(exact_obs["site_occupations"], dtype=float)
+        site_occ_abs_error_max = float(
+            np.max(np.abs(pred_site - exact_site)) if pred_site.size > 0 else float("nan")
+        )
         return {
             "fidelity_exact_next": float(abs(np.vdot(psi_exact, psi_pred)) ** 2),
             "energy_total_controller_next": float(energy_total_controller_next),
@@ -716,7 +982,323 @@ class RealtimeCheckpointController:
             "abs_doublon_error_next": float(
                 abs(float(pred_obs["doublon"]) - float(exact_obs["doublon"]))
             ),
+            "site_occupations_abs_error_max_next": float(site_occ_abs_error_max),
         }
+
+    def _exact_forecast_tracking_horizon_steps(self) -> int:
+        return max(1, int(getattr(self.cfg, "exact_forecast_tracking_horizon_steps", 1)))
+
+    def _exact_forecast_tracking_horizon_weights(
+        self,
+        *,
+        steps: int | None = None,
+    ) -> tuple[float, ...]:
+        configured_steps = self._exact_forecast_tracking_horizon_steps()
+        raw = tuple(float(x) for x in getattr(self.cfg, "exact_forecast_tracking_horizon_weights", ()))
+        if not raw:
+            weights = tuple(1.0 for _ in range(configured_steps))
+        else:
+            weights = raw
+        active_steps = configured_steps if steps is None else max(1, int(steps))
+        return tuple(float(x) for x in weights[:active_steps])
+
+    def _exact_forecast_horizon_length(
+        self,
+        *,
+        time_stop: float,
+    ) -> int:
+        requested = self._exact_forecast_tracking_horizon_steps()
+        if int(self.times.size) <= 0:
+            return int(requested)
+        idx = int(np.argmin(np.abs(np.asarray(self.times, dtype=float) - float(time_stop))))
+        remaining = max(1, int(self.times.size) - int(idx))
+        return int(min(int(requested), int(remaining)))
+
+    def _exact_forecast_energy_shape_weights(self) -> tuple[float, float]:
+        return (
+            max(0.0, float(getattr(self.cfg, "exact_forecast_energy_slope_weight", 0.0))),
+            max(0.0, float(getattr(self.cfg, "exact_forecast_energy_curvature_weight", 0.0))),
+        )
+
+    def _exact_forecast_energy_excursion_under_weight(self) -> float:
+        return max(
+            0.0,
+            float(getattr(self.cfg, "exact_forecast_energy_excursion_under_weight", 0.0)),
+        )
+
+    def _exact_forecast_energy_excursion_over_weight(self) -> float:
+        return max(
+            0.0,
+            float(getattr(self.cfg, "exact_forecast_energy_excursion_over_weight", 0.0)),
+        )
+
+    def _exact_forecast_energy_excursion_rel_tolerance(self) -> float:
+        return max(
+            0.0,
+            float(getattr(self.cfg, "exact_forecast_energy_excursion_rel_tolerance", 0.0)),
+        )
+
+    def _energy_shape_tracking_terms(
+        self,
+        *,
+        forecasts: Sequence[Mapping[str, Any]],
+        weights: Sequence[float],
+        curvature_anchor: Mapping[str, Any] | None = None,
+    ) -> dict[str, float]:
+        if any(
+            ("energy_total_controller_next" not in item) or ("energy_total_exact_next" not in item)
+            for item in forecasts
+        ):
+            return {
+                "energy_slope_abs_error_mean": 0.0,
+                "energy_curvature_abs_error_mean": 0.0,
+            }
+        energy_ctrl = np.asarray(
+            [float(item["energy_total_controller_next"]) for item in forecasts],
+            dtype=float,
+        )
+        energy_exact = np.asarray(
+            [float(item["energy_total_exact_next"]) for item in forecasts],
+            dtype=float,
+        )
+        weight_arr = np.asarray([float(x) for x in weights], dtype=float)
+        slope_error = 0.0
+        curvature_error = 0.0
+        slope_ctrl = energy_ctrl
+        slope_exact = energy_exact
+        slope_weight_arr = weight_arr
+        if curvature_anchor is not None and (
+            "energy_total_controller_next" in curvature_anchor
+            and "energy_total_exact_next" in curvature_anchor
+            and weight_arr.size >= 1
+        ):
+            slope_ctrl = np.concatenate(
+                (
+                    np.asarray(
+                        [float(curvature_anchor["energy_total_controller_next"])],
+                        dtype=float,
+                    ),
+                    energy_ctrl,
+                )
+            )
+            slope_exact = np.concatenate(
+                (
+                    np.asarray(
+                        [float(curvature_anchor["energy_total_exact_next"])],
+                        dtype=float,
+                    ),
+                    energy_exact,
+                )
+            )
+            slope_weight_arr = np.concatenate(
+                (
+                    np.asarray([float(weight_arr[0])], dtype=float),
+                    weight_arr,
+                )
+            )
+        if slope_ctrl.size >= 2:
+            slope_mismatch = np.abs(np.diff(slope_ctrl) - np.diff(slope_exact))
+            slope_weights = 0.5 * (slope_weight_arr[:-1] + slope_weight_arr[1:])
+            slope_weight_sum = float(np.sum(slope_weights))
+            if slope_weight_sum > 0.0:
+                slope_error = float(np.sum(slope_weights * slope_mismatch) / slope_weight_sum)
+        curvature_ctrl = energy_ctrl
+        curvature_exact = energy_exact
+        curvature_weight_arr = weight_arr
+        if curvature_anchor is not None and (
+            "energy_total_controller_next" in curvature_anchor
+            and "energy_total_exact_next" in curvature_anchor
+            and weight_arr.size >= 1
+        ):
+            curvature_ctrl = np.concatenate(
+                (
+                    np.asarray(
+                        [float(curvature_anchor["energy_total_controller_next"])],
+                        dtype=float,
+                    ),
+                    energy_ctrl,
+                )
+            )
+            curvature_exact = np.concatenate(
+                (
+                    np.asarray(
+                        [float(curvature_anchor["energy_total_exact_next"])],
+                        dtype=float,
+                    ),
+                    energy_exact,
+                )
+            )
+            curvature_weight_arr = np.concatenate(
+                (
+                    np.asarray([float(weight_arr[0])], dtype=float),
+                    weight_arr,
+                )
+            )
+        if curvature_ctrl.size >= 3:
+            curvature_mismatch = np.abs(
+                np.diff(curvature_ctrl, n=2) - np.diff(curvature_exact, n=2)
+            )
+            curvature_weights = (
+                curvature_weight_arr[:-2]
+                + curvature_weight_arr[1:-1]
+                + curvature_weight_arr[2:]
+            ) / 3.0
+            curvature_weight_sum = float(np.sum(curvature_weights))
+            if curvature_weight_sum > 0.0:
+                curvature_error = float(
+                    np.sum(curvature_weights * curvature_mismatch) / curvature_weight_sum
+                )
+        return {
+            "energy_slope_abs_error_mean": float(slope_error),
+            "energy_curvature_abs_error_mean": float(curvature_error),
+        }
+
+    def _energy_excursion_tracking_terms(
+        self,
+        *,
+        forecasts: Sequence[Mapping[str, Any]],
+        weights: Sequence[float],
+        anchor: Mapping[str, Any] | None,
+    ) -> dict[str, float]:
+        if anchor is None:
+            return {
+                "energy_excursion_under_response_mean": 0.0,
+                "energy_excursion_over_response_mean": 0.0,
+            }
+        if (
+            "energy_total_controller_next" not in anchor
+            or "energy_total_exact_next" not in anchor
+            or any(
+                ("energy_total_controller_next" not in item) or ("energy_total_exact_next" not in item)
+                for item in forecasts
+            )
+        ):
+            return {
+                "energy_excursion_under_response_mean": 0.0,
+                "energy_excursion_over_response_mean": 0.0,
+            }
+        anchor_ctrl = float(anchor["energy_total_controller_next"])
+        anchor_exact = float(anchor["energy_total_exact_next"])
+        under_penalties: list[float] = []
+        over_penalties: list[float] = []
+        rel_tolerance = self._exact_forecast_energy_excursion_rel_tolerance()
+        for item in forecasts:
+            ctrl_exc = float(item["energy_total_controller_next"]) - float(anchor_ctrl)
+            exact_exc = float(item["energy_total_exact_next"]) - float(anchor_exact)
+            if abs(float(exact_exc)) <= 1.0e-15:
+                under_penalties.append(0.0)
+                over_penalties.append(0.0)
+                continue
+            projected_ctrl = float(np.sign(exact_exc)) * float(ctrl_exc)
+            target = abs(float(exact_exc))
+            band = float(rel_tolerance) * float(target)
+            lower = max(0.0, float(target) - float(band))
+            upper = float(target) + float(band)
+            under_penalties.append(max(0.0, float(lower) - float(projected_ctrl)))
+            over_penalties.append(max(0.0, float(projected_ctrl) - float(upper)))
+        weight_arr = np.asarray([float(x) for x in weights], dtype=float)
+        weight_sum = float(np.sum(weight_arr))
+        if weight_sum <= 0.0:
+            return {
+                "energy_excursion_under_response_mean": 0.0,
+                "energy_excursion_over_response_mean": 0.0,
+            }
+        return {
+            "energy_excursion_under_response_mean": float(
+                np.sum(weight_arr * np.asarray(under_penalties, dtype=float)) / weight_sum
+            ),
+            "energy_excursion_over_response_mean": float(
+                np.sum(weight_arr * np.asarray(over_penalties, dtype=float)) / weight_sum
+            ),
+        }
+
+    def _exact_forecast_rollout(
+        self,
+        *,
+        time_stop: float,
+        dt: float,
+        executor: CompiledAnsatzExecutor,
+        theta_runtime_start: np.ndarray | Sequence[float],
+        theta_dot_step: np.ndarray | Sequence[float],
+    ) -> tuple[dict[str, Any], list[dict[str, Any]], float]:
+        theta_runtime_base = np.asarray(theta_runtime_start, dtype=float).reshape(-1)
+        theta_step = float(dt) * np.asarray(theta_dot_step, dtype=float).reshape(-1)
+        horizon_steps = self._exact_forecast_horizon_length(time_stop=float(time_stop))
+        forecasts: list[dict[str, Any]] = []
+        for offset in range(int(horizon_steps)):
+            theta_runtime = np.asarray(
+                theta_runtime_base + float(offset) * np.asarray(theta_step, dtype=float),
+                dtype=float,
+            ).reshape(-1)
+            forecast = self._exact_step_forecast(
+                time_stop=float(time_stop) + float(offset) * float(dt),
+                executor=executor,
+                theta_runtime=theta_runtime,
+            )
+            forecasts.append(dict(forecast))
+        _slope_weight, curvature_weight = self._exact_forecast_energy_shape_weights()
+        excursion_under_weight = self._exact_forecast_energy_excursion_under_weight()
+        excursion_over_weight = self._exact_forecast_energy_excursion_over_weight()
+        curvature_anchor: dict[str, Any] | None = None
+        if (
+            (float(curvature_weight) > 0.0 and len(forecasts) >= 2)
+            or float(excursion_under_weight) > 0.0
+            or float(excursion_over_weight) > 0.0
+        ):
+            theta_runtime_anchor = np.asarray(
+                theta_runtime_base - np.asarray(theta_step, dtype=float),
+                dtype=float,
+            ).reshape(-1)
+            curvature_anchor = dict(
+                self._exact_step_forecast(
+                    time_stop=float(time_stop) - float(dt),
+                    executor=executor,
+                    theta_runtime=theta_runtime_anchor,
+                )
+            )
+        score = self._forecast_tracking_score(
+            forecast=forecasts,
+            curvature_anchor=curvature_anchor,
+        )
+        shape_terms = self._energy_shape_tracking_terms(
+            forecasts=forecasts,
+            weights=self._exact_forecast_tracking_horizon_weights(steps=len(forecasts)),
+            curvature_anchor=curvature_anchor,
+        )
+        excursion_terms = self._energy_excursion_tracking_terms(
+            forecasts=forecasts,
+            weights=self._exact_forecast_tracking_horizon_weights(steps=len(forecasts)),
+            anchor=curvature_anchor,
+        )
+        slope_weight, curvature_weight = self._exact_forecast_energy_shape_weights()
+        excursion_under_weight = self._exact_forecast_energy_excursion_under_weight()
+        excursion_over_weight = self._exact_forecast_energy_excursion_over_weight()
+        excursion_rel_tolerance = self._exact_forecast_energy_excursion_rel_tolerance()
+        first = dict(forecasts[0])
+        first["tracking_score_step1"] = float(self._forecast_tracking_score(forecast=first))
+        first["tracking_score_horizon"] = float(score)
+        first["tracking_horizon_steps_scored"] = int(len(forecasts))
+        first["tracking_horizon_weights_used"] = [
+            float(x) for x in self._exact_forecast_tracking_horizon_weights(steps=len(forecasts))
+        ]
+        first["tracking_energy_slope_abs_error_mean"] = float(
+            shape_terms["energy_slope_abs_error_mean"]
+        )
+        first["tracking_energy_curvature_abs_error_mean"] = float(
+            shape_terms["energy_curvature_abs_error_mean"]
+        )
+        first["tracking_energy_slope_weight"] = float(slope_weight)
+        first["tracking_energy_curvature_weight"] = float(curvature_weight)
+        first["tracking_energy_excursion_under_response_mean"] = float(
+            excursion_terms["energy_excursion_under_response_mean"]
+        )
+        first["tracking_energy_excursion_under_weight"] = float(excursion_under_weight)
+        first["tracking_energy_excursion_over_response_mean"] = float(
+            excursion_terms["energy_excursion_over_response_mean"]
+        )
+        first["tracking_energy_excursion_over_weight"] = float(excursion_over_weight)
+        first["tracking_energy_excursion_rel_tolerance"] = float(excursion_rel_tolerance)
+        return first, forecasts, float(score)
 
     def _exact_forecast_override_reason(
         self,
@@ -746,11 +1328,405 @@ class RealtimeCheckpointController:
             return "exact_forecast_dual_metric_regression"
         return None
 
+    def _forecast_tracking_score(
+        self,
+        *,
+        forecast: Mapping[str, Any] | Sequence[Mapping[str, Any]],
+        curvature_anchor: Mapping[str, Any] | None = None,
+    ) -> float:
+        if isinstance(forecast, Mapping):
+            if "tracking_score_horizon" in forecast:
+                return float(forecast["tracking_score_horizon"])
+            forecasts = [forecast]
+        else:
+            forecasts = [item for item in forecast]
+        if len(forecasts) == 0:
+            return float("inf")
+        weights = self._exact_forecast_tracking_horizon_weights(steps=len(forecasts))
+        total_weight = float(sum(float(x) for x in weights))
+        if total_weight <= 0.0:
+            return float("inf")
+        score = 0.0
+        for weight, item in zip(weights, forecasts):
+            fidelity_defect = max(0.0, 1.0 - float(item["fidelity_exact_next"]))
+            score += float(weight) * float(
+                fidelity_defect
+                + float(item["abs_staggered_error_next"])
+                + float(item["abs_doublon_error_next"])
+                + float(item["site_occupations_abs_error_max_next"])
+                + float(item["abs_energy_total_error_next"])
+            )
+        total = float(score / total_weight)
+        slope_weight, curvature_weight = self._exact_forecast_energy_shape_weights()
+        if float(slope_weight) > 0.0 or float(curvature_weight) > 0.0:
+            shape_terms = self._energy_shape_tracking_terms(
+                forecasts=forecasts,
+                weights=weights,
+                curvature_anchor=curvature_anchor,
+            )
+            total += float(slope_weight) * float(shape_terms["energy_slope_abs_error_mean"])
+            total += float(curvature_weight) * float(
+                shape_terms["energy_curvature_abs_error_mean"]
+            )
+        excursion_under_weight = self._exact_forecast_energy_excursion_under_weight()
+        excursion_over_weight = self._exact_forecast_energy_excursion_over_weight()
+        if float(excursion_under_weight) > 0.0 or float(excursion_over_weight) > 0.0:
+            excursion_terms = self._energy_excursion_tracking_terms(
+                forecasts=forecasts,
+                weights=weights,
+                anchor=curvature_anchor,
+            )
+            total += float(excursion_under_weight) * float(
+                excursion_terms["energy_excursion_under_response_mean"]
+            )
+            total += float(excursion_over_weight) * float(
+                excursion_terms["energy_excursion_over_response_mean"]
+            )
+        return float(total)
+
+    def _stay_forecast_within_exact_v1_bounded_defect(
+        self,
+        *,
+        forecast: Mapping[str, Any],
+    ) -> bool:
+        fidelity_defect = max(0.0, 1.0 - float(forecast["fidelity_exact_next"]))
+        return bool(
+            fidelity_defect <= 1.0e-3
+            and float(forecast["abs_staggered_error_next"]) <= 2.0e-2
+            and float(forecast["abs_doublon_error_next"]) <= 2.0e-3
+            and float(forecast["site_occupations_abs_error_max_next"]) <= 2.0e-2
+            and float(forecast["abs_energy_total_error_next"]) <= 2.0e-3
+        )
+
+    def _exact_v1_forecast_override_reason(
+        self,
+        *,
+        stay_forecast: Mapping[str, Any],
+        selected_forecast: Mapping[str, Any],
+        action_kind: str,
+        selected: Mapping[str, Any] | None,
+    ) -> str | None:
+        if str(self.cfg.mode) != "exact_v1":
+            return None
+        if str(action_kind) != "append_candidate" or selected is None:
+            return None
+        if self._stay_forecast_within_exact_v1_bounded_defect(forecast=stay_forecast):
+            return "exact_forecast_stay_within_bounded_defect"
+        selected_score = self._forecast_tracking_score(forecast=selected_forecast)
+        stay_score = self._forecast_tracking_score(forecast=stay_forecast)
+        if float(selected_score) >= float(stay_score) - 1.0e-12:
+            return "exact_forecast_nonimproving_tracking_score"
+        return None
+
+    def _select_exact_v1_candidate_step_scale(
+        self,
+        *,
+        baseline_theta_dot: np.ndarray | Sequence[float],
+        selected: Mapping[str, Any],
+        dt: float,
+        time_stop: float,
+    ) -> tuple[dict[str, Any], dict[str, Any]]:
+        candidate_data = dict(selected["candidate_data"])
+        best_selected: dict[str, Any] | None = None
+        best_forecast: dict[str, Any] | None = None
+        best_score: float | None = None
+        best_scale: float | None = None
+        for step_scale in self._candidate_step_scales():
+            scaled_theta_dot_aug, scaled_theta_dot_existing, scaled_eta_dot = self._scale_candidate_theta_dot(
+                candidate_data=candidate_data,
+                baseline_theta_dot=baseline_theta_dot,
+                theta_dot_aug=selected["theta_dot_aug"],
+                step_scale=float(step_scale),
+            )
+            theta_runtime = np.asarray(
+                candidate_data["theta_aug"] + float(dt) * np.asarray(scaled_theta_dot_aug, dtype=float),
+                dtype=float,
+            ).reshape(-1)
+            forecast, _forecast_rollout, score = self._exact_forecast_rollout(
+                time_stop=float(time_stop),
+                dt=float(dt),
+                executor=candidate_data["aug_executor"],
+                theta_runtime_start=theta_runtime,
+                theta_dot_step=np.asarray(scaled_theta_dot_aug, dtype=float).reshape(-1),
+            )
+            choose = False
+            if best_selected is None or best_forecast is None or best_score is None or best_scale is None:
+                choose = True
+            elif float(score) < float(best_score) - 1.0e-12:
+                choose = True
+            elif abs(float(score) - float(best_score)) <= 1.0e-12 and float(step_scale) < float(best_scale):
+                choose = True
+            if choose:
+                best_selected = dict(selected)
+                best_selected["theta_dot_aug"] = np.asarray(scaled_theta_dot_aug, dtype=float).reshape(-1)
+                best_selected["theta_dot_aug_existing"] = np.asarray(
+                    scaled_theta_dot_existing, dtype=float
+                ).reshape(-1)
+                best_selected["eta_dot"] = np.asarray(scaled_eta_dot, dtype=float).reshape(-1)
+                best_selected["candidate_step_scale"] = float(step_scale)
+                candidate_summary = best_selected.get("candidate_summary")
+                if candidate_summary is not None:
+                    best_selected["candidate_summary"] = replace(
+                        candidate_summary,
+                        selected_step_scale=float(step_scale),
+                    )
+                best_forecast = dict(forecast)
+                best_score = float(score)
+                best_scale = float(step_scale)
+        if best_selected is None or best_forecast is None:
+            raise RuntimeError("no exact-v1 candidate step-scale forecasts were produced")
+        return best_selected, best_forecast
+
     def _current_scaffold_labels(self) -> list[str]:
         return [str(carrier.label) for carrier in self.current_terms]
 
     def _current_source_labels(self) -> set[str]:
         return {str(carrier.source_label) for carrier in self.current_terms}
+
+    def _build_planning_audit_for_terms(
+        self,
+        terms: Sequence[RuntimeTermCarrier],
+    ) -> MeasurementCacheAudit:
+        audit = MeasurementCacheAudit(
+            nominal_shots_per_group=1,
+            plan_version="phase1_qwc_basis_cover_reuse",
+            grouping_mode=str(self.cfg.grouping_mode),
+        )
+        for carrier in terms:
+            audit.commit(planning_group_keys_for_term(_carrier_to_term(carrier)))
+        return audit
+
+    def _block_theta_snapshot(
+        self,
+        *,
+        terms: Sequence[RuntimeTermCarrier] | None = None,
+        layout: AnsatzParameterLayout | None = None,
+        theta_runtime: np.ndarray | Sequence[float] | None = None,
+    ) -> dict[str, np.ndarray]:
+        resolved_terms = list(self.current_terms if terms is None else terms)
+        resolved_layout = self.current_layout if layout is None else layout
+        theta_arr = np.asarray(
+            self.current_theta if theta_runtime is None else theta_runtime,
+            dtype=float,
+        ).reshape(-1)
+        out: dict[str, np.ndarray] = {}
+        for carrier, block in zip(resolved_terms, resolved_layout.blocks):
+            out[str(carrier.label)] = np.asarray(
+                theta_arr[int(block.runtime_start) : int(block.runtime_stop)],
+                dtype=float,
+            ).reshape(-1)
+        return out
+
+    def _initialize_prune_state(self) -> None:
+        mature_birth = -max(1, int(getattr(self.cfg, "prune_protection_steps", 0)) + 1)
+        for carrier in self.current_terms:
+            label = str(carrier.label)
+            self._block_birth_checkpoint[label] = int(mature_birth)
+            self._block_cooldown[label] = 0
+            self._block_burden[label] = float(max(1, len(carrier.runtime_specs)))
+            self._block_motion_history.setdefault(label, [])
+            self._block_fit_history.setdefault(label, [])
+        self._previous_block_theta_snapshot = self._block_theta_snapshot()
+
+    def _decrement_prune_cooldowns(self) -> None:
+        for carrier in self.current_terms:
+            label = str(carrier.label)
+            self._block_cooldown[label] = max(0, int(self._block_cooldown.get(label, 0)) - 1)
+
+    def _set_previous_block_theta_snapshot(self) -> None:
+        self._previous_block_theta_snapshot = self._block_theta_snapshot()
+
+    def _record_prune_histories(self, *, baseline: Mapping[str, Any]) -> None:
+        window = max(1, int(getattr(self.cfg, "prune_stagnation_window", 1)))
+        current_snapshot = self._block_theta_snapshot()
+        f_vec = np.asarray(baseline.get("f", np.zeros(0, dtype=float)), dtype=float).reshape(-1)
+        delta_norms: dict[str, float] = {}
+        fit_numerators: dict[str, float] = {}
+        max_delta = 0.0
+        fit_den = 0.0
+        for carrier, block in zip(self.current_terms, self.current_layout.blocks):
+            label = str(carrier.label)
+            current_block = np.asarray(current_snapshot.get(label, np.zeros(0, dtype=float)), dtype=float).reshape(-1)
+            prev_block = np.asarray(
+                self._previous_block_theta_snapshot.get(label, np.zeros_like(current_block)),
+                dtype=float,
+            ).reshape(-1)
+            if int(prev_block.size) != int(current_block.size):
+                prev_block = np.zeros_like(current_block)
+            delta_block = np.asarray(current_block - prev_block, dtype=float).reshape(-1)
+            delta_norm = float(np.linalg.norm(delta_block))
+            delta_norms[label] = float(delta_norm)
+            max_delta = max(float(max_delta), float(delta_norm))
+            start = int(block.runtime_start)
+            stop = int(block.runtime_stop)
+            f_block = np.asarray(f_vec[start:stop], dtype=float).reshape(-1)
+            overlap = min(int(delta_block.size), int(f_block.size))
+            fit_num = float(
+                np.sum(np.abs(delta_block[:overlap]) * np.abs(f_block[:overlap]))
+            ) if overlap > 0 else 0.0
+            fit_numerators[label] = float(fit_num)
+            fit_den += float(fit_num)
+        for carrier in self.current_terms:
+            label = str(carrier.label)
+            motion_value = 0.0 if float(max_delta) <= 1.0e-12 else float(delta_norms.get(label, 0.0) / max_delta)
+            fit_value = 0.0 if float(fit_den) <= 1.0e-12 else float(fit_numerators.get(label, 0.0) / fit_den)
+            motion_hist = list(self._block_motion_history.get(label, []))
+            fit_hist = list(self._block_fit_history.get(label, []))
+            motion_hist.append(float(motion_value))
+            fit_hist.append(float(fit_value))
+            self._block_motion_history[label] = motion_hist[-window:]
+            self._block_fit_history[label] = fit_hist[-window:]
+
+    def _block_stagnation_statistics(self, label: str) -> tuple[float, float, float]:
+        motion_hist = list(self._block_motion_history.get(str(label), []))
+        fit_hist = list(self._block_fit_history.get(str(label), []))
+        if not motion_hist or not fit_hist:
+            return 0.0, 1.0, 1.0
+        motion_mean = float(np.mean(np.asarray(motion_hist, dtype=float)))
+        fit_mean = float(np.mean(np.asarray(fit_hist, dtype=float)))
+        alpha = float(getattr(self.cfg, "prune_stagnation_alpha", 0.5))
+        stagnation_score = float(
+            alpha * (1.0 - min(1.0, max(0.0, motion_mean)))
+            + (1.0 - alpha) * (1.0 - min(1.0, max(0.0, fit_mean)))
+        )
+        return stagnation_score, motion_mean, fit_mean
+
+    def _prune_permitted(
+        self,
+        *,
+        rho_miss: float,
+        motion: MotionSchedulerTelemetry,
+    ) -> tuple[bool, str]:
+        if str(getattr(self.cfg, "prune_mode", "off")) == "off":
+            return False, "prune_disabled"
+        if int(self.current_layout.logical_parameter_count) < 2:
+            return False, "scaffold_too_small"
+        if float(rho_miss) > float(getattr(self.cfg, "prune_miss_threshold", 0.0)):
+            return False, "rho_miss_above_prune_threshold"
+        direction_cosine = motion.direction_cosine
+        if direction_cosine is None or float(direction_cosine) < float(self.cfg.motion_calm_direction_cosine_threshold):
+            return False, "motion_not_calm_direction"
+        rate_change_ratio = motion.rate_change_ratio
+        if rate_change_ratio is None or float(rate_change_ratio) > float(self.cfg.motion_calm_rate_change_ratio_threshold):
+            return False, "motion_not_calm_rate"
+        return True, "prune_permitted"
+
+    def _cached_prune_loss(
+        self,
+        *,
+        baseline: Mapping[str, Any],
+        runtime_indices: Sequence[int],
+    ) -> float:
+        idx_remove = {int(idx) for idx in runtime_indices}
+        G = np.asarray(baseline.get("G", np.zeros((0, 0), dtype=float)), dtype=float)
+        f_vec = np.asarray(baseline.get("f", np.zeros(0, dtype=float)), dtype=float).reshape(-1)
+        keep = [idx for idx in range(int(f_vec.size)) if idx not in idx_remove]
+        if G.size == 0 or f_vec.size == 0:
+            return 0.0
+        baseline_objective = float(np.asarray(baseline.get("theta_dot_proj", np.zeros_like(f_vec)), dtype=float).reshape(-1) @ f_vec)
+        if not keep:
+            reduced_objective = 0.0
+        else:
+            G_red = np.asarray(G[np.ix_(keep, keep)], dtype=float)
+            f_red = np.asarray(f_vec[keep], dtype=float).reshape(-1)
+            G_red_pinv = (
+                np.linalg.pinv(G_red, rcond=float(self.cfg.pinv_rcond))
+                if G_red.size
+                else np.zeros((0, 0), dtype=float)
+            )
+            reduced_objective = float(f_red @ (G_red_pinv @ f_red)) if f_red.size else 0.0
+        norm_b_sq = float(max(float(baseline.get("norm_b_sq", 0.0)), 1.0e-14))
+        return float(max(0.0, baseline_objective - reduced_objective) / norm_b_sq)
+
+    def _prune_candidates(
+        self,
+        *,
+        checkpoint_index: int,
+        baseline: Mapping[str, Any],
+        motion: MotionSchedulerTelemetry,
+    ) -> tuple[list[dict[str, Any]], str]:
+        permitted, reason = self._prune_permitted(
+            rho_miss=float(baseline["summary"].rho_miss),
+            motion=motion,
+        )
+        if not permitted:
+            return [], str(reason)
+        protection_steps = int(getattr(self.cfg, "prune_protection_steps", 0))
+        stale_threshold = float(getattr(self.cfg, "prune_stale_score_threshold", 1.0))
+        rows: list[dict[str, Any]] = []
+        for logical_index, (carrier, block) in enumerate(zip(self.current_terms, self.current_layout.blocks)):
+            label = str(carrier.label)
+            birth = int(self._block_birth_checkpoint.get(label, -protection_steps - 1))
+            age = int(checkpoint_index) - int(birth)
+            cooldown = int(self._block_cooldown.get(label, 0))
+            runtime_indices = list(range(int(block.runtime_start), int(block.runtime_stop)))
+            stagnation_score, motion_mean, fit_mean = self._block_stagnation_statistics(label)
+            theta_block = np.asarray(self.current_theta[int(block.runtime_start) : int(block.runtime_stop)], dtype=float).reshape(-1)
+            theta_block_norm = float(np.linalg.norm(theta_block))
+            if age < int(protection_steps):
+                continue
+            if cooldown > 0:
+                continue
+            if float(stagnation_score) < float(stale_threshold):
+                continue
+            rows.append(
+                {
+                    "candidate_label": str(label),
+                    "position_id": int(logical_index),
+                    "runtime_block_indices": [int(x) for x in runtime_indices],
+                    "cached_prune_loss": float(
+                        self._cached_prune_loss(
+                            baseline=baseline,
+                            runtime_indices=runtime_indices,
+                        )
+                    ),
+                    "stagnation_score": float(stagnation_score),
+                    "motion_mean": float(motion_mean),
+                    "fit_mean": float(fit_mean),
+                    "theta_block_norm": float(theta_block_norm),
+                    "burden": float(self._block_burden.get(label, max(1, len(runtime_indices)))),
+                    "removed_carrier": carrier,
+                }
+            )
+        rows.sort(
+            key=lambda rec: (
+                float(rec["cached_prune_loss"]),
+                -float(rec["burden"]),
+                int(rec["position_id"]),
+            )
+        )
+        if not rows:
+            return [], "no_prune_eligible_coordinates"
+        return rows[: max(1, int(getattr(self.cfg, "prune_max_candidates", 1)))], "prune_candidates_available"
+
+    def _build_pruned_runtime_state(self, *, logical_index: int) -> dict[str, Any]:
+        idx = int(logical_index)
+        removed_block = self.current_layout.blocks[idx]
+        removed_carrier = self.current_terms[idx]
+        reduced_terms = list(self.current_terms[:idx]) + list(self.current_terms[idx + 1 :])
+        reduced_layout = _layout_from_carriers(reduced_terms, template=self.current_layout)
+        reduced_theta = _delete_theta_block(
+            self.current_theta,
+            runtime_start=int(removed_block.runtime_start),
+            runtime_stop=int(removed_block.runtime_stop),
+        )
+        reduced_executor = self._build_executor(reduced_terms, reduced_layout)
+        reduced_psi = np.asarray(
+            reduced_executor.prepare_state(reduced_theta, self.replay_context.psi_ref),
+            dtype=complex,
+        ).reshape(-1)
+        return {
+            "removed_label": str(removed_carrier.label),
+            "removed_source_label": str(removed_carrier.source_label),
+            "removed_carrier": removed_carrier,
+            "removed_block": removed_block,
+            "reduced_terms": reduced_terms,
+            "reduced_layout": reduced_layout,
+            "reduced_theta": np.asarray(reduced_theta, dtype=float).reshape(-1),
+            "reduced_executor": reduced_executor,
+            "reduced_psi": reduced_psi,
+            "reduced_planning_audit": self._build_planning_audit_for_terms(reduced_terms),
+        }
 
     def _oracle_wallclock_hit(self) -> bool:
         if self._wallclock_cap_s is None or self._run_wallclock_start is None:
@@ -997,6 +1973,29 @@ class RealtimeCheckpointController:
             return float(max(0.25, float(self.cfg.motion_calm_oracle_budget_scale)))
         return 1.0
 
+    """
+    lane_k =
+    append, if time_stop exists and rho_miss_k > tau_miss;
+    stay,   otherwise.
+    """
+    def _controller_lane(
+        self,
+        *,
+        time_stop: float | None,
+        rho_miss: float,
+        prune_candidates_available: bool = False,
+        prune_reason: str | None = None,
+    ) -> tuple[str, str]:
+        if time_stop is None:
+            return "stay", "terminal_checkpoint"
+        if str(self.cfg.mode) == "off":
+            return "stay", "controller_disabled"
+        if float(rho_miss) > float(self.cfg.miss_threshold):
+            return "append", "exact_rho_miss_above_threshold"
+        if bool(prune_candidates_available):
+            return "prune", str(prune_reason or "prune_candidates_available")
+        return "stay", str(prune_reason or "exact_rho_miss_below_threshold")
+
     def _record_theta_dot_history(self, theta_dot: np.ndarray | Sequence[float]) -> None:
         value = np.asarray(theta_dot, dtype=float).reshape(-1)
         self._previous_theta_dot = np.asarray(value, dtype=float)
@@ -1069,11 +2068,412 @@ class RealtimeCheckpointController:
             out.append(value)
         return tuple(out) if out else (1.0,)
 
+    def _drive_aligned_baseline_step_scales(self) -> tuple[float, ...]:
+        raw_values = (0.0, 0.05, 0.1) + tuple(self._candidate_step_scales())
+        out: list[float] = []
+        seen: set[float] = set()
+        for raw in raw_values:
+            value = float(raw)
+            if (not np.isfinite(value)) or value < 0.0:
+                continue
+            rounded = round(value, 12)
+            if rounded in seen:
+                continue
+            seen.add(rounded)
+            out.append(value)
+        return tuple(out) if out else (0.0, 1.0)
+
     def _candidate_scale_tag(self, scale: float) -> str:
         text = f"{float(scale):.6f}".rstrip("0").rstrip(".")
         if text == "":
             text = "1"
         return text.replace("-", "m").replace(".", "p")
+
+    def _exact_forecast_baseline_step_refine_rounds(self) -> int:
+        return max(0, int(getattr(self.cfg, "exact_forecast_baseline_step_refine_rounds", 0)))
+
+    def _exact_forecast_baseline_blend_weights(self) -> tuple[float, ...]:
+        raw = tuple(float(x) for x in getattr(self.cfg, "exact_forecast_baseline_blend_weights", ()))
+        if not raw:
+            return (0.0,)
+        out: list[float] = []
+        seen: set[float] = set()
+        for value in raw:
+            weight = float(value)
+            rounded = round(weight, 12)
+            if rounded in seen:
+                continue
+            seen.add(rounded)
+            out.append(weight)
+        return tuple(out) if out else (0.0,)
+
+    def _exact_forecast_baseline_gain_scales(self) -> tuple[float, ...]:
+        raw = tuple(float(x) for x in getattr(self.cfg, "exact_forecast_baseline_gain_scales", ()))
+        if not raw:
+            return (1.0,)
+        out: list[float] = []
+        seen: set[float] = set()
+        saw_one = False
+        for value in raw:
+            scale = float(value)
+            if scale <= 0.0:
+                continue
+            rounded = round(scale, 12)
+            if rounded in seen:
+                continue
+            seen.add(rounded)
+            out.append(scale)
+            if abs(scale - 1.0) <= 1.0e-12:
+                saw_one = True
+        if not saw_one:
+            out.insert(0, 1.0)
+        return tuple(out) if out else (1.0,)
+
+    def _drive_aligned_runtime_indices(
+        self,
+        *,
+        layout: AnsatzParameterLayout | None = None,
+    ) -> tuple[int, ...]:
+        if not bool(self._drive_aligned_density_active) or self._drive_aligned_density_label is None:
+            return tuple()
+        active_layout = self.current_layout if layout is None else layout
+        target_label = str(self._drive_aligned_density_label)
+        out: list[int] = []
+        for block in active_layout.blocks:
+            block_label = str(block.candidate_label)
+            if block_label != target_label and not block_label.startswith(f"{target_label}__r"):
+                continue
+            out.extend(range(int(block.runtime_start), int(block.runtime_stop)))
+        return tuple(out)
+
+    def _drive_only_theta_dot_from_baseline(
+        self,
+        *,
+        baseline: Mapping[str, Any] | None,
+        layout: AnsatzParameterLayout | None = None,
+    ) -> np.ndarray | None:
+        if baseline is None:
+            return None
+        runtime_indices = self._drive_aligned_runtime_indices(layout=layout)
+        if not runtime_indices:
+            return None
+        theta_dot_step = np.asarray(baseline.get("theta_dot_step", np.zeros(0, dtype=float)), dtype=float).reshape(-1)
+        K = np.asarray(baseline.get("K", np.zeros((0, 0), dtype=float)), dtype=float)
+        f = np.asarray(baseline.get("f", np.zeros(0, dtype=float)), dtype=float).reshape(-1)
+        if theta_dot_step.size <= max(runtime_indices) or f.size <= max(runtime_indices):
+            return None
+        if K.ndim != 2 or K.shape[0] <= max(runtime_indices) or K.shape[1] <= max(runtime_indices):
+            return None
+        idx = np.asarray(runtime_indices, dtype=int)
+        K_drive = np.asarray(K[np.ix_(idx, idx)], dtype=float)
+        f_drive = np.asarray(f[idx], dtype=float).reshape(-1)
+        if K_drive.size == 0 or f_drive.size == 0:
+            return None
+        K_drive_pinv = np.linalg.pinv(K_drive, rcond=float(self.cfg.pinv_rcond))
+        theta_dot_drive_block = np.asarray(K_drive_pinv @ f_drive, dtype=float).reshape(-1)
+        theta_dot_drive = np.zeros_like(theta_dot_step, dtype=float)
+        theta_dot_drive[idx] = theta_dot_drive_block
+        return np.asarray(theta_dot_drive, dtype=float).reshape(-1)
+
+    def _blend_theta_dot_with_drive_direction(
+        self,
+        *,
+        baseline_theta_dot: np.ndarray | Sequence[float],
+        drive_theta_dot: np.ndarray | Sequence[float] | None,
+        blend_weight: float,
+        baseline: Mapping[str, Any] | None,
+    ) -> np.ndarray:
+        baseline_vec = np.asarray(baseline_theta_dot, dtype=float).reshape(-1)
+        weight = float(blend_weight)
+        if drive_theta_dot is None or abs(float(weight)) <= 1.0e-15:
+            return np.asarray(baseline_vec, dtype=float).reshape(-1)
+        drive_vec = np.asarray(drive_theta_dot, dtype=float).reshape(-1)
+        if drive_vec.shape != baseline_vec.shape:
+            return np.asarray(baseline_vec, dtype=float).reshape(-1)
+        G = None if baseline is None else np.asarray(baseline.get("G", np.zeros((0, 0), dtype=float)), dtype=float)
+        use_metric = bool(
+            G is not None
+            and G.size
+            and G.shape[0] == baseline_vec.size
+            and G.shape[1] == baseline_vec.size
+        )
+
+        def _inner(lhs: np.ndarray, rhs: np.ndarray) -> float:
+            if use_metric:
+                return float(lhs @ G @ rhs)
+            return float(lhs @ rhs)
+
+        def _quad(vec: np.ndarray) -> float:
+            return float(_inner(vec, vec))
+
+        baseline_quad = _quad(baseline_vec)
+        if baseline_quad <= 1.0e-18:
+            return np.asarray(baseline_vec, dtype=float).reshape(-1)
+
+        # Add only the drive direction component that is new relative to the
+        # baseline McLachlan flow, then renormalize so forecast scoring compares
+        # direction changes rather than norm inflation. Negative blend weights
+        # are allowed and subtract the residual drive direction.
+        residual = np.asarray(drive_vec, dtype=float).reshape(-1)
+        overlap = _inner(baseline_vec, residual)
+        residual = residual - (float(overlap) / float(baseline_quad)) * baseline_vec
+        residual_quad = _quad(residual)
+        if residual_quad <= 1.0e-18:
+            return np.asarray(baseline_vec, dtype=float).reshape(-1)
+        residual = np.asarray(
+            np.sqrt(float(baseline_quad) / float(residual_quad)) * residual,
+            dtype=float,
+        ).reshape(-1)
+        blended = np.asarray(baseline_vec + weight * residual, dtype=float).reshape(-1)
+        blended_quad = _quad(blended)
+        if blended_quad <= 1.0e-18:
+            return np.asarray(baseline_vec, dtype=float).reshape(-1)
+        blended = np.asarray(
+            np.sqrt(float(baseline_quad) / float(blended_quad)) * blended,
+            dtype=float,
+        ).reshape(-1)
+        return np.asarray(blended, dtype=float).reshape(-1)
+
+    def _baseline_theta_dot_candidates(
+        self,
+        *,
+        baseline_theta_dot: np.ndarray | Sequence[float],
+        baseline: Mapping[str, Any] | None = None,
+    ) -> list[tuple[float, np.ndarray]]:
+        baseline_vec = np.asarray(baseline_theta_dot, dtype=float).reshape(-1)
+        drive_theta_dot = self._drive_only_theta_dot_from_baseline(baseline=baseline)
+        out: list[tuple[float, np.ndarray]] = []
+        seen: set[tuple[float, ...]] = set()
+        for blend_weight in self._exact_forecast_baseline_blend_weights():
+            candidate = self._blend_theta_dot_with_drive_direction(
+                baseline_theta_dot=baseline_vec,
+                drive_theta_dot=drive_theta_dot,
+                blend_weight=float(blend_weight),
+                baseline=baseline,
+            )
+            key = tuple(np.round(np.asarray(candidate, dtype=float).reshape(-1), 12).tolist())
+            if key in seen:
+                continue
+            seen.add(key)
+            out.append((float(blend_weight), np.asarray(candidate, dtype=float).reshape(-1)))
+        if not out:
+            out.append((0.0, np.asarray(baseline_vec, dtype=float).reshape(-1)))
+        return out
+
+    def _select_exact_v1_baseline_step_scale(
+        self,
+        *,
+        baseline_theta_dot: np.ndarray | Sequence[float],
+        baseline: Mapping[str, Any] | None = None,
+        dt: float,
+        time_stop: float,
+    ) -> tuple[np.ndarray, float, float, float, dict[str, Any]]:
+        best_candidate_theta_dot: np.ndarray | None = None
+        best_step_theta_dot: np.ndarray | None = None
+        best_step_forecast: dict[str, Any] | None = None
+        best_step_score: float | None = None
+        best_scale: float | None = None
+        best_blend_weight: float | None = None
+        evaluated: dict[
+            tuple[float, float, tuple[float, ...]],
+            tuple[np.ndarray, dict[str, Any], float],
+        ] = {}
+
+        def _evaluate_step(
+            blend_weight: float,
+            theta_dot: np.ndarray,
+            step_scale: float,
+        ) -> tuple[np.ndarray, dict[str, Any], float]:
+            cache_key = (
+                round(float(blend_weight), 12),
+                round(float(step_scale), 12),
+                tuple(np.round(np.asarray(theta_dot, dtype=float).reshape(-1), 12).tolist()),
+            )
+            cached = evaluated.get(cache_key)
+            if cached is not None:
+                return cached
+            scaled_theta_dot = float(step_scale) * np.asarray(theta_dot, dtype=float).reshape(-1)
+            theta_runtime = np.asarray(
+                self.current_theta + float(dt) * np.asarray(scaled_theta_dot, dtype=float),
+                dtype=float,
+            ).reshape(-1)
+            forecast, _forecast_rollout, score = self._exact_forecast_rollout(
+                time_stop=float(time_stop),
+                dt=float(dt),
+                executor=self.current_executor,
+                theta_runtime_start=theta_runtime,
+                theta_dot_step=np.asarray(scaled_theta_dot, dtype=float).reshape(-1),
+            )
+            cached = (
+                np.asarray(scaled_theta_dot, dtype=float).reshape(-1),
+                dict(forecast),
+                float(score),
+            )
+            evaluated[cache_key] = cached
+            return cached
+
+        def _consider_step(
+            blend_weight: float,
+            theta_dot: np.ndarray,
+            step_scale: float,
+        ) -> None:
+            nonlocal best_candidate_theta_dot
+            nonlocal best_step_theta_dot
+            nonlocal best_step_forecast
+            nonlocal best_step_score
+            nonlocal best_scale
+            nonlocal best_blend_weight
+            scaled_theta_dot, forecast, score = _evaluate_step(
+                float(blend_weight),
+                theta_dot,
+                float(step_scale),
+            )
+            choose = False
+            if (
+                best_candidate_theta_dot is None
+                or best_step_theta_dot is None
+                or best_step_forecast is None
+                or best_step_score is None
+                or best_scale is None
+                or best_blend_weight is None
+            ):
+                choose = True
+            elif float(score) < float(best_step_score) - 1.0e-12:
+                choose = True
+            elif abs(float(score) - float(best_step_score)) <= 1.0e-12:
+                if float(blend_weight) < float(best_blend_weight) - 1.0e-12:
+                    choose = True
+                elif (
+                    abs(float(blend_weight) - float(best_blend_weight)) <= 1.0e-12
+                ) and float(step_scale) < float(best_scale):
+                    choose = True
+            if choose:
+                best_candidate_theta_dot = np.asarray(theta_dot, dtype=float).reshape(-1)
+                best_step_theta_dot = np.asarray(scaled_theta_dot, dtype=float).reshape(-1)
+                best_step_forecast = dict(forecast)
+                best_step_score = float(score)
+                best_scale = float(step_scale)
+                best_blend_weight = float(blend_weight)
+        base_candidates = self._baseline_theta_dot_candidates(
+            baseline_theta_dot=np.asarray(baseline_theta_dot, dtype=float).reshape(-1),
+            baseline=baseline,
+        )
+        for blend_weight, theta_dot in base_candidates:
+            for step_scale in self._drive_aligned_baseline_step_scales():
+                _consider_step(
+                    float(blend_weight),
+                    np.asarray(theta_dot, dtype=float).reshape(-1),
+                    float(step_scale),
+                )
+        for _ in range(self._exact_forecast_baseline_step_refine_rounds()):
+            if (
+                best_scale is None
+                or best_blend_weight is None
+                or best_candidate_theta_dot is None
+            ):
+                break
+            known_scales = sorted(
+                {
+                    float(cache_key[1])
+                    for cache_key in evaluated
+                    if (
+                        abs(float(cache_key[0]) - float(best_blend_weight)) <= 1.0e-12
+                    )
+                }
+            )
+            try:
+                idx = known_scales.index(round(float(best_scale), 12))
+            except ValueError:
+                break
+            proposals: list[float] = []
+            if idx > 0:
+                proposals.append(0.5 * (known_scales[idx - 1] + float(best_scale)))
+            if idx + 1 < len(known_scales):
+                proposals.append(0.5 * (float(best_scale) + known_scales[idx + 1]))
+            new_proposal_found = False
+            for step_scale in proposals:
+                cache_key = (
+                    round(float(best_blend_weight), 12),
+                    round(float(step_scale), 12),
+                    tuple(
+                        np.round(np.asarray(best_candidate_theta_dot, dtype=float).reshape(-1), 12).tolist()
+                    ),
+                )
+                if cache_key in evaluated:
+                    continue
+                new_proposal_found = True
+                _consider_step(
+                    float(best_blend_weight),
+                    np.asarray(best_candidate_theta_dot, dtype=float).reshape(-1),
+                    float(step_scale),
+                )
+            if not new_proposal_found:
+                break
+        if (
+            best_step_theta_dot is None
+            or best_step_forecast is None
+            or best_step_score is None
+            or best_scale is None
+            or best_blend_weight is None
+        ):
+            raise RuntimeError("no exact-v1 baseline step-scale forecasts were produced")
+        best_theta_dot = np.asarray(best_step_theta_dot, dtype=float).reshape(-1)
+        best_forecast = dict(best_step_forecast)
+        best_score = float(best_step_score)
+        best_gain_scale = 1.0
+        gain_evaluated: dict[float, tuple[np.ndarray, dict[str, Any], float]] = {}
+
+        def _evaluate_gain(gain_scale: float) -> tuple[np.ndarray, dict[str, Any], float]:
+            rounded = round(float(gain_scale), 12)
+            cached = gain_evaluated.get(rounded)
+            if cached is not None:
+                return cached
+            gained_theta_dot = float(gain_scale) * np.asarray(best_step_theta_dot, dtype=float).reshape(-1)
+            theta_runtime = np.asarray(
+                self.current_theta + float(dt) * np.asarray(gained_theta_dot, dtype=float),
+                dtype=float,
+            ).reshape(-1)
+            forecast, _forecast_rollout, score = self._exact_forecast_rollout(
+                time_stop=float(time_stop),
+                dt=float(dt),
+                executor=self.current_executor,
+                theta_runtime_start=theta_runtime,
+                theta_dot_step=np.asarray(gained_theta_dot, dtype=float).reshape(-1),
+            )
+            cached = (
+                np.asarray(gained_theta_dot, dtype=float).reshape(-1),
+                dict(forecast),
+                float(score),
+            )
+            gain_evaluated[rounded] = cached
+            return cached
+
+        def _consider_gain(gain_scale: float) -> None:
+            nonlocal best_theta_dot, best_forecast, best_score, best_gain_scale
+            gained_theta_dot, forecast, score = _evaluate_gain(float(gain_scale))
+            choose = False
+            if float(score) < float(best_score) - 1.0e-12:
+                choose = True
+            elif (
+                abs(float(score) - float(best_score)) <= 1.0e-12
+                and float(gain_scale) < float(best_gain_scale) - 1.0e-12
+            ):
+                choose = True
+            if choose:
+                best_theta_dot = np.asarray(gained_theta_dot, dtype=float).reshape(-1)
+                best_forecast = dict(forecast)
+                best_score = float(score)
+                best_gain_scale = float(gain_scale)
+
+        for gain_scale in self._exact_forecast_baseline_gain_scales():
+            _consider_gain(float(gain_scale))
+        return (
+            best_theta_dot,
+            float(best_scale),
+            float(best_blend_weight),
+            float(best_gain_scale),
+            best_forecast,
+        )
 
     def _baseline_theta_dot_augmented_for_candidate(
         self,
@@ -1472,16 +2872,9 @@ class RealtimeCheckpointController:
         if float(baseline_measured["summary"].rho_miss) <= float(self.cfg.miss_threshold):
             skipped: list[dict[str, Any]] = []
             for record in confirmed:
-                rec = dict(record)
-                rec["gain_exact"] = None
-                rec["gain_ratio"] = None
-                rec["adjusted_gain"] = float("-inf")
-                rec["confirm_error"] = "skipped_due_to_measured_baseline_stay"
-                rec["candidate_summary"] = replace(
-                    rec["candidate_summary"],
-                    gain_exact=None,
-                    gain_ratio=None,
-                    admissible=False,
+                rec = self._clear_confirm_payload(
+                    record,
+                    confirm_error="skipped_due_to_measured_baseline_stay",
                     rejection_reason="measured_baseline_below_threshold",
                 )
                 skipped.append(rec)
@@ -1489,28 +2882,15 @@ class RealtimeCheckpointController:
 
         ranked = sorted(
             [dict(rec) for rec in confirmed],
-            key=lambda rec: (
-                -float(rec["adjusted_gain"]),
-                float(rec["candidate_summary"].position_jump_penalty),
-                float(rec["candidate_summary"].compile_proxy_total),
-                float(rec["candidate_summary"].groups_new),
-                int(rec["candidate_summary"].candidate_pool_index),
-                int(rec["candidate_summary"].position_id),
-            ),
+            key=self._confirm_rank_key,
         )
         measured_records: list[dict[str, Any]] = []
         for idx, record in enumerate(ranked):
             rec = dict(record)
             if int(idx) >= int(confirm_limit):
-                rec["gain_exact"] = None
-                rec["gain_ratio"] = None
-                rec["adjusted_gain"] = float("-inf")
-                rec["confirm_error"] = "deferred_by_refresh_pressure"
-                rec["candidate_summary"] = replace(
-                    rec["candidate_summary"],
-                    gain_exact=None,
-                    gain_ratio=None,
-                    admissible=False,
+                rec = self._clear_confirm_payload(
+                    rec,
+                    confirm_error="deferred_by_refresh_pressure",
                     rejection_reason="deferred_by_refresh_pressure",
                 )
                 measured_records.append(rec)
@@ -1535,15 +2915,19 @@ class RealtimeCheckpointController:
                 directional_change_l2 = _overlap_l2(theta_dot_aug, self._previous_theta_dot)
                 gain_exact = float(measured_candidate["gain_exact"])
                 gain_ratio = float(measured_candidate["gain_ratio"])
-                directional_penalty = 0.0 if directional_change_l2 is None else float(directional_change_l2)
-                adjusted_gain = float(
-                    gain_ratio
-                    - float(self.cfg.directional_penalty_weight) * directional_penalty
-                    - float(self.cfg.measurement_penalty_weight) * float(rec.get("groups_new", 0.0))
+                confirm_payload = self._confirm_score_payload(
+                    baseline=baseline_measured,
+                    B=np.asarray(measured_candidate["B"], dtype=float),
+                    C=np.asarray(measured_candidate["C"], dtype=float),
+                    q=np.asarray(measured_candidate["q"], dtype=float).reshape(-1),
+                    w=np.asarray(measured_candidate["w"], dtype=float).reshape(-1),
+                    gain_ratio=float(gain_ratio),
+                    groups_new=float(rec.get("groups_new", 0.0)),
+                    directional_change_l2=directional_change_l2,
                 )
                 rec["gain_exact"] = float(gain_exact)
                 rec["gain_ratio"] = float(gain_ratio)
-                rec["adjusted_gain"] = float(adjusted_gain)
+                rec.update(confirm_payload)
                 rec["theta_dot_aug"] = theta_dot_aug
                 rec["theta_dot_aug_existing"] = theta_dot_aug_existing
                 rec["eta_dot"] = eta_dot
@@ -1554,7 +2938,11 @@ class RealtimeCheckpointController:
                     gain_exact=float(gain_exact),
                     gain_ratio=float(gain_ratio),
                     directional_change_l2=(None if directional_change_l2 is None else float(directional_change_l2)),
-                    decision_metric="measured_incremental_gain_ratio",
+                    decision_metric=(
+                        "measured_compressed_whitened_confirm_gain_ratio"
+                        if str(getattr(self.cfg, "confirm_score_mode", "exact_gain_ratio")) == "compressed_whitened_v1"
+                        else "measured_incremental_gain_ratio"
+                    ),
                     oracle_estimate_kind=self._oracle_estimate_kind(),
                 )
             except Exception as exc:
@@ -1960,7 +3348,29 @@ class RealtimeCheckpointController:
         cache: ExactCheckpointValueCache,
         step_hamiltonian: StepHamiltonianArtifacts,
     ) -> dict[str, Any]:
-        runtime_indices = tuple(range(int(self.current_layout.runtime_parameter_count)))
+        return self._compute_baseline_geometry_for_runtime_state(
+            checkpoint_ctx=checkpoint_ctx,
+            cache=cache,
+            executor=self.current_executor,
+            layout=self.current_layout,
+            theta_runtime=self.current_theta,
+            planning_audit=self._planning_audit,
+            step_hamiltonian=step_hamiltonian,
+        )
+
+    def _compute_baseline_geometry_for_runtime_state(
+        self,
+        *,
+        checkpoint_ctx: Any,
+        cache: ExactCheckpointValueCache,
+        executor: CompiledAnsatzExecutor,
+        layout: AnsatzParameterLayout,
+        theta_runtime: np.ndarray | Sequence[float],
+        planning_audit: MeasurementCacheAudit,
+        step_hamiltonian: StepHamiltonianArtifacts,
+    ) -> dict[str, Any]:
+        theta_arr = np.asarray(theta_runtime, dtype=float).reshape(-1)
+        runtime_indices = tuple(range(int(layout.runtime_parameter_count)))
         psi, raw_tangents = cache.get_or_compute(
             GeometryValueKey(
                 checkpoint_id=str(checkpoint_ctx.checkpoint_id),
@@ -1972,8 +3382,8 @@ class RealtimeCheckpointController:
                 grouping_mode=str(self.cfg.grouping_mode),
             ),
             tier_name="scout",
-            compute=lambda: self.current_executor.prepare_state_with_runtime_tangents(
-                self.current_theta,
+            compute=lambda: executor.prepare_state_with_runtime_tangents(
+                theta_arr,
                 self.replay_context.psi_ref,
                 runtime_indices=runtime_indices,
             ),
@@ -1994,7 +3404,7 @@ class RealtimeCheckpointController:
 
         psi_vec = np.asarray(psi, dtype=complex).reshape(-1)
         tangents_matrix: np.ndarray
-        if int(self.current_layout.runtime_parameter_count) <= 0:
+        if int(layout.runtime_parameter_count) <= 0:
             tangents_matrix = np.zeros((psi_vec.size, 0), dtype=complex)
         else:
             centered_cols: list[np.ndarray] = []
@@ -2031,9 +3441,9 @@ class RealtimeCheckpointController:
             condition_number=float(cond),
             regularization_lambda=float(self.cfg.regularization_lambda),
             solve_mode="pinv_reg",
-            logical_block_count=int(self.current_layout.logical_parameter_count),
-            runtime_parameter_count=int(self.current_layout.runtime_parameter_count),
-            planning_summary=dict(self._planning_audit.summary()),
+            logical_block_count=int(layout.logical_parameter_count),
+            runtime_parameter_count=int(layout.runtime_parameter_count),
+            planning_summary=dict(planning_audit.summary()),
             exact_cache_summary=dict(cache.summary()),
         )
         return {
@@ -2211,6 +3621,24 @@ class RealtimeCheckpointController:
                 u_block = np.column_stack(centered_cols) if centered_cols else np.zeros((baseline["psi"].size, 0), dtype=complex)
                 residual_overlap_vec = np.asarray(np.real(u_block.conj().T @ baseline["residual_step"]), dtype=float).reshape(-1)
                 residual_overlap_l2 = float(np.linalg.norm(residual_overlap_vec))
+                C = np.asarray(np.real(u_block.conj().T @ u_block), dtype=float)
+                C_reg = np.asarray(
+                    C + float(self.cfg.candidate_regularization_lambda) * np.eye(int(C.shape[0])),
+                    dtype=float,
+                )
+                C_reg_pinv = (
+                    np.linalg.pinv(C_reg, rcond=float(self.cfg.pinv_rcond))
+                    if C_reg.size
+                    else np.zeros((0, 0), dtype=float)
+                )
+                scout_lower_gain = (
+                    float(max(0.0, float(residual_overlap_vec @ C_reg_pinv @ residual_overlap_vec)))
+                    if residual_overlap_vec.size
+                    else 0.0
+                )
+                scout_gain_ratio = float(
+                    scout_lower_gain / max(float(baseline["norm_b_sq"]), 1e-14)
+                )
                 planning_stats = planning_stats_for_term(candidate_term, self._planning_audit)
                 compile_est = self._compile_oracle.estimate(
                     candidate_term_count=max(1, len(candidate_data["runtime_block_indices"])),
@@ -2243,8 +3671,15 @@ class RealtimeCheckpointController:
                         predicted_displacement=float(predicted_displacement),
                     )
                 )
-                scout_score = float(
+                legacy_simple_score = float(
                     residual_overlap_l2
+                    + float(temporal_prior_bonus)
+                    - float(self.cfg.compile_penalty_weight) * float(compile_est.proxy_total)
+                    - float(self.cfg.measurement_penalty_weight) * float(planning_stats.groups_new)
+                    - float(self.cfg.directional_penalty_weight) * float(position_jump_penalty)
+                )
+                scout_score = float(
+                    scout_gain_ratio
                     + float(temporal_prior_bonus)
                     - float(self.cfg.compile_penalty_weight) * float(compile_est.proxy_total)
                     - float(self.cfg.measurement_penalty_weight) * float(planning_stats.groups_new)
@@ -2264,7 +3699,11 @@ class RealtimeCheckpointController:
                         "novelty": novelty,
                         "position_jump_penalty": float(position_jump_penalty),
                         "temporal_prior_bonus": float(temporal_prior_bonus),
-                        "simple_score": float(scout_score),
+                        "scout_lower_gain": float(scout_lower_gain),
+                        "scout_gain_ratio": float(scout_gain_ratio),
+                        "scout_score": float(scout_score),
+                        "scout_score_kind": "shared_baseline_lower_gain_ratio_minus_penalties",
+                        "simple_score": float(legacy_simple_score),
                         "candidate_data": candidate_data,
                         "candidate_term": candidate_term,
                     }
@@ -2272,8 +3711,180 @@ class RealtimeCheckpointController:
         return shortlist_records(
             records,
             cfg=(self._shortlist_cfg if shortlist_cfg is None else shortlist_cfg),
-            score_key="simple_score",
+            score_key="scout_score",
+            tie_break_score_key="scout_score",
         )
+
+    def _compressed_confirm_gain(
+        self,
+        *,
+        baseline: Mapping[str, Any],
+        B: np.ndarray,
+        C: np.ndarray,
+        q: np.ndarray,
+        fallback_w: np.ndarray,
+    ) -> tuple[float, float, int, int]:
+        K = np.asarray(baseline.get("K", np.zeros((0, 0), dtype=float)), dtype=float)
+        f_vec = np.asarray(baseline.get("f", np.zeros(0, dtype=float)), dtype=float).reshape(-1)
+        q_vec = np.asarray(q, dtype=float).reshape(-1)
+        fallback = np.asarray(fallback_w, dtype=float).reshape(-1)
+        B_mat = np.asarray(B, dtype=float)
+        C_mat = np.asarray(C, dtype=float)
+        if str(getattr(self.cfg, "confirm_score_mode", "exact_gain_ratio")) != "compressed_whitened_v1":
+            gain = float(max(0.0, fallback @ (np.linalg.pinv(C_mat + float(self.cfg.candidate_regularization_lambda) * np.eye(int(C_mat.shape[0])), rcond=float(self.cfg.pinv_rcond)) @ fallback))) if C_mat.size else 0.0
+            ratio = float(gain / max(float(baseline.get("norm_b_sq", 0.0)), 1.0e-14))
+            return float(gain), float(ratio), 0, 0
+        if K.size == 0 or q_vec.size == 0:
+            return 0.0, 0.0, 0, 0
+        evals, evecs = np.linalg.eigh(K)
+        if evals.size == 0:
+            return 0.0, 0.0, 0, 0
+        tol = max(1.0e-12, float(self.cfg.pinv_rcond) * float(np.max(np.abs(evals))))
+        support = np.flatnonzero(evals > tol)
+        if support.size <= 0:
+            S_tilde = np.asarray(
+                C_mat + float(self.cfg.candidate_regularization_lambda) * np.eye(int(C_mat.shape[0])),
+                dtype=float,
+            )
+            gain = float(max(0.0, fallback @ (np.linalg.pinv(S_tilde, rcond=float(self.cfg.pinv_rcond)) @ fallback))) if fallback.size else 0.0
+            ratio = float(gain / max(float(baseline.get("norm_b_sq", 0.0)), 1.0e-14))
+            return float(gain), float(ratio), 0, 0
+        V = np.asarray(evecs[:, support], dtype=float)
+        sigma_inv = 1.0 / np.sqrt(np.asarray(evals[support], dtype=float))
+        z = np.asarray(sigma_inv * (V.T @ f_vec), dtype=float).reshape(-1)
+        Gamma = np.asarray((sigma_inv[:, None]) * (V.T @ B_mat), dtype=float)
+        w_vec = np.asarray(q_vec - Gamma.T @ z, dtype=float).reshape(-1)
+        rank = int(Gamma.shape[0])
+        if rank <= 0:
+            S_tilde = np.asarray(
+                C_mat + float(self.cfg.candidate_regularization_lambda) * np.eye(int(C_mat.shape[0])),
+                dtype=float,
+            )
+            gain = float(max(0.0, w_vec @ (np.linalg.pinv(S_tilde, rcond=float(self.cfg.pinv_rcond)) @ w_vec))) if w_vec.size else 0.0
+            ratio = float(gain / max(float(baseline.get("norm_b_sq", 0.0)), 1.0e-14))
+            return float(gain), float(ratio), 0, 0
+        requested = int(np.ceil(float(self.cfg.confirm_compress_fraction) * float(rank)))
+        modes_used = max(int(self.cfg.confirm_compress_min_modes), requested)
+        max_modes = int(self.cfg.confirm_compress_max_modes)
+        if max_modes > 0:
+            modes_used = min(int(modes_used), int(max_modes))
+        modes_used = min(int(rank), max(0, int(modes_used)))
+        row_norms = np.linalg.norm(Gamma, axis=1)
+        selected_rows = np.argsort(-row_norms, kind="mergesort")[: int(modes_used)] if modes_used > 0 else np.asarray([], dtype=int)
+        Gamma_selected = np.asarray(Gamma[selected_rows, :], dtype=float) if selected_rows.size > 0 else np.zeros((0, int(q_vec.size)), dtype=float)
+        S_tilde = np.asarray(
+            C_mat
+            + float(self.cfg.candidate_regularization_lambda) * np.eye(int(C_mat.shape[0]))
+            - Gamma_selected.T @ Gamma_selected,
+            dtype=float,
+        )
+        S_tilde_pinv = np.linalg.pinv(S_tilde, rcond=float(self.cfg.pinv_rcond)) if S_tilde.size else np.zeros((0, 0), dtype=float)
+        gain = float(max(0.0, w_vec @ (S_tilde_pinv @ w_vec))) if w_vec.size else 0.0
+        ratio = float(gain / max(float(baseline.get("norm_b_sq", 0.0)), 1.0e-14))
+        return float(gain), float(ratio), int(modes_used), int(rank)
+
+    def _confirm_score_payload(
+        self,
+        *,
+        baseline: Mapping[str, Any],
+        B: np.ndarray,
+        C: np.ndarray,
+        q: np.ndarray,
+        w: np.ndarray,
+        gain_ratio: float,
+        groups_new: float,
+        directional_change_l2: float | None,
+    ) -> dict[str, Any]:
+        directional_penalty = 0.0 if directional_change_l2 is None else float(directional_change_l2)
+        adjusted_gain = float(
+            float(gain_ratio)
+            - float(self.cfg.directional_penalty_weight) * directional_penalty
+            - float(self.cfg.measurement_penalty_weight) * float(groups_new)
+        )
+        mode = str(getattr(self.cfg, "confirm_score_mode", "exact_gain_ratio"))
+        if mode != "compressed_whitened_v1":
+            return {
+                "adjusted_gain": float(adjusted_gain),
+                "confirm_score": float(adjusted_gain),
+                "confirm_score_kind": "geometry_gain_ratio_minus_penalties",
+                "confirm_compress_modes_used": 0,
+                "confirm_support_rank": 0,
+            }
+        compressed_gain, compressed_ratio, modes_used, support_rank = self._compressed_confirm_gain(
+            baseline=baseline,
+            B=np.asarray(B, dtype=float),
+            C=np.asarray(C, dtype=float),
+            q=np.asarray(q, dtype=float).reshape(-1),
+            fallback_w=np.asarray(w, dtype=float).reshape(-1),
+        )
+        confirm_score = float(
+            float(compressed_ratio)
+            - float(self.cfg.directional_penalty_weight) * directional_penalty
+            - float(self.cfg.measurement_penalty_weight) * float(groups_new)
+        )
+        return {
+            "adjusted_gain": float(adjusted_gain),
+            "confirm_score": float(confirm_score),
+            "confirm_score_kind": "compressed_whitened_lower_gain_ratio_minus_penalties",
+            "confirm_compress_modes_used": int(modes_used),
+            "confirm_support_rank": int(support_rank),
+            "confirm_compressed_gain_ratio": float(compressed_ratio),
+            "confirm_compressed_gain_exact": float(compressed_gain),
+        }
+
+    def _clear_confirm_payload(
+        self,
+        record: Mapping[str, Any],
+        *,
+        confirm_error: str,
+        rejection_reason: str,
+    ) -> dict[str, Any]:
+        rec = dict(record)
+        rec["gain_exact"] = None
+        rec["gain_ratio"] = None
+        rec["adjusted_gain"] = float("-inf")
+        rec["confirm_score"] = None
+        rec["confirm_score_kind"] = "not_confirmed"
+        rec["confirm_compress_modes_used"] = 0
+        rec["confirm_support_rank"] = 0
+        rec["confirm_compressed_gain_ratio"] = None
+        rec["confirm_compressed_gain_exact"] = None
+        rec["confirm_backend_info"] = None
+        rec["confirm_error"] = str(confirm_error)
+        rec["candidate_summary"] = replace(
+            rec["candidate_summary"],
+            gain_exact=None,
+            gain_ratio=None,
+            admissible=False,
+            rejection_reason=str(rejection_reason),
+            decision_metric="not_confirmed",
+            oracle_estimate_kind=None,
+        )
+        return rec
+
+    def _confirm_rank_key(self, rec: Mapping[str, Any]) -> tuple[float, float, float, float, int, int]:
+        raw_score = rec.get("confirm_score", rec.get("adjusted_gain", float("-inf")))
+        score = float("-inf") if raw_score is None else float(raw_score)
+        summary = rec["candidate_summary"]
+        return (
+            -score,
+            float(summary.position_jump_penalty),
+            float(summary.compile_proxy_total),
+            float(summary.groups_new),
+            int(summary.candidate_pool_index),
+            int(summary.position_id),
+        )
+
+    def _passes_exact_confirm_thresholds(self, rec: Mapping[str, Any]) -> bool:
+        gain_ratio = rec.get("gain_ratio")
+        gain_exact = rec.get("gain_exact")
+        if gain_ratio is None or gain_exact is None:
+            return False
+        if float(gain_ratio) < float(self.cfg.gain_ratio_threshold):
+            return False
+        if float(gain_exact) < float(self.cfg.append_margin_abs):
+            return False
+        return True
 
     def _confirm_candidates(
         self,
@@ -2312,6 +3923,16 @@ class RealtimeCheckpointController:
             eta_dot = np.asarray(block_value["eta_dot"], dtype=float).reshape(-1)
             runtime_pos = int(candidate_data["runtime_insert_position"])
             directional_change_l2 = _overlap_l2(theta_dot_aug, self._previous_theta_dot)
+            confirm_payload = self._confirm_score_payload(
+                baseline=baseline,
+                B=np.asarray(block_value["B"], dtype=float),
+                C=np.asarray(block_value["C"], dtype=float),
+                q=np.asarray(block_value["q"], dtype=float).reshape(-1),
+                w=np.asarray(block_value["w"], dtype=float).reshape(-1),
+                gain_ratio=float(gain_ratio),
+                groups_new=float(record["groups_new"]),
+                directional_change_l2=directional_change_l2,
+            )
             candidate_summary = CandidateProbeSummary(
                 candidate_label=str(record["candidate_label"]),
                 candidate_pool_index=int(record["candidate_pool_index"]),
@@ -2329,21 +3950,20 @@ class RealtimeCheckpointController:
                 tier_reached="confirm",
                 admissible=True,
                 rejection_reason=None,
+                decision_metric=(
+                    "compressed_whitened_confirm_gain_ratio"
+                    if str(getattr(self.cfg, "confirm_score_mode", "exact_gain_ratio")) == "compressed_whitened_v1"
+                    else "gain_ratio"
+                ),
                 oracle_estimate_kind=self._oracle_estimate_kind(),
                 temporal_prior_bonus=float(record.get("temporal_prior_bonus", 0.0)),
-            )
-            directional_penalty = 0.0 if directional_change_l2 is None else float(directional_change_l2)
-            adjusted_gain = float(
-                gain_ratio
-                - float(self.cfg.directional_penalty_weight) * directional_penalty
-                - float(self.cfg.measurement_penalty_weight) * float(record["groups_new"])
             )
             confirmed.append(
                 {
                     **dict(record),
                     "gain_exact": float(gain_exact),
                     "gain_ratio": float(gain_ratio),
-                    "adjusted_gain": float(adjusted_gain),
+                    **dict(confirm_payload),
                     "theta_dot_aug": theta_dot_aug,
                     "theta_dot_aug_existing": theta_dot_aug_existing,
                     "eta_dot": eta_dot,
@@ -2419,6 +4039,115 @@ class RealtimeCheckpointController:
             "theta_dot_aug": theta_dot_aug,
         }
 
+    def _select_prune_action(
+        self,
+        *,
+        checkpoint_index: int,
+        time_value: float,
+        time_stop: float | None,
+        baseline: Mapping[str, Any],
+        step_hamiltonian: StepHamiltonianArtifacts,
+        prune_candidates: Sequence[Mapping[str, Any]],
+    ) -> tuple[str, Mapping[str, Any] | None, Mapping[str, Any] | None, list[dict[str, Any]], str | None]:
+        evaluated: list[dict[str, Any]] = [dict(row) for row in prune_candidates]
+        if not evaluated:
+            return "stay", None, None, [], None
+        theta_tol = float(getattr(self.cfg, "prune_theta_block_tol", 0.0))
+        loss_tol = float(getattr(self.cfg, "prune_loss_threshold", float("inf")))
+        rejection_reason_out: str | None = None
+        proposed_out: dict[str, Any] | None = None
+        for idx, raw in enumerate(list(evaluated)):
+            proposed = dict(raw)
+            if float(proposed.get("cached_prune_loss", 0.0)) > float(loss_tol):
+                self._block_cooldown[str(proposed["candidate_label"])] = int(self.cfg.prune_cooldown_steps)
+                proposed["prune_accept"] = False
+                proposed["post_prune_state_jump_l2"] = None
+                proposed["prune_delta_rho_miss"] = None
+                proposed["prune_rejection_reason"] = "cached_prune_loss_above_tol"
+                evaluated[idx] = proposed
+                if proposed_out is None:
+                    proposed_out = dict(proposed)
+                    rejection_reason_out = "prune_rejected_cached_prune_loss_above_tol"
+                continue
+            if float(proposed.get("theta_block_norm", 0.0)) > float(theta_tol):
+                self._block_cooldown[str(proposed["candidate_label"])] = int(self.cfg.prune_cooldown_steps)
+                proposed["prune_accept"] = False
+                proposed["post_prune_state_jump_l2"] = None
+                proposed["prune_delta_rho_miss"] = None
+                proposed["prune_rejection_reason"] = "theta_block_above_tol"
+                evaluated[idx] = proposed
+                if proposed_out is None:
+                    proposed_out = dict(proposed)
+                    rejection_reason_out = "prune_rejected_theta_block_above_tol"
+                continue
+
+            reduced_state = self._build_pruned_runtime_state(logical_index=int(proposed["position_id"]))
+            state_jump_l2 = float(
+                np.linalg.norm(
+                    np.asarray(reduced_state["reduced_psi"], dtype=complex).reshape(-1)
+                    - np.asarray(baseline["psi"], dtype=complex).reshape(-1)
+                )
+            )
+            proposed["post_prune_state_jump_l2"] = float(state_jump_l2)
+            if float(state_jump_l2) > float(getattr(self.cfg, "prune_state_jump_l2_tol", 0.0)):
+                self._block_cooldown[str(proposed["candidate_label"])] = int(self.cfg.prune_cooldown_steps)
+                proposed["prune_accept"] = False
+                proposed["prune_delta_rho_miss"] = None
+                proposed["prune_rejection_reason"] = "state_jump_above_tol"
+                evaluated[idx] = proposed
+                if proposed_out is None:
+                    proposed_out = dict(proposed)
+                    rejection_reason_out = "prune_rejected_state_jump_above_tol"
+                continue
+
+            reduced_ctx = make_checkpoint_context(
+                checkpoint_index=int(checkpoint_index),
+                time_start=float(time_value),
+                time_stop=(None if time_stop is None else float(time_stop)),
+                scaffold_labels=[str(carrier.label) for carrier in reduced_state["reduced_terms"]],
+                theta=np.asarray(reduced_state["reduced_theta"], dtype=float).reshape(-1),
+                psi=np.asarray(reduced_state["reduced_psi"], dtype=complex).reshape(-1),
+                logical_count=int(reduced_state["reduced_layout"].logical_parameter_count),
+                runtime_count=int(reduced_state["reduced_layout"].runtime_parameter_count),
+                resolved_family=str(self.replay_context.family_info.get("resolved", "unknown")),
+                grouping_mode=str(self.cfg.grouping_mode),
+                structure_locked=False,
+            )
+            reduced_cache = ExactCheckpointValueCache(
+                checkpoint_id=str(reduced_ctx.checkpoint_id),
+                grouping_mode=str(self.cfg.grouping_mode),
+            )
+            reduced_baseline = self._compute_baseline_geometry_for_runtime_state(
+                checkpoint_ctx=reduced_ctx,
+                cache=reduced_cache,
+                executor=reduced_state["reduced_executor"],
+                layout=reduced_state["reduced_layout"],
+                theta_runtime=np.asarray(reduced_state["reduced_theta"], dtype=float).reshape(-1),
+                planning_audit=reduced_state["reduced_planning_audit"],
+                step_hamiltonian=step_hamiltonian,
+            )
+            delta_rho = float(reduced_baseline["summary"].rho_miss) - float(baseline["summary"].rho_miss)
+            proposed["prune_delta_rho_miss"] = float(delta_rho)
+            if float(delta_rho) > float(getattr(self.cfg, "prune_safe_miss_increase_tol", 0.0)):
+                self._block_cooldown[str(proposed["candidate_label"])] = int(self.cfg.prune_cooldown_steps)
+                proposed["prune_accept"] = False
+                proposed["pruned_baseline"] = reduced_baseline
+                proposed["prune_rejection_reason"] = "rho_miss_increase_above_tol"
+                evaluated[idx] = proposed
+                if proposed_out is None:
+                    proposed_out = dict(proposed)
+                    rejection_reason_out = "prune_rejected_rho_miss_increase_above_tol"
+                continue
+
+            proposed["prune_accept"] = True
+            proposed["pruned_baseline"] = reduced_baseline
+            proposed["reduced_state"] = reduced_state
+            proposed["prune_rejection_reason"] = None
+            evaluated[idx] = proposed
+            return "prune_coordinate", proposed, proposed, evaluated, None
+
+        return "stay", None, proposed_out, evaluated, rejection_reason_out
+
     def _select_action(
         self,
         *,
@@ -2429,39 +4158,48 @@ class RealtimeCheckpointController:
             return "stay", None
         if not confirmed:
             return "stay", None
-        ordered = sorted(
-            confirmed,
-            key=lambda rec: (
-                -float(rec["adjusted_gain"]),
-                float(rec["candidate_summary"].position_jump_penalty),
-                float(rec["candidate_summary"].compile_proxy_total),
-                float(rec["candidate_summary"].groups_new),
-                int(rec["candidate_summary"].candidate_pool_index),
-                int(rec["candidate_summary"].position_id),
-            ),
-        )
-        best = ordered[0]
-        if float(best["gain_ratio"]) < float(self.cfg.gain_ratio_threshold):
+        ordered = sorted(confirmed, key=self._confirm_rank_key)
+        for record in ordered:
+            if self._passes_exact_confirm_thresholds(record):
+                return "append_candidate", record
+        return "stay", None
+
+    def _select_action_exact_v1(
+        self,
+        *,
+        baseline: Mapping[str, Any],
+        confirmed: Sequence[Mapping[str, Any]],
+        dt: float,
+        time_stop: float,
+    ) -> tuple[str, Mapping[str, Any] | None]:
+        if float(baseline["summary"].rho_miss) <= float(self.cfg.miss_threshold):
             return "stay", None
-        if float(best["gain_exact"]) < float(self.cfg.append_margin_abs):
+        if not confirmed:
             return "stay", None
-        return "append_candidate", best
+        best_record: dict[str, Any] | None = None
+        best_score: float | None = None
+        for record in self._sorted_confirmed_by_gain(confirmed):
+            if not self._passes_exact_confirm_thresholds(record):
+                continue
+            scaled_record, forecast = self._select_exact_v1_candidate_step_scale(
+                baseline_theta_dot=np.asarray(baseline["theta_dot_step"], dtype=float).reshape(-1),
+                selected=record,
+                dt=float(dt),
+                time_stop=float(time_stop),
+            )
+            score = self._forecast_tracking_score(forecast=forecast)
+            if best_record is None or best_score is None or float(score) < float(best_score) - 1.0e-12:
+                best_record = dict(scaled_record)
+                best_score = float(score)
+        if best_record is None:
+            return "stay", None
+        return "append_candidate", best_record
 
     def _sorted_confirmed_by_gain(
         self,
         confirmed: Sequence[Mapping[str, Any]],
     ) -> list[dict[str, Any]]:
-        return sorted(
-            [dict(rec) for rec in confirmed],
-            key=lambda rec: (
-                -float(rec["adjusted_gain"]),
-                float(rec["candidate_summary"].position_jump_penalty),
-                float(rec["candidate_summary"].compile_proxy_total),
-                float(rec["candidate_summary"].groups_new),
-                int(rec["candidate_summary"].candidate_pool_index),
-                int(rec["candidate_summary"].position_id),
-            ),
-        )
+        return sorted([dict(rec) for rec in confirmed], key=self._confirm_rank_key)
 
     def _oracle_confirm_limit_with_selection_policy(
         self,
@@ -2556,16 +4294,69 @@ class RealtimeCheckpointController:
                 oracle_attempted = False
                 oracle_decision_used = False
                 oracle_estimate_kind = None
+                baseline_step_scale: float | None = None
+                baseline_blend_weight: float | None = None
+                baseline_gain_scale: float | None = None
+                baseline_step_forecast: dict[str, Any] | None = None
                 selection_metric = (
                     "off_stay_baseline"
                     if str(self.cfg.mode) == "off"
                     else "incremental_gain_ratio"
                 )
                 dt = 0.0 if time_stop is None else float(time_stop - float(time_value))
-                predicted_displacement = self._predicted_displacement(dt=float(dt), baseline=baseline_exact)
+                if (
+                    time_stop is not None
+                    and str(self.cfg.mode) == "exact_v1"
+                    and bool(self._drive_aligned_density_active)
+                ):
+                    try:
+                        (
+                            scaled_theta_dot,
+                            baseline_step_scale,
+                            baseline_blend_weight,
+                            baseline_gain_scale,
+                            baseline_step_forecast,
+                        ) = (
+                            self._select_exact_v1_baseline_step_scale(
+                                baseline_theta_dot=np.asarray(
+                                    baseline_exact["theta_dot_step"], dtype=float
+                                ).reshape(-1),
+                                baseline=baseline_exact,
+                                dt=float(dt),
+                                time_stop=float(time_stop),
+                            )
+                        )
+                        baseline_for_decision = dict(baseline_exact)
+                        baseline_for_decision["theta_dot_step"] = np.asarray(
+                            scaled_theta_dot, dtype=float
+                        ).reshape(-1)
+                    except Exception as exc:
+                        degraded_reason = f"exact_baseline_step_scale_error: {type(exc).__name__}: {exc}"
+                predicted_displacement = self._predicted_displacement(dt=float(dt), baseline=baseline_for_decision)
                 motion_telemetry = self._motion_telemetry(
-                    theta_dot=np.asarray(baseline_exact["theta_dot_step"], dtype=float).reshape(-1),
+                    theta_dot=np.asarray(baseline_for_decision["theta_dot_step"], dtype=float).reshape(-1),
                     predicted_displacement=float(predicted_displacement),
+                )
+                self._decrement_prune_cooldowns()
+                self._record_prune_histories(baseline=baseline_for_decision)
+                prune_candidates: list[dict[str, Any]] = []
+                prune_reason = "exact_rho_miss_below_threshold"
+                if (
+                    time_stop is not None
+                    and str(self.cfg.mode) != "off"
+                    and str(getattr(self.cfg, "prune_mode", "off")) != "off"
+                    and float(baseline_exact["summary"].rho_miss) <= float(self.cfg.miss_threshold)
+                ):
+                    prune_candidates, prune_reason = self._prune_candidates(
+                        checkpoint_index=int(checkpoint_index),
+                        baseline=baseline_exact,
+                        motion=motion_telemetry,
+                    )
+                controller_lane, controller_lane_reason = self._controller_lane(
+                    time_stop=time_stop,
+                    rho_miss=float(baseline_exact["summary"].rho_miss),
+                    prune_candidates_available=bool(prune_candidates),
+                    prune_reason=str(prune_reason),
                 )
                 base_refresh_pressure = self._temporal_ledger.refresh_pressure(
                     predicted_displacement=float(predicted_displacement),
@@ -2590,6 +4381,9 @@ class RealtimeCheckpointController:
                     "selected_noisy_improvement_ratio": None,
                 }
                 noisy_override_reason: str | None = None
+                controller_override_reason: str | None = None
+                proposed_selected_override: Mapping[str, Any] | None = None
+                proposed_action_kind_override: str | None = None
                 if time_stop is None:
                     shortlist = []
                     confirmed = []
@@ -2621,6 +4415,26 @@ class RealtimeCheckpointController:
                             )
                         except Exception as exc:
                             degraded_reason = f"measured_off_baseline_error: {exc}"
+                elif str(controller_lane) == "prune":
+                    shortlist = []
+                    confirmed = []
+                    oracle_confirm_limit = 0
+                    oracle_budget_scale = 0.0
+                    selection_metric = "cached_prune_loss"
+                    action_kind, selected, prune_proposed, prune_candidates, prune_error = self._select_prune_action(
+                        checkpoint_index=int(checkpoint_index),
+                        time_value=float(time_value),
+                        time_stop=time_stop,
+                        baseline=baseline_exact,
+                        step_hamiltonian=step_hamiltonian,
+                        prune_candidates=prune_candidates,
+                    )
+                    if prune_proposed is not None and str(action_kind) != "prune_coordinate":
+                        proposed_selected_override = dict(prune_proposed)
+                        proposed_action_kind_override = "prune_coordinate"
+                        controller_override_reason = str(prune_error or "prune_rejected")
+                    elif prune_error is not None:
+                        controller_override_reason = str(prune_error)
                 else:
                     shortlist = self._scout_candidates(
                         checkpoint_ctx=checkpoint_ctx,
@@ -2629,7 +4443,7 @@ class RealtimeCheckpointController:
                         baseline=baseline_exact,
                         predicted_displacement=float(predicted_displacement),
                         shortlist_cfg=shortlist_cfg,
-                    ) if float(baseline_exact["summary"].rho_miss) > float(self.cfg.miss_threshold) else []
+                    ) if str(controller_lane) == "append" else []
                     confirmed = self._confirm_candidates(
                         checkpoint_ctx=checkpoint_ctx,
                         cache=cache,
@@ -2754,14 +4568,7 @@ class RealtimeCheckpointController:
                         if not oracle_decision_used:
                             confirmed_ranked = sorted(
                                 confirmed,
-                                key=lambda rec: (
-                                    -float(rec["adjusted_gain"]),
-                                    float(rec["candidate_summary"].position_jump_penalty),
-                                    float(rec["candidate_summary"].compile_proxy_total),
-                                    float(rec["candidate_summary"].groups_new),
-                                    int(rec["candidate_summary"].candidate_pool_index),
-                                    int(rec["candidate_summary"].position_id),
-                                ),
+                                key=self._confirm_rank_key,
                             )
                             confirmed_for_oracle = list(confirmed_ranked[:oracle_confirm_limit])
                             confirmed_remainder = list(confirmed_ranked[oracle_confirm_limit:])
@@ -2829,53 +4636,84 @@ class RealtimeCheckpointController:
                     else:
                         oracle_confirm_limit = 0
                         oracle_budget_scale = 1.0
-                        selection_metric = "incremental_gain_ratio"
-                        action_kind, selected = self._select_action(
-                            baseline=baseline_for_decision,
-                            confirmed=confirmed,
-                        )
+                        if str(self.cfg.mode) == "exact_v1":
+                            selection_metric = "exact_forecast_tracking"
+                            action_kind, selected = self._select_action_exact_v1(
+                                baseline=baseline_for_decision,
+                                confirmed=confirmed,
+                                dt=float(dt),
+                                time_stop=float(time_stop),
+                            )
+                        else:
+                            selection_metric = "incremental_gain_ratio"
+                            action_kind, selected = self._select_action(
+                                baseline=baseline_for_decision,
+                                confirmed=confirmed,
+                            )
 
-                proposed_action_kind = str(action_kind)
-                proposed_selected = selected
+                proposed_action_kind = (
+                    str(proposed_action_kind_override)
+                    if proposed_action_kind_override is not None
+                    else str(action_kind)
+                )
+                proposed_selected = (
+                    proposed_selected_override
+                    if proposed_selected_override is not None
+                    else selected
+                )
                 proposed_candidate_label = (
                     None
                     if proposed_selected is None
                     else str(proposed_selected["candidate_label"])
                 )
                 decision_override_reason: str | None = (
-                    None if noisy_override_reason is None else str(noisy_override_reason)
+                    str(controller_override_reason)
+                    if controller_override_reason is not None
+                    else (None if noisy_override_reason is None else str(noisy_override_reason))
                 )
                 exact_forecast_error: str | None = None
                 forecast_stay: dict[str, Any] | None = None
                 forecast_selected: dict[str, Any] | None = None
                 if (
-                    str(self.cfg.mode) == "oracle_v1"
+                    str(self.cfg.mode) in {"oracle_v1", "exact_v1"}
                     and time_stop is not None
                     and str(proposed_action_kind) == "append_candidate"
                     and proposed_selected is not None
-                    and str(getattr(self.cfg, "exact_forecast_guardrail_mode", "off")) != "off"
                 ):
                     try:
-                        stay_theta_forecast = np.asarray(
-                            self.current_theta
-                            + float(dt) * np.asarray(baseline_for_decision["theta_dot_step"], dtype=float),
-                            dtype=float,
-                        ).reshape(-1)
-                        selected_theta_forecast = np.asarray(
-                            proposed_selected["candidate_data"]["theta_aug"]
-                            + float(dt) * np.asarray(proposed_selected["theta_dot_aug"], dtype=float),
-                            dtype=float,
-                        ).reshape(-1)
-                        forecast_stay = self._exact_step_forecast(
-                            time_stop=float(time_stop),
-                            executor=self.current_executor,
-                            theta_runtime=stay_theta_forecast,
-                        )
-                        forecast_selected = self._exact_step_forecast(
-                            time_stop=float(time_stop),
-                            executor=proposed_selected["candidate_data"]["aug_executor"],
-                            theta_runtime=selected_theta_forecast,
-                        )
+                        if baseline_step_forecast is None:
+                            stay_theta_forecast = np.asarray(
+                                self.current_theta
+                                + float(dt) * np.asarray(baseline_for_decision["theta_dot_step"], dtype=float),
+                                dtype=float,
+                            ).reshape(-1)
+                            forecast_stay = self._exact_step_forecast(
+                                time_stop=float(time_stop),
+                                executor=self.current_executor,
+                                theta_runtime=stay_theta_forecast,
+                            )
+                        else:
+                            forecast_stay = dict(baseline_step_forecast)
+                        if str(self.cfg.mode) == "exact_v1":
+                            proposed_selected, forecast_selected = self._select_exact_v1_candidate_step_scale(
+                                baseline_theta_dot=np.asarray(
+                                    baseline_for_decision["theta_dot_step"], dtype=float
+                                ).reshape(-1),
+                                selected=proposed_selected,
+                                dt=float(dt),
+                                time_stop=float(time_stop),
+                            )
+                        else:
+                            selected_theta_forecast = np.asarray(
+                                proposed_selected["candidate_data"]["theta_aug"]
+                                + float(dt) * np.asarray(proposed_selected["theta_dot_aug"], dtype=float),
+                                dtype=float,
+                            ).reshape(-1)
+                            forecast_selected = self._exact_step_forecast(
+                                time_stop=float(time_stop),
+                                executor=proposed_selected["candidate_data"]["aug_executor"],
+                                theta_runtime=selected_theta_forecast,
+                            )
                     except Exception as exc:
                         exact_forecast_error = f"{type(exc).__name__}: {exc}"
                         forecast_stay = None
@@ -2891,10 +4729,20 @@ class RealtimeCheckpointController:
                         stay_forecast=forecast_stay,
                         selected_forecast=forecast_selected,
                     )
+                    if forecast_override_reason is None:
+                        forecast_override_reason = self._exact_v1_forecast_override_reason(
+                            stay_forecast=forecast_stay,
+                            selected_forecast=forecast_selected,
+                            action_kind=str(proposed_action_kind),
+                            selected=proposed_selected,
+                        )
                     if forecast_override_reason is not None:
                         decision_override_reason = str(forecast_override_reason)
                 if decision_override_reason is not None:
                     action_kind, selected = "stay", None
+                else:
+                    action_kind = str(proposed_action_kind)
+                    selected = proposed_selected
 
                 if degraded_reason is not None:
                     self._degraded_checkpoint_count += 1
@@ -2902,6 +4750,9 @@ class RealtimeCheckpointController:
                 runtime_before = int(self.current_layout.runtime_parameter_count)
                 selected_groups_new = 0.0
                 selected_gain_ratio = 0.0
+                selected_prune_cached_loss: float | None = None
+                selected_prune_stagnation_score: float | None = None
+                selected_post_prune_state_jump_l2: float | None = None
                 selected_candidate_label: str | None = None
                 selected_position_id: int | None = None
                 if selected is not None:
@@ -2909,6 +4760,12 @@ class RealtimeCheckpointController:
                     selected_position_id = int(selected["position_id"])
                     selected_groups_new = float(selected.get("groups_new", 0.0))
                     selected_gain_ratio = float(selected.get("gain_ratio", 0.0))
+                    if selected.get("cached_prune_loss", None) is not None:
+                        selected_prune_cached_loss = float(selected["cached_prune_loss"])
+                    if selected.get("stagnation_score", None) is not None:
+                        selected_prune_stagnation_score = float(selected["stagnation_score"])
+                    if selected.get("post_prune_state_jump_l2", None) is not None:
+                        selected_post_prune_state_jump_l2 = float(selected["post_prune_state_jump_l2"])
                 selected_step_scale = (
                     None
                     if selected is None or selected.get("candidate_step_scale", None) is None
@@ -2942,6 +4799,7 @@ class RealtimeCheckpointController:
                 abs_doublon_error = float(
                     abs(float(controller_obs["doublon"]) - float(exact_obs["doublon"]))
                 )
+                post_prune_payload: dict[str, Any] | None = None
                 fidelity_initial_controller = float(
                     abs(
                         np.vdot(
@@ -2974,6 +4832,14 @@ class RealtimeCheckpointController:
                         "novelty": (None if item.get("novelty") is None else float(item["novelty"])),
                         "position_jump_penalty": float(item["position_jump_penalty"]),
                         "temporal_prior_bonus": float(item.get("temporal_prior_bonus", 0.0)),
+                        "scout_lower_gain": (
+                            None if item.get("scout_lower_gain") is None else float(item["scout_lower_gain"])
+                        ),
+                        "scout_gain_ratio": (
+                            None if item.get("scout_gain_ratio") is None else float(item["scout_gain_ratio"])
+                        ),
+                        "scout_score": float(item.get("scout_score", item.get("simple_score", float("nan")))),
+                        "scout_score_kind": item.get("scout_score_kind", None),
                         "simple_score": float(item["simple_score"]),
                     }
                     for item in shortlist
@@ -2990,6 +4856,15 @@ class RealtimeCheckpointController:
                             None if rec.get("gain_ratio") is None else float(rec["gain_ratio"])
                         ),
                         "adjusted_gain": float(rec["adjusted_gain"]),
+                        "confirm_score": (
+                            None if rec.get("confirm_score", rec.get("adjusted_gain", None)) is None else float(rec.get("confirm_score", rec.get("adjusted_gain")))
+                        ),
+                        "confirm_score_kind": rec.get("confirm_score_kind", "geometry_gain_ratio_minus_penalties"),
+                        "confirm_compress_modes_used": int(rec.get("confirm_compress_modes_used", 0) or 0),
+                        "confirm_support_rank": int(rec.get("confirm_support_rank", 0) or 0),
+                        "confirm_compressed_gain_ratio": (
+                            None if rec.get("confirm_compressed_gain_ratio") is None else float(rec.get("confirm_compressed_gain_ratio"))
+                        ),
                         "adjusted_noisy_improvement": (
                             None if rec.get("adjusted_noisy_improvement") is None or not np.isfinite(rec.get("adjusted_noisy_improvement", float("nan"))) else float(rec.get("adjusted_noisy_improvement"))
                         ),
@@ -3001,6 +4876,28 @@ class RealtimeCheckpointController:
                     }
                     for rec in confirmed
                 ]
+                prune_candidates_payload = [
+                    {
+                        "candidate_label": str(item["candidate_label"]),
+                        "position_id": int(item["position_id"]),
+                        "runtime_block_indices": [int(x) for x in item.get("runtime_block_indices", [])],
+                        "cached_prune_loss": float(item.get("cached_prune_loss", 0.0)),
+                        "stagnation_score": float(item.get("stagnation_score", 0.0)),
+                        "motion_mean": float(item.get("motion_mean", 0.0)),
+                        "fit_mean": float(item.get("fit_mean", 0.0)),
+                        "theta_block_norm": float(item.get("theta_block_norm", 0.0)),
+                        "burden": float(item.get("burden", 0.0)),
+                        "post_prune_state_jump_l2": (
+                            None if item.get("post_prune_state_jump_l2") is None else float(item.get("post_prune_state_jump_l2"))
+                        ),
+                        "prune_delta_rho_miss": (
+                            None if item.get("prune_delta_rho_miss") is None else float(item.get("prune_delta_rho_miss"))
+                        ),
+                        "prune_accept": (None if item.get("prune_accept") is None else bool(item.get("prune_accept"))),
+                        "prune_rejection_reason": item.get("prune_rejection_reason", None),
+                    }
+                    for item in prune_candidates
+                ]
 
                 self._trajectory.append(
                     {
@@ -3011,6 +4908,8 @@ class RealtimeCheckpointController:
                         "candidate_label": selected_candidate_label,
                         "proposed_action_kind": str(proposed_action_kind),
                         "proposed_candidate_label": proposed_candidate_label,
+                        "controller_lane": str(controller_lane),
+                        "controller_lane_reason": str(controller_lane_reason),
                         "requested_mode": str(self.cfg.mode),
                         "decision_backend": str(decision_backend),
                         "decision_noise_mode": decision_noise_mode,
@@ -3020,6 +4919,9 @@ class RealtimeCheckpointController:
                         "selection_metric": str(selection_metric),
                         "decision_override_reason": decision_override_reason,
                         "exact_forecast_error": exact_forecast_error,
+                        "baseline_step_scale": baseline_step_scale,
+                        "baseline_blend_weight": baseline_blend_weight,
+                        "baseline_gain_scale": baseline_gain_scale,
                         "selected_step_scale": selected_step_scale,
                         "forecast_stay_fidelity_exact_next": (
                             None if forecast_stay is None else float(forecast_stay["fidelity_exact_next"])
@@ -3058,6 +4960,18 @@ class RealtimeCheckpointController:
                             None
                             if forecast_selected is None
                             else float(forecast_selected["abs_doublon_error_next"])
+                        ),
+                        "forecast_stay_site_occupations_abs_error_max_next": (
+                            None
+                            if forecast_stay is None
+                            else float(forecast_stay.get("site_occupations_abs_error_max_next", float("nan")))
+                        ),
+                        "forecast_selected_site_occupations_abs_error_max_next": (
+                            None
+                            if forecast_selected is None
+                            else float(
+                                forecast_selected.get("site_occupations_abs_error_max_next", float("nan"))
+                            )
                         ),
                         "predicted_displacement": float(predicted_displacement),
                         "motion_regime": str(motion_telemetry.regime),
@@ -3113,11 +5027,15 @@ class RealtimeCheckpointController:
                         "stay_noisy_energy_stderr": oracle_commit_payload.get("stay_noisy_energy_stderr", None),
                         "selected_noisy_improvement_abs": oracle_commit_payload.get("selected_noisy_improvement_abs", None),
                         "selected_noisy_improvement_ratio": oracle_commit_payload.get("selected_noisy_improvement_ratio", None),
+                        "selected_prune_cached_loss": selected_prune_cached_loss,
+                        "selected_prune_stagnation_score": selected_prune_stagnation_score,
+                        "selected_post_prune_state_jump_l2": selected_post_prune_state_jump_l2,
                         "drive_term_count": int(step_hamiltonian.drive_term_count),
                         "degraded_reason": degraded_reason,
                         "baseline_geometry": dataclass_to_payload(baseline_for_decision["summary"]),
                         "shortlist": shortlist_payload,
                         "confirmed": confirmed_payload,
+                        "prune_candidates": prune_candidates_payload,
                     }
                 )
 
@@ -3134,8 +5052,76 @@ class RealtimeCheckpointController:
                     self._append_counter += 1
                     self._previous_append_position = int(selected_position_id)
                     self._planning_audit.commit(planning_group_keys_for_term(selected["candidate_term"]))
+                    appended_carrier = selected["candidate_data"].get("candidate_carrier")
+                    appended_label = str(
+                        selected_candidate_label
+                        if appended_carrier is None
+                        else getattr(appended_carrier, "label", selected_candidate_label)
+                    )
+                    self._block_birth_checkpoint[appended_label] = int(checkpoint_index)
+                    self._block_cooldown[appended_label] = 0
+                    self._block_burden[appended_label] = float(selected["candidate_summary"].compile_proxy_total)
+                    self._block_motion_history.setdefault(appended_label, [])
+                    self._block_fit_history.setdefault(appended_label, [])
                     self._record_theta_dot_history(
                         np.asarray(selected["theta_dot_aug"], dtype=float).reshape(-1)
+                    )
+                elif str(action_kind) == "prune_coordinate" and selected is not None:
+                    tier_reached = "commit"
+                    reduced_state = dict(selected["reduced_state"])
+                    reduced_baseline = dict(selected["pruned_baseline"])
+                    removed_label = str(reduced_state["removed_label"])
+                    reduced_psi = np.asarray(reduced_state["reduced_psi"], dtype=complex).reshape(-1)
+                    reduced_obs = self._observable_snapshot(reduced_psi)
+                    reduced_site_occ = np.asarray(reduced_obs["site_occupations"], dtype=float)
+                    reduced_site_occ_abs_error = np.abs(reduced_site_occ - site_occ_exact)
+                    post_prune_payload = {
+                        "post_prune_energy_total": float(
+                            np.real(np.vdot(reduced_psi, step_hamiltonian.hmat @ reduced_psi))
+                        ),
+                        "post_prune_fidelity_exact": float(abs(np.vdot(psi_exact, reduced_psi)) ** 2),
+                        "post_prune_abs_energy_total_error": float(
+                            abs(
+                                float(np.real(np.vdot(reduced_psi, step_hamiltonian.hmat @ reduced_psi)))
+                                - float(energy_exact)
+                            )
+                        ),
+                        "post_prune_staggered": float(reduced_obs["staggered"]),
+                        "post_prune_abs_staggered_error": float(
+                            abs(float(reduced_obs["staggered"]) - float(exact_obs["staggered"]))
+                        ),
+                        "post_prune_doublon": float(reduced_obs["doublon"]),
+                        "post_prune_abs_doublon_error": float(
+                            abs(float(reduced_obs["doublon"]) - float(exact_obs["doublon"]))
+                        ),
+                        "post_prune_site_occupations": [float(x) for x in reduced_site_occ.tolist()],
+                        "post_prune_site_occupations_abs_error": [
+                            float(x) for x in reduced_site_occ_abs_error.tolist()
+                        ],
+                        "post_prune_site_occupations_abs_error_max": (
+                            float(np.max(reduced_site_occ_abs_error))
+                            if reduced_site_occ_abs_error.size > 0
+                            else float("nan")
+                        ),
+                        "post_prune_baseline_geometry": dataclass_to_payload(reduced_baseline["summary"]),
+                    }
+                    self.current_terms = list(reduced_state["reduced_terms"])
+                    self.current_layout = reduced_state["reduced_layout"]
+                    self.current_executor = reduced_state["reduced_executor"]
+                    self.current_theta = np.asarray(
+                        np.asarray(reduced_state["reduced_theta"], dtype=float).reshape(-1)
+                        + float(dt) * np.asarray(reduced_baseline["theta_dot_step"], dtype=float).reshape(-1),
+                        dtype=float,
+                    ).reshape(-1)
+                    self._planning_audit = reduced_state["reduced_planning_audit"]
+                    self._block_birth_checkpoint.pop(removed_label, None)
+                    self._block_cooldown.pop(removed_label, None)
+                    self._block_burden.pop(removed_label, None)
+                    self._block_motion_history.pop(removed_label, None)
+                    self._block_fit_history.pop(removed_label, None)
+                    self._previous_block_theta_snapshot.pop(removed_label, None)
+                    self._record_theta_dot_history(
+                        np.asarray(reduced_baseline["theta_dot_step"], dtype=float).reshape(-1)
                     )
                 else:
                     self.current_theta = np.asarray(
@@ -3145,8 +5131,11 @@ class RealtimeCheckpointController:
                     self._record_theta_dot_history(
                         np.asarray(baseline_for_decision["theta_dot_step"], dtype=float).reshape(-1)
                     )
-                    if shortlist:
+                    if shortlist or prune_candidates:
                         tier_reached = "confirm"
+                self._set_previous_block_theta_snapshot()
+                if post_prune_payload is not None and self._trajectory:
+                    self._trajectory[-1].update(post_prune_payload)
 
                 ledger_entry = CheckpointLedgerEntry(
                     checkpoint_index=int(checkpoint_index),
@@ -3156,9 +5145,14 @@ class RealtimeCheckpointController:
                     candidate_label=selected_candidate_label,
                     proposed_action_kind=str(proposed_action_kind),
                     proposed_candidate_label=proposed_candidate_label,
+                    controller_lane=str(controller_lane),
+                    controller_lane_reason=str(controller_lane_reason),
                     position_id=selected_position_id,
                     rho_miss=float(baseline_for_decision["summary"].rho_miss),
                     gain_ratio_selected=float(selected_gain_ratio),
+                    prune_cached_loss_selected=(None if selected_prune_cached_loss is None else float(selected_prune_cached_loss)),
+                    prune_stagnation_score_selected=(None if selected_prune_stagnation_score is None else float(selected_prune_stagnation_score)),
+                    post_prune_state_jump_l2=(None if selected_post_prune_state_jump_l2 is None else float(selected_post_prune_state_jump_l2)),
                     shortlist_size=int(len(shortlist)),
                     tier_reached=str(tier_reached),
                     logical_block_count_before=int(logical_before),
@@ -3192,6 +5186,9 @@ class RealtimeCheckpointController:
                     selection_metric=str(selection_metric),
                     decision_override_reason=decision_override_reason,
                     exact_forecast_error=exact_forecast_error,
+                    baseline_step_scale=baseline_step_scale,
+                    baseline_blend_weight=baseline_blend_weight,
+                    baseline_gain_scale=baseline_gain_scale,
                     selected_step_scale=selected_step_scale,
                     forecast_stay_fidelity_exact_next=(
                         None if forecast_stay is None else float(forecast_stay["fidelity_exact_next"])
@@ -3231,6 +5228,18 @@ class RealtimeCheckpointController:
                         if forecast_selected is None
                         else float(forecast_selected["abs_doublon_error_next"])
                     ),
+                    forecast_stay_site_occupations_abs_error_max_next=(
+                        None
+                        if forecast_stay is None
+                        else float(forecast_stay.get("site_occupations_abs_error_max_next", float("nan")))
+                    ),
+                    forecast_selected_site_occupations_abs_error_max_next=(
+                        None
+                        if forecast_selected is None
+                        else float(
+                            forecast_selected.get("site_occupations_abs_error_max_next", float("nan"))
+                        )
+                    ),
                     predicted_displacement=float(predicted_displacement),
                     temporal_refresh_pressure=str(refresh_pressure),
                     selected_noisy_energy_mean=(None if oracle_commit_payload.get("selected_noisy_energy_mean", None) is None else float(oracle_commit_payload["selected_noisy_energy_mean"])),
@@ -3268,6 +5277,7 @@ class RealtimeCheckpointController:
                     time=float(time_value),
                     physical_time=float(step_hamiltonian.physical_time),
                     action_kind=str(action_kind),
+                    controller_lane=str(controller_lane),
                     decision_backend=str(decision_backend),
                     oracle_decision_used=bool(oracle_decision_used),
                     shortlist_size=int(len(shortlist)),
@@ -3278,6 +5288,7 @@ class RealtimeCheckpointController:
                 self._write_partial_payload(stage="checkpoint_done")
 
             append_count = int(sum(1 for row in self._ledger if str(row.get("action_kind")) == "append_candidate"))
+            prune_count = int(sum(1 for row in self._ledger if str(row.get("action_kind")) == "prune_coordinate"))
             stay_count = int(sum(1 for row in self._ledger if str(row.get("action_kind")) == "stay"))
             exact_decision_checkpoints = int(sum(1 for row in self._ledger if str(row.get("decision_backend")) == "exact"))
             oracle_decision_checkpoints = int(sum(1 for row in self._ledger if str(row.get("decision_backend")) == "oracle"))
@@ -3303,6 +5314,21 @@ class RealtimeCheckpointController:
             site_occupation_error_vals = [
                 float(row.get("site_occupations_abs_error_max", float("nan"))) for row in self._trajectory
             ]
+            baseline_step_scale_vals = [
+                float(row.get("baseline_step_scale"))
+                for row in self._trajectory
+                if row.get("baseline_step_scale", None) is not None
+            ]
+            baseline_blend_weight_vals = [
+                float(row.get("baseline_blend_weight"))
+                for row in self._trajectory
+                if row.get("baseline_blend_weight", None) is not None
+            ]
+            baseline_gain_scale_vals = [
+                float(row.get("baseline_gain_scale"))
+                for row in self._trajectory
+                if row.get("baseline_gain_scale", None) is not None
+            ]
             summary = {
                 "mode": str(self.cfg.mode),
                 "requested_decision_backend": (
@@ -3326,13 +5352,54 @@ class RealtimeCheckpointController:
                     None if oracle_attempted_checkpoints <= 0 else self._oracle_estimate_kind()
                 ),
                 "oracle_selection_policy": str(self.cfg.oracle_selection_policy),
+                "confirm_score_mode": str(getattr(self.cfg, "confirm_score_mode", "exact_gain_ratio")),
+                "prune_mode": str(getattr(self.cfg, "prune_mode", "off")),
                 "candidate_step_scales": [float(x) for x in self._candidate_step_scales()],
+                "exact_forecast_baseline_step_refine_rounds": int(
+                    self._exact_forecast_baseline_step_refine_rounds()
+                ),
+                "exact_forecast_baseline_blend_weights": [
+                    float(x) for x in self._exact_forecast_baseline_blend_weights()
+                ],
+                "exact_forecast_baseline_gain_scales": [
+                    float(x) for x in self._exact_forecast_baseline_gain_scales()
+                ],
+                "exact_forecast_tracking_horizon_steps": int(
+                    self._exact_forecast_tracking_horizon_steps()
+                ),
+                "exact_forecast_tracking_horizon_weights": [
+                    float(x)
+                    for x in self._exact_forecast_tracking_horizon_weights(
+                        steps=self._exact_forecast_tracking_horizon_steps()
+                    )
+                ],
+                "exact_forecast_energy_slope_weight": float(
+                    getattr(self.cfg, "exact_forecast_energy_slope_weight", 0.0)
+                ),
+                "exact_forecast_energy_curvature_weight": float(
+                    getattr(self.cfg, "exact_forecast_energy_curvature_weight", 0.0)
+                ),
+                "drive_aligned_density_active": bool(self._drive_aligned_density_active),
+                "drive_aligned_density_label": self._drive_aligned_density_label,
+                "baseline_step_scaling_active": bool(baseline_step_scale_vals),
+                "baseline_step_scale_values_used": sorted(
+                    {round(float(x), 12) for x in baseline_step_scale_vals}
+                ),
+                "baseline_blending_active": bool(baseline_blend_weight_vals),
+                "baseline_blend_weight_values_used": sorted(
+                    {round(float(x), 12) for x in baseline_blend_weight_vals}
+                ),
+                "baseline_gain_scaling_active": bool(baseline_gain_scale_vals),
+                "baseline_gain_scale_values_used": sorted(
+                    {round(float(x), 12) for x in baseline_gain_scale_vals}
+                ),
                 "exact_forecast_guardrail_mode": str(
                     getattr(self.cfg, "exact_forecast_guardrail_mode", "off")
                 ),
                 "decision_override_count": int(decision_override_count),
                 "exact_forecast_veto_count": int(exact_forecast_veto_count),
                 "append_count": int(append_count),
+                "prune_count": int(prune_count),
                 "stay_count": int(stay_count),
                 "exact_decision_checkpoints": int(exact_decision_checkpoints),
                 "oracle_decision_checkpoints": int(oracle_decision_checkpoints),

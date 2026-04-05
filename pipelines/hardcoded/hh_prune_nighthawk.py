@@ -878,7 +878,7 @@ def run_readapt_phase3(
         # Phase 3 backend cost — Nighthawk-conditioned
         "--phase3-backend-cost-mode", "transpile_single_v1",
         "--phase3-backend-name", phase3_backend_name,
-        "--phase3-runtime-split-mode", "shortlist_pauli_children_v1",
+        "--phase3-runtime-split-mode", "off",
         "--phase3-lifetime-cost-mode", "phase3_v1",
         "--phase3-enable-rescue",
         "--phase3-symmetry-mitigation-mode", "verify_only",

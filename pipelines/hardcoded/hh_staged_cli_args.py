@@ -134,9 +134,13 @@ def add_staged_hh_base_args(p: argparse.ArgumentParser) -> argparse.ArgumentPars
     p.add_argument("--phase3-lifetime-cost-mode", choices=["off", "phase3_v1"], default="phase3_v1")
     p.add_argument(
         "--phase3-runtime-split-mode",
-        choices=["off", "shortlist_pauli_children_v1"],
+        choices=["off"],
         default="off",
-        help="Opt-in shortlist-only macro splitting via serialized Pauli child atoms with symmetry-safe child-set admission.",
+        help=(
+            "Phase-3 runtime split mode for the staged public HH surface. "
+            "The manuscript-facing canonical path keeps this fixed to 'off'; "
+            "shortlist Pauli-child splitting is retained only as an internal archival/testing implementation."
+        ),
     )
     p.add_argument(
         "--phase3-oracle-gradient-mode",
@@ -231,7 +235,8 @@ def add_staged_hh_base_args(p: argparse.ArgumentParser) -> argparse.ArgumentPars
         default="off",
         help=(
             "Opt-in post-replay HH adaptive realtime checkpoint controller. "
-            "exact_v1 is exact/noiseless; oracle_v1 is the fresh-stage noisy/oracle scoring slice."
+            "exact_v1 is exact/noiseless, including the driven fixed-scaffold path; "
+            "oracle_v1 is the fresh-stage noisy/oracle scoring slice."
         ),
     )
     p.add_argument(
@@ -249,8 +254,102 @@ def add_staged_hh_base_args(p: argparse.ArgumentParser) -> argparse.ArgumentPars
         type=str,
         default="1.0",
         help=(
-            "Comma-separated oracle-side rollout scales for append candidates. "
-            "Use values below 1.0 to test damped append steps before rejecting a direction."
+            "Comma-separated rollout scales for controller exact/oracle forecasts. "
+            "In exact_v1 these also seed the driven stay-step line search; "
+            "use values below 1.0 to test damped steps before accepting full motion."
+        ),
+    )
+    p.add_argument(
+        "--checkpoint-controller-exact-forecast-baseline-step-refine-rounds",
+        type=int,
+        default=0,
+        help=(
+            "Optional midpoint-refinement rounds around the best exact_v1 stay-step scale. "
+            "0 keeps the coarse seed ladder only; 1-3 progressively densify the local step search."
+        ),
+    )
+    p.add_argument(
+        "--checkpoint-controller-exact-forecast-baseline-blend-weights",
+        type=str,
+        default="",
+        help=(
+            "Optional comma-separated exact_v1 stay-direction residual-blend weights. "
+            "0 keeps the pure McLachlan baseline, positive values add the restricted drive-only residual direction, "
+            "and negative values subtract that residual direction. Values must lie in [-1, 1]."
+        ),
+    )
+    p.add_argument(
+        "--checkpoint-controller-exact-forecast-baseline-gain-scales",
+        type=str,
+        default="",
+        help=(
+            "Optional comma-separated exact_v1 stay-direction gain scales applied after blend selection. "
+            "Use values slightly above 1.0 to let the controller raise the chosen blended motion amplitude "
+            "without changing the blend ladder itself. Leave blank for the default gain 1.0 only."
+        ),
+    )
+    p.add_argument(
+        "--checkpoint-controller-exact-forecast-horizon-steps",
+        type=int,
+        default=1,
+        help=(
+            "Number of exact-v1 future checkpoints scored when choosing stay/candidate step scales. "
+            "Use 1 for current next-step behavior, or 2-3 to pay extra attention to upcoming bends."
+        ),
+    )
+    p.add_argument(
+        "--checkpoint-controller-exact-forecast-horizon-weights",
+        type=str,
+        default="",
+        help=(
+            "Optional comma-separated weights for the exact-v1 horizon score, ordered nearest-to-farthest future step. "
+            "Leave blank for uniform weights across the active horizon."
+        ),
+    )
+    p.add_argument(
+        "--checkpoint-controller-exact-forecast-energy-slope-weight",
+        type=float,
+        default=0.0,
+        help=(
+            "Optional exact-v1 horizon shape term for energy-slope mismatch. "
+            "This only matters when the horizon has at least 2 future checkpoints."
+        ),
+    )
+    p.add_argument(
+        "--checkpoint-controller-exact-forecast-energy-curvature-weight",
+        type=float,
+        default=0.0,
+        help=(
+            "Optional exact-v1 horizon shape term for energy-curvature mismatch. "
+            "This matters once the scorer has enough points to form a bend, including the h=2 path with the current-point anchor."
+        ),
+    )
+    p.add_argument(
+        "--checkpoint-controller-exact-forecast-energy-excursion-under-weight",
+        type=float,
+        default=0.0,
+        help=(
+            "Optional exact-v1 horizon amplitude term that penalizes under-response in signed energy excursion "
+            "relative to the current-point anchor. Use this to lift a shape-matched controller trace that stays too low."
+        ),
+    )
+    p.add_argument(
+        "--checkpoint-controller-exact-forecast-energy-excursion-over-weight",
+        type=float,
+        default=0.0,
+        help=(
+            "Optional exact-v1 horizon amplitude term that penalizes overshoot in signed energy excursion "
+            "relative to the current-point anchor. Use this with the under-weight to target near-exact amplitude "
+            "instead of always biasing upward from below."
+        ),
+    )
+    p.add_argument(
+        "--checkpoint-controller-exact-forecast-energy-excursion-rel-tolerance",
+        type=float,
+        default=0.0,
+        help=(
+            "Optional relative deadband around the exact signed energy excursion before the exact-v1 under/over "
+            "excursion penalties activate. For example, 0.05 allows about +/-5 percent excursion mismatch before scoring it."
         ),
     )
     p.add_argument(
@@ -274,6 +373,32 @@ def add_staged_hh_base_args(p: argparse.ArgumentParser) -> argparse.ArgumentPars
         default=0.0,
         help="Forecast veto tolerance on next-step absolute total-energy-error increase relative to stay.",
     )
+    p.add_argument(
+        "--checkpoint-controller-confirm-score-mode",
+        choices=["exact_gain_ratio", "compressed_whitened_v1"],
+        default="compressed_whitened_v1",
+        help="Confirm-stage ranking surface. compressed_whitened_v1 follows the manuscript's whitened compressed Schur ladder while exact thresholds still gate commit.",
+    )
+    p.add_argument("--checkpoint-controller-confirm-compress-fraction", type=float, default=0.5)
+    p.add_argument("--checkpoint-controller-confirm-compress-min-modes", type=int, default=1)
+    p.add_argument("--checkpoint-controller-confirm-compress-max-modes", type=int, default=8)
+    p.add_argument(
+        "--checkpoint-controller-prune-mode",
+        choices=["off", "exact_local_v1"],
+        default="off",
+        help="Optional manuscript-style prune lane using cached frozen-ablation ranking plus exact local accept/reject.",
+    )
+    p.add_argument("--checkpoint-controller-prune-miss-threshold", type=float, default=0.02)
+    p.add_argument("--checkpoint-controller-prune-protection-steps", type=int, default=2)
+    p.add_argument("--checkpoint-controller-prune-stagnation-window", type=int, default=3)
+    p.add_argument("--checkpoint-controller-prune-stagnation-alpha", type=float, default=0.5)
+    p.add_argument("--checkpoint-controller-prune-stale-score-threshold", type=float, default=0.75)
+    p.add_argument("--checkpoint-controller-prune-loss-threshold", type=float, default=0.01)
+    p.add_argument("--checkpoint-controller-prune-max-candidates", type=int, default=2)
+    p.add_argument("--checkpoint-controller-prune-cooldown-steps", type=int, default=2)
+    p.add_argument("--checkpoint-controller-prune-safe-miss-increase-tol", type=float, default=0.01)
+    p.add_argument("--checkpoint-controller-prune-state-jump-l2-tol", type=float, default=0.05)
+    p.add_argument("--checkpoint-controller-prune-theta-block-tol", type=float, default=0.05)
     p.add_argument("--checkpoint-controller-miss-threshold", type=float, default=0.05)
     p.add_argument("--checkpoint-controller-gain-ratio-threshold", type=float, default=0.02)
     p.add_argument("--checkpoint-controller-append-margin-abs", type=float, default=1e-6)
@@ -568,8 +693,9 @@ def add_staged_hh_noise_args(p: argparse.ArgumentParser) -> argparse.ArgumentPar
         help=(
             "Enable imported fixed-scaffold raw-shot baseline. Defaults to the Marrakesh/Heron gate-pruned 6-term "
             "runtime candidate when no import JSON is given. On the real Runtime path it uses the sampler-backed raw "
-            "measurement surface; on the local fake-backend path it keeps acquisition mitigation/symmetry off and "
-            "supports offline diagonal-only readout-then-symmetry postprocessing from the all-Z diagnostic sidecar."
+            "measurement surface with suppression-only sampler profiles; on the local fake-backend path it keeps "
+            "acquisition mitigation/symmetry off and supports offline diagonal-only readout-then-symmetry "
+            "postprocessing from the all-Z diagnostic sidecar."
         ),
     )
     p.add_argument(
@@ -591,6 +717,20 @@ def add_staged_hh_noise_args(p: argparse.ArgumentParser) -> argparse.ArgumentPar
         type=str,
         default=None,
         help="Optional NDJSON(.gz) path for imported fixed-scaffold Runtime raw-shot records.",
+    )
+    p.add_argument(
+        "--fixed-scaffold-runtime-raw-profile",
+        choices=[
+            "legacy_runtime_v0",
+            "raw_sampler_twirled_v1",
+            "raw_sampler_dd_probe_v1",
+        ],
+        default="legacy_runtime_v0",
+        help=(
+            "Sampler-safe Runtime profile for the imported fixed-scaffold raw-shot baseline. "
+            "These profiles are suppression-only (twirling/DD only): readout mitigation and ZNE remain "
+            "Estimator-side follow-up audits, not Sampler acquisition features."
+        ),
     )
     p.add_argument(
         "--fixed-scaffold-runtime-profile",

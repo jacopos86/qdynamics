@@ -33,6 +33,7 @@ if str(REPO_ROOT) not in sys.path:
 from pipelines.hardcoded.adapt_pipeline import (
     _build_hh_termwise_augmented_pool,
     _build_hh_full_meta_pool,
+    _build_hh_pareto_lean_l3_pool,
     _build_hh_pareto_lean_l2_pool,
     _build_hh_pareto_lean_pool,
     _build_hh_uccsd_fermion_lifted_pool,
@@ -73,6 +74,7 @@ from pipelines.hardcoded.hh_continuation_replay import (
 EXPLICIT_FAMILIES = {
     "full_meta",
     "pareto_lean",
+    "pareto_lean_l3",
     "pareto_lean_l2",
     "uccsd_paop_lf_full",
     "hva",
@@ -445,6 +447,30 @@ def _build_pool_for_family(cfg: RunConfig, *, family: str, h_poly: Any) -> tuple
 
     if family_key == "pareto_lean":
         pool, meta = _build_hh_pareto_lean_pool(
+            h_poly=h_poly,
+            num_sites=n_sites,
+            t=float(cfg.t),
+            u=float(cfg.u),
+            omega0=float(cfg.omega0),
+            g_ep=float(cfg.g_ep),
+            dv=float(cfg.dv),
+            n_ph_max=int(cfg.n_ph_max),
+            boson_encoding=str(cfg.boson_encoding),
+            ordering=str(cfg.ordering),
+            boundary=str(cfg.boundary),
+            paop_r=int(cfg.paop_r),
+            paop_split_paulis=bool(cfg.paop_split_paulis),
+            paop_prune_eps=float(cfg.paop_prune_eps),
+            paop_normalization=str(cfg.paop_normalization),
+            num_particles=num_particles,
+        )
+        out_meta = dict(base_meta)
+        out_meta["raw_sizes"] = dict(meta)
+        out_meta["dedup_total"] = int(len(pool))
+        return pool, out_meta
+
+    if family_key == "pareto_lean_l3":
+        pool, meta = _build_hh_pareto_lean_l3_pool(
             h_poly=h_poly,
             num_sites=n_sites,
             t=float(cfg.t),

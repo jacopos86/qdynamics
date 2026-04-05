@@ -512,10 +512,6 @@ def resolve_staged_hh_noise_config(args: Any) -> StagedHHNoiseConfig:
         or include_fixed_scaffold_saved_theta_mitigation_matrix
         or include_fixed_scaffold_noise_attribution
     )
-    if bool(include_fixed_scaffold_runtime_energy_only) and bool(include_fixed_scaffold_runtime_raw_baseline):
-        raise ValueError(
-            "fixed scaffold runtime energy-only and raw-baseline routes cannot be enabled together in one invocation."
-        )
     if any_fixed_lean_route and any_fixed_scaffold_route:
         raise ValueError(
             "fixed lean imported routes and fixed scaffold imported routes cannot be enabled together "
@@ -614,7 +610,7 @@ def resolve_staged_hh_noise_config(args: Any) -> StagedHHNoiseConfig:
         use_fake_backend = True
     controller_noise_mode: str | None = None
     controller_mode = str(staged_cfg.realtime_checkpoint.mode)
-    if controller_mode in {"oracle_v1", "off"}:
+    if controller_mode == "oracle_v1":
         requested_controller_noise_mode = str(
             getattr(args, "checkpoint_controller_noise_mode", "inherit")
         ).strip().lower()
@@ -626,11 +622,11 @@ def resolve_staged_hh_noise_config(args: Any) -> StagedHHNoiseConfig:
             controller_noise_mode = str(modes[0])
         else:
             raise ValueError(
-                "checkpoint controller off/oracle_v1 requires an explicit --checkpoint-controller-noise-mode when multiple --noise-modes are configured."
+                "checkpoint controller oracle_v1 requires an explicit --checkpoint-controller-noise-mode when multiple --noise-modes are configured."
             )
         if str(controller_noise_mode) == "backend_scheduled" and not bool(use_fake_backend):
             raise ValueError(
-                "checkpoint controller off/oracle_v1 backend_scheduled mode requires --use-fake-backend."
+                "checkpoint controller oracle_v1 backend_scheduled mode requires --use-fake-backend."
             )
     noise_cfg = NoiseConfig(
         methods=methods,
@@ -675,7 +671,7 @@ def resolve_staged_hh_noise_config(args: Any) -> StagedHHNoiseConfig:
         include_final_audit=bool(getattr(args, "include_final_audit")),
         include_full_circuit_audit=bool(include_full_circuit_audit),
     )
-    if controller_mode in {"oracle_v1", "off"} and noise_cfg.controller_noise_mode is not None:
+    if controller_mode == "oracle_v1" and noise_cfg.controller_noise_mode is not None:
         validate_controller_oracle_base_config(_controller_oracle_config_from_noise_cfg(noise_cfg))
     fixed_lean_replay_enabled = bool(include_fixed_lean_noisy_replay)
     if fixed_lean_replay_enabled:
@@ -758,7 +754,7 @@ def resolve_staged_hh_noise_config(args: Any) -> StagedHHNoiseConfig:
         {"name": str(getattr(args, "fixed_scaffold_runtime_profile"))}
     )
     runtime_raw_profile_cfg = noise_report.normalize_runtime_estimator_profile_config(
-        {"name": "legacy_runtime_v0"}
+        {"name": str(getattr(args, "fixed_scaffold_runtime_raw_profile"))}
     )
     runtime_session_cfg = noise_report.normalize_runtime_session_policy_config(
         {"mode": str(getattr(args, "fixed_scaffold_runtime_session_policy"))}
@@ -792,14 +788,18 @@ def resolve_staged_hh_noise_config(args: Any) -> StagedHHNoiseConfig:
             raise ValueError(
                 "fixed scaffold runtime raw baseline requires --backend-name <ibm_backend>."
             )
-        if bool(getattr(args, "include_fixed_scaffold_runtime_dd_probe", False)):
-            raise ValueError(
-                "fixed scaffold runtime raw baseline does not support the legacy Runtime DD probe flag."
-            )
-        if bool(getattr(args, "include_fixed_scaffold_runtime_final_zne_audit", False)):
-            raise ValueError(
-                "fixed scaffold runtime raw baseline does not support the legacy Runtime final ZNE audit flag."
-            )
+            if bool(getattr(args, "include_fixed_scaffold_runtime_dd_probe", False)) and not bool(
+                fixed_scaffold_runtime_energy_only_enabled
+            ):
+                raise ValueError(
+                    "fixed scaffold runtime raw baseline does not support the legacy Runtime DD probe flag."
+                )
+            if bool(getattr(args, "include_fixed_scaffold_runtime_final_zne_audit", False)) and not bool(
+                fixed_scaffold_runtime_energy_only_enabled
+            ):
+                raise ValueError(
+                    "fixed scaffold runtime raw baseline does not support the legacy Runtime final ZNE audit flag."
+                )
         if bool(noise_cfg.use_fake_backend) and bool(include_full_circuit_audit):
             requested_local_postprocessing = (
                 str(noise_cfg.mitigation_config.get("mode", "none")) != "none"
@@ -823,8 +823,8 @@ def resolve_staged_hh_noise_config(args: Any) -> StagedHHNoiseConfig:
                 }
             )
     else:
-        runtime_raw_mitigation_cfg = normalize_mitigation_config({"mode": "none"})
-        runtime_raw_symmetry_cfg = normalize_symmetry_mitigation_config({"mode": "off"})
+        runtime_raw_mitigation_cfg = dict(noise_cfg.mitigation_config)
+        runtime_raw_symmetry_cfg = dict(noise_cfg.symmetry_mitigation_config)
     fixed_scaffold_runtime_energy_only_cfg = FixedScaffoldRuntimeEnergyOnlyConfig(
         enabled=bool(fixed_scaffold_runtime_energy_only_enabled),
         subject_kind="hh_marrakesh_gate_pruned_6term_drop_eyezee_v1",
@@ -2095,6 +2095,172 @@ def _run_fixed_scaffold_runtime_raw_baseline_mode(
     )
 
 
+def _build_fixed_scaffold_runtime_pairing_payload(
+    *,
+    source_cfg: StagedNoiseSourceConfig,
+    noise_cfg: NoiseConfig,
+    energy_cfg: FixedScaffoldRuntimeEnergyOnlyConfig,
+    raw_cfg: FixedScaffoldRuntimeRawBaselineConfig,
+    energy_result: Mapping[str, Any],
+    raw_result: Mapping[str, Any],
+    energy_sidecar_json: Path,
+    raw_sidecar_json: Path,
+) -> dict[str, Any]:
+    if not (bool(energy_cfg.enabled) and bool(raw_cfg.enabled)):
+        return {}
+
+    def _main_delta(route_payload: Mapping[str, Any]) -> float:
+        audits = route_payload.get("energy_audits", {}) if isinstance(route_payload, Mapping) else {}
+        main = audits.get("main", {}) if isinstance(audits, Mapping) else {}
+        evaluation = main.get("evaluation", {}) if isinstance(main, Mapping) else {}
+        return float(evaluation.get("delta_mean", float("nan"))) if isinstance(evaluation, Mapping) else float("nan")
+
+    def _route_noise_cfg(route_payload: Mapping[str, Any]) -> Mapping[str, Any]:
+        raw = route_payload.get("noise_config", {}) if isinstance(route_payload, Mapping) else {}
+        return raw if isinstance(raw, Mapping) else {}
+
+    def _requested_compile_dict(*, seed_transpiler: int | None, transpile_optimization_level: int, source: str) -> dict[str, Any]:
+        return {
+            "seed_transpiler": (None if seed_transpiler is None else int(seed_transpiler)),
+            "transpile_optimization_level": int(transpile_optimization_level),
+            "source": str(source),
+        }
+
+    energy_success = bool(isinstance(energy_result, Mapping) and energy_result.get("success", False))
+    raw_success = bool(isinstance(raw_result, Mapping) and raw_result.get("success", False))
+    energy_noise_cfg = _route_noise_cfg(energy_result)
+    raw_noise_cfg = _route_noise_cfg(raw_result)
+    energy_subject_kind = (
+        None
+        if energy_result.get("subject_kind", None) in {None, ""}
+        else str(energy_result.get("subject_kind"))
+    ) if isinstance(energy_result, Mapping) else None
+    raw_subject_kind = (
+        None
+        if raw_result.get("subject_kind", None) in {None, ""}
+        else str(raw_result.get("subject_kind"))
+    ) if isinstance(raw_result, Mapping) else None
+    subject_kind_match = (
+        None
+        if energy_subject_kind in {None, ""} or raw_subject_kind in {None, ""}
+        else bool(energy_subject_kind == raw_subject_kind)
+    )
+    energy_backend_name = (
+        None
+        if energy_noise_cfg.get("backend_name", noise_cfg.backend_name) in {None, ""}
+        else str(energy_noise_cfg.get("backend_name", noise_cfg.backend_name))
+    )
+    raw_backend_name = (
+        None
+        if raw_noise_cfg.get("backend_name", noise_cfg.backend_name) in {None, ""}
+        else str(raw_noise_cfg.get("backend_name", noise_cfg.backend_name))
+    )
+    backend_name_match = (
+        None
+        if energy_backend_name in {None, ""} or raw_backend_name in {None, ""}
+        else bool(energy_backend_name == raw_backend_name)
+    )
+    requested_compile_energy = _requested_compile_dict(
+        seed_transpiler=energy_cfg.seed_transpiler,
+        transpile_optimization_level=energy_cfg.transpile_optimization_level,
+        source="runtime_profile_cli",
+    )
+    requested_compile_raw = _requested_compile_dict(
+        seed_transpiler=raw_cfg.seed_transpiler,
+        transpile_optimization_level=raw_cfg.transpile_optimization_level,
+        source="fixed_scaffold_runtime_transpile_cli",
+    )
+    requested_compile_mismatch_fields: list[str] = []
+    for field in ("seed_transpiler", "transpile_optimization_level"):
+        if requested_compile_energy.get(field) != requested_compile_raw.get(field):
+            requested_compile_mismatch_fields.append(str(field))
+    raw_compile_observation = (
+        raw_result.get("compile_observation", {}) if isinstance(raw_result.get("compile_observation", {}), Mapping) else {}
+    ) if isinstance(raw_result, Mapping) else {}
+    raw_compile_observation_matches_requested = (
+        None
+        if raw_compile_observation.get("matches_requested", None) is None
+        else bool(raw_compile_observation.get("matches_requested"))
+    )
+    energy_audits = energy_result.get("energy_audits", {}) if isinstance(energy_result, Mapping) else {}
+    energy_audit_labels = (
+        sorted(str(label) for label in energy_audits.keys())
+        if isinstance(energy_audits, Mapping)
+        else []
+    )
+    energy_runtime_profile = (
+        energy_noise_cfg.get("runtime_profile", {})
+        if isinstance(energy_noise_cfg.get("runtime_profile", {}), Mapping)
+        else {}
+    )
+    raw_runtime_profile = (
+        raw_noise_cfg.get("runtime_profile", {})
+        if isinstance(raw_noise_cfg.get("runtime_profile", {}), Mapping)
+        else {}
+    )
+    raw_backend_info = raw_result.get("backend_info", {}) if isinstance(raw_result, Mapping) else {}
+    raw_backend_details = (
+        raw_backend_info.get("details", {})
+        if isinstance(raw_backend_info.get("details", {}), Mapping)
+        else {}
+    )
+    raw_artifact_path = (
+        None
+        if raw_backend_details.get("raw_artifact_path", raw_noise_cfg.get("raw_artifact_path")) in {None, ""}
+        else str(raw_backend_details.get("raw_artifact_path", raw_noise_cfg.get("raw_artifact_path")))
+    )
+    raw_transport = (
+        None
+        if raw_backend_details.get("transport", raw_noise_cfg.get("raw_transport")) in {None, ""}
+        else str(raw_backend_details.get("transport", raw_noise_cfg.get("raw_transport")))
+    )
+    raw_execution_surface = (
+        None
+        if raw_backend_details.get("execution_surface", raw_noise_cfg.get("execution_surface")) in {None, ""}
+        else str(raw_backend_details.get("execution_surface", raw_noise_cfg.get("execution_surface")))
+    )
+    reason: str | None = None
+    if not energy_success and not raw_success:
+        reason = "paired_runtime_energy_only_and_raw_baseline_failed"
+    elif not energy_success:
+        reason = "paired_runtime_energy_only_failed"
+    elif not raw_success:
+        reason = "paired_runtime_raw_baseline_failed"
+    return {
+        "success": bool(energy_success and raw_success),
+        "available": True,
+        "route": "fixed_scaffold_runtime_pairing",
+        "reason": reason,
+        "candidate_artifact_json": _repo_relative_str(source_cfg.resolved_json),
+        "subject_kind_energy_only": energy_subject_kind,
+        "subject_kind_raw_baseline": raw_subject_kind,
+        "subject_kind_match": subject_kind_match,
+        "backend_name_energy_only": energy_backend_name,
+        "backend_name_raw_baseline": raw_backend_name,
+        "backend_name_match": backend_name_match,
+        "requested_compile_match": bool(not requested_compile_mismatch_fields),
+        "requested_compile_mismatch_fields": list(requested_compile_mismatch_fields),
+        "requested_compile_energy_only": dict(requested_compile_energy),
+        "requested_compile_raw_baseline": dict(requested_compile_raw),
+        "raw_compile_observation_matches_requested": raw_compile_observation_matches_requested,
+        "raw_compile_observation": dict(raw_compile_observation),
+        "energy_audit_labels": list(energy_audit_labels),
+        "energy_profile_name": (
+            None if energy_runtime_profile.get("name", None) in {None, ""} else str(energy_runtime_profile.get("name"))
+        ),
+        "raw_profile_name": (
+            None if raw_runtime_profile.get("name", None) in {None, ""} else str(raw_runtime_profile.get("name"))
+        ),
+        "energy_main_delta_mean": float(_main_delta(energy_result)),
+        "raw_main_delta_mean": float(_main_delta(raw_result)),
+        "raw_artifact_path": raw_artifact_path,
+        "raw_transport": raw_transport,
+        "raw_execution_surface": raw_execution_surface,
+        "energy_sidecar_json": str(energy_sidecar_json),
+        "raw_baseline_sidecar_json": str(raw_sidecar_json),
+    }
+
+
 def _run_fixed_scaffold_noisy_replay_mode(
     *,
     source_cfg: StagedNoiseSourceConfig,
@@ -2207,6 +2373,9 @@ def _build_noise_summary(payload: Mapping[str, Any]) -> dict[str, Any]:
     )
     fixed_scaffold_runtime_raw_baseline = (
         payload.get("fixed_scaffold_runtime_raw_baseline", {}) if isinstance(payload, Mapping) else {}
+    )
+    fixed_scaffold_runtime_pairing = (
+        payload.get("fixed_scaffold_runtime_pairing", {}) if isinstance(payload, Mapping) else {}
     )
     fixed_scaffold_replay = payload.get("fixed_scaffold_noisy_replay", {}) if isinstance(payload, Mapping) else {}
     fixed_scaffold_compile_control_scout = (
@@ -2421,6 +2590,8 @@ def _build_noise_summary(payload: Mapping[str, Any]) -> dict[str, Any]:
     fixed_scaffold_runtime_raw_baseline_execution_surface: str | None = None
     fixed_scaffold_runtime_raw_baseline_raw_transport: str | None = None
     fixed_scaffold_runtime_raw_baseline_raw_artifact_path: str | None = None
+    fixed_scaffold_runtime_raw_baseline_profile_name: str | None = None
+    fixed_scaffold_runtime_raw_baseline_symmetry_mode: str | None = None
     fixed_scaffold_runtime_raw_baseline_raw_store_memory = False
     fixed_scaffold_runtime_raw_baseline_diagonal_postprocessing_available = False
     fixed_scaffold_runtime_raw_baseline_requested_seed_transpiler: int | None = None
@@ -2445,6 +2616,26 @@ def _build_noise_summary(payload: Mapping[str, Any]) -> dict[str, Any]:
             None
             if noise_config.get("noise_mode", None) in {None, ""}
             else str(noise_config.get("noise_mode"))
+        )
+        runtime_profile_cfg = (
+            noise_config.get("runtime_profile", {})
+            if isinstance(noise_config.get("runtime_profile", {}), Mapping)
+            else {}
+        )
+        runtime_symmetry_cfg = (
+            noise_config.get("symmetry_mitigation", {})
+            if isinstance(noise_config.get("symmetry_mitigation", {}), Mapping)
+            else {}
+        )
+        fixed_scaffold_runtime_raw_baseline_profile_name = (
+            None
+            if runtime_profile_cfg.get("name", None) in {None, ""}
+            else str(runtime_profile_cfg.get("name"))
+        )
+        fixed_scaffold_runtime_raw_baseline_symmetry_mode = (
+            None
+            if runtime_symmetry_cfg.get("mode", None) in {None, ""}
+            else str(runtime_symmetry_cfg.get("mode"))
         )
         backend_info = (
             fixed_scaffold_runtime_raw_baseline.get("backend_info", {})
@@ -2514,6 +2705,67 @@ def _build_noise_summary(payload: Mapping[str, Any]) -> dict[str, Any]:
             fixed_scaffold_runtime_raw_baseline_compile_request_matched = bool(
                 compile_observation.get("matches_requested")
             )
+    fixed_scaffold_runtime_pairing_success = bool(
+        isinstance(fixed_scaffold_runtime_pairing, Mapping)
+        and fixed_scaffold_runtime_pairing.get("success", False)
+    )
+    if (
+        isinstance(fixed_scaffold_runtime_pairing, Mapping)
+        and not fixed_scaffold_runtime_pairing_success
+        and bool(fixed_scaffold_runtime_pairing)
+    ):
+        failures.append(
+            "fixed_scaffold_runtime_pairing:"
+            + str(
+                fixed_scaffold_runtime_pairing.get(
+                    "reason",
+                    fixed_scaffold_runtime_pairing.get("error", "unknown"),
+                )
+            )
+        )
+    fixed_scaffold_runtime_pairing_subject_kind_match: bool | None = None
+    fixed_scaffold_runtime_pairing_backend_name_match: bool | None = None
+    fixed_scaffold_runtime_pairing_requested_compile_match: bool | None = None
+    fixed_scaffold_runtime_pairing_raw_compile_observation_matched: bool | None = None
+    fixed_scaffold_runtime_pairing_energy_audit_labels: str | None = None
+    fixed_scaffold_runtime_pairing_raw_artifact_path: str | None = None
+    fixed_scaffold_runtime_pairing_energy_profile_name: str | None = None
+    fixed_scaffold_runtime_pairing_raw_profile_name: str | None = None
+    if isinstance(fixed_scaffold_runtime_pairing, Mapping):
+        if fixed_scaffold_runtime_pairing.get("subject_kind_match", None) is not None:
+            fixed_scaffold_runtime_pairing_subject_kind_match = bool(
+                fixed_scaffold_runtime_pairing.get("subject_kind_match")
+            )
+        if fixed_scaffold_runtime_pairing.get("backend_name_match", None) is not None:
+            fixed_scaffold_runtime_pairing_backend_name_match = bool(
+                fixed_scaffold_runtime_pairing.get("backend_name_match")
+            )
+        if fixed_scaffold_runtime_pairing.get("requested_compile_match", None) is not None:
+            fixed_scaffold_runtime_pairing_requested_compile_match = bool(
+                fixed_scaffold_runtime_pairing.get("requested_compile_match")
+            )
+        if fixed_scaffold_runtime_pairing.get("raw_compile_observation_matches_requested", None) is not None:
+            fixed_scaffold_runtime_pairing_raw_compile_observation_matched = bool(
+                fixed_scaffold_runtime_pairing.get("raw_compile_observation_matches_requested")
+            )
+        energy_audit_labels = fixed_scaffold_runtime_pairing.get("energy_audit_labels", [])
+        if isinstance(energy_audit_labels, Sequence) and not isinstance(energy_audit_labels, (str, bytes)):
+            fixed_scaffold_runtime_pairing_energy_audit_labels = ",".join(str(x) for x in energy_audit_labels)
+        fixed_scaffold_runtime_pairing_raw_artifact_path = (
+            None
+            if fixed_scaffold_runtime_pairing.get("raw_artifact_path", None) in {None, ""}
+            else str(fixed_scaffold_runtime_pairing.get("raw_artifact_path"))
+        )
+        fixed_scaffold_runtime_pairing_energy_profile_name = (
+            None
+            if fixed_scaffold_runtime_pairing.get("energy_profile_name", None) in {None, ""}
+            else str(fixed_scaffold_runtime_pairing.get("energy_profile_name"))
+        )
+        fixed_scaffold_runtime_pairing_raw_profile_name = (
+            None
+            if fixed_scaffold_runtime_pairing.get("raw_profile_name", None) in {None, ""}
+            else str(fixed_scaffold_runtime_pairing.get("raw_profile_name"))
+        )
     fixed_scaffold_attribution_success = bool(
         isinstance(fixed_scaffold_attribution, Mapping) and fixed_scaffold_attribution.get("success", False)
     )
@@ -2765,6 +3017,12 @@ def _build_noise_summary(payload: Mapping[str, Any]) -> dict[str, Any]:
         "fixed_scaffold_runtime_raw_baseline_execution_surface": (
             fixed_scaffold_runtime_raw_baseline_execution_surface
         ),
+        "fixed_scaffold_runtime_raw_baseline_profile_name": (
+            fixed_scaffold_runtime_raw_baseline_profile_name
+        ),
+        "fixed_scaffold_runtime_raw_baseline_symmetry_mode": (
+            fixed_scaffold_runtime_raw_baseline_symmetry_mode
+        ),
         "fixed_scaffold_runtime_raw_baseline_raw_transport": (
             fixed_scaffold_runtime_raw_baseline_raw_transport
         ),
@@ -2791,6 +3049,36 @@ def _build_noise_summary(payload: Mapping[str, Any]) -> dict[str, Any]:
         ),
         "fixed_scaffold_runtime_raw_baseline_compile_request_matched": (
             fixed_scaffold_runtime_raw_baseline_compile_request_matched
+        ),
+        "fixed_scaffold_runtime_pairing_completed": int(
+            1 if fixed_scaffold_runtime_pairing_success else 0
+        ),
+        "fixed_scaffold_runtime_pairing_total": int(
+            1 if bool(fixed_scaffold_runtime_pairing) else 0
+        ),
+        "fixed_scaffold_runtime_pairing_subject_kind_match": (
+            fixed_scaffold_runtime_pairing_subject_kind_match
+        ),
+        "fixed_scaffold_runtime_pairing_backend_name_match": (
+            fixed_scaffold_runtime_pairing_backend_name_match
+        ),
+        "fixed_scaffold_runtime_pairing_requested_compile_match": (
+            fixed_scaffold_runtime_pairing_requested_compile_match
+        ),
+        "fixed_scaffold_runtime_pairing_raw_compile_observation_matched": (
+            fixed_scaffold_runtime_pairing_raw_compile_observation_matched
+        ),
+        "fixed_scaffold_runtime_pairing_energy_audit_labels": (
+            fixed_scaffold_runtime_pairing_energy_audit_labels
+        ),
+        "fixed_scaffold_runtime_pairing_raw_artifact_path": (
+            fixed_scaffold_runtime_pairing_raw_artifact_path
+        ),
+        "fixed_scaffold_runtime_pairing_energy_profile_name": (
+            fixed_scaffold_runtime_pairing_energy_profile_name
+        ),
+        "fixed_scaffold_runtime_pairing_raw_profile_name": (
+            fixed_scaffold_runtime_pairing_raw_profile_name
         ),
         "fixed_scaffold_compile_control_scout_completed": int(
             1 if fixed_scaffold_compile_control_success else 0
@@ -3008,6 +3296,9 @@ def write_staged_hh_noise_pdf(payload: Mapping[str, Any], cfg: StagedHHNoiseConf
                 f"Fixed scaffold runtime raw baseline: {summary.get('fixed_scaffold_runtime_raw_baseline_completed')} / {summary.get('fixed_scaffold_runtime_raw_baseline_total')}",
                 f"Fixed scaffold runtime raw baseline Δ(surface/transport/store/path): {summary.get('fixed_scaffold_runtime_raw_baseline_main_delta_mean')} / {summary.get('fixed_scaffold_runtime_raw_baseline_execution_surface')} / {summary.get('fixed_scaffold_runtime_raw_baseline_raw_transport')} / {summary.get('fixed_scaffold_runtime_raw_baseline_raw_store_memory')} / {summary.get('fixed_scaffold_runtime_raw_baseline_raw_artifact_path')}",
                 f"Fixed scaffold runtime raw baseline compile request/observed/match: {summary.get('fixed_scaffold_runtime_raw_baseline_requested_transpile_optimization_level')}:{summary.get('fixed_scaffold_runtime_raw_baseline_requested_seed_transpiler')} / {summary.get('fixed_scaffold_runtime_raw_baseline_observed_transpile_optimization_level')}:{summary.get('fixed_scaffold_runtime_raw_baseline_observed_seed_transpiler')} / {summary.get('fixed_scaffold_runtime_raw_baseline_compile_request_matched')}",
+                f"Fixed scaffold runtime pairing: {summary.get('fixed_scaffold_runtime_pairing_completed')} / {summary.get('fixed_scaffold_runtime_pairing_total')}",
+                f"Fixed scaffold runtime pairing match(subject/backend/compile/raw observed): {summary.get('fixed_scaffold_runtime_pairing_subject_kind_match')} / {summary.get('fixed_scaffold_runtime_pairing_backend_name_match')} / {summary.get('fixed_scaffold_runtime_pairing_requested_compile_match')} / {summary.get('fixed_scaffold_runtime_pairing_raw_compile_observation_matched')}",
+                f"Fixed scaffold runtime pairing profiles/audits/raw artifact: {summary.get('fixed_scaffold_runtime_pairing_energy_profile_name')} / {summary.get('fixed_scaffold_runtime_pairing_raw_profile_name')} / {summary.get('fixed_scaffold_runtime_pairing_energy_audit_labels')} / {summary.get('fixed_scaffold_runtime_pairing_raw_artifact_path')}",
                 f"Fixed scaffold compile-control scout: {summary.get('fixed_scaffold_compile_control_scout_completed')} / {summary.get('fixed_scaffold_compile_control_scout_total')}",
                 f"Fixed scaffold compile-control successful candidates: {summary.get('fixed_scaffold_compile_control_scout_candidates_successful')} / {summary.get('fixed_scaffold_compile_control_scout_candidates_total')}",
                 f"Fixed scaffold compile-control best Δ(noisy-ideal): {summary.get('fixed_scaffold_compile_control_scout_best_delta_mean')}",
@@ -3357,6 +3648,19 @@ def run_staged_hh_noise(cfg: StagedHHNoiseConfig, *, run_command: str | None = N
         fixed_scaffold_runtime_raw_baseline_sidecar_json = staged_cfg.artifacts.output_json.with_name(
             f"{staged_cfg.artifacts.tag}_fixed_scaffold_runtime_raw_baseline.json"
         )
+        fixed_scaffold_runtime_pairing_sidecar_json = staged_cfg.artifacts.output_json.with_name(
+            f"{staged_cfg.artifacts.tag}_fixed_scaffold_runtime_pairing.json"
+        )
+        fixed_scaffold_runtime_pairing = _build_fixed_scaffold_runtime_pairing_payload(
+            source_cfg=cfg.source,
+            noise_cfg=cfg.noise,
+            energy_cfg=cfg.fixed_scaffold_runtime_energy_only,
+            raw_cfg=cfg.fixed_scaffold_runtime_raw_baseline,
+            energy_result=fixed_scaffold_runtime_energy_only,
+            raw_result=fixed_scaffold_runtime_raw_baseline,
+            energy_sidecar_json=fixed_scaffold_runtime_energy_only_sidecar_json,
+            raw_sidecar_json=fixed_scaffold_runtime_raw_baseline_sidecar_json,
+        )
         payload = {
             "generated_utc": base_wf._now_utc(),
             "pipeline": "hh_staged_noise",
@@ -3382,6 +3686,7 @@ def run_staged_hh_noise(cfg: StagedHHNoiseConfig, *, run_command: str | None = N
                     "fixed_scaffold_runtime_raw_baseline": bool(
                         cfg.fixed_scaffold_runtime_raw_baseline.enabled
                     ),
+                    "fixed_scaffold_runtime_pairing": bool(fixed_scaffold_runtime_pairing),
                     "fixed_scaffold_noisy_replay": bool(cfg.fixed_scaffold_replay.enabled),
                     "fixed_scaffold_compile_control_scout": bool(
                         cfg.fixed_scaffold_compile_control_scout.enabled
@@ -3514,6 +3819,48 @@ def run_staged_hh_noise(cfg: StagedHHNoiseConfig, *, run_command: str | None = N
                     if bool(cfg.fixed_scaffold_runtime_raw_baseline.enabled)
                     else {}
                 ),
+                "fixed_scaffold_runtime_pairing_contract": (
+                    {
+                        "matched_family_replay": False,
+                        "structure_locked": True,
+                        "objective": "runtime_raw_sampler_plus_energy_audit",
+                        "shared_candidate_artifact": True,
+                        "backend_name": cfg.noise.backend_name,
+                        "requested_compile_match": bool(
+                            cfg.fixed_scaffold_runtime_energy_only.seed_transpiler
+                            == cfg.fixed_scaffold_runtime_raw_baseline.seed_transpiler
+                            and cfg.fixed_scaffold_runtime_energy_only.transpile_optimization_level
+                            == cfg.fixed_scaffold_runtime_raw_baseline.transpile_optimization_level
+                        ),
+                        "energy_only": {
+                            "runtime_profile": dict(
+                                cfg.fixed_scaffold_runtime_energy_only.runtime_profile_config
+                            ),
+                            "include_dd_probe": bool(
+                                cfg.fixed_scaffold_runtime_energy_only.include_dd_probe
+                            ),
+                            "include_final_zne_audit": bool(
+                                cfg.fixed_scaffold_runtime_energy_only.include_final_zne_audit
+                            ),
+                        },
+                        "raw_baseline": {
+                            "runtime_profile": dict(
+                                cfg.fixed_scaffold_runtime_raw_baseline.runtime_profile_config
+                            ),
+                            "raw_transport": str(
+                                cfg.fixed_scaffold_runtime_raw_baseline.raw_transport
+                            ),
+                            "raw_store_memory": bool(
+                                cfg.fixed_scaffold_runtime_raw_baseline.raw_store_memory
+                            ),
+                            "raw_artifact_path": (
+                                cfg.fixed_scaffold_runtime_raw_baseline.raw_artifact_path
+                            ),
+                        },
+                    }
+                    if bool(fixed_scaffold_runtime_pairing)
+                    else {}
+                ),
                 "fixed_scaffold_compile_control_scout_contract": (
                     {
                         "matched_family_replay": False,
@@ -3638,6 +3985,11 @@ def run_staged_hh_noise(cfg: StagedHHNoiseConfig, *, run_command: str | None = N
                     if bool(cfg.fixed_scaffold_runtime_raw_baseline.enabled)
                     else None
                 ),
+                "fixed_scaffold_runtime_pairing_json": (
+                    str(fixed_scaffold_runtime_pairing_sidecar_json)
+                    if bool(fixed_scaffold_runtime_pairing)
+                    else None
+                ),
             },
             "command": str(run_command_str),
             "import_source": base_wf._jsonable(asdict(cfg.source)),
@@ -3654,6 +4006,7 @@ def run_staged_hh_noise(cfg: StagedHHNoiseConfig, *, run_command: str | None = N
             "fixed_scaffold_noisy_replay": fixed_scaffold_noisy_replay,
             "fixed_scaffold_runtime_energy_only": fixed_scaffold_runtime_energy_only,
             "fixed_scaffold_runtime_raw_baseline": fixed_scaffold_runtime_raw_baseline,
+            "fixed_scaffold_runtime_pairing": fixed_scaffold_runtime_pairing,
             "fixed_scaffold_compile_control_scout": fixed_scaffold_compile_control_scout,
             "fixed_scaffold_saved_theta_mitigation_matrix": fixed_scaffold_saved_theta_mitigation_matrix,
             "fixed_scaffold_noise_attribution": fixed_scaffold_noise_attribution,
@@ -3688,6 +4041,24 @@ def run_staged_hh_noise(cfg: StagedHHNoiseConfig, *, run_command: str | None = N
                 },
             }
             base_wf._write_json(fixed_scaffold_runtime_raw_baseline_sidecar_json, sidecar_payload)
+        if bool(fixed_scaffold_runtime_pairing):
+            sidecar_payload = {
+                "generated_utc": base_wf._now_utc(),
+                "pipeline": "hh_fixed_scaffold_runtime_pairing_eval_v1",
+                "candidate_artifact_json": _repo_relative_str(cfg.source.resolved_json),
+                "workflow_json": str(staged_cfg.artifacts.output_json),
+                "backend_name": cfg.noise.backend_name,
+                "result": base_wf._jsonable(fixed_scaffold_runtime_pairing),
+                "settings": {
+                    "runtime_energy_only": base_wf._jsonable(
+                        asdict(cfg.fixed_scaffold_runtime_energy_only)
+                    ),
+                    "runtime_raw_baseline": base_wf._jsonable(
+                        asdict(cfg.fixed_scaffold_runtime_raw_baseline)
+                    ),
+                },
+            }
+            base_wf._write_json(fixed_scaffold_runtime_pairing_sidecar_json, sidecar_payload)
         if bool(cfg.fixed_scaffold_saved_theta_mitigation_matrix.enabled):
             sidecar_payload = {
                 "generated_utc": base_wf._now_utc(),
@@ -3731,6 +4102,7 @@ def run_staged_hh_noise(cfg: StagedHHNoiseConfig, *, run_command: str | None = N
             "fixed_scaffold_noisy_replay": False,
             "fixed_scaffold_runtime_energy_only": False,
             "fixed_scaffold_runtime_raw_baseline": False,
+            "fixed_scaffold_runtime_pairing": False,
             "fixed_scaffold_compile_control_scout": False,
             "fixed_scaffold_saved_theta_mitigation_matrix": False,
             "fixed_scaffold_noise_attribution": False,
@@ -3766,6 +4138,7 @@ def run_staged_hh_noise(cfg: StagedHHNoiseConfig, *, run_command: str | None = N
     payload["fixed_scaffold_noisy_replay"] = {}
     payload["fixed_scaffold_runtime_energy_only"] = {}
     payload["fixed_scaffold_runtime_raw_baseline"] = {}
+    payload["fixed_scaffold_runtime_pairing"] = {}
     payload["fixed_scaffold_compile_control_scout"] = {}
     payload["fixed_scaffold_saved_theta_mitigation_matrix"] = {}
     payload["fixed_scaffold_noise_attribution"] = {}

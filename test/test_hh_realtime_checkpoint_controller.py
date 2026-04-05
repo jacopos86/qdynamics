@@ -29,7 +29,7 @@ from pipelines.hardcoded.hh_realtime_measurement import OracleCheckpointValueCac
 from pipelines.hardcoded.hh_vqe_from_adapt_family import ReplayScaffoldContext
 from src.quantum.ansatz_parameterization import build_parameter_layout
 from src.quantum.compiled_ansatz import CompiledAnsatzExecutor
-from src.quantum.vqe_latex_python_pairs import AnsatzTerm, PauliPolynomial, PauliTerm
+from src.quantum.vqe_latex_python_pairs import AnsatzTerm, PauliPolynomial, PauliTerm, hamiltonian_matrix
 
 
 def _basis(idx: int) -> np.ndarray:
@@ -78,6 +78,96 @@ def _toy_context(theta_x: float = 0.2) -> tuple[ReplayScaffoldContext, np.ndarra
     return replay_context, h_poly, hmat, psi_initial
 
 
+def _two_qubit_drive_context(
+    theta_x: float = 0.2,
+) -> tuple[ReplayScaffoldContext, PauliPolynomial, np.ndarray, np.ndarray]:
+    x_term = AnsatzTerm(
+        label="op_x0",
+        polynomial=PauliPolynomial("JW", [PauliTerm(2, ps="ex", pc=1.0)]),
+    )
+    y_term = AnsatzTerm(
+        label="op_y0",
+        polynomial=PauliPolynomial("JW", [PauliTerm(2, ps="ey", pc=1.0)]),
+    )
+    h_poly = PauliPolynomial("JW", [PauliTerm(2, ps="ez", pc=1.0)])
+    hmat = np.asarray(hamiltonian_matrix(h_poly), dtype=complex)
+    psi_ref = np.zeros(4, dtype=complex)
+    psi_ref[0] = 1.0
+    base_layout = build_parameter_layout([x_term], ignore_identity=True, coefficient_tolerance=1e-12, sort_terms=True)
+    executor = CompiledAnsatzExecutor(
+        [x_term],
+        parameterization_mode="per_pauli_term",
+        parameterization_layout=base_layout,
+    )
+    best_theta = np.array([float(theta_x)], dtype=float)
+    psi_initial = executor.prepare_state(best_theta, psi_ref)
+    replay_context = ReplayScaffoldContext(
+        cfg=SimpleNamespace(reps=1, L=1, ordering="blocked"),
+        h_poly=h_poly,
+        psi_ref=psi_ref,
+        payload_in={"adapt_vqe": {"pool_type": "phase3_v1"}},
+        family_info={"resolved": "toy_pool_drive"},
+        family_pool=(x_term, y_term),
+        pool_meta={"candidate_pool_complete": True},
+        replay_terms=(x_term,),
+        base_layout=base_layout,
+        adapt_theta_runtime=np.array([float(theta_x)], dtype=float),
+        adapt_theta_logical=np.array([float(theta_x)], dtype=float),
+        adapt_depth=1,
+        handoff_state_kind="prepared_state",
+        provenance_source="explicit",
+        family_terms_count=2,
+    )
+    return replay_context, h_poly, hmat, psi_initial
+
+
+def _two_block_context(
+    theta_x: float = 0.2,
+    theta_y: float = 0.01,
+) -> tuple[ReplayScaffoldContext, np.ndarray, np.ndarray, np.ndarray]:
+    x_term = AnsatzTerm(
+        label="op_x",
+        polynomial=PauliPolynomial("JW", [PauliTerm(1, ps="x", pc=1.0)]),
+    )
+    y_term = AnsatzTerm(
+        label="op_y",
+        polynomial=PauliPolynomial("JW", [PauliTerm(1, ps="y", pc=1.0)]),
+    )
+    z_term = AnsatzTerm(
+        label="op_z",
+        polynomial=PauliPolynomial("JW", [PauliTerm(1, ps="z", pc=1.0)]),
+    )
+    h_poly = PauliPolynomial("JW", [PauliTerm(1, ps="z", pc=1.0)])
+    hmat = np.array([[1.0, 0.0], [0.0, -1.0]], dtype=complex)
+    psi_ref = _basis(0)
+    base_layout = build_parameter_layout([x_term, y_term], ignore_identity=True, coefficient_tolerance=1e-12, sort_terms=True)
+    executor = CompiledAnsatzExecutor(
+        [x_term, y_term],
+        parameterization_mode="per_pauli_term",
+        parameterization_layout=base_layout,
+    )
+    best_theta = np.array([float(theta_x), float(theta_y)], dtype=float)
+    psi_initial = executor.prepare_state(best_theta, psi_ref)
+    replay_context = ReplayScaffoldContext(
+        cfg=SimpleNamespace(reps=1, L=1, ordering="blocked"),
+        h_poly=h_poly,
+        psi_ref=psi_ref,
+        payload_in={"adapt_vqe": {"pool_type": "phase3_v1"}},
+        family_info={"resolved": "toy_two_block"},
+        family_pool=(x_term, y_term, z_term),
+        pool_meta={"candidate_pool_complete": True},
+        replay_terms=(x_term, y_term),
+        base_layout=base_layout,
+        adapt_theta_runtime=np.asarray(best_theta, dtype=float),
+        adapt_theta_logical=np.asarray(best_theta, dtype=float),
+        adapt_depth=2,
+        handoff_state_kind="prepared_state",
+        provenance_source="explicit",
+        family_terms_count=3,
+    )
+    return replay_context, h_poly, hmat, psi_initial
+
+
 def _duplicate_label_context() -> tuple[ReplayScaffoldContext, np.ndarray, np.ndarray, np.ndarray]:
     x_term = AnsatzTerm(
         label="op_x",
@@ -122,7 +212,9 @@ def _duplicate_label_context() -> tuple[ReplayScaffoldContext, np.ndarray, np.nd
     return replay_context, h_poly, hmat, psi_initial
 
 
-def test_realtime_controller_appends_candidate_and_hits_same_checkpoint_cache() -> None:
+def test_realtime_controller_appends_candidate_and_hits_same_checkpoint_cache(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     replay_context, h_poly, hmat, psi_initial = _toy_context(theta_x=0.2)
     controller = RealtimeCheckpointController(
         cfg=RealtimeCheckpointConfig(
@@ -142,16 +234,240 @@ def test_realtime_controller_appends_candidate_and_hits_same_checkpoint_cache() 
         t_final=0.2,
         num_times=3,
     )
+    monkeypatch.setattr(controller, "_exact_v1_forecast_override_reason", lambda **kwargs: None)
     result = controller.run()
 
     assert int(result.summary["append_count"]) >= 1
     assert str(result.ledger[0]["action_kind"]) == "append_candidate"
+    assert str(result.ledger[0]["controller_lane"]) == "append"
+    assert str(result.ledger[0]["controller_lane_reason"]) == "exact_rho_miss_above_threshold"
+    assert str(result.trajectory[0]["controller_lane"]) == "append"
+    assert str(result.trajectory[0]["controller_lane_reason"]) == "exact_rho_miss_above_threshold"
+    assert float(result.trajectory[0]["confirmed"][0]["confirm_score"]) == pytest.approx(
+        float(result.trajectory[0]["confirmed"][0]["adjusted_gain"])
+    )
+    assert str(result.trajectory[0]["confirmed"][0]["confirm_score_kind"]) == "compressed_whitened_lower_gain_ratio_minus_penalties"
+    assert int(result.trajectory[0]["confirmed"][0]["confirm_compress_modes_used"]) >= 1
+    assert str(result.trajectory[-1]["controller_lane"]) == "stay"
+    assert str(result.trajectory[-1]["controller_lane_reason"]) == "terminal_checkpoint"
     assert int(result.ledger[0]["exact_cache_misses"]) >= 1
     assert int(result.ledger[0]["geometry_memo_hits"]) >= 1
     assert int(result.summary["final_runtime_parameter_count"]) >= 2
 
 
-def test_realtime_controller_stays_when_miss_threshold_is_high() -> None:
+def test_realtime_controller_select_action_scans_past_surrogate_top_candidate_that_fails_exact_thresholds() -> None:
+    replay_context, h_poly, hmat, psi_initial = _toy_context(theta_x=0.2)
+    controller = RealtimeCheckpointController(
+        cfg=RealtimeCheckpointConfig(
+            mode="exact_v1",
+            miss_threshold=0.0,
+            gain_ratio_threshold=0.5,
+            append_margin_abs=0.1,
+        ),
+        replay_context=replay_context,
+        h_poly=h_poly,
+        hmat=hmat,
+        psi_initial=psi_initial,
+        best_theta=[0.2],
+        allow_repeats=False,
+        t_final=0.2,
+        num_times=2,
+    )
+
+    def _record(label: str, *, confirm_score: float, gain_ratio: float, gain_exact: float, pool_index: int) -> dict[str, object]:
+        return {
+            "candidate_label": label,
+            "candidate_identity": label,
+            "candidate_pool_index": int(pool_index),
+            "position_id": int(pool_index),
+            "adjusted_gain": float(confirm_score),
+            "confirm_score": float(confirm_score),
+            "gain_exact": float(gain_exact),
+            "gain_ratio": float(gain_ratio),
+            "groups_new": 0.0,
+            "candidate_summary": CandidateProbeSummary(
+                candidate_label=label,
+                candidate_pool_index=int(pool_index),
+                position_id=int(pool_index),
+                runtime_insert_position=0,
+                runtime_block_indices=[],
+                residual_overlap_l2=0.0,
+                gain_exact=float(gain_exact),
+                gain_ratio=float(gain_ratio),
+                compile_proxy_total=1.0,
+                groups_new=0.0,
+                novelty=None,
+                position_jump_penalty=0.0,
+                directional_change_l2=0.0,
+                tier_reached="confirm",
+                admissible=True,
+                rejection_reason=None,
+                decision_metric="compressed_whitened_confirm_gain_ratio",
+            ),
+        }
+
+    action_kind, selected = controller._select_action(
+        baseline={"summary": SimpleNamespace(rho_miss=1.0)},
+        confirmed=[
+            _record("candidate_a", confirm_score=3.0, gain_ratio=0.1, gain_exact=1.0, pool_index=0),
+            _record("candidate_b", confirm_score=2.0, gain_ratio=1.0, gain_exact=1.0, pool_index=1),
+        ],
+    )
+
+    assert str(action_kind) == "append_candidate"
+    assert selected is not None
+    assert str(selected["candidate_label"]) == "candidate_b"
+
+
+def test_realtime_controller_prune_lane_can_commit_coordinate_removal(monkeypatch: pytest.MonkeyPatch) -> None:
+    replay_context, h_poly, hmat, psi_initial = _two_block_context(theta_x=0.2, theta_y=1.0e-3)
+    controller = RealtimeCheckpointController(
+        cfg=RealtimeCheckpointConfig(
+            mode="exact_v1",
+            miss_threshold=2.0,
+            prune_mode="exact_local_v1",
+            prune_miss_threshold=2.0,
+            prune_loss_threshold=1.0,
+            prune_theta_block_tol=1.0,
+            prune_state_jump_l2_tol=1.0,
+            prune_safe_miss_increase_tol=1.0,
+            prune_max_candidates=1,
+        ),
+        replay_context=replay_context,
+        h_poly=h_poly,
+        hmat=hmat,
+        psi_initial=psi_initial,
+        best_theta=[0.2, 1.0e-3],
+        allow_repeats=False,
+        t_final=0.2,
+        num_times=2,
+    )
+    monkeypatch.setattr(
+        controller,
+        "_motion_telemetry",
+        lambda **kwargs: MotionSchedulerTelemetry(
+            regime="calm",
+            direction_cosine=1.0,
+            rate_change_l2=0.0,
+            rate_change_ratio=0.0,
+            acceleration_l2=0.0,
+            curvature_cosine=1.0,
+            direction_reversal=False,
+            curvature_sign_flip=False,
+            kink_score=0.0,
+        ),
+    )
+
+    result = controller.run()
+
+    assert int(result.summary["prune_count"]) == 1
+    assert str(result.trajectory[0]["controller_lane"]) == "prune"
+    assert str(result.trajectory[0]["action_kind"]) == "prune_coordinate"
+    assert int(result.trajectory[0]["logical_block_count"]) == 2
+    assert int(result.summary["final_logical_block_count"]) == 1
+    assert float(result.trajectory[0]["selected_prune_cached_loss"]) >= 0.0
+    assert result.trajectory[0]["post_prune_energy_total"] is not None
+    assert result.trajectory[0]["post_prune_fidelity_exact"] is not None
+
+
+def test_realtime_controller_stays_when_prune_theta_block_is_too_large(monkeypatch: pytest.MonkeyPatch) -> None:
+    replay_context, h_poly, hmat, psi_initial = _two_block_context(theta_x=0.2, theta_y=0.3)
+    controller = RealtimeCheckpointController(
+        cfg=RealtimeCheckpointConfig(
+            mode="exact_v1",
+            miss_threshold=2.0,
+            prune_mode="exact_local_v1",
+            prune_miss_threshold=2.0,
+            prune_loss_threshold=1.0,
+            prune_theta_block_tol=1.0e-4,
+            prune_state_jump_l2_tol=1.0,
+            prune_safe_miss_increase_tol=1.0,
+            prune_max_candidates=1,
+        ),
+        replay_context=replay_context,
+        h_poly=h_poly,
+        hmat=hmat,
+        psi_initial=psi_initial,
+        best_theta=[0.2, 0.3],
+        allow_repeats=False,
+        t_final=0.2,
+        num_times=2,
+    )
+    monkeypatch.setattr(
+        controller,
+        "_motion_telemetry",
+        lambda **kwargs: MotionSchedulerTelemetry(
+            regime="calm",
+            direction_cosine=1.0,
+            rate_change_l2=0.0,
+            rate_change_ratio=0.0,
+            acceleration_l2=0.0,
+            curvature_cosine=1.0,
+            direction_reversal=False,
+            curvature_sign_flip=False,
+            kink_score=0.0,
+        ),
+    )
+
+    result = controller.run()
+
+    assert int(result.summary["prune_count"]) == 0
+    assert str(result.trajectory[0]["controller_lane"]) == "prune"
+    assert str(result.trajectory[0]["action_kind"]) == "stay"
+    assert str(result.trajectory[0]["proposed_action_kind"]) == "prune_coordinate"
+    assert str(result.trajectory[0]["decision_override_reason"]) == "prune_rejected_theta_block_above_tol"
+
+
+def test_realtime_controller_stays_when_prune_loss_proxy_is_too_large(monkeypatch: pytest.MonkeyPatch) -> None:
+    replay_context, h_poly, hmat, psi_initial = _two_block_context(theta_x=0.2, theta_y=1.0e-3)
+    controller = RealtimeCheckpointController(
+        cfg=RealtimeCheckpointConfig(
+            mode="exact_v1",
+            miss_threshold=2.0,
+            prune_mode="exact_local_v1",
+            prune_miss_threshold=2.0,
+            prune_loss_threshold=1.0e-3,
+            prune_theta_block_tol=1.0,
+            prune_state_jump_l2_tol=1.0,
+            prune_safe_miss_increase_tol=1.0,
+            prune_max_candidates=2,
+        ),
+        replay_context=replay_context,
+        h_poly=h_poly,
+        hmat=hmat,
+        psi_initial=psi_initial,
+        best_theta=[0.2, 1.0e-3],
+        allow_repeats=False,
+        t_final=0.2,
+        num_times=2,
+    )
+    monkeypatch.setattr(
+        controller,
+        "_motion_telemetry",
+        lambda **kwargs: MotionSchedulerTelemetry(
+            regime="calm",
+            direction_cosine=1.0,
+            rate_change_l2=0.0,
+            rate_change_ratio=0.0,
+            acceleration_l2=0.0,
+            curvature_cosine=1.0,
+            direction_reversal=False,
+            curvature_sign_flip=False,
+            kink_score=0.0,
+        ),
+    )
+    monkeypatch.setattr(controller, "_cached_prune_loss", lambda **kwargs: 0.5)
+
+    result = controller.run()
+
+    assert int(result.summary["prune_count"]) == 0
+    assert str(result.trajectory[0]["controller_lane"]) == "prune"
+    assert str(result.trajectory[0]["action_kind"]) == "stay"
+    assert str(result.trajectory[0]["proposed_action_kind"]) == "prune_coordinate"
+    assert str(result.trajectory[0]["decision_override_reason"]) == "prune_rejected_cached_prune_loss_above_tol"
+
+
+def test_realtime_controller_stays_when_miss_threshold_is_high(monkeypatch: pytest.MonkeyPatch) -> None:
     replay_context, h_poly, hmat, psi_initial = _toy_context(theta_x=0.2)
     controller = RealtimeCheckpointController(
         cfg=RealtimeCheckpointConfig(
@@ -169,10 +485,21 @@ def test_realtime_controller_stays_when_miss_threshold_is_high() -> None:
         t_final=0.2,
         num_times=3,
     )
+    monkeypatch.setattr(
+        controller,
+        "_scout_candidates",
+        lambda **kwargs: (_ for _ in ()).throw(AssertionError("scout should stay closed below miss threshold")),
+    )
     result = controller.run()
 
     assert int(result.summary["append_count"]) == 0
     assert all(str(row["action_kind"]) == "stay" for row in result.ledger)
+    assert all(str(row["controller_lane"]) == "stay" for row in result.ledger)
+    assert all(str(row["controller_lane_reason"]) == "exact_rho_miss_below_threshold" for row in result.trajectory[:-1])
+    assert all(row.get("shortlist") == [] for row in result.trajectory[:-1])
+    assert all(row.get("confirmed") == [] for row in result.trajectory[:-1])
+    assert str(result.trajectory[-1]["controller_lane"]) == "stay"
+    assert str(result.trajectory[-1]["controller_lane_reason"]) == "terminal_checkpoint"
 
 
 def test_realtime_controller_writes_progress_file(tmp_path: Path) -> None:
@@ -615,6 +942,101 @@ def test_incremental_candidate_gain_matches_full_augmented_recompute() -> None:
     assert abs(incremental_gain_full - float(best["gain_exact"])) < 1e-8
 
 
+def test_scout_candidates_follow_manuscript_lower_bound_score() -> None:
+    replay_context, h_poly, hmat, psi_initial = _toy_context(theta_x=0.2)
+    cfg = RealtimeCheckpointConfig(
+        mode="exact_v1",
+        miss_threshold=0.0,
+        shortlist_size=8,
+        shortlist_fraction=1.0,
+        regularization_lambda=1e-8,
+        candidate_regularization_lambda=1e-8,
+    )
+    controller = RealtimeCheckpointController(
+        cfg=cfg,
+        replay_context=replay_context,
+        h_poly=h_poly,
+        hmat=hmat,
+        psi_initial=psi_initial,
+        best_theta=[0.2],
+        allow_repeats=False,
+        t_final=0.1,
+        num_times=2,
+    )
+    checkpoint_ctx = make_checkpoint_context(
+        checkpoint_index=0,
+        time_start=0.0,
+        time_stop=0.1,
+        scaffold_labels=[carrier.label for carrier in controller.current_terms],
+        theta=controller.current_theta,
+        psi=controller.current_executor.prepare_state(controller.current_theta, replay_context.psi_ref),
+        logical_count=int(controller.current_layout.logical_parameter_count),
+        runtime_count=int(controller.current_layout.runtime_parameter_count),
+        resolved_family="toy_pool",
+        grouping_mode=str(cfg.grouping_mode),
+        structure_locked=False,
+    )
+    cache = ExactCheckpointValueCache(
+        checkpoint_id=str(checkpoint_ctx.checkpoint_id),
+        grouping_mode=str(cfg.grouping_mode),
+    )
+    geometry_memo = DerivedGeometryMemo(checkpoint_id=str(checkpoint_ctx.checkpoint_id))
+    baseline = controller._baseline_geometry(checkpoint_ctx, cache, geometry_memo)
+    shortlist = controller._scout_candidates(
+        checkpoint_ctx=checkpoint_ctx,
+        cache=cache,
+        geometry_memo=geometry_memo,
+        baseline=baseline,
+        predicted_displacement=0.0,
+    )
+
+    assert shortlist
+    record = dict(shortlist[0])
+    U_cols = [
+        np.asarray(record["candidate_data"]["raw_tangents"][idx], dtype=complex)
+        - complex(np.vdot(baseline["psi"], record["candidate_data"]["raw_tangents"][idx])) * np.asarray(baseline["psi"], dtype=complex)
+        for idx in record["candidate_data"]["runtime_block_indices"]
+    ]
+    U = np.column_stack(U_cols) if U_cols else np.zeros((baseline["psi"].size, 0), dtype=complex)
+    residual_overlap_vec = np.asarray(
+        np.real(U.conj().T @ np.asarray(baseline["residual_step"], dtype=complex)),
+        dtype=float,
+    ).reshape(-1)
+    C = np.asarray(np.real(U.conj().T @ U), dtype=float)
+    C_reg = np.asarray(
+        C + float(cfg.candidate_regularization_lambda) * np.eye(int(C.shape[0])),
+        dtype=float,
+    )
+    C_reg_pinv = np.linalg.pinv(C_reg, rcond=float(cfg.pinv_rcond)) if C_reg.size else np.zeros((0, 0), dtype=float)
+    lower_gain = (
+        float(max(0.0, float(residual_overlap_vec @ C_reg_pinv @ residual_overlap_vec)))
+        if residual_overlap_vec.size
+        else 0.0
+    )
+    scout_gain_ratio = float(lower_gain / max(float(baseline["norm_b_sq"]), 1e-14))
+    scout_score = float(
+        scout_gain_ratio
+        + float(record.get("temporal_prior_bonus", 0.0))
+        - float(cfg.compile_penalty_weight) * float(record["compile_proxy_total"])
+        - float(cfg.measurement_penalty_weight) * float(record["groups_new"])
+        - float(cfg.directional_penalty_weight) * float(record["position_jump_penalty"])
+    )
+    legacy_simple_score = float(
+        float(np.linalg.norm(residual_overlap_vec))
+        + float(record.get("temporal_prior_bonus", 0.0))
+        - float(cfg.compile_penalty_weight) * float(record["compile_proxy_total"])
+        - float(cfg.measurement_penalty_weight) * float(record["groups_new"])
+        - float(cfg.directional_penalty_weight) * float(record["position_jump_penalty"])
+    )
+
+    assert float(record["residual_overlap_l2"]) == pytest.approx(float(np.linalg.norm(residual_overlap_vec)))
+    assert float(record["scout_lower_gain"]) == pytest.approx(lower_gain)
+    assert float(record["scout_gain_ratio"]) == pytest.approx(scout_gain_ratio)
+    assert float(record["scout_score"]) == pytest.approx(scout_score)
+    assert float(record["simple_score"]) == pytest.approx(legacy_simple_score)
+    assert str(record["scout_score_kind"]) == "shared_baseline_lower_gain_ratio_minus_penalties"
+
+
 def test_scout_candidates_use_unique_candidate_identity_when_labels_repeat() -> None:
     replay_context, h_poly, hmat, psi_initial = _duplicate_label_context()
     cfg = RealtimeCheckpointConfig(
@@ -819,9 +1241,13 @@ def test_realtime_controller_drive_step_hamiltonian_uses_time_dependent_total_h(
     assert result.reference["drive_profile"]["A"] == pytest.approx(0.6)
     assert result.reference["projection_time_sampling"] == "midpoint"
     assert result.reference["geometry_sample_time_policy"] == "interval_midpoint_plus_t0_with_final_endpoint_fallback"
+    assert bool(result.summary["drive_aligned_density_active"]) is False
+    assert result.summary["drive_aligned_density_label"] is None
     assert result.trajectory[0]["physical_time"] == pytest.approx(0.05)
     assert result.trajectory[1]["physical_time"] == pytest.approx(0.15)
     assert result.trajectory[2]["physical_time"] == pytest.approx(0.2)
+    assert all("baseline_step_scale" in row for row in result.trajectory)
+    assert all("baseline_gain_scale" in row for row in result.trajectory)
     assert any(int(row.get("drive_term_count", 0)) >= 1 for row in result.ledger[1:])
     assert all("physical_time" in row for row in result.ledger)
     assert all("staggered" in row and "staggered_exact" in row for row in result.trajectory)
@@ -830,6 +1256,91 @@ def test_realtime_controller_drive_step_hamiltonian_uses_time_dependent_total_h(
     assert "max_abs_staggered_error" in result.summary
     assert "max_abs_doublon_error" in result.summary
     assert "max_abs_site_occupations_error" in result.summary
+
+
+def test_realtime_controller_drive_exact_v1_augments_with_drive_aligned_density(
+) -> None:
+    replay_context, h_poly, hmat, psi_initial = _two_qubit_drive_context(theta_x=0.2)
+
+    controller = RealtimeCheckpointController(
+        cfg=RealtimeCheckpointConfig(mode="exact_v1"),
+        replay_context=replay_context,
+        h_poly=h_poly,
+        hmat=hmat,
+        psi_initial=psi_initial,
+        best_theta=[0.2],
+        allow_repeats=False,
+        t_final=0.2,
+        num_times=2,
+        drive_config=ControllerDriveConfig(
+            enabled=True,
+            n_sites=1,
+            ordering="blocked",
+            drive_A=0.6,
+            drive_omega=1.0,
+            drive_tbar=1.0,
+            drive_phi=0.0,
+            drive_pattern="staggered",
+            drive_custom_weights=None,
+            drive_include_identity=False,
+            drive_time_sampling="midpoint",
+            drive_t0=0.0,
+            exact_steps_multiplier=1,
+        ),
+    )
+
+    assert bool(controller._drive_aligned_density_active) is True
+    assert str(controller._drive_aligned_density_label) == "drive_aligned_density(pattern=staggered)"
+    assert int(controller.current_layout.logical_parameter_count) == (
+        int(replay_context.base_layout.logical_parameter_count) + 1
+    )
+    assert int(controller.current_theta.size) == int(controller.current_layout.runtime_parameter_count)
+    assert int(controller.current_layout.runtime_parameter_count) > int(replay_context.base_layout.runtime_parameter_count)
+    psi_reconstructed = controller.current_executor.prepare_state(
+        np.asarray(controller.current_theta, dtype=float),
+        replay_context.psi_ref,
+    )
+    assert np.linalg.norm(
+        np.asarray(psi_reconstructed, dtype=complex).reshape(-1)
+        - np.asarray(psi_initial, dtype=complex).reshape(-1)
+    ) <= 1.0e-10
+
+
+def test_realtime_controller_drive_aligned_runtime_indices_match_suffixed_runtime_labels() -> None:
+    replay_context, h_poly, hmat, psi_initial = _two_qubit_drive_context(theta_x=0.2)
+
+    controller = RealtimeCheckpointController(
+        cfg=RealtimeCheckpointConfig(mode="exact_v1"),
+        replay_context=replay_context,
+        h_poly=h_poly,
+        hmat=hmat,
+        psi_initial=psi_initial,
+        best_theta=[0.2],
+        allow_repeats=False,
+        t_final=0.2,
+        num_times=2,
+        drive_config=ControllerDriveConfig(
+            enabled=True,
+            n_sites=1,
+            ordering="blocked",
+            drive_A=0.6,
+            drive_omega=1.0,
+            drive_tbar=1.0,
+            drive_phi=0.0,
+            drive_pattern="staggered",
+            drive_custom_weights=None,
+            drive_include_identity=False,
+            drive_time_sampling="midpoint",
+            drive_t0=0.0,
+            exact_steps_multiplier=1,
+        ),
+    )
+
+    indices = controller._drive_aligned_runtime_indices()
+    assert tuple(indices) == tuple(range(int(controller.current_layout.blocks[-1].runtime_start), int(controller.current_layout.blocks[-1].runtime_stop)))
+    assert str(controller.current_layout.blocks[-1].candidate_label).startswith(
+        "drive_aligned_density(pattern=staggered)__r"
+    )
 
 
 @pytest.mark.parametrize(
@@ -1304,6 +1815,8 @@ def test_realtime_controller_oracle_v1_policy_reranks_measured_candidates_by_noi
                 "aug_layout": controller.current_layout,
                 "aug_executor": controller.current_executor,
                 "aug_terms": list(controller.current_terms),
+                "runtime_insert_position": 0,
+                "runtime_block_indices": [],
             },
             "theta_dot_aug": np.asarray(controller.current_theta, dtype=float) * 0.0,
         }
@@ -1490,6 +2003,8 @@ def test_realtime_controller_oracle_v1_policy_falls_back_to_measured_selection_o
                 "aug_layout": controller.current_layout,
                 "aug_executor": controller.current_executor,
                 "aug_terms": list(controller.current_terms),
+                "runtime_insert_position": 0,
+                "runtime_block_indices": [],
             },
             "theta_dot_aug": np.asarray(controller.current_theta, dtype=float) * 0.0,
         }
@@ -1589,6 +2104,128 @@ def test_realtime_controller_oracle_v1_policy_falls_back_to_measured_selection_o
     assert str(result.trajectory[0]["degraded_reason"]).startswith("oracle_rerank_error:")
 
 
+def test_realtime_controller_oracle_geometry_clears_deferred_confirm_payload() -> None:
+    replay_context, h_poly, hmat, psi_initial = _toy_context(theta_x=0.2)
+    controller = RealtimeCheckpointController(
+        cfg=RealtimeCheckpointConfig(
+            mode="oracle_v1",
+            miss_threshold=0.0,
+            gain_ratio_threshold=1.0e-9,
+            append_margin_abs=1.0e-12,
+        ),
+        replay_context=replay_context,
+        h_poly=h_poly,
+        hmat=hmat,
+        psi_initial=psi_initial,
+        best_theta=[0.2],
+        allow_repeats=False,
+        t_final=0.2,
+        num_times=2,
+        oracle_base_config=OracleConfig(
+            noise_mode="ideal",
+            oracle_aggregate="mean",
+            shots=64,
+            oracle_repeats=1,
+        ),
+        wallclock_cap_s=60,
+    )
+
+    def _record(label: str, pool_index: int) -> dict[str, object]:
+        return {
+            "candidate_label": label,
+            "candidate_identity": label,
+            "candidate_pool_index": int(pool_index),
+            "position_id": int(pool_index),
+            "adjusted_gain": 2.0,
+            "confirm_score": 2.0,
+            "confirm_score_kind": "compressed_whitened_lower_gain_ratio_minus_penalties",
+            "confirm_compress_modes_used": 2,
+            "confirm_support_rank": 2,
+            "confirm_compressed_gain_ratio": 2.0,
+            "confirm_compressed_gain_exact": 2.0,
+            "gain_exact": 2.0,
+            "gain_ratio": 2.0,
+            "groups_new": 0.0,
+            "candidate_summary": CandidateProbeSummary(
+                candidate_label=label,
+                candidate_pool_index=int(pool_index),
+                position_id=int(pool_index),
+                runtime_insert_position=0,
+                runtime_block_indices=[],
+                residual_overlap_l2=0.0,
+                gain_exact=2.0,
+                gain_ratio=2.0,
+                compile_proxy_total=1.0,
+                groups_new=0.0,
+                novelty=None,
+                position_jump_penalty=0.0,
+                directional_change_l2=0.0,
+                tier_reached="confirm",
+                admissible=True,
+                rejection_reason=None,
+                decision_metric="measured_incremental_gain_ratio",
+                oracle_estimate_kind="oracle_ideal",
+            ),
+        }
+
+    checkpoint_ctx = make_checkpoint_context(
+        checkpoint_index=0,
+        time_start=0.0,
+        time_stop=0.2,
+        scaffold_labels=[str(block.candidate_label) for block in controller.current_layout.blocks],
+        theta=np.asarray(controller.current_theta, dtype=float),
+        psi=np.asarray(
+            controller.current_executor.prepare_state(controller.current_theta, replay_context.psi_ref),
+            dtype=complex,
+        ),
+        logical_count=int(controller.current_layout.logical_parameter_count),
+        runtime_count=int(controller.current_layout.runtime_parameter_count),
+        resolved_family=str(replay_context.family_info.get("resolved", "toy_pool")),
+        grouping_mode=str(controller.cfg.grouping_mode),
+        structure_locked=True,
+    )
+    cache = ExactCheckpointValueCache(
+        checkpoint_id=checkpoint_ctx.checkpoint_id,
+        grouping_mode=str(controller.cfg.grouping_mode),
+    )
+    geometry_memo = DerivedGeometryMemo(checkpoint_id=checkpoint_ctx.checkpoint_id)
+
+    controller._oracle_measured_baseline_geometry = lambda **kwargs: {  # type: ignore[method-assign]
+        "summary": SimpleNamespace(rho_miss=0.5)
+    }
+
+    baseline_measured, measured_records, degraded_reason = controller._confirm_candidates_oracle_geometry(
+        checkpoint_ctx=checkpoint_ctx,
+        cache=cache,
+        geometry_memo=geometry_memo,
+        confirmed=[_record("candidate_a", 0), _record("candidate_b", 1)],
+        raw_group_pool=None,
+        h_poly_step=h_poly,
+        confirm_limit=0,
+        budget_scale=1.0,
+    )
+
+    assert degraded_reason is None
+    assert baseline_measured is not None
+    assert len(measured_records) == 2
+    for rec in measured_records:
+        assert rec["gain_exact"] is None
+        assert rec["gain_ratio"] is None
+        assert rec["adjusted_gain"] == float("-inf")
+        assert rec["confirm_score"] is None
+        assert str(rec["confirm_score_kind"]) == "not_confirmed"
+        assert int(rec["confirm_compress_modes_used"]) == 0
+        assert int(rec["confirm_support_rank"]) == 0
+        assert rec["confirm_compressed_gain_ratio"] is None
+        assert rec["confirm_compressed_gain_exact"] is None
+        assert rec["confirm_backend_info"] is None
+        assert str(rec["confirm_error"]) == "deferred_by_refresh_pressure"
+        assert rec["candidate_summary"].gain_exact is None
+        assert rec["candidate_summary"].gain_ratio is None
+        assert str(rec["candidate_summary"].rejection_reason) == "deferred_by_refresh_pressure"
+        assert str(rec["candidate_summary"].decision_metric) == "not_confirmed"
+
+
 def test_realtime_controller_oracle_v1_exact_forecast_guardrail_vetoes_append(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -1658,6 +2295,8 @@ def test_realtime_controller_oracle_v1_exact_forecast_guardrail_vetoes_append(
                 "aug_layout": controller.current_layout,
                 "aug_executor": controller.current_executor,
                 "aug_terms": list(controller.current_terms),
+                "runtime_insert_position": 0,
+                "runtime_block_indices": [],
             },
             "theta_dot_aug": np.asarray(controller.current_theta, dtype=float) * 0.0,
         }
@@ -1753,6 +2392,8 @@ def test_realtime_controller_oracle_v1_exact_forecast_guardrail_vetoes_append(
     assert int(result.summary["exact_forecast_veto_count"]) == 1
     assert str(result.summary["exact_forecast_guardrail_mode"]) == "dual_metric_v1"
     assert str(result.trajectory[0]["action_kind"]) == "stay"
+    assert str(result.trajectory[0]["controller_lane"]) == "append"
+    assert str(result.trajectory[0]["controller_lane_reason"]) == "exact_rho_miss_above_threshold"
     assert str(result.trajectory[0]["proposed_action_kind"]) == "append_candidate"
     assert str(result.trajectory[0]["proposed_candidate_label"]) == "candidate_a"
     assert str(result.trajectory[0]["decision_override_reason"]) == "exact_forecast_dual_metric_regression"
@@ -1830,6 +2471,8 @@ def test_realtime_controller_oracle_v1_exact_forecast_guardrail_fails_open(
                 "aug_layout": controller.current_layout,
                 "aug_executor": controller.current_executor,
                 "aug_terms": list(controller.current_terms),
+                "runtime_insert_position": 0,
+                "runtime_block_indices": [],
             },
             "theta_dot_aug": np.asarray(controller.current_theta, dtype=float) * 0.0,
         }
@@ -1908,6 +2551,172 @@ def test_realtime_controller_oracle_v1_exact_forecast_guardrail_fails_open(
     assert result.trajectory[0]["decision_override_reason"] is None
     assert "RuntimeError: boom" in str(result.trajectory[0]["exact_forecast_error"])
     assert "exact_forecast_error: RuntimeError: boom" in str(result.trajectory[0]["degraded_reason"])
+
+
+def test_realtime_controller_exact_v1_vetoes_append_when_stay_forecast_is_already_bounded(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    replay_context, h_poly, hmat, psi_initial = _toy_context(theta_x=0.2)
+    controller = RealtimeCheckpointController(
+        cfg=RealtimeCheckpointConfig(
+            mode="exact_v1",
+            miss_threshold=0.0,
+            gain_ratio_threshold=1e-9,
+            append_margin_abs=1e-12,
+            shortlist_size=4,
+            shortlist_fraction=1.0,
+        ),
+        replay_context=replay_context,
+        h_poly=h_poly,
+        hmat=hmat,
+        psi_initial=psi_initial,
+        best_theta=[0.2],
+        allow_repeats=False,
+        t_final=0.2,
+        num_times=2,
+    )
+
+    def _candidate_record(label: str, adjusted_gain: float):
+        return {
+            "candidate_label": label,
+            "candidate_identity": label,
+            "candidate_pool_index": 0,
+            "position_id": 0,
+            "runtime_insert_position": 0,
+            "runtime_block_indices": [],
+            "adjusted_gain": float(adjusted_gain),
+            "gain_exact": float(adjusted_gain),
+            "gain_ratio": float(adjusted_gain),
+            "groups_new": 0.0,
+            "candidate_term": replay_context.family_pool[0],
+            "candidate_summary": CandidateProbeSummary(
+                candidate_label=label,
+                candidate_pool_index=0,
+                position_id=0,
+                runtime_insert_position=0,
+                runtime_block_indices=[],
+                residual_overlap_l2=0.0,
+                directional_change_l2=None,
+                gain_exact=float(adjusted_gain),
+                gain_ratio=float(adjusted_gain),
+                compile_proxy_total=1.0,
+                groups_new=0.0,
+                novelty=None,
+                position_jump_penalty=0.0,
+                admissible=True,
+                rejection_reason=None,
+                tier_reached="confirm",
+                decision_metric="compressed_whitened_confirm_gain_ratio",
+                oracle_estimate_kind=None,
+            ),
+            "candidate_data": {
+                "theta_aug": np.asarray(controller.current_theta, dtype=float).copy(),
+                "aug_layout": controller.current_layout,
+                "aug_executor": controller.current_executor,
+                "aug_terms": list(controller.current_terms),
+                "runtime_insert_position": 0,
+                "runtime_block_indices": [],
+            },
+            "theta_dot_aug": np.asarray(controller.current_theta, dtype=float) * 0.0,
+        }
+
+    forecast_calls: list[str] = []
+
+    def _fake_exact_step_forecast(**kwargs):
+        forecast_calls.append("call")
+        if len(forecast_calls) == 1:
+            return {
+                "fidelity_exact_next": 0.9995,
+                "abs_energy_total_error_next": 1.0e-4,
+                "abs_staggered_error_next": 5.0e-3,
+                "abs_doublon_error_next": 5.0e-4,
+                "site_occupations_abs_error_max_next": 5.0e-3,
+            }
+        return {
+            "fidelity_exact_next": 0.9997,
+            "abs_energy_total_error_next": 1.2e-4,
+            "abs_staggered_error_next": 4.0e-3,
+            "abs_doublon_error_next": 4.0e-4,
+            "site_occupations_abs_error_max_next": 4.0e-3,
+        }
+
+    monkeypatch.setattr(
+        controller,
+        "_scout_candidates",
+        lambda **kwargs: [
+            {
+                "candidate_label": "candidate_a",
+                "candidate_pool_index": 0,
+                "position_id": 0,
+                "runtime_insert_position": 0,
+                "runtime_block_indices": [],
+                "residual_overlap_l2": 0.0,
+                "compile_proxy_total": 1.0,
+                "groups_new": 0.0,
+                "novelty": None,
+                "position_jump_penalty": 0.0,
+                "temporal_prior_bonus": 0.0,
+                "simple_score": 2.0,
+            }
+        ],
+    )
+    monkeypatch.setattr(
+        controller,
+        "_confirm_candidates",
+        lambda **kwargs: [_candidate_record("candidate_a", adjusted_gain=3.0)],
+    )
+    monkeypatch.setattr(controller, "_exact_step_forecast", _fake_exact_step_forecast)
+
+    result = controller.run()
+
+    assert int(result.summary["append_count"]) == 0
+    assert int(result.summary["stay_count"]) == 2
+    assert int(result.summary["decision_override_count"]) == 1
+    assert int(result.summary["exact_forecast_veto_count"]) == 1
+    assert str(result.trajectory[0]["action_kind"]) == "stay"
+    assert str(result.trajectory[0]["controller_lane"]) == "append"
+    assert str(result.trajectory[0]["proposed_action_kind"]) == "append_candidate"
+    assert str(result.trajectory[0]["decision_override_reason"]) == "exact_forecast_stay_within_bounded_defect"
+    assert float(result.trajectory[0]["forecast_stay_site_occupations_abs_error_max_next"]) == pytest.approx(
+        4.0e-3
+    )
+    assert str(result.ledger[0]["decision_override_reason"]) == "exact_forecast_stay_within_bounded_defect"
+
+
+def test_exact_v1_forecast_override_reason_rejects_nonimproving_tracking_score() -> None:
+    replay_context, h_poly, hmat, psi_initial = _toy_context(theta_x=0.2)
+    controller = RealtimeCheckpointController(
+        cfg=RealtimeCheckpointConfig(mode="exact_v1"),
+        replay_context=replay_context,
+        h_poly=h_poly,
+        hmat=hmat,
+        psi_initial=psi_initial,
+        best_theta=[0.2],
+        allow_repeats=False,
+        t_final=0.2,
+        num_times=2,
+    )
+
+    reason = controller._exact_v1_forecast_override_reason(
+        stay_forecast={
+            "fidelity_exact_next": 0.97,
+            "abs_energy_total_error_next": 0.01,
+            "abs_staggered_error_next": 0.03,
+            "abs_doublon_error_next": 0.01,
+            "site_occupations_abs_error_max_next": 0.03,
+        },
+        selected_forecast={
+            "fidelity_exact_next": 0.975,
+            "abs_energy_total_error_next": 0.02,
+            "abs_staggered_error_next": 0.04,
+            "abs_doublon_error_next": 0.015,
+            "site_occupations_abs_error_max_next": 0.04,
+        },
+        action_kind="append_candidate",
+        selected={"candidate_label": "candidate_a"},
+    )
+
+    assert reason == "exact_forecast_nonimproving_tracking_score"
 
 
 def test_confirm_candidates_oracle_prefers_damped_candidate_step_scale(
@@ -2038,6 +2847,1724 @@ def test_confirm_candidates_oracle_prefers_damped_candidate_step_scale(
     assert float(rec["predicted_noisy_improvement_abs"]) == pytest.approx(0.4)
     assert np.asarray(rec["theta_dot_aug"], dtype=float) == pytest.approx(np.array([0.2, 0.25]))
     assert float(rec["candidate_summary"].selected_step_scale) == pytest.approx(0.25)
+
+
+def test_exact_v1_selects_damped_candidate_step_scale_from_forecast(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    replay_context, h_poly, hmat, psi_initial = _toy_context(theta_x=0.2)
+    controller = RealtimeCheckpointController(
+        cfg=RealtimeCheckpointConfig(
+            mode="exact_v1",
+            candidate_step_scales=(0.25, 1.0),
+        ),
+        replay_context=replay_context,
+        h_poly=h_poly,
+        hmat=hmat,
+        psi_initial=psi_initial,
+        best_theta=[0.2],
+        allow_repeats=False,
+        t_final=0.2,
+        num_times=2,
+        wallclock_cap_s=60,
+    )
+    checkpoint_ctx = make_checkpoint_context(
+        checkpoint_index=0,
+        time_start=0.0,
+        time_stop=0.2,
+        scaffold_labels=[str(block.candidate_label) for block in controller.current_layout.blocks],
+        theta=np.asarray(controller.current_theta, dtype=float),
+        psi=np.asarray(
+            controller.current_executor.prepare_state(
+                controller.current_theta,
+                replay_context.psi_ref,
+            ),
+            dtype=complex,
+        ),
+        logical_count=int(controller.current_layout.logical_parameter_count),
+        runtime_count=int(controller.current_layout.runtime_parameter_count),
+        resolved_family=str(replay_context.family_info.get("resolved", "toy_pool")),
+        grouping_mode=str(controller.cfg.grouping_mode),
+        structure_locked=True,
+    )
+    exact_cache = ExactCheckpointValueCache(
+        checkpoint_id=checkpoint_ctx.checkpoint_id,
+        grouping_mode=str(controller.cfg.grouping_mode),
+    )
+    geometry_memo = DerivedGeometryMemo(checkpoint_id=checkpoint_ctx.checkpoint_id)
+    candidate_data = controller._candidate_executor_data(
+        checkpoint_ctx=checkpoint_ctx,
+        cache=exact_cache,
+        geometry_memo=geometry_memo,
+        candidate_term=replay_context.family_pool[1],
+        candidate_pool_index=1,
+        position_id=1,
+    )
+    selected = {
+        "candidate_label": str(replay_context.family_pool[1].label),
+        "candidate_identity": f"{replay_context.family_pool[1].label}__pool1",
+        "candidate_pool_index": 1,
+        "position_id": 1,
+        "runtime_insert_position": int(candidate_data["runtime_insert_position"]),
+        "runtime_block_indices": list(candidate_data["runtime_block_indices"]),
+        "groups_new": 0.0,
+        "candidate_data": candidate_data,
+        "theta_dot_aug": np.array([0.2, 1.0], dtype=float),
+        "theta_dot_aug_existing": np.array([0.2], dtype=float),
+        "eta_dot": np.array([1.0], dtype=float),
+        "candidate_summary": CandidateProbeSummary(
+            candidate_label=str(replay_context.family_pool[1].label),
+            candidate_pool_index=1,
+            position_id=1,
+            runtime_insert_position=int(candidate_data["runtime_insert_position"]),
+            runtime_block_indices=list(candidate_data["runtime_block_indices"]),
+            residual_overlap_l2=1.0,
+            gain_exact=1.0,
+            gain_ratio=1.0,
+            compile_proxy_total=1.0,
+            groups_new=0.0,
+            novelty=None,
+            position_jump_penalty=0.0,
+            directional_change_l2=0.0,
+            tier_reached="confirm",
+            admissible=True,
+            rejection_reason=None,
+            decision_metric="compressed_whitened_confirm_gain_ratio",
+            oracle_estimate_kind=None,
+        ),
+    }
+
+    def _fake_exact_step_forecast(**kwargs):
+        theta_runtime = np.asarray(kwargs["theta_runtime"], dtype=float).reshape(-1)
+        append_amp = float(theta_runtime[-1])
+        if append_amp <= 0.3:
+            return {
+                "fidelity_exact_next": 0.995,
+                "abs_energy_total_error_next": 0.01,
+                "abs_staggered_error_next": 0.01,
+                "abs_doublon_error_next": 0.005,
+                "site_occupations_abs_error_max_next": 0.01,
+            }
+        return {
+            "fidelity_exact_next": 0.90,
+            "abs_energy_total_error_next": 0.4,
+            "abs_staggered_error_next": 0.2,
+            "abs_doublon_error_next": 0.1,
+            "site_occupations_abs_error_max_next": 0.2,
+        }
+
+    monkeypatch.setattr(controller, "_exact_step_forecast", _fake_exact_step_forecast)
+
+    scaled_selected, scaled_forecast = controller._select_exact_v1_candidate_step_scale(
+        baseline_theta_dot=np.array([0.2], dtype=float),
+        selected=selected,
+        dt=1.0,
+        time_stop=0.2,
+    )
+
+    assert float(scaled_selected["candidate_step_scale"]) == pytest.approx(0.25)
+    assert np.asarray(scaled_selected["theta_dot_aug"], dtype=float) == pytest.approx(np.array([0.2, 0.25]))
+    assert float(scaled_selected["candidate_summary"].selected_step_scale) == pytest.approx(0.25)
+    assert float(scaled_forecast["fidelity_exact_next"]) == pytest.approx(0.995)
+
+
+def test_exact_v1_forecast_tracking_score_uses_horizon_weights() -> None:
+    replay_context, h_poly, hmat, psi_initial = _toy_context(theta_x=0.2)
+    controller = RealtimeCheckpointController(
+        cfg=RealtimeCheckpointConfig(
+            mode="exact_v1",
+            exact_forecast_tracking_horizon_steps=3,
+            exact_forecast_tracking_horizon_weights=(3.0, 2.0, 1.0),
+        ),
+        replay_context=replay_context,
+        h_poly=h_poly,
+        hmat=hmat,
+        psi_initial=psi_initial,
+        best_theta=[0.2],
+        allow_repeats=False,
+        t_final=0.3,
+        num_times=4,
+        wallclock_cap_s=60,
+    )
+    forecasts = [
+        {
+            "fidelity_exact_next": 0.99,
+            "abs_energy_total_error_next": 0.01,
+            "abs_staggered_error_next": 0.02,
+            "abs_doublon_error_next": 0.03,
+            "site_occupations_abs_error_max_next": 0.04,
+        },
+        {
+            "fidelity_exact_next": 0.95,
+            "abs_energy_total_error_next": 0.10,
+            "abs_staggered_error_next": 0.20,
+            "abs_doublon_error_next": 0.30,
+            "site_occupations_abs_error_max_next": 0.40,
+        },
+        {
+            "fidelity_exact_next": 0.90,
+            "abs_energy_total_error_next": 0.50,
+            "abs_staggered_error_next": 0.60,
+            "abs_doublon_error_next": 0.70,
+            "site_occupations_abs_error_max_next": 0.80,
+        },
+    ]
+
+    score = controller._forecast_tracking_score(forecast=forecasts)
+
+    step_1 = 0.01 + 0.02 + 0.03 + 0.04 + 0.01
+    step_2 = 0.05 + 0.20 + 0.30 + 0.40 + 0.10
+    step_3 = 0.10 + 0.60 + 0.70 + 0.80 + 0.50
+    expected = (3.0 * step_1 + 2.0 * step_2 + 1.0 * step_3) / 6.0
+    assert float(score) == pytest.approx(expected)
+
+
+def test_exact_v1_forecast_tracking_score_adds_energy_slope_term() -> None:
+    replay_context, h_poly, hmat, psi_initial = _toy_context(theta_x=0.2)
+    controller = RealtimeCheckpointController(
+        cfg=RealtimeCheckpointConfig(
+            mode="exact_v1",
+            exact_forecast_tracking_horizon_steps=2,
+            exact_forecast_energy_slope_weight=100.0,
+        ),
+        replay_context=replay_context,
+        h_poly=h_poly,
+        hmat=hmat,
+        psi_initial=psi_initial,
+        best_theta=[0.2],
+        allow_repeats=False,
+        t_final=0.2,
+        num_times=3,
+        wallclock_cap_s=60,
+    )
+    forecasts = [
+        {
+            "fidelity_exact_next": 0.99,
+            "abs_energy_total_error_next": 0.01,
+            "abs_staggered_error_next": 0.02,
+            "abs_doublon_error_next": 0.03,
+            "site_occupations_abs_error_max_next": 0.04,
+            "energy_total_controller_next": 0.10,
+            "energy_total_exact_next": 0.10,
+        },
+        {
+            "fidelity_exact_next": 0.99,
+            "abs_energy_total_error_next": 0.01,
+            "abs_staggered_error_next": 0.02,
+            "abs_doublon_error_next": 0.03,
+            "site_occupations_abs_error_max_next": 0.04,
+            "energy_total_controller_next": 0.10,
+            "energy_total_exact_next": 0.11,
+        },
+    ]
+
+    score = controller._forecast_tracking_score(forecast=forecasts)
+
+    base = 0.01 + 0.02 + 0.03 + 0.04 + 0.01
+    slope_err = 0.01
+    expected = base + 100.0 * slope_err
+    assert float(score) == pytest.approx(expected)
+
+
+def test_exact_v1_forecast_tracking_score_adds_energy_slope_term_with_anchor() -> None:
+    replay_context, h_poly, hmat, psi_initial = _toy_context(theta_x=0.2)
+    controller = RealtimeCheckpointController(
+        cfg=RealtimeCheckpointConfig(
+            mode="exact_v1",
+            exact_forecast_tracking_horizon_steps=2,
+            exact_forecast_energy_slope_weight=100.0,
+        ),
+        replay_context=replay_context,
+        h_poly=h_poly,
+        hmat=hmat,
+        psi_initial=psi_initial,
+        best_theta=[0.2],
+        allow_repeats=False,
+        t_final=0.2,
+        num_times=3,
+        wallclock_cap_s=60,
+    )
+    forecasts = [
+        {
+            "fidelity_exact_next": 0.99,
+            "abs_energy_total_error_next": 0.01,
+            "abs_staggered_error_next": 0.02,
+            "abs_doublon_error_next": 0.03,
+            "site_occupations_abs_error_max_next": 0.04,
+            "energy_total_controller_next": 0.10,
+            "energy_total_exact_next": 0.10,
+        },
+        {
+            "fidelity_exact_next": 0.99,
+            "abs_energy_total_error_next": 0.01,
+            "abs_staggered_error_next": 0.02,
+            "abs_doublon_error_next": 0.03,
+            "site_occupations_abs_error_max_next": 0.04,
+            "energy_total_controller_next": 0.10,
+            "energy_total_exact_next": 0.11,
+        },
+    ]
+    slope_anchor = {
+        "energy_total_controller_next": 0.20,
+        "energy_total_exact_next": 0.18,
+    }
+
+    score = controller._forecast_tracking_score(
+        forecast=forecasts,
+        curvature_anchor=slope_anchor,
+    )
+
+    base = 0.01 + 0.02 + 0.03 + 0.04 + 0.01
+    slope_err = 0.015
+    expected = base + 100.0 * slope_err
+    assert float(score) == pytest.approx(expected)
+
+
+def test_exact_v1_forecast_tracking_score_adds_energy_curvature_term_with_anchor() -> None:
+    replay_context, h_poly, hmat, psi_initial = _toy_context(theta_x=0.2)
+    controller = RealtimeCheckpointController(
+        cfg=RealtimeCheckpointConfig(
+            mode="exact_v1",
+            exact_forecast_tracking_horizon_steps=2,
+            exact_forecast_energy_curvature_weight=50.0,
+        ),
+        replay_context=replay_context,
+        h_poly=h_poly,
+        hmat=hmat,
+        psi_initial=psi_initial,
+        best_theta=[0.2],
+        allow_repeats=False,
+        t_final=0.2,
+        num_times=3,
+        wallclock_cap_s=60,
+    )
+    forecasts = [
+        {
+            "fidelity_exact_next": 0.99,
+            "abs_energy_total_error_next": 0.01,
+            "abs_staggered_error_next": 0.02,
+            "abs_doublon_error_next": 0.03,
+            "site_occupations_abs_error_max_next": 0.04,
+            "energy_total_controller_next": 0.10,
+            "energy_total_exact_next": 0.10,
+        },
+        {
+            "fidelity_exact_next": 0.99,
+            "abs_energy_total_error_next": 0.01,
+            "abs_staggered_error_next": 0.02,
+            "abs_doublon_error_next": 0.03,
+            "site_occupations_abs_error_max_next": 0.04,
+            "energy_total_controller_next": 0.10,
+            "energy_total_exact_next": 0.11,
+        },
+    ]
+    curvature_anchor = {
+        "energy_total_controller_next": 0.08,
+        "energy_total_exact_next": 0.08,
+    }
+
+    score = controller._forecast_tracking_score(
+        forecast=forecasts,
+        curvature_anchor=curvature_anchor,
+    )
+
+    base = 0.01 + 0.02 + 0.03 + 0.04 + 0.01
+    curvature_err = 0.01
+    expected = base + 50.0 * curvature_err
+    assert float(score) == pytest.approx(expected)
+
+
+def test_forecast_tracking_score_uses_stored_horizon_score_for_rollout_record() -> None:
+    replay_context, h_poly, hmat, psi_initial = _toy_context(theta_x=0.2)
+    controller = RealtimeCheckpointController(
+        cfg=RealtimeCheckpointConfig(mode="exact_v1"),
+        replay_context=replay_context,
+        h_poly=h_poly,
+        hmat=hmat,
+        psi_initial=psi_initial,
+        best_theta=[0.2],
+        allow_repeats=False,
+        t_final=0.2,
+        num_times=3,
+        wallclock_cap_s=60,
+    )
+
+    score = controller._forecast_tracking_score(
+        forecast={
+            "tracking_score_horizon": 1.2345,
+            "fidelity_exact_next": 0.0,
+            "abs_energy_total_error_next": 999.0,
+            "abs_staggered_error_next": 999.0,
+            "abs_doublon_error_next": 999.0,
+            "site_occupations_abs_error_max_next": 999.0,
+        }
+    )
+
+    assert float(score) == pytest.approx(1.2345)
+
+
+def test_exact_v1_horizon_prefers_gentler_candidate_step_scale(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    replay_context, h_poly, hmat, psi_initial = _toy_context(theta_x=0.2)
+    controller = RealtimeCheckpointController(
+        cfg=RealtimeCheckpointConfig(
+            mode="exact_v1",
+            candidate_step_scales=(0.25, 1.0),
+            exact_forecast_tracking_horizon_steps=3,
+        ),
+        replay_context=replay_context,
+        h_poly=h_poly,
+        hmat=hmat,
+        psi_initial=psi_initial,
+        best_theta=[0.2],
+        allow_repeats=False,
+        t_final=3.0,
+        num_times=4,
+        wallclock_cap_s=60,
+    )
+    checkpoint_ctx = make_checkpoint_context(
+        checkpoint_index=0,
+        time_start=0.0,
+        time_stop=1.0,
+        scaffold_labels=[str(block.candidate_label) for block in controller.current_layout.blocks],
+        theta=np.asarray(controller.current_theta, dtype=float),
+        psi=np.asarray(
+            controller.current_executor.prepare_state(
+                controller.current_theta,
+                replay_context.psi_ref,
+            ),
+            dtype=complex,
+        ),
+        logical_count=int(controller.current_layout.logical_parameter_count),
+        runtime_count=int(controller.current_layout.runtime_parameter_count),
+        resolved_family=str(replay_context.family_info.get("resolved", "toy_pool")),
+        grouping_mode=str(controller.cfg.grouping_mode),
+        structure_locked=True,
+    )
+    exact_cache = ExactCheckpointValueCache(
+        checkpoint_id=checkpoint_ctx.checkpoint_id,
+        grouping_mode=str(controller.cfg.grouping_mode),
+    )
+    geometry_memo = DerivedGeometryMemo(checkpoint_id=checkpoint_ctx.checkpoint_id)
+    candidate_data = controller._candidate_executor_data(
+        checkpoint_ctx=checkpoint_ctx,
+        cache=exact_cache,
+        geometry_memo=geometry_memo,
+        candidate_term=replay_context.family_pool[1],
+        candidate_pool_index=1,
+        position_id=1,
+    )
+    selected = {
+        "candidate_label": str(replay_context.family_pool[1].label),
+        "candidate_identity": f"{replay_context.family_pool[1].label}__pool1",
+        "candidate_pool_index": 1,
+        "position_id": 1,
+        "runtime_insert_position": int(candidate_data["runtime_insert_position"]),
+        "runtime_block_indices": list(candidate_data["runtime_block_indices"]),
+        "groups_new": 0.0,
+        "candidate_data": candidate_data,
+        "theta_dot_aug": np.array([0.0, 1.0], dtype=float),
+        "theta_dot_aug_existing": np.array([0.0], dtype=float),
+        "eta_dot": np.array([1.0], dtype=float),
+        "candidate_summary": CandidateProbeSummary(
+            candidate_label=str(replay_context.family_pool[1].label),
+            candidate_pool_index=1,
+            position_id=1,
+            runtime_insert_position=int(candidate_data["runtime_insert_position"]),
+            runtime_block_indices=list(candidate_data["runtime_block_indices"]),
+            residual_overlap_l2=1.0,
+            gain_exact=1.0,
+            gain_ratio=1.0,
+            compile_proxy_total=1.0,
+            groups_new=0.0,
+            novelty=None,
+            position_jump_penalty=0.0,
+            directional_change_l2=0.0,
+            tier_reached="confirm",
+            admissible=True,
+            rejection_reason=None,
+            decision_metric="compressed_whitened_confirm_gain_ratio",
+            oracle_estimate_kind=None,
+        ),
+    }
+
+    def _fake_exact_step_forecast(**kwargs):
+        append_amp = float(np.asarray(kwargs["theta_runtime"], dtype=float).reshape(-1)[-1])
+        if append_amp < 0.9:
+            return {
+                "fidelity_exact_next": 0.97,
+                "abs_energy_total_error_next": 0.02,
+                "abs_staggered_error_next": 0.02,
+                "abs_doublon_error_next": 0.01,
+                "site_occupations_abs_error_max_next": 0.02,
+            }
+        if append_amp < 1.1:
+            return {
+                "fidelity_exact_next": 0.995,
+                "abs_energy_total_error_next": 0.005,
+                "abs_staggered_error_next": 0.005,
+                "abs_doublon_error_next": 0.002,
+                "site_occupations_abs_error_max_next": 0.005,
+            }
+        return {
+            "fidelity_exact_next": 0.80,
+            "abs_energy_total_error_next": 0.40,
+            "abs_staggered_error_next": 0.20,
+            "abs_doublon_error_next": 0.10,
+            "site_occupations_abs_error_max_next": 0.30,
+        }
+
+    monkeypatch.setattr(controller, "_exact_step_forecast", _fake_exact_step_forecast)
+
+    scaled_selected, scaled_forecast = controller._select_exact_v1_candidate_step_scale(
+        baseline_theta_dot=np.array([0.0], dtype=float),
+        selected=selected,
+        dt=1.0,
+        time_stop=1.0,
+    )
+
+    assert float(scaled_selected["candidate_step_scale"]) == pytest.approx(0.25)
+    assert np.asarray(scaled_selected["theta_dot_aug"], dtype=float) == pytest.approx(np.array([0.0, 0.25]))
+    assert int(scaled_forecast["tracking_horizon_steps_scored"]) == 3
+    assert list(scaled_forecast["tracking_horizon_weights_used"]) == pytest.approx([1.0, 1.0, 1.0])
+
+
+def test_exact_v1_drive_bootstrap_adds_drive_aligned_density_and_preserves_state() -> None:
+    replay_context, h_poly, hmat, psi_initial = _two_qubit_drive_context(theta_x=0.2)
+    controller = RealtimeCheckpointController(
+        cfg=RealtimeCheckpointConfig(mode="exact_v1"),
+        replay_context=replay_context,
+        h_poly=h_poly,
+        hmat=hmat,
+        psi_initial=psi_initial,
+        best_theta=[0.2],
+        allow_repeats=False,
+        t_final=0.2,
+        num_times=2,
+        drive_config=ControllerDriveConfig(
+            enabled=True,
+            n_sites=1,
+            ordering="blocked",
+            drive_A=0.6,
+            drive_omega=1.0,
+            drive_tbar=1.0,
+            drive_phi=0.0,
+            drive_pattern="staggered",
+            drive_custom_weights=None,
+            drive_include_identity=False,
+            drive_time_sampling="midpoint",
+            drive_t0=0.0,
+            exact_steps_multiplier=1,
+        ),
+    )
+
+    assert bool(controller._drive_aligned_density_active) is True
+    assert str(controller._drive_aligned_density_label) == "drive_aligned_density(pattern=staggered)"
+    assert int(controller.current_layout.logical_parameter_count) == 2
+    assert int(controller.current_layout.runtime_parameter_count) > 1
+    assert float(controller.current_theta[0]) == pytest.approx(0.2)
+    assert np.allclose(np.asarray(controller.current_theta[1:], dtype=float), 0.0)
+    psi_current = np.asarray(
+        controller.current_executor.prepare_state(
+            controller.current_theta,
+            replay_context.psi_ref,
+        ),
+        dtype=complex,
+    )
+    assert np.linalg.norm(psi_current - np.asarray(psi_initial, dtype=complex)) <= 1.0e-10
+
+
+def test_exact_v1_selects_damped_drive_aligned_baseline_step_scale(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    replay_context, h_poly, hmat, psi_initial = _two_qubit_drive_context(theta_x=0.2)
+    controller = RealtimeCheckpointController(
+        cfg=RealtimeCheckpointConfig(mode="exact_v1", candidate_step_scales=(1.0,)),
+        replay_context=replay_context,
+        h_poly=h_poly,
+        hmat=hmat,
+        psi_initial=psi_initial,
+        best_theta=[0.2],
+        allow_repeats=False,
+        t_final=0.2,
+        num_times=2,
+        drive_config=ControllerDriveConfig(
+            enabled=True,
+            n_sites=1,
+            ordering="blocked",
+            drive_A=0.6,
+            drive_omega=1.0,
+            drive_tbar=1.0,
+            drive_phi=0.0,
+            drive_pattern="staggered",
+            drive_custom_weights=None,
+            drive_include_identity=False,
+            drive_time_sampling="midpoint",
+            drive_t0=0.0,
+            exact_steps_multiplier=1,
+        ),
+    )
+    assert bool(controller._drive_aligned_density_active) is True
+    baseline_theta_dot = np.zeros(int(controller.current_theta.size), dtype=float)
+    baseline_theta_dot[0] = 0.2
+    baseline_theta_dot[-1] = 0.4
+
+    def _fake_exact_step_forecast(**kwargs):
+        theta_runtime = np.asarray(kwargs["theta_runtime"], dtype=float).reshape(-1)
+        amp = float(theta_runtime[-1])
+        if 0.035 <= amp <= 0.045:
+            return {
+                "fidelity_exact_next": 0.999,
+                "abs_energy_total_error_next": 0.01,
+                "abs_staggered_error_next": 0.01,
+                "abs_doublon_error_next": 0.005,
+                "site_occupations_abs_error_max_next": 0.01,
+            }
+        if abs(amp) <= 1.0e-12:
+            return {
+                "fidelity_exact_next": 0.995,
+                "abs_energy_total_error_next": 0.03,
+                "abs_staggered_error_next": 0.02,
+                "abs_doublon_error_next": 0.01,
+                "site_occupations_abs_error_max_next": 0.02,
+            }
+        return {
+            "fidelity_exact_next": 0.90,
+            "abs_energy_total_error_next": 0.3,
+            "abs_staggered_error_next": 0.2,
+            "abs_doublon_error_next": 0.1,
+            "site_occupations_abs_error_max_next": 0.2,
+        }
+
+    monkeypatch.setattr(controller, "_exact_step_forecast", _fake_exact_step_forecast)
+
+    scaled_theta_dot, step_scale, blend_weight, gain_scale, forecast = controller._select_exact_v1_baseline_step_scale(
+        baseline_theta_dot=baseline_theta_dot,
+        dt=1.0,
+        time_stop=0.2,
+    )
+
+    assert float(step_scale) == pytest.approx(0.1)
+    assert float(blend_weight) == pytest.approx(0.0)
+    assert float(gain_scale) == pytest.approx(1.0)
+    assert np.asarray(scaled_theta_dot, dtype=float) == pytest.approx(np.array([0.02, 0.0, 0.04]))
+    assert float(forecast["fidelity_exact_next"]) == pytest.approx(0.999)
+
+
+def test_exact_v1_selects_damped_baseline_step_scale_from_forecast(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    replay_context, h_poly, hmat, psi_initial = _two_qubit_drive_context(theta_x=0.2)
+    controller = RealtimeCheckpointController(
+        cfg=RealtimeCheckpointConfig(mode="exact_v1"),
+        replay_context=replay_context,
+        h_poly=h_poly,
+        hmat=hmat,
+        psi_initial=psi_initial,
+        best_theta=[0.2],
+        allow_repeats=False,
+        t_final=0.2,
+        num_times=2,
+        drive_config=ControllerDriveConfig(
+            enabled=True,
+            n_sites=1,
+            ordering="blocked",
+            drive_A=0.6,
+            drive_omega=1.0,
+            drive_tbar=1.0,
+            drive_phi=0.0,
+            drive_pattern="staggered",
+            drive_custom_weights=None,
+            drive_include_identity=False,
+            drive_time_sampling="midpoint",
+            drive_t0=0.0,
+            exact_steps_multiplier=1,
+        ),
+    )
+
+    def _fake_exact_step_forecast(**kwargs):
+        theta_runtime = np.asarray(kwargs["theta_runtime"], dtype=float).reshape(-1)
+        drive_amp = float(theta_runtime[-1])
+        if abs(drive_amp - 0.1) <= 1.0e-9:
+            return {
+                "fidelity_exact_next": 0.999,
+                "abs_energy_total_error_next": 0.002,
+                "abs_staggered_error_next": 0.002,
+                "abs_doublon_error_next": 0.001,
+                "site_occupations_abs_error_max_next": 0.002,
+            }
+        if drive_amp < 0.1:
+            return {
+                "fidelity_exact_next": 0.995,
+                "abs_energy_total_error_next": 0.01,
+                "abs_staggered_error_next": 0.01,
+                "abs_doublon_error_next": 0.005,
+                "site_occupations_abs_error_max_next": 0.01,
+            }
+        return {
+            "fidelity_exact_next": 0.90,
+            "abs_energy_total_error_next": 0.4,
+            "abs_staggered_error_next": 0.2,
+            "abs_doublon_error_next": 0.1,
+            "site_occupations_abs_error_max_next": 0.2,
+        }
+
+    monkeypatch.setattr(controller, "_exact_step_forecast", _fake_exact_step_forecast)
+
+    scaled_theta_dot, step_scale, blend_weight, gain_scale, forecast = controller._select_exact_v1_baseline_step_scale(
+        baseline_theta_dot=np.array([0.2, 0.0, 1.0], dtype=float),
+        dt=1.0,
+        time_stop=0.2,
+    )
+
+    assert float(step_scale) == pytest.approx(0.1)
+    assert float(blend_weight) == pytest.approx(0.0)
+    assert float(gain_scale) == pytest.approx(1.0)
+    assert np.asarray(scaled_theta_dot, dtype=float) == pytest.approx(
+        np.array([0.02, 0.0, 0.1], dtype=float)
+    )
+    assert float(forecast["fidelity_exact_next"]) == pytest.approx(0.999)
+
+
+def test_exact_v1_refines_baseline_step_scale_between_coarse_grid_points(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    replay_context, h_poly, hmat, psi_initial = _two_qubit_drive_context(theta_x=0.2)
+    controller = RealtimeCheckpointController(
+        cfg=RealtimeCheckpointConfig(
+            mode="exact_v1",
+            candidate_step_scales=(0.2,),
+            exact_forecast_baseline_step_refine_rounds=2,
+        ),
+        replay_context=replay_context,
+        h_poly=h_poly,
+        hmat=hmat,
+        psi_initial=psi_initial,
+        best_theta=[0.2],
+        allow_repeats=False,
+        t_final=0.2,
+        num_times=2,
+        drive_config=ControllerDriveConfig(
+            enabled=True,
+            n_sites=1,
+            ordering="blocked",
+            drive_A=0.6,
+            drive_omega=1.0,
+            drive_tbar=1.0,
+            drive_phi=0.0,
+            drive_pattern="staggered",
+            drive_custom_weights=None,
+            drive_include_identity=False,
+            drive_time_sampling="midpoint",
+            drive_t0=0.0,
+            exact_steps_multiplier=1,
+        ),
+    )
+
+    def _fake_exact_step_forecast(**kwargs):
+        drive_amp = float(np.asarray(kwargs["theta_runtime"], dtype=float).reshape(-1)[-1])
+        if abs(drive_amp - 0.15) <= 1.0e-9:
+            return {
+                "fidelity_exact_next": 0.9995,
+                "abs_energy_total_error_next": 0.001,
+                "abs_staggered_error_next": 0.001,
+                "abs_doublon_error_next": 0.0005,
+                "site_occupations_abs_error_max_next": 0.001,
+            }
+        if abs(drive_amp - 0.1) <= 1.0e-9 or abs(drive_amp - 0.2) <= 1.0e-9:
+            return {
+                "fidelity_exact_next": 0.997,
+                "abs_energy_total_error_next": 0.01,
+                "abs_staggered_error_next": 0.008,
+                "abs_doublon_error_next": 0.004,
+                "site_occupations_abs_error_max_next": 0.008,
+            }
+        if drive_amp < 0.25:
+            return {
+                "fidelity_exact_next": 0.995,
+                "abs_energy_total_error_next": 0.02,
+                "abs_staggered_error_next": 0.015,
+                "abs_doublon_error_next": 0.007,
+                "site_occupations_abs_error_max_next": 0.015,
+            }
+        return {
+            "fidelity_exact_next": 0.90,
+            "abs_energy_total_error_next": 0.4,
+            "abs_staggered_error_next": 0.2,
+            "abs_doublon_error_next": 0.1,
+            "site_occupations_abs_error_max_next": 0.2,
+        }
+
+    monkeypatch.setattr(controller, "_exact_step_forecast", _fake_exact_step_forecast)
+
+    scaled_theta_dot, step_scale, blend_weight, gain_scale, forecast = controller._select_exact_v1_baseline_step_scale(
+        baseline_theta_dot=np.array([0.2, 0.0, 1.0], dtype=float),
+        dt=1.0,
+        time_stop=0.2,
+    )
+
+    assert float(step_scale) == pytest.approx(0.15)
+    assert float(blend_weight) == pytest.approx(0.0)
+    assert float(gain_scale) == pytest.approx(1.0)
+    assert np.asarray(scaled_theta_dot, dtype=float) == pytest.approx(
+        np.array([0.03, 0.0, 0.15], dtype=float)
+    )
+    assert float(forecast["fidelity_exact_next"]) == pytest.approx(0.9995)
+
+
+def test_exact_v1_selects_blended_baseline_direction_when_forecast_prefers_it(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    replay_context, h_poly, hmat, psi_initial = _two_qubit_drive_context(theta_x=0.2)
+    controller = RealtimeCheckpointController(
+        cfg=RealtimeCheckpointConfig(
+            mode="exact_v1",
+            candidate_step_scales=(1.0,),
+            exact_forecast_baseline_blend_weights=(0.0, 1.0),
+        ),
+        replay_context=replay_context,
+        h_poly=h_poly,
+        hmat=hmat,
+        psi_initial=psi_initial,
+        best_theta=[0.2],
+        allow_repeats=False,
+        t_final=0.2,
+        num_times=2,
+        drive_config=ControllerDriveConfig(
+            enabled=True,
+            n_sites=1,
+            ordering="blocked",
+            drive_A=0.6,
+            drive_omega=1.0,
+            drive_tbar=1.0,
+            drive_phi=0.0,
+            drive_pattern="staggered",
+            drive_custom_weights=None,
+            drive_include_identity=False,
+            drive_time_sampling="midpoint",
+            drive_t0=0.0,
+            exact_steps_multiplier=1,
+        ),
+    )
+
+    monkeypatch.setattr(
+        controller,
+        "_drive_only_theta_dot_from_baseline",
+        lambda **_kwargs: np.array([0.0, 0.0, 1.0], dtype=float),
+    )
+
+    def _fake_exact_step_forecast(**kwargs):
+        theta_runtime = np.asarray(kwargs["theta_runtime"], dtype=float).reshape(-1)
+        drive_amp = float(theta_runtime[-1])
+        lead_amp = float(theta_runtime[0])
+        if abs(drive_amp - (1.0 / np.sqrt(2.0))) <= 1.0e-9 and abs(lead_amp - (0.2 + (1.0 / np.sqrt(2.0)))) <= 1.0e-9:
+            return {
+                "fidelity_exact_next": 0.999,
+                "abs_energy_total_error_next": 0.002,
+                "abs_staggered_error_next": 0.002,
+                "abs_doublon_error_next": 0.001,
+                "site_occupations_abs_error_max_next": 0.002,
+            }
+        if abs(lead_amp - 1.2) <= 1.0e-9 and abs(drive_amp) <= 1.0e-9:
+            return {
+                "fidelity_exact_next": 0.95,
+                "abs_energy_total_error_next": 0.03,
+                "abs_staggered_error_next": 0.02,
+                "abs_doublon_error_next": 0.01,
+                "site_occupations_abs_error_max_next": 0.02,
+            }
+        return {
+            "fidelity_exact_next": 0.90,
+            "abs_energy_total_error_next": 0.4,
+            "abs_staggered_error_next": 0.2,
+            "abs_doublon_error_next": 0.1,
+            "site_occupations_abs_error_max_next": 0.2,
+        }
+
+    monkeypatch.setattr(controller, "_exact_step_forecast", _fake_exact_step_forecast)
+
+    scaled_theta_dot, step_scale, blend_weight, gain_scale, forecast = controller._select_exact_v1_baseline_step_scale(
+        baseline_theta_dot=np.array([1.0, 0.0, 0.0], dtype=float),
+        baseline=None,
+        dt=1.0,
+        time_stop=0.2,
+    )
+
+    assert float(step_scale) == pytest.approx(1.0)
+    assert float(blend_weight) == pytest.approx(1.0)
+    assert float(gain_scale) == pytest.approx(1.0)
+    assert np.asarray(scaled_theta_dot, dtype=float) == pytest.approx(
+        np.array([1.0 / np.sqrt(2.0), 0.0, 1.0 / np.sqrt(2.0)], dtype=float)
+    )
+    assert float(forecast["fidelity_exact_next"]) == pytest.approx(0.999)
+
+
+def test_exact_v1_selects_negative_residual_blend_when_forecast_prefers_early_anti_drive_motion(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    replay_context, h_poly, hmat, psi_initial = _two_qubit_drive_context(theta_x=0.2)
+    controller = RealtimeCheckpointController(
+        cfg=RealtimeCheckpointConfig(
+            mode="exact_v1",
+            candidate_step_scales=(1.0,),
+            exact_forecast_baseline_blend_weights=(-0.5, 0.0, 1.0),
+        ),
+        replay_context=replay_context,
+        h_poly=h_poly,
+        hmat=hmat,
+        psi_initial=psi_initial,
+        best_theta=[0.2],
+        allow_repeats=False,
+        t_final=0.2,
+        num_times=2,
+        drive_config=ControllerDriveConfig(
+            enabled=True,
+            n_sites=1,
+            ordering="blocked",
+            drive_A=0.6,
+            drive_omega=1.0,
+            drive_tbar=1.0,
+            drive_phi=0.0,
+            drive_pattern="staggered",
+            drive_custom_weights=None,
+            drive_include_identity=False,
+            drive_time_sampling="midpoint",
+            drive_t0=0.0,
+            exact_steps_multiplier=1,
+        ),
+    )
+
+    monkeypatch.setattr(
+        controller,
+        "_drive_only_theta_dot_from_baseline",
+        lambda **_kwargs: np.array([0.0, 0.0, 1.0], dtype=float),
+    )
+
+    def _fake_exact_step_forecast(**kwargs):
+        theta_runtime = np.asarray(kwargs["theta_runtime"], dtype=float).reshape(-1)
+        lead_amp = float(theta_runtime[0])
+        drive_amp = float(theta_runtime[-1])
+        if abs(lead_amp - (0.2 + 1.0 / np.sqrt(1.25))) <= 1.0e-9 and abs(drive_amp + (0.5 / np.sqrt(1.25))) <= 1.0e-9:
+            return {
+                "fidelity_exact_next": 0.9992,
+                "abs_energy_total_error_next": 0.0015,
+                "abs_staggered_error_next": 0.0015,
+                "abs_doublon_error_next": 0.0008,
+                "site_occupations_abs_error_max_next": 0.0015,
+            }
+        if abs(lead_amp - 1.2) <= 1.0e-9 and abs(drive_amp) <= 1.0e-9:
+            return {
+                "fidelity_exact_next": 0.997,
+                "abs_energy_total_error_next": 0.004,
+                "abs_staggered_error_next": 0.004,
+                "abs_doublon_error_next": 0.002,
+                "site_occupations_abs_error_max_next": 0.004,
+            }
+        if abs(lead_amp - (0.2 + 1.0 / np.sqrt(2.0))) <= 1.0e-9 and abs(drive_amp - (1.0 / np.sqrt(2.0))) <= 1.0e-9:
+            return {
+                "fidelity_exact_next": 0.993,
+                "abs_energy_total_error_next": 0.01,
+                "abs_staggered_error_next": 0.01,
+                "abs_doublon_error_next": 0.004,
+                "site_occupations_abs_error_max_next": 0.01,
+            }
+        return {
+            "fidelity_exact_next": 0.90,
+            "abs_energy_total_error_next": 0.4,
+            "abs_staggered_error_next": 0.2,
+            "abs_doublon_error_next": 0.1,
+            "site_occupations_abs_error_max_next": 0.2,
+        }
+
+    monkeypatch.setattr(controller, "_exact_step_forecast", _fake_exact_step_forecast)
+
+    scaled_theta_dot, step_scale, blend_weight, gain_scale, forecast = controller._select_exact_v1_baseline_step_scale(
+        baseline_theta_dot=np.array([1.0, 0.0, 0.0], dtype=float),
+        baseline=None,
+        dt=1.0,
+        time_stop=0.2,
+    )
+
+    assert float(step_scale) == pytest.approx(1.0)
+    assert float(blend_weight) == pytest.approx(-0.5)
+    assert float(gain_scale) == pytest.approx(1.0)
+    assert np.asarray(scaled_theta_dot, dtype=float) == pytest.approx(
+        np.array([1.0 / np.sqrt(1.25), 0.0, -0.5 / np.sqrt(1.25)], dtype=float)
+    )
+    assert float(forecast["fidelity_exact_next"]) == pytest.approx(0.9992)
+
+
+def test_exact_v1_selects_baseline_gain_scale_above_one_when_forecast_prefers_stronger_same_shape(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    replay_context, h_poly, hmat, psi_initial = _two_qubit_drive_context(theta_x=0.2)
+    controller = RealtimeCheckpointController(
+        cfg=RealtimeCheckpointConfig(
+            mode="exact_v1",
+            candidate_step_scales=(1.0,),
+            exact_forecast_baseline_blend_weights=(0.0, 1.0),
+            exact_forecast_baseline_gain_scales=(1.0, 1.1, 1.2),
+        ),
+        replay_context=replay_context,
+        h_poly=h_poly,
+        hmat=hmat,
+        psi_initial=psi_initial,
+        best_theta=[0.2],
+        allow_repeats=False,
+        t_final=0.2,
+        num_times=2,
+        drive_config=ControllerDriveConfig(
+            enabled=True,
+            n_sites=1,
+            ordering="blocked",
+            drive_A=0.6,
+            drive_omega=1.0,
+            drive_tbar=1.0,
+            drive_phi=0.0,
+            drive_pattern="staggered",
+            drive_custom_weights=None,
+            drive_include_identity=False,
+            drive_time_sampling="midpoint",
+            drive_t0=0.0,
+            exact_steps_multiplier=1,
+        ),
+    )
+
+    monkeypatch.setattr(
+        controller,
+        "_drive_only_theta_dot_from_baseline",
+        lambda **_kwargs: np.array([0.0, 0.0, 1.0], dtype=float),
+    )
+
+    def _fake_exact_step_forecast(**kwargs):
+        theta_runtime = np.asarray(kwargs["theta_runtime"], dtype=float).reshape(-1)
+        lead_amp = float(theta_runtime[0])
+        drive_amp = float(theta_runtime[-1])
+        if abs(lead_amp - (0.2 + 1.2 / np.sqrt(2.0))) <= 1.0e-9 and abs(drive_amp - (1.2 / np.sqrt(2.0))) <= 1.0e-9:
+            return {
+                "fidelity_exact_next": 0.9995,
+                "abs_energy_total_error_next": 0.001,
+                "abs_staggered_error_next": 0.001,
+                "abs_doublon_error_next": 0.0005,
+                "site_occupations_abs_error_max_next": 0.001,
+            }
+        if abs(lead_amp - (0.2 + 1.0 / np.sqrt(2.0))) <= 1.0e-9 and abs(drive_amp - (1.0 / np.sqrt(2.0))) <= 1.0e-9:
+            return {
+                "fidelity_exact_next": 0.998,
+                "abs_energy_total_error_next": 0.004,
+                "abs_staggered_error_next": 0.004,
+                "abs_doublon_error_next": 0.002,
+                "site_occupations_abs_error_max_next": 0.004,
+            }
+        return {
+            "fidelity_exact_next": 0.90,
+            "abs_energy_total_error_next": 0.4,
+            "abs_staggered_error_next": 0.2,
+            "abs_doublon_error_next": 0.1,
+            "site_occupations_abs_error_max_next": 0.2,
+        }
+
+    monkeypatch.setattr(controller, "_exact_step_forecast", _fake_exact_step_forecast)
+
+    scaled_theta_dot, step_scale, blend_weight, gain_scale, forecast = controller._select_exact_v1_baseline_step_scale(
+        baseline_theta_dot=np.array([1.0, 0.0, 0.0], dtype=float),
+        baseline=None,
+        dt=1.0,
+        time_stop=0.2,
+    )
+
+    assert float(step_scale) == pytest.approx(1.0)
+    assert float(blend_weight) == pytest.approx(1.0)
+    assert float(gain_scale) == pytest.approx(1.2)
+    assert np.asarray(scaled_theta_dot, dtype=float) == pytest.approx(
+        np.array([1.2 / np.sqrt(2.0), 0.0, 1.2 / np.sqrt(2.0)], dtype=float)
+    )
+    assert float(forecast["fidelity_exact_next"]) == pytest.approx(0.9995)
+
+
+def test_exact_v1_energy_excursion_under_term_prefers_higher_post_step_gain(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    replay_context, h_poly, hmat, psi_initial = _two_qubit_drive_context(theta_x=0.2)
+    baseline_theta_dot = np.array([0.2, 0.0, 1.0], dtype=float)
+
+    def _fake_exact_step_forecast(**kwargs):
+        drive_amp = float(np.asarray(kwargs["theta_runtime"], dtype=float).reshape(-1)[-1])
+        time_stop = float(kwargs["time_stop"])
+        if abs(drive_amp) <= 1.0e-9:
+            if abs(time_stop) <= 1.0e-9:
+                return {
+                    "fidelity_exact_next": 0.999,
+                    "abs_energy_total_error_next": 0.0,
+                    "abs_staggered_error_next": 0.0,
+                    "abs_doublon_error_next": 0.0,
+                    "site_occupations_abs_error_max_next": 0.0,
+                    "energy_total_controller_next": 0.100,
+                    "energy_total_exact_next": 0.100,
+                }
+            return {
+                "fidelity_exact_next": 0.996,
+                "abs_energy_total_error_next": 0.006,
+                "abs_staggered_error_next": 0.006,
+                "abs_doublon_error_next": 0.003,
+                "site_occupations_abs_error_max_next": 0.006,
+                "energy_total_controller_next": 0.100,
+                "energy_total_exact_next": (0.104 if abs(time_stop - 1.0) <= 1.0e-9 else 0.108),
+            }
+        if abs(drive_amp - 1.0) <= 1.0e-9:
+            return {
+                "fidelity_exact_next": 0.997,
+                "abs_energy_total_error_next": 0.005,
+                "abs_staggered_error_next": 0.005,
+                "abs_doublon_error_next": 0.002,
+                "site_occupations_abs_error_max_next": 0.005,
+                "energy_total_controller_next": 0.101,
+                "energy_total_exact_next": 0.104,
+            }
+        if abs(drive_amp - 2.0) <= 1.0e-9:
+            return {
+                "fidelity_exact_next": 0.997,
+                "abs_energy_total_error_next": 0.005,
+                "abs_staggered_error_next": 0.005,
+                "abs_doublon_error_next": 0.002,
+                "site_occupations_abs_error_max_next": 0.005,
+                "energy_total_controller_next": 0.103,
+                "energy_total_exact_next": 0.108,
+            }
+        if abs(drive_amp - 1.2) <= 1.0e-9:
+            return {
+                "fidelity_exact_next": 0.997,
+                "abs_energy_total_error_next": 0.005,
+                "abs_staggered_error_next": 0.005,
+                "abs_doublon_error_next": 0.002,
+                "site_occupations_abs_error_max_next": 0.005,
+                "energy_total_controller_next": 0.1025,
+                "energy_total_exact_next": 0.104,
+            }
+        if abs(drive_amp - 2.4) <= 1.0e-9:
+            return {
+                "fidelity_exact_next": 0.997,
+                "abs_energy_total_error_next": 0.005,
+                "abs_staggered_error_next": 0.005,
+                "abs_doublon_error_next": 0.002,
+                "site_occupations_abs_error_max_next": 0.005,
+                "energy_total_controller_next": 0.1065,
+                "energy_total_exact_next": 0.108,
+            }
+        if abs(drive_amp - 1.4) <= 1.0e-9:
+            return {
+                "fidelity_exact_next": 0.9973,
+                "abs_energy_total_error_next": 0.0045,
+                "abs_staggered_error_next": 0.005,
+                "abs_doublon_error_next": 0.002,
+                "site_occupations_abs_error_max_next": 0.005,
+                "energy_total_controller_next": 0.1045,
+                "energy_total_exact_next": 0.104,
+            }
+        if abs(drive_amp - 2.8) <= 1.0e-9:
+            return {
+                "fidelity_exact_next": 0.9973,
+                "abs_energy_total_error_next": 0.0045,
+                "abs_staggered_error_next": 0.005,
+                "abs_doublon_error_next": 0.002,
+                "site_occupations_abs_error_max_next": 0.005,
+                "energy_total_controller_next": 0.1095,
+                "energy_total_exact_next": 0.108,
+            }
+        return {
+            "fidelity_exact_next": 0.90,
+            "abs_energy_total_error_next": 0.4,
+            "abs_staggered_error_next": 0.2,
+            "abs_doublon_error_next": 0.1,
+            "site_occupations_abs_error_max_next": 0.2,
+            "energy_total_controller_next": 0.0,
+            "energy_total_exact_next": 0.0,
+        }
+
+    controller_plain = RealtimeCheckpointController(
+        cfg=RealtimeCheckpointConfig(
+            mode="exact_v1",
+            candidate_step_scales=(1.0,),
+            exact_forecast_baseline_gain_scales=(1.0, 1.2),
+            exact_forecast_tracking_horizon_steps=2,
+        ),
+        replay_context=replay_context,
+        h_poly=h_poly,
+        hmat=hmat,
+        psi_initial=psi_initial,
+        best_theta=[0.2],
+        allow_repeats=False,
+        t_final=2.0,
+        num_times=3,
+        drive_config=ControllerDriveConfig(
+            enabled=True,
+            n_sites=1,
+            ordering="blocked",
+            drive_A=0.6,
+            drive_omega=1.0,
+            drive_tbar=1.0,
+            drive_phi=0.0,
+            drive_pattern="staggered",
+            drive_custom_weights=None,
+            drive_include_identity=False,
+            drive_time_sampling="midpoint",
+            drive_t0=0.0,
+            exact_steps_multiplier=1,
+        ),
+    )
+    monkeypatch.setattr(controller_plain, "_exact_step_forecast", _fake_exact_step_forecast)
+    _theta_plain, _step_plain, _blend_plain, gain_plain, forecast_plain = controller_plain._select_exact_v1_baseline_step_scale(
+        baseline_theta_dot=baseline_theta_dot,
+        dt=1.0,
+        time_stop=1.0,
+    )
+
+    controller_exc = RealtimeCheckpointController(
+        cfg=RealtimeCheckpointConfig(
+            mode="exact_v1",
+            candidate_step_scales=(1.0,),
+            exact_forecast_baseline_gain_scales=(1.0, 1.2),
+            exact_forecast_tracking_horizon_steps=2,
+            exact_forecast_energy_excursion_under_weight=200.0,
+        ),
+        replay_context=replay_context,
+        h_poly=h_poly,
+        hmat=hmat,
+        psi_initial=psi_initial,
+        best_theta=[0.2],
+        allow_repeats=False,
+        t_final=2.0,
+        num_times=3,
+        drive_config=ControllerDriveConfig(
+            enabled=True,
+            n_sites=1,
+            ordering="blocked",
+            drive_A=0.6,
+            drive_omega=1.0,
+            drive_tbar=1.0,
+            drive_phi=0.0,
+            drive_pattern="staggered",
+            drive_custom_weights=None,
+            drive_include_identity=False,
+            drive_time_sampling="midpoint",
+            drive_t0=0.0,
+            exact_steps_multiplier=1,
+        ),
+    )
+    monkeypatch.setattr(controller_exc, "_exact_step_forecast", _fake_exact_step_forecast)
+    theta_exc, step_exc, blend_exc, gain_exc, forecast_exc = controller_exc._select_exact_v1_baseline_step_scale(
+        baseline_theta_dot=baseline_theta_dot,
+        dt=1.0,
+        time_stop=1.0,
+    )
+
+    assert float(gain_plain) == pytest.approx(1.0)
+    assert float(forecast_plain["tracking_energy_excursion_under_response_mean"]) == pytest.approx(0.0)
+    assert float(forecast_plain["tracking_energy_excursion_under_weight"]) == pytest.approx(0.0)
+    assert float(step_exc) == pytest.approx(1.0)
+    assert float(blend_exc) == pytest.approx(0.0)
+    assert float(gain_exc) == pytest.approx(1.2)
+    assert np.asarray(theta_exc, dtype=float) == pytest.approx(
+        np.array([0.24, 0.0, 1.2], dtype=float)
+    )
+    assert float(forecast_exc["tracking_energy_excursion_under_response_mean"]) == pytest.approx(0.0015)
+    assert float(forecast_exc["tracking_energy_excursion_under_weight"]) == pytest.approx(200.0)
+
+    controller_under_only = RealtimeCheckpointController(
+        cfg=RealtimeCheckpointConfig(
+            mode="exact_v1",
+            candidate_step_scales=(1.0,),
+            exact_forecast_baseline_gain_scales=(1.0, 1.2, 1.4),
+            exact_forecast_tracking_horizon_steps=2,
+            exact_forecast_energy_excursion_under_weight=200.0,
+        ),
+        replay_context=replay_context,
+        h_poly=h_poly,
+        hmat=hmat,
+        psi_initial=psi_initial,
+        best_theta=[0.2],
+        allow_repeats=False,
+        t_final=2.0,
+        num_times=3,
+        drive_config=ControllerDriveConfig(
+            enabled=True,
+            n_sites=1,
+            ordering="blocked",
+            drive_A=0.6,
+            drive_omega=1.0,
+            drive_tbar=1.0,
+            drive_phi=0.0,
+            drive_pattern="staggered",
+            drive_custom_weights=None,
+            drive_include_identity=False,
+            drive_time_sampling="midpoint",
+            drive_t0=0.0,
+            exact_steps_multiplier=1,
+        ),
+    )
+    monkeypatch.setattr(controller_under_only, "_exact_step_forecast", _fake_exact_step_forecast)
+    _theta_under_only, _step_under_only, _blend_under_only, gain_under_only, _forecast_under_only = controller_under_only._select_exact_v1_baseline_step_scale(
+        baseline_theta_dot=baseline_theta_dot,
+        dt=1.0,
+        time_stop=1.0,
+    )
+
+    assert float(gain_under_only) == pytest.approx(1.4)
+
+    controller_band = RealtimeCheckpointController(
+        cfg=RealtimeCheckpointConfig(
+            mode="exact_v1",
+            candidate_step_scales=(1.0,),
+            exact_forecast_baseline_gain_scales=(1.0, 1.2, 1.4),
+            exact_forecast_tracking_horizon_steps=2,
+            exact_forecast_energy_excursion_under_weight=200.0,
+            exact_forecast_energy_excursion_over_weight=500.0,
+            exact_forecast_energy_excursion_rel_tolerance=0.03,
+        ),
+        replay_context=replay_context,
+        h_poly=h_poly,
+        hmat=hmat,
+        psi_initial=psi_initial,
+        best_theta=[0.2],
+        allow_repeats=False,
+        t_final=2.0,
+        num_times=3,
+        drive_config=ControllerDriveConfig(
+            enabled=True,
+            n_sites=1,
+            ordering="blocked",
+            drive_A=0.6,
+            drive_omega=1.0,
+            drive_tbar=1.0,
+            drive_phi=0.0,
+            drive_pattern="staggered",
+            drive_custom_weights=None,
+            drive_include_identity=False,
+            drive_time_sampling="midpoint",
+            drive_t0=0.0,
+            exact_steps_multiplier=1,
+        ),
+    )
+    monkeypatch.setattr(controller_band, "_exact_step_forecast", _fake_exact_step_forecast)
+    theta_band, step_band, blend_band, gain_band, forecast_band = controller_band._select_exact_v1_baseline_step_scale(
+        baseline_theta_dot=baseline_theta_dot,
+        dt=1.0,
+        time_stop=1.0,
+    )
+
+    assert float(step_band) == pytest.approx(1.0)
+    assert float(blend_band) == pytest.approx(0.0)
+    assert float(gain_band) == pytest.approx(1.2)
+    assert np.asarray(theta_band, dtype=float) == pytest.approx(
+        np.array([0.24, 0.0, 1.2], dtype=float)
+    )
+    assert float(forecast_band["tracking_energy_excursion_over_weight"]) == pytest.approx(500.0)
+    assert float(forecast_band["tracking_energy_excursion_rel_tolerance"]) == pytest.approx(0.03)
+
+
+def test_exact_v1_horizon_prefers_gentler_baseline_step_scale(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    replay_context, h_poly, hmat, psi_initial = _two_qubit_drive_context(theta_x=0.2)
+    controller = RealtimeCheckpointController(
+        cfg=RealtimeCheckpointConfig(
+            mode="exact_v1",
+            candidate_step_scales=(1.0,),
+            exact_forecast_tracking_horizon_steps=3,
+        ),
+        replay_context=replay_context,
+        h_poly=h_poly,
+        hmat=hmat,
+        psi_initial=psi_initial,
+        best_theta=[0.2],
+        allow_repeats=False,
+        t_final=3.0,
+        num_times=4,
+        drive_config=ControllerDriveConfig(
+            enabled=True,
+            n_sites=1,
+            ordering="blocked",
+            drive_A=0.6,
+            drive_omega=1.0,
+            drive_tbar=1.0,
+            drive_phi=0.0,
+            drive_pattern="staggered",
+            drive_custom_weights=None,
+            drive_include_identity=False,
+            drive_time_sampling="midpoint",
+            drive_t0=0.0,
+            exact_steps_multiplier=1,
+        ),
+    )
+
+    def _fake_exact_step_forecast(**kwargs):
+        drive_amp = float(np.asarray(kwargs["theta_runtime"], dtype=float).reshape(-1)[-1])
+        if abs(drive_amp - 1.0) <= 1.0e-9:
+            return {
+                "fidelity_exact_next": 0.995,
+                "abs_energy_total_error_next": 0.005,
+                "abs_staggered_error_next": 0.005,
+                "abs_doublon_error_next": 0.002,
+                "site_occupations_abs_error_max_next": 0.005,
+            }
+        if 0.08 <= drive_amp <= 0.35:
+            return {
+                "fidelity_exact_next": 0.97,
+                "abs_energy_total_error_next": 0.02,
+                "abs_staggered_error_next": 0.02,
+                "abs_doublon_error_next": 0.01,
+                "site_occupations_abs_error_max_next": 0.02,
+            }
+        if drive_amp < 0.08:
+            return {
+                "fidelity_exact_next": 0.95,
+                "abs_energy_total_error_next": 0.03,
+                "abs_staggered_error_next": 0.03,
+                "abs_doublon_error_next": 0.015,
+                "site_occupations_abs_error_max_next": 0.03,
+            }
+        return {
+            "fidelity_exact_next": 0.80,
+            "abs_energy_total_error_next": 0.40,
+            "abs_staggered_error_next": 0.20,
+            "abs_doublon_error_next": 0.10,
+            "site_occupations_abs_error_max_next": 0.30,
+        }
+
+    monkeypatch.setattr(controller, "_exact_step_forecast", _fake_exact_step_forecast)
+
+    scaled_theta_dot, step_scale, blend_weight, gain_scale, forecast = controller._select_exact_v1_baseline_step_scale(
+        baseline_theta_dot=np.array([0.2, 0.0, 1.0], dtype=float),
+        dt=1.0,
+        time_stop=1.0,
+    )
+
+    assert float(step_scale) == pytest.approx(0.1)
+    assert float(blend_weight) == pytest.approx(0.0)
+    assert float(gain_scale) == pytest.approx(1.0)
+    assert np.asarray(scaled_theta_dot, dtype=float) == pytest.approx(np.array([0.02, 0.0, 0.1], dtype=float))
+    assert int(forecast["tracking_horizon_steps_scored"]) == 3
+    assert list(forecast["tracking_horizon_weights_used"]) == pytest.approx([1.0, 1.0, 1.0])
+
+
+def test_exact_v1_energy_slope_term_prefers_shape_matched_baseline_step(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    replay_context, h_poly, hmat, psi_initial = _two_qubit_drive_context(theta_x=0.2)
+    baseline_theta_dot = np.array([0.2, 0.0, 1.0], dtype=float)
+
+    def _fake_exact_step_forecast(**kwargs):
+        drive_amp = float(np.asarray(kwargs["theta_runtime"], dtype=float).reshape(-1)[-1])
+        if abs(drive_amp - 1.0) <= 1.0e-9:
+            return {
+                "fidelity_exact_next": 0.997,
+                "abs_energy_total_error_next": 0.005,
+                "abs_staggered_error_next": 0.005,
+                "abs_doublon_error_next": 0.002,
+                "site_occupations_abs_error_max_next": 0.005,
+                "energy_total_controller_next": 0.100,
+                "energy_total_exact_next": 0.105,
+            }
+        if abs(drive_amp - 2.0) <= 1.0e-9:
+            return {
+                "fidelity_exact_next": 0.997,
+                "abs_energy_total_error_next": 0.005,
+                "abs_staggered_error_next": 0.005,
+                "abs_doublon_error_next": 0.002,
+                "site_occupations_abs_error_max_next": 0.005,
+                "energy_total_controller_next": 0.100,
+                "energy_total_exact_next": 0.115,
+            }
+        if abs(drive_amp - 0.2) <= 1.0e-9:
+            return {
+                "fidelity_exact_next": 0.996,
+                "abs_energy_total_error_next": 0.006,
+                "abs_staggered_error_next": 0.006,
+                "abs_doublon_error_next": 0.0025,
+                "site_occupations_abs_error_max_next": 0.006,
+                "energy_total_controller_next": 0.102,
+                "energy_total_exact_next": 0.105,
+            }
+        if abs(drive_amp - 0.4) <= 1.0e-9:
+            return {
+                "fidelity_exact_next": 0.996,
+                "abs_energy_total_error_next": 0.006,
+                "abs_staggered_error_next": 0.006,
+                "abs_doublon_error_next": 0.0025,
+                "site_occupations_abs_error_max_next": 0.006,
+                "energy_total_controller_next": 0.112,
+                "energy_total_exact_next": 0.115,
+            }
+        return {
+            "fidelity_exact_next": 0.80,
+            "abs_energy_total_error_next": 0.40,
+            "abs_staggered_error_next": 0.20,
+            "abs_doublon_error_next": 0.10,
+            "site_occupations_abs_error_max_next": 0.30,
+            "energy_total_controller_next": 0.0,
+            "energy_total_exact_next": 0.0,
+        }
+
+    controller_h2 = RealtimeCheckpointController(
+        cfg=RealtimeCheckpointConfig(
+            mode="exact_v1",
+            candidate_step_scales=(0.2, 1.0),
+            exact_forecast_tracking_horizon_steps=2,
+        ),
+        replay_context=replay_context,
+        h_poly=h_poly,
+        hmat=hmat,
+        psi_initial=psi_initial,
+        best_theta=[0.2],
+        allow_repeats=False,
+        t_final=2.0,
+        num_times=3,
+        drive_config=ControllerDriveConfig(
+            enabled=True,
+            n_sites=1,
+            ordering="blocked",
+            drive_A=0.6,
+            drive_omega=1.0,
+            drive_tbar=1.0,
+            drive_phi=0.0,
+            drive_pattern="staggered",
+            drive_custom_weights=None,
+            drive_include_identity=False,
+            drive_time_sampling="midpoint",
+            drive_t0=0.0,
+            exact_steps_multiplier=1,
+        ),
+    )
+    monkeypatch.setattr(controller_h2, "_exact_step_forecast", _fake_exact_step_forecast)
+    _scaled_theta_dot_h2, step_scale_h2, blend_weight_h2, gain_scale_h2, _forecast_h2 = controller_h2._select_exact_v1_baseline_step_scale(
+        baseline_theta_dot=baseline_theta_dot,
+        dt=1.0,
+        time_stop=1.0,
+    )
+
+    controller_shape = RealtimeCheckpointController(
+        cfg=RealtimeCheckpointConfig(
+            mode="exact_v1",
+            candidate_step_scales=(0.2, 1.0),
+            exact_forecast_tracking_horizon_steps=2,
+            exact_forecast_energy_slope_weight=500.0,
+        ),
+        replay_context=replay_context,
+        h_poly=h_poly,
+        hmat=hmat,
+        psi_initial=psi_initial,
+        best_theta=[0.2],
+        allow_repeats=False,
+        t_final=2.0,
+        num_times=3,
+        drive_config=ControllerDriveConfig(
+            enabled=True,
+            n_sites=1,
+            ordering="blocked",
+            drive_A=0.6,
+            drive_omega=1.0,
+            drive_tbar=1.0,
+            drive_phi=0.0,
+            drive_pattern="staggered",
+            drive_custom_weights=None,
+            drive_include_identity=False,
+            drive_time_sampling="midpoint",
+            drive_t0=0.0,
+            exact_steps_multiplier=1,
+        ),
+    )
+    monkeypatch.setattr(controller_shape, "_exact_step_forecast", _fake_exact_step_forecast)
+    scaled_theta_dot_shape, step_scale_shape, blend_weight_shape, gain_scale_shape, forecast_shape = controller_shape._select_exact_v1_baseline_step_scale(
+        baseline_theta_dot=baseline_theta_dot,
+        dt=1.0,
+        time_stop=1.0,
+    )
+
+    assert float(step_scale_h2) == pytest.approx(1.0)
+    assert float(blend_weight_h2) == pytest.approx(0.0)
+    assert float(gain_scale_h2) == pytest.approx(1.0)
+    assert float(step_scale_shape) == pytest.approx(0.2)
+    assert float(blend_weight_shape) == pytest.approx(0.0)
+    assert float(gain_scale_shape) == pytest.approx(1.0)
+    assert np.asarray(scaled_theta_dot_shape, dtype=float) == pytest.approx(
+        np.array([0.04, 0.0, 0.2], dtype=float)
+    )
+    assert float(forecast_shape["tracking_energy_slope_abs_error_mean"]) == pytest.approx(0.0)
+    assert float(forecast_shape["tracking_energy_slope_weight"]) == pytest.approx(500.0)
+
+
+def test_exact_v1_energy_curvature_term_is_active_for_h2_with_anchor(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    replay_context, h_poly, hmat, psi_initial = _two_qubit_drive_context(theta_x=0.2)
+    baseline_theta_dot = np.array([0.2, 0.0, 1.0], dtype=float)
+
+    def _fake_exact_step_forecast(**kwargs):
+        drive_amp = float(np.asarray(kwargs["theta_runtime"], dtype=float).reshape(-1)[-1])
+        time_stop = float(kwargs["time_stop"])
+        if abs(drive_amp) <= 1.0e-9:
+            if abs(time_stop) <= 1.0e-9:
+                return {
+                    "fidelity_exact_next": 0.999,
+                    "abs_energy_total_error_next": 0.01,
+                    "abs_staggered_error_next": 0.005,
+                    "abs_doublon_error_next": 0.002,
+                    "site_occupations_abs_error_max_next": 0.005,
+                    "energy_total_controller_next": 0.090,
+                    "energy_total_exact_next": 0.100,
+                }
+            return {
+                "fidelity_exact_next": 0.995,
+                "abs_energy_total_error_next": 0.015,
+                "abs_staggered_error_next": 0.008,
+                "abs_doublon_error_next": 0.003,
+                "site_occupations_abs_error_max_next": 0.008,
+                "energy_total_controller_next": 0.090,
+                "energy_total_exact_next": 0.105,
+            }
+        if abs(drive_amp - 0.2) <= 1.0e-9:
+            return {
+                "fidelity_exact_next": 0.999,
+                "abs_energy_total_error_next": 0.005,
+                "abs_staggered_error_next": 0.005,
+                "abs_doublon_error_next": 0.002,
+                "site_occupations_abs_error_max_next": 0.005,
+                "energy_total_controller_next": 0.110,
+                "energy_total_exact_next": 0.105,
+            }
+        if abs(drive_amp - 0.4) <= 1.0e-9:
+            return {
+                "fidelity_exact_next": 0.999,
+                "abs_energy_total_error_next": 0.005,
+                "abs_staggered_error_next": 0.005,
+                "abs_doublon_error_next": 0.002,
+                "site_occupations_abs_error_max_next": 0.005,
+                "energy_total_controller_next": 0.120,
+                "energy_total_exact_next": 0.115,
+            }
+        if abs(drive_amp - 1.0) <= 1.0e-9:
+            return {
+                "fidelity_exact_next": 0.999,
+                "abs_energy_total_error_next": 0.005,
+                "abs_staggered_error_next": 0.005,
+                "abs_doublon_error_next": 0.002,
+                "site_occupations_abs_error_max_next": 0.005,
+                "energy_total_controller_next": 0.100,
+                "energy_total_exact_next": 0.105,
+            }
+        if abs(drive_amp - 2.0) <= 1.0e-9:
+            return {
+                "fidelity_exact_next": 0.999,
+                "abs_energy_total_error_next": 0.005,
+                "abs_staggered_error_next": 0.005,
+                "abs_doublon_error_next": 0.002,
+                "site_occupations_abs_error_max_next": 0.005,
+                "energy_total_controller_next": 0.110,
+                "energy_total_exact_next": 0.115,
+            }
+        return {
+            "fidelity_exact_next": 0.80,
+            "abs_energy_total_error_next": 0.40,
+            "abs_staggered_error_next": 0.20,
+            "abs_doublon_error_next": 0.10,
+            "site_occupations_abs_error_max_next": 0.30,
+            "energy_total_controller_next": 0.0,
+            "energy_total_exact_next": 0.0,
+        }
+
+    controller_no_curv = RealtimeCheckpointController(
+        cfg=RealtimeCheckpointConfig(
+            mode="exact_v1",
+            candidate_step_scales=(0.2, 1.0),
+            exact_forecast_tracking_horizon_steps=2,
+            exact_forecast_energy_slope_weight=500.0,
+        ),
+        replay_context=replay_context,
+        h_poly=h_poly,
+        hmat=hmat,
+        psi_initial=psi_initial,
+        best_theta=[0.2],
+        allow_repeats=False,
+        t_final=2.0,
+        num_times=3,
+        drive_config=ControllerDriveConfig(
+            enabled=True,
+            n_sites=1,
+            ordering="blocked",
+            drive_A=0.6,
+            drive_omega=1.0,
+            drive_tbar=1.0,
+            drive_phi=0.0,
+            drive_pattern="staggered",
+            drive_custom_weights=None,
+            drive_include_identity=False,
+            drive_time_sampling="midpoint",
+            drive_t0=0.0,
+            exact_steps_multiplier=1,
+        ),
+    )
+    monkeypatch.setattr(controller_no_curv, "_exact_step_forecast", _fake_exact_step_forecast)
+    _scaled_theta_dot_no_curv, step_scale_no_curv, blend_weight_no_curv, gain_scale_no_curv, _forecast_no_curv = (
+        controller_no_curv._select_exact_v1_baseline_step_scale(
+            baseline_theta_dot=baseline_theta_dot,
+            dt=1.0,
+            time_stop=1.0,
+        )
+    )
+
+    controller_curv = RealtimeCheckpointController(
+        cfg=RealtimeCheckpointConfig(
+            mode="exact_v1",
+            candidate_step_scales=(0.2, 1.0),
+            exact_forecast_tracking_horizon_steps=2,
+            exact_forecast_energy_slope_weight=500.0,
+            exact_forecast_energy_curvature_weight=200.0,
+        ),
+        replay_context=replay_context,
+        h_poly=h_poly,
+        hmat=hmat,
+        psi_initial=psi_initial,
+        best_theta=[0.2],
+        allow_repeats=False,
+        t_final=2.0,
+        num_times=3,
+        drive_config=ControllerDriveConfig(
+            enabled=True,
+            n_sites=1,
+            ordering="blocked",
+            drive_A=0.6,
+            drive_omega=1.0,
+            drive_tbar=1.0,
+            drive_phi=0.0,
+            drive_pattern="staggered",
+            drive_custom_weights=None,
+            drive_include_identity=False,
+            drive_time_sampling="midpoint",
+            drive_t0=0.0,
+            exact_steps_multiplier=1,
+        ),
+    )
+    monkeypatch.setattr(controller_curv, "_exact_step_forecast", _fake_exact_step_forecast)
+    scaled_theta_dot_curv, step_scale_curv, blend_weight_curv, gain_scale_curv, forecast_curv = (
+        controller_curv._select_exact_v1_baseline_step_scale(
+            baseline_theta_dot=baseline_theta_dot,
+            dt=1.0,
+            time_stop=1.0,
+        )
+    )
+
+    assert float(step_scale_no_curv) == pytest.approx(0.2)
+    assert float(blend_weight_no_curv) == pytest.approx(0.0)
+    assert float(gain_scale_no_curv) == pytest.approx(1.0)
+    assert float(step_scale_curv) == pytest.approx(1.0)
+    assert float(blend_weight_curv) == pytest.approx(0.0)
+    assert float(gain_scale_curv) == pytest.approx(1.0)
+    assert np.asarray(scaled_theta_dot_curv, dtype=float) == pytest.approx(
+        np.array([0.2, 0.0, 1.0], dtype=float)
+    )
+    assert float(forecast_curv["tracking_energy_curvature_abs_error_mean"]) > 0.0
+    assert float(forecast_curv["tracking_energy_curvature_weight"]) == pytest.approx(200.0)
 
 
 def test_oracle_sampling_targets_scale_total_shots_even_with_single_repeat() -> None:

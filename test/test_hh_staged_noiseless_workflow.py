@@ -17,6 +17,7 @@ from src.quantum.vqe_latex_python_pairs import AnsatzTerm, PauliPolynomial, Paul
 
 import pipelines.hardcoded.hh_staged_workflow as wf
 from pipelines.hardcoded.hh_staged_noiseless import parse_args
+from pipelines.hardcoded.hh_realtime_checkpoint_types import ScaffoldAcceptanceResult
 from pipelines.hardcoded.hh_staged_workflow import resolve_staged_hh_config
 
 
@@ -612,3 +613,118 @@ def test_run_adaptive_realtime_checkpoint_profile_requires_best_theta_when_enabl
 
     with pytest.raises(ValueError, match="best_state.best_theta"):
         wf.run_adaptive_realtime_checkpoint_profile(stage_result, cfg)
+
+
+def test_run_adaptive_realtime_checkpoint_profile_allows_drive_and_forwards_drive_config(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    args = parse_args(
+        [
+            "--L",
+            "2",
+            "--skip-pdf",
+            "--enable-drive",
+            "--drive-A",
+            "1.5",
+            "--drive-omega",
+            "2.0",
+            "--drive-tbar",
+            "2.5",
+            "--drive-t0",
+            "5.0",
+            "--drive-pattern",
+            "staggered",
+            "--checkpoint-controller-mode",
+            "exact_v1",
+            "--checkpoint-controller-exact-forecast-baseline-step-refine-rounds",
+            "2",
+            "--checkpoint-controller-exact-forecast-baseline-blend-weights",
+            "0,0.25,0.5,1.0",
+            "--checkpoint-controller-exact-forecast-baseline-gain-scales",
+            "1.0,1.1,1.25",
+            "--checkpoint-controller-exact-forecast-horizon-steps",
+            "3",
+            "--checkpoint-controller-exact-forecast-horizon-weights",
+            "3,2,1",
+            "--checkpoint-controller-exact-forecast-energy-slope-weight",
+            "500",
+            "--checkpoint-controller-exact-forecast-energy-curvature-weight",
+            "25",
+            "--checkpoint-controller-exact-forecast-energy-excursion-under-weight",
+            "300",
+            "--checkpoint-controller-exact-forecast-energy-excursion-over-weight",
+            "120",
+            "--checkpoint-controller-exact-forecast-energy-excursion-rel-tolerance",
+            "0.05",
+            "--output-json",
+            str(tmp_path / "hh_staged.json"),
+            "--output-pdf",
+            str(tmp_path / "hh_staged.pdf"),
+        ]
+    )
+    cfg = resolve_staged_hh_config(args)
+    stage_result = wf.StageExecutionResult(
+        h_poly=object(),
+        hmat=np.eye(4, dtype=complex),
+        ordered_labels_exyz=["ee"],
+        coeff_map_exyz={"ee": 1.0 + 0.0j},
+        nq_total=2,
+        psi_hf=_basis(4, 0),
+        psi_warm=_basis(4, 1),
+        psi_adapt=_basis(4, 2),
+        psi_final=_basis(4, 3),
+        warm_payload={"energy": -1.0, "exact_filtered_energy": -1.1},
+        adapt_payload={"energy": -1.05, "exact_gs_energy": -1.1, "stop_reason": "eps_grad"},
+        replay_payload={
+            "vqe": {"energy": -1.09},
+            "exact": {"E_exact_sector": -1.1},
+            "best_state": {"best_theta": [0.1]},
+        },
+    )
+    fake_context = SimpleNamespace(payload_in={"adapt_vqe": {"pool_type": "phase3_v1"}})
+    fake_acceptance = ScaffoldAcceptanceResult(
+        accepted=True,
+        reason="ok",
+        structure_locked=False,
+        source_kind="pytest",
+    )
+    captured: dict[str, object] = {}
+
+    class _FakeController:
+        def __init__(self, **kwargs):
+            captured.update(kwargs)
+
+        def run(self):
+            return SimpleNamespace(
+                reference={"kind": "driven_piecewise_constant_reference_from_replay_seed"},
+                trajectory=[],
+                ledger=[],
+                summary={"append_count": 0, "stay_count": 1},
+            )
+
+    monkeypatch.setattr(wf.replay_mod, "build_replay_scaffold_context", lambda *_args, **_kwargs: fake_context)
+    monkeypatch.setattr(wf, "validate_scaffold_acceptance", lambda payload_in: fake_acceptance)
+    monkeypatch.setattr(wf, "RealtimeCheckpointController", _FakeController)
+
+    payload = wf.run_adaptive_realtime_checkpoint_profile(stage_result, cfg)
+
+    assert payload is not None
+    drive_cfg = captured["drive_config"]
+    assert drive_cfg is not None
+    assert bool(drive_cfg.enabled) is True
+    assert float(drive_cfg.drive_A) == pytest.approx(1.5)
+    assert float(drive_cfg.drive_t0) == pytest.approx(5.0)
+    assert str(drive_cfg.drive_pattern) == "staggered"
+    controller_cfg = captured["cfg"]
+    assert int(controller_cfg.exact_forecast_baseline_step_refine_rounds) == 2
+    assert tuple(controller_cfg.exact_forecast_baseline_blend_weights) == pytest.approx((0.0, 0.25, 0.5, 1.0))
+    assert tuple(controller_cfg.exact_forecast_baseline_gain_scales) == pytest.approx((1.0, 1.1, 1.25))
+    assert int(controller_cfg.exact_forecast_tracking_horizon_steps) == 3
+    assert tuple(controller_cfg.exact_forecast_tracking_horizon_weights) == pytest.approx((3.0, 2.0, 1.0))
+    assert float(controller_cfg.exact_forecast_energy_slope_weight) == pytest.approx(500.0)
+    assert float(controller_cfg.exact_forecast_energy_curvature_weight) == pytest.approx(25.0)
+    assert float(controller_cfg.exact_forecast_energy_excursion_under_weight) == pytest.approx(300.0)
+    assert float(controller_cfg.exact_forecast_energy_excursion_over_weight) == pytest.approx(120.0)
+    assert float(controller_cfg.exact_forecast_energy_excursion_rel_tolerance) == pytest.approx(0.05)
+    assert str(payload["reference"]["kind"]) == "driven_piecewise_constant_reference_from_replay_seed"

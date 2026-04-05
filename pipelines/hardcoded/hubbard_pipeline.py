@@ -2911,9 +2911,13 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--phase3-runtime-split-mode",
-        choices=["off", "shortlist_pauli_children_v1"],
+        choices=["off"],
         default="off",
-        help="Opt-in shortlist-only macro splitting via serialized Pauli child atoms with symmetry-safe child-set admission.",
+        help=(
+            "Phase-3 runtime split mode for the public hardcoded pipeline surface. "
+            "The manuscript-facing canonical path keeps this fixed to 'off'; "
+            "shortlist Pauli-child splitting is retained only as an internal archival/testing implementation."
+        ),
     )
     parser.add_argument("--paop-r", type=int, default=1)
     parser.add_argument("--paop-split-paulis", action="store_true")

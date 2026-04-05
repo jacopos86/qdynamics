@@ -73,6 +73,7 @@ _resolve_reopt_active_indices = _adapt_mod._resolve_reopt_active_indices
 _make_reduced_objective = _adapt_mod._make_reduced_objective
 _VALID_REOPT_POLICIES = _adapt_mod._VALID_REOPT_POLICIES
 _Phase3OracleGradientConfig = _adapt_mod.Phase3OracleGradientConfig
+_FinalNoiseAuditConfig = _adapt_mod.FinalNoiseAuditConfig
 
 
 def _fermion_sector_weights(
@@ -332,6 +333,19 @@ class TestAdaptCLIParsing:
         args = _adapt_mod.parse_args()
         assert str(args.adapt_continuation_mode) == "phase3_v1"
 
+    def test_parse_rejects_archival_phase3_runtime_split_mode(self, monkeypatch: pytest.MonkeyPatch):
+        monkeypatch.setattr(
+            sys,
+            "argv",
+            [
+                "adapt_pipeline.py",
+                "--phase3-runtime-split-mode",
+                "shortlist_pauli_children_v1",
+            ],
+        )
+        with pytest.raises(SystemExit):
+            _adapt_mod.parse_args()
+
     def test_parse_defaults_phase3_oracle_gradient_mode_off(self, monkeypatch: pytest.MonkeyPatch):
         monkeypatch.setattr(sys, "argv", ["adapt_pipeline.py"])
         args = _adapt_mod.parse_args()
@@ -354,6 +368,27 @@ class TestAdaptCLIParsing:
         )
         args = _adapt_mod.parse_args()
         assert str(args.phase3_oracle_inner_objective_mode) == "noisy_v1"
+
+    def test_parse_accepts_final_noise_audit_runtime_mode_and_profile(self, monkeypatch: pytest.MonkeyPatch):
+        monkeypatch.setattr(
+            sys,
+            "argv",
+            [
+                "adapt_pipeline.py",
+                "--final-noise-audit-mode",
+                "runtime",
+                "--final-noise-audit-runtime-profile",
+                "main_twirled_readout_v1",
+                "--final-noise-audit-runtime-session-policy",
+                "backend_only",
+                "--final-noise-audit-compare-unmitigated-baseline",
+            ],
+        )
+        args = _adapt_mod.parse_args()
+        assert str(args.final_noise_audit_mode) == "runtime"
+        assert str(args.final_noise_audit_runtime_profile) == "main_twirled_readout_v1"
+        assert str(args.final_noise_audit_runtime_session_policy) == "backend_only"
+        assert bool(args.final_noise_audit_compare_unmitigated_baseline) is True
 
     def test_parse_rejects_auto_continuation_mode(self, monkeypatch: pytest.MonkeyPatch):
         monkeypatch.setattr(
@@ -2181,6 +2216,27 @@ class TestHHPhase3Continuation:
         payload.update(overrides)
         return _Phase3OracleGradientConfig(**payload)
 
+    def _final_audit_cfg(self, **overrides: object) -> _FinalNoiseAuditConfig:
+        payload: dict[str, object] = {
+            "noise_mode": "shots",
+            "shots": 64,
+            "oracle_repeats": 2,
+            "oracle_aggregate": "mean",
+            "backend_name": None,
+            "use_fake_backend": False,
+            "seed": 7,
+            "mitigation_mode": "none",
+            "local_readout_strategy": None,
+            "runtime_profile_name": "legacy_runtime_v0",
+            "runtime_session_policy": "prefer_session",
+            "compare_unmitigated_baseline": False,
+            "seed_transpiler": None,
+            "transpile_optimization_level": 1,
+            "strict": False,
+        }
+        payload.update(overrides)
+        return _FinalNoiseAuditConfig(**payload)
+
     def _install_fake_oracle_bindings(
         self,
         monkeypatch: pytest.MonkeyPatch,
@@ -2196,6 +2252,8 @@ class TestHHPhase3Continuation:
         backend_name: str = "FakeNighthawk",
         raise_on_raw_measure: bool = False,
         raise_on_symmetry_measure: bool = False,
+        raise_on_final_audit: bool = False,
+        raise_on_final_audit_baseline: bool = False,
     ) -> list[object]:
         gradient_lookup = dict(gradient_by_label or {})
         sigma_lookup = dict(sigma_by_label or {})
@@ -2235,6 +2293,73 @@ class TestHHPhase3Continuation:
                     )
                 label = str(getattr(circuit, "_phase3_candidate_label", "unknown"))
                 sign = float(getattr(circuit, "_phase3_probe_sign", 0.0))
+                grad_target = float(gradient_lookup.get(label, default_gradient))
+                sigma_target = float(sigma_lookup.get(label, default_sigma))
+                per_eval_stderr = float(sigma_target * math.sqrt(2.0) * float(gradient_step))
+                self.calls.append((str(label), float(sign)))
+                return SimpleNamespace(
+                    mean=float(sign * grad_target * float(gradient_step)),
+                    std=float(per_eval_stderr),
+                    stdev=float(per_eval_stderr),
+                    stderr=float(per_eval_stderr),
+                    n_samples=int(shots),
+                    raw_values=[float(sign * grad_target * float(gradient_step))],
+                    aggregate=str(getattr(self.config, "oracle_aggregate", "mean")),
+                )
+
+            def evaluate_parameterized(
+                self,
+                *,
+                plan: object,
+                theta_runtime: object,
+                observable: object,
+                runtime_trace_context: dict[str, object] | None = None,
+                **_kwargs: object,
+            ) -> SimpleNamespace:
+                del plan, theta_runtime, observable
+                trace = dict(runtime_trace_context or {})
+                route = str(trace.get("route", "")).strip().lower()
+                if route == "final_noise_audit_v1":
+                    audit_variant = str(trace.get("audit_variant", "requested"))
+                    if raise_on_final_audit:
+                        raise RuntimeError("synthetic final noise audit failure")
+                    if audit_variant == "unmitigated_baseline" and raise_on_final_audit_baseline:
+                        raise RuntimeError("synthetic final noise audit baseline failure")
+                    objective_val = float(
+                        objective_lookup.get(
+                            f"final_noise_audit_v1::{audit_variant}",
+                            objective_lookup.get(
+                                "final_noise_audit_v1",
+                                objective_mean if objective_mean is not None else 0.0,
+                            ),
+                        )
+                    )
+                    self.calls.append((f"final_noise_audit_v1::{audit_variant}", 0.0))
+                    return SimpleNamespace(
+                        mean=float(objective_val),
+                        std=0.0,
+                        stdev=0.0,
+                        stderr=0.0,
+                        n_samples=int(shots),
+                        raw_values=[float(objective_val)],
+                        aggregate=str(getattr(self.config, "oracle_aggregate", "mean")),
+                    )
+                stage = trace.get("objective_stage", None)
+                if stage is not None:
+                    objective_val = float(objective_lookup.get(str(stage), objective_mean if objective_mean is not None else 0.0))
+                    self.calls.append((str(stage), 0.0))
+                    return SimpleNamespace(
+                        mean=float(objective_val),
+                        std=0.0,
+                        stdev=0.0,
+                        stderr=0.0,
+                        n_samples=int(shots),
+                        raw_values=[float(objective_val)],
+                        aggregate=str(getattr(self.config, "oracle_aggregate", "mean")),
+                    )
+                label = str(trace.get("candidate_label", "unknown"))
+                probe_sign = str(trace.get("probe_sign", "plus"))
+                sign = 1.0 if probe_sign == "plus" else -1.0
                 grad_target = float(gradient_lookup.get(label, default_gradient))
                 sigma_target = float(sigma_lookup.get(label, default_sigma))
                 per_eval_stderr = float(sigma_target * math.sqrt(2.0) * float(gradient_step))
@@ -2398,6 +2523,30 @@ class TestHHPhase3Continuation:
             def close(self) -> None:
                 self.closed = True
 
+        def _normalize_request(cfg: object) -> dict[str, object]:
+            mitigation = getattr(cfg, "mitigation", {"mode": "none"})
+            if not isinstance(mitigation, dict):
+                mitigation = {"mode": "none"}
+            return {
+                "noise_mode": str(getattr(cfg, "noise_mode", "shots")),
+                "shots": int(getattr(cfg, "shots", shots)),
+                "oracle_repeats": int(getattr(cfg, "oracle_repeats", 1)),
+                "oracle_aggregate": str(getattr(cfg, "oracle_aggregate", "mean")),
+                "backend_name": getattr(cfg, "backend_name", None),
+                "use_fake_backend": bool(getattr(cfg, "use_fake_backend", False)),
+                "execution_surface": str(getattr(cfg, "execution_surface", "expectation_v1")),
+                "raw_transport": str(getattr(cfg, "raw_transport", "auto")),
+                "mitigation": dict(mitigation),
+                "symmetry_mitigation": {"mode": "off"},
+                "runtime_profile": {
+                    "name": str(getattr(cfg, "runtime_profile", "legacy_runtime_v0")),
+                },
+                "runtime_session": {
+                    "mode": str(getattr(cfg, "runtime_session", "prefer_session")),
+                },
+                "transpile_optimization_level": int(getattr(cfg, "transpile_optimization_level", 1)),
+            }
+
         def _fake_bindings() -> dict[str, object]:
             return {
                 "ExpectationOracle": _FakeOracle,
@@ -2406,6 +2555,23 @@ class TestHHPhase3Continuation:
                 "all_z_full_register_qop": _raw_runtime._all_z_full_register_qop,
                 "summarize_hh_full_register_z_records": _raw_runtime._summarize_hh_full_register_z_records,
                 "normalize_sampler_raw_runtime_config": (lambda cfg: cfg),
+                "normalize_oracle_execution_request": _normalize_request,
+                "assess_oracle_execution_capability": (
+                    lambda cfg: {
+                        "supported": True,
+                        "reason_code": "ok",
+                        "reason": "ok",
+                        "normalized_request": _normalize_request(cfg),
+                    }
+                ),
+                "validate_oracle_execution_request": (
+                    lambda cfg: {
+                        "supported": True,
+                        "reason_code": "ok",
+                        "reason": "ok",
+                        "normalized_request": _normalize_request(cfg),
+                    }
+                ),
                 "build_runtime_layout_circuit": (
                     lambda layout, theta_runtime, num_qubits, reference_state=None: SimpleNamespace(
                         layout=layout,
@@ -2821,6 +2987,48 @@ class TestHHPhase3Continuation:
         assert payload["history"][0]["gradient_source"] == "exact_commutator"
         assert payload["history"][0]["max_gradient_stderr"] == pytest.approx(0.0)
         assert payload["history"][0]["candidate_gradient_scout"] == []
+
+    def test_final_noise_audit_default_off_keeps_exact_path(self, monkeypatch: pytest.MonkeyPatch):
+        def _unexpected_bindings() -> dict[str, object]:
+            raise AssertionError("oracle runtime bindings should not be loaded when final noise audit is off")
+
+        monkeypatch.setattr(_adapt_mod, "_phase3_oracle_runtime_bindings", _unexpected_bindings)
+        payload, _ = _run_hardcoded_adapt_vqe(
+            h_poly=self._hh_h(),
+            num_sites=2,
+            ordering="blocked",
+            problem="hh",
+            adapt_pool="paop_lf_std",
+            t=1.0,
+            u=2.0,
+            dv=0.0,
+            boundary="periodic",
+            omega0=1.0,
+            g_ep=0.5,
+            n_ph_max=1,
+            boson_encoding="binary",
+            max_depth=1,
+            eps_grad=1e-3,
+            eps_energy=1e-8,
+            maxiter=20,
+            seed=7,
+            allow_repeats=True,
+            finite_angle_fallback=False,
+            finite_angle=0.1,
+            finite_angle_min_improvement=1e-12,
+            adapt_reopt_policy="windowed",
+            adapt_window_size=1,
+            adapt_window_topk=0,
+            adapt_continuation_mode="phase3_v1",
+            phase3_symmetry_mitigation_mode="verify_only",
+            phase3_enable_rescue=False,
+            phase3_lifetime_cost_mode="phase3_v1",
+        )
+
+        assert payload["success"] is True
+        assert payload["energy_source"] == "exact_statevector"
+        assert payload["continuation"]["oracle_gradient_scope"] == "off"
+        assert "final_noise_audit_v1" not in payload
 
     def test_phase3_oracle_gradient_mode_routes_sigma_through_real_oracle_path(self, monkeypatch: pytest.MonkeyPatch):
         oracle_instances = self._install_fake_oracle_bindings(
@@ -4148,6 +4356,454 @@ class TestHHPhase3Continuation:
             assert len(converged_energy) == 0
         finally:
             monkeypatch.setattr(_adapt_mod, "_ai_log", original_ai_log)
+
+    def test_final_noise_audit_expectation_appends_versioned_payload_without_changing_exact_energy(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+    ):
+        oracle_instances = self._install_fake_oracle_bindings(
+            monkeypatch,
+            objective_mean=-0.321,
+        )
+        payload, _ = _run_hardcoded_adapt_vqe(
+            h_poly=self._hh_h(),
+            num_sites=2,
+            ordering="blocked",
+            problem="hh",
+            adapt_pool="paop_lf_std",
+            t=1.0,
+            u=2.0,
+            dv=0.0,
+            boundary="periodic",
+            omega0=1.0,
+            g_ep=0.5,
+            n_ph_max=1,
+            boson_encoding="binary",
+            max_depth=1,
+            eps_grad=1e-3,
+            eps_energy=1e-8,
+            maxiter=20,
+            seed=7,
+            allow_repeats=True,
+            finite_angle_fallback=False,
+            finite_angle=0.1,
+            finite_angle_min_improvement=1e-12,
+            adapt_reopt_policy="windowed",
+            adapt_window_size=1,
+            adapt_window_topk=0,
+            adapt_continuation_mode="phase3_v1",
+            final_noise_audit_config=self._final_audit_cfg(),
+        )
+        audit = payload["final_noise_audit_v1"]
+        assert payload["success"] is True
+        assert payload["energy_source"] == "exact_statevector"
+        assert audit["status"] == "completed"
+        assert audit["reference"]["primary_metric_name"] == "exact_target_abs_error"
+        assert audit["normalized_request"]["execution_surface"] == "expectation_v1"
+        assert audit["result"]["requested_estimate_energy"] == pytest.approx(-0.321)
+        assert audit["deltas"]["exact_target_abs_error"] == pytest.approx(
+            abs(float(payload["exact_gs_energy"]) - (-0.321))
+        )
+        assert audit["deltas"]["exact_final_state_abs_error"] == pytest.approx(
+            abs(float(payload["exact_energy_from_final_state"]) - (-0.321))
+        )
+        assert oracle_instances and getattr(oracle_instances[0], "closed", False) is True
+
+    def test_final_noise_audit_fail_open_records_failure(self, monkeypatch: pytest.MonkeyPatch):
+        self._install_fake_oracle_bindings(
+            monkeypatch,
+            objective_mean=-0.321,
+            raise_on_final_audit=True,
+        )
+        payload, _ = _run_hardcoded_adapt_vqe(
+            h_poly=self._hh_h(),
+            num_sites=2,
+            ordering="blocked",
+            problem="hh",
+            adapt_pool="paop_lf_std",
+            t=1.0,
+            u=2.0,
+            dv=0.0,
+            boundary="periodic",
+            omega0=1.0,
+            g_ep=0.5,
+            n_ph_max=1,
+            boson_encoding="binary",
+            max_depth=1,
+            eps_grad=1e-3,
+            eps_energy=1e-8,
+            maxiter=20,
+            seed=7,
+            allow_repeats=True,
+            finite_angle_fallback=False,
+            finite_angle=0.1,
+            finite_angle_min_improvement=1e-12,
+            adapt_reopt_policy="windowed",
+            adapt_window_size=1,
+            adapt_window_topk=0,
+            adapt_continuation_mode="phase3_v1",
+            final_noise_audit_config=self._final_audit_cfg(strict=False),
+        )
+        audit = payload["final_noise_audit_v1"]
+        assert payload["success"] is True
+        assert audit["status"] == "failed"
+        assert audit["strict"] is False
+        assert audit["failure"]["error_type"] == "RuntimeError"
+        assert "synthetic final noise audit failure" in audit["failure"]["error_message"]
+
+    def test_final_noise_audit_strict_raises(self, monkeypatch: pytest.MonkeyPatch):
+        self._install_fake_oracle_bindings(
+            monkeypatch,
+            objective_mean=-0.321,
+            raise_on_final_audit=True,
+        )
+        with pytest.raises(RuntimeError, match="synthetic final noise audit failure"):
+            _run_hardcoded_adapt_vqe(
+                h_poly=self._hh_h(),
+                num_sites=2,
+                ordering="blocked",
+                problem="hh",
+                adapt_pool="paop_lf_std",
+                t=1.0,
+                u=2.0,
+                dv=0.0,
+                boundary="periodic",
+                omega0=1.0,
+                g_ep=0.5,
+                n_ph_max=1,
+                boson_encoding="binary",
+                max_depth=1,
+                eps_grad=1e-3,
+                eps_energy=1e-8,
+                maxiter=20,
+                seed=7,
+                allow_repeats=True,
+                finite_angle_fallback=False,
+                finite_angle=0.1,
+                finite_angle_min_improvement=1e-12,
+                adapt_reopt_policy="windowed",
+                adapt_window_size=1,
+                adapt_window_topk=0,
+                adapt_continuation_mode="phase3_v1",
+                final_noise_audit_config=self._final_audit_cfg(strict=True),
+            )
+
+    def test_final_noise_audit_runtime_expectation_records_profile_and_session(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+    ):
+        self._install_fake_oracle_bindings(
+            monkeypatch,
+            objective_mean=-0.222,
+        )
+        payload, _ = _run_hardcoded_adapt_vqe(
+            h_poly=self._hh_h(),
+            num_sites=2,
+            ordering="blocked",
+            problem="hh",
+            adapt_pool="paop_lf_std",
+            t=1.0,
+            u=2.0,
+            dv=0.0,
+            boundary="periodic",
+            omega0=1.0,
+            g_ep=0.5,
+            n_ph_max=1,
+            boson_encoding="binary",
+            max_depth=1,
+            eps_grad=1e-3,
+            eps_energy=1e-8,
+            maxiter=20,
+            seed=7,
+            allow_repeats=True,
+            finite_angle_fallback=False,
+            finite_angle=0.1,
+            finite_angle_min_improvement=1e-12,
+            adapt_reopt_policy="windowed",
+            adapt_window_size=1,
+            adapt_window_topk=0,
+            adapt_continuation_mode="phase3_v1",
+            final_noise_audit_config=self._final_audit_cfg(
+                noise_mode="runtime",
+                backend_name="ibm_marrakesh",
+                runtime_profile_name="main_twirled_readout_v1",
+                runtime_session_policy="backend_only",
+            ),
+        )
+        audit = payload["final_noise_audit_v1"]
+        assert audit["status"] == "completed"
+        assert audit["requested_config"]["runtime_profile"]["name"] == "main_twirled_readout_v1"
+        assert audit["requested_config"]["runtime_session"]["mode"] == "backend_only"
+        assert audit["normalized_request"]["runtime_profile"]["name"] == "main_twirled_readout_v1"
+        assert audit["normalized_request"]["runtime_session"]["mode"] == "backend_only"
+        assert audit["normalized_request"]["execution_surface"] == "expectation_v1"
+
+    def test_final_noise_audit_runtime_rejects_fake_backend(self):
+        with pytest.raises(ValueError, match="requires a real runtime backend"):
+            _run_hardcoded_adapt_vqe(
+                h_poly=self._hh_h(),
+                num_sites=2,
+                ordering="blocked",
+                problem="hh",
+                adapt_pool="paop_lf_std",
+                t=1.0,
+                u=2.0,
+                dv=0.0,
+                boundary="periodic",
+                omega0=1.0,
+                g_ep=0.5,
+                n_ph_max=1,
+                boson_encoding="binary",
+                max_depth=1,
+                eps_grad=1e-3,
+                eps_energy=1e-8,
+                maxiter=20,
+                seed=7,
+                allow_repeats=True,
+                finite_angle_fallback=False,
+                finite_angle=0.1,
+                finite_angle_min_improvement=1e-12,
+                adapt_reopt_policy="windowed",
+                adapt_window_size=1,
+                adapt_window_topk=0,
+                adapt_continuation_mode="phase3_v1",
+                final_noise_audit_config=self._final_audit_cfg(
+                    noise_mode="runtime",
+                    backend_name="ibm_marrakesh",
+                    use_fake_backend=True,
+                ),
+            )
+
+    def test_final_noise_audit_runtime_profile_rejects_explicit_mitigation(self):
+        with pytest.raises(ValueError, match="runtime profiles already encode mitigation"):
+            _run_hardcoded_adapt_vqe(
+                h_poly=self._hh_h(),
+                num_sites=2,
+                ordering="blocked",
+                problem="hh",
+                adapt_pool="paop_lf_std",
+                t=1.0,
+                u=2.0,
+                dv=0.0,
+                boundary="periodic",
+                omega0=1.0,
+                g_ep=0.5,
+                n_ph_max=1,
+                boson_encoding="binary",
+                max_depth=1,
+                eps_grad=1e-3,
+                eps_energy=1e-8,
+                maxiter=20,
+                seed=7,
+                allow_repeats=True,
+                finite_angle_fallback=False,
+                finite_angle=0.1,
+                finite_angle_min_improvement=1e-12,
+                adapt_reopt_policy="windowed",
+                adapt_window_size=1,
+                adapt_window_topk=0,
+                adapt_continuation_mode="phase3_v1",
+                final_noise_audit_config=self._final_audit_cfg(
+                    noise_mode="runtime",
+                    backend_name="ibm_marrakesh",
+                    mitigation_mode="readout",
+                    runtime_profile_name="main_twirled_readout_v1",
+                ),
+            )
+
+    def test_final_noise_audit_runtime_readout_rejects_local_strategy(self):
+        with pytest.raises(ValueError, match="provider-side mitigation"):
+            _run_hardcoded_adapt_vqe(
+                h_poly=self._hh_h(),
+                num_sites=2,
+                ordering="blocked",
+                problem="hh",
+                adapt_pool="paop_lf_std",
+                t=1.0,
+                u=2.0,
+                dv=0.0,
+                boundary="periodic",
+                omega0=1.0,
+                g_ep=0.5,
+                n_ph_max=1,
+                boson_encoding="binary",
+                max_depth=1,
+                eps_grad=1e-3,
+                eps_energy=1e-8,
+                maxiter=20,
+                seed=7,
+                allow_repeats=True,
+                finite_angle_fallback=False,
+                finite_angle=0.1,
+                finite_angle_min_improvement=1e-12,
+                adapt_reopt_policy="windowed",
+                adapt_window_size=1,
+                adapt_window_topk=0,
+                adapt_continuation_mode="phase3_v1",
+                final_noise_audit_config=self._final_audit_cfg(
+                    noise_mode="runtime",
+                    backend_name="ibm_marrakesh",
+                    mitigation_mode="readout",
+                    local_readout_strategy="mthree",
+                ),
+            )
+
+    def test_final_noise_audit_runtime_comparison_bundle_records_unmitigated_baseline(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+    ):
+        self._install_fake_oracle_bindings(
+            monkeypatch,
+            objective_mean_by_stage={
+                "final_noise_audit_v1::requested": -0.222,
+                "final_noise_audit_v1::unmitigated_baseline": -0.300,
+            },
+        )
+        payload, _ = _run_hardcoded_adapt_vqe(
+            h_poly=self._hh_h(),
+            num_sites=2,
+            ordering="blocked",
+            problem="hh",
+            adapt_pool="paop_lf_std",
+            t=1.0,
+            u=2.0,
+            dv=0.0,
+            boundary="periodic",
+            omega0=1.0,
+            g_ep=0.5,
+            n_ph_max=1,
+            boson_encoding="binary",
+            max_depth=1,
+            eps_grad=1e-3,
+            eps_energy=1e-8,
+            maxiter=20,
+            seed=7,
+            allow_repeats=True,
+            finite_angle_fallback=False,
+            finite_angle=0.1,
+            finite_angle_min_improvement=1e-12,
+            adapt_reopt_policy="windowed",
+            adapt_window_size=1,
+            adapt_window_topk=0,
+            adapt_continuation_mode="phase3_v1",
+            final_noise_audit_config=self._final_audit_cfg(
+                noise_mode="runtime",
+                backend_name="ibm_marrakesh",
+                runtime_profile_name="main_twirled_readout_v1",
+                compare_unmitigated_baseline=True,
+            ),
+        )
+        comparison = payload["final_noise_audit_v1"]["unmitigated_baseline_comparison"]
+        assert comparison["enabled"] is True
+        assert comparison["status"] == "completed"
+        assert comparison["baseline_requested_config"]["runtime_profile"]["name"] == "legacy_runtime_v0"
+        assert comparison["baseline_result"]["requested_estimate_energy"] == pytest.approx(-0.300)
+        assert comparison["comparison_metrics"]["requested_minus_unmitigated_delta_e"] == pytest.approx(0.078)
+        assert comparison["comparison_metrics"]["requested_minus_unmitigated_abs_delta_e"] == pytest.approx(0.078)
+
+    def test_final_noise_audit_baseline_failure_is_fail_open_when_not_strict(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+    ):
+        self._install_fake_oracle_bindings(
+            monkeypatch,
+            objective_mean_by_stage={
+                "final_noise_audit_v1::requested": -0.222,
+            },
+            raise_on_final_audit_baseline=True,
+        )
+        payload, _ = _run_hardcoded_adapt_vqe(
+            h_poly=self._hh_h(),
+            num_sites=2,
+            ordering="blocked",
+            problem="hh",
+            adapt_pool="paop_lf_std",
+            t=1.0,
+            u=2.0,
+            dv=0.0,
+            boundary="periodic",
+            omega0=1.0,
+            g_ep=0.5,
+            n_ph_max=1,
+            boson_encoding="binary",
+            max_depth=1,
+            eps_grad=1e-3,
+            eps_energy=1e-8,
+            maxiter=20,
+            seed=7,
+            allow_repeats=True,
+            finite_angle_fallback=False,
+            finite_angle=0.1,
+            finite_angle_min_improvement=1e-12,
+            adapt_reopt_policy="windowed",
+            adapt_window_size=1,
+            adapt_window_topk=0,
+            adapt_continuation_mode="phase3_v1",
+            final_noise_audit_config=self._final_audit_cfg(
+                noise_mode="runtime",
+                backend_name="ibm_marrakesh",
+                runtime_profile_name="main_twirled_readout_v1",
+                compare_unmitigated_baseline=True,
+                strict=False,
+            ),
+        )
+        assert payload["final_noise_audit_v1"]["status"] == "completed"
+        comparison = payload["final_noise_audit_v1"]["unmitigated_baseline_comparison"]
+        assert comparison["enabled"] is True
+        assert comparison["status"] == "failed"
+        assert comparison["reason"] == "evaluation_failed"
+        assert comparison["failure"]["error_type"] == "RuntimeError"
+        assert "synthetic final noise audit baseline failure" in comparison["failure"]["error_message"]
+
+    def test_final_noise_audit_comparison_skips_when_requested_matches_unmitigated(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+    ):
+        self._install_fake_oracle_bindings(
+            monkeypatch,
+            objective_mean_by_stage={
+                "final_noise_audit_v1::requested": -0.210,
+            },
+        )
+        payload, _ = _run_hardcoded_adapt_vqe(
+            h_poly=self._hh_h(),
+            num_sites=2,
+            ordering="blocked",
+            problem="hh",
+            adapt_pool="paop_lf_std",
+            t=1.0,
+            u=2.0,
+            dv=0.0,
+            boundary="periodic",
+            omega0=1.0,
+            g_ep=0.5,
+            n_ph_max=1,
+            boson_encoding="binary",
+            max_depth=1,
+            eps_grad=1e-3,
+            eps_energy=1e-8,
+            maxiter=20,
+            seed=7,
+            allow_repeats=True,
+            finite_angle_fallback=False,
+            finite_angle=0.1,
+            finite_angle_min_improvement=1e-12,
+            adapt_reopt_policy="windowed",
+            adapt_window_size=1,
+            adapt_window_topk=0,
+            adapt_continuation_mode="phase3_v1",
+            final_noise_audit_config=self._final_audit_cfg(
+                noise_mode="runtime",
+                backend_name="ibm_marrakesh",
+                runtime_profile_name="legacy_runtime_v0",
+                mitigation_mode="none",
+                compare_unmitigated_baseline=True,
+            ),
+        )
+        comparison = payload["final_noise_audit_v1"]["unmitigated_baseline_comparison"]
+        assert comparison["enabled"] is True
+        assert comparison["status"] == "skipped"
+        assert comparison["reason"] == "requested_matches_unmitigated_baseline"
 
     def test_hubbard_legacy_still_allows_eps_grad_stop(self):
         h_poly = build_hubbard_hamiltonian(

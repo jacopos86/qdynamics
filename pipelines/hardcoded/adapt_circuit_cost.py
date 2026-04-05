@@ -24,6 +24,7 @@ from qiskit.quantum_info import SparsePauliOp
 
 from pipelines.hardcoded.adapt_pipeline import (
     _build_hh_full_meta_pool,
+    _build_hh_pareto_lean_l3_pool,
     _build_hh_pareto_lean_l2_pool,
     _build_hh_pareto_lean_pool,
 )
@@ -169,6 +170,8 @@ def _resolve_scaffold_ops(payload: Mapping[str, Any], h_poly: Any) -> list[Ansat
     num_particles = tuple(half_filled_num_particles(L))
     if pool_key == "pareto_lean":
         builder = _build_hh_pareto_lean_pool
+    elif pool_key == "pareto_lean_l3":
+        builder = _build_hh_pareto_lean_l3_pool
     elif pool_key == "pareto_lean_l2":
         builder = _build_hh_pareto_lean_l2_pool
     else:

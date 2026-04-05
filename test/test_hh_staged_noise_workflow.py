@@ -52,6 +52,7 @@ def test_resolve_noise_defaults_and_retagged_artifacts() -> None:
     assert cfg.noise.methods == ("cfqm4", "suzuki2")
     assert cfg.noise.modes == ("ideal", "shots", "aer_noise")
     assert cfg.noise.audit_modes == ("ideal", "shots", "aer_noise")
+    assert cfg.noise.controller_noise_mode is None
     assert int(cfg.noise.shots) == 2048
     assert int(cfg.noise.oracle_repeats) == 4
     assert str(cfg.noise.oracle_aggregate) == "mean"
@@ -68,8 +69,8 @@ def test_resolve_noise_defaults_and_retagged_artifacts() -> None:
     assert bool(cfg.fixed_lean_replay.enabled) is False
     assert bool(cfg.fixed_scaffold_replay.enabled) is False
     assert str(cfg.source.mode) == "fresh_stage"
-    assert str(cfg.staged.adapt.continuation_mode) == "phase1_v1"
-    assert str(cfg.staged.replay.continuation_mode) == "phase1_v1"
+    assert str(cfg.staged.adapt.continuation_mode) == "phase3_v1"
+    assert str(cfg.staged.replay.continuation_mode) == "phase3_v1"
     assert str(cfg.staged.artifacts.tag).startswith("hh_staged_noise_")
     assert Path(cfg.staged.artifacts.output_json).name == f"{cfg.staged.artifacts.tag}.json"
     assert Path(cfg.staged.artifacts.replay_output_json).name == f"{cfg.staged.artifacts.tag}_replay.json"
@@ -200,6 +201,10 @@ def test_resolve_oracle_v1_accepts_controller_tuning_and_tier_overrides() -> Non
     assert int(cfg.staged.realtime_checkpoint.max_probe_positions) == 1
     assert float(cfg.staged.realtime_checkpoint.motion_calm_shortlist_scale) == pytest.approx(0.25)
     assert int(cfg.staged.realtime_checkpoint.motion_kink_shortlist_bonus) == 0
+    assert str(cfg.staged.realtime_checkpoint.confirm_score_mode) == "compressed_whitened_v1"
+    assert float(cfg.staged.realtime_checkpoint.confirm_compress_fraction) == pytest.approx(0.5)
+    assert str(cfg.staged.realtime_checkpoint.prune_mode) == "off"
+    assert float(cfg.staged.realtime_checkpoint.prune_loss_threshold) == pytest.approx(0.01)
     assert int(cfg.staged.realtime_checkpoint.tiers[0].oracle_shots) == 8
     assert int(cfg.staged.realtime_checkpoint.tiers[1].oracle_shots) == 16
     assert int(cfg.staged.realtime_checkpoint.tiers[2].oracle_shots) == 16
@@ -955,6 +960,41 @@ def test_resolve_fixed_scaffold_runtime_raw_baseline_local_fake_backend_preserve
     assert cfg.fixed_scaffold_runtime_raw_baseline.runtime_profile_config["name"] == "legacy_runtime_v0"
 
 
+def test_resolve_fixed_scaffold_runtime_raw_baseline_accepts_explicit_sampler_profile_and_verify_only(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    source_json = tmp_path / "runtime_fixed_scaffold.json"
+    source_json.write_text(
+        "{\"adapt_vqe\": {\"operators\": []}, \"ground_state\": {}, \"settings\": {}}",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(
+        noise_wf, "_default_fixed_scaffold_runtime_import_json", lambda: (source_json, True)
+    )
+
+    cfg = noise_wf.resolve_staged_hh_noise_config(
+        parse_args(
+            [
+                "--L",
+                "2",
+                "--skip-pdf",
+                "--include-fixed-scaffold-runtime-raw-baseline",
+                "--backend-name",
+                "ibm_marrakesh",
+                "--fixed-scaffold-runtime-raw-profile",
+                "raw_sampler_twirled_v1",
+                "--symmetry-mitigation-mode",
+                "verify_only",
+            ]
+        )
+    )
+
+    assert bool(cfg.fixed_scaffold_runtime_raw_baseline.enabled) is True
+    assert cfg.fixed_scaffold_runtime_raw_baseline.runtime_profile_config["name"] == "raw_sampler_twirled_v1"
+    assert cfg.fixed_scaffold_runtime_raw_baseline.symmetry_mitigation_config["mode"] == "verify_only"
+
+
 def test_resolve_imported_artifact_rejects_phase3_oracle_gradient_knobs(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
@@ -1074,6 +1114,45 @@ def test_resolve_fixed_lean_and_fixed_scaffold_flags_conflict() -> None:
                 ]
             )
         )
+
+
+def test_resolve_fixed_scaffold_runtime_pairing_allows_both_routes(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    source_json = tmp_path / "runtime_pairing.json"
+    source_json.write_text(
+        "{\"adapt_vqe\": {\"operators\": []}, \"ground_state\": {}, \"settings\": {}}",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(
+        noise_wf, "_default_fixed_scaffold_runtime_import_json", lambda: (source_json, True)
+    )
+
+    cfg = noise_wf.resolve_staged_hh_noise_config(
+        parse_args(
+            [
+                "--L",
+                "2",
+                "--skip-pdf",
+                "--include-fixed-scaffold-runtime-energy-only-baseline",
+                "--include-fixed-scaffold-runtime-raw-baseline",
+                "--fixed-final-state-json",
+                str(source_json),
+                "--backend-name",
+                "ibm_marrakesh",
+                "--fixed-scaffold-runtime-raw-profile",
+                "raw_sampler_twirled_v1",
+                "--symmetry-mitigation-mode",
+                "verify_only",
+            ]
+        )
+    )
+
+    assert bool(cfg.fixed_scaffold_runtime_energy_only.enabled) is True
+    assert bool(cfg.fixed_scaffold_runtime_raw_baseline.enabled) is True
+    assert str(cfg.fixed_scaffold_runtime_energy_only.noise_mode) == "runtime"
+    assert str(cfg.fixed_scaffold_runtime_raw_baseline.noise_mode) == "runtime"
 
 
 def test_run_noisy_profiles_uses_final_state_and_optional_audit(
@@ -1569,8 +1648,7 @@ def test_run_adaptive_realtime_checkpoint_profile_noisy_off_runs_local_controlle
     assert payload is not None
     assert str(captured["cfg"].mode) == "off"
     assert captured["drive_config"] is not None
-    assert captured["oracle_base_config"] is not None
-    assert str(captured["oracle_base_config"].noise_mode) == "backend_scheduled"
+    assert captured["oracle_base_config"] is None
     assert int(captured["wallclock_cap_s"]) == 123
     assert Path(captured["progress_path"]).name == "controller_progress.json"
     assert Path(captured["partial_payload_path"]).name == "controller_partial.json"
@@ -2246,6 +2324,10 @@ def test_run_staged_hh_noise_import_mode_runs_fixed_scaffold_runtime_raw_baselin
                 str(source_json),
                 "--backend-name",
                 "ibm_marrakesh",
+                "--fixed-scaffold-runtime-raw-profile",
+                "raw_sampler_twirled_v1",
+                "--symmetry-mitigation-mode",
+                "verify_only",
                 "--fixed-scaffold-runtime-raw-transport",
                 "sampler_v2",
                 "--fixed-scaffold-runtime-raw-store-memory",
@@ -2292,6 +2374,8 @@ def test_run_staged_hh_noise_import_mode_runs_fixed_scaffold_runtime_raw_baselin
             "energy_audits": {"main": {"success": True, "evaluation": {"delta_mean": 0.123}}},
             "noise_config": {
                 "noise_mode": "runtime",
+                "symmetry_mitigation": {"mode": "verify_only"},
+                "runtime_profile": {"name": "raw_sampler_twirled_v1"},
                 "execution_surface": "raw_measurement_v1",
                 "raw_transport": "sampler_v2",
                 "raw_store_memory": True,
@@ -2355,6 +2439,8 @@ def test_run_staged_hh_noise_import_mode_runs_fixed_scaffold_runtime_raw_baselin
     assert payload["summary"]["fixed_scaffold_runtime_raw_baseline_main_delta_mean"] == pytest.approx(0.123)
     assert payload["summary"]["fixed_scaffold_runtime_raw_baseline_noise_mode"] == "runtime"
     assert payload["summary"]["fixed_scaffold_runtime_raw_baseline_execution_surface"] == "raw_measurement_v1"
+    assert payload["summary"]["fixed_scaffold_runtime_raw_baseline_profile_name"] == "raw_sampler_twirled_v1"
+    assert payload["summary"]["fixed_scaffold_runtime_raw_baseline_symmetry_mode"] == "verify_only"
     assert payload["summary"]["fixed_scaffold_runtime_raw_baseline_raw_transport"] == "sampler_v2"
     assert payload["summary"]["fixed_scaffold_runtime_raw_baseline_raw_store_memory"] is True
     assert payload["summary"]["fixed_scaffold_runtime_raw_baseline_raw_artifact_path"] == str(
@@ -2379,6 +2465,14 @@ def test_run_staged_hh_noise_import_mode_runs_fixed_scaffold_runtime_raw_baselin
     assert (
         sidecar_payload["settings"]["runtime_raw_baseline"]["raw_artifact_path"]
         == str(raw_artifact_path)
+    )
+    assert (
+        sidecar_payload["settings"]["runtime_raw_baseline"]["runtime_profile_config"]["name"]
+        == "raw_sampler_twirled_v1"
+    )
+    assert (
+        sidecar_payload["settings"]["runtime_raw_baseline"]["symmetry_mitigation_config"]["mode"]
+        == "verify_only"
     )
     assert bool(writes["pdf"]) is True
 
@@ -2525,6 +2619,197 @@ def test_run_staged_hh_noise_import_mode_runs_fixed_scaffold_runtime_raw_baselin
     assert sidecar_payload["settings"]["runtime_raw_baseline"]["noise_mode"] == "backend_scheduled"
     assert sidecar_payload["settings"]["runtime_raw_baseline"]["mitigation_config"]["mode"] == "readout"
     assert sidecar_payload["settings"]["runtime_raw_baseline"]["symmetry_mitigation_config"]["mode"] == "projector_renorm_v1"
+
+
+def test_run_staged_hh_noise_import_mode_runs_fixed_scaffold_runtime_pairing(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    source_json = tmp_path / "runtime_pairing.json"
+    source_json.write_text(
+        "{\"adapt_vqe\": {\"operators\": []}, \"ground_state\": {}, \"settings\": {}}",
+        encoding="utf-8",
+    )
+    raw_artifact_path = tmp_path / "paired_raw_records.ndjson.gz"
+    cfg = noise_wf.resolve_staged_hh_noise_config(
+        parse_args(
+            [
+                "--L",
+                "2",
+                "--skip-pdf",
+                "--include-fixed-scaffold-runtime-energy-only-baseline",
+                "--include-fixed-scaffold-runtime-raw-baseline",
+                "--fixed-final-state-json",
+                str(source_json),
+                "--backend-name",
+                "ibm_marrakesh",
+                "--include-fixed-scaffold-runtime-final-zne-audit",
+                "--fixed-scaffold-runtime-raw-profile",
+                "raw_sampler_twirled_v1",
+                "--symmetry-mitigation-mode",
+                "verify_only",
+                "--fixed-scaffold-runtime-raw-transport",
+                "sampler_v2",
+                "--fixed-scaffold-runtime-raw-artifact-path",
+                str(raw_artifact_path),
+                "--output-json",
+                str(tmp_path / "runtime_pairing.json"),
+                "--output-pdf",
+                str(tmp_path / "runtime_pairing.pdf"),
+            ]
+        )
+    )
+
+    monkeypatch.setattr(
+        noise_wf.base_wf,
+        "run_stage_pipeline",
+        lambda staged_cfg: (_ for _ in ()).throw(
+            AssertionError("stage pipeline should not run in import mode")
+        ),
+    )
+    monkeypatch.setattr(
+        noise_wf,
+        "_run_imported_prepared_state_audit_mode",
+        lambda source_cfg, noise_cfg, mode: {"success": True, "kind": "prepared", "mode": mode},
+    )
+    monkeypatch.setattr(
+        noise_wf,
+        "_run_imported_full_circuit_audit_mode",
+        lambda source_cfg, noise_cfg, mode, **kwargs: {"success": True, "kind": "full", "mode": mode},
+    )
+    monkeypatch.setattr(noise_wf, "_run_fixed_lean_noisy_replay_mode", lambda source_cfg, noise_cfg, fixed_cfg: {})
+    monkeypatch.setattr(noise_wf, "_run_fixed_lean_noise_attribution_mode", lambda source_cfg, noise_cfg, attribution_cfg: {})
+    monkeypatch.setattr(noise_wf, "_run_fixed_lean_compile_control_scout_mode", lambda source_cfg, noise_cfg, scout_cfg: {})
+    monkeypatch.setattr(noise_wf, "_run_fixed_scaffold_noisy_replay_mode", lambda source_cfg, noise_cfg, fixed_cfg: {})
+    monkeypatch.setattr(noise_wf, "_run_fixed_scaffold_compile_control_scout_mode", lambda source_cfg, noise_cfg, scout_cfg: {})
+    monkeypatch.setattr(noise_wf, "_run_fixed_scaffold_noise_attribution_mode", lambda source_cfg, noise_cfg, attribution_cfg: {})
+    monkeypatch.setattr(
+        noise_wf,
+        "_run_fixed_scaffold_runtime_energy_only_mode",
+        lambda source_cfg, noise_cfg, runtime_cfg: {
+            "success": True,
+            "route": "fixed_scaffold_runtime_energy_only",
+            "subject_kind": "hh_marrakesh_gate_pruned_6term_drop_eyezee_v1",
+            "noise_config": {
+                "noise_mode": "runtime",
+                "backend_name": "ibm_marrakesh",
+                "runtime_profile": {"name": "main_twirled_readout_v1"},
+            },
+            "energy_audits": {
+                "main": {"success": True, "evaluation": {"delta_mean": 0.234}},
+                "final_audit_zne": {"success": True, "evaluation": {"delta_mean": 0.111}},
+            },
+        },
+    )
+    monkeypatch.setattr(
+        noise_wf,
+        "_run_fixed_scaffold_runtime_raw_baseline_mode",
+        lambda source_cfg, noise_cfg, runtime_cfg: {
+            "success": True,
+            "route": "fixed_scaffold_runtime_raw_baseline",
+            "subject_kind": "hh_marrakesh_gate_pruned_6term_drop_eyezee_v1",
+            "energy_audits": {"main": {"success": True, "evaluation": {"delta_mean": 0.123}}},
+            "noise_config": {
+                "noise_mode": "runtime",
+                "backend_name": "ibm_marrakesh",
+                "symmetry_mitigation": {"mode": "verify_only"},
+                "runtime_profile": {"name": "raw_sampler_twirled_v1"},
+                "execution_surface": "raw_measurement_v1",
+                "raw_transport": "sampler_v2",
+                "raw_store_memory": False,
+                "raw_artifact_path": str(raw_artifact_path),
+            },
+            "compile_control": {
+                "backend_name": "ibm_marrakesh",
+                "seed_transpiler": 0,
+                "transpile_optimization_level": 1,
+                "source": "fixed_scaffold_runtime_transpile_cli",
+            },
+            "compile_observation": {
+                "available": True,
+                "requested": {
+                    "backend_name": "ibm_marrakesh",
+                    "seed_transpiler": 0,
+                    "transpile_optimization_level": 1,
+                    "source": "fixed_scaffold_runtime_transpile_cli",
+                },
+                "observed": {
+                    "backend_name": "ibm_marrakesh",
+                    "seed_transpiler": 0,
+                    "transpile_optimization_level": 1,
+                },
+                "matches_requested": True,
+                "mismatch_fields": [],
+                "reason": None,
+            },
+            "backend_info": {
+                "details": {
+                    "execution_surface": "raw_measurement_v1",
+                    "transport": "sampler_v2",
+                    "raw_artifact_path": str(raw_artifact_path),
+                }
+            },
+        },
+    )
+
+    writes: dict[str, object] = {}
+
+    def _fake_write_json(path: Path, payload: dict[str, object]) -> None:
+        writes[str(Path(path).name)] = payload
+        writes.setdefault("paths", []).append(Path(path))
+
+    monkeypatch.setattr(noise_wf.base_wf, "_write_json", _fake_write_json)
+    monkeypatch.setattr(
+        noise_wf,
+        "write_staged_hh_noise_pdf",
+        lambda payload, cfg_arg, run_command: writes.setdefault("pdf", True),
+    )
+
+    payload = noise_wf.run_staged_hh_noise(
+        cfg,
+        run_command=(
+            "python pipelines/hardcoded/hh_staged_noise.py "
+            "--include-fixed-scaffold-runtime-energy-only-baseline "
+            "--include-fixed-scaffold-runtime-raw-baseline --backend-name ibm_marrakesh"
+        ),
+    )
+
+    assert payload["workflow_contract"]["imported_routes"]["fixed_scaffold_runtime_energy_only"] is True
+    assert payload["workflow_contract"]["imported_routes"]["fixed_scaffold_runtime_raw_baseline"] is True
+    assert payload["workflow_contract"]["imported_routes"]["fixed_scaffold_runtime_pairing"] is True
+    assert payload["fixed_scaffold_runtime_pairing"]["success"] is True
+    assert payload["fixed_scaffold_runtime_pairing"]["requested_compile_match"] is True
+    assert payload["fixed_scaffold_runtime_pairing"]["raw_compile_observation_matches_requested"] is True
+    assert payload["fixed_scaffold_runtime_pairing"]["energy_audit_labels"] == [
+        "final_audit_zne",
+        "main",
+    ]
+    assert payload["summary"]["fixed_scaffold_runtime_pairing_completed"] == 1
+    assert payload["summary"]["fixed_scaffold_runtime_pairing_total"] == 1
+    assert payload["summary"]["fixed_scaffold_runtime_pairing_subject_kind_match"] is True
+    assert payload["summary"]["fixed_scaffold_runtime_pairing_backend_name_match"] is True
+    assert payload["summary"]["fixed_scaffold_runtime_pairing_requested_compile_match"] is True
+    assert payload["summary"]["fixed_scaffold_runtime_pairing_raw_compile_observation_matched"] is True
+    assert payload["summary"]["fixed_scaffold_runtime_pairing_energy_audit_labels"] == "final_audit_zne,main"
+    assert payload["summary"]["fixed_scaffold_runtime_pairing_raw_artifact_path"] == str(
+        raw_artifact_path
+    )
+    assert payload["artifacts"]["fixed_scaffold_runtime_pairing_json"] is not None
+    pairing_sidecar_name = Path(payload["artifacts"]["fixed_scaffold_runtime_pairing_json"]).name
+    assert pairing_sidecar_name in writes
+    pairing_sidecar_payload = writes[pairing_sidecar_name]
+    assert pairing_sidecar_payload["pipeline"] == "hh_fixed_scaffold_runtime_pairing_eval_v1"
+    assert pairing_sidecar_payload["backend_name"] == "ibm_marrakesh"
+    assert pairing_sidecar_payload["result"]["raw_transport"] == "sampler_v2"
+    assert (
+        pairing_sidecar_payload["settings"]["runtime_energy_only"]["include_final_zne_audit"]
+        is True
+    )
+    assert (
+        pairing_sidecar_payload["settings"]["runtime_raw_baseline"]["runtime_profile_config"]["name"]
+        == "raw_sampler_twirled_v1"
+    )
+    assert bool(writes["pdf"]) is True
 
 
 def test_run_staged_hh_noise_import_mode_runs_fixed_lean_noise_attribution(
@@ -2938,5 +3223,44 @@ def test_noise_cli_main_print_contract_import_mode_runtime_energy_only(
         "workflow_json=artifacts/json/hh_staged_noise.json",
         "import_source_json=artifacts/json/adapt_hh_L2.json",
         "fixed_scaffold_runtime_energy_only_json=artifacts/json/hh_staged_noise_runtime_energy_only.json",
+        "adapt_handoff_json=artifacts/json/hh_staged_noise_adapt_handoff.json",
+    ]
+
+
+def test_noise_cli_main_print_contract_import_mode_runtime_pairing(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    fake_cfg = SimpleNamespace(staged=SimpleNamespace(artifacts=SimpleNamespace(skip_pdf=True)))
+    fake_payload = {
+        "artifacts": {
+            "workflow": {
+                "output_json": "artifacts/json/hh_staged_noise.json",
+                "output_pdf": "artifacts/pdf/hh_staged_noise.pdf",
+            },
+            "import_source_json": "artifacts/json/adapt_hh_L2.json",
+            "fixed_scaffold_runtime_energy_only_json": "artifacts/json/hh_staged_noise_runtime_energy_only.json",
+            "fixed_scaffold_runtime_raw_baseline_json": "artifacts/json/hh_staged_noise_runtime_raw_baseline.json",
+            "fixed_scaffold_runtime_pairing_json": "artifacts/json/hh_staged_noise_runtime_pairing.json",
+            "intermediate": {
+                "adapt_handoff_json": "artifacts/json/hh_staged_noise_adapt_handoff.json",
+                "replay_output_json": "artifacts/json/hh_staged_noise_replay.json",
+            },
+        },
+        "import_source": {"mode": "imported_artifact"},
+    }
+
+    monkeypatch.setattr(noise_cli, "resolve_staged_hh_noise_config", lambda args: fake_cfg)
+    monkeypatch.setattr(noise_cli, "run_staged_hh_noise", lambda cfg: fake_payload)
+
+    noise_cli.main(["--skip-pdf"])
+    lines = capsys.readouterr().out.strip().splitlines()
+
+    assert lines == [
+        "workflow_json=artifacts/json/hh_staged_noise.json",
+        "import_source_json=artifacts/json/adapt_hh_L2.json",
+        "fixed_scaffold_runtime_energy_only_json=artifacts/json/hh_staged_noise_runtime_energy_only.json",
+        "fixed_scaffold_runtime_raw_baseline_json=artifacts/json/hh_staged_noise_runtime_raw_baseline.json",
+        "fixed_scaffold_runtime_pairing_json=artifacts/json/hh_staged_noise_runtime_pairing.json",
         "adapt_handoff_json=artifacts/json/hh_staged_noise_adapt_handoff.json",
     ]

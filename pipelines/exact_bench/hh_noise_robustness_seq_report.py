@@ -5386,19 +5386,14 @@ def _run_imported_fixed_scaffold_runtime_raw_baseline(
                 "artifact_json": str(ctx["path"]),
                 **_locked_subject_payload_fields(subject),
             }
-        if str(effective_requested_symmetry_cfg.get("mode", "off")) != "off":
+        if str(effective_requested_symmetry_cfg.get("mode", "off")) not in {
+            "off",
+            "verify_only",
+        }:
             return {
                 "success": False,
                 "available": False,
-                "reason": "fixed_scaffold_runtime_raw_baseline_requires_symmetry_off",
-                "artifact_json": str(ctx["path"]),
-                **_locked_subject_payload_fields(subject),
-            }
-        if str(runtime_profile_cfg.get("name", "legacy_runtime_v0")) != "legacy_runtime_v0":
-            return {
-                "success": False,
-                "available": False,
-                "reason": "fixed_scaffold_runtime_raw_baseline_requires_legacy_runtime_profile",
+                "reason": "fixed_scaffold_runtime_raw_baseline_requires_off_or_verify_only_symmetry",
                 "artifact_json": str(ctx["path"]),
                 **_locked_subject_payload_fields(subject),
             }
@@ -5420,9 +5415,7 @@ def _run_imported_fixed_scaffold_runtime_raw_baseline(
                     aer_fallback_mode="sampler_shots",
                     omp_shm_workaround=bool(omp_shm_workaround),
                     mitigation=dict(requested_mitigation_cfg),
-                    symmetry_mitigation=dict(
-                        normalize_symmetry_mitigation_config({"mode": "off"})
-                    ),
+                    symmetry_mitigation=dict(effective_requested_symmetry_cfg),
                     runtime_profile=dict(runtime_profile_cfg),
                     runtime_session=dict(runtime_session_cfg),
                     execution_surface="raw_measurement_v1",
@@ -5443,10 +5436,10 @@ def _run_imported_fixed_scaffold_runtime_raw_baseline(
                 reason = "fixed_scaffold_runtime_raw_baseline_requires_runtime_backend"
             elif "mitigation_mode='none'" in msg:
                 reason = "fixed_scaffold_runtime_raw_baseline_requires_no_mitigation"
-            elif "symmetry_mitigation='off'" in msg:
-                reason = "fixed_scaffold_runtime_raw_baseline_requires_symmetry_off"
-            elif "runtime_profile='legacy_runtime_v0'" in msg:
-                reason = "fixed_scaffold_runtime_raw_baseline_requires_legacy_runtime_profile"
+            elif "symmetry_mitigation in {'off','verify_only'}" in msg:
+                reason = "fixed_scaffold_runtime_raw_baseline_requires_off_or_verify_only_symmetry"
+            elif "runtime_profile in" in msg or "suppression-only runtime profiles" in msg:
+                reason = "fixed_scaffold_runtime_raw_baseline_requires_sampler_safe_runtime_profile"
             else:
                 reason = "fixed_scaffold_runtime_raw_baseline_invalid_sampler_runtime_config"
             return {
@@ -5457,9 +5450,7 @@ def _run_imported_fixed_scaffold_runtime_raw_baseline(
                 **_locked_subject_payload_fields(subject),
             }
         acquisition_mitigation_cfg = dict(requested_mitigation_cfg)
-        acquisition_symmetry_cfg = dict(
-            normalize_symmetry_mitigation_config({"mode": "off"})
-        )
+        acquisition_symmetry_cfg = dict(effective_requested_symmetry_cfg)
         acquisition_noise_mode = "runtime"
 
     layout = ctx["layout"]

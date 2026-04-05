@@ -39,8 +39,9 @@ The main upstream gaps are:
    `compatibility_penalty(...)` models overlap, commutation, curvature, and
    schedule coupling, but not shared measurement basis structure.
 
-4. Runtime split exists, but the scoring surface above it is still weak.
-   `shortlist_pauli_children_v1` can expose shallower children, but selection
+4. An archival/internal runtime-split implementation still exists, but the
+   canonical manuscript/public path keeps runtime split off.
+   If that archival path is revisited for internal testing, selection still
    is not yet driven by a strong grouped-measurement plus gate-aware proxy.
 
 ## Recommended order
@@ -54,7 +55,8 @@ The main upstream gaps are:
 3. Add measurement-basis affinity into phase-2 batch selection.
    Important when "beam" plus batching is on.
 
-4. Keep runtime split on and let the improved scoring prefer cheaper children.
+4. Keep the canonical manuscript/public path unchanged (`phase3_v1` with runtime split off).
+   If the archival runtime-split path is revisited internally, let improved scoring prefer cheaper children there.
 
 5. Only after that, optimize noisy/oracle batching and shared counts.
 

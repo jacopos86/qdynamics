@@ -67,6 +67,19 @@ class TestParseArgsAdaptRefSource:
         args = hp.parse_args()
         assert str(args.adapt_ref_source) == "hf"
 
+    def test_parse_rejects_archival_phase3_runtime_split_mode(self, monkeypatch: pytest.MonkeyPatch):
+        monkeypatch.setattr(
+            sys,
+            "argv",
+            [
+                "hubbard_pipeline.py",
+                "--L", "2",
+                "--phase3-runtime-split-mode", "shortlist_pauli_children_v1",
+            ],
+        )
+        with pytest.raises(SystemExit):
+            hp.parse_args()
+
 
 class TestAdaptRefSourceVQEPath:
     def test_internal_adapt_uses_vqe_override_when_requested(

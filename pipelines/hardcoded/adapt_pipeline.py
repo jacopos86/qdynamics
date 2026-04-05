@@ -1835,6 +1835,66 @@ def _build_hh_pareto_lean_pool(
 
 
 # ---------------------------------------------------------------------------
+# Pareto-lean L3 pool: explicit public alias for the historical L=3
+# class-pruned family recovered from the heavy full_meta report.
+# This stays class-level only; no site-specific keep/drop logic.
+# ---------------------------------------------------------------------------
+
+def _build_hh_pareto_lean_l3_pool(
+    *,
+    h_poly: Any,
+    num_sites: int,
+    t: float,
+    u: float,
+    omega0: float,
+    g_ep: float,
+    dv: float,
+    n_ph_max: int,
+    boson_encoding: str,
+    ordering: str,
+    boundary: str,
+    paop_r: int,
+    paop_split_paulis: bool,
+    paop_prune_eps: float,
+    paop_normalization: str,
+    num_particles: tuple[int, int],
+) -> tuple[list[AnsatzTerm], dict[str, int]]:
+    """Build the L=3-specific class-pruned Pareto-lean pool.
+
+    This is the explicit public L=3 alias of the historical heavy-run
+    class family:
+      - uccsd_sing, uccsd_dbl
+      - hh_termwise_quadrature
+      - paop_cloud_p, paop_disp, paop_hopdrag
+      - paop_dbl_p
+
+    It intentionally does not apply any site-specific keep/drop rules.
+    """
+    if int(num_sites) != 3:
+        raise ValueError("adapt_pool='pareto_lean_l3' is only valid for L=3.")
+    if int(n_ph_max) != 1:
+        raise ValueError("adapt_pool='pareto_lean_l3' is only valid for n_ph_max=1.")
+    return _build_hh_pareto_lean_pool(
+        h_poly=h_poly,
+        num_sites=int(num_sites),
+        t=float(t),
+        u=float(u),
+        omega0=float(omega0),
+        g_ep=float(g_ep),
+        dv=float(dv),
+        n_ph_max=int(n_ph_max),
+        boson_encoding=str(boson_encoding),
+        ordering=str(ordering),
+        boundary=str(boundary),
+        paop_r=int(paop_r),
+        paop_split_paulis=bool(paop_split_paulis),
+        paop_prune_eps=float(paop_prune_eps),
+        paop_normalization=str(paop_normalization),
+        num_particles=num_particles,
+    )
+
+
+# ---------------------------------------------------------------------------
 # Pareto-lean L2 pool: tighter pruning from L=2 n_ph_max=1 motif analysis.
 # Drops disp, uccsd_dbl, and unused dbl_p site-phonon pairings.
 # See artifacts/reports/hh_L2_ecut1_scaffold_motif_analysis.md
@@ -2514,6 +2574,55 @@ class Phase3OracleGradientConfig:
     transpile_optimization_level: int = 1
 
 
+_FINAL_NOISE_AUDIT_RUNTIME_PROFILE_NAMES = {
+    "legacy_runtime_v0",
+    "main_twirled_readout_v1",
+    "dd_probe_twirled_readout_v1",
+    "final_audit_zne_twirled_readout_v1",
+}
+
+_FINAL_NOISE_AUDIT_RUNTIME_SESSION_POLICIES = {
+    "prefer_session",
+    "require_session",
+    "backend_only",
+}
+
+
+@dataclass(frozen=True)
+class FinalNoiseAuditConfig:
+    noise_mode: str
+    shots: int
+    oracle_repeats: int
+    oracle_aggregate: str
+    backend_name: str | None
+    use_fake_backend: bool
+    seed: int
+    mitigation_mode: str
+    local_readout_strategy: str | None
+    runtime_profile_name: str = "legacy_runtime_v0"
+    runtime_session_policy: str = "prefer_session"
+    compare_unmitigated_baseline: bool = False
+    seed_transpiler: int | None = None
+    transpile_optimization_level: int = 1
+    strict: bool = False
+
+
+@dataclass(frozen=True)
+class FinalNoiseAuditSnapshot:
+    h_poly: Any
+    parameter_layout: AnsatzParameterLayout
+    theta_runtime: tuple[float, ...]
+    theta_logical: tuple[float, ...]
+    reference_state: np.ndarray
+    num_qubits: int
+    operator_labels: tuple[str, ...]
+    ansatz_depth: int
+    runtime_parameter_count: int
+    logical_parameter_count: int
+    exact_filtered_ground_energy: float
+    exact_final_state_energy: float
+
+
 def _resolve_phase3_oracle_gradient_config(
     config: Phase3OracleGradientConfig,
 ) -> Phase3OracleGradientConfig:
@@ -2569,6 +2678,42 @@ def _resolve_phase3_oracle_gradient_config(
     )
 
 
+def _resolve_final_noise_audit_config(
+    config: FinalNoiseAuditConfig,
+) -> FinalNoiseAuditConfig:
+    return FinalNoiseAuditConfig(
+        noise_mode=str(config.noise_mode).strip().lower(),
+        shots=int(config.shots),
+        oracle_repeats=int(config.oracle_repeats),
+        oracle_aggregate=str(config.oracle_aggregate).strip().lower(),
+        backend_name=(None if config.backend_name in {None, ""} else str(config.backend_name)),
+        use_fake_backend=bool(config.use_fake_backend),
+        seed=int(config.seed),
+        mitigation_mode=str(config.mitigation_mode).strip().lower(),
+        local_readout_strategy=(
+            None
+            if config.local_readout_strategy in {None, ""}
+            else str(config.local_readout_strategy).strip().lower()
+        ),
+        runtime_profile_name=(
+            str(getattr(config, "runtime_profile_name", "legacy_runtime_v0")).strip().lower()
+            or "legacy_runtime_v0"
+        ),
+        runtime_session_policy=(
+            str(getattr(config, "runtime_session_policy", "prefer_session")).strip().lower()
+            or "prefer_session"
+        ),
+        compare_unmitigated_baseline=bool(
+            getattr(config, "compare_unmitigated_baseline", False)
+        ),
+        seed_transpiler=(
+            None if config.seed_transpiler is None else int(config.seed_transpiler)
+        ),
+        transpile_optimization_level=int(config.transpile_optimization_level),
+        strict=bool(config.strict),
+    )
+
+
 def _json_ready(value: Any) -> Any:
     return json.loads(json.dumps(value, default=str))
 
@@ -2580,27 +2725,52 @@ def _phase3_oracle_runtime_bindings() -> dict[str, Any]:
         RawMeasurementOracle,
         _all_z_full_register_qop,
         _summarize_hh_full_register_z_records,
+        assess_oracle_execution_capability,
         build_runtime_layout_circuit,
+        normalize_oracle_execution_request,
         normalize_sampler_raw_runtime_config,
         pauli_poly_to_sparse_pauli_op,
         preflight_backend_scheduled_fake_backend_environment,
+        validate_oracle_execution_request,
     )
     from pipelines.hardcoded.adapt_circuit_execution import build_parameterized_ansatz_plan
-    from pipelines.hardcoded.hh_realtime_measurement import validate_controller_oracle_base_config
 
     return {
         "ExpectationOracle": ExpectationOracle,
         "OracleConfig": OracleConfig,
         "RawMeasurementOracle": RawMeasurementOracle,
+        "assess_oracle_execution_capability": assess_oracle_execution_capability,
         "all_z_full_register_qop": _all_z_full_register_qop,
         "summarize_hh_full_register_z_records": _summarize_hh_full_register_z_records,
         "build_runtime_layout_circuit": build_runtime_layout_circuit,
         "build_parameterized_ansatz_plan": build_parameterized_ansatz_plan,
+        "normalize_oracle_execution_request": normalize_oracle_execution_request,
         "normalize_sampler_raw_runtime_config": normalize_sampler_raw_runtime_config,
         "pauli_poly_to_sparse_pauli_op": pauli_poly_to_sparse_pauli_op,
         "preflight_backend_scheduled_fake_backend_environment": preflight_backend_scheduled_fake_backend_environment,
-        "validate_controller_oracle_base_config": validate_controller_oracle_base_config,
+        "validate_oracle_execution_request": validate_oracle_execution_request,
     }
+
+
+def _validate_oracle_execution_request_via_bindings(
+    bindings: Mapping[str, Any],
+    oracle_config: Any,
+) -> dict[str, Any] | None:
+    validate_fn = bindings.get("validate_oracle_execution_request")
+    if callable(validate_fn):
+        return _json_ready(validate_fn(oracle_config))
+    fallback_validate_fn = bindings.get("validate_controller_oracle_base_config")
+    if callable(fallback_validate_fn):
+        fallback_validate_fn(oracle_config)
+    normalize_fn = bindings.get("normalize_oracle_execution_request")
+    if callable(normalize_fn):
+        return {
+            "supported": True,
+            "reason_code": "ok",
+            "reason": "ok",
+            "normalized_request": _json_ready(normalize_fn(oracle_config)),
+        }
+    return None
 
 
 def _validate_phase3_oracle_gradient_config(
@@ -2692,23 +2862,167 @@ def _validate_phase3_oracle_gradient_config(
         )
 
 
-def _phase3_oracle_mitigation_payload(config: Phase3OracleGradientConfig) -> dict[str, Any]:
-    mitigation_mode = str(config.mitigation_mode).strip().lower()
-    local_readout_strategy = (
+def _oracle_mitigation_payload_from_fields(
+    *,
+    mitigation_mode: str,
+    local_readout_strategy: str | None,
+) -> dict[str, Any]:
+    mitigation_mode_key = str(mitigation_mode).strip().lower()
+    local_readout_strategy_key = (
         "mthree"
-        if mitigation_mode == "readout"
-        and config.local_readout_strategy in {None, ""}
+        if mitigation_mode_key == "readout" and local_readout_strategy in {None, ""}
         else (
             None
-            if config.local_readout_strategy in {None, ""}
-            else str(config.local_readout_strategy).strip().lower()
+            if local_readout_strategy in {None, ""}
+            else str(local_readout_strategy).strip().lower()
         )
     )
     return {
-        "mode": str(mitigation_mode),
+        "mode": str(mitigation_mode_key),
         "zne_scales": [],
         "dd_sequence": None,
-        "local_readout_strategy": local_readout_strategy,
+        "local_readout_strategy": local_readout_strategy_key,
+    }
+
+
+def _phase3_oracle_mitigation_payload(config: Phase3OracleGradientConfig) -> dict[str, Any]:
+    return _oracle_mitigation_payload_from_fields(
+        mitigation_mode=str(config.mitigation_mode),
+        local_readout_strategy=config.local_readout_strategy,
+    )
+
+
+def _validate_final_noise_audit_config(
+    *,
+    config: FinalNoiseAuditConfig,
+    problem: str,
+) -> None:
+    config = _resolve_final_noise_audit_config(config)
+    problem_key = str(problem).strip().lower()
+    if problem_key != "hh":
+        raise ValueError("final noise audit is currently only valid for problem='hh'.")
+    if str(config.noise_mode) not in {"ideal", "shots", "aer_noise", "backend_scheduled", "runtime"}:
+        raise ValueError(
+            "final_noise_audit_mode must be one of {'off','ideal','shots','aer_noise','backend_scheduled','runtime'}."
+        )
+    if int(config.shots) < 1:
+        raise ValueError("final_noise_audit_shots must be >= 1.")
+    if int(config.oracle_repeats) < 1:
+        raise ValueError("final_noise_audit_repeats must be >= 1.")
+    if str(config.oracle_aggregate) != "mean":
+        raise ValueError("final noise audit currently requires oracle_aggregate='mean'.")
+    if int(config.transpile_optimization_level) not in {0, 1, 2, 3}:
+        raise ValueError(
+            "final_noise_audit_transpile_optimization_level must be one of {0,1,2,3}."
+        )
+    mitigation_mode = str(config.mitigation_mode)
+    if mitigation_mode not in {"none", "readout"}:
+        raise ValueError("final_noise_audit_mitigation must be one of {'none','readout'}.")
+    runtime_profile_name = str(config.runtime_profile_name)
+    runtime_session_policy = str(config.runtime_session_policy)
+    if runtime_profile_name not in _FINAL_NOISE_AUDIT_RUNTIME_PROFILE_NAMES:
+        raise ValueError(
+            "final_noise_audit_runtime_profile must be one of "
+            f"{sorted(_FINAL_NOISE_AUDIT_RUNTIME_PROFILE_NAMES)}."
+        )
+    if runtime_session_policy not in _FINAL_NOISE_AUDIT_RUNTIME_SESSION_POLICIES:
+        raise ValueError(
+            "final_noise_audit_runtime_session_policy must be one of "
+            f"{sorted(_FINAL_NOISE_AUDIT_RUNTIME_SESSION_POLICIES)}."
+        )
+    local_readout_strategy = (
+        None
+        if config.local_readout_strategy in {None, ""}
+        else str(config.local_readout_strategy)
+    )
+    noise_mode = str(config.noise_mode)
+    if mitigation_mode == "readout":
+        if noise_mode == "backend_scheduled":
+            if local_readout_strategy not in {None, "mthree"}:
+                raise ValueError(
+                    "final_noise_audit_local_readout_strategy must be 'mthree' when backend_scheduled readout mitigation is enabled."
+                )
+        elif noise_mode == "runtime":
+            if local_readout_strategy is not None:
+                raise ValueError(
+                    "final noise audit runtime readout uses provider-side mitigation and does not accept local readout strategy."
+                )
+        else:
+            raise ValueError(
+                "final noise audit readout mitigation is currently supported only for noise_mode in {'backend_scheduled','runtime'}."
+            )
+    elif local_readout_strategy is not None:
+        raise ValueError(
+            "final_noise_audit_local_readout_strategy requires final_noise_audit_mitigation='readout'."
+        )
+    if noise_mode == "backend_scheduled":
+        if runtime_profile_name != "legacy_runtime_v0":
+            raise ValueError(
+                "final_noise_audit_runtime_profile is only valid for final_noise_audit_mode='runtime'."
+            )
+        if runtime_session_policy != "prefer_session":
+            raise ValueError(
+                "final_noise_audit_runtime_session_policy is only valid for final_noise_audit_mode='runtime'."
+            )
+        if not bool(config.use_fake_backend):
+            raise ValueError(
+                "final noise audit backend_scheduled mode requires --final-noise-audit-use-fake-backend."
+            )
+        if config.backend_name in {None, ""}:
+            raise ValueError(
+                "final noise audit backend_scheduled mode requires --final-noise-audit-backend-name."
+            )
+    elif noise_mode == "runtime":
+        if config.backend_name in {None, ""}:
+            raise ValueError(
+                "final noise audit runtime mode requires --final-noise-audit-backend-name."
+            )
+        if bool(config.use_fake_backend):
+            raise ValueError(
+                "final noise audit runtime mode requires a real runtime backend; do not enable --final-noise-audit-use-fake-backend."
+            )
+        if runtime_profile_name != "legacy_runtime_v0" and mitigation_mode != "none":
+            raise ValueError(
+                "final noise audit runtime profiles already encode mitigation/suppression; use final_noise_audit_mitigation='none' when final_noise_audit_runtime_profile is explicit."
+            )
+    else:
+        if runtime_profile_name != "legacy_runtime_v0":
+            raise ValueError(
+                "final_noise_audit_runtime_profile is only valid for final_noise_audit_mode='runtime'."
+            )
+        if runtime_session_policy != "prefer_session":
+            raise ValueError(
+                "final_noise_audit_runtime_session_policy is only valid for final_noise_audit_mode='runtime'."
+            )
+
+
+def _final_noise_audit_config_payload(
+    config: FinalNoiseAuditConfig | None,
+) -> dict[str, Any] | None:
+    if config is None:
+        return None
+    config = _resolve_final_noise_audit_config(config)
+    return {
+        "noise_mode": str(config.noise_mode),
+        "shots": int(config.shots),
+        "oracle_repeats": int(config.oracle_repeats),
+        "oracle_aggregate": str(config.oracle_aggregate),
+        "backend_name": (None if config.backend_name in {None, ""} else str(config.backend_name)),
+        "use_fake_backend": bool(config.use_fake_backend),
+        "seed": int(config.seed),
+        "mitigation": dict(
+            _oracle_mitigation_payload_from_fields(
+                mitigation_mode=str(config.mitigation_mode),
+                local_readout_strategy=config.local_readout_strategy,
+            )
+        ),
+        "runtime_profile": {"name": str(config.runtime_profile_name)},
+        "runtime_session": {"mode": str(config.runtime_session_policy)},
+        "compare_unmitigated_baseline": bool(config.compare_unmitigated_baseline),
+        "execution_surface": "expectation_v1",
+        "seed_transpiler": config.seed_transpiler,
+        "transpile_optimization_level": int(config.transpile_optimization_level),
+        "strict": bool(config.strict),
     }
 
 
@@ -3161,6 +3475,20 @@ def _run_hardcoded_adapt_vqe(
     phase1_lambda_measure: float = 0.02,
     phase1_lambda_leak: float = 0.0,
     phase1_score_z_alpha: float = 0.0,
+    phase1_depth_ref: float = 1.0,
+    phase1_group_ref: float = 1.0,
+    phase1_shot_ref: float = 1.0,
+    phase1_family_ref: float = 1.0,
+    phase1_compile_cx_proxy_weight: float = 1.0,
+    phase1_compile_sq_proxy_weight: float = 0.5,
+    phase1_compile_rotation_step_weight: float = 1.0,
+    phase1_compile_position_shift_weight: float = 1.0,
+    phase1_compile_refit_active_weight: float = 1.0,
+    phase1_measure_groups_weight: float = 1.0,
+    phase1_measure_shots_weight: float = 1.0,
+    phase1_measure_reuse_weight: float = 1.0,
+    phase1_opt_dim_cost_scale: float = 1.0,
+    phase1_family_repeat_cost_scale: float = 1.0,
     phase1_shortlist_size: int = 64,
     phase1_probe_max_positions: int = 6,
     phase1_plateau_patience: int = 2,
@@ -3174,10 +3502,59 @@ def _run_hardcoded_adapt_vqe(
     phase2_lambda_H: float = 1e-6,
     phase2_rho: float = 0.25,
     phase2_gamma_N: float = 1.0,
+    phase2_score_z_alpha: float | None = None,
+    phase2_lambda_F: float | None = None,
+    phase2_depth_ref: float = 1.0,
+    phase2_group_ref: float = 1.0,
+    phase2_shot_ref: float = 1.0,
+    phase2_optdim_ref: float = 1.0,
+    phase2_reuse_ref: float = 1.0,
+    phase2_family_ref: float = 1.0,
+    phase2_novelty_eps: float = 1e-6,
+    phase2_cheap_score_eps: float = 1e-12,
+    phase2_metric_floor: float = 1e-12,
+    phase2_reduced_metric_collapse_rel_tol: float = 1e-8,
+    phase2_ridge_growth_factor: float = 10.0,
+    phase2_ridge_max_steps: int = 12,
+    phase2_leakage_cap: float = 1e6,
+    phase2_compile_cx_proxy_weight: float = 1.0,
+    phase2_compile_sq_proxy_weight: float = 0.5,
+    phase2_compile_rotation_step_weight: float = 1.0,
+    phase2_compile_position_shift_weight: float = 1.0,
+    phase2_compile_refit_active_weight: float = 1.0,
+    phase2_measure_groups_weight: float = 1.0,
+    phase2_measure_shots_weight: float = 1.0,
+    phase2_measure_reuse_weight: float = 1.0,
+    phase2_opt_dim_cost_scale: float = 1.0,
+    phase2_family_repeat_cost_scale: float = 1.0,
+    phase2_w_depth: float = 0.2,
+    phase2_w_group: float = 0.15,
+    phase2_w_shot: float = 0.15,
+    phase2_w_optdim: float = 0.1,
+    phase2_w_reuse: float = 0.1,
+    phase2_w_lifetime: float = 0.05,
+    phase2_eta_L: float = 0.0,
+    phase2_motif_bonus_weight: float = 0.05,
+    phase2_duplicate_penalty_weight: float = 0.0,
+    phase2_frontier_ratio: float = 0.9,
+    phase3_frontier_ratio: float = 0.9,
+    phase3_tie_beam_score_ratio: float = 1.0,
+    phase3_tie_beam_abs_tol: float = 0.0,
+    phase3_tie_beam_max_branches: int = 1,
+    phase3_tie_beam_max_late_coordinate: float = 1.0,
+    phase3_tie_beam_min_depth_left: int = 0,
     phase2_enable_batching: bool = True,
     phase2_batch_target_size: int = 2,
     phase2_batch_size_cap: int = 3,
     phase2_batch_near_degenerate_ratio: float = 0.9,
+    phase2_batch_rank_rel_tol: float = 1e-6,
+    phase2_batch_additivity_tol: float = 0.25,
+    phase2_compat_overlap_weight: float = 0.4,
+    phase2_compat_comm_weight: float = 0.2,
+    phase2_compat_curv_weight: float = 0.2,
+    phase2_compat_sched_weight: float = 0.2,
+    phase2_compat_measure_weight: float = 0.2,
+    phase2_remaining_evaluations_proxy_mode: str = "auto",
     adapt_pool_class_filter_json: Path | None = None,
     phase3_motif_source_json: Path | None = None,
     phase3_symmetry_mitigation_mode: str = "off",
@@ -3190,7 +3567,10 @@ def _run_hardcoded_adapt_vqe(
     phase3_backend_transpile_seed: int = 7,
     phase3_backend_optimization_level: int = 1,
     phase3_oracle_gradient_config: Phase3OracleGradientConfig | None = None,
+    final_noise_audit_config: FinalNoiseAuditConfig | None = None,
     phase3_oracle_inner_objective_mode: str = "exact",
+    phase3_selector_debug_topk: int = 0,
+    phase3_selector_debug_max_depth: int = 0,
     adapt_beam_live_branches: int = 1,
     adapt_beam_children_per_parent: int | None = None,
     adapt_beam_terminated_keep: int | None = None,
@@ -3212,6 +3592,24 @@ def _run_hardcoded_adapt_vqe(
     adapt_full_refit_every_val = int(adapt_full_refit_every)
     adapt_final_full_refit_val = bool(adapt_final_full_refit)
     phase1_shortlist_size_val = int(phase1_shortlist_size)
+    phase3_tie_beam_score_ratio_val = float(phase3_tie_beam_score_ratio)
+    if (not math.isfinite(phase3_tie_beam_score_ratio_val)) or phase3_tie_beam_score_ratio_val <= 0.0:
+        raise ValueError("phase3_tie_beam_score_ratio must be finite and > 0.")
+    phase3_tie_beam_abs_tol_val = float(phase3_tie_beam_abs_tol)
+    if (not math.isfinite(phase3_tie_beam_abs_tol_val)) or phase3_tie_beam_abs_tol_val < 0.0:
+        raise ValueError("phase3_tie_beam_abs_tol must be finite and >= 0.")
+    phase3_tie_beam_max_branches_val = int(phase3_tie_beam_max_branches)
+    if phase3_tie_beam_max_branches_val < 1:
+        raise ValueError("phase3_tie_beam_max_branches must be >= 1.")
+    phase3_tie_beam_max_late_coordinate_val = float(phase3_tie_beam_max_late_coordinate)
+    if not math.isfinite(phase3_tie_beam_max_late_coordinate_val):
+        raise ValueError("phase3_tie_beam_max_late_coordinate must be finite.")
+    phase3_tie_beam_max_late_coordinate_val = float(
+        max(0.0, min(1.0, phase3_tie_beam_max_late_coordinate_val))
+    )
+    phase3_tie_beam_min_depth_left_val = int(phase3_tie_beam_min_depth_left)
+    if phase3_tie_beam_min_depth_left_val < 0:
+        raise ValueError("phase3_tie_beam_min_depth_left must be >= 0.")
     if adapt_window_size_val < 1:
         raise ValueError("adapt_window_size must be >= 1.")
     if adapt_window_topk_val < 0:
@@ -3220,6 +3618,100 @@ def _run_hardcoded_adapt_vqe(
         raise ValueError("adapt_full_refit_every must be >= 0.")
     if phase1_shortlist_size_val < 1:
         raise ValueError("phase1_shortlist_size must be >= 1.")
+    phase1_depth_ref_val = float(phase1_depth_ref)
+    phase1_group_ref_val = float(phase1_group_ref)
+    phase1_shot_ref_val = float(phase1_shot_ref)
+    phase1_family_ref_val = float(phase1_family_ref)
+    for ref_name, ref_val in (
+        ("phase1_depth_ref", phase1_depth_ref_val),
+        ("phase1_group_ref", phase1_group_ref_val),
+        ("phase1_shot_ref", phase1_shot_ref_val),
+        ("phase1_family_ref", phase1_family_ref_val),
+    ):
+        if (not math.isfinite(ref_val)) or ref_val <= 0.0:
+            raise ValueError(f"{ref_name} must be finite and > 0.")
+    phase1_cost_scale_vals = (
+        ("phase1_compile_cx_proxy_weight", float(phase1_compile_cx_proxy_weight)),
+        ("phase1_compile_sq_proxy_weight", float(phase1_compile_sq_proxy_weight)),
+        ("phase1_compile_rotation_step_weight", float(phase1_compile_rotation_step_weight)),
+        ("phase1_compile_position_shift_weight", float(phase1_compile_position_shift_weight)),
+        ("phase1_compile_refit_active_weight", float(phase1_compile_refit_active_weight)),
+        ("phase1_measure_groups_weight", float(phase1_measure_groups_weight)),
+        ("phase1_measure_shots_weight", float(phase1_measure_shots_weight)),
+        ("phase1_measure_reuse_weight", float(phase1_measure_reuse_weight)),
+        ("phase1_opt_dim_cost_scale", float(phase1_opt_dim_cost_scale)),
+        ("phase1_family_repeat_cost_scale", float(phase1_family_repeat_cost_scale)),
+    )
+    for coeff_name, coeff_val in phase1_cost_scale_vals:
+        if (not math.isfinite(coeff_val)) or coeff_val < 0.0:
+            raise ValueError(f"{coeff_name} must be finite and >= 0.")
+    phase2_score_z_alpha_val = float(
+        phase1_score_z_alpha if phase2_score_z_alpha is None else phase2_score_z_alpha
+    )
+    if (not math.isfinite(phase2_score_z_alpha_val)) or phase2_score_z_alpha_val < 0.0:
+        raise ValueError("phase2_score_z_alpha must be finite and >= 0.")
+    phase2_lambda_F_val = float(phase1_lambda_F if phase2_lambda_F is None else phase2_lambda_F)
+    if (not math.isfinite(phase2_lambda_F_val)) or phase2_lambda_F_val <= 0.0:
+        raise ValueError("phase2_lambda_F must be finite and > 0.")
+    phase2_depth_ref_val = float(phase2_depth_ref)
+    phase2_group_ref_val = float(phase2_group_ref)
+    phase2_shot_ref_val = float(phase2_shot_ref)
+    phase2_optdim_ref_val = float(phase2_optdim_ref)
+    phase2_reuse_ref_val = float(phase2_reuse_ref)
+    phase2_family_ref_val = float(phase2_family_ref)
+    for ref_name, ref_val in (
+        ("phase2_depth_ref", phase2_depth_ref_val),
+        ("phase2_group_ref", phase2_group_ref_val),
+        ("phase2_shot_ref", phase2_shot_ref_val),
+        ("phase2_optdim_ref", phase2_optdim_ref_val),
+        ("phase2_reuse_ref", phase2_reuse_ref_val),
+        ("phase2_family_ref", phase2_family_ref_val),
+    ):
+        if (not math.isfinite(ref_val)) or ref_val <= 0.0:
+            raise ValueError(f"{ref_name} must be finite and > 0.")
+    phase2_novelty_eps_val = float(phase2_novelty_eps)
+    if (not math.isfinite(phase2_novelty_eps_val)) or phase2_novelty_eps_val < 0.0:
+        raise ValueError("phase2_novelty_eps must be finite and >= 0.")
+    phase2_cheap_score_eps_val = float(phase2_cheap_score_eps)
+    if (not math.isfinite(phase2_cheap_score_eps_val)) or phase2_cheap_score_eps_val <= 0.0:
+        raise ValueError("phase2_cheap_score_eps must be finite and > 0.")
+    phase2_metric_floor_val = float(phase2_metric_floor)
+    if (not math.isfinite(phase2_metric_floor_val)) or phase2_metric_floor_val <= 0.0:
+        raise ValueError("phase2_metric_floor must be finite and > 0.")
+    phase2_reduced_metric_collapse_rel_tol_val = float(phase2_reduced_metric_collapse_rel_tol)
+    if (
+        (not math.isfinite(phase2_reduced_metric_collapse_rel_tol_val))
+        or phase2_reduced_metric_collapse_rel_tol_val < 0.0
+    ):
+        raise ValueError(
+            "phase2_reduced_metric_collapse_rel_tol must be finite and >= 0."
+        )
+    phase2_ridge_growth_factor_val = float(phase2_ridge_growth_factor)
+    if (not math.isfinite(phase2_ridge_growth_factor_val)) or phase2_ridge_growth_factor_val <= 1.0:
+        raise ValueError("phase2_ridge_growth_factor must be finite and > 1.")
+    phase2_ridge_max_steps_val = int(phase2_ridge_max_steps)
+    if phase2_ridge_max_steps_val < 1:
+        raise ValueError("phase2_ridge_max_steps must be >= 1.")
+    phase2_leakage_cap_val = float(phase2_leakage_cap)
+    if (not math.isfinite(phase2_leakage_cap_val)) or phase2_leakage_cap_val <= 0.0:
+        raise ValueError("phase2_leakage_cap must be finite and > 0.")
+    phase2_cost_scale_vals = (
+        ("phase2_compile_cx_proxy_weight", float(phase2_compile_cx_proxy_weight)),
+        ("phase2_compile_sq_proxy_weight", float(phase2_compile_sq_proxy_weight)),
+        ("phase2_compile_rotation_step_weight", float(phase2_compile_rotation_step_weight)),
+        ("phase2_compile_position_shift_weight", float(phase2_compile_position_shift_weight)),
+        ("phase2_compile_refit_active_weight", float(phase2_compile_refit_active_weight)),
+        ("phase2_measure_groups_weight", float(phase2_measure_groups_weight)),
+        ("phase2_measure_shots_weight", float(phase2_measure_shots_weight)),
+        ("phase2_measure_reuse_weight", float(phase2_measure_reuse_weight)),
+        ("phase2_opt_dim_cost_scale", float(phase2_opt_dim_cost_scale)),
+        ("phase2_family_repeat_cost_scale", float(phase2_family_repeat_cost_scale)),
+    )
+    for coeff_name, coeff_val in phase2_cost_scale_vals:
+        if (not math.isfinite(coeff_val)) or coeff_val < 0.0:
+            raise ValueError(f"{coeff_name} must be finite and >= 0.")
+    phase3_selector_debug_topk_val = max(0, int(phase3_selector_debug_topk))
+    phase3_selector_debug_max_depth_val = max(0, int(phase3_selector_debug_max_depth))
     adapt_inner_optimizer_key = str(adapt_inner_optimizer).strip().upper()
     if adapt_inner_optimizer_key not in {"COBYLA", "POWELL", "SPSA"}:
         raise ValueError("adapt_inner_optimizer must be one of {'COBYLA','POWELL','SPSA'}.")
@@ -3249,6 +3741,12 @@ def _run_hardcoded_adapt_vqe(
             config=phase3_oracle_gradient_config,
             problem=str(problem_key),
             continuation_mode=str(continuation_mode),
+        )
+    if final_noise_audit_config is not None:
+        final_noise_audit_config = _resolve_final_noise_audit_config(final_noise_audit_config)
+        _validate_final_noise_audit_config(
+            config=final_noise_audit_config,
+            problem=str(problem_key),
         )
     phase3_oracle_inner_objective_mode_requested_key = (
         str(phase3_oracle_inner_objective_mode).strip().lower() or "exact"
@@ -3307,6 +3805,27 @@ def _run_hardcoded_adapt_vqe(
         adapt_beam_children_per_parent=adapt_beam_children_per_parent,
         adapt_beam_terminated_keep=adapt_beam_terminated_keep,
     )
+    phase3_tie_beam_enabled = bool(
+        str(problem_key) == "hh"
+        and str(continuation_mode).strip().lower() == "phase3_v1"
+        and int(phase3_tie_beam_max_branches_val) > 1
+        and (
+            float(phase3_tie_beam_score_ratio_val) < 1.0
+            or float(phase3_tie_beam_abs_tol_val) > 0.0
+        )
+    )
+    if phase3_tie_beam_enabled and not bool(beam_policy.beam_enabled):
+        beam_policy = ResolvedBeamCapacityPolicy(
+            live_branches_requested=int(beam_policy.live_branches_requested),
+            children_per_parent_requested=beam_policy.children_per_parent_requested,
+            terminated_keep_requested=beam_policy.terminated_keep_requested,
+            live_branches_effective=1,
+            children_per_parent_effective=1,
+            terminated_keep_effective=int(max(1, int(phase3_tie_beam_max_branches_val))),
+            beam_enabled=True,
+            source_children_per_parent="conditional_phase3_tie_band_base1",
+            source_terminated_keep="conditional_phase3_tie_band_base1",
+        )
     if bool(beam_policy.beam_enabled) and not (
         str(problem_key) == "hh"
         and str(continuation_mode).strip().lower() in _HH_STAGED_CONTINUATION_MODES
@@ -3356,6 +3875,24 @@ def _run_hardcoded_adapt_vqe(
         raise ValueError(
             "phase3_runtime_split_mode must be one of {'off','shortlist_pauli_children_v1'}."
         )
+    phase3_tie_beam_score_ratio_val = float(phase3_tie_beam_score_ratio)
+    if (not math.isfinite(phase3_tie_beam_score_ratio_val)) or phase3_tie_beam_score_ratio_val <= 0.0:
+        raise ValueError("phase3_tie_beam_score_ratio must be finite and > 0.")
+    phase3_tie_beam_abs_tol_val = float(phase3_tie_beam_abs_tol)
+    if (not math.isfinite(phase3_tie_beam_abs_tol_val)) or phase3_tie_beam_abs_tol_val < 0.0:
+        raise ValueError("phase3_tie_beam_abs_tol must be finite and >= 0.")
+    phase3_tie_beam_max_branches_val = int(phase3_tie_beam_max_branches)
+    if phase3_tie_beam_max_branches_val < 1:
+        raise ValueError("phase3_tie_beam_max_branches must be >= 1.")
+    phase3_tie_beam_max_late_coordinate_val = float(phase3_tie_beam_max_late_coordinate)
+    if not math.isfinite(phase3_tie_beam_max_late_coordinate_val):
+        raise ValueError("phase3_tie_beam_max_late_coordinate must be finite.")
+    phase3_tie_beam_max_late_coordinate_val = float(
+        max(0.0, min(1.0, phase3_tie_beam_max_late_coordinate_val))
+    )
+    phase3_tie_beam_min_depth_left_val = int(phase3_tie_beam_min_depth_left)
+    if phase3_tie_beam_min_depth_left_val < 0:
+        raise ValueError("phase3_tie_beam_min_depth_left must be >= 0.")
     phase3_backend_cost_mode_key = str(phase3_backend_cost_mode).strip().lower()
     if phase3_backend_cost_mode_key not in {"proxy", "transpile_single_v1", "transpile_shortlist_v1"}:
         raise ValueError(
@@ -3625,6 +4162,31 @@ def _run_hardcoded_adapt_vqe(
                 dedup_total=int(len(pool_lean)),
             )
             return list(pool_lean), "hardcoded_adapt_vqe_pareto_lean"
+        if key == "pareto_lean_l3":
+            pool_lean_l3, lean_l3_sizes = _build_hh_pareto_lean_l3_pool(
+                h_poly=h_poly,
+                num_sites=int(num_sites),
+                t=float(t),
+                u=float(u),
+                omega0=float(omega0),
+                g_ep=float(g_ep),
+                dv=float(dv),
+                n_ph_max=int(n_ph_max),
+                boson_encoding=str(boson_encoding),
+                ordering=str(ordering),
+                boundary=str(boundary),
+                paop_r=int(paop_r),
+                paop_split_paulis=bool(paop_split_paulis),
+                paop_prune_eps=float(paop_prune_eps),
+                paop_normalization=str(paop_normalization),
+                num_particles=num_particles,
+            )
+            _ai_log(
+                "hardcoded_adapt_pareto_lean_l3_pool_built",
+                **lean_l3_sizes,
+                dedup_total=int(len(pool_lean_l3)),
+            )
+            return list(pool_lean_l3), "hardcoded_adapt_vqe_pareto_lean_l3"
         if key == "pareto_lean_l2":
             pool_lean_l2, lean_l2_sizes = _build_hh_pareto_lean_l2_pool(
                 h_poly=h_poly,
@@ -4060,6 +4622,8 @@ def _run_hardcoded_adapt_vqe(
         compile_elapsed_s=compile_cache_elapsed_s,
     )
 
+    selected_parameterization_mode = "logical_shared"
+
     def _build_compiled_executor(ops: list[AnsatzTerm]) -> CompiledAnsatzExecutor:
         return CompiledAnsatzExecutor(
             ops,
@@ -4067,7 +4631,49 @@ def _run_hardcoded_adapt_vqe(
             ignore_identity=True,
             sort_terms=True,
             pauli_action_cache=pauli_action_cache,
-            parameterization_mode="per_pauli_term",
+            parameterization_mode=selected_parameterization_mode,
+        )
+
+    def _executor_theta_for_selected_state(
+        theta_now: np.ndarray,
+        layout_now: AnsatzParameterLayout,
+        executor_now: CompiledAnsatzExecutor,
+    ) -> np.ndarray:
+        theta_arr = np.asarray(theta_now, dtype=float).reshape(-1)
+        mode = str(
+            getattr(executor_now, "parameterization_mode", selected_parameterization_mode)
+        ).strip().lower()
+        if mode == "logical_shared":
+            return np.asarray(_logical_theta_alias(theta_arr, layout_now), dtype=float)
+        return theta_arr
+
+    def _prepare_selected_state(
+        *,
+        ops_now: Sequence[AnsatzTerm],
+        theta_now: np.ndarray,
+        executor_now: CompiledAnsatzExecutor | None,
+        parameter_layout_now: AnsatzParameterLayout | None,
+    ) -> np.ndarray:
+        if len(ops_now) == 0:
+            return np.array(psi_ref, copy=True)
+        layout_now = (
+            parameter_layout_now
+            if parameter_layout_now is not None
+            else _build_selected_layout(list(ops_now))
+        )
+        if adapt_state_backend_key == "compiled":
+            executor_use = executor_now if executor_now is not None else _build_compiled_executor(list(ops_now))
+            theta_exec = _executor_theta_for_selected_state(
+                np.asarray(theta_now, dtype=float),
+                layout_now,
+                executor_use,
+            )
+            return executor_use.prepare_state(theta_exec, psi_ref)
+        return _prepare_adapt_state(
+            psi_ref,
+            list(ops_now),
+            np.asarray(theta_now, dtype=float),
+            parameter_layout=layout_now,
         )
 
     def _build_selected_layout(ops: list[AnsatzTerm]) -> AnsatzParameterLayout:
@@ -4148,6 +4754,20 @@ def _run_hardcoded_adapt_vqe(
         wG=float(phase1_lambda_measure),
         wC=float(phase1_lambda_measure),
         wc=float(phase1_lambda_measure),
+        depth_ref=float(phase1_depth_ref_val),
+        group_ref=float(phase1_group_ref_val),
+        shot_ref=float(phase1_shot_ref_val),
+        family_ref=float(phase1_family_ref_val),
+        compile_cx_proxy_weight=float(phase1_compile_cx_proxy_weight),
+        compile_sq_proxy_weight=float(phase1_compile_sq_proxy_weight),
+        compile_rotation_step_weight=float(phase1_compile_rotation_step_weight),
+        compile_position_shift_weight=float(phase1_compile_position_shift_weight),
+        compile_refit_active_weight=float(phase1_compile_refit_active_weight),
+        measure_groups_weight=float(phase1_measure_groups_weight),
+        measure_shots_weight=float(phase1_measure_shots_weight),
+        measure_reuse_weight=float(phase1_measure_reuse_weight),
+        opt_dim_cost_scale=float(phase1_opt_dim_cost_scale),
+        family_repeat_cost_scale=float(phase1_family_repeat_cost_scale),
         lifetime_cost_mode=(
             str(phase3_lifetime_cost_mode_key)
             if phase3_enabled and str(phase3_lifetime_cost_mode_key) != "off"
@@ -4175,31 +4795,74 @@ def _run_hardcoded_adapt_vqe(
     if backend_compile_oracle is not None and len(getattr(backend_compile_oracle, "targets", ())) == 0:
         raise RuntimeError("No backend targets could be resolved for phase3 backend-aware scoring.")
     phase2_score_cfg = FullScoreConfig(
-        z_alpha=float(phase1_score_z_alpha),
-        lambda_F=float(phase1_lambda_F),
+        z_alpha=float(phase2_score_z_alpha_val),
+        lambda_F=float(phase2_lambda_F_val),
         lambda_H=float(max(1e-12, phase2_lambda_H)),
         rho=float(max(1e-6, phase2_rho)),
         gamma_N=float(max(0.0, phase2_gamma_N)),
+        depth_ref=float(phase2_depth_ref_val),
+        group_ref=float(phase2_group_ref_val),
+        shot_ref=float(phase2_shot_ref_val),
+        optdim_ref=float(phase2_optdim_ref_val),
+        reuse_ref=float(phase2_reuse_ref_val),
+        family_ref=float(phase2_family_ref_val),
+        novelty_eps=float(phase2_novelty_eps_val),
+        cheap_score_eps=float(phase2_cheap_score_eps_val),
+        leakage_cap=float(phase2_leakage_cap_val),
+        metric_floor=float(phase2_metric_floor_val),
+        reduced_metric_collapse_rel_tol=float(phase2_reduced_metric_collapse_rel_tol_val),
+        ridge_growth_factor=float(phase2_ridge_growth_factor_val),
+        ridge_max_steps=int(phase2_ridge_max_steps_val),
+        wD=float(max(0.0, phase2_w_depth)),
+        wG=float(max(0.0, phase2_w_group)),
+        wC=float(max(0.0, phase2_w_shot)),
+        wP=float(max(0.0, phase2_w_optdim)),
+        wc=float(max(0.0, phase2_w_reuse)),
+        lifetime_weight=float(max(0.0, phase2_w_lifetime)),
+        eta_L=float(max(0.0, phase2_eta_L)),
+        compile_cx_proxy_weight=float(phase2_compile_cx_proxy_weight),
+        compile_sq_proxy_weight=float(phase2_compile_sq_proxy_weight),
+        compile_rotation_step_weight=float(phase2_compile_rotation_step_weight),
+        compile_position_shift_weight=float(phase2_compile_position_shift_weight),
+        compile_refit_active_weight=float(phase2_compile_refit_active_weight),
+        measure_groups_weight=float(phase2_measure_groups_weight),
+        measure_shots_weight=float(phase2_measure_shots_weight),
+        measure_reuse_weight=float(phase2_measure_reuse_weight),
+        opt_dim_cost_scale=float(phase2_opt_dim_cost_scale),
+        family_repeat_cost_scale=float(phase2_family_repeat_cost_scale),
+        motif_bonus_weight=float(max(0.0, phase2_motif_bonus_weight)),
+        duplicate_penalty_weight=float(max(0.0, phase2_duplicate_penalty_weight)),
         shortlist_fraction=float(max(0.05, phase2_shortlist_fraction)),
         shortlist_size=int(max(1, phase2_shortlist_size)),
-        phase2_frontier_ratio=float(max(0.0, min(1.0, phase2_batch_near_degenerate_ratio))),
-        phase3_frontier_ratio=float(max(0.0, min(1.0, phase2_batch_near_degenerate_ratio))),
+        phase2_frontier_ratio=float(max(0.0, min(1.0, phase2_frontier_ratio))),
+        phase3_frontier_ratio=float(max(0.0, min(1.0, phase3_frontier_ratio))),
         batch_target_size=int(max(1, phase2_batch_target_size)),
         batch_size_cap=int(max(1, phase2_batch_size_cap)),
         batch_near_degenerate_ratio=float(max(0.0, min(1.0, phase2_batch_near_degenerate_ratio))),
+        batch_rank_rel_tol=float(max(0.0, phase2_batch_rank_rel_tol)),
+        batch_additivity_tol=float(max(0.0, phase2_batch_additivity_tol)),
+        compat_overlap_weight=float(max(0.0, phase2_compat_overlap_weight)),
+        compat_comm_weight=float(max(0.0, phase2_compat_comm_weight)),
+        compat_curv_weight=float(max(0.0, phase2_compat_curv_weight)),
+        compat_sched_weight=float(max(0.0, phase2_compat_sched_weight)),
+        compat_measure_weight=float(max(0.0, phase2_compat_measure_weight)),
         lifetime_cost_mode=(
             str(phase3_lifetime_cost_mode_key)
             if phase3_enabled and str(phase3_lifetime_cost_mode_key) != "off"
             else "off"
         ),
         remaining_evaluations_proxy_mode=(
-            "remaining_depth"
-            if phase3_enabled and str(phase3_lifetime_cost_mode_key) != "off"
-            else "none"
+            (
+                "remaining_depth"
+                if phase3_enabled and str(phase3_lifetime_cost_mode_key) != "off"
+                else "none"
+            )
+            if str(phase2_remaining_evaluations_proxy_mode).strip().lower() == "auto"
+            else str(phase2_remaining_evaluations_proxy_mode).strip().lower()
         ),
     )
     if phase3_enabled and float(phase2_score_cfg.lambda_F) <= 0.0:
-        raise ValueError("phase3_v1 cheap ratio scoring requires phase1_lambda_F > 0.")
+        raise ValueError("phase3_v1 cheap ratio scoring requires phase2_lambda_F > 0.")
     phase2_novelty_oracle = Phase2NoveltyOracle()
     phase2_curvature_oracle = Phase2CurvatureOracle()
     phase2_memory_adapter = Phase2OptimizerMemoryAdapter()
@@ -4359,6 +5022,135 @@ def _run_hardcoded_adapt_vqe(
                 out.append(dict(rec))
                 seen.add(rec_key)
         return sorted(out, key=_phase2_record_sort_key)
+
+    def _record_controller_snapshot(record: Mapping[str, Any] | None) -> dict[str, Any] | None:
+        if not isinstance(record, Mapping):
+            return None
+        snapshot_raw = record.get("controller_snapshot")
+        if isinstance(snapshot_raw, Mapping):
+            return dict(snapshot_raw)
+        feat_obj = record.get("feature")
+        snapshot_feat = (
+            getattr(feat_obj, "controller_snapshot", None)
+            if isinstance(feat_obj, CandidateFeatures)
+            else None
+        )
+        if isinstance(snapshot_feat, Mapping):
+            return dict(snapshot_feat)
+        return None
+
+    def _phase3_tie_beam_selection_pool(
+        records: Sequence[Mapping[str, Any]],
+        *,
+        default_cap: int,
+        score_key: str,
+        score_ratio: float,
+        abs_tol: float,
+        max_branches: int,
+        max_late_coordinate: float,
+        min_depth_left: int,
+        depth_one_based: int,
+        max_depth_local: int,
+    ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+        ordered = sorted([dict(rec) for rec in records], key=_phase2_record_sort_key)
+        cap_default = int(max(1, default_cap))
+        derived_depth_left = int(max(0, int(max_depth_local) - int(depth_one_based)))
+        derived_late_coordinate = float(int(depth_one_based) / max(1, int(max_depth_local)))
+        if not ordered:
+            return [], {
+                "active": False,
+                "band_count": 0,
+                "selected_count": 0,
+                "best_score": float("-inf"),
+                "depth_left": int(derived_depth_left),
+                "late_coordinate": float(derived_late_coordinate),
+                "reason": "empty",
+            }
+        best_score = float(ordered[0].get(score_key, float("-inf")))
+        snapshot = _record_controller_snapshot(ordered[0])
+        depth_left = int(
+            max(
+                0,
+                int(snapshot.get("depth_left", derived_depth_left))
+                if isinstance(snapshot, Mapping)
+                else int(derived_depth_left),
+            )
+        )
+        late_coordinate = float(
+            snapshot.get("late_coordinate", derived_late_coordinate)
+            if isinstance(snapshot, Mapping)
+            else float(derived_late_coordinate)
+        )
+        criteria_enabled = bool(
+            int(max_branches) > int(cap_default)
+            and (
+                (float(score_ratio) < 1.0 and math.isfinite(best_score) and best_score > 0.0)
+                or (float(abs_tol) > 0.0 and math.isfinite(best_score))
+            )
+        )
+        maturity_open = bool(
+            int(depth_left) >= int(min_depth_left)
+            and float(late_coordinate) <= float(max_late_coordinate)
+        )
+        if not criteria_enabled:
+            return ordered[:cap_default], {
+                "active": False,
+                "band_count": int(min(len(ordered), cap_default)),
+                "selected_count": int(min(len(ordered), cap_default)),
+                "best_score": float(best_score),
+                "depth_left": int(depth_left),
+                "late_coordinate": float(late_coordinate),
+                "reason": "disabled",
+            }
+        if not maturity_open:
+            return ordered[:cap_default], {
+                "active": False,
+                "band_count": int(min(len(ordered), cap_default)),
+                "selected_count": int(min(len(ordered), cap_default)),
+                "best_score": float(best_score),
+                "depth_left": int(depth_left),
+                "late_coordinate": float(late_coordinate),
+                "reason": "maturity_closed",
+            }
+        band: list[dict[str, Any]] = [dict(ordered[0])]
+        seen = {_selection_record_key(ordered[0])}
+        for rec in ordered[1:]:
+            score_val = float(rec.get(score_key, float("-inf")))
+            if not math.isfinite(score_val):
+                continue
+            within_ratio = bool(
+                float(score_ratio) < 1.0 and score_val >= float(score_ratio) * best_score
+            )
+            within_abs = bool(
+                float(abs_tol) > 0.0 and (best_score - score_val) <= float(abs_tol)
+            )
+            if not (within_ratio or within_abs):
+                continue
+            rec_key = _selection_record_key(rec)
+            if rec_key in seen:
+                continue
+            band.append(dict(rec))
+            seen.add(rec_key)
+        if len(band) <= cap_default:
+            return band[:cap_default], {
+                "active": False,
+                "band_count": int(len(band)),
+                "selected_count": int(min(len(band), cap_default)),
+                "best_score": float(best_score),
+                "depth_left": int(depth_left),
+                "late_coordinate": float(late_coordinate),
+                "reason": "band_not_wider_than_default",
+            }
+        selected_cap = int(min(len(band), max(int(cap_default), int(max_branches))))
+        return band[:selected_cap], {
+            "active": True,
+            "band_count": int(len(band)),
+            "selected_count": int(selected_cap),
+            "best_score": float(best_score),
+            "depth_left": int(depth_left),
+            "late_coordinate": float(late_coordinate),
+            "reason": "phase3_score_band",
+        }
 
     def _controller_cap(snapshot: Any | None, phase_name: str, default_value: int) -> int:
         if snapshot is None:
@@ -5115,6 +5907,7 @@ def _run_hardcoded_adapt_vqe(
     phase3_oracle_cleanup = None
     phase3_oracle_h_qop = None
     phase3_oracle_all_z_qop = None
+    phase3_runtime_bindings_cache: dict[str, Any] | None = None
     build_runtime_layout_circuit_fn = None
     build_parameterized_ansatz_plan_fn = None
     phase3_oracle_num_qubits = int(round(math.log2(psi_ref.size)))
@@ -5197,6 +5990,264 @@ def _run_hardcoded_adapt_vqe(
         if callable(close_oracle):
             close_oracle()
 
+    def _run_final_noise_audit(
+        snapshot: FinalNoiseAuditSnapshot,
+        config: FinalNoiseAuditConfig,
+    ) -> dict[str, Any]:
+        audit_cfg = _resolve_final_noise_audit_config(config)
+        bindings = (
+            phase3_runtime_bindings_cache
+            if phase3_runtime_bindings_cache is not None
+            else _phase3_oracle_runtime_bindings()
+        )
+        plan = bindings["build_parameterized_ansatz_plan"](
+            snapshot.parameter_layout,
+            nq=int(snapshot.num_qubits),
+            ref_state=np.asarray(snapshot.reference_state, dtype=complex),
+        )
+        observable = bindings["pauli_poly_to_sparse_pauli_op"](snapshot.h_poly)
+        theta_runtime = np.asarray(snapshot.theta_runtime, dtype=float)
+
+        def _evaluate_variant(
+            variant_cfg: FinalNoiseAuditConfig,
+            *,
+            audit_variant: str,
+        ) -> dict[str, Any]:
+            oracle_config = bindings["OracleConfig"](
+                noise_mode=str(variant_cfg.noise_mode),
+                shots=int(variant_cfg.shots),
+                seed=int(variant_cfg.seed),
+                seed_transpiler=variant_cfg.seed_transpiler,
+                transpile_optimization_level=int(variant_cfg.transpile_optimization_level),
+                oracle_repeats=int(variant_cfg.oracle_repeats),
+                oracle_aggregate=str(variant_cfg.oracle_aggregate),
+                backend_name=(
+                    None
+                    if variant_cfg.backend_name in {None, ""}
+                    else str(variant_cfg.backend_name)
+                ),
+                use_fake_backend=bool(variant_cfg.use_fake_backend),
+                allow_aer_fallback=True,
+                aer_fallback_mode="sampler_shots",
+                omp_shm_workaround=True,
+                mitigation=dict(
+                    _oracle_mitigation_payload_from_fields(
+                        mitigation_mode=str(variant_cfg.mitigation_mode),
+                        local_readout_strategy=variant_cfg.local_readout_strategy,
+                    )
+                ),
+                symmetry_mitigation={"mode": "off"},
+                runtime_profile=str(variant_cfg.runtime_profile_name),
+                runtime_session=str(variant_cfg.runtime_session_policy),
+                execution_surface="expectation_v1",
+            )
+            validation_report = _validate_oracle_execution_request_via_bindings(bindings, oracle_config)
+            normalized_request = (
+                None
+                if validation_report is None
+                else dict(validation_report.get("normalized_request", {}) or {})
+            )
+            if (
+                str(variant_cfg.noise_mode).strip().lower() == "backend_scheduled"
+                and bool(variant_cfg.use_fake_backend)
+            ):
+                bindings["preflight_backend_scheduled_fake_backend_environment"](oracle_config)
+
+            oracle_obj = bindings["ExpectationOracle"](oracle_config)
+            close_oracle = getattr(oracle_obj, "close", None)
+            try:
+                if hasattr(oracle_obj, "evaluate_parameterized"):
+                    estimate = oracle_obj.evaluate_parameterized(
+                        plan=plan,
+                        theta_runtime=theta_runtime,
+                        observable=observable,
+                        runtime_trace_context={
+                            "route": "final_noise_audit_v1",
+                            "audit_variant": str(audit_variant),
+                            "ansatz_depth": int(snapshot.ansatz_depth),
+                            "logical_parameter_count": int(snapshot.logical_parameter_count),
+                            "runtime_parameter_count": int(snapshot.runtime_parameter_count),
+                        },
+                    )
+                else:
+                    circuit_obj = bindings["build_runtime_layout_circuit"](
+                        snapshot.parameter_layout,
+                        theta_runtime,
+                        int(snapshot.num_qubits),
+                        reference_state=np.asarray(snapshot.reference_state, dtype=complex),
+                    )
+                    try:
+                        setattr(circuit_obj, "_final_noise_audit_route", "final_noise_audit_v1")
+                        setattr(circuit_obj, "_final_noise_audit_variant", str(audit_variant))
+                    except Exception:
+                        pass
+                    estimate = oracle_obj.evaluate(circuit_obj, observable)
+                variant_energy = float(getattr(estimate, "mean", 0.0))
+                exact_target_delta_e = float(
+                    variant_energy - float(snapshot.exact_filtered_ground_energy)
+                )
+                exact_final_state_delta_e = float(
+                    variant_energy - float(snapshot.exact_final_state_energy)
+                )
+                return {
+                    "requested_config": dict(_final_noise_audit_config_payload(variant_cfg) or {}),
+                    "normalized_request": normalized_request,
+                    "result": {
+                        "requested_estimate_energy": float(variant_energy),
+                        "stderr": float(getattr(estimate, "stderr", 0.0) or 0.0),
+                        "std": float(getattr(estimate, "std", 0.0) or 0.0),
+                        "stdev": float(getattr(estimate, "stdev", 0.0) or 0.0),
+                        "n_samples": int(getattr(estimate, "n_samples", 0) or 0),
+                        "aggregate": str(getattr(estimate, "aggregate", variant_cfg.oracle_aggregate)),
+                        "backend_info": _json_ready(
+                            getattr(
+                                getattr(oracle_obj, "backend_info", None),
+                                "__dict__",
+                                getattr(oracle_obj, "backend_info", None),
+                            )
+                        ),
+                    },
+                    "deltas": {
+                        "exact_target_delta_e": float(exact_target_delta_e),
+                        "exact_target_abs_error": float(abs(exact_target_delta_e)),
+                        "exact_final_state_delta_e": float(exact_final_state_delta_e),
+                        "exact_final_state_abs_error": float(abs(exact_final_state_delta_e)),
+                    },
+                }
+            finally:
+                if callable(close_oracle):
+                    close_oracle()
+
+        requested_eval = _evaluate_variant(audit_cfg, audit_variant="requested")
+        output = {
+            "status": "completed",
+            "strict": bool(audit_cfg.strict),
+            "requested_config": dict(requested_eval.get("requested_config", {})),
+            "normalized_request": dict(requested_eval.get("normalized_request", {}) or {}),
+            "reference": {
+                "primary_metric_name": "exact_target_abs_error",
+                "exact_filtered_ground_energy": float(snapshot.exact_filtered_ground_energy),
+                "exact_final_state_energy": float(snapshot.exact_final_state_energy),
+            },
+            "snapshot": {
+                "ansatz_depth": int(snapshot.ansatz_depth),
+                "runtime_parameter_count": int(snapshot.runtime_parameter_count),
+                "logical_parameter_count": int(snapshot.logical_parameter_count),
+                "operator_labels": [str(x) for x in snapshot.operator_labels],
+                "parameterization": serialize_layout(snapshot.parameter_layout),
+                "theta_runtime": [float(x) for x in snapshot.theta_runtime],
+                "theta_logical": [float(x) for x in snapshot.theta_logical],
+            },
+            "result": dict(requested_eval.get("result", {})),
+            "deltas": dict(requested_eval.get("deltas", {})),
+        }
+
+        def _build_unmitigated_baseline_config(
+            source_cfg: FinalNoiseAuditConfig,
+        ) -> FinalNoiseAuditConfig:
+            return _resolve_final_noise_audit_config(
+                FinalNoiseAuditConfig(
+                    noise_mode=str(source_cfg.noise_mode),
+                    shots=int(source_cfg.shots),
+                    oracle_repeats=int(source_cfg.oracle_repeats),
+                    oracle_aggregate=str(source_cfg.oracle_aggregate),
+                    backend_name=(
+                        None
+                        if source_cfg.backend_name in {None, ""}
+                        else str(source_cfg.backend_name)
+                    ),
+                    use_fake_backend=bool(source_cfg.use_fake_backend),
+                    seed=int(source_cfg.seed),
+                    mitigation_mode="none",
+                    local_readout_strategy=None,
+                    runtime_profile_name="legacy_runtime_v0",
+                    runtime_session_policy=str(source_cfg.runtime_session_policy),
+                    compare_unmitigated_baseline=False,
+                    seed_transpiler=source_cfg.seed_transpiler,
+                    transpile_optimization_level=int(source_cfg.transpile_optimization_level),
+                    strict=bool(source_cfg.strict),
+                )
+            )
+
+        baseline_requested = bool(audit_cfg.compare_unmitigated_baseline)
+        if baseline_requested:
+            baseline_cfg = _build_unmitigated_baseline_config(audit_cfg)
+            baseline_requested_payload = dict(_final_noise_audit_config_payload(baseline_cfg) or {})
+            requested_cfg_payload = dict(output.get("requested_config", {}) or {})
+            requested_cfg_payload_cmp = dict(requested_cfg_payload)
+            requested_cfg_payload_cmp["compare_unmitigated_baseline"] = False
+            if baseline_requested_payload == requested_cfg_payload_cmp:
+                output["unmitigated_baseline_comparison"] = {
+                    "enabled": True,
+                    "status": "skipped",
+                    "reason": "requested_matches_unmitigated_baseline",
+                    "baseline_requested_config": baseline_requested_payload,
+                }
+            else:
+                try:
+                    baseline_eval = _evaluate_variant(
+                        baseline_cfg,
+                        audit_variant="unmitigated_baseline",
+                    )
+                    requested_energy = float(output.get("result", {}).get("requested_estimate_energy", 0.0))
+                    baseline_energy = float(
+                        baseline_eval.get("result", {}).get("requested_estimate_energy", 0.0)
+                    )
+                    requested_exact_target_abs_error = float(
+                        output.get("deltas", {}).get("exact_target_abs_error", 0.0)
+                    )
+                    baseline_exact_target_abs_error = float(
+                        baseline_eval.get("deltas", {}).get("exact_target_abs_error", 0.0)
+                    )
+                    requested_exact_final_state_abs_error = float(
+                        output.get("deltas", {}).get("exact_final_state_abs_error", 0.0)
+                    )
+                    baseline_exact_final_state_abs_error = float(
+                        baseline_eval.get("deltas", {}).get("exact_final_state_abs_error", 0.0)
+                    )
+                    output["unmitigated_baseline_comparison"] = {
+                        "enabled": True,
+                        "status": "completed",
+                        "baseline_requested_config": dict(
+                            baseline_eval.get("requested_config", {})
+                        ),
+                        "baseline_normalized_request": dict(
+                            baseline_eval.get("normalized_request", {}) or {}
+                        ),
+                        "baseline_result": dict(baseline_eval.get("result", {})),
+                        "baseline_deltas": dict(baseline_eval.get("deltas", {})),
+                        "comparison_metrics": {
+                            "requested_minus_unmitigated_delta_e": float(
+                                requested_energy - baseline_energy
+                            ),
+                            "requested_minus_unmitigated_abs_delta_e": float(
+                                abs(requested_energy - baseline_energy)
+                            ),
+                            "exact_target_abs_error_improvement_vs_unmitigated": float(
+                                baseline_exact_target_abs_error
+                                - requested_exact_target_abs_error
+                            ),
+                            "exact_final_state_abs_error_improvement_vs_unmitigated": float(
+                                baseline_exact_final_state_abs_error
+                                - requested_exact_final_state_abs_error
+                            ),
+                        },
+                    }
+                except Exception as exc:
+                    if bool(audit_cfg.strict):
+                        raise
+                    output["unmitigated_baseline_comparison"] = {
+                        "enabled": True,
+                        "status": "failed",
+                        "reason": "evaluation_failed",
+                        "baseline_requested_config": baseline_requested_payload,
+                        "failure": {
+                            "error_type": str(type(exc).__name__),
+                            "error_message": str(exc),
+                        },
+                    }
+        return output
+
     class _Phase3OracleCleanupGuard:
         def __init__(self, oracle_obj: Any | None) -> None:
             self._oracle_ref = weakref.ref(oracle_obj) if oracle_obj is not None else None
@@ -5217,6 +6268,7 @@ def _run_hardcoded_adapt_vqe(
 
     if phase3_oracle_gradient_enabled:
         bindings = _phase3_oracle_runtime_bindings()
+        phase3_runtime_bindings_cache = dict(bindings)
         build_parameterized_ansatz_plan_fn = bindings["build_parameterized_ansatz_plan"]
         oracle_config = bindings["OracleConfig"](
             noise_mode=str(phase3_oracle_gradient_config.noise_mode),
@@ -5242,7 +6294,7 @@ def _run_hardcoded_adapt_vqe(
             raw_store_memory=bool(phase3_oracle_gradient_config.raw_store_memory),
             raw_artifact_path=phase3_oracle_gradient_config.raw_artifact_path,
         )
-        bindings["validate_controller_oracle_base_config"](oracle_config)
+        _validate_oracle_execution_request_via_bindings(bindings, oracle_config)
         if (
             str(phase3_oracle_gradient_config.noise_mode).strip().lower() == "backend_scheduled"
             and bool(phase3_oracle_gradient_config.use_fake_backend)
@@ -5790,6 +6842,11 @@ def _run_hardcoded_adapt_vqe(
             nonlocal phase3_oracle_inner_objective_calls_total
             nonlocal phase3_oracle_inner_objective_raw_records_total
             theta_eval = np.asarray(theta_now, dtype=float)
+            layout_eval = (
+                parameter_layout_now
+                if parameter_layout_now is not None
+                else _build_selected_layout(list(ops_now))
+            )
             if phase3_oracle_inner_objective_enabled:
                 if (
                     phase3_oracle is None
@@ -5799,11 +6856,6 @@ def _run_hardcoded_adapt_vqe(
                     raise RuntimeError(
                         "phase3 noisy inner objective requested without an active oracle session."
                     )
-                layout_eval = (
-                    parameter_layout_now
-                    if parameter_layout_now is not None
-                    else _build_selected_layout(list(ops_now))
-                )
                 eval_t0 = time.perf_counter()
                 execution_surface = (
                     str(phase3_oracle_gradient_config.execution_surface).strip().lower()
@@ -5936,7 +6988,12 @@ def _run_hardcoded_adapt_vqe(
                 )
                 return float(estimate.mean)
             if executor_now is not None:
-                psi_obj = executor_now.prepare_state(theta_eval, psi_ref)
+                psi_obj = _prepare_selected_state(
+                    ops_now=list(ops_now),
+                    theta_now=theta_eval,
+                    executor_now=executor_now,
+                    parameter_layout_now=layout_eval,
+                )
                 energy_obj, _ = energy_via_one_apply(psi_obj, h_compiled)
                 return float(energy_obj)
             return float(
@@ -6309,15 +7366,12 @@ def _run_hardcoded_adapt_vqe(
                         position_id=int(pos_sel),
                         init_theta=float(theta_probe),
                     )
-                    if adapt_state_backend_key == "compiled":
-                        psi_trial = _build_compiled_executor(ops_trial).prepare_state(theta_trial, psi_ref)
-                    else:
-                        psi_trial = _prepare_adapt_state(
-                            psi_ref,
-                            ops_trial,
-                            theta_trial,
-                            parameter_layout=_build_selected_layout(ops_trial),
-                        )
+                    psi_trial = _prepare_selected_state(
+                        ops_now=ops_trial,
+                        theta_now=theta_trial,
+                        executor_now=(_build_compiled_executor(ops_trial) if adapt_state_backend_key == "compiled" else None),
+                        parameter_layout_now=_build_selected_layout(ops_trial),
+                    )
                     overlap_trial = float(abs(np.vdot(psi_exact_ref, np.asarray(psi_trial, dtype=complex))) ** 2)
                     gain = float(overlap_trial - overlap_current)
                     if gain > best_gain_local:
@@ -6414,6 +7468,279 @@ def _run_hardcoded_adapt_vqe(
                         str(row.get("runtime_split_mode", "off"))
                         for row in rows
                     )
+                ),
+            }
+
+        def _selector_debug_row(record: Mapping[str, Any]) -> dict[str, Any]:
+            rec = dict(record)
+            feat_obj = rec.get("feature")
+
+            def _feat_get(name: str, default: Any = None) -> Any:
+                if isinstance(feat_obj, CandidateFeatures):
+                    return getattr(feat_obj, name, default)
+                if isinstance(feat_obj, Mapping):
+                    return feat_obj.get(name, default)
+                return default
+
+            candidate_label_value = rec.get("candidate_label")
+            if candidate_label_value in {None, ""}:
+                candidate_label_value = _feat_get("candidate_label")
+            if candidate_label_value in {None, ""}:
+                candidate_label_value = _feat_get("label")
+
+            return {
+                "candidate_label": str(candidate_label_value or ""),
+                "candidate_pool_index": int(rec.get("candidate_pool_index", -1)),
+                "position_id": int(rec.get("position_id", -1)),
+                "score_version": str(_feat_get("score_version", "")),
+                "curvature_mode": str(_feat_get("curvature_mode", "")),
+                "novelty_mode": str(_feat_get("novelty_mode", "")),
+                "actual_fallback_mode": str(_feat_get("actual_fallback_mode", "")),
+                "representation": str(_feat_get("runtime_split_chosen_representation", "parent")),
+                "runtime_split_parent_label": _feat_get("runtime_split_parent_label"),
+                "runtime_split_child_labels": [
+                    str(x) for x in (_feat_get("runtime_split_child_labels", []) or [])
+                ],
+                "full_v2_score": float(rec.get("full_v2_score", float("-inf"))),
+                "phase2_raw_score": float(rec.get("phase2_raw_score", float("-inf"))),
+                "cheap_score": float(rec.get("cheap_score", rec.get("simple_score", float("-inf")))),
+                "simple_score": float(rec.get("simple_score", float("-inf"))),
+                "selector_score": (
+                    float(_feat_get("selector_score"))
+                    if _feat_get("selector_score") is not None
+                    else None
+                ),
+                "g_abs": (
+                    float(_feat_get("g_abs"))
+                    if _feat_get("g_abs") is not None
+                    else None
+                ),
+                "g_lcb": (
+                    float(_feat_get("g_lcb"))
+                    if _feat_get("g_lcb") is not None
+                    else None
+                ),
+                "metric_proxy": (
+                    float(_feat_get("metric_proxy"))
+                    if _feat_get("metric_proxy") is not None
+                    else None
+                ),
+                "F_raw": (
+                    float(_feat_get("F_raw"))
+                    if _feat_get("F_raw") is not None
+                    else None
+                ),
+                "F_red": (
+                    float(_feat_get("F_red"))
+                    if _feat_get("F_red") is not None
+                    else None
+                ),
+                "h_eff": (
+                    float(_feat_get("h_eff"))
+                    if _feat_get("h_eff") is not None
+                    else None
+                ),
+                "ridge_used": (
+                    float(_feat_get("ridge_used"))
+                    if _feat_get("ridge_used") is not None
+                    else None
+                ),
+                "selector_burden": (
+                    float(_feat_get("selector_burden"))
+                    if _feat_get("selector_burden") is not None
+                    else None
+                ),
+                "phase2_raw_trust_gain": (
+                    float(_feat_get("phase2_raw_trust_gain"))
+                    if _feat_get("phase2_raw_trust_gain") is not None
+                    else None
+                ),
+                "phase3_reduced_trust_gain": (
+                    float(_feat_get("phase3_reduced_trust_gain"))
+                    if _feat_get("phase3_reduced_trust_gain") is not None
+                    else None
+                ),
+                "phase2_raw_novelty": (
+                    float(_feat_get("phase2_raw_novelty"))
+                    if _feat_get("phase2_raw_novelty") is not None
+                    else None
+                ),
+                "phase3_reduced_novelty": (
+                    float(_feat_get("phase3_reduced_novelty"))
+                    if _feat_get("phase3_reduced_novelty") is not None
+                    else None
+                ),
+                "phase2_burden_total": (
+                    float(_feat_get("phase2_burden_total"))
+                    if _feat_get("phase2_burden_total") is not None
+                    else None
+                ),
+                "phase3_burden_total": (
+                    float(_feat_get("phase3_burden_total"))
+                    if _feat_get("phase3_burden_total") is not None
+                    else None
+                ),
+                "compile_cost_total": (
+                    float(_feat_get("compile_cost_total"))
+                    if _feat_get("compile_cost_total") is not None
+                    else None
+                ),
+                "depth_cost": (
+                    float(_feat_get("depth_cost"))
+                    if _feat_get("depth_cost") is not None
+                    else None
+                ),
+                "new_group_cost": (
+                    float(_feat_get("new_group_cost"))
+                    if _feat_get("new_group_cost") is not None
+                    else None
+                ),
+                "new_shot_cost": (
+                    float(_feat_get("new_shot_cost"))
+                    if _feat_get("new_shot_cost") is not None
+                    else None
+                ),
+                "opt_dim_cost": (
+                    float(_feat_get("opt_dim_cost"))
+                    if _feat_get("opt_dim_cost") is not None
+                    else None
+                ),
+                "reuse_count_cost": (
+                    float(_feat_get("reuse_count_cost"))
+                    if _feat_get("reuse_count_cost") is not None
+                    else None
+                ),
+                "family_repeat_cost": (
+                    float(_feat_get("family_repeat_cost"))
+                    if _feat_get("family_repeat_cost") is not None
+                    else None
+                ),
+                "motif_bonus": (
+                    float(_feat_get("motif_bonus"))
+                    if _feat_get("motif_bonus") is not None
+                    else None
+                ),
+                "compatibility_penalty_total": (
+                    float(_feat_get("compatibility_penalty_total"))
+                    if _feat_get("compatibility_penalty_total") is not None
+                    else None
+                ),
+            }
+
+        def _selector_debug_rows(
+            rows_raw: Sequence[Mapping[str, Any]] | None,
+            *,
+            topk: int,
+        ) -> list[dict[str, Any]]:
+            rows = [dict(row) for row in rows_raw if isinstance(row, Mapping)] if isinstance(rows_raw, Sequence) else []
+            if int(topk) <= 0 or not rows:
+                return []
+            rows_sorted = sorted(rows, key=_phase2_record_sort_key)[: int(topk)]
+            return [_selector_debug_row(row) for row in rows_sorted]
+
+        def _selector_debug_enabled_for_depth(depth_one_based: int) -> bool:
+            if int(phase3_selector_debug_topk_val) <= 0:
+                return False
+            if int(phase3_selector_debug_max_depth_val) <= 0:
+                return True
+            return int(depth_one_based) <= int(phase3_selector_debug_max_depth_val)
+
+        def _selector_debug_payload(
+            *,
+            depth_one_based: int,
+            beam_enabled: bool,
+            selection_mode_value: str,
+            stage_name_value: str,
+            selected_feature_row: Mapping[str, Any] | None,
+            scored_rows: Sequence[Mapping[str, Any]] | None,
+            phase2_rows: Sequence[Mapping[str, Any]] | None,
+            phase3_rows: Sequence[Mapping[str, Any]] | None,
+            admitted_rows: Sequence[Mapping[str, Any]] | None,
+            split_summary: Mapping[str, Any] | None,
+        ) -> dict[str, Any]:
+            return {
+                "depth": int(depth_one_based),
+                "beam_enabled": bool(beam_enabled),
+                "selection_mode": str(selection_mode_value),
+                "stage_name": str(stage_name_value),
+                "score_config": {
+                    "lambda_H": float(getattr(phase2_score_cfg, "lambda_H", 0.0)),
+                    "rho": float(getattr(phase2_score_cfg, "rho", 0.0)),
+                    "gamma_N": float(getattr(phase2_score_cfg, "gamma_N", 0.0)),
+                    "phase2_frontier_ratio": float(getattr(phase2_score_cfg, "phase2_frontier_ratio", 0.0)),
+                    "phase3_frontier_ratio": float(getattr(phase2_score_cfg, "phase3_frontier_ratio", 0.0)),
+                    "batching_enabled": bool(phase2_enable_batching),
+                    "batch_target_size": int(getattr(phase2_score_cfg, "batch_target_size", 0)),
+                    "batch_size_cap": int(getattr(phase2_score_cfg, "batch_size_cap", 0)),
+                    "batch_near_degenerate_ratio": float(
+                        getattr(phase2_score_cfg, "batch_near_degenerate_ratio", 0.0)
+                    ),
+                    "batch_rank_rel_tol": float(getattr(phase2_score_cfg, "batch_rank_rel_tol", 0.0)),
+                    "batch_additivity_tol": float(getattr(phase2_score_cfg, "batch_additivity_tol", 0.0)),
+                    "w_depth": float(getattr(phase2_score_cfg, "wD", 0.0)),
+                    "w_group": float(getattr(phase2_score_cfg, "wG", 0.0)),
+                    "w_shot": float(getattr(phase2_score_cfg, "wC", 0.0)),
+                    "w_optdim": float(getattr(phase2_score_cfg, "wP", 0.0)),
+                    "w_reuse": float(getattr(phase2_score_cfg, "wc", 0.0)),
+                    "w_lifetime": float(getattr(phase2_score_cfg, "lifetime_weight", 0.0)),
+                    "lambda_F": float(getattr(phase2_score_cfg, "lambda_F", 0.0)),
+                    "score_z_alpha": float(getattr(phase2_score_cfg, "z_alpha", 0.0)),
+                    "eta_L": float(getattr(phase2_score_cfg, "eta_L", 0.0)),
+                    "depth_ref": float(getattr(phase2_score_cfg, "depth_ref", 1.0)),
+                    "group_ref": float(getattr(phase2_score_cfg, "group_ref", 1.0)),
+                    "shot_ref": float(getattr(phase2_score_cfg, "shot_ref", 1.0)),
+                    "optdim_ref": float(getattr(phase2_score_cfg, "optdim_ref", 1.0)),
+                    "reuse_ref": float(getattr(phase2_score_cfg, "reuse_ref", 1.0)),
+                    "family_ref": float(getattr(phase2_score_cfg, "family_ref", 1.0)),
+                    "novelty_eps": float(getattr(phase2_score_cfg, "novelty_eps", 0.0)),
+                    "cheap_score_eps": float(getattr(phase2_score_cfg, "cheap_score_eps", 0.0)),
+                    "metric_floor": float(getattr(phase2_score_cfg, "metric_floor", 0.0)),
+                    "reduced_metric_collapse_rel_tol": float(
+                        getattr(phase2_score_cfg, "reduced_metric_collapse_rel_tol", 0.0)
+                    ),
+                    "ridge_growth_factor": float(getattr(phase2_score_cfg, "ridge_growth_factor", 0.0)),
+                    "ridge_max_steps": int(getattr(phase2_score_cfg, "ridge_max_steps", 0)),
+                    "leakage_cap": float(getattr(phase2_score_cfg, "leakage_cap", 0.0)),
+                    "motif_bonus_weight": float(getattr(phase2_score_cfg, "motif_bonus_weight", 0.0)),
+                    "duplicate_penalty_weight": float(
+                        getattr(phase2_score_cfg, "duplicate_penalty_weight", 0.0)
+                    ),
+                    "compat_overlap_weight": float(
+                        getattr(phase2_score_cfg, "compat_overlap_weight", 0.0)
+                    ),
+                    "compat_comm_weight": float(getattr(phase2_score_cfg, "compat_comm_weight", 0.0)),
+                    "compat_curv_weight": float(getattr(phase2_score_cfg, "compat_curv_weight", 0.0)),
+                    "compat_sched_weight": float(getattr(phase2_score_cfg, "compat_sched_weight", 0.0)),
+                    "compat_measure_weight": float(
+                        getattr(phase2_score_cfg, "compat_measure_weight", 0.0)
+                    ),
+                    "remaining_evaluations_proxy_mode": str(phase2_remaining_evaluations_proxy_mode),
+                    "lifetime_cost_mode": str(phase3_lifetime_cost_mode_key),
+                    "runtime_split_mode": str(phase3_runtime_split_mode_key),
+                },
+                "runtime_split_summary": (
+                    dict(split_summary) if isinstance(split_summary, Mapping) else {}
+                ),
+                "selected": (
+                    _selector_debug_row({"feature": dict(selected_feature_row), **dict(selected_feature_row)})
+                    if isinstance(selected_feature_row, Mapping)
+                    else None
+                ),
+                "scored_topk": _selector_debug_rows(
+                    scored_rows,
+                    topk=int(phase3_selector_debug_topk_val),
+                ),
+                "phase2_shortlist_topk": _selector_debug_rows(
+                    phase2_rows,
+                    topk=int(phase3_selector_debug_topk_val),
+                ),
+                "phase3_shortlist_topk": _selector_debug_rows(
+                    phase3_rows,
+                    topk=int(phase3_selector_debug_topk_val),
+                ),
+                "admitted_topk": _selector_debug_rows(
+                    admitted_rows,
+                    topk=int(phase3_selector_debug_topk_val),
                 ),
             }
 
@@ -6985,21 +8312,12 @@ def _run_hardcoded_adapt_vqe(
             nonlocal beam_nfev_total
 
             executor = _get_beam_executor(branch.selected_ops)
-            if adapt_state_backend_key == "compiled":
-                if len(branch.selected_ops) == 0:
-                    psi_current_local = np.array(psi_ref, copy=True)
-                else:
-                    assert executor is not None
-                    psi_current_local = executor.prepare_state(
-                        np.asarray(branch.theta, dtype=float),
-                        psi_ref,
-                    )
-            else:
-                psi_current_local = _prepare_adapt_state(
-                    psi_ref,
-                    list(branch.selected_ops),
-                    np.asarray(branch.theta, dtype=float),
-                )
+            psi_current_local = _prepare_selected_state(
+                ops_now=list(branch.selected_ops),
+                theta_now=np.asarray(branch.theta, dtype=float),
+                executor_now=executor,
+                parameter_layout_now=_build_selected_layout(list(branch.selected_ops)),
+            )
             energy_current_local, hpsi_current_local = energy_via_one_apply(
                 psi_current_local,
                 h_compiled,
@@ -7341,6 +8659,10 @@ def _run_hardcoded_adapt_vqe(
                         runtime_split_parent_label_value: str | None = None,
                         runtime_split_child_index_value: int | None = None,
                         runtime_split_child_count_value: int | None = None,
+                        runtime_split_chosen_representation_value: str = "parent",
+                        runtime_split_child_indices_value: Sequence[int] | None = None,
+                        runtime_split_child_labels_value: Sequence[str] | None = None,
+                        runtime_split_child_generator_ids_value: Sequence[str] | None = None,
                     ) -> dict[str, Any]:
                         compiled_candidate = phase2_compiled_term_cache.get(str(candidate_label))
                         if compiled_candidate is None:
@@ -7435,6 +8757,33 @@ def _run_hardcoded_adapt_vqe(
                                         if runtime_split_child_count_value is not None
                                         else None
                                     ),
+                                    "runtime_split_chosen_representation": str(
+                                        runtime_split_chosen_representation_value
+                                    ),
+                                    "runtime_split_child_indices": [
+                                        int(x)
+                                        for x in (
+                                            list(runtime_split_child_indices_value)
+                                            if runtime_split_child_indices_value is not None
+                                            else []
+                                        )
+                                    ],
+                                    "runtime_split_child_labels": [
+                                        str(x)
+                                        for x in (
+                                            list(runtime_split_child_labels_value)
+                                            if runtime_split_child_labels_value is not None
+                                            else []
+                                        )
+                                    ],
+                                    "runtime_split_child_generator_ids": [
+                                        str(x)
+                                        for x in (
+                                            list(runtime_split_child_generator_ids_value)
+                                            if runtime_split_child_generator_ids_value is not None
+                                            else []
+                                        )
+                                    ],
                                 }
                             )
                         active_memory = phase2_memory_adapter.select_active(
@@ -7481,14 +8830,13 @@ def _run_hardcoded_adapt_vqe(
                             "candidate_term": candidate_term,
                         }
 
-                    candidate_variants = [
-                        _full_record_for_candidate_local(
-                            candidate_term=rec["candidate_term"],
-                            candidate_label=parent_label,
-                            generator_metadata=parent_generator_meta,
-                            symmetry_spec_candidate=parent_symmetry_spec,
-                        )
-                    ]
+                    parent_record = _full_record_for_candidate_local(
+                        candidate_term=rec["candidate_term"],
+                        candidate_label=parent_label,
+                        generator_metadata=parent_generator_meta,
+                        symmetry_spec_candidate=parent_symmetry_spec,
+                    )
+                    candidate_variants = [dict(parent_record)]
                     if (
                         phase3_enabled
                         and str(phase3_runtime_split_mode_key) == "shortlist_pauli_children_v1"
@@ -7522,28 +8870,162 @@ def _run_hardcoded_adapt_vqe(
                             phase3_runtime_split_summary_local["evaluated_child_count"] = int(
                                 phase3_runtime_split_summary_local.get("evaluated_child_count", 0)
                             ) + 1
-                            candidate_variants.append(
-                                _full_record_for_candidate_local(
-                                    candidate_term=AnsatzTerm(label=str(child_label), polynomial=child_poly),
-                                    candidate_label=str(child_label),
-                                    generator_metadata=dict(child_meta),
-                                    symmetry_spec_candidate=(
-                                        dict(child_meta.get("symmetry_spec", {}))
-                                        if isinstance(child_meta.get("symmetry_spec"), Mapping)
-                                        else parent_symmetry_spec
-                                    ),
-                                    runtime_split_mode_value=str(phase3_runtime_split_mode_key),
-                                    runtime_split_parent_label_value=str(parent_label),
-                                    runtime_split_child_index_value=(
-                                        int(child.get("child_index"))
-                                        if child.get("child_index") is not None
-                                        else None
-                                    ),
-                                    runtime_split_child_count_value=(
-                                        int(child.get("child_count"))
-                                        if child.get("child_count") is not None
-                                        else None
-                                    ),
+                            child_symmetry_gate = (
+                                dict(child.get("symmetry_gate", {}))
+                                if isinstance(child.get("symmetry_gate"), Mapping)
+                                else {}
+                            )
+                            if not bool(child_symmetry_gate.get("passed", True)):
+                                phase3_runtime_split_summary_local["rejected_child_count_symmetry"] = int(
+                                    phase3_runtime_split_summary_local.get("rejected_child_count_symmetry", 0)
+                                ) + 1
+                        child_set_candidates = build_runtime_split_child_sets(
+                            parent_label=str(parent_label),
+                            family_id=str(feat_base.candidate_family),
+                            num_sites=int(num_sites),
+                            ordering=str(ordering),
+                            qpb=int(max(1, qpb)),
+                            split_mode=str(phase3_runtime_split_mode_key),
+                            children=split_children,
+                            parent_generator_metadata=parent_generator_meta,
+                            symmetry_spec=parent_symmetry_spec,
+                            max_subset_size=3,
+                        )
+                        phase3_runtime_split_summary_local["admissible_child_set_count"] = int(
+                            phase3_runtime_split_summary_local.get("admissible_child_set_count", 0)
+                        ) + int(len(child_set_candidates))
+                        best_split_record: dict[str, Any] | None = None
+                        best_split_payload: dict[str, Any] | None = None
+                        best_split_gate_results: dict[str, Any] = {}
+                        best_split_child_ids: list[str] = []
+                        best_split_score = float("-inf")
+                        split_candidate_scores: dict[str, float] = {}
+                        admissible_child_subsets: list[list[str]] = []
+                        for child_set in child_set_candidates:
+                            split_label = str(child_set.get("candidate_label"))
+                            split_poly = child_set.get("candidate_polynomial")
+                            split_meta = child_set.get("candidate_generator_metadata")
+                            if not isinstance(split_poly, PauliPolynomial):
+                                continue
+                            if not isinstance(split_meta, Mapping):
+                                continue
+                            pool_generator_registry[str(split_label)] = dict(split_meta)
+                            split_record = _full_record_for_candidate_local(
+                                candidate_term=AnsatzTerm(label=str(split_label), polynomial=split_poly),
+                                candidate_label=str(split_label),
+                                generator_metadata=dict(split_meta),
+                                symmetry_spec_candidate=(
+                                    dict(split_meta.get("symmetry_spec", {}))
+                                    if isinstance(split_meta.get("symmetry_spec"), Mapping)
+                                    else parent_symmetry_spec
+                                ),
+                                runtime_split_mode_value=str(phase3_runtime_split_mode_key),
+                                runtime_split_parent_label_value=str(parent_label),
+                                runtime_split_child_count_value=int(len(split_children)),
+                                runtime_split_chosen_representation_value="child_set",
+                                runtime_split_child_indices_value=[
+                                    int(x) for x in child_set.get("child_indices", [])
+                                ],
+                                runtime_split_child_labels_value=[
+                                    str(x) for x in child_set.get("child_labels", [])
+                                ],
+                                runtime_split_child_generator_ids_value=[
+                                    str(x) for x in child_set.get("child_generator_ids", [])
+                                ],
+                            )
+                            split_score = float(split_record.get("full_v2_score", float("-inf")))
+                            split_candidate_scores[str(split_label)] = float(split_score)
+                            admissible_child_subsets.append(
+                                [str(x) for x in child_set.get("child_labels", [])]
+                            )
+                            if split_score > best_split_score:
+                                best_split_score = float(split_score)
+                                best_split_record = dict(split_record)
+                                best_split_payload = dict(child_set)
+                                best_split_gate_results = (
+                                    dict(child_set.get("symmetry_gate", {}))
+                                    if isinstance(child_set.get("symmetry_gate"), Mapping)
+                                    else {}
+                                )
+                                best_split_child_ids = [
+                                    str(x) for x in child_set.get("child_generator_ids", [])
+                                ]
+                        if best_split_record is not None:
+                            candidate_variants.append(dict(best_split_record))
+                            parent_score = float(parent_record.get("full_v2_score", float("-inf")))
+                            split_score = float(best_split_record.get("full_v2_score", float("-inf")))
+                            split_wins = bool(split_score > parent_score)
+                            if split_wins:
+                                phase3_runtime_split_summary_local["probe_child_set_count"] = int(
+                                    phase3_runtime_split_summary_local.get("probe_child_set_count", 0)
+                                ) + 1
+                                best_split_choice_reason = "child_set_actual_score_better"
+                            else:
+                                phase3_runtime_split_summary_local["probe_parent_win_count"] = int(
+                                    phase3_runtime_split_summary_local.get("probe_parent_win_count", 0)
+                                ) + 1
+                                best_split_choice_reason = "parent_actual_score_better"
+                            branch.phase3_split_events.append(
+                                build_split_event(
+                                    parent_generator_id=str(parent_generator_meta.get("generator_id")),
+                                    child_generator_ids=list(best_split_child_ids),
+                                    reason=f"depth{int(depth + 1)}_shortlist_probe",
+                                    split_mode=str(phase3_runtime_split_mode_key),
+                                    probe_trigger="phase2_shortlist",
+                                    choice_reason=str(best_split_choice_reason),
+                                    parent_score=float(parent_score),
+                                    child_scores=dict(split_candidate_scores),
+                                    admissible_child_subsets=list(admissible_child_subsets),
+                                    chosen_representation=("child_set" if split_wins else "parent"),
+                                    chosen_child_ids=(list(best_split_child_ids) if split_wins else []),
+                                    split_margin=float(split_score - parent_score),
+                                    symmetry_gate_results=dict(best_split_gate_results),
+                                    compiled_cost_parent=float(
+                                        parent_record.get("feature").compile_cost_total
+                                    )
+                                    if isinstance(parent_record.get("feature"), CandidateFeatures)
+                                    else None,
+                                    compiled_cost_children=float(
+                                        best_split_record.get("feature").compile_cost_total
+                                    )
+                                    if isinstance(best_split_record.get("feature"), CandidateFeatures)
+                                    else None,
+                                    insertion_positions=[int(feat_base.position_id)],
+                                )
+                            )
+                        elif split_children:
+                            phase3_runtime_split_summary_local["probe_parent_win_count"] = int(
+                                phase3_runtime_split_summary_local.get("probe_parent_win_count", 0)
+                            ) + 1
+                            branch.phase3_split_events.append(
+                                build_split_event(
+                                    parent_generator_id=str(parent_generator_meta.get("generator_id")),
+                                    child_generator_ids=[
+                                        str(meta.get("generator_id"))
+                                        for meta in (
+                                            child.get("child_generator_metadata")
+                                            for child in split_children
+                                            if isinstance(child.get("child_generator_metadata"), Mapping)
+                                        )
+                                        if meta.get("generator_id") is not None
+                                    ],
+                                    reason=f"depth{int(depth + 1)}_shortlist_probe",
+                                    split_mode=str(phase3_runtime_split_mode_key),
+                                    probe_trigger="phase2_shortlist",
+                                    choice_reason="no_admissible_child_set",
+                                    parent_score=float(parent_record.get("full_v2_score", float("-inf"))),
+                                    child_scores=dict(split_candidate_scores),
+                                    admissible_child_subsets=list(admissible_child_subsets),
+                                    chosen_representation="parent",
+                                    chosen_child_ids=[],
+                                    symmetry_gate_results={"admissible_child_set_count": 0},
+                                    compiled_cost_parent=float(
+                                        parent_record.get("feature").compile_cost_total
+                                    )
+                                    if isinstance(parent_record.get("feature"), CandidateFeatures)
+                                    else None,
+                                    compiled_cost_children=None,
+                                    insertion_positions=[int(feat_base.position_id)],
                                 )
                             )
                     candidate_variants = sorted(candidate_variants, key=_phase2_record_sort_key)
@@ -7589,7 +9071,31 @@ def _run_hardcoded_adapt_vqe(
                     admission_source_records_local
                 )
                 retained_records_local = [dict(rec) for rec in admission_source_records_local]
+                phase3_tie_selection_meta_local: dict[str, Any] = {
+                    "active": False,
+                    "band_count": 0,
+                    "selected_count": int(len(retained_records_local)),
+                    "best_score": float("-inf"),
+                    "depth_left": int(max(0, int(max_depth) - int(depth + 1))),
+                    "late_coordinate": float(int(depth + 1) / max(1, int(max_depth))),
+                    "reason": "disabled",
+                }
+                if phase3_enabled:
+                    retained_records_local, phase3_tie_selection_meta_local = _phase3_tie_beam_selection_pool(
+                        admission_source_records_local,
+                        default_cap=int(max(1, children_cap)),
+                        score_key="full_v2_score",
+                        score_ratio=float(phase3_tie_beam_score_ratio_val),
+                        abs_tol=float(phase3_tie_beam_abs_tol_val),
+                        max_branches=int(phase3_tie_beam_max_branches_val),
+                        max_late_coordinate=float(phase3_tie_beam_max_late_coordinate_val),
+                        min_depth_left=int(phase3_tie_beam_min_depth_left_val),
+                        depth_one_based=int(depth + 1),
+                        max_depth_local=int(max_depth),
+                    )
                 if (
+                    not bool(phase3_tie_selection_meta_local.get("active", False))
+                    and
                     phase3_enabled
                     and bool(phase2_enable_batching)
                     and str(stage_name_local) == "core"
@@ -7640,13 +9146,20 @@ def _run_hardcoded_adapt_vqe(
                         best_idx_local = int(top_feat.candidate_pool_index)
                         selected_position_local = int(top_feat.position_id)
                     selection_mode_local = (
-                        "phase3_rerank_split"
-                        if phase3_enabled
-                        and isinstance(top_feat, CandidateFeatures)
-                        and str(top_feat.runtime_split_mode) != "off"
-                        else ("phase3_rerank" if phase3_enabled else "phase2_raw")
+                        (
+                            "phase3_rerank_split"
+                            if phase3_enabled
+                            and isinstance(top_feat, CandidateFeatures)
+                            and str(top_feat.runtime_split_mode) != "off"
+                            else ("phase3_rerank" if phase3_enabled else "phase2_raw")
+                        )
+                        + (
+                            "_tie_beam"
+                            if bool(phase3_tie_selection_meta_local.get("active", False))
+                            else ""
+                        )
                     )
-                    for rec in eligible_records_local[: int(max(1, children_cap))]:
+                    for rec in eligible_records_local:
                         feat_obj = rec.get("feature")
                         feat_row = (
                             dict(feat_obj.__dict__)
@@ -7763,7 +9276,12 @@ def _run_hardcoded_adapt_vqe(
                                 if trial_executor is None:
                                     trial_executor = _build_compiled_executor(trial_ops)
                                     fallback_executor_cache[int(idx)] = trial_executor
-                                psi_trial = trial_executor.prepare_state(trial_theta_vec, psi_ref)
+                                psi_trial = _prepare_selected_state(
+                                    ops_now=trial_ops,
+                                    theta_now=trial_theta_vec,
+                                    executor_now=trial_executor,
+                                    parameter_layout_now=_build_selected_layout(trial_ops),
+                                )
                                 probe_energy, _ = energy_via_one_apply(psi_trial, h_compiled)
                                 probe_energy = float(probe_energy)
                             else:
@@ -7901,6 +9419,23 @@ def _run_hardcoded_adapt_vqe(
                         fallback_best_probe_theta=None,
                     )
 
+            if _selector_debug_enabled_for_depth(int(depth + 1)):
+                _ai_log(
+                    "hardcoded_adapt_phase3_selector_debug",
+                    **_selector_debug_payload(
+                        depth_one_based=int(depth + 1),
+                        beam_enabled=True,
+                        selection_mode_value=str(selection_mode_local),
+                        stage_name_value=str(stage_name_local),
+                        selected_feature_row=phase1_feature_selected_local,
+                        scored_rows=phase2_last_shortlist_eval_records_local,
+                        phase2_rows=phase2_shortlisted_records_local,
+                        phase3_rows=phase3_shortlisted_records_local,
+                        admitted_rows=phase2_last_admitted_records_local,
+                        split_summary=phase3_runtime_split_summary_local,
+                    ),
+                )
+
             return _BranchStepScratch(
                 energy_current=energy_current_local,
                 psi_current=np.asarray(psi_current_local, dtype=complex),
@@ -7999,22 +9534,59 @@ def _run_hardcoded_adapt_vqe(
                 and isinstance(phase1_feature_selected_local, Mapping)
                 and str(phase1_feature_selected_local.get("runtime_split_mode", "off")) != "off"
                 and phase1_feature_selected_local.get("parent_generator_id") is not None
-                and phase1_feature_selected_local.get("generator_id") is not None
             ):
+                selected_child_generator_ids = [
+                    str(x)
+                    for x in phase1_feature_selected_local.get("runtime_split_child_generator_ids", [])
+                ]
+                selected_child_labels = [
+                    str(x)
+                    for x in phase1_feature_selected_local.get("runtime_split_child_labels", [])
+                ]
+                chosen_representation_local = str(
+                    phase1_feature_selected_local.get("runtime_split_chosen_representation", "parent")
+                )
                 child.phase3_split_events.append(
                     build_split_event(
                         parent_generator_id=str(phase1_feature_selected_local.get("parent_generator_id")),
-                        child_generator_ids=[str(phase1_feature_selected_local.get("generator_id"))],
+                        child_generator_ids=(
+                            list(selected_child_generator_ids)
+                            if selected_child_generator_ids
+                            else (
+                                [str(phase1_feature_selected_local.get("generator_id"))]
+                                if phase1_feature_selected_local.get("generator_id") is not None
+                                else []
+                            )
+                        ),
                         reason=f"depth{int(depth + 1)}_selected",
                         split_mode=str(phase1_feature_selected_local.get("runtime_split_mode")),
+                        choice_reason="selected_for_admission",
+                        chosen_representation=str(chosen_representation_local),
+                        chosen_child_ids=list(selected_child_generator_ids),
+                        insertion_positions=[int(selected_position_local)],
                     )
                 )
+                if str(chosen_representation_local) == "child_set":
+                    child.phase3_runtime_split_summary["selected_child_set_count"] = int(
+                        child.phase3_runtime_split_summary.get("selected_child_set_count", 0)
+                    ) + 1
                 child.phase3_runtime_split_summary["selected_child_count"] = int(
                     child.phase3_runtime_split_summary.get("selected_child_count", 0)
-                ) + 1
+                ) + int(
+                    max(
+                        1,
+                        len(selected_child_generator_ids)
+                        if selected_child_generator_ids
+                        else len(selected_child_labels),
+                    )
+                )
                 child.phase3_runtime_split_summary["selected_child_labels"] = [
                     *list(child.phase3_runtime_split_summary.get("selected_child_labels", [])),
-                    str(selected_primary_term.label),
+                    *(
+                        list(selected_child_labels)
+                        if selected_child_labels
+                        else [str(selected_primary_term.label)]
+                    ),
                 ]
 
             energy_prev_local = float(scratch.energy_current)
@@ -8715,6 +10287,7 @@ def _run_hardcoded_adapt_vqe(
                 proposal_family_count = 0
                 stop_children_count = 0
                 frontier_input_count = int(len(frontier))
+                round_live_cap = int(beam_policy.live_branches_effective)
                 for parent in frontier:
                     parents_expanded_count += 1
                     scratch = _evaluate_beam_branch(
@@ -8798,10 +10371,9 @@ def _run_hardcoded_adapt_vqe(
                     stop_children_count += 1
                     if scratch.stop_reason is not None or not scratch.proposals:
                         continue
-                    selected_plans = scratch.proposals[
-                        : int(max(1, beam_policy.children_per_parent_effective))
-                    ]
+                    selected_plans = list(scratch.proposals)
                     proposals_selected_count += int(len(selected_plans))
+                    round_live_cap = int(max(int(round_live_cap), int(len(selected_plans))))
                     for plan in selected_plans:
                         child = _materialize_beam_child(
                             base_branch,
@@ -8821,11 +10393,11 @@ def _run_hardcoded_adapt_vqe(
                 terminal_unique = _beam_dedup(terminal_candidates)
                 terminals = _beam_prune(
                     terminal_candidates,
-                    cap=int(beam_policy.terminated_keep_effective),
+                    cap=int(max(int(beam_policy.terminated_keep_effective), int(round_live_cap))),
                 )
                 frontier = _beam_prune(
                     child_frontier,
-                    cap=int(beam_policy.live_branches_effective),
+                    cap=int(max(1, int(round_live_cap))),
                 )
                 round_prune_audits = [
                     _compact_prune_audit(branch.phase1_last_prune_summary)
@@ -8847,6 +10419,7 @@ def _run_hardcoded_adapt_vqe(
                         "active_children_raw_count": int(len(child_frontier)),
                         "active_children_unique_count": int(len(frontier_unique)),
                         "frontier_kept_count": int(len(frontier)),
+                        "frontier_cap_effective": int(max(1, int(round_live_cap))),
                         "round_terminals_raw_count": int(len(round_terminals)),
                         "terminal_pool_candidate_count": int(len(terminal_candidates)),
                         "terminal_pool_unique_count": int(len(terminal_unique)),
@@ -8969,15 +10542,14 @@ def _run_hardcoded_adapt_vqe(
             iter_t0 = time.perf_counter()
 
             # 1) Compute the current state
-            if adapt_state_backend_key == "compiled":
-                if len(selected_ops) == 0:
-                    psi_current = np.array(psi_ref, copy=True)
-                else:
-                    if selected_executor is None:
-                        selected_executor = _build_compiled_executor(selected_ops)
-                    psi_current = selected_executor.prepare_state(theta, psi_ref)
-            else:
-                psi_current = _prepare_adapt_state(psi_ref, selected_ops, theta, parameter_layout=selected_layout)
+            if adapt_state_backend_key == "compiled" and len(selected_ops) > 0 and selected_executor is None:
+                selected_executor = _build_compiled_executor(selected_ops)
+            psi_current = _prepare_selected_state(
+                ops_now=selected_ops,
+                theta_now=theta,
+                executor_now=selected_executor,
+                parameter_layout_now=selected_layout,
+            )
             energy_current_exact_loop, hpsi_current = energy_via_one_apply(psi_current, h_compiled)
             if not phase3_oracle_inner_objective_enabled:
                 energy_current = float(energy_current_exact_loop)
@@ -10190,7 +11762,12 @@ def _run_hardcoded_adapt_vqe(
                                 if trial_executor is None:
                                     trial_executor = _build_compiled_executor(trial_ops)
                                     fallback_executor_cache[int(idx)] = trial_executor
-                                psi_trial = trial_executor.prepare_state(trial_theta_vec, psi_ref)
+                                psi_trial = _prepare_selected_state(
+                                    ops_now=trial_ops,
+                                    theta_now=trial_theta_vec,
+                                    executor_now=trial_executor,
+                                    parameter_layout_now=_build_selected_layout(trial_ops),
+                                )
                                 probe_energy, _ = energy_via_one_apply(psi_trial, h_compiled)
                                 probe_energy = float(probe_energy)
                             else:
@@ -10439,6 +12016,23 @@ def _run_hardcoded_adapt_vqe(
                         continuation_mode=str(continuation_mode),
                         problem=str(problem_key),
                     )
+
+            if _selector_debug_enabled_for_depth(int(depth + 1)):
+                _ai_log(
+                    "hardcoded_adapt_phase3_selector_debug",
+                    **_selector_debug_payload(
+                        depth_one_based=int(depth + 1),
+                        beam_enabled=False,
+                        selection_mode_value=str(selection_mode),
+                        stage_name_value=str(stage_name),
+                        selected_feature_row=phase1_feature_selected,
+                        scored_rows=phase2_last_shortlist_eval_records,
+                        phase2_rows=phase2_shortlisted_records,
+                        phase3_rows=phase3_shortlisted_records,
+                        admitted_rows=phase2_selected_records,
+                        split_summary=phase3_runtime_split_summary,
+                    ),
+                )
 
             # 4) Admit selected operator (append or insertion in continuation modes).
             selected_batch_records_for_history: list[dict[str, Any]] = []
@@ -12253,15 +13847,14 @@ def _run_hardcoded_adapt_vqe(
         theta_logical_final = _logical_theta_alias(theta, selected_layout)
 
         # Build final state
-        if adapt_state_backend_key == "compiled":
-            if len(selected_ops) == 0:
-                psi_adapt = np.array(psi_ref, copy=True)
-            else:
-                if selected_executor is None:
-                    selected_executor = _build_compiled_executor(selected_ops)
-                psi_adapt = selected_executor.prepare_state(theta, psi_ref)
-        else:
-            psi_adapt = _prepare_adapt_state(psi_ref, selected_ops, theta, parameter_layout=selected_layout)
+        if adapt_state_backend_key == "compiled" and len(selected_ops) > 0 and selected_executor is None:
+            selected_executor = _build_compiled_executor(selected_ops)
+        psi_adapt = _prepare_selected_state(
+            ops_now=selected_ops,
+            theta_now=theta,
+            executor_now=selected_executor,
+            parameter_layout_now=selected_layout,
+        )
         psi_adapt = _normalize_state(psi_adapt)
 
         elapsed = time.perf_counter() - t0
@@ -12731,6 +14324,73 @@ def _run_hardcoded_adapt_vqe(
             )
         exact_energy_from_final_state, _ = energy_via_one_apply(psi_adapt, h_compiled)
         exact_energy_from_final_state = float(exact_energy_from_final_state)
+        final_noise_audit_payload: dict[str, Any] | None = None
+        if final_noise_audit_config is not None:
+            final_noise_audit_snapshot = FinalNoiseAuditSnapshot(
+                h_poly=h_poly,
+                parameter_layout=selected_layout,
+                theta_runtime=tuple(float(x) for x in np.asarray(theta, dtype=float).tolist()),
+                theta_logical=tuple(
+                    float(x) for x in np.asarray(theta_logical_final, dtype=float).tolist()
+                ),
+                reference_state=np.array(psi_ref, dtype=complex, copy=True),
+                num_qubits=int(phase3_oracle_num_qubits),
+                operator_labels=tuple(str(op.label) for op in selected_ops),
+                ansatz_depth=int(len(selected_ops)),
+                runtime_parameter_count=int(theta.size),
+                logical_parameter_count=int(len(selected_ops)),
+                exact_filtered_ground_energy=float(exact_gs),
+                exact_final_state_energy=float(exact_energy_from_final_state),
+            )
+            audit_t0 = time.perf_counter()
+            _ai_log(
+                "hardcoded_adapt_final_noise_audit_start",
+                noise_mode=str(final_noise_audit_config.noise_mode),
+                mitigation_mode=str(final_noise_audit_config.mitigation_mode),
+                strict=bool(final_noise_audit_config.strict),
+            )
+            try:
+                final_noise_audit_payload = _run_final_noise_audit(
+                    final_noise_audit_snapshot,
+                    final_noise_audit_config,
+                )
+                _ai_log(
+                    "hardcoded_adapt_final_noise_audit_done",
+                    status=str(final_noise_audit_payload.get("status", "completed")),
+                    elapsed_s=float(time.perf_counter() - audit_t0),
+                    exact_target_abs_error=float(
+                        final_noise_audit_payload.get("deltas", {}).get(
+                            "exact_target_abs_error",
+                            float("nan"),
+                        )
+                    ),
+                )
+            except Exception as exc:
+                _ai_log(
+                    "hardcoded_adapt_final_noise_audit_error",
+                    elapsed_s=float(time.perf_counter() - audit_t0),
+                    strict=bool(final_noise_audit_config.strict),
+                    error_type=str(type(exc).__name__),
+                    error_repr=repr(exc),
+                )
+                if bool(final_noise_audit_config.strict):
+                    raise
+                final_noise_audit_payload = {
+                    "status": "failed",
+                    "strict": bool(final_noise_audit_config.strict),
+                    "requested_config": dict(
+                        _final_noise_audit_config_payload(final_noise_audit_config) or {}
+                    ),
+                    "reference": {
+                        "primary_metric_name": "exact_target_abs_error",
+                        "exact_filtered_ground_energy": float(exact_gs),
+                        "exact_final_state_energy": float(exact_energy_from_final_state),
+                    },
+                    "failure": {
+                        "error_type": str(type(exc).__name__),
+                        "error_message": str(exc),
+                    },
+                }
         phase3_output_motif_library = (
             extract_motif_library(
                 generator_metadata=selected_generator_metadata,
@@ -12887,12 +14547,61 @@ def _run_hardcoded_adapt_vqe(
                         else None
                     ),
                     "optimizer_memory": dict(phase2_optimizer_memory),
+                    "phase1": {
+                        "lambda_F": float(phase1_score_cfg.lambda_F),
+                        "lambda_compile": float(phase1_score_cfg.lambda_compile),
+                        "lambda_measure": float(phase1_score_cfg.lambda_measure),
+                        "lambda_leak": float(phase1_score_cfg.lambda_leak),
+                        "score_z_alpha": float(phase1_score_cfg.z_alpha),
+                        "depth_ref": float(phase1_score_cfg.depth_ref),
+                        "group_ref": float(phase1_score_cfg.group_ref),
+                        "shot_ref": float(phase1_score_cfg.shot_ref),
+                        "family_ref": float(phase1_score_cfg.family_ref),
+                    },
                     "phase2": {
+                        "lambda_F": float(phase2_score_cfg.lambda_F),
+                        "score_z_alpha": float(phase2_score_cfg.z_alpha),
                         "shortlist_fraction": float(phase2_score_cfg.shortlist_fraction),
                         "shortlist_size": int(phase2_score_cfg.shortlist_size),
+                        "w_depth": float(phase2_score_cfg.wD),
+                        "w_group": float(phase2_score_cfg.wG),
+                        "w_shot": float(phase2_score_cfg.wC),
+                        "w_optdim": float(phase2_score_cfg.wP),
+                        "w_reuse": float(phase2_score_cfg.wc),
+                        "w_lifetime": float(phase2_score_cfg.lifetime_weight),
+                        "eta_L": float(phase2_score_cfg.eta_L),
+                        "depth_ref": float(phase2_score_cfg.depth_ref),
+                        "group_ref": float(phase2_score_cfg.group_ref),
+                        "shot_ref": float(phase2_score_cfg.shot_ref),
+                        "optdim_ref": float(phase2_score_cfg.optdim_ref),
+                        "reuse_ref": float(phase2_score_cfg.reuse_ref),
+                        "family_ref": float(phase2_score_cfg.family_ref),
+                        "novelty_eps": float(phase2_score_cfg.novelty_eps),
+                        "cheap_score_eps": float(phase2_score_cfg.cheap_score_eps),
+                        "metric_floor": float(phase2_score_cfg.metric_floor),
+                        "reduced_metric_collapse_rel_tol": float(
+                            phase2_score_cfg.reduced_metric_collapse_rel_tol
+                        ),
+                        "ridge_growth_factor": float(phase2_score_cfg.ridge_growth_factor),
+                        "ridge_max_steps": int(phase2_score_cfg.ridge_max_steps),
+                        "leakage_cap": float(phase2_score_cfg.leakage_cap),
+                        "motif_bonus_weight": float(phase2_score_cfg.motif_bonus_weight),
+                        "duplicate_penalty_weight": float(phase2_score_cfg.duplicate_penalty_weight),
+                        "frontier_ratio": float(phase2_score_cfg.phase2_frontier_ratio),
+                        "phase3_frontier_ratio": float(phase2_score_cfg.phase3_frontier_ratio),
                         "batch_target_size": int(phase2_score_cfg.batch_target_size),
                         "batch_size_cap": int(phase2_score_cfg.batch_size_cap),
                         "batch_near_degenerate_ratio": float(phase2_score_cfg.batch_near_degenerate_ratio),
+                        "batch_rank_rel_tol": float(phase2_score_cfg.batch_rank_rel_tol),
+                        "batch_additivity_tol": float(phase2_score_cfg.batch_additivity_tol),
+                        "compat_overlap_weight": float(phase2_score_cfg.compat_overlap_weight),
+                        "compat_comm_weight": float(phase2_score_cfg.compat_comm_weight),
+                        "compat_curv_weight": float(phase2_score_cfg.compat_curv_weight),
+                        "compat_sched_weight": float(phase2_score_cfg.compat_sched_weight),
+                        "compat_measure_weight": float(phase2_score_cfg.compat_measure_weight),
+                        "remaining_evaluations_proxy_mode": str(
+                            phase2_score_cfg.remaining_evaluations_proxy_mode
+                        ),
                     },
                 }
             )
@@ -13172,6 +14881,8 @@ def _run_hardcoded_adapt_vqe(
             )
         if adapt_inner_optimizer_key == "SPSA":
             payload["adapt_spsa"] = dict(adapt_spsa_params)
+        if final_noise_audit_payload is not None:
+            payload["final_noise_audit_v1"] = dict(final_noise_audit_payload)
         if adapt_ref_import is not None:
             payload["adapt_ref_import"] = dict(adapt_ref_import)
 
@@ -13517,6 +15228,7 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
             "hva",
             "full_meta",
             "pareto_lean",
+            "pareto_lean_l3",
             "pareto_lean_l2",
             "pareto_lean_gate_pruned",
             "uccsd_paop_lf_full",
@@ -13552,7 +15264,7 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
             "ADAPT pool family. If omitted, runtime resolves problem-aware defaults: "
             "hubbard->uccsd; hh+phase3_v1 (direct canonical path)->paop_lf_std core + residual full_meta; "
             "hh+legacy->full_meta compatibility path; hh+phase1_v1/phase2_v1->older compatibility paths with the same narrow core + residual full_meta curriculum. "
-            "HH also supports opt-in scaffold-derived preset pareto_lean."
+            "HH also supports opt-in scaffold-derived presets pareto_lean, pareto_lean_l3, and pareto_lean_l2."
         ),
     )
     p.add_argument(
@@ -13648,6 +15360,20 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     p.add_argument("--phase1-lambda-measure", type=float, default=0.02)
     p.add_argument("--phase1-lambda-leak", type=float, default=0.0)
     p.add_argument("--phase1-score-z-alpha", type=float, default=0.0)
+    p.add_argument("--phase1-depth-ref", type=float, default=1.0)
+    p.add_argument("--phase1-group-ref", type=float, default=1.0)
+    p.add_argument("--phase1-shot-ref", type=float, default=1.0)
+    p.add_argument("--phase1-family-ref", type=float, default=1.0)
+    p.add_argument("--phase1-compile-cx-proxy-weight", type=float, default=1.0)
+    p.add_argument("--phase1-compile-sq-proxy-weight", type=float, default=0.5)
+    p.add_argument("--phase1-compile-rotation-step-weight", type=float, default=1.0)
+    p.add_argument("--phase1-compile-position-shift-weight", type=float, default=1.0)
+    p.add_argument("--phase1-compile-refit-active-weight", type=float, default=1.0)
+    p.add_argument("--phase1-measure-groups-weight", type=float, default=1.0)
+    p.add_argument("--phase1-measure-shots-weight", type=float, default=1.0)
+    p.add_argument("--phase1-measure-reuse-weight", type=float, default=1.0)
+    p.add_argument("--phase1-opt-dim-cost-scale", type=float, default=1.0)
+    p.add_argument("--phase1-family-repeat-cost-scale", type=float, default=1.0)
     p.add_argument(
         "--phase1-shortlist-size",
         type=int,
@@ -13679,19 +15405,150 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
         "--phase2-lambda-H",
         type=float,
         default=1e-6,
-        help="Phase-2 full-score weight for the curvature/H proxy term.",
+        help="Phase-2 reduced-window Hessian ridge regularization lambda_H used in the inherited-window solve.",
     )
     p.add_argument(
         "--phase2-rho",
         type=float,
         default=0.25,
-        help="Phase-2 diversity penalty weight used during shortlist/batch scoring.",
+        help="Phase-2 trust-region radius rho used in reduced-gain scoring.",
     )
     p.add_argument(
         "--phase2-gamma-N",
         type=float,
         default=1.0,
-        help="Phase-2 novelty multiplier used in the full_v2 score.",
+        help="Phase-2 novelty exponent gamma_N applied to the reduced novelty factor in the full_v2 score.",
+    )
+    p.add_argument(
+        "--phase2-score-z-alpha",
+        type=float,
+        default=None,
+        help="Optional Phase-2/3 confidence multiplier z_alpha. Defaults to --phase1-score-z-alpha when omitted.",
+    )
+    p.add_argument(
+        "--phase2-lambda-F",
+        type=float,
+        default=None,
+        help="Optional Phase-2 cheap-ratio metric scale lambda_F. Defaults to --phase1-lambda-F when omitted.",
+    )
+    p.add_argument("--phase2-depth-ref", type=float, default=1.0)
+    p.add_argument("--phase2-group-ref", type=float, default=1.0)
+    p.add_argument("--phase2-shot-ref", type=float, default=1.0)
+    p.add_argument("--phase2-optdim-ref", type=float, default=1.0)
+    p.add_argument("--phase2-reuse-ref", type=float, default=1.0)
+    p.add_argument("--phase2-family-ref", type=float, default=1.0)
+    p.add_argument("--phase2-novelty-eps", type=float, default=1e-6)
+    p.add_argument("--phase2-cheap-score-eps", type=float, default=1e-12)
+    p.add_argument("--phase2-metric-floor", type=float, default=1e-12)
+    p.add_argument("--phase2-reduced-metric-collapse-rel-tol", type=float, default=1e-8)
+    p.add_argument("--phase2-ridge-growth-factor", type=float, default=10.0)
+    p.add_argument("--phase2-ridge-max-steps", type=int, default=12)
+    p.add_argument("--phase2-leakage-cap", type=float, default=1e6)
+    p.add_argument("--phase2-compile-cx-proxy-weight", type=float, default=1.0)
+    p.add_argument("--phase2-compile-sq-proxy-weight", type=float, default=0.5)
+    p.add_argument("--phase2-compile-rotation-step-weight", type=float, default=1.0)
+    p.add_argument("--phase2-compile-position-shift-weight", type=float, default=1.0)
+    p.add_argument("--phase2-compile-refit-active-weight", type=float, default=1.0)
+    p.add_argument("--phase2-measure-groups-weight", type=float, default=1.0)
+    p.add_argument("--phase2-measure-shots-weight", type=float, default=1.0)
+    p.add_argument("--phase2-measure-reuse-weight", type=float, default=1.0)
+    p.add_argument("--phase2-opt-dim-cost-scale", type=float, default=1.0)
+    p.add_argument("--phase2-family-repeat-cost-scale", type=float, default=1.0)
+    p.add_argument(
+        "--phase2-w-depth",
+        type=float,
+        default=0.2,
+        help="Phase-2 burden weight on normalized depth / compile cost in K_full.",
+    )
+    p.add_argument(
+        "--phase2-w-group",
+        type=float,
+        default=0.15,
+        help="Phase-2 burden weight on normalized new-group measurement cost in K_full.",
+    )
+    p.add_argument(
+        "--phase2-w-shot",
+        type=float,
+        default=0.15,
+        help="Phase-2 burden weight on normalized new-shot cost in K_full.",
+    )
+    p.add_argument(
+        "--phase2-w-optdim",
+        type=float,
+        default=0.1,
+        help="Phase-2 burden weight on normalized optimizer-dimension cost in K_full.",
+    )
+    p.add_argument(
+        "--phase2-w-reuse",
+        type=float,
+        default=0.1,
+        help="Phase-2 burden weight on normalized reuse penalty in K_full.",
+    )
+    p.add_argument(
+        "--phase2-w-lifetime",
+        type=float,
+        default=0.05,
+        help="Phase-2 burden weight on the remaining-horizon lifetime multiplier when lifetime cost mode is enabled.",
+    )
+    p.add_argument(
+        "--phase2-eta-L",
+        type=float,
+        default=0.0,
+        help="Phase-2 leakage penalty exponent eta_L multiplying exp(-eta_L * leakage_penalty) in the full_v2 score.",
+    )
+    p.add_argument(
+        "--phase2-motif-bonus-weight",
+        type=float,
+        default=0.05,
+        help="Phase-2 motif bonus weight beta_motif added on top of the reduced geometric score.",
+    )
+    p.add_argument(
+        "--phase2-duplicate-penalty-weight",
+        type=float,
+        default=0.0,
+        help="Phase-2 duplicate-direction penalty weight beta_dup subtracted from the augmented selector score.",
+    )
+    p.add_argument(
+        "--phase2-frontier-ratio",
+        type=float,
+        default=0.9,
+        help="Phase-2 shortlist frontier ratio used after cheap screening and before the full rerank.",
+    )
+    p.add_argument(
+        "--phase3-frontier-ratio",
+        type=float,
+        default=0.9,
+        help="Phase-3 shortlist frontier ratio used on the full-score rerank before any batch decision.",
+    )
+    p.add_argument(
+        "--phase3-tie-beam-score-ratio",
+        type=float,
+        default=1.0,
+        help="When < 1, any Phase-3 candidate within this ratio of the best full_v2_score joins a temporary score-band beam.",
+    )
+    p.add_argument(
+        "--phase3-tie-beam-abs-tol",
+        type=float,
+        default=0.0,
+        help="Absolute full_v2 score tolerance for the temporary Phase-3 tie-beam band.",
+    )
+    p.add_argument(
+        "--phase3-tie-beam-max-branches",
+        type=int,
+        default=1,
+        help="Maximum temporary branch count admitted from a Phase-3 score band. Values >1 activate conditional tie-beam branching.",
+    )
+    p.add_argument(
+        "--phase3-tie-beam-max-late-coordinate",
+        type=float,
+        default=1.0,
+        help="Disable Phase-3 tie-beam branching once the controller late-coordinate exceeds this value.",
+    )
+    p.add_argument(
+        "--phase3-tie-beam-min-depth-left",
+        type=int,
+        default=0,
+        help="Disable Phase-3 tie-beam branching once fewer than this many depths remain.",
     )
     p.set_defaults(phase2_enable_batching=True)
     p.add_argument("--phase2-enable-batching", dest="phase2_enable_batching", action="store_true")
@@ -13712,7 +15569,58 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
         "--phase2-batch-near-degenerate-ratio",
         type=float,
         default=0.9,
-        help="Relative full-score threshold for near-degenerate candidates eligible for phase-2 batching.",
+        help="Relative full-score threshold eta_nd for the near-degenerate batch shell after shortlisting.",
+    )
+    p.add_argument(
+        "--phase2-batch-rank-rel-tol",
+        type=float,
+        default=1e-6,
+        help="Relative rank-floor tolerance tau_rank used by the reduced-plane batch admissibility test.",
+    )
+    p.add_argument(
+        "--phase2-batch-additivity-tol",
+        type=float,
+        default=0.25,
+        help="Additivity-defect tolerance tau_add used by the reduced-plane batch admissibility test.",
+    )
+    p.add_argument(
+        "--phase2-compat-overlap-weight",
+        type=float,
+        default=0.4,
+        help="Compatibility prescreen weight on support overlap in heuristic batch selection penalties.",
+    )
+    p.add_argument(
+        "--phase2-compat-comm-weight",
+        type=float,
+        default=0.2,
+        help="Compatibility prescreen weight on noncommutation in heuristic batch selection penalties.",
+    )
+    p.add_argument(
+        "--phase2-compat-curv-weight",
+        type=float,
+        default=0.2,
+        help="Compatibility prescreen weight on cross-curvature in heuristic batch selection penalties.",
+    )
+    p.add_argument(
+        "--phase2-compat-sched-weight",
+        type=float,
+        default=0.2,
+        help="Compatibility prescreen weight on schedule mismatch in heuristic batch selection penalties.",
+    )
+    p.add_argument(
+        "--phase2-compat-measure-weight",
+        type=float,
+        default=0.2,
+        help="Compatibility prescreen weight on measurement mismatch in heuristic batch selection penalties.",
+    )
+    p.add_argument(
+        "--phase2-remaining-evaluations-proxy-mode",
+        choices=["auto", "none", "remaining_depth"],
+        default="auto",
+        help=(
+            "Remaining-horizon proxy mode used inside lifetime burden bookkeeping. "
+            "'auto' preserves the previous behavior: remaining_depth when lifetime mode is on, otherwise none."
+        ),
     )
     p.add_argument(
         "--phase3-motif-source-json",
@@ -13739,7 +15647,11 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
         "--phase3-runtime-split-mode",
         choices=["off", "shortlist_pauli_children_v1"],
         default="off",
-        help="Opt-in shortlist-only macro splitting. When enabled, shortlisted macro generators are probed through serialized Pauli child atoms, but only symmetry-safe child-set candidates compete for admission at phase2/phase3 scoring time.",
+        help=(
+            "Phase-3 runtime split mode for the public HH ADAPT surface. "
+            "The manuscript-facing canonical path keeps this fixed to 'off'; "
+            "use 'shortlist_pauli_children_v1' to restore the archival child-set shortlist pathway."
+        ),
     )
     p.add_argument(
         "--phase3-backend-cost-mode",
@@ -13770,6 +15682,18 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
         type=int,
         default=1,
         help="Qiskit transpiler optimization level used by the backend-conditioned transpilation oracle.",
+    )
+    p.add_argument(
+        "--phase3-selector-debug-topk",
+        type=int,
+        default=0,
+        help="Emit compact phase3 selector top-k scoring logs per depth (0 disables).",
+    )
+    p.add_argument(
+        "--phase3-selector-debug-max-depth",
+        type=int,
+        default=0,
+        help="Maximum depth for selector debug logging (0 means all depths when enabled).",
     )
     p.add_argument(
         "--phase3-oracle-gradient-mode",
@@ -13872,6 +15796,104 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
         type=int,
         default=1,
         help="Qiskit transpiler optimization level used by phase3 oracle execution.",
+    )
+    p.add_argument(
+        "--final-noise-audit-mode",
+        choices=["off", "ideal", "shots", "aer_noise", "backend_scheduled", "runtime"],
+        default="off",
+        help=(
+            "Opt-in post-run final noise audit for the canonical direct HH ADAPT path. "
+            "Current support is expectation-only, including runtime expectation audit; raw audit remains deferred."
+        ),
+    )
+    p.add_argument(
+        "--final-noise-audit-shots",
+        type=int,
+        default=2048,
+        help="Shots per audit evaluation when --final-noise-audit-mode is enabled.",
+    )
+    p.add_argument(
+        "--final-noise-audit-repeats",
+        type=int,
+        default=1,
+        help="Repeat count for final noise audit evaluation; mean aggregate only in v1.",
+    )
+    p.add_argument(
+        "--final-noise-audit-aggregate",
+        choices=["mean"],
+        default="mean",
+        help="Aggregate for repeated final noise audit evaluations. v1 supports mean only.",
+    )
+    p.add_argument(
+        "--final-noise-audit-backend-name",
+        type=str,
+        default=None,
+        help="Backend name for final noise audit in backend_scheduled or runtime mode.",
+    )
+    p.add_argument(
+        "--final-noise-audit-use-fake-backend",
+        action="store_true",
+        help="Use an offline fake backend for final noise audit when supported (backend_scheduled only).",
+    )
+    p.add_argument(
+        "--final-noise-audit-seed",
+        type=int,
+        default=7,
+        help="Seed for final noise audit execution.",
+    )
+    p.add_argument(
+        "--final-noise-audit-mitigation",
+        choices=["none", "readout"],
+        default="none",
+        help=(
+            "Mitigation mode for final noise audit. backend_scheduled supports local readout; "
+            "runtime supports provider-side readout, while richer runtime suppression stacks should use a named runtime profile."
+        ),
+    )
+    p.add_argument(
+        "--final-noise-audit-local-readout-strategy",
+        choices=["mthree"],
+        default=None,
+        help="Local readout mitigation strategy for backend_scheduled final noise audit when readout mitigation is enabled.",
+    )
+    p.add_argument(
+        "--final-noise-audit-runtime-profile",
+        choices=[
+            "legacy_runtime_v0",
+            "main_twirled_readout_v1",
+            "dd_probe_twirled_readout_v1",
+            "final_audit_zne_twirled_readout_v1",
+        ],
+        default="legacy_runtime_v0",
+        help="Named runtime mitigation/suppression profile for final runtime expectation audit.",
+    )
+    p.add_argument(
+        "--final-noise-audit-runtime-session-policy",
+        choices=["prefer_session", "require_session", "backend_only"],
+        default="prefer_session",
+        help="Runtime session policy for final runtime expectation audit.",
+    )
+    p.add_argument(
+        "--final-noise-audit-compare-unmitigated-baseline",
+        action="store_true",
+        help="Also evaluate an unmitigated baseline on the same final ADAPT state for comparison.",
+    )
+    p.add_argument(
+        "--final-noise-audit-seed-transpiler",
+        type=int,
+        default=None,
+        help="Optional transpiler seed for final noise audit execution.",
+    )
+    p.add_argument(
+        "--final-noise-audit-transpile-optimization-level",
+        type=int,
+        default=1,
+        help="Qiskit transpiler optimization level used by final noise audit execution.",
+    )
+    p.add_argument(
+        "--final-noise-audit-strict",
+        action="store_true",
+        help="Fail the run if final noise audit initialization or execution fails.",
     )
     p.add_argument("--adapt-maxiter", type=int, default=300, help="Inner optimizer maxiter per re-optimization")
     p.add_argument("--adapt-spsa-a", type=float, default=0.2)
@@ -14152,6 +16174,7 @@ def main(argv: Sequence[str] | None = None) -> None:
         requested_mode=args.adapt_continuation_mode,
     )
     phase3_oracle_gradient_config: Phase3OracleGradientConfig | None = None
+    final_noise_audit_config: FinalNoiseAuditConfig | None = None
     phase3_oracle_gradient_mode_key = str(args.phase3_oracle_gradient_mode).strip().lower()
     if phase3_oracle_gradient_mode_key != "off":
         phase3_oracle_gradient_config = _resolve_phase3_oracle_gradient_config(
@@ -14198,6 +16221,47 @@ def main(argv: Sequence[str] | None = None) -> None:
             config=phase3_oracle_gradient_config,
             problem=str(problem_key),
             continuation_mode=str(cli_adapt_continuation_mode),
+        )
+    final_noise_audit_mode_key = str(args.final_noise_audit_mode).strip().lower()
+    if final_noise_audit_mode_key != "off":
+        final_noise_audit_config = _resolve_final_noise_audit_config(
+            FinalNoiseAuditConfig(
+                noise_mode=str(final_noise_audit_mode_key),
+                shots=int(args.final_noise_audit_shots),
+                oracle_repeats=int(args.final_noise_audit_repeats),
+                oracle_aggregate=str(args.final_noise_audit_aggregate),
+                backend_name=(
+                    None
+                    if args.final_noise_audit_backend_name in {None, ""}
+                    else str(args.final_noise_audit_backend_name)
+                ),
+                use_fake_backend=bool(args.final_noise_audit_use_fake_backend),
+                seed=int(args.final_noise_audit_seed),
+                mitigation_mode=str(args.final_noise_audit_mitigation),
+                local_readout_strategy=(
+                    None
+                    if args.final_noise_audit_local_readout_strategy in {None, ""}
+                    else str(args.final_noise_audit_local_readout_strategy)
+                ),
+                runtime_profile_name=str(args.final_noise_audit_runtime_profile),
+                runtime_session_policy=str(args.final_noise_audit_runtime_session_policy),
+                compare_unmitigated_baseline=bool(
+                    args.final_noise_audit_compare_unmitigated_baseline
+                ),
+                seed_transpiler=(
+                    None
+                    if args.final_noise_audit_seed_transpiler is None
+                    else int(args.final_noise_audit_seed_transpiler)
+                ),
+                transpile_optimization_level=int(
+                    args.final_noise_audit_transpile_optimization_level
+                ),
+                strict=bool(args.final_noise_audit_strict),
+            )
+        )
+        _validate_final_noise_audit_config(
+            config=final_noise_audit_config,
+            problem=str(problem_key),
         )
 
     # Sector-filtered exact ground state: ADAPT-VQE preserves particle number,
@@ -14361,6 +16425,20 @@ def main(argv: Sequence[str] | None = None) -> None:
             phase1_lambda_measure=float(args.phase1_lambda_measure),
             phase1_lambda_leak=float(args.phase1_lambda_leak),
             phase1_score_z_alpha=float(args.phase1_score_z_alpha),
+            phase1_depth_ref=float(args.phase1_depth_ref),
+            phase1_group_ref=float(args.phase1_group_ref),
+            phase1_shot_ref=float(args.phase1_shot_ref),
+            phase1_family_ref=float(args.phase1_family_ref),
+            phase1_compile_cx_proxy_weight=float(args.phase1_compile_cx_proxy_weight),
+            phase1_compile_sq_proxy_weight=float(args.phase1_compile_sq_proxy_weight),
+            phase1_compile_rotation_step_weight=float(args.phase1_compile_rotation_step_weight),
+            phase1_compile_position_shift_weight=float(args.phase1_compile_position_shift_weight),
+            phase1_compile_refit_active_weight=float(args.phase1_compile_refit_active_weight),
+            phase1_measure_groups_weight=float(args.phase1_measure_groups_weight),
+            phase1_measure_shots_weight=float(args.phase1_measure_shots_weight),
+            phase1_measure_reuse_weight=float(args.phase1_measure_reuse_weight),
+            phase1_opt_dim_cost_scale=float(args.phase1_opt_dim_cost_scale),
+            phase1_family_repeat_cost_scale=float(args.phase1_family_repeat_cost_scale),
             phase1_shortlist_size=int(args.phase1_shortlist_size),
             phase1_probe_max_positions=int(args.phase1_probe_max_positions),
             phase1_plateau_patience=int(args.phase1_plateau_patience),
@@ -14374,10 +16452,71 @@ def main(argv: Sequence[str] | None = None) -> None:
             phase2_lambda_H=float(args.phase2_lambda_H),
             phase2_rho=float(args.phase2_rho),
             phase2_gamma_N=float(args.phase2_gamma_N),
+            phase2_score_z_alpha=(
+                float(args.phase2_score_z_alpha)
+                if args.phase2_score_z_alpha is not None
+                else None
+            ),
+            phase2_lambda_F=(
+                float(args.phase2_lambda_F)
+                if args.phase2_lambda_F is not None
+                else None
+            ),
+            phase2_depth_ref=float(args.phase2_depth_ref),
+            phase2_group_ref=float(args.phase2_group_ref),
+            phase2_shot_ref=float(args.phase2_shot_ref),
+            phase2_optdim_ref=float(args.phase2_optdim_ref),
+            phase2_reuse_ref=float(args.phase2_reuse_ref),
+            phase2_family_ref=float(args.phase2_family_ref),
+            phase2_novelty_eps=float(args.phase2_novelty_eps),
+            phase2_cheap_score_eps=float(args.phase2_cheap_score_eps),
+            phase2_metric_floor=float(args.phase2_metric_floor),
+            phase2_reduced_metric_collapse_rel_tol=float(
+                args.phase2_reduced_metric_collapse_rel_tol
+            ),
+            phase2_ridge_growth_factor=float(args.phase2_ridge_growth_factor),
+            phase2_ridge_max_steps=int(args.phase2_ridge_max_steps),
+            phase2_leakage_cap=float(args.phase2_leakage_cap),
+            phase2_compile_cx_proxy_weight=float(args.phase2_compile_cx_proxy_weight),
+            phase2_compile_sq_proxy_weight=float(args.phase2_compile_sq_proxy_weight),
+            phase2_compile_rotation_step_weight=float(args.phase2_compile_rotation_step_weight),
+            phase2_compile_position_shift_weight=float(args.phase2_compile_position_shift_weight),
+            phase2_compile_refit_active_weight=float(args.phase2_compile_refit_active_weight),
+            phase2_measure_groups_weight=float(args.phase2_measure_groups_weight),
+            phase2_measure_shots_weight=float(args.phase2_measure_shots_weight),
+            phase2_measure_reuse_weight=float(args.phase2_measure_reuse_weight),
+            phase2_opt_dim_cost_scale=float(args.phase2_opt_dim_cost_scale),
+            phase2_family_repeat_cost_scale=float(args.phase2_family_repeat_cost_scale),
+            phase2_w_depth=float(args.phase2_w_depth),
+            phase2_w_group=float(args.phase2_w_group),
+            phase2_w_shot=float(args.phase2_w_shot),
+            phase2_w_optdim=float(args.phase2_w_optdim),
+            phase2_w_reuse=float(args.phase2_w_reuse),
+            phase2_w_lifetime=float(args.phase2_w_lifetime),
+            phase2_eta_L=float(args.phase2_eta_L),
+            phase2_motif_bonus_weight=float(args.phase2_motif_bonus_weight),
+            phase2_duplicate_penalty_weight=float(args.phase2_duplicate_penalty_weight),
+            phase2_frontier_ratio=float(args.phase2_frontier_ratio),
+            phase3_frontier_ratio=float(args.phase3_frontier_ratio),
+            phase3_tie_beam_score_ratio=float(args.phase3_tie_beam_score_ratio),
+            phase3_tie_beam_abs_tol=float(args.phase3_tie_beam_abs_tol),
+            phase3_tie_beam_max_branches=int(args.phase3_tie_beam_max_branches),
+            phase3_tie_beam_max_late_coordinate=float(args.phase3_tie_beam_max_late_coordinate),
+            phase3_tie_beam_min_depth_left=int(args.phase3_tie_beam_min_depth_left),
             phase2_enable_batching=bool(args.phase2_enable_batching),
             phase2_batch_target_size=int(args.phase2_batch_target_size),
             phase2_batch_size_cap=int(args.phase2_batch_size_cap),
             phase2_batch_near_degenerate_ratio=float(args.phase2_batch_near_degenerate_ratio),
+            phase2_batch_rank_rel_tol=float(args.phase2_batch_rank_rel_tol),
+            phase2_batch_additivity_tol=float(args.phase2_batch_additivity_tol),
+            phase2_compat_overlap_weight=float(args.phase2_compat_overlap_weight),
+            phase2_compat_comm_weight=float(args.phase2_compat_comm_weight),
+            phase2_compat_curv_weight=float(args.phase2_compat_curv_weight),
+            phase2_compat_sched_weight=float(args.phase2_compat_sched_weight),
+            phase2_compat_measure_weight=float(args.phase2_compat_measure_weight),
+            phase2_remaining_evaluations_proxy_mode=str(
+                args.phase2_remaining_evaluations_proxy_mode
+            ),
             adapt_pool_class_filter_json=(
                 Path(args.adapt_pool_class_filter_json)
                 if args.adapt_pool_class_filter_json is not None
@@ -14397,7 +16536,10 @@ def main(argv: Sequence[str] | None = None) -> None:
             ),
             phase3_backend_transpile_seed=int(args.phase3_backend_transpile_seed),
             phase3_backend_optimization_level=int(args.phase3_backend_optimization_level),
+            phase3_selector_debug_topk=int(args.phase3_selector_debug_topk),
+            phase3_selector_debug_max_depth=int(args.phase3_selector_debug_max_depth),
             phase3_oracle_gradient_config=phase3_oracle_gradient_config,
+            final_noise_audit_config=final_noise_audit_config,
             phase3_oracle_inner_objective_mode=str(args.phase3_oracle_inner_objective_mode),
         )
     except Exception as exc:
@@ -14560,6 +16702,20 @@ def main(argv: Sequence[str] | None = None) -> None:
             "phase1_lambda_measure": float(args.phase1_lambda_measure),
             "phase1_lambda_leak": float(args.phase1_lambda_leak),
             "phase1_score_z_alpha": float(args.phase1_score_z_alpha),
+            "phase1_depth_ref": float(args.phase1_depth_ref),
+            "phase1_group_ref": float(args.phase1_group_ref),
+            "phase1_shot_ref": float(args.phase1_shot_ref),
+            "phase1_family_ref": float(args.phase1_family_ref),
+            "phase1_compile_cx_proxy_weight": float(args.phase1_compile_cx_proxy_weight),
+            "phase1_compile_sq_proxy_weight": float(args.phase1_compile_sq_proxy_weight),
+            "phase1_compile_rotation_step_weight": float(args.phase1_compile_rotation_step_weight),
+            "phase1_compile_position_shift_weight": float(args.phase1_compile_position_shift_weight),
+            "phase1_compile_refit_active_weight": float(args.phase1_compile_refit_active_weight),
+            "phase1_measure_groups_weight": float(args.phase1_measure_groups_weight),
+            "phase1_measure_shots_weight": float(args.phase1_measure_shots_weight),
+            "phase1_measure_reuse_weight": float(args.phase1_measure_reuse_weight),
+            "phase1_opt_dim_cost_scale": float(args.phase1_opt_dim_cost_scale),
+            "phase1_family_repeat_cost_scale": float(args.phase1_family_repeat_cost_scale),
             "phase1_shortlist_size": int(args.phase1_shortlist_size),
             "phase1_probe_max_positions": int(args.phase1_probe_max_positions),
             "phase1_plateau_patience": int(args.phase1_plateau_patience),
@@ -14573,10 +16729,71 @@ def main(argv: Sequence[str] | None = None) -> None:
             "phase2_lambda_H": float(args.phase2_lambda_H),
             "phase2_rho": float(args.phase2_rho),
             "phase2_gamma_N": float(args.phase2_gamma_N),
+            "phase2_score_z_alpha": (
+                float(args.phase2_score_z_alpha)
+                if args.phase2_score_z_alpha is not None
+                else None
+            ),
+            "phase2_lambda_F": (
+                float(args.phase2_lambda_F)
+                if args.phase2_lambda_F is not None
+                else None
+            ),
+            "phase2_depth_ref": float(args.phase2_depth_ref),
+            "phase2_group_ref": float(args.phase2_group_ref),
+            "phase2_shot_ref": float(args.phase2_shot_ref),
+            "phase2_optdim_ref": float(args.phase2_optdim_ref),
+            "phase2_reuse_ref": float(args.phase2_reuse_ref),
+            "phase2_family_ref": float(args.phase2_family_ref),
+            "phase2_novelty_eps": float(args.phase2_novelty_eps),
+            "phase2_cheap_score_eps": float(args.phase2_cheap_score_eps),
+            "phase2_metric_floor": float(args.phase2_metric_floor),
+            "phase2_reduced_metric_collapse_rel_tol": float(
+                args.phase2_reduced_metric_collapse_rel_tol
+            ),
+            "phase2_ridge_growth_factor": float(args.phase2_ridge_growth_factor),
+            "phase2_ridge_max_steps": int(args.phase2_ridge_max_steps),
+            "phase2_leakage_cap": float(args.phase2_leakage_cap),
+            "phase2_compile_cx_proxy_weight": float(args.phase2_compile_cx_proxy_weight),
+            "phase2_compile_sq_proxy_weight": float(args.phase2_compile_sq_proxy_weight),
+            "phase2_compile_rotation_step_weight": float(args.phase2_compile_rotation_step_weight),
+            "phase2_compile_position_shift_weight": float(args.phase2_compile_position_shift_weight),
+            "phase2_compile_refit_active_weight": float(args.phase2_compile_refit_active_weight),
+            "phase2_measure_groups_weight": float(args.phase2_measure_groups_weight),
+            "phase2_measure_shots_weight": float(args.phase2_measure_shots_weight),
+            "phase2_measure_reuse_weight": float(args.phase2_measure_reuse_weight),
+            "phase2_opt_dim_cost_scale": float(args.phase2_opt_dim_cost_scale),
+            "phase2_family_repeat_cost_scale": float(args.phase2_family_repeat_cost_scale),
+            "phase2_w_depth": float(args.phase2_w_depth),
+            "phase2_w_group": float(args.phase2_w_group),
+            "phase2_w_shot": float(args.phase2_w_shot),
+            "phase2_w_optdim": float(args.phase2_w_optdim),
+            "phase2_w_reuse": float(args.phase2_w_reuse),
+            "phase2_w_lifetime": float(args.phase2_w_lifetime),
+            "phase2_eta_L": float(args.phase2_eta_L),
+            "phase2_motif_bonus_weight": float(args.phase2_motif_bonus_weight),
+            "phase2_duplicate_penalty_weight": float(args.phase2_duplicate_penalty_weight),
+            "phase2_frontier_ratio": float(args.phase2_frontier_ratio),
+            "phase3_frontier_ratio": float(args.phase3_frontier_ratio),
+            "phase3_tie_beam_score_ratio": float(args.phase3_tie_beam_score_ratio),
+            "phase3_tie_beam_abs_tol": float(args.phase3_tie_beam_abs_tol),
+            "phase3_tie_beam_max_branches": int(args.phase3_tie_beam_max_branches),
+            "phase3_tie_beam_max_late_coordinate": float(args.phase3_tie_beam_max_late_coordinate),
+            "phase3_tie_beam_min_depth_left": int(args.phase3_tie_beam_min_depth_left),
             "phase2_enable_batching": bool(args.phase2_enable_batching),
             "phase2_batch_target_size": int(args.phase2_batch_target_size),
             "phase2_batch_size_cap": int(args.phase2_batch_size_cap),
             "phase2_batch_near_degenerate_ratio": float(args.phase2_batch_near_degenerate_ratio),
+            "phase2_batch_rank_rel_tol": float(args.phase2_batch_rank_rel_tol),
+            "phase2_batch_additivity_tol": float(args.phase2_batch_additivity_tol),
+            "phase2_compat_overlap_weight": float(args.phase2_compat_overlap_weight),
+            "phase2_compat_comm_weight": float(args.phase2_compat_comm_weight),
+            "phase2_compat_curv_weight": float(args.phase2_compat_curv_weight),
+            "phase2_compat_sched_weight": float(args.phase2_compat_sched_weight),
+            "phase2_compat_measure_weight": float(args.phase2_compat_measure_weight),
+            "phase2_remaining_evaluations_proxy_mode": str(
+                args.phase2_remaining_evaluations_proxy_mode
+            ),
             "phase3_motif_source_json": (
                 str(args.phase3_motif_source_json)
                 if args.phase3_motif_source_json is not None

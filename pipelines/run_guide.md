@@ -360,6 +360,49 @@ Contract:
 - DD is **probe-only** via `--include-fixed-scaffold-runtime-dd-probe`
 - ZNE is **final-audit-only** via `--include-fixed-scaffold-runtime-final-zne-audit`
 
+### 2.6a Runtime raw-shot baseline (sampler acquisition lane)
+
+Use this when the goal is to persist grouped raw-shot records from the locked
+6-term runtime candidate, while keeping acquisition-side correction honest.
+
+```bash
+python -m pipelines.hardcoded.hh_staged_noise \
+  --include-fixed-scaffold-runtime-raw-baseline \
+  --backend-name ibm_marrakesh \
+  --fixed-scaffold-runtime-raw-profile raw_sampler_twirled_v1 \
+  --fixed-scaffold-runtime-raw-transport sampler_v2 \
+  --shots 4096 --oracle-repeats 8 --oracle-aggregate mean
+```
+
+Contract:
+- defaults to the imported Marrakesh/Heron **gate-pruned 6-term** candidate when no import JSON is given
+- requires real Runtime backend access (`--use-fake-backend` must stay off)
+- uses the SamplerV2 raw measurement surface (`raw_measurement_v1`)
+- acquisition mitigation stays `none`; real-runtime raw-shot acquisition does **not** claim readout mitigation or ZNE
+- allowed real-runtime symmetry modes are `off` and `verify_only`
+- sampler-safe Runtime profiles are:
+  - `legacy_runtime_v0` = plain acquisition
+  - `raw_sampler_twirled_v1` = measure/gate twirling only
+  - `raw_sampler_dd_probe_v1` = measure twirling + DD probe only
+- use the Runtime energy-only lane for readout-mitigated / ZNE follow-up audits; do not treat Sampler acquisition as mitigation parity with Estimator
+
+Paired follow-on command:
+
+```bash
+python -m pipelines.hardcoded.hh_staged_noise \
+  --include-fixed-scaffold-runtime-energy-only-baseline \
+  --include-fixed-scaffold-runtime-raw-baseline \
+  --backend-name ibm_marrakesh \
+  --fixed-scaffold-runtime-raw-profile raw_sampler_twirled_v1 \
+  --fixed-scaffold-runtime-raw-transport sampler_v2 \
+  --shots 4096 --oracle-repeats 8 --oracle-aggregate mean
+```
+
+Paired contract:
+- raw Sampler acquisition and Runtime energy-only audit may be enabled together in one invocation
+- the workflow preserves the individual sidecars and also writes `*_fixed_scaffold_runtime_pairing.json`
+- the pairing sidecar records shared source/backend metadata, requested compile parity, raw-shot artifact location, and the energy-audit labels that were run
+
 ---
 
 ## 3. Critical Implementation Details
@@ -607,7 +650,7 @@ Historical/compatibility staged wrapper:
 python -m pipelines.hardcoded.hh_staged_noiseless --L 2
 ```
 
-The staged wrapper already performs replay and keeps `phase1_v1` as its compatibility default through `--replay-continuation-mode auto`; use explicit staged flags only when reproducing older VQE->ADAPT->VQE behavior. Fresh-stage `hh_staged_noise` remains a noiseless ADAPT stage plus noisy follow-on profiles; it is not the true noisy direct `phase3_v1` continuation path above.
+This staged-wrapper note is archival orientation only. Older repo-doc statements that the staged wrapper defaults to `phase1_v1` are not authoritative; the manuscript is the source of truth, and the current canonical HH ADAPT surface/CLI behavior is `phase3_v1`. Use explicit staged flags only when reproducing older VQE->ADAPT->VQE behavior. Fresh-stage `hh_staged_noise` remains a noiseless ADAPT stage plus noisy follow-on profiles; it is not the true noisy direct `phase3_v1` continuation path above.
 
 ---
 

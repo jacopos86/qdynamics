@@ -3,6 +3,8 @@ from __future__ import annotations
 from pathlib import Path
 import sys
 
+import pytest
+
 REPO_ROOT = Path(__file__).resolve().parent.parent
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
@@ -15,13 +17,26 @@ def test_checkpoint_controller_mode_defaults_off() -> None:
     assert str(args.checkpoint_controller_mode) == "off"
 
 
-def test_staged_parser_keeps_phase1_v1_compatibility_default() -> None:
+def test_staged_parser_defaults_to_phase3_v1() -> None:
     args = parse_args(["--L", "2", "--skip-pdf"])
-    assert str(args.adapt_continuation_mode) == "phase1_v1"
+    assert str(args.adapt_continuation_mode) == "phase3_v1"
     assert str(args.replay_continuation_mode) == "auto"
     assert str(args.phase3_oracle_gradient_mode) == "off"
     assert str(args.phase3_oracle_execution_surface) == "auto"
     assert str(args.phase3_oracle_raw_transport) == "auto"
+
+
+def test_staged_parser_rejects_archival_phase3_runtime_split_mode() -> None:
+    with pytest.raises(SystemExit):
+        parse_args(
+            [
+                "--L",
+                "2",
+                "--skip-pdf",
+                "--phase3-runtime-split-mode",
+                "shortlist_pauli_children_v1",
+            ]
+        )
 
 
 def test_staged_parser_accepts_phase3_raw_oracle_args() -> None:
@@ -97,6 +112,136 @@ def test_checkpoint_controller_candidate_step_scales_accepts_csv() -> None:
     assert str(args.checkpoint_controller_candidate_step_scales) == "0.25,0.5,1.0"
 
 
+def test_checkpoint_controller_exact_forecast_baseline_step_refine_rounds_default_off() -> None:
+    args = parse_args(["--L", "2", "--skip-pdf"])
+    assert int(args.checkpoint_controller_exact_forecast_baseline_step_refine_rounds) == 0
+
+
+def test_checkpoint_controller_exact_forecast_baseline_step_refine_rounds_accepts_value() -> None:
+    args = parse_args(
+        [
+            "--L",
+            "2",
+            "--skip-pdf",
+            "--checkpoint-controller-exact-forecast-baseline-step-refine-rounds",
+            "2",
+        ]
+    )
+    assert int(args.checkpoint_controller_exact_forecast_baseline_step_refine_rounds) == 2
+
+
+def test_checkpoint_controller_exact_forecast_baseline_blend_weights_default_off() -> None:
+    args = parse_args(["--L", "2", "--skip-pdf"])
+    assert str(args.checkpoint_controller_exact_forecast_baseline_blend_weights) == ""
+
+
+def test_checkpoint_controller_exact_forecast_baseline_blend_weights_accepts_csv() -> None:
+    args = parse_args(
+        [
+            "--L",
+            "2",
+            "--skip-pdf",
+            "--checkpoint-controller-exact-forecast-baseline-blend-weights",
+            "0,0.25,0.5,1.0",
+        ]
+    )
+    assert str(args.checkpoint_controller_exact_forecast_baseline_blend_weights) == "0,0.25,0.5,1.0"
+
+
+def test_checkpoint_controller_exact_forecast_baseline_gain_scales_default_off() -> None:
+    args = parse_args(["--L", "2", "--skip-pdf"])
+    assert str(args.checkpoint_controller_exact_forecast_baseline_gain_scales) == ""
+
+
+def test_checkpoint_controller_exact_forecast_baseline_gain_scales_accepts_csv() -> None:
+    args = parse_args(
+        [
+            "--L",
+            "2",
+            "--skip-pdf",
+            "--checkpoint-controller-exact-forecast-baseline-gain-scales",
+            "1.0,1.1,1.25",
+        ]
+    )
+    assert str(args.checkpoint_controller_exact_forecast_baseline_gain_scales) == "1.0,1.1,1.25"
+
+
+def test_checkpoint_controller_exact_forecast_horizon_defaults_to_single_step() -> None:
+    args = parse_args(["--L", "2", "--skip-pdf"])
+    assert int(args.checkpoint_controller_exact_forecast_horizon_steps) == 1
+    assert str(args.checkpoint_controller_exact_forecast_horizon_weights) == ""
+
+
+def test_checkpoint_controller_exact_forecast_horizon_accepts_steps_and_weights() -> None:
+    args = parse_args(
+        [
+            "--L",
+            "2",
+            "--skip-pdf",
+            "--checkpoint-controller-exact-forecast-horizon-steps",
+            "3",
+            "--checkpoint-controller-exact-forecast-horizon-weights",
+            "3,2,1",
+        ]
+    )
+    assert int(args.checkpoint_controller_exact_forecast_horizon_steps) == 3
+    assert str(args.checkpoint_controller_exact_forecast_horizon_weights) == "3,2,1"
+
+
+def test_checkpoint_controller_exact_forecast_energy_shape_weights_default_off() -> None:
+    args = parse_args(["--L", "2", "--skip-pdf"])
+    assert float(args.checkpoint_controller_exact_forecast_energy_slope_weight) == 0.0
+    assert float(args.checkpoint_controller_exact_forecast_energy_excursion_under_weight) == 0.0
+    assert float(args.checkpoint_controller_exact_forecast_energy_excursion_over_weight) == 0.0
+    assert float(args.checkpoint_controller_exact_forecast_energy_excursion_rel_tolerance) == 0.0
+    assert float(args.checkpoint_controller_exact_forecast_energy_curvature_weight) == 0.0
+
+
+def test_checkpoint_controller_exact_forecast_energy_shape_weights_accept_values() -> None:
+    args = parse_args(
+        [
+            "--L",
+            "2",
+            "--skip-pdf",
+            "--checkpoint-controller-exact-forecast-energy-slope-weight",
+            "500",
+            "--checkpoint-controller-exact-forecast-energy-curvature-weight",
+            "25",
+        ]
+    )
+    assert float(args.checkpoint_controller_exact_forecast_energy_slope_weight) == 500.0
+    assert float(args.checkpoint_controller_exact_forecast_energy_curvature_weight) == 25.0
+
+
+def test_checkpoint_controller_exact_forecast_energy_excursion_under_weight_accepts_value() -> None:
+    args = parse_args(
+        [
+            "--L",
+            "2",
+            "--skip-pdf",
+            "--checkpoint-controller-exact-forecast-energy-excursion-under-weight",
+            "300",
+        ]
+    )
+    assert float(args.checkpoint_controller_exact_forecast_energy_excursion_under_weight) == 300.0
+
+
+def test_checkpoint_controller_exact_forecast_energy_excursion_band_accepts_values() -> None:
+    args = parse_args(
+        [
+            "--L",
+            "2",
+            "--skip-pdf",
+            "--checkpoint-controller-exact-forecast-energy-excursion-over-weight",
+            "180",
+            "--checkpoint-controller-exact-forecast-energy-excursion-rel-tolerance",
+            "0.05",
+        ]
+    )
+    assert float(args.checkpoint_controller_exact_forecast_energy_excursion_over_weight) == 180.0
+    assert float(args.checkpoint_controller_exact_forecast_energy_excursion_rel_tolerance) == 0.05
+
+
 def test_checkpoint_controller_exact_forecast_guardrail_defaults_off() -> None:
     args = parse_args(["--L", "2", "--skip-pdf"])
     assert str(args.checkpoint_controller_exact_forecast_guardrail_mode) == "off"
@@ -107,17 +252,65 @@ def test_checkpoint_controller_exact_forecast_guardrail_defaults_off() -> None:
 def test_checkpoint_controller_exact_forecast_guardrail_accepts_dual_metric() -> None:
     args = parse_args(
         [
-            "--L",
-            "2",
-            "--skip-pdf",
-            "--checkpoint-controller-exact-forecast-guardrail-mode",
-            "dual_metric_v1",
-            "--checkpoint-controller-exact-forecast-fidelity-loss-tol",
-            "0.01",
-            "--checkpoint-controller-exact-forecast-abs-energy-error-increase-tol",
-            "0.02",
+            "--L", "2", "--skip-pdf",
+            "--checkpoint-controller-exact-forecast-guardrail-mode", "dual_metric_v1",
+            "--checkpoint-controller-exact-forecast-fidelity-loss-tol", "0.01",
+            "--checkpoint-controller-exact-forecast-abs-energy-error-increase-tol", "0.02",
         ]
     )
     assert str(args.checkpoint_controller_exact_forecast_guardrail_mode) == "dual_metric_v1"
     assert float(args.checkpoint_controller_exact_forecast_fidelity_loss_tol) == 0.01
     assert float(args.checkpoint_controller_exact_forecast_abs_energy_error_increase_tol) == 0.02
+
+
+def test_checkpoint_controller_confirm_score_mode_defaults_to_compressed_whitened() -> None:
+    args = parse_args(["--L", "2", "--skip-pdf"])
+    assert str(args.checkpoint_controller_confirm_score_mode) == "compressed_whitened_v1"
+
+
+def test_checkpoint_controller_confirm_score_mode_accepts_exact_gain_ratio() -> None:
+    args = parse_args(
+        [
+            "--L", "2", "--skip-pdf",
+            "--checkpoint-controller-confirm-score-mode", "exact_gain_ratio",
+            "--checkpoint-controller-confirm-compress-fraction", "0.25",
+            "--checkpoint-controller-confirm-compress-min-modes", "1",
+            "--checkpoint-controller-confirm-compress-max-modes", "3",
+        ]
+    )
+    assert str(args.checkpoint_controller_confirm_score_mode) == "exact_gain_ratio"
+    assert float(args.checkpoint_controller_confirm_compress_fraction) == 0.25
+    assert int(args.checkpoint_controller_confirm_compress_min_modes) == 1
+    assert int(args.checkpoint_controller_confirm_compress_max_modes) == 3
+
+
+def test_checkpoint_controller_prune_mode_accepts_exact_local_v1() -> None:
+    args = parse_args(
+        [
+            "--L", "2", "--skip-pdf",
+            "--checkpoint-controller-prune-mode", "exact_local_v1",
+            "--checkpoint-controller-prune-miss-threshold", "0.01",
+            "--checkpoint-controller-prune-protection-steps", "3",
+            "--checkpoint-controller-prune-stagnation-window", "4",
+            "--checkpoint-controller-prune-stagnation-alpha", "0.25",
+            "--checkpoint-controller-prune-stale-score-threshold", "0.8",
+            "--checkpoint-controller-prune-loss-threshold", "0.03",
+            "--checkpoint-controller-prune-max-candidates", "2",
+            "--checkpoint-controller-prune-cooldown-steps", "5",
+            "--checkpoint-controller-prune-safe-miss-increase-tol", "0.02",
+            "--checkpoint-controller-prune-state-jump-l2-tol", "0.1",
+            "--checkpoint-controller-prune-theta-block-tol", "0.05",
+        ]
+    )
+    assert str(args.checkpoint_controller_prune_mode) == "exact_local_v1"
+    assert float(args.checkpoint_controller_prune_miss_threshold) == 0.01
+    assert int(args.checkpoint_controller_prune_protection_steps) == 3
+    assert int(args.checkpoint_controller_prune_stagnation_window) == 4
+    assert float(args.checkpoint_controller_prune_stagnation_alpha) == 0.25
+    assert float(args.checkpoint_controller_prune_stale_score_threshold) == 0.8
+    assert float(args.checkpoint_controller_prune_loss_threshold) == 0.03
+    assert int(args.checkpoint_controller_prune_max_candidates) == 2
+    assert int(args.checkpoint_controller_prune_cooldown_steps) == 5
+    assert float(args.checkpoint_controller_prune_safe_miss_increase_tol) == 0.02
+    assert float(args.checkpoint_controller_prune_state_jump_l2_tol) == 0.1
+    assert float(args.checkpoint_controller_prune_theta_block_tol) == 0.05

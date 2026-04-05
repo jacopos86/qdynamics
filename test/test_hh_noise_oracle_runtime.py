@@ -24,14 +24,17 @@ from pipelines.exact_bench.noise_oracle_runtime import (
     RawMeasurementOracle,
     _ansatz_to_circuit,
     _pauli_poly_to_sparse_pauli_op,
+    assess_oracle_execution_capability,
     build_runtime_layout_circuit,
     compile_circuit_for_local_backend,
     normalize_ideal_reference_symmetry_mitigation,
+    normalize_oracle_execution_request,
     normalize_runtime_estimator_profile_config,
     normalize_runtime_session_policy_config,
     normalize_sampler_raw_runtime_config,
     normalize_symmetry_mitigation_config,
     preflight_backend_scheduled_fake_backend_environment,
+    validate_oracle_execution_request,
 )
 from pipelines.hardcoded.adapt_circuit_execution import (
     bind_parameterized_ansatz_circuit,
@@ -191,6 +194,127 @@ def test_backend_scheduled_rejects_active_symmetry_with_readout() -> None:
                 },
             )
         )
+
+
+def test_oracle_execution_capability_accepts_expectation_shots_request() -> None:
+    cfg = OracleConfig(
+        noise_mode="shots",
+        shots=128,
+        oracle_repeats=2,
+        oracle_aggregate="mean",
+        execution_surface="expectation_v1",
+    )
+
+    normalized = normalize_oracle_execution_request(cfg)
+    report = assess_oracle_execution_capability(cfg)
+    validated = validate_oracle_execution_request(cfg)
+
+    assert normalized["noise_mode"] == "shots"
+    assert normalized["execution_surface"] == "expectation_v1"
+    assert report["supported"] is True
+    assert report["reason_code"] == "ok"
+    assert report["normalized_request"]["execution_surface"] == "expectation_v1"
+    assert validated["supported"] is True
+
+
+def test_oracle_execution_capability_accepts_runtime_expectation_request_with_profile() -> None:
+    cfg = OracleConfig(
+        noise_mode="runtime",
+        shots=128,
+        oracle_repeats=2,
+        oracle_aggregate="mean",
+        backend_name="ibm_marrakesh",
+        execution_surface="expectation_v1",
+        runtime_profile="main_twirled_readout_v1",
+        runtime_session="backend_only",
+    )
+
+    report = assess_oracle_execution_capability(cfg)
+
+    assert report["supported"] is True
+    assert report["normalized_request"]["runtime_profile"]["name"] == "main_twirled_readout_v1"
+    assert report["normalized_request"]["runtime_session"]["mode"] == "backend_only"
+
+
+def test_oracle_execution_capability_rejects_runtime_expectation_fake_backend() -> None:
+    cfg = OracleConfig(
+        noise_mode="runtime",
+        shots=128,
+        oracle_repeats=2,
+        oracle_aggregate="mean",
+        backend_name="ibm_marrakesh",
+        execution_surface="expectation_v1",
+        use_fake_backend=True,
+    )
+
+    report = assess_oracle_execution_capability(cfg)
+
+    assert report["supported"] is False
+    assert report["reason_code"] == "runtime_expectation_fake_backend_unsupported"
+    with pytest.raises(ValueError, match="use_fake_backend=False"):
+        validate_oracle_execution_request(cfg)
+
+
+def test_oracle_execution_capability_rejects_raw_with_mitigation() -> None:
+    cfg = OracleConfig(
+        noise_mode="runtime",
+        shots=128,
+        oracle_repeats=2,
+        oracle_aggregate="mean",
+        backend_name="ibm_marrakesh",
+        execution_surface="raw_measurement_v1",
+        mitigation={"mode": "readout", "local_readout_strategy": "mthree"},
+    )
+
+    report = assess_oracle_execution_capability(cfg)
+
+    assert report["supported"] is False
+    assert report["reason_code"] == "raw_requires_no_mitigation"
+    with pytest.raises(ValueError, match="mitigation_mode='none'"):
+        validate_oracle_execution_request(cfg)
+
+
+def test_oracle_execution_capability_accepts_runtime_raw_sampler_profile_and_verify_only() -> None:
+    cfg = OracleConfig(
+        noise_mode="runtime",
+        shots=128,
+        oracle_repeats=2,
+        oracle_aggregate="mean",
+        backend_name="ibm_marrakesh",
+        execution_surface="raw_measurement_v1",
+        mitigation={"mode": "none"},
+        symmetry_mitigation={"mode": "verify_only"},
+        runtime_profile={"name": "raw_sampler_twirled_v1"},
+        raw_transport="sampler_v2",
+    )
+
+    report = assess_oracle_execution_capability(cfg)
+
+    assert report["supported"] is True
+    assert report["reason_code"] == "ok"
+    assert report["normalized_request"]["runtime_profile"]["name"] == "raw_sampler_twirled_v1"
+    assert report["normalized_request"]["symmetry_mitigation"]["mode"] == "verify_only"
+
+
+def test_oracle_execution_capability_rejects_runtime_raw_estimator_profile() -> None:
+    cfg = OracleConfig(
+        noise_mode="runtime",
+        shots=128,
+        oracle_repeats=2,
+        oracle_aggregate="mean",
+        backend_name="ibm_marrakesh",
+        execution_surface="raw_measurement_v1",
+        mitigation={"mode": "none"},
+        symmetry_mitigation={"mode": "off"},
+        runtime_profile={"name": "main_twirled_readout_v1"},
+        raw_transport="sampler_v2",
+    )
+
+    report = assess_oracle_execution_capability(cfg)
+
+    assert report["supported"] is False
+    assert report["reason_code"] == "runtime_raw_profile_unsupported"
+    assert "suppression-only" in str(report["reason"])
 
 
 def test_backend_scheduled_deterministic_with_fixed_seed_and_fake_backend() -> None:
@@ -1214,6 +1338,32 @@ def test_runtime_profile_dd_probe_defaults() -> None:
     assert cfg["zne_mitigation"] is False
 
 
+def test_runtime_profile_raw_sampler_twirled_defaults() -> None:
+    cfg = normalize_runtime_estimator_profile_config("raw_sampler_twirled_v1")
+
+    assert cfg["name"] == "raw_sampler_twirled_v1"
+    assert cfg["resilience_level"] is None
+    assert cfg["measure_mitigation"] is False
+    assert cfg["measure_twirling"] is True
+    assert cfg["gate_twirling"] is True
+    assert cfg["dd_enable"] is False
+    assert cfg["zne_mitigation"] is False
+    assert cfg["pec_mitigation"] is False
+
+
+def test_runtime_profile_raw_sampler_dd_probe_defaults() -> None:
+    cfg = normalize_runtime_estimator_profile_config("raw_sampler_dd_probe_v1")
+
+    assert cfg["name"] == "raw_sampler_dd_probe_v1"
+    assert cfg["resilience_level"] is None
+    assert cfg["measure_mitigation"] is False
+    assert cfg["measure_twirling"] is True
+    assert cfg["gate_twirling"] is False
+    assert cfg["dd_enable"] is True
+    assert cfg["dd_sequence"] == "XpXm"
+    assert cfg["zne_mitigation"] is False
+
+
 def test_runtime_profile_final_audit_zne_defaults() -> None:
     cfg = normalize_runtime_estimator_profile_config("final_audit_zne_twirled_readout_v1")
 
@@ -2048,8 +2198,26 @@ def test_normalize_sampler_raw_runtime_config_rejects_backend_run_transport() ->
         )
 
 
-def test_normalize_sampler_raw_runtime_config_rejects_verify_only_symmetry() -> None:
-    with pytest.raises(ValueError, match="symmetry_mitigation='off'"):
+def test_normalize_sampler_raw_runtime_config_accepts_verify_only_symmetry() -> None:
+    cfg = normalize_sampler_raw_runtime_config(
+        OracleConfig(
+            noise_mode="runtime",
+            shots=128,
+            backend_name="ibm_marrakesh",
+            execution_surface="raw_measurement_v1",
+            mitigation={"mode": "none"},
+            symmetry_mitigation={"mode": "verify_only"},
+            runtime_profile={"name": "raw_sampler_twirled_v1"},
+            raw_transport="sampler_v2",
+        )
+    )
+
+    assert cfg.symmetry_mitigation["mode"] == "verify_only"
+    assert cfg.runtime_profile["name"] == "raw_sampler_twirled_v1"
+
+
+def test_normalize_sampler_raw_runtime_config_rejects_estimator_style_profile() -> None:
+    with pytest.raises(ValueError, match="suppression-only runtime profiles"):
         normalize_sampler_raw_runtime_config(
             OracleConfig(
                 noise_mode="runtime",
@@ -2057,8 +2225,8 @@ def test_normalize_sampler_raw_runtime_config_rejects_verify_only_symmetry() -> 
                 backend_name="ibm_marrakesh",
                 execution_surface="raw_measurement_v1",
                 mitigation={"mode": "none"},
-                symmetry_mitigation={"mode": "verify_only"},
-                runtime_profile={"name": "legacy_runtime_v0"},
+                symmetry_mitigation={"mode": "off"},
+                runtime_profile={"name": "main_twirled_readout_v1"},
                 raw_transport="sampler_v2",
             )
         )

@@ -65,6 +65,11 @@ def main(argv: list[str] | None = None) -> None:
     )
     if fixed_scaffold_runtime_raw_baseline_json is not None:
         print(f"fixed_scaffold_runtime_raw_baseline_json={fixed_scaffold_runtime_raw_baseline_json}")
+    fixed_scaffold_runtime_pairing_json = payload.get("artifacts", {}).get(
+        "fixed_scaffold_runtime_pairing_json", None
+    )
+    if fixed_scaffold_runtime_pairing_json is not None:
+        print(f"fixed_scaffold_runtime_pairing_json={fixed_scaffold_runtime_pairing_json}")
     fixed_scaffold_saved_theta_mitigation_matrix_json = payload.get("artifacts", {}).get(
         "fixed_scaffold_saved_theta_mitigation_matrix_json", None
     )

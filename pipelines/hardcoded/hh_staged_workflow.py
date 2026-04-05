@@ -365,6 +365,85 @@ def _parse_checkpoint_controller_step_scales(
     return tuple(out)
 
 
+def _parse_checkpoint_controller_horizon_weights(
+    raw: str | Sequence[float] | None,
+) -> tuple[float, ...]:
+    if raw is None:
+        return ()
+    if isinstance(raw, str):
+        text = str(raw).strip()
+        if text == "":
+            return ()
+        vals = [float(x) for x in text.split(",") if x.strip()]
+    else:
+        vals = [float(x) for x in raw]
+    out: list[float] = []
+    for value in vals:
+        weight = float(value)
+        if (not math.isfinite(weight)) or weight <= 0.0:
+            raise ValueError(
+                f"Checkpoint-controller exact forecast horizon weights must be finite and positive; got {value!r}."
+            )
+        out.append(weight)
+    return tuple(out)
+
+
+def _parse_checkpoint_controller_blend_weights(
+    raw: str | Sequence[float] | None,
+) -> tuple[float, ...]:
+    if raw is None:
+        return ()
+    if isinstance(raw, str):
+        text = str(raw).strip()
+        if text == "":
+            return ()
+        vals = [float(x) for x in text.split(",") if x.strip()]
+    else:
+        vals = [float(x) for x in raw]
+    out: list[float] = []
+    seen: set[float] = set()
+    for value in vals:
+        weight = float(value)
+        if (not math.isfinite(weight)) or weight < 0.0 or weight > 1.0:
+            raise ValueError(
+                f"Checkpoint-controller exact baseline blend weights must be finite and lie in [0, 1]; got {value!r}."
+            )
+        rounded = round(weight, 12)
+        if rounded in seen:
+            continue
+        seen.add(rounded)
+        out.append(weight)
+    return tuple(out)
+
+
+def _parse_checkpoint_controller_gain_scales(
+    raw: str | Sequence[float] | None,
+) -> tuple[float, ...]:
+    if raw is None:
+        return ()
+    if isinstance(raw, str):
+        text = str(raw).strip()
+        if text == "":
+            return ()
+        vals = [float(x) for x in text.split(",") if x.strip()]
+    else:
+        vals = [float(x) for x in raw]
+    out: list[float] = []
+    seen: set[float] = set()
+    for value in vals:
+        scale = float(value)
+        if (not math.isfinite(scale)) or scale <= 0.0:
+            raise ValueError(
+                f"Checkpoint-controller exact baseline gain scales must be finite and positive; got {value!r}."
+            )
+        rounded = round(scale, 12)
+        if rounded in seen:
+            continue
+        seen.add(rounded)
+        out.append(scale)
+    return tuple(out)
+
+
 def _half_filled_particles(L: int) -> tuple[int, int]:
     n_up, n_dn = hc_pipeline._half_filled_particles(int(L))
     return int(n_up), int(n_dn)
@@ -925,6 +1004,36 @@ def resolve_staged_hh_config(args: Any) -> StagedHHConfig:
         candidate_step_scales=_parse_checkpoint_controller_step_scales(
             getattr(args, "checkpoint_controller_candidate_step_scales", "1.0")
         ),
+        exact_forecast_baseline_step_refine_rounds=int(
+            getattr(args, "checkpoint_controller_exact_forecast_baseline_step_refine_rounds", 0)
+        ),
+        exact_forecast_baseline_blend_weights=_parse_checkpoint_controller_blend_weights(
+            getattr(args, "checkpoint_controller_exact_forecast_baseline_blend_weights", "")
+        ),
+        exact_forecast_baseline_gain_scales=_parse_checkpoint_controller_gain_scales(
+            getattr(args, "checkpoint_controller_exact_forecast_baseline_gain_scales", "")
+        ),
+        exact_forecast_tracking_horizon_steps=int(
+            getattr(args, "checkpoint_controller_exact_forecast_horizon_steps", 1)
+        ),
+        exact_forecast_tracking_horizon_weights=_parse_checkpoint_controller_horizon_weights(
+            getattr(args, "checkpoint_controller_exact_forecast_horizon_weights", "")
+        ),
+        exact_forecast_energy_slope_weight=float(
+            getattr(args, "checkpoint_controller_exact_forecast_energy_slope_weight", 0.0)
+        ),
+        exact_forecast_energy_curvature_weight=float(
+            getattr(args, "checkpoint_controller_exact_forecast_energy_curvature_weight", 0.0)
+        ),
+        exact_forecast_energy_excursion_under_weight=float(
+            getattr(args, "checkpoint_controller_exact_forecast_energy_excursion_under_weight", 0.0)
+        ),
+        exact_forecast_energy_excursion_over_weight=float(
+            getattr(args, "checkpoint_controller_exact_forecast_energy_excursion_over_weight", 0.0)
+        ),
+        exact_forecast_energy_excursion_rel_tolerance=float(
+            getattr(args, "checkpoint_controller_exact_forecast_energy_excursion_rel_tolerance", 0.0)
+        ),
         exact_forecast_guardrail_mode=str(
             getattr(args, "checkpoint_controller_exact_forecast_guardrail_mode", "off")
         ),
@@ -937,6 +1046,52 @@ def resolve_staged_hh_config(args: Any) -> StagedHHConfig:
                 "checkpoint_controller_exact_forecast_abs_energy_error_increase_tol",
                 0.0,
             )
+        ),
+        confirm_score_mode=str(
+            getattr(args, "checkpoint_controller_confirm_score_mode", "compressed_whitened_v1")
+        ),
+        confirm_compress_fraction=float(
+            getattr(args, "checkpoint_controller_confirm_compress_fraction", 0.5)
+        ),
+        confirm_compress_min_modes=int(
+            getattr(args, "checkpoint_controller_confirm_compress_min_modes", 1)
+        ),
+        confirm_compress_max_modes=int(
+            getattr(args, "checkpoint_controller_confirm_compress_max_modes", 8)
+        ),
+        prune_mode=str(getattr(args, "checkpoint_controller_prune_mode", "off")),
+        prune_miss_threshold=float(
+            getattr(args, "checkpoint_controller_prune_miss_threshold", 0.02)
+        ),
+        prune_protection_steps=int(
+            getattr(args, "checkpoint_controller_prune_protection_steps", 2)
+        ),
+        prune_stagnation_window=int(
+            getattr(args, "checkpoint_controller_prune_stagnation_window", 3)
+        ),
+        prune_stagnation_alpha=float(
+            getattr(args, "checkpoint_controller_prune_stagnation_alpha", 0.5)
+        ),
+        prune_stale_score_threshold=float(
+            getattr(args, "checkpoint_controller_prune_stale_score_threshold", 0.75)
+        ),
+        prune_loss_threshold=float(
+            getattr(args, "checkpoint_controller_prune_loss_threshold", 0.01)
+        ),
+        prune_max_candidates=int(
+            getattr(args, "checkpoint_controller_prune_max_candidates", 2)
+        ),
+        prune_cooldown_steps=int(
+            getattr(args, "checkpoint_controller_prune_cooldown_steps", 2)
+        ),
+        prune_safe_miss_increase_tol=float(
+            getattr(args, "checkpoint_controller_prune_safe_miss_increase_tol", 0.01)
+        ),
+        prune_state_jump_l2_tol=float(
+            getattr(args, "checkpoint_controller_prune_state_jump_l2_tol", 0.05)
+        ),
+        prune_theta_block_tol=float(
+            getattr(args, "checkpoint_controller_prune_theta_block_tol", 0.05)
         ),
         miss_threshold=float(getattr(args, "checkpoint_controller_miss_threshold")),
         gain_ratio_threshold=float(getattr(args, "checkpoint_controller_gain_ratio_threshold")),
@@ -1634,10 +1789,6 @@ def _prepare_adaptive_realtime_checkpoint_inputs(
     mode = str(cfg.realtime_checkpoint.mode)
     if mode == "off":
         return None
-    if bool(cfg.dynamics.enable_drive) and mode != "oracle_v1":
-        raise ValueError(
-            "checkpoint controller exact_v1 currently supports only static Hamiltonians; disable --enable-drive."
-        )
     replay_cfg = _build_replay_run_config(cfg)
     replay_context = replay_mod.build_replay_scaffold_context(
         replay_cfg,
@@ -1681,6 +1832,7 @@ def run_adaptive_realtime_checkpoint_profile(
         allow_repeats=bool(cfg.adapt.allow_repeats),
         t_final=float(cfg.dynamics.t_final),
         num_times=int(cfg.dynamics.num_times),
+        drive_config=_controller_drive_config_from_cfg(cfg),
     )
     artifacts = controller.run()
     return {

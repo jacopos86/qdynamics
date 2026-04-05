@@ -41,7 +41,7 @@ Relevant current mechanisms:
 - `build_candidate_features(...)`
 - `compatibility_penalty(...)`
 - `greedy_batch_select(...)`
-- phase-3 runtime split: `shortlist_pauli_children_v1`
+- archival/internal phase-3 runtime split implementation in `adapt_pipeline.py` (canonical manuscript/public path keeps runtime split off)
 - windowed reopt helpers in `adapt_pipeline.py`
 
 ### 1. Current measurement proxy is too weak
@@ -66,7 +66,7 @@ Implication:
 - Pauli weight is mostly invisible
 - a heavy high-weight child can look too similar to a light child
 
-That is a poor fit if runtime split is on and you want the scorer to favor the
+That is a poor fit if the archival runtime-split implementation is revisited and you want the scorer to favor the
 best `|Delta E| / (depth, measurement)` tradeoff.
 
 ### 3. Current batch compatibility is not measurement-aware
@@ -203,7 +203,7 @@ Functions/classes to alter:
 - batching decisions become sensitive to measurement affinity
 - existing non-measurement compatibility behavior is not broken
 
-### Phase D: Keep runtime split on, but make it actually useful
+### Phase D: If the archival runtime-split path is revisited, make it actually useful
 
 Priority: high
 Risk: low to medium
@@ -211,10 +211,9 @@ Expected win: shallower selected children when macro generators are too costly
 
 #### Change
 
-Continue to use:
-- `--phase3-runtime-split-mode shortlist_pauli_children_v1`
-
-But make the scorer above it good enough that:
+Do not change the canonical manuscript/public path: keep runtime split off there.
+If the archival/internal runtime-split implementation is revisited for testing,
+make the scorer above it good enough that:
 - split children are preferred when they dominate the parent on the
   `|Delta E| / (cost, measurements)` frontier
 - heavy macro generators are no longer protected by a weak proxy
@@ -283,11 +282,11 @@ It is just not the first move.
 
 ## Recommended baseline mode for this work
 
-For investigation and implementation, use the staged HH path:
+For investigation and implementation, use the canonical staged/direct HH phase-3 path:
 - `--adapt-continuation-mode phase3_v1`
 - `--adapt-reopt-policy windowed`
 - `--phase2-enable-batching`
-- `--phase3-runtime-split-mode shortlist_pauli_children_v1`
+- keep runtime split off on the manuscript/public surface
 - keep the default HH staged pool resolution
 
 Important:

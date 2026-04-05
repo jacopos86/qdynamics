@@ -24,7 +24,10 @@ from typing import Any, Callable, Mapping, Sequence
 import numpy as np
 
 from qiskit import ClassicalRegister, QuantumCircuit, transpile
-from qiskit.circuit import pauli_twirl_2q_gates
+try:
+    from qiskit.circuit import pauli_twirl_2q_gates as _qiskit_pauli_twirl_2q_gates
+except Exception:  # pragma: no cover - depends on installed qiskit version
+    _qiskit_pauli_twirl_2q_gates = None
 from pipelines.qiskit_backend_tools import (
     compile_circuit_for_backend as _compile_circuit_for_backend_shared,
     compiled_gate_stats as _compiled_gate_stats_shared,
@@ -110,6 +113,70 @@ class OracleConfig:
     raw_store_memory: bool = False
     raw_grouping_mode: str = "qwc_basis_cover_reuse"
     raw_artifact_path: str | None = None
+
+
+@dataclass(frozen=True)
+class NormalizedOracleSpec:
+    noise_mode: str = "ideal"
+    shots: int = 2048
+    seed: int = 7
+    seed_transpiler: int | None = None
+    transpile_optimization_level: int = 1
+    oracle_repeats: int = 1
+    oracle_aggregate: str = "mean"
+    backend_name: str | None = None
+    use_fake_backend: bool = False
+    approximation: bool = False
+    abelian_grouping: bool = True
+    allow_aer_fallback: bool = True
+    aer_fallback_mode: str = "sampler_shots"
+    omp_shm_workaround: bool = True
+    mitigation: dict[str, Any] = field(default_factory=lambda: {"mode": "none"})
+    symmetry_mitigation: dict[str, Any] = field(default_factory=lambda: {"mode": "off"})
+    runtime_profile: dict[str, Any] = field(default_factory=lambda: {"name": "legacy_runtime_v0"})
+    runtime_session: dict[str, Any] = field(default_factory=lambda: {"mode": "prefer_session"})
+    execution_surface: str = "expectation_v1"
+    raw_transport: str = "auto"
+    raw_store_memory: bool = False
+    raw_grouping_mode: str = "qwc_basis_cover_reuse"
+    raw_artifact_path: str | None = None
+
+    def to_oracle_config(self) -> OracleConfig:
+        return OracleConfig(
+            noise_mode=str(self.noise_mode),
+            shots=int(self.shots),
+            seed=int(self.seed),
+            seed_transpiler=(None if self.seed_transpiler is None else int(self.seed_transpiler)),
+            transpile_optimization_level=int(self.transpile_optimization_level),
+            oracle_repeats=int(self.oracle_repeats),
+            oracle_aggregate=str(self.oracle_aggregate),
+            backend_name=(None if self.backend_name in {None, ""} else str(self.backend_name)),
+            use_fake_backend=bool(self.use_fake_backend),
+            approximation=bool(self.approximation),
+            abelian_grouping=bool(self.abelian_grouping),
+            allow_aer_fallback=bool(self.allow_aer_fallback),
+            aer_fallback_mode=str(self.aer_fallback_mode),
+            omp_shm_workaround=bool(self.omp_shm_workaround),
+            mitigation=dict(self.mitigation),
+            symmetry_mitigation=dict(self.symmetry_mitigation),
+            runtime_profile=dict(self.runtime_profile),
+            runtime_session=dict(self.runtime_session),
+            execution_surface=str(self.execution_surface),
+            raw_transport=str(self.raw_transport),
+            raw_store_memory=bool(self.raw_store_memory),
+            raw_grouping_mode=str(self.raw_grouping_mode),
+            raw_artifact_path=(
+                None if self.raw_artifact_path in {None, ""} else str(self.raw_artifact_path)
+            ),
+        )
+
+
+@dataclass(frozen=True)
+class OracleCapabilityReport:
+    supported: bool
+    reason_code: str
+    reason: str
+    normalized_request: dict[str, Any]
 
 
 @dataclass(frozen=True)
@@ -247,6 +314,13 @@ _RUNTIME_PROFILE_NAMES = {
     "main_twirled_readout_v1",
     "dd_probe_twirled_readout_v1",
     "final_audit_zne_twirled_readout_v1",
+    "raw_sampler_twirled_v1",
+    "raw_sampler_dd_probe_v1",
+}
+_RAW_RUNTIME_SAMPLER_PROFILE_NAMES = {
+    "legacy_runtime_v0",
+    "raw_sampler_twirled_v1",
+    "raw_sampler_dd_probe_v1",
 }
 _RUNTIME_SESSION_POLICY_MODES = {"prefer_session", "require_session", "backend_only"}
 
@@ -480,6 +554,44 @@ def normalize_runtime_estimator_profile_config(profile: Any) -> dict[str, Any]:
             "dd_enable": True,
             "dd_sequence": "XpXm",
         }
+    elif raw_name == "raw_sampler_twirled_v1":
+        cfg = {
+            "name": str(raw_name),
+            "resilience_level": None,
+            "default_shots": None,
+            "default_precision": None,
+            "max_execution_time": None,
+            "init_qubits": True,
+            "measure_mitigation": False,
+            "measure_twirling": True,
+            "gate_twirling": True,
+            "twirling_strategy": "active-accum",
+            "zne_mitigation": False,
+            "zne_noise_factors": [],
+            "zne_extrapolator": [],
+            "pec_mitigation": False,
+            "dd_enable": False,
+            "dd_sequence": None,
+        }
+    elif raw_name == "raw_sampler_dd_probe_v1":
+        cfg = {
+            "name": str(raw_name),
+            "resilience_level": None,
+            "default_shots": None,
+            "default_precision": None,
+            "max_execution_time": None,
+            "init_qubits": True,
+            "measure_mitigation": False,
+            "measure_twirling": True,
+            "gate_twirling": False,
+            "twirling_strategy": "active-accum",
+            "zne_mitigation": False,
+            "zne_noise_factors": [],
+            "zne_extrapolator": [],
+            "pec_mitigation": False,
+            "dd_enable": True,
+            "dd_sequence": "XpXm",
+        }
     else:
         cfg = {
             "name": str(raw_name),
@@ -537,6 +649,30 @@ def normalize_runtime_estimator_profile_config(profile: Any) -> dict[str, Any]:
     return cfg
 
 
+def normalize_runtime_raw_sampler_profile_config(profile: Any) -> dict[str, Any]:
+    cfg = dict(normalize_runtime_estimator_profile_config(profile))
+    profile_name = str(cfg.get("name", "legacy_runtime_v0")).strip().lower() or "legacy_runtime_v0"
+    if profile_name not in _RAW_RUNTIME_SAMPLER_PROFILE_NAMES:
+        raise ValueError(
+            "sampler raw runtime config supports suppression-only runtime profiles; "
+            f"runtime_profile must be one of {sorted(_RAW_RUNTIME_SAMPLER_PROFILE_NAMES)}."
+        )
+    if cfg.get("resilience_level", None) not in {None, 0}:
+        raise ValueError(
+            "sampler raw runtime config supports suppression-only runtime profiles with "
+            "resilience_level unset."
+        )
+    if any(
+        bool(cfg.get(key, False))
+        for key in ("measure_mitigation", "zne_mitigation", "pec_mitigation")
+    ):
+        raise ValueError(
+            "sampler raw runtime config supports suppression-only runtime profiles "
+            "(no readout mitigation, ZNE, or PEC)."
+        )
+    return cfg
+
+
 def normalize_runtime_session_policy_config(session_policy: Any) -> dict[str, Any]:
     mode = "prefer_session"
     if session_policy is None:
@@ -558,9 +694,39 @@ def normalize_runtime_session_policy_config(session_policy: Any) -> dict[str, An
     return {"mode": str(mode)}
 
 
-def normalize_sampler_raw_runtime_config(config: OracleConfig) -> OracleConfig:
-    normalized = OracleConfig(
-        noise_mode=str(getattr(config, "noise_mode", "runtime")).strip().lower() or "runtime",
+def _normalized_oracle_request_payload(spec: NormalizedOracleSpec) -> dict[str, Any]:
+    return {
+        "noise_mode": str(spec.noise_mode),
+        "shots": int(spec.shots),
+        "seed": int(spec.seed),
+        "seed_transpiler": (None if spec.seed_transpiler is None else int(spec.seed_transpiler)),
+        "transpile_optimization_level": int(spec.transpile_optimization_level),
+        "oracle_repeats": int(spec.oracle_repeats),
+        "oracle_aggregate": str(spec.oracle_aggregate),
+        "backend_name": (None if spec.backend_name in {None, ""} else str(spec.backend_name)),
+        "use_fake_backend": bool(spec.use_fake_backend),
+        "approximation": bool(spec.approximation),
+        "abelian_grouping": bool(spec.abelian_grouping),
+        "allow_aer_fallback": bool(spec.allow_aer_fallback),
+        "aer_fallback_mode": str(spec.aer_fallback_mode),
+        "omp_shm_workaround": bool(spec.omp_shm_workaround),
+        "mitigation": dict(spec.mitigation),
+        "symmetry_mitigation": dict(spec.symmetry_mitigation),
+        "runtime_profile": dict(spec.runtime_profile),
+        "runtime_session": dict(spec.runtime_session),
+        "execution_surface": str(spec.execution_surface),
+        "raw_transport": str(spec.raw_transport),
+        "raw_store_memory": bool(spec.raw_store_memory),
+        "raw_grouping_mode": str(spec.raw_grouping_mode),
+        "raw_artifact_path": (
+            None if spec.raw_artifact_path in {None, ""} else str(spec.raw_artifact_path)
+        ),
+    }
+
+
+def normalize_oracle_execution_request(config: Any) -> dict[str, Any]:
+    spec = NormalizedOracleSpec(
+        noise_mode=str(getattr(config, "noise_mode", "ideal")).strip().lower() or "ideal",
         shots=int(getattr(config, "shots", 2048)),
         seed=int(getattr(config, "seed", 7)),
         seed_transpiler=(
@@ -597,6 +763,231 @@ def normalize_sampler_raw_runtime_config(config: OracleConfig) -> OracleConfig:
                 getattr(config, "runtime_session", "prefer_session")
             )
         ),
+        execution_surface=str(getattr(config, "execution_surface", "expectation_v1")).strip().lower()
+        or "expectation_v1",
+        raw_transport=str(getattr(config, "raw_transport", "auto")).strip().lower() or "auto",
+        raw_store_memory=bool(getattr(config, "raw_store_memory", False)),
+        raw_grouping_mode=str(
+            getattr(config, "raw_grouping_mode", "qwc_basis_cover_reuse")
+        ).strip().lower()
+        or "qwc_basis_cover_reuse",
+        raw_artifact_path=(
+            None
+            if getattr(config, "raw_artifact_path", None) in {None, ""}
+            else str(getattr(config, "raw_artifact_path"))
+        ),
+    )
+    return _normalized_oracle_request_payload(spec)
+
+
+def assess_oracle_execution_capability(config: Any) -> dict[str, Any]:
+    normalized_request = dict(normalize_oracle_execution_request(config))
+    spec = NormalizedOracleSpec(**normalized_request)
+
+    def _report(*, supported: bool, reason_code: str, reason: str) -> dict[str, Any]:
+        report = OracleCapabilityReport(
+            supported=bool(supported),
+            reason_code=str(reason_code),
+            reason=str(reason),
+            normalized_request=dict(normalized_request),
+        )
+        return {
+            "supported": bool(report.supported),
+            "reason_code": str(report.reason_code),
+            "reason": str(report.reason),
+            "normalized_request": dict(report.normalized_request),
+        }
+
+    if spec.noise_mode not in {"ideal", "shots", "aer_noise", "runtime", "backend_scheduled"}:
+        return _report(
+            supported=False,
+            reason_code="unsupported_noise_mode",
+            reason=(
+                "Unsupported oracle noise_mode "
+                f"{spec.noise_mode!r}; expected one of "
+                "{'ideal','shots','aer_noise','runtime','backend_scheduled'}."
+            ),
+        )
+    if int(spec.shots) < 1:
+        return _report(
+            supported=False,
+            reason_code="invalid_shots",
+            reason="oracle shots must be >= 1.",
+        )
+    if int(spec.oracle_repeats) < 1:
+        return _report(
+            supported=False,
+            reason_code="invalid_oracle_repeats",
+            reason="oracle_repeats must be >= 1.",
+        )
+    if str(spec.oracle_aggregate) not in {"mean", "median"}:
+        return _report(
+            supported=False,
+            reason_code="unsupported_oracle_aggregate",
+            reason="oracle_aggregate must be one of {'mean','median'}.",
+        )
+    if int(spec.transpile_optimization_level) not in {0, 1, 2, 3}:
+        return _report(
+            supported=False,
+            reason_code="invalid_transpile_optimization_level",
+            reason="transpile_optimization_level must be one of {0,1,2,3}.",
+        )
+    if str(spec.execution_surface) not in {"expectation_v1", "raw_measurement_v1"}:
+        return _report(
+            supported=False,
+            reason_code="unsupported_execution_surface",
+            reason="execution_surface must be one of {'expectation_v1','raw_measurement_v1'}.",
+        )
+
+    mitigation_mode = str(spec.mitigation.get("mode", "none"))
+    symmetry_mode = str(spec.symmetry_mitigation.get("mode", "off"))
+    if str(spec.execution_surface) == "raw_measurement_v1":
+        if str(spec.noise_mode) not in {"runtime", "backend_scheduled"}:
+            return _report(
+                supported=False,
+                reason_code="raw_noise_mode_unsupported",
+                reason="raw_measurement_v1 supports only noise_mode in {'runtime','backend_scheduled'}.",
+            )
+        if mitigation_mode != "none":
+            return _report(
+                supported=False,
+                reason_code="raw_requires_no_mitigation",
+                reason="raw_measurement_v1 requires mitigation_mode='none'.",
+            )
+        if symmetry_mode not in {"off", "verify_only"}:
+            return _report(
+                supported=False,
+                reason_code="raw_symmetry_mode_unsupported",
+                reason="raw_measurement_v1 supports symmetry_mitigation only in {'off','verify_only'}.",
+            )
+        if str(spec.noise_mode) == "runtime":
+            if spec.backend_name in {None, ""}:
+                return _report(
+                    supported=False,
+                    reason_code="runtime_backend_required",
+                    reason="runtime execution requires backend_name.",
+                )
+            if bool(spec.use_fake_backend):
+                return _report(
+                    supported=False,
+                    reason_code="runtime_raw_fake_backend_unsupported",
+                    reason="runtime raw execution requires use_fake_backend=False.",
+                )
+            try:
+                normalize_runtime_raw_sampler_profile_config(spec.runtime_profile)
+            except ValueError as exc:
+                return _report(
+                    supported=False,
+                    reason_code="runtime_raw_profile_unsupported",
+                    reason=str(exc),
+                )
+            if str(spec.raw_transport) not in {"auto", "sampler_v2"}:
+                return _report(
+                    supported=False,
+                    reason_code="runtime_raw_transport_unsupported",
+                    reason="runtime raw execution requires raw_transport in {'auto','sampler_v2'}.",
+                )
+        else:
+            if not bool(spec.use_fake_backend):
+                return _report(
+                    supported=False,
+                    reason_code="backend_scheduled_requires_fake_backend",
+                    reason="backend_scheduled raw execution requires use_fake_backend=True.",
+                )
+            if spec.backend_name in {None, ""}:
+                return _report(
+                    supported=False,
+                    reason_code="backend_scheduled_backend_required",
+                    reason="backend_scheduled raw execution requires backend_name.",
+                )
+            if str(spec.raw_transport) != "auto":
+                return _report(
+                    supported=False,
+                    reason_code="backend_scheduled_raw_transport_unsupported",
+                    reason="backend_scheduled raw execution currently requires raw_transport='auto'.",
+                )
+        return _report(supported=True, reason_code="ok", reason="ok")
+
+    if str(spec.noise_mode) == "runtime" and spec.backend_name in {None, ""}:
+        return _report(
+            supported=False,
+            reason_code="runtime_backend_required",
+            reason="runtime expectation execution requires backend_name.",
+        )
+    if str(spec.noise_mode) == "runtime" and bool(spec.use_fake_backend):
+        return _report(
+            supported=False,
+            reason_code="runtime_expectation_fake_backend_unsupported",
+            reason="runtime expectation execution requires use_fake_backend=False.",
+        )
+    if str(spec.noise_mode) == "backend_scheduled":
+        if not bool(spec.use_fake_backend):
+            return _report(
+                supported=False,
+                reason_code="backend_scheduled_requires_fake_backend",
+                reason="backend_scheduled expectation execution requires use_fake_backend=True.",
+            )
+        if mitigation_mode == "readout" and symmetry_mode != "off":
+            return _report(
+                supported=False,
+                reason_code="backend_scheduled_readout_symmetry_conflict",
+                reason="backend_scheduled readout mitigation is not combinable with active symmetry mitigation.",
+            )
+        if spec.backend_name in {None, ""}:
+            return _report(
+                supported=False,
+                reason_code="backend_scheduled_backend_required",
+                reason="backend_scheduled expectation execution requires backend_name.",
+            )
+    return _report(supported=True, reason_code="ok", reason="ok")
+
+
+def validate_oracle_execution_request(config: Any) -> dict[str, Any]:
+    report = dict(assess_oracle_execution_capability(config))
+    if not bool(report.get("supported", False)):
+        raise ValueError(str(report.get("reason", "unsupported oracle execution request")))
+    return report
+
+
+def normalize_sampler_raw_runtime_config(config: OracleConfig) -> OracleConfig:
+    normalized = OracleConfig(
+        noise_mode=str(getattr(config, "noise_mode", "runtime")).strip().lower() or "runtime",
+        shots=int(getattr(config, "shots", 2048)),
+        seed=int(getattr(config, "seed", 7)),
+        seed_transpiler=(
+            None
+            if getattr(config, "seed_transpiler", None) is None
+            else int(getattr(config, "seed_transpiler"))
+        ),
+        transpile_optimization_level=int(getattr(config, "transpile_optimization_level", 1)),
+        oracle_repeats=max(1, int(getattr(config, "oracle_repeats", 1))),
+        oracle_aggregate=str(getattr(config, "oracle_aggregate", "mean")).strip().lower() or "mean",
+        backend_name=(
+            None
+            if getattr(config, "backend_name", None) in {None, ""}
+            else str(getattr(config, "backend_name"))
+        ),
+        use_fake_backend=bool(getattr(config, "use_fake_backend", False)),
+        approximation=bool(getattr(config, "approximation", False)),
+        abelian_grouping=bool(getattr(config, "abelian_grouping", True)),
+        allow_aer_fallback=bool(getattr(config, "allow_aer_fallback", True)),
+        aer_fallback_mode=str(getattr(config, "aer_fallback_mode", "sampler_shots")).strip().lower()
+        or "sampler_shots",
+        omp_shm_workaround=bool(getattr(config, "omp_shm_workaround", True)),
+        mitigation=dict(normalize_mitigation_config(getattr(config, "mitigation", "none"))),
+        symmetry_mitigation=dict(
+            normalize_symmetry_mitigation_config(getattr(config, "symmetry_mitigation", "off"))
+        ),
+        runtime_profile=dict(
+            normalize_runtime_raw_sampler_profile_config(
+                getattr(config, "runtime_profile", "legacy_runtime_v0")
+            )
+        ),
+        runtime_session=dict(
+            normalize_runtime_session_policy_config(
+                getattr(config, "runtime_session", "prefer_session")
+            )
+        ),
         execution_surface=str(
             getattr(config, "execution_surface", "raw_measurement_v1")
         ).strip().lower()
@@ -616,7 +1007,7 @@ def normalize_sampler_raw_runtime_config(config: OracleConfig) -> OracleConfig:
     mitigation_cfg = dict(normalize_mitigation_config(normalized.mitigation))
     symmetry_cfg = dict(normalize_symmetry_mitigation_config(normalized.symmetry_mitigation))
     runtime_profile_cfg = dict(
-        normalize_runtime_estimator_profile_config(normalized.runtime_profile)
+        normalize_runtime_raw_sampler_profile_config(normalized.runtime_profile)
     )
     noise_mode = str(normalized.noise_mode).strip().lower()
     execution_surface = str(normalized.execution_surface).strip().lower()
@@ -634,11 +1025,9 @@ def normalize_sampler_raw_runtime_config(config: OracleConfig) -> OracleConfig:
         )
     if str(mitigation_cfg.get("mode", "none")) != "none":
         raise ValueError("sampler raw runtime config requires mitigation_mode='none'.")
-    if str(symmetry_cfg.get("mode", "off")) != "off":
-        raise ValueError("sampler raw runtime config requires symmetry_mitigation='off'.")
-    if str(runtime_profile_cfg.get("name", "legacy_runtime_v0")) != "legacy_runtime_v0":
+    if str(symmetry_cfg.get("mode", "off")) not in {"off", "verify_only"}:
         raise ValueError(
-            "sampler raw runtime config requires runtime_profile='legacy_runtime_v0'."
+            "sampler raw runtime config requires symmetry_mitigation in {'off','verify_only'}."
         )
     if raw_transport not in {"auto", "sampler_v2"}:
         raise ValueError(
@@ -3145,7 +3534,19 @@ def _twirl_compiled_two_qubit_base(
             "twirled_metrics": dict(base_metrics),
         }
 
-    twirled = pauli_twirl_2q_gates(
+    if _qiskit_pauli_twirl_2q_gates is None:
+        return compiled_base, {
+            "requested": True,
+            "applied": False,
+            "reason": "pauli_twirl_2q_gates_unavailable",
+            "engine": "qiskit.circuit.pauli_twirl_2q_gates",
+            "seed": int(seed),
+            "gate_set": ["cx", "cz", "ecr", "iswap"],
+            "base_metrics": dict(base_metrics),
+            "twirled_metrics": dict(base_metrics),
+        }
+
+    twirled = _qiskit_pauli_twirl_2q_gates(
         compiled_base,
         seed=int(seed),
         target=(None if backend_target is None else getattr(backend_target, "target", None)),
@@ -4458,16 +4859,9 @@ class RawMeasurementOracle:
             raise ValueError(
                 "RawMeasurementOracle phase-1 supports symmetry_mitigation only in {'off','verify_only'}."
             )
-        runtime_profile_cfg = normalize_runtime_estimator_profile_config(
+        runtime_profile_cfg = normalize_runtime_raw_sampler_profile_config(
             getattr(self.config, "runtime_profile", "legacy_runtime_v0")
         )
-        if (
-            self.config.noise_mode == "runtime"
-            and str(runtime_profile_cfg.get("name", "legacy_runtime_v0")) != "legacy_runtime_v0"
-        ):
-            raise ValueError(
-                "RawMeasurementOracle phase-1 runtime mode requires runtime_profile='legacy_runtime_v0'."
-            )
         if self.config.noise_mode == "backend_scheduled" and not bool(self.config.use_fake_backend):
             raise ValueError("RawMeasurementOracle backend_scheduled mode requires use_fake_backend=True.")
         self._backend_target = None
@@ -4555,7 +4949,7 @@ class RawMeasurementOracle:
                 "runtime raw measurement requires qiskit-ibm-runtime SamplerV2."
             ) from exc
         sampler = RuntimeSamplerV2(mode=self._runtime_mode)
-        runtime_profile_cfg = normalize_runtime_estimator_profile_config(
+        runtime_profile_cfg = normalize_runtime_raw_sampler_profile_config(
             getattr(self.config, "runtime_profile", "legacy_runtime_v0")
         )
         self._runtime_sampler_configured_details = _configure_runtime_sampler_options(

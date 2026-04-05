@@ -43,9 +43,10 @@ The staged `VQE -> ADAPT -> VQE` wrappers remain available for reproduction and 
    - `hh_hva_ptw` remains the staged warm-start default.
    - `hh_hva` remains an explicit override only.
 2. Use that warm-start state as the ADAPT reference state.
-3. Run ADAPT from that prepared state in staged wrapper continuation mode (`phase1_v1`, historical staged default).
-   - `phase3_v1` remains an explicit override if you need the staged wrapper on the newer continuation surface.
-   - Optional phase-3 follow-ons stay opt-in: `--phase3-runtime-split-mode shortlist_pauli_children_v1` is a shortlist-only continuation aid, and widened `--phase3-symmetry-mitigation-mode` choices remain phase-3 metadata/telemetry hooks on raw staged/hardcoded/replay paths.
+3. Run ADAPT from that prepared state in staged wrapper continuation mode.
+   - Older repo-doc references to staged `phase1_v1` default behavior are archival only.
+   - The manuscript is the source of truth for the canonical HH ADAPT surface; when older repo docs disagree, follow the manuscript and current CLI/runtime behavior (`phase3_v1`).
+   - The manuscript-facing canonical path keeps Phase-3 runtime splitting disabled; widened `--phase3-symmetry-mitigation-mode` choices remain phase-3 metadata/telemetry hooks on raw staged/hardcoded/replay paths.
 4. Replay conventional VQE from ADAPT with ADAPT-family matching (`--generator-family match_adapt`, fallback `full_meta`) via `pipelines/hardcoded/hh_vqe_from_adapt_family.py`.
 
 Optional staged seed-refine insertion:
@@ -194,7 +195,7 @@ graph TB
 - `hh` pools: `hva`, `full_hamiltonian`, `paop_min`, `paop_std`, `paop_full`, `paop_lf` (`paop_lf_std` alias), `paop_lf2_std`, `paop_lf_full`.
 - Experimental offline/local exact-noiseless probe families: `paop_lf3_std`, `paop_lf4_std`, `paop_sq_std`, `paop_sq_full`.
 - HH direct ADAPT default for new agent work: `phase3_v1` starts from the narrow HH core and runtime-resolves depth-0 HH ADAPT to `paop_lf_std`.
-- Historical staged wrappers keep `phase1_v1` as their compatibility default unless explicitly overridden.
+- Older repo-doc statements that staged wrappers default to `phase1_v1` are archival only; the manuscript/current canonical HH ADAPT surface uses `phase3_v1`, and manuscript guidance wins when those older docs disagree.
 - HH built-in combined preset: `uccsd_paop_lf_full` = `uccsd_lifted + paop_lf_full` (deduplicated) via one CLI value.
 - HH explicit product families: `uccsd_otimes_paop_lf_std`, `uccsd_otimes_paop_lf2_std`, `uccsd_otimes_paop_bond_disp_std`.
   - These are the canonical lifted-UCCSD ⊗ boson-only-phonon constructions in this repo: one lifted fermionic UCCSD factor times one boson-only phonon motif, locality-filtered, canonicalized, and deduplicated.
@@ -205,7 +206,7 @@ graph TB
 - HH full-meta preset: `full_meta` = `uccsd_lifted + hva + paop_full + paop_lf_full` (deduplicated) via one CLI value; keep it as a compatibility/broad-pool preset and replay fallback, not the default depth-0 staged HH pool.
 - HH lean replay/export presets: `pareto_lean` and `pareto_lean_l2`.
   - `pareto_lean_l2` is intentionally narrow: valid only for `L=2` and `n_ph_max=1`.
-- Opt-in runtime split (`--phase3-runtime-split-mode shortlist_pauli_children_v1`) probes shortlisted macro generators as serialized child terms for continuation/replay provenance; it does **not** change the default HH pool curriculum or create a new replay mode.
+- Phase-3 runtime split is disabled on the canonical public HH run surfaces. The old shortlist Pauli-child split implementation is retained only as an internal archival/testing path and is not part of the manuscript-facing algorithm contract.
 - ADAPT/replay parameter contract:
   - `operators` / `ansatz_depth` remain the logical generator scaffold.
   - `optimal_point` / `num_parameters` are the runtime per-Pauli rotation vector/count.

@@ -25,6 +25,16 @@ class RealtimeCheckpointConfig:
     mode: str = "off"
     oracle_selection_policy: str = "measured_gain_commit_veto"
     candidate_step_scales: tuple[float, ...] = (1.0,)
+    exact_forecast_baseline_step_refine_rounds: int = 0
+    exact_forecast_baseline_blend_weights: tuple[float, ...] = ()
+    exact_forecast_baseline_gain_scales: tuple[float, ...] = ()
+    exact_forecast_tracking_horizon_steps: int = 1
+    exact_forecast_tracking_horizon_weights: tuple[float, ...] = ()
+    exact_forecast_energy_slope_weight: float = 0.0
+    exact_forecast_energy_curvature_weight: float = 0.0
+    exact_forecast_energy_excursion_under_weight: float = 0.0
+    exact_forecast_energy_excursion_over_weight: float = 0.0
+    exact_forecast_energy_excursion_rel_tolerance: float = 0.0
     exact_forecast_guardrail_mode: str = "off"
     exact_forecast_fidelity_loss_tol: float = 0.0
     exact_forecast_abs_energy_error_increase_tol: float = 0.0
@@ -41,6 +51,22 @@ class RealtimeCheckpointConfig:
     compile_penalty_weight: float = 0.05
     measurement_penalty_weight: float = 0.02
     directional_penalty_weight: float = 0.01
+    confirm_score_mode: str = "compressed_whitened_v1"
+    confirm_compress_fraction: float = 0.5
+    confirm_compress_min_modes: int = 1
+    confirm_compress_max_modes: int = 8
+    prune_mode: str = "off"
+    prune_miss_threshold: float = 0.02
+    prune_protection_steps: int = 2
+    prune_stagnation_window: int = 3
+    prune_stagnation_alpha: float = 0.5
+    prune_stale_score_threshold: float = 0.75
+    prune_loss_threshold: float = 0.01
+    prune_max_candidates: int = 2
+    prune_cooldown_steps: int = 2
+    prune_safe_miss_increase_tol: float = 0.01
+    prune_state_jump_l2_tol: float = 0.05
+    prune_theta_block_tol: float = 0.05
     motion_calm_direction_cosine_threshold: float = 0.98
     motion_calm_rate_change_ratio_threshold: float = 0.15
     motion_direction_reversal_cosine_threshold: float = -0.05
@@ -213,8 +239,13 @@ class CheckpointLedgerEntry:
     runtime_parameter_count_before: int
     runtime_parameter_count_after: int
     rate_change_l2: float | None
+    prune_cached_loss_selected: float | None = None
+    prune_stagnation_score_selected: float | None = None
+    post_prune_state_jump_l2: float | None = None
     proposed_action_kind: str | None = None
     proposed_candidate_label: str | None = None
+    controller_lane: str | None = None
+    controller_lane_reason: str | None = None
     physical_time: float | None = None
     motion_regime: str | None = None
     motion_direction_cosine: float | None = None
@@ -242,6 +273,9 @@ class CheckpointLedgerEntry:
     selection_metric: str | None = None
     decision_override_reason: str | None = None
     exact_forecast_error: str | None = None
+    baseline_step_scale: float | None = None
+    baseline_blend_weight: float | None = None
+    baseline_gain_scale: float | None = None
     selected_step_scale: float | None = None
     forecast_stay_fidelity_exact_next: float | None = None
     forecast_selected_fidelity_exact_next: float | None = None
@@ -251,6 +285,8 @@ class CheckpointLedgerEntry:
     forecast_selected_abs_staggered_error_next: float | None = None
     forecast_stay_abs_doublon_error_next: float | None = None
     forecast_selected_abs_doublon_error_next: float | None = None
+    forecast_stay_site_occupations_abs_error_max_next: float | None = None
+    forecast_selected_site_occupations_abs_error_max_next: float | None = None
     predicted_displacement: float | None = None
     temporal_refresh_pressure: str | None = None
     selected_noisy_energy_mean: float | None = None
