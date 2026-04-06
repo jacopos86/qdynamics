@@ -26,8 +26,12 @@ class RealtimeCheckpointConfig:
     oracle_selection_policy: str = "measured_gain_commit_veto"
     candidate_step_scales: tuple[float, ...] = (1.0,)
     exact_forecast_baseline_step_refine_rounds: int = 0
+    exact_forecast_baseline_proposal_mode: str = "norm_locked_blend_v1"
     exact_forecast_baseline_blend_weights: tuple[float, ...] = ()
     exact_forecast_baseline_gain_scales: tuple[float, ...] = ()
+    exact_forecast_include_tangent_secant_proposal: bool = False
+    exact_forecast_tangent_secant_trust_radius: float = 0.0
+    exact_forecast_tangent_secant_signed_energy_lead_limit: float = 0.0
     exact_forecast_tracking_horizon_steps: int = 1
     exact_forecast_tracking_horizon_weights: tuple[float, ...] = ()
     exact_forecast_energy_slope_weight: float = 0.0
@@ -276,6 +280,7 @@ class CheckpointLedgerEntry:
     baseline_step_scale: float | None = None
     baseline_blend_weight: float | None = None
     baseline_gain_scale: float | None = None
+    baseline_proposal_kind: str | None = None
     selected_step_scale: float | None = None
     forecast_stay_fidelity_exact_next: float | None = None
     forecast_selected_fidelity_exact_next: float | None = None

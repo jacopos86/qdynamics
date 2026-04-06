@@ -12,6 +12,7 @@ import gzip
 import json
 import os
 import inspect
+import math
 import subprocess
 import sys
 import copy
@@ -840,6 +841,9 @@ def assess_oracle_execution_capability(config: Any) -> dict[str, Any]:
         )
 
     mitigation_mode = str(spec.mitigation.get("mode", "none"))
+    zne_scales = list(spec.mitigation.get("zne_scales", []) or [])
+    dd_sequence = spec.mitigation.get("dd_sequence", None)
+    local_gate_twirling = bool(spec.mitigation.get("local_gate_twirling", False))
     symmetry_mode = str(spec.symmetry_mitigation.get("mode", "off"))
     if str(spec.execution_surface) == "raw_measurement_v1":
         if str(spec.noise_mode) not in {"runtime", "backend_scheduled"}:
@@ -848,11 +852,16 @@ def assess_oracle_execution_capability(config: Any) -> dict[str, Any]:
                 reason_code="raw_noise_mode_unsupported",
                 reason="raw_measurement_v1 supports only noise_mode in {'runtime','backend_scheduled'}.",
             )
-        if mitigation_mode != "none":
+        if (
+            mitigation_mode != "none"
+            or zne_scales
+            or dd_sequence not in {None, "", "none"}
+            or local_gate_twirling
+        ):
             return _report(
                 supported=False,
                 reason_code="raw_requires_no_mitigation",
-                reason="raw_measurement_v1 requires mitigation_mode='none'.",
+                reason="raw_measurement_v1 requires mitigation_mode='none' with local ZNE/twirling/DD disabled.",
             )
         if symmetry_mode not in {"off", "verify_only"}:
             return _report(
@@ -3570,6 +3579,114 @@ def _twirl_compiled_two_qubit_base(
     }
 
 
+def _validate_backend_scheduled_local_zne_scales(raw: Any) -> list[float]:
+    scales = _parse_zne_scales(raw)
+    out: list[float] = []
+    for value in scales:
+        rounded = int(round(float(value)))
+        if (
+            (not np.isfinite(float(value)))
+            or rounded < 1
+            or rounded % 2 == 0
+            or (not math.isclose(float(value), float(rounded), rel_tol=0.0, abs_tol=1e-9))
+        ):
+            raise ValueError(
+                "backend_scheduled local ZNE currently requires odd positive integer noise scales."
+            )
+        out.append(float(rounded))
+    if out and not any(math.isclose(float(value), 1.0, rel_tol=0.0, abs_tol=1e-9) for value in out):
+        raise ValueError(
+            "backend_scheduled local ZNE requires zne_scales to include the base factor 1."
+        )
+    return out
+
+
+def _compiled_circuit_inverse_or_none(circuit: QuantumCircuit) -> QuantumCircuit | None:
+    try:
+        return circuit.inverse()
+    except Exception:
+        return None
+
+
+def _build_local_compiled_zne_folded_circuit(
+    *,
+    compiled_circuit: QuantumCircuit,
+    noise_scale: float,
+) -> tuple[QuantumCircuit, dict[str, Any]]:
+    scale_val = float(noise_scale)
+    rounded = int(round(scale_val))
+    if not math.isfinite(scale_val) or rounded < 1 or rounded % 2 == 0 or not math.isclose(
+        scale_val, float(rounded), rel_tol=0.0, abs_tol=1e-9
+    ):
+        raise ValueError(
+            f"backend_scheduled local ZNE requires odd integer noise scales; got {noise_scale!r}."
+        )
+    inverse = _compiled_circuit_inverse_or_none(compiled_circuit)
+    if inverse is None:
+        raise RuntimeError("backend_scheduled local ZNE could not invert the compiled circuit.")
+    nq = int(compiled_circuit.num_qubits)
+    folded = QuantumCircuit(nq, name=f"{compiled_circuit.name or 'compiled'}_zne_x{rounded}")
+    folded.compose(compiled_circuit, inplace=True)
+    fold_pairs = int((rounded - 1) // 2)
+    for _ in range(fold_pairs):
+        if nq > 0:
+            folded.barrier(*range(nq))
+        folded.compose(inverse, inplace=True)
+        if nq > 0:
+            folded.barrier(*range(nq))
+        folded.compose(compiled_circuit, inplace=True)
+    return folded, {
+        "engine": "compiled_circuit_unitary_folding_v1",
+        "noise_scale": float(scale_val),
+        "fold_pairs": int(fold_pairs),
+        "zne_fold_scope": "compiled_circuit_full",
+        "compiled_metrics": dict(_compiled_metrics_payload(folded)),
+    }
+
+
+def _linear_zne_extrapolation(
+    *,
+    noise_scales: Sequence[float],
+    noisy_means: Sequence[float],
+    noisy_stderrs: Sequence[float],
+) -> dict[str, Any]:
+    x = np.asarray([float(v) for v in noise_scales], dtype=float)
+    y = np.asarray([float(v) for v in noisy_means], dtype=float)
+    s = np.asarray([float(v) for v in noisy_stderrs], dtype=float)
+    if int(x.size) != int(y.size) or int(x.size) == 0:
+        raise ValueError("Local ZNE extrapolation requires aligned non-empty scale/value arrays.")
+    if int(x.size) == 1:
+        stderr = float(s[0]) if np.isfinite(s[0]) else float("nan")
+        return {
+            "slope": 0.0,
+            "intercept_mean": float(y[0]),
+            "intercept_stderr": float(stderr),
+            "fit_kind": "degenerate_single_point",
+        }
+    weights = None
+    if np.all(np.isfinite(s)) and np.all(s > 0.0):
+        weights = 1.0 / s
+    coeffs: np.ndarray
+    cov: np.ndarray | None = None
+    try:
+        if weights is not None:
+            coeffs, cov = np.polyfit(x, y, deg=1, w=weights, cov=True)
+        else:
+            coeffs, cov = np.polyfit(x, y, deg=1, cov=True)
+    except Exception:
+        coeffs = np.polyfit(x, y, deg=1)
+        cov = None
+    intercept_stderr = float("nan")
+    if cov is not None and np.shape(cov) == (2, 2) and np.isfinite(cov[1, 1]) and cov[1, 1] >= 0.0:
+        intercept_stderr = float(np.sqrt(float(cov[1, 1])))
+    return {
+        "slope": float(coeffs[0]),
+        "intercept_mean": float(coeffs[1]),
+        "intercept_stderr": float(intercept_stderr),
+        "fit_kind": ("weighted_linear" if weights is not None else "linear"),
+    }
+
+
 def _postselected_counts_and_fraction(
     counts: Mapping[str, int],
     *,
@@ -5315,6 +5432,10 @@ class ExpectationOracle:
                 raise ValueError(
                     "backend_scheduled currently supports only mitigation modes 'none' or 'readout'."
                 )
+            zne_scales = _validate_backend_scheduled_local_zne_scales(
+                mitigation_cfg.get("zne_scales", [])
+            )
+            mitigation_cfg["zne_scales"] = list(zne_scales)
             dd_sequence = mitigation_cfg.get("dd_sequence", None)
             if dd_sequence not in {None, "", "none"}:
                 dd_sequence_norm = str(dd_sequence).strip().upper()
@@ -5334,10 +5455,10 @@ class ExpectationOracle:
                         f"expected one of {sorted(_LOCAL_READOUT_STRATEGIES)}."
                     )
                 mitigation_cfg["local_readout_strategy"] = str(strategy)
-                self.config = OracleConfig(
-                    **{**self.config.__dict__, "mitigation": dict(mitigation_cfg)}
-                )
                 self._mthree_module = _resolve_mthree()
+            self.config = OracleConfig(
+                **{**self.config.__dict__, "mitigation": dict(mitigation_cfg)}
+            )
             try:
                 import qiskit_aer  # noqa: F401
             except Exception as exc:  # pragma: no cover - import error path
@@ -5378,6 +5499,12 @@ class ExpectationOracle:
                         "reason": "not_evaluated",
                         "scheduling_method": "alap",
                         "timing_supported": False,
+                    },
+                    "local_zne": {
+                        "requested": bool(mitigation_cfg.get("zne_scales", [])),
+                        "applied": False,
+                        "zne_scales": [float(x) for x in mitigation_cfg.get("zne_scales", [])],
+                        "extrapolator": None,
                     },
                     "aer_failed": False,
                     "fallback_used": False,
@@ -6358,7 +6485,7 @@ class ExpectationOracle:
         )
         return dict(counts), active_physical, details
 
-    def _evaluate_backend_scheduled_with_target(
+    def _evaluate_backend_scheduled_single_scale_with_target(
         self,
         compiled_base: QuantumCircuit,
         logical_to_physical: Sequence[int],
@@ -6517,6 +6644,112 @@ class ExpectationOracle:
             details,
         )
 
+    def _evaluate_backend_scheduled_with_target(
+        self,
+        compiled_base: QuantumCircuit,
+        logical_to_physical: Sequence[int],
+        observable: SparsePauliOp,
+        *,
+        execution_target: Any | None = None,
+        attribution_slice: str | None = None,
+        target_details: Mapping[str, Any] | None = None,
+    ) -> tuple[OracleEstimate, dict[str, Any]]:
+        mitigation_cfg = normalize_mitigation_config(getattr(self.config, "mitigation", "none"))
+        zne_scales = _validate_backend_scheduled_local_zne_scales(
+            mitigation_cfg.get("zne_scales", [])
+        )
+        if not zne_scales:
+            return self._evaluate_backend_scheduled_single_scale_with_target(
+                compiled_base,
+                logical_to_physical,
+                observable,
+                execution_target=execution_target,
+                attribution_slice=attribution_slice,
+                target_details=target_details,
+            )
+        if execution_target is not None or attribution_slice is not None:
+            raise ValueError(
+                "backend_scheduled local ZNE currently requires the primary execution target (no attribution/custom target)."
+            )
+
+        per_factor_results: list[dict[str, Any]] = []
+        base_factor_result: dict[str, Any] | None = None
+        for scale in zne_scales:
+            folded_circuit, folding_metadata = _build_local_compiled_zne_folded_circuit(
+                compiled_circuit=compiled_base,
+                noise_scale=float(scale),
+            )
+            factor_estimate, factor_details = self._evaluate_backend_scheduled_single_scale_with_target(
+                folded_circuit,
+                logical_to_physical,
+                observable,
+                execution_target=None,
+                attribution_slice=None,
+                target_details=None,
+            )
+            factor_result = {
+                "noise_scale": float(scale),
+                "folding_metadata": dict(folding_metadata),
+                "compiled_metrics": dict(folding_metadata.get("compiled_metrics", {})),
+                "mean": float(factor_estimate.mean),
+                "std": float(factor_estimate.std),
+                "stdev": float(factor_estimate.stdev),
+                "stderr": float(factor_estimate.stderr),
+                "n_samples": int(factor_estimate.n_samples),
+                "raw_values": [float(x) for x in factor_estimate.raw_values],
+                "aggregate": str(factor_estimate.aggregate),
+                "details": dict(factor_details),
+            }
+            per_factor_results.append(factor_result)
+            if base_factor_result is None or math.isclose(
+                float(scale), 1.0, rel_tol=0.0, abs_tol=1e-9
+            ):
+                base_factor_result = dict(factor_result)
+        if base_factor_result is None:
+            raise RuntimeError("backend_scheduled local ZNE completed without a base-factor result.")
+
+        fit = _linear_zne_extrapolation(
+            noise_scales=[float(rec["noise_scale"]) for rec in per_factor_results],
+            noisy_means=[float(rec["mean"]) for rec in per_factor_results],
+            noisy_stderrs=[float(rec["stderr"]) for rec in per_factor_results],
+        )
+        extrapolated_mean = float(fit["intercept_mean"])
+        extrapolated_stderr = float(fit["intercept_stderr"])
+        factor_means = np.asarray([float(rec["mean"]) for rec in per_factor_results], dtype=float)
+        factor_std = (
+            float(np.std(factor_means, ddof=1))
+            if int(factor_means.size) > 1
+            else 0.0
+        )
+        zne_details = {
+            "requested": True,
+            "applied": True,
+            "engine": "compiled_circuit_unitary_folding_v1",
+            "zne_scales": [float(x) for x in zne_scales],
+            "extrapolator": "linear",
+            "extrapolator_fit": dict(fit),
+            "per_factor_results": per_factor_results,
+            "base_factor_result": dict(base_factor_result),
+            "zne_fold_scope": (
+                dict(base_factor_result.get("folding_metadata", {})).get("zne_fold_scope", None)
+            ),
+            "warning": dict(base_factor_result.get("folding_metadata", {})).get("warning", None),
+        }
+        details = dict(base_factor_result.get("details", {}))
+        details["local_zne"] = dict(zne_details)
+        return (
+            OracleEstimate(
+                mean=float(extrapolated_mean),
+                std=float(factor_std),
+                stdev=float(factor_std),
+                stderr=float(extrapolated_stderr),
+                n_samples=int(len(per_factor_results)),
+                raw_values=[float(rec["mean"]) for rec in per_factor_results],
+                aggregate="linear_zne",
+            ),
+            details,
+        )
+
     def collect_backend_scheduled_term_sample(
         self,
         circuit: QuantumCircuit,
@@ -6582,6 +6815,10 @@ class ExpectationOracle:
         if str(self.config.noise_mode) != "backend_scheduled":
             raise ValueError("collect_backend_scheduled_group_sample requires backend_scheduled noise mode.")
         mitigation_cfg = normalize_mitigation_config(getattr(self.config, "mitigation", "none"))
+        if mitigation_cfg.get("zne_scales", []):
+            raise ValueError(
+                "collect_backend_scheduled_group_sample does not support local ZNE; use evaluate(...) instead."
+            )
         mitigation_mode = str(mitigation_cfg.get("mode", "none"))
         base = self._get_backend_scheduled_base(circuit)
         repeat_base, twirling_details = self._get_backend_scheduled_repeat_base(
@@ -6819,6 +7056,8 @@ class ExpectationOracle:
         )
         if str(mitigation_cfg.get("mode", "none")) != "none":
             raise ValueError("backend_scheduled attribution requires mitigation mode 'none'.")
+        if mitigation_cfg.get("zne_scales", []):
+            raise ValueError("backend_scheduled attribution requires local ZNE off.")
         if bool(mitigation_cfg.get("local_gate_twirling", False)):
             raise ValueError("backend_scheduled attribution requires local gate twirling off.")
         if mitigation_cfg.get("dd_sequence", None) not in {None, "", "none"}:

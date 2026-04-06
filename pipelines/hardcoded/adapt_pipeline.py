@@ -2564,6 +2564,9 @@ class Phase3OracleGradientConfig:
     gradient_step: float
     mitigation_mode: str
     local_readout_strategy: str | None
+    zne_scales: tuple[float, ...] = ()
+    local_gate_twirling: bool = False
+    dd_sequence: str | None = None
     scope: str = "selection_only"
     execution_surface_requested: str = "auto"
     execution_surface: str = "expectation_v1"
@@ -2599,6 +2602,9 @@ class FinalNoiseAuditConfig:
     seed: int
     mitigation_mode: str
     local_readout_strategy: str | None
+    zne_scales: tuple[float, ...] = ()
+    local_gate_twirling: bool = False
+    dd_sequence: str | None = None
     runtime_profile_name: str = "legacy_runtime_v0"
     runtime_session_policy: str = "prefer_session"
     compare_unmitigated_baseline: bool = False
@@ -2621,6 +2627,54 @@ class FinalNoiseAuditSnapshot:
     logical_parameter_count: int
     exact_filtered_ground_energy: float
     exact_final_state_energy: float
+
+
+def _parse_oracle_zne_scales(
+    raw: Any,
+    *,
+    field_name: str,
+) -> tuple[float, ...]:
+    if raw is None:
+        return ()
+    if isinstance(raw, str):
+        tokens = [tok.strip() for tok in str(raw).split(",") if tok.strip() != ""]
+    elif isinstance(raw, Sequence):
+        tokens = list(raw)
+    else:
+        tokens = [raw]
+    out: list[float] = []
+    for tok in tokens:
+        value = float(tok)
+        if (not math.isfinite(value)) or value <= 0.0:
+            raise ValueError(f"{field_name} entries must be finite and > 0.")
+        out.append(float(value))
+    return tuple(out)
+
+
+def _validate_backend_scheduled_local_zne_scales(
+    zne_scales: Sequence[float],
+    *,
+    field_name: str,
+) -> tuple[float, ...]:
+    out: list[float] = []
+    for raw in zne_scales:
+        value = float(raw)
+        rounded = int(round(value))
+        if (
+            (not math.isfinite(value))
+            or rounded < 1
+            or rounded % 2 == 0
+            or (not math.isclose(value, float(rounded), rel_tol=0.0, abs_tol=1e-9))
+        ):
+            raise ValueError(
+                f"{field_name} must contain odd positive integer noise scales for backend_scheduled local ZNE."
+            )
+        out.append(float(rounded))
+    if out and not any(math.isclose(val, 1.0, rel_tol=0.0, abs_tol=1e-9) for val in out):
+        raise ValueError(
+            f"{field_name} must include the base noise scale 1 for backend_scheduled local ZNE."
+        )
+    return tuple(out)
 
 
 def _resolve_phase3_oracle_gradient_config(
@@ -2659,6 +2713,16 @@ def _resolve_phase3_oracle_gradient_config(
             if config.local_readout_strategy in {None, ""}
             else str(config.local_readout_strategy).strip().lower()
         ),
+        zne_scales=_parse_oracle_zne_scales(
+            getattr(config, "zne_scales", ()),
+            field_name="phase3_oracle_zne_scales",
+        ),
+        local_gate_twirling=bool(getattr(config, "local_gate_twirling", False)),
+        dd_sequence=(
+            None
+            if getattr(config, "dd_sequence", None) in {None, "", "none"}
+            else str(getattr(config, "dd_sequence")).strip()
+        ),
         scope=str(config.scope).strip().lower() or "selection_only",
         execution_surface_requested=str(requested_surface),
         execution_surface=str(resolved_surface),
@@ -2694,6 +2758,16 @@ def _resolve_final_noise_audit_config(
             None
             if config.local_readout_strategy in {None, ""}
             else str(config.local_readout_strategy).strip().lower()
+        ),
+        zne_scales=_parse_oracle_zne_scales(
+            getattr(config, "zne_scales", ()),
+            field_name="final_noise_audit_zne_scales",
+        ),
+        local_gate_twirling=bool(getattr(config, "local_gate_twirling", False)),
+        dd_sequence=(
+            None
+            if getattr(config, "dd_sequence", None) in {None, "", "none"}
+            else str(getattr(config, "dd_sequence")).strip()
         ),
         runtime_profile_name=(
             str(getattr(config, "runtime_profile_name", "legacy_runtime_v0")).strip().lower()
@@ -2805,6 +2879,13 @@ def _validate_phase3_oracle_gradient_config(
     mitigation_mode = str(config.mitigation_mode).strip().lower()
     if mitigation_mode not in {"none", "readout"}:
         raise ValueError("phase3_oracle_mitigation must be one of {'none','readout'}.")
+    zne_scales = tuple(float(x) for x in getattr(config, "zne_scales", ()) or ())
+    local_gate_twirling = bool(getattr(config, "local_gate_twirling", False))
+    dd_sequence = (
+        None
+        if getattr(config, "dd_sequence", None) in {None, "", "none"}
+        else str(getattr(config, "dd_sequence")).strip()
+    )
     if noise_mode == "backend_scheduled" and not bool(config.use_fake_backend):
         raise ValueError(
             "phase3 oracle gradient mode backend_scheduled requires --phase3-oracle-use-fake-backend."
@@ -2820,6 +2901,23 @@ def _validate_phase3_oracle_gradient_config(
         raise ValueError(
             "phase3_oracle_local_readout_strategy must be 'mthree' when readout mitigation is enabled."
         )
+    if mitigation_mode != "readout" and local_readout_strategy is not None:
+        raise ValueError(
+            "phase3_oracle_local_readout_strategy requires phase3_oracle_mitigation='readout'."
+        )
+    if noise_mode != "backend_scheduled" and (
+        zne_scales
+        or local_gate_twirling
+        or dd_sequence not in {None, "", "none"}
+    ):
+        raise ValueError(
+            "phase3 oracle local ZNE/gate twirling/DD currently require noise_mode='backend_scheduled'."
+        )
+    if noise_mode == "backend_scheduled" and zne_scales:
+        _validate_backend_scheduled_local_zne_scales(
+            zne_scales,
+            field_name="phase3_oracle_zne_scales",
+        )
     if str(config.scope).strip().lower() != "selection_only":
         raise ValueError("phase3 oracle gradient scope is fixed to 'selection_only' in v1.")
     execution_surface = str(config.execution_surface).strip().lower()
@@ -2833,6 +2931,12 @@ def _validate_phase3_oracle_gradient_config(
         raise ValueError("phase3 raw oracle execution requires mitigation_mode='none'.")
     if local_readout_strategy is not None:
         raise ValueError("phase3 raw oracle execution does not allow local readout strategy.")
+    if zne_scales:
+        raise ValueError("phase3 raw oracle execution does not allow local ZNE scales.")
+    if local_gate_twirling:
+        raise ValueError("phase3 raw oracle execution does not allow local gate twirling.")
+    if dd_sequence not in {None, "", "none"}:
+        raise ValueError("phase3 raw oracle execution does not allow local DD.")
     raw_transport = str(config.raw_transport).strip().lower()
     if noise_mode == "backend_scheduled":
         if not bool(config.use_fake_backend):
@@ -2866,6 +2970,9 @@ def _oracle_mitigation_payload_from_fields(
     *,
     mitigation_mode: str,
     local_readout_strategy: str | None,
+    zne_scales: Sequence[float] = (),
+    dd_sequence: str | None = None,
+    local_gate_twirling: bool = False,
 ) -> dict[str, Any]:
     mitigation_mode_key = str(mitigation_mode).strip().lower()
     local_readout_strategy_key = (
@@ -2877,18 +2984,28 @@ def _oracle_mitigation_payload_from_fields(
             else str(local_readout_strategy).strip().lower()
         )
     )
-    return {
+    payload = {
         "mode": str(mitigation_mode_key),
-        "zne_scales": [],
-        "dd_sequence": None,
+        "zne_scales": [float(x) for x in zne_scales],
+        "dd_sequence": (
+            None
+            if dd_sequence in {None, "", "none"}
+            else str(dd_sequence).strip()
+        ),
         "local_readout_strategy": local_readout_strategy_key,
     }
+    if bool(local_gate_twirling):
+        payload["local_gate_twirling"] = True
+    return payload
 
 
 def _phase3_oracle_mitigation_payload(config: Phase3OracleGradientConfig) -> dict[str, Any]:
     return _oracle_mitigation_payload_from_fields(
         mitigation_mode=str(config.mitigation_mode),
         local_readout_strategy=config.local_readout_strategy,
+        zne_scales=tuple(getattr(config, "zne_scales", ()) or ()),
+        dd_sequence=getattr(config, "dd_sequence", None),
+        local_gate_twirling=bool(getattr(config, "local_gate_twirling", False)),
     )
 
 
@@ -2915,9 +3032,16 @@ def _validate_final_noise_audit_config(
         raise ValueError(
             "final_noise_audit_transpile_optimization_level must be one of {0,1,2,3}."
         )
-    mitigation_mode = str(config.mitigation_mode)
+    mitigation_mode = str(config.mitigation_mode).strip().lower()
     if mitigation_mode not in {"none", "readout"}:
         raise ValueError("final_noise_audit_mitigation must be one of {'none','readout'}.")
+    zne_scales = tuple(float(x) for x in getattr(config, "zne_scales", ()) or ())
+    local_gate_twirling = bool(getattr(config, "local_gate_twirling", False))
+    dd_sequence = (
+        None
+        if getattr(config, "dd_sequence", None) in {None, "", "none"}
+        else str(getattr(config, "dd_sequence")).strip()
+    )
     runtime_profile_name = str(config.runtime_profile_name)
     runtime_session_policy = str(config.runtime_session_policy)
     if runtime_profile_name not in _FINAL_NOISE_AUDIT_RUNTIME_PROFILE_NAMES:
@@ -2955,6 +3079,19 @@ def _validate_final_noise_audit_config(
         raise ValueError(
             "final_noise_audit_local_readout_strategy requires final_noise_audit_mitigation='readout'."
         )
+    if noise_mode != "backend_scheduled" and (
+        zne_scales
+        or local_gate_twirling
+        or dd_sequence not in {None, "", "none"}
+    ):
+        raise ValueError(
+            "final noise audit local ZNE/gate twirling/DD currently require noise_mode='backend_scheduled'."
+        )
+    if noise_mode == "backend_scheduled" and zne_scales:
+        _validate_backend_scheduled_local_zne_scales(
+            zne_scales,
+            field_name="final_noise_audit_zne_scales",
+        )
     if noise_mode == "backend_scheduled":
         if runtime_profile_name != "legacy_runtime_v0":
             raise ValueError(
@@ -2985,6 +3122,10 @@ def _validate_final_noise_audit_config(
             raise ValueError(
                 "final noise audit runtime profiles already encode mitigation/suppression; use final_noise_audit_mitigation='none' when final_noise_audit_runtime_profile is explicit."
             )
+        if zne_scales or local_gate_twirling or dd_sequence not in {None, "", "none"}:
+            raise ValueError(
+                "final noise audit runtime full suppression stacks should use an explicit runtime profile, not local backend_scheduled knobs."
+            )
     else:
         if runtime_profile_name != "legacy_runtime_v0":
             raise ValueError(
@@ -3014,6 +3155,9 @@ def _final_noise_audit_config_payload(
             _oracle_mitigation_payload_from_fields(
                 mitigation_mode=str(config.mitigation_mode),
                 local_readout_strategy=config.local_readout_strategy,
+                zne_scales=tuple(getattr(config, "zne_scales", ()) or ()),
+                dd_sequence=getattr(config, "dd_sequence", None),
+                local_gate_twirling=bool(getattr(config, "local_gate_twirling", False)),
             )
         ),
         "runtime_profile": {"name": str(config.runtime_profile_name)},
@@ -4622,7 +4766,10 @@ def _run_hardcoded_adapt_vqe(
         compile_elapsed_s=compile_cache_elapsed_s,
     )
 
-    selected_parameterization_mode = "logical_shared"
+    if str(problem).strip().lower() == "hh" and int(num_sites) <= 2:
+        selected_parameterization_mode = "per_pauli_term"
+    else:
+        selected_parameterization_mode = "logical_shared"
 
     def _build_compiled_executor(ops: list[AnsatzTerm]) -> CompiledAnsatzExecutor:
         return CompiledAnsatzExecutor(
@@ -6034,6 +6181,11 @@ def _run_hardcoded_adapt_vqe(
                     _oracle_mitigation_payload_from_fields(
                         mitigation_mode=str(variant_cfg.mitigation_mode),
                         local_readout_strategy=variant_cfg.local_readout_strategy,
+                        zne_scales=tuple(getattr(variant_cfg, "zne_scales", ()) or ()),
+                        dd_sequence=getattr(variant_cfg, "dd_sequence", None),
+                        local_gate_twirling=bool(
+                            getattr(variant_cfg, "local_gate_twirling", False)
+                        ),
                     )
                 ),
                 symmetry_mitigation={"mode": "off"},
@@ -6160,6 +6312,9 @@ def _run_hardcoded_adapt_vqe(
                     seed=int(source_cfg.seed),
                     mitigation_mode="none",
                     local_readout_strategy=None,
+                    zne_scales=(),
+                    local_gate_twirling=False,
+                    dd_sequence=None,
                     runtime_profile_name="legacy_runtime_v0",
                     runtime_session_policy=str(source_cfg.runtime_session_policy),
                     compare_unmitigated_baseline=False,
@@ -15748,13 +15903,34 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
         "--phase3-oracle-mitigation",
         choices=["none", "readout"],
         default="none",
-        help="Mitigation mode for phase3 oracle-gradient execution. backend_scheduled supports none/readout only.",
+        help=(
+            "Base mitigation mode for phase3 oracle-gradient execution. "
+            "Combine with --phase3-oracle-zne-scales, --phase3-oracle-local-gate-twirling, "
+            "and --phase3-oracle-dd-sequence on the backend_scheduled path."
+        ),
     )
     p.add_argument(
         "--phase3-oracle-local-readout-strategy",
         choices=["mthree"],
         default=None,
         help="Local readout mitigation strategy for phase3 oracle-gradient execution.",
+    )
+    p.add_argument(
+        "--phase3-oracle-zne-scales",
+        type=str,
+        default=None,
+        help="Comma-separated odd integer local ZNE scales for backend_scheduled phase3 oracle-gradient execution.",
+    )
+    p.add_argument(
+        "--phase3-oracle-local-gate-twirling",
+        action="store_true",
+        help="Enable local two-qubit Pauli/gate twirling for backend_scheduled phase3 oracle-gradient execution.",
+    )
+    p.add_argument(
+        "--phase3-oracle-dd-sequence",
+        type=str,
+        default=None,
+        help="Enable local DD for backend_scheduled phase3 oracle-gradient execution (currently XpXm only).",
     )
     p.add_argument(
         "--phase3-oracle-execution-surface",
@@ -15846,8 +16022,8 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
         choices=["none", "readout"],
         default="none",
         help=(
-            "Mitigation mode for final noise audit. backend_scheduled supports local readout; "
-            "runtime supports provider-side readout, while richer runtime suppression stacks should use a named runtime profile."
+            "Base mitigation mode for final noise audit. Use the backend_scheduled local knobs "
+            "for ZNE/twirling/DD, or a named runtime profile on the runtime path."
         ),
     )
     p.add_argument(
@@ -15855,6 +16031,23 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
         choices=["mthree"],
         default=None,
         help="Local readout mitigation strategy for backend_scheduled final noise audit when readout mitigation is enabled.",
+    )
+    p.add_argument(
+        "--final-noise-audit-zne-scales",
+        type=str,
+        default=None,
+        help="Comma-separated odd integer local ZNE scales for backend_scheduled final noise audit.",
+    )
+    p.add_argument(
+        "--final-noise-audit-local-gate-twirling",
+        action="store_true",
+        help="Enable local two-qubit Pauli/gate twirling for backend_scheduled final noise audit.",
+    )
+    p.add_argument(
+        "--final-noise-audit-dd-sequence",
+        type=str,
+        default=None,
+        help="Enable local DD for backend_scheduled final noise audit (currently XpXm only).",
     )
     p.add_argument(
         "--final-noise-audit-runtime-profile",
@@ -16201,6 +16394,17 @@ def main(argv: Sequence[str] | None = None) -> None:
                     if args.phase3_oracle_local_readout_strategy in {None, ""}
                     else str(args.phase3_oracle_local_readout_strategy)
                 ),
+                zne_scales=(
+                    ()
+                    if args.phase3_oracle_zne_scales in {None, ""}
+                    else str(args.phase3_oracle_zne_scales)
+                ),
+                local_gate_twirling=bool(args.phase3_oracle_local_gate_twirling),
+                dd_sequence=(
+                    None
+                    if args.phase3_oracle_dd_sequence in {None, ""}
+                    else str(args.phase3_oracle_dd_sequence)
+                ),
                 execution_surface_requested=str(args.phase3_oracle_execution_surface),
                 raw_transport=str(args.phase3_oracle_raw_transport),
                 raw_store_memory=bool(args.phase3_oracle_raw_store_memory),
@@ -16242,6 +16446,17 @@ def main(argv: Sequence[str] | None = None) -> None:
                     None
                     if args.final_noise_audit_local_readout_strategy in {None, ""}
                     else str(args.final_noise_audit_local_readout_strategy)
+                ),
+                zne_scales=(
+                    ()
+                    if args.final_noise_audit_zne_scales in {None, ""}
+                    else str(args.final_noise_audit_zne_scales)
+                ),
+                local_gate_twirling=bool(args.final_noise_audit_local_gate_twirling),
+                dd_sequence=(
+                    None
+                    if args.final_noise_audit_dd_sequence in {None, ""}
+                    else str(args.final_noise_audit_dd_sequence)
                 ),
                 runtime_profile_name=str(args.final_noise_audit_runtime_profile),
                 runtime_session_policy=str(args.final_noise_audit_runtime_session_policy),

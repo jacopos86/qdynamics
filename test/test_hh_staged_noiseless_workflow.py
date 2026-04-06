@@ -8,6 +8,11 @@ from types import SimpleNamespace
 import numpy as np
 import pytest
 
+try:
+    from PyPDF2 import PdfReader
+except Exception:  # pragma: no cover - optional test dependency
+    PdfReader = None
+
 REPO_ROOT = Path(__file__).resolve().parent.parent
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
@@ -60,6 +65,8 @@ def test_resolve_staged_defaults_from_run_guide_formulae() -> None:
     assert float(cfg.gates.ecut_1) == pytest.approx(1e-1)
     assert float(cfg.gates.ecut_2) == pytest.approx(1e-4)
     assert bool(cfg.dynamics.enable_drive) is False
+    assert str(cfg.spectral_report.target_observable) == "auto"
+    assert cfg.spectral_report.target_pair is None
     assert cfg.default_provenance["warm_reps"] == "run_guide.ws_reps(L)=L"
     assert cfg.default_provenance["replay_continuation_mode"] == "workflow.replay_mode := adapt_continuation_mode"
 
@@ -540,13 +547,51 @@ def test_run_staged_hh_noiseless_adds_checkpoint_controller_block_when_enabled(
     monkeypatch.setattr(
         wf,
         "run_adaptive_realtime_checkpoint_profile",
-        lambda _stage, _cfg: {"mode": "exact_v1", "status": "completed", "summary": {"append_count": 1, "stay_count": 1}},
+        lambda _stage, _cfg: {
+            "mode": "exact_v1",
+            "status": "completed",
+            "summary": {"append_count": 1, "stay_count": 1},
+            "trajectory": [
+                {
+                    "time": 0.0,
+                    "site_occupations": [0.55, 0.45],
+                    "site_occupations_exact": [0.50, 0.50],
+                    "energy_total": -0.10,
+                    "energy_total_exact": -0.10,
+                    "staggered": 0.05,
+                    "staggered_exact": 0.00,
+                },
+                {
+                    "time": 1.0,
+                    "site_occupations": [0.66, 0.34],
+                    "site_occupations_exact": [0.62, 0.38],
+                    "energy_total": -0.08,
+                    "energy_total_exact": -0.09,
+                    "staggered": 0.16,
+                    "staggered_exact": 0.12,
+                },
+                {
+                    "time": 2.0,
+                    "site_occupations": [0.60, 0.40],
+                    "site_occupations_exact": [0.58, 0.42],
+                    "energy_total": -0.09,
+                    "energy_total_exact": -0.095,
+                    "staggered": 0.10,
+                    "staggered_exact": 0.08,
+                },
+            ],
+        },
     )
 
     payload = wf.run_staged_hh_noiseless(cfg, run_command="python staged.py --checkpoint-controller-mode exact_v1")
 
     assert payload["workflow_contract"]["adaptive_realtime_checkpoint_mode"] == "exact_v1"
     assert payload["adaptive_realtime_checkpoint"]["mode"] == "exact_v1"
+    spectral = payload["adaptive_realtime_checkpoint"]["spectral_trust"]
+    assert str(spectral["target_observable"]) == "density_difference"
+    assert str(spectral["display_label"]) == "d(t) = n_0(t) - n_1(t)"
+    assert float(spectral["mean_abs_error"]) > 0.0
+    assert float(spectral["epsilon_osc"]) >= 0.0
     assert "profiles" in payload["dynamics_noiseless"]
 
 
@@ -639,14 +684,20 @@ def test_run_adaptive_realtime_checkpoint_profile_allows_drive_and_forwards_driv
             "exact_v1",
             "--checkpoint-controller-exact-forecast-baseline-step-refine-rounds",
             "2",
-            "--checkpoint-controller-exact-forecast-baseline-blend-weights",
-            "0,0.25,0.5,1.0",
+            "--checkpoint-controller-exact-forecast-baseline-proposal-mode",
+            "anticipatory_drive_basis_v1",
+            "--checkpoint-controller-exact-forecast-baseline-blend-weights=-0.25,0,0.25,0.5,1.0",
             "--checkpoint-controller-exact-forecast-baseline-gain-scales",
             "1.0,1.1,1.25",
-            "--checkpoint-controller-exact-forecast-horizon-steps",
-            "3",
-            "--checkpoint-controller-exact-forecast-horizon-weights",
-            "3,2,1",
+        "--checkpoint-controller-exact-forecast-include-tangent-secant-proposal",
+        "--checkpoint-controller-exact-forecast-tangent-secant-trust-radius",
+        "0.75",
+        "--checkpoint-controller-exact-forecast-tangent-secant-signed-energy-lead-limit",
+        "1.5",
+        "--checkpoint-controller-exact-forecast-horizon-steps",
+        "3",
+        "--checkpoint-controller-exact-forecast-horizon-weights",
+        "3,2,1",
             "--checkpoint-controller-exact-forecast-energy-slope-weight",
             "500",
             "--checkpoint-controller-exact-forecast-energy-curvature-weight",
@@ -718,8 +769,12 @@ def test_run_adaptive_realtime_checkpoint_profile_allows_drive_and_forwards_driv
     assert str(drive_cfg.drive_pattern) == "staggered"
     controller_cfg = captured["cfg"]
     assert int(controller_cfg.exact_forecast_baseline_step_refine_rounds) == 2
-    assert tuple(controller_cfg.exact_forecast_baseline_blend_weights) == pytest.approx((0.0, 0.25, 0.5, 1.0))
+    assert str(controller_cfg.exact_forecast_baseline_proposal_mode) == "anticipatory_drive_basis_v1"
+    assert tuple(controller_cfg.exact_forecast_baseline_blend_weights) == pytest.approx((-0.25, 0.0, 0.25, 0.5, 1.0))
     assert tuple(controller_cfg.exact_forecast_baseline_gain_scales) == pytest.approx((1.0, 1.1, 1.25))
+    assert bool(controller_cfg.exact_forecast_include_tangent_secant_proposal) is True
+    assert float(controller_cfg.exact_forecast_tangent_secant_trust_radius) == pytest.approx(0.75)
+    assert float(controller_cfg.exact_forecast_tangent_secant_signed_energy_lead_limit) == pytest.approx(1.5)
     assert int(controller_cfg.exact_forecast_tracking_horizon_steps) == 3
     assert tuple(controller_cfg.exact_forecast_tracking_horizon_weights) == pytest.approx((3.0, 2.0, 1.0))
     assert float(controller_cfg.exact_forecast_energy_slope_weight) == pytest.approx(500.0)
@@ -728,3 +783,71 @@ def test_run_adaptive_realtime_checkpoint_profile_allows_drive_and_forwards_driv
     assert float(controller_cfg.exact_forecast_energy_excursion_over_weight) == pytest.approx(120.0)
     assert float(controller_cfg.exact_forecast_energy_excursion_rel_tolerance) == pytest.approx(0.05)
     assert str(payload["reference"]["kind"]) == "driven_piecewise_constant_reference_from_replay_seed"
+
+
+def test_write_staged_hh_pdf_includes_spectral_target_pages(tmp_path: Path) -> None:
+    if not wf.HAS_MATPLOTLIB:
+        pytest.skip("matplotlib unavailable")
+    if PdfReader is None:
+        pytest.skip("PyPDF2 unavailable")
+
+    args = parse_args(
+        [
+            "--L",
+            "2",
+            "--output-json",
+            str(tmp_path / "hh_staged.json"),
+            "--output-pdf",
+            str(tmp_path / "hh_staged.pdf"),
+        ]
+    )
+    cfg = resolve_staged_hh_config(args)
+    payload = {
+        "stage_pipeline": {
+            "warm_start": {"energy": -1.0, "exact_energy": -1.1, "delta_abs": 0.1, "ecut_1": {"pass": True}},
+            "adapt_vqe": {"energy": -1.05, "exact_energy": -1.1, "delta_abs": 0.05, "depth": 3, "pool_type": "phase3_v1", "stop_reason": "eps_grad"},
+            "conventional_replay": {"energy": -1.09, "exact_energy": -1.1, "delta_abs": 0.01, "ecut_2": {"pass": True}},
+        },
+        "comparisons": {
+            "noiseless_vs_ground_state": {},
+            "noiseless_vs_reference": {},
+        },
+        "dynamics_noiseless": {"profiles": {}},
+        "adaptive_realtime_checkpoint": {
+            "mode": "exact_v1",
+            "summary": {"append_count": 0, "stay_count": 3, "final_fidelity_exact": 0.99},
+            "spectral_trust": {
+                "target_observable": "density_difference",
+                "display_label": "d(t) = n_0(t) - n_1(t)",
+                "time_key": "time",
+                "window": "hann",
+                "detrend": "constant",
+                "max_harmonic": 3,
+                "times": [0.0, 1.0, 2.0, 3.0],
+                "target_trace": [0.0, 0.2, 0.1, -0.1],
+                "target_trace_exact": [0.0, 0.18, 0.08, -0.08],
+                "site_occupations": [[0.5, 0.5], [0.6, 0.4], [0.55, 0.45], [0.45, 0.55]],
+                "site_occupations_exact": [[0.5, 0.5], [0.59, 0.41], [0.54, 0.46], [0.46, 0.54]],
+                "oscillation_span_controller": 0.3,
+                "oscillation_span_exact": 0.26,
+                "mean_abs_error": 0.02,
+                "rms_error": 0.021,
+                "epsilon_osc": 0.15,
+                "per_site_mae": [0.01, 0.01],
+                "drive_line_controller": {"harmonic": 1.0, "amplitude": 0.2, "phase_radians": 0.1},
+                "drive_line_exact": {"harmonic": 1.0, "amplitude": 0.18, "phase_radians": 0.08},
+                "harmonics_controller": [{"harmonic": 1.0, "amplitude": 0.2, "phase_radians": 0.1}],
+                "harmonics_exact": [{"harmonic": 1.0, "amplitude": 0.18, "phase_radians": 0.08}],
+                "spectrum_omega": [0.0, 1.0, 2.0],
+                "spectrum_amplitude_controller": [0.0, 0.2, 0.05],
+                "spectrum_amplitude_exact": [0.0, 0.18, 0.04],
+            },
+        },
+    }
+
+    wf.write_staged_hh_pdf(payload, cfg, "python staged.py")
+
+    reader = PdfReader(str(cfg.artifacts.output_pdf))
+    text = "\n".join((page.extract_text() or "") for page in reader.pages)
+    assert "Adaptive realtime spectral-trust summary" in text
+    assert "d(t) = n_0(t) - n_1(t)" in text

@@ -39,6 +39,11 @@ from pipelines.hardcoded.hh_pareto_tracking import (
     extract_staged_hh_pareto_rows,
     write_pareto_tracking,
 )
+from pipelines.hardcoded.hh_time_dynamics_spectra import (
+    build_pair_difference_signal,
+    build_staggered_signal,
+    compute_one_sided_amplitude_spectrum,
+)
 from pipelines.hardcoded import hh_vqe_from_adapt_family as replay_mod
 from pipelines.hardcoded import hubbard_pipeline as hc_pipeline
 from pipelines.hardcoded.hh_realtime_checkpoint_controller import (
@@ -237,6 +242,15 @@ class GateConfig:
 
 
 @dataclass(frozen=True)
+class SpectralReportConfig:
+    target_observable: str = "auto"
+    target_pair: tuple[int, int] | None = None
+    detrend: str = "constant"
+    window: str = "hann"
+    max_harmonic: int = 3
+
+
+@dataclass(frozen=True)
 class StagedHHConfig:
     physics: PhysicsConfig
     warm_start: WarmStartConfig
@@ -245,6 +259,7 @@ class StagedHHConfig:
     dynamics: DynamicsConfig
     artifacts: ArtifactConfig
     gates: GateConfig
+    spectral_report: SpectralReportConfig = field(default_factory=SpectralReportConfig)
     realtime_checkpoint: RealtimeCheckpointConfig = field(default_factory=RealtimeCheckpointConfig)
     smoke_test_intentionally_weak: bool = False
     default_provenance: dict[str, str] = field(default_factory=dict)
@@ -338,6 +353,22 @@ def _parse_drive_custom_weights(raw: str | None) -> list[float] | None:
     return [float(x) for x in vals]
 
 
+def _parse_target_pair(raw: str | None) -> tuple[int, int] | None:
+    if raw is None:
+        return None
+    text = str(raw).strip()
+    if text == "":
+        return None
+    parts = [part.strip() for part in text.split(",")]
+    if len(parts) != 2:
+        raise ValueError("Spectral target pair must have the form i,j.")
+    left = int(parts[0])
+    right = int(parts[1])
+    if left == right:
+        raise ValueError("Spectral target pair must use distinct site indices.")
+    return (left, right)
+
+
 def _parse_checkpoint_controller_step_scales(
     raw: str | Sequence[float] | None,
 ) -> tuple[float, ...]:
@@ -404,9 +435,9 @@ def _parse_checkpoint_controller_blend_weights(
     seen: set[float] = set()
     for value in vals:
         weight = float(value)
-        if (not math.isfinite(weight)) or weight < 0.0 or weight > 1.0:
+        if (not math.isfinite(weight)) or weight < -1.0 or weight > 1.0:
             raise ValueError(
-                f"Checkpoint-controller exact baseline blend weights must be finite and lie in [0, 1]; got {value!r}."
+                f"Checkpoint-controller exact baseline blend weights must be finite and lie in [-1, 1]; got {value!r}."
             )
         rounded = round(weight, 12)
         if rounded in seen:
@@ -992,6 +1023,13 @@ def resolve_staged_hh_config(args: Any) -> StagedHHConfig:
             )
         ),
     )
+    spectral_report = SpectralReportConfig(
+        target_observable=str(getattr(args, "spectral_target_observable", "auto")),
+        target_pair=_parse_target_pair(getattr(args, "spectral_target_pair", "")),
+        detrend=str(getattr(args, "spectral_detrend", "constant")),
+        window=str(getattr(args, "spectral_window", "hann")),
+        max_harmonic=int(getattr(args, "spectral_max_harmonic", 3)),
+    )
     realtime_checkpoint = RealtimeCheckpointConfig(
         mode=str(getattr(args, "checkpoint_controller_mode", "off")),
         oracle_selection_policy=str(
@@ -1007,11 +1045,39 @@ def resolve_staged_hh_config(args: Any) -> StagedHHConfig:
         exact_forecast_baseline_step_refine_rounds=int(
             getattr(args, "checkpoint_controller_exact_forecast_baseline_step_refine_rounds", 0)
         ),
+        exact_forecast_baseline_proposal_mode=str(
+            getattr(
+                args,
+                "checkpoint_controller_exact_forecast_baseline_proposal_mode",
+                "norm_locked_blend_v1",
+            )
+        ),
         exact_forecast_baseline_blend_weights=_parse_checkpoint_controller_blend_weights(
             getattr(args, "checkpoint_controller_exact_forecast_baseline_blend_weights", "")
         ),
         exact_forecast_baseline_gain_scales=_parse_checkpoint_controller_gain_scales(
             getattr(args, "checkpoint_controller_exact_forecast_baseline_gain_scales", "")
+        ),
+        exact_forecast_include_tangent_secant_proposal=bool(
+            getattr(
+                args,
+                "checkpoint_controller_exact_forecast_include_tangent_secant_proposal",
+                False,
+            )
+        ),
+        exact_forecast_tangent_secant_trust_radius=float(
+            getattr(
+                args,
+                "checkpoint_controller_exact_forecast_tangent_secant_trust_radius",
+                0.0,
+            )
+        ),
+        exact_forecast_tangent_secant_signed_energy_lead_limit=float(
+            getattr(
+                args,
+                "checkpoint_controller_exact_forecast_tangent_secant_signed_energy_lead_limit",
+                0.0,
+            )
         ),
         exact_forecast_tracking_horizon_steps=int(
             getattr(args, "checkpoint_controller_exact_forecast_horizon_steps", 1)
@@ -1179,6 +1245,7 @@ def resolve_staged_hh_config(args: Any) -> StagedHHConfig:
         dynamics=dynamics,
         artifacts=artifacts,
         gates=gates,
+        spectral_report=spectral_report,
         realtime_checkpoint=realtime_checkpoint,
         smoke_test_intentionally_weak=bool(getattr(args, "smoke_test_intentionally_weak", False)),
         default_provenance=dict(provenance),
@@ -1846,6 +1913,194 @@ def run_adaptive_realtime_checkpoint_profile(
     }
 
 
+def _rows_numeric_series(rows: Sequence[Mapping[str, Any]], key: str) -> np.ndarray | None:
+    values: list[float] = []
+    for row in rows:
+        if key not in row:
+            return None
+        values.append(float(row[key]))
+    return np.asarray(values, dtype=float)
+
+
+def _rows_site_matrix(rows: Sequence[Mapping[str, Any]], key: str) -> np.ndarray | None:
+    out: list[list[float]] = []
+    width: int | None = None
+    for row in rows:
+        raw = row.get(key)
+        if not isinstance(raw, list):
+            return None
+        if width is None:
+            width = len(raw)
+        if len(raw) != width:
+            return None
+        out.append([float(x) for x in raw])
+    return np.asarray(out, dtype=float)
+
+
+def _resolve_spectral_target(
+    site_occupations: np.ndarray,
+    cfg: StagedHHConfig,
+) -> tuple[str, str, tuple[int, int] | None]:
+    explicit = str(cfg.spectral_report.target_observable).strip().lower()
+    num_sites = int(site_occupations.shape[1])
+    if explicit == "density_difference":
+        pair = cfg.spectral_report.target_pair
+        if pair is None:
+            if num_sites != 2:
+                raise ValueError(
+                    "spectral_target_observable=density_difference requires --spectral-target-pair outside L=2."
+                )
+            pair = (0, 1)
+        return "density_difference", f"d(t) = n_{pair[0]}(t) - n_{pair[1]}(t)", pair
+    if explicit == "staggered":
+        return "staggered", "m(t) = (1/L) sum_j (-1)^j n_j(t)", None
+    if num_sites == 2:
+        pair = cfg.spectral_report.target_pair if cfg.spectral_report.target_pair is not None else (0, 1)
+        return "density_difference", f"d(t) = n_{pair[0]}(t) - n_{pair[1]}(t)", pair
+    return "staggered", "m(t) = (1/L) sum_j (-1)^j n_j(t)", None
+
+
+def _trace_for_spectral_target(
+    site_occupations: np.ndarray,
+    *,
+    target_kind: str,
+    target_pair: tuple[int, int] | None,
+) -> np.ndarray:
+    if str(target_kind) == "density_difference":
+        if target_pair is None:
+            raise ValueError("density_difference target requires a concrete site pair.")
+        return np.asarray(build_pair_difference_signal(site_occupations, pair=target_pair), dtype=float)
+    return np.asarray(build_staggered_signal(site_occupations), dtype=float)
+
+
+def _harmonic_entry(
+    entries: Sequence[Mapping[str, Any]],
+    harmonic: int,
+) -> dict[str, Any] | None:
+    target = int(harmonic)
+    for entry in entries:
+        if int(round(float(entry.get("harmonic", -1)))) == target:
+            return dict(entry)
+    return None
+
+
+def _safe_rms(values: np.ndarray) -> float:
+    arr = np.asarray(values, dtype=float).reshape(-1)
+    if arr.size == 0:
+        return float("nan")
+    return float(np.sqrt(np.mean(np.square(arr))))
+
+
+def _build_adaptive_realtime_spectral_trust(
+    adaptive_rt: Mapping[str, Any],
+    cfg: StagedHHConfig,
+) -> dict[str, Any] | None:
+    rows = adaptive_rt.get("trajectory")
+    if not isinstance(rows, list) or not rows:
+        return None
+    if not all(isinstance(row, Mapping) for row in rows):
+        return None
+    mapped_rows = list(rows)
+    time_key = "time" if "time" in mapped_rows[0] else "physical_time" if "physical_time" in mapped_rows[0] else None
+    if time_key is None:
+        return None
+    times = _rows_numeric_series(mapped_rows, time_key)
+    site_occ = _rows_site_matrix(mapped_rows, "site_occupations")
+    site_occ_exact = _rows_site_matrix(mapped_rows, "site_occupations_exact")
+    if times is None or site_occ is None:
+        return None
+
+    target_kind, display_label, target_pair = _resolve_spectral_target(site_occ, cfg)
+    target_trace = _trace_for_spectral_target(
+        site_occ,
+        target_kind=target_kind,
+        target_pair=target_pair,
+    )
+    target_exact = None
+    if site_occ_exact is not None:
+        target_exact = _trace_for_spectral_target(
+            site_occ_exact,
+            target_kind=target_kind,
+            target_pair=target_pair,
+        )
+
+    drive_omega = float(cfg.dynamics.drive_omega) if bool(cfg.dynamics.enable_drive) else None
+    controller_spec = compute_one_sided_amplitude_spectrum(
+        times,
+        target_trace,
+        detrend=str(cfg.spectral_report.detrend),
+        window=str(cfg.spectral_report.window),
+        max_peaks=5,
+        drive_omega=drive_omega,
+        max_harmonic=int(cfg.spectral_report.max_harmonic),
+    )
+    exact_spec = None
+    if target_exact is not None:
+        exact_spec = compute_one_sided_amplitude_spectrum(
+            times,
+            target_exact,
+            detrend=str(cfg.spectral_report.detrend),
+            window=str(cfg.spectral_report.window),
+            max_peaks=5,
+            drive_omega=drive_omega,
+            max_harmonic=int(cfg.spectral_report.max_harmonic),
+        )
+
+    target_error = None if target_exact is None else np.asarray(target_trace - target_exact, dtype=float)
+    epsilon_osc = None
+    mean_abs_error = None
+    rms_error = None
+    span_exact = None
+    per_site_mae = None
+    per_site_rms = None
+    if target_exact is not None:
+        ctrl_fluct = np.asarray(target_trace - np.mean(target_trace), dtype=float)
+        exact_fluct = np.asarray(target_exact - np.mean(target_exact), dtype=float)
+        epsilon_osc = float(
+            np.linalg.norm(ctrl_fluct - exact_fluct) / max(float(np.linalg.norm(exact_fluct)), 1.0e-15)
+        )
+        mean_abs_error = float(np.mean(np.abs(target_error)))
+        rms_error = _safe_rms(target_error)
+        span_exact = float(np.max(target_exact) - np.min(target_exact))
+        site_error = np.asarray(site_occ - site_occ_exact, dtype=float)
+        per_site_mae = [float(x) for x in np.mean(np.abs(site_error), axis=0).tolist()]
+        per_site_rms = [float(x) for x in np.sqrt(np.mean(np.square(site_error), axis=0)).tolist()]
+
+    return {
+        "target_observable": str(target_kind),
+        "display_label": str(display_label),
+        "target_pair": None if target_pair is None else [int(target_pair[0]), int(target_pair[1])],
+        "time_key": str(time_key),
+        "window": str(cfg.spectral_report.window),
+        "detrend": str(cfg.spectral_report.detrend),
+        "max_harmonic": int(cfg.spectral_report.max_harmonic),
+        "times": [float(x) for x in times.tolist()],
+        "target_trace": [float(x) for x in target_trace.tolist()],
+        "target_trace_exact": None if target_exact is None else [float(x) for x in target_exact.tolist()],
+        "target_error": None if target_error is None else [float(x) for x in target_error.tolist()],
+        "site_occupations": [[float(x) for x in row] for row in site_occ.tolist()],
+        "site_occupations_exact": None
+        if site_occ_exact is None
+        else [[float(x) for x in row] for row in site_occ_exact.tolist()],
+        "oscillation_span_controller": float(np.max(target_trace) - np.min(target_trace)),
+        "oscillation_span_exact": span_exact,
+        "mean_abs_error": mean_abs_error,
+        "rms_error": rms_error,
+        "epsilon_osc": epsilon_osc,
+        "per_site_mae": per_site_mae,
+        "per_site_rms_error": per_site_rms,
+        "drive_line_controller": _harmonic_entry(controller_spec.harmonic_fit, 1),
+        "drive_line_exact": None if exact_spec is None else _harmonic_entry(exact_spec.harmonic_fit, 1),
+        "harmonics_controller": [dict(entry) for entry in controller_spec.harmonic_fit],
+        "harmonics_exact": None if exact_spec is None else [dict(entry) for entry in exact_spec.harmonic_fit],
+        "spectrum_omega": [float(x) for x in controller_spec.omega.tolist()],
+        "spectrum_amplitude_controller": [float(x) for x in controller_spec.amplitude.tolist()],
+        "spectrum_amplitude_exact": None if exact_spec is None else [float(x) for x in exact_spec.amplitude.tolist()],
+        "top_peaks_controller": list(controller_spec.top_peaks),
+        "top_peaks_exact": None if exact_spec is None else list(exact_spec.top_peaks),
+    }
+
+
 def _stage_delta(payload: Mapping[str, Any], *, energy_key: str, exact_key: str) -> float:
     return float(abs(float(payload.get(energy_key, float("nan"))) - float(payload.get(exact_key, float("nan")))) )
 
@@ -2054,6 +2309,12 @@ def assemble_payload(
     adaptive_realtime_checkpoint: Mapping[str, Any] | None = None,
     run_command: str,
 ) -> dict[str, Any]:
+    adaptive_payload = None
+    if adaptive_realtime_checkpoint is not None:
+        adaptive_payload = dict(adaptive_realtime_checkpoint)
+        spectral_trust = _build_adaptive_realtime_spectral_trust(adaptive_payload, cfg)
+        if spectral_trust is not None:
+            adaptive_payload["spectral_trust"] = spectral_trust
     payload = {
         "generated_utc": _now_utc(),
         "pipeline": "hh_staged_noiseless",
@@ -2078,8 +2339,8 @@ def assemble_payload(
         "stage_pipeline": _stage_summary(stage_result, cfg),
         "dynamics_noiseless": dict(dynamics_noiseless),
     }
-    if adaptive_realtime_checkpoint is not None:
-        payload["adaptive_realtime_checkpoint"] = dict(adaptive_realtime_checkpoint)
+    if adaptive_payload is not None:
+        payload["adaptive_realtime_checkpoint"] = adaptive_payload
     payload["comparisons"] = _compute_comparisons(payload)
     return payload
 
@@ -2114,6 +2375,194 @@ def _profile_plot_page(pdf: Any, profile_name: str, profile_payload: Mapping[str
     plt.close(fig)
 
 
+def _append_spectral_harmonic_markers(
+    ax: Any,
+    *,
+    drive_omega: float | None,
+    max_harmonic: int,
+    ymax: float,
+) -> None:
+    if drive_omega is None or float(drive_omega) <= 0.0:
+        return
+    for harmonic in range(1, int(max_harmonic) + 1):
+        omega_n = float(harmonic) * float(drive_omega)
+        ax.axvline(omega_n, color="#999999", linestyle="--", linewidth=0.8, alpha=0.7)
+        ax.text(
+            omega_n,
+            ymax,
+            f"{harmonic}ωd",
+            rotation=90,
+            va="top",
+            ha="right",
+            fontsize=8,
+            color="#666666",
+        )
+
+
+def _append_adaptive_rt_spectral_pages(
+    pdf: Any,
+    *,
+    spectral_trust: Mapping[str, Any],
+    cfg: StagedHHConfig,
+) -> None:
+    require_matplotlib()
+    plt = get_plt()
+
+    target_label = str(spectral_trust.get("display_label", spectral_trust.get("target_observable", "target")))
+    controller_span = float(spectral_trust.get("oscillation_span_controller", float("nan")))
+    exact_span = spectral_trust.get("oscillation_span_exact", None)
+    exact_span_text = "n/a" if exact_span is None else f"{float(exact_span):.6f}"
+    drive_line_ctrl = spectral_trust.get("drive_line_controller", None)
+    drive_line_exact = spectral_trust.get("drive_line_exact", None)
+    spectral_lines = [
+        "Adaptive realtime spectral-trust summary",
+        "",
+        f"Target observable: {target_label}",
+        f"Window / detrend: {spectral_trust.get('window')} / {spectral_trust.get('detrend')}",
+        f"Oscillation span (controller / exact): {controller_span:.6f} / {exact_span_text}",
+        f"Mean |target error|: {spectral_trust.get('mean_abs_error', 'n/a')}",
+        f"RMS target error: {spectral_trust.get('rms_error', 'n/a')}",
+        f"epsilon_osc: {spectral_trust.get('epsilon_osc', 'n/a')}",
+        (
+            "Drive line amplitude (controller / exact): "
+            f"{float(drive_line_ctrl.get('amplitude', float('nan'))):.6f} / "
+            f"{float(drive_line_exact.get('amplitude', float('nan'))):.6f}"
+            if isinstance(drive_line_ctrl, Mapping) and isinstance(drive_line_exact, Mapping)
+            else "Drive line amplitude (controller / exact): n/a"
+        ),
+        (
+            "Drive line phase (controller / exact): "
+            f"{float(drive_line_ctrl.get('phase_radians', float('nan'))):.6f} / "
+            f"{float(drive_line_exact.get('phase_radians', float('nan'))):.6f}"
+            if isinstance(drive_line_ctrl, Mapping) and isinstance(drive_line_exact, Mapping)
+            else "Drive line phase (controller / exact): n/a"
+        ),
+    ]
+    per_site_mae = spectral_trust.get("per_site_mae", None)
+    if isinstance(per_site_mae, list) and per_site_mae:
+        spectral_lines.append(
+            "Per-site MAE: " + ", ".join(f"n_{idx}={float(value):.4e}" for idx, value in enumerate(per_site_mae))
+        )
+    render_text_page(pdf, spectral_lines, fontsize=10, line_spacing=0.03)
+
+    times = np.asarray(spectral_trust.get("times", []), dtype=float)
+    target_trace = np.asarray(spectral_trust.get("target_trace", []), dtype=float)
+    target_exact = (
+        None
+        if spectral_trust.get("target_trace_exact") is None
+        else np.asarray(spectral_trust.get("target_trace_exact"), dtype=float)
+    )
+    site_occ = np.asarray(spectral_trust.get("site_occupations", []), dtype=float)
+    site_occ_exact = (
+        None
+        if spectral_trust.get("site_occupations_exact") is None
+        else np.asarray(spectral_trust.get("site_occupations_exact"), dtype=float)
+    )
+
+    fig, axes = plt.subplots(2, 1, figsize=(11.0, 8.5), sharex=True)
+    axes[0].plot(times, target_trace, linewidth=2.2, color="#D55E00", label="controller")
+    if target_exact is not None:
+        axes[0].plot(times, target_exact, linewidth=1.7, color="black", linestyle="--", label="exact")
+    axes[0].set_title(f"Target observable vs exact | {target_label}")
+    axes[0].set_ylabel("observable")
+    axes[0].grid(True, alpha=0.3)
+    axes[0].legend(loc="best")
+
+    colors = plt.cm.tab10.colors
+    if site_occ.ndim == 2:
+        for site in range(site_occ.shape[1]):
+            axes[1].plot(
+                times,
+                site_occ[:, site],
+                color=colors[site % len(colors)],
+                linewidth=1.8,
+                label=f"n_{site}",
+            )
+            if site_occ_exact is not None:
+                axes[1].plot(
+                    times,
+                    site_occ_exact[:, site],
+                    color=colors[site % len(colors)],
+                    linewidth=1.1,
+                    linestyle="--",
+                    label=f"n_{site} exact",
+                )
+    axes[1].set_title("Per-site occupations vs exact")
+    axes[1].set_xlabel(str(spectral_trust.get("time_key", "time")))
+    axes[1].set_ylabel("occupation")
+    axes[1].grid(True, alpha=0.3)
+    axes[1].legend(loc="best", fontsize=8)
+    pdf.savefig(fig)
+    plt.close(fig)
+
+    fig, axes = plt.subplots(2, 1, figsize=(11.0, 8.5))
+    omega = np.asarray(spectral_trust.get("spectrum_omega", []), dtype=float)
+    amp_ctrl = np.asarray(spectral_trust.get("spectrum_amplitude_controller", []), dtype=float)
+    amp_exact = (
+        None
+        if spectral_trust.get("spectrum_amplitude_exact") is None
+        else np.asarray(spectral_trust.get("spectrum_amplitude_exact"), dtype=float)
+    )
+    axes[0].plot(omega, amp_ctrl, linewidth=2.0, color="#D55E00", label="controller")
+    ymax = float(np.max(amp_ctrl)) if amp_ctrl.size else 1.0e-12
+    if amp_exact is not None:
+        axes[0].plot(omega, amp_exact, linewidth=1.5, color="black", linestyle="--", label="exact")
+        ymax = max(ymax, float(np.max(amp_exact)) if amp_exact.size else 1.0e-12)
+    _append_spectral_harmonic_markers(
+        axes[0],
+        drive_omega=float(cfg.dynamics.drive_omega) if bool(cfg.dynamics.enable_drive) else None,
+        max_harmonic=int(spectral_trust.get("max_harmonic", 3)),
+        ymax=max(ymax, 1.0e-12),
+    )
+    axes[0].set_title(f"Target observable one-sided amplitude spectrum | {target_label}")
+    axes[0].set_xlabel("angular frequency ω")
+    axes[0].set_ylabel("amplitude")
+    axes[0].grid(True, alpha=0.3)
+    axes[0].legend(loc="best")
+
+    harmonic_rows: list[list[str]] = []
+    controller_harmonics = spectral_trust.get("harmonics_controller", [])
+    exact_harmonics = spectral_trust.get("harmonics_exact", [])
+    exact_by_h = {
+        int(round(float(entry.get("harmonic", -1)))): entry
+        for entry in exact_harmonics
+        if isinstance(entry, Mapping)
+    }
+    for entry in controller_harmonics:
+        if not isinstance(entry, Mapping):
+            continue
+        harmonic = int(round(float(entry.get("harmonic", -1))))
+        exact_entry = exact_by_h.get(harmonic, {})
+        harmonic_rows.append(
+            [
+                str(harmonic),
+                f"{float(entry.get('amplitude', float('nan'))):.4e}",
+                (
+                    f"{float(exact_entry.get('amplitude', float('nan'))):.4e}"
+                    if isinstance(exact_entry, Mapping) and exact_entry
+                    else "n/a"
+                ),
+                f"{float(entry.get('phase_radians', float('nan'))):.4f}",
+                (
+                    f"{float(exact_entry.get('phase_radians', float('nan'))):.4f}"
+                    if isinstance(exact_entry, Mapping) and exact_entry
+                    else "n/a"
+                ),
+            ]
+        )
+    if not harmonic_rows:
+        harmonic_rows = [["-", "n/a", "n/a", "n/a", "n/a"]]
+    render_compact_table(
+        axes[1],
+        title="Drive-locked harmonic summary",
+        col_labels=["harm", "amp ctrl", "amp exact", "phase ctrl", "phase exact"],
+        rows=harmonic_rows,
+        fontsize=8,
+    )
+    pdf.savefig(fig)
+    plt.close(fig)
+
+
 def write_staged_hh_pdf(payload: Mapping[str, Any], cfg: StagedHHConfig, run_command: str) -> None:
     if bool(cfg.artifacts.skip_pdf):
         return
@@ -2128,6 +2577,7 @@ def write_staged_hh_pdf(payload: Mapping[str, Any], cfg: StagedHHConfig, run_com
     adapt = stage_pipeline.get("adapt_vqe", {}) if isinstance(stage_pipeline, Mapping) else {}
     replay = stage_pipeline.get("conventional_replay", {}) if isinstance(stage_pipeline, Mapping) else {}
     adaptive_rt = payload.get("adaptive_realtime_checkpoint", {}) if isinstance(payload, Mapping) else {}
+    spectral_trust = adaptive_rt.get("spectral_trust", {}) if isinstance(adaptive_rt, Mapping) else {}
 
     with PdfPages(pdf_path) as pdf:
         render_parameter_manifest(
@@ -2152,6 +2602,9 @@ def write_staged_hh_pdf(payload: Mapping[str, Any], cfg: StagedHHConfig, run_com
                 "t_final": float(cfg.dynamics.t_final),
                 "trotter_steps": int(cfg.dynamics.trotter_steps),
                 "num_times": int(cfg.dynamics.num_times),
+                "spectral_target": str(cfg.spectral_report.target_observable),
+                "spectral_window": str(cfg.spectral_report.window),
+                "spectral_detrend": str(cfg.spectral_report.detrend),
             },
             command=str(run_command),
         )
@@ -2166,6 +2619,15 @@ def write_staged_hh_pdf(payload: Mapping[str, Any], cfg: StagedHHConfig, run_com
                 if not isinstance(adaptive_rt, Mapping)
                 else (
                     f"Checkpoint controller: mode={adaptive_rt.get('mode')} append={adaptive_rt.get('summary', {}).get('append_count')} stay={adaptive_rt.get('summary', {}).get('stay_count')} final_fidelity={adaptive_rt.get('summary', {}).get('final_fidelity_exact')}"
+                )
+            ),
+            (
+                "Spectral target: unavailable"
+                if not isinstance(spectral_trust, Mapping) or not spectral_trust
+                else (
+                    f"Spectral target: {spectral_trust.get('display_label')} | "
+                    f"epsilon_osc={spectral_trust.get('epsilon_osc')} | "
+                    f"mean_abs_error={spectral_trust.get('mean_abs_error')}"
                 )
             ),
             "Dynamics metrics: energy uses replay exact-sector GS baseline; fidelity uses exact propagation from psi_final.",
@@ -2221,6 +2683,9 @@ def write_staged_hh_pdf(payload: Mapping[str, Any], cfg: StagedHHConfig, run_com
         for profile_name, profile_payload in payload.get("dynamics_noiseless", {}).get("profiles", {}).items():
             if isinstance(profile_payload, Mapping):
                 _profile_plot_page(pdf, str(profile_name), profile_payload)
+
+        if isinstance(spectral_trust, Mapping) and spectral_trust:
+            _append_adaptive_rt_spectral_pages(pdf, spectral_trust=spectral_trust, cfg=cfg)
 
         render_command_page(
             pdf,

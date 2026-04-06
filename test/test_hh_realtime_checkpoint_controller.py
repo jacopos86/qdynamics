@@ -3795,6 +3795,406 @@ def test_exact_v1_selects_negative_residual_blend_when_forecast_prefers_early_an
     assert float(forecast["fidelity_exact_next"]) == pytest.approx(0.9992)
 
 
+def test_exact_tangent_secant_proposal_projects_one_step_exact_displacement(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    replay_context, h_poly, hmat, psi_initial = _two_qubit_drive_context(theta_x=0.2)
+    controller = RealtimeCheckpointController(
+        cfg=RealtimeCheckpointConfig(
+            mode="exact_v1",
+            exact_forecast_include_tangent_secant_proposal=True,
+        ),
+        replay_context=replay_context,
+        h_poly=h_poly,
+        hmat=hmat,
+        psi_initial=psi_initial,
+        best_theta=[0.2],
+        allow_repeats=False,
+        t_final=0.2,
+        num_times=2,
+        drive_config=ControllerDriveConfig(
+            enabled=True,
+            n_sites=1,
+            ordering="blocked",
+            drive_A=0.6,
+            drive_omega=1.0,
+            drive_tbar=1.0,
+            drive_phi=0.0,
+            drive_pattern="staggered",
+            drive_custom_weights=None,
+            drive_include_identity=False,
+            drive_time_sampling="midpoint",
+            drive_t0=0.0,
+            exact_steps_multiplier=1,
+        ),
+    )
+    baseline = {
+        "psi": np.array([1.0 + 0.0j, 0.0 + 0.0j], dtype=complex),
+        "T": np.array([[0.0 + 0.0j], [1.0 + 0.0j]], dtype=complex),
+        "G": np.array([[1.0]], dtype=float),
+        "K_pinv": np.array([[1.0]], dtype=float),
+    }
+    monkeypatch.setattr(
+        controller,
+        "_exact_state_at",
+        lambda _time_value: np.array([np.sqrt(0.99) + 0.0j, 0.1 + 0.0j], dtype=complex),
+    )
+
+    proposal = controller._exact_tangent_secant_proposal(
+        baseline=baseline,
+        dt=0.5,
+        time_stop=0.5,
+    )
+
+    assert proposal is not None
+    assert str(proposal["proposal_kind"]) == "tangent_secant_exact_v1"
+    assert np.asarray(proposal["theta_dot_direction"], dtype=float) == pytest.approx(
+        np.array([0.2], dtype=float)
+    )
+    assert float(proposal["tangent_secant_displacement_norm"]) == pytest.approx(0.1)
+    assert float(proposal["tangent_secant_projection_quality"]) == pytest.approx(1.0)
+    assert float(proposal["tangent_secant_raw_metric_norm"]) == pytest.approx(0.2)
+    assert float(proposal["tangent_secant_metric_norm"]) == pytest.approx(0.2)
+
+
+def test_exact_tangent_secant_proposal_can_be_suppressed_by_signed_energy_lead_limit(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    replay_context, h_poly, hmat, psi_initial = _two_qubit_drive_context(theta_x=0.2)
+    controller = RealtimeCheckpointController(
+        cfg=RealtimeCheckpointConfig(
+            mode="exact_v1",
+            exact_forecast_include_tangent_secant_proposal=True,
+            exact_forecast_tangent_secant_signed_energy_lead_limit=1.0,
+        ),
+        replay_context=replay_context,
+        h_poly=h_poly,
+        hmat=hmat,
+        psi_initial=psi_initial,
+        best_theta=[0.2],
+        allow_repeats=False,
+        t_final=0.2,
+        num_times=2,
+        drive_config=ControllerDriveConfig(
+            enabled=True,
+            n_sites=1,
+            ordering="blocked",
+            drive_A=0.6,
+            drive_omega=1.0,
+            drive_tbar=1.0,
+            drive_phi=0.0,
+            drive_pattern="staggered",
+            drive_custom_weights=None,
+            drive_include_identity=False,
+            drive_time_sampling="midpoint",
+            drive_t0=0.0,
+            exact_steps_multiplier=1,
+        ),
+    )
+    baseline = {
+        "psi": np.array([np.sqrt(0.5) + 0.0j, np.sqrt(0.5) + 0.0j], dtype=complex),
+        "T": np.array([[0.0 + 0.0j], [1.0 + 0.0j]], dtype=complex),
+        "G": np.array([[1.0]], dtype=float),
+        "K_pinv": np.array([[1.0]], dtype=float),
+    }
+
+    def _fake_exact_state_at(time_value: float) -> np.ndarray:
+        if time_value <= 0.0 + 1.0e-12:
+            return np.array([1.0 + 0.0j, 0.0 + 0.0j], dtype=complex)
+        return np.array([np.sqrt(0.99) + 0.0j, 0.1 + 0.0j], dtype=complex)
+
+    monkeypatch.setattr(controller, "_exact_state_at", _fake_exact_state_at)
+    monkeypatch.setattr(
+        controller,
+        "_step_hamiltonian_artifacts",
+        lambda _time_value: SimpleNamespace(
+            hmat=np.diag([0.0, 1.0]).astype(complex),
+            physical_time=float(_time_value),
+        ),
+    )
+
+    proposal = controller._exact_tangent_secant_proposal(
+        baseline=baseline,
+        dt=0.5,
+        time_stop=0.5,
+    )
+
+    assert proposal is None
+
+
+def test_exact_v1_selection_can_pick_tangent_secant_proposal(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    replay_context, h_poly, hmat, psi_initial = _two_qubit_drive_context(theta_x=0.2)
+    controller = RealtimeCheckpointController(
+        cfg=RealtimeCheckpointConfig(
+            mode="exact_v1",
+            candidate_step_scales=(1.0,),
+            exact_forecast_include_tangent_secant_proposal=True,
+        ),
+        replay_context=replay_context,
+        h_poly=h_poly,
+        hmat=hmat,
+        psi_initial=psi_initial,
+        best_theta=[0.2],
+        allow_repeats=False,
+        t_final=0.2,
+        num_times=2,
+        drive_config=ControllerDriveConfig(
+            enabled=True,
+            n_sites=1,
+            ordering="blocked",
+            drive_A=0.6,
+            drive_omega=1.0,
+            drive_tbar=1.0,
+            drive_phi=0.0,
+            drive_pattern="staggered",
+            drive_custom_weights=None,
+            drive_include_identity=False,
+            drive_time_sampling="midpoint",
+            drive_t0=0.0,
+            exact_steps_multiplier=1,
+        ),
+    )
+
+    monkeypatch.setattr(
+        controller,
+        "_baseline_theta_dot_candidates",
+        lambda **_kwargs: [(0.0, np.array([1.0, 0.0, 0.0], dtype=float))],
+    )
+    monkeypatch.setattr(
+        controller,
+        "_exact_tangent_secant_proposal",
+        lambda **_kwargs: {
+            "proposal_kind": "tangent_secant_exact_v1",
+            "blend_weight": 0.0,
+            "theta_dot_direction": np.array([0.0, 0.0, 1.0], dtype=float),
+            "current_baseline_norm": None,
+            "current_drive_norm": None,
+            "lookahead_drive_norm": None,
+            "tangent_secant_displacement_norm": 0.2,
+            "tangent_secant_projection_quality": 0.95,
+            "tangent_secant_raw_metric_norm": 1.0,
+            "tangent_secant_metric_norm": 1.0,
+        },
+    )
+
+    def _fake_exact_forecast_rollout(**kwargs):
+        theta_dot_step = np.asarray(kwargs["theta_dot_step"], dtype=float).reshape(-1)
+        if abs(float(theta_dot_step[2])) > abs(float(theta_dot_step[0])):
+            forecast = {
+                "fidelity_exact_next": 0.9995,
+                "abs_energy_total_error_next": 0.001,
+                "abs_staggered_error_next": 0.001,
+                "abs_doublon_error_next": 0.001,
+                "site_occupations_abs_error_max_next": 0.001,
+                "energy_total_controller_next": 0.09,
+                "energy_total_exact_next": 0.09,
+            }
+            return dict(forecast), [dict(forecast)], 0.01
+        forecast = {
+            "fidelity_exact_next": 0.99,
+            "abs_energy_total_error_next": 0.02,
+            "abs_staggered_error_next": 0.02,
+            "abs_doublon_error_next": 0.02,
+            "site_occupations_abs_error_max_next": 0.02,
+            "energy_total_controller_next": 0.11,
+            "energy_total_exact_next": 0.09,
+        }
+        return dict(forecast), [dict(forecast)], 1.0
+
+    monkeypatch.setattr(controller, "_exact_forecast_rollout", _fake_exact_forecast_rollout)
+
+    scaled_theta_dot, step_scale, blend_weight, gain_scale, forecast = controller._select_exact_v1_baseline_step_scale(
+        baseline_theta_dot=np.array([1.0, 0.0, 0.0], dtype=float),
+        baseline={"G": np.eye(3, dtype=float)},
+        dt=0.1,
+        time_stop=0.1,
+    )
+
+    assert np.asarray(scaled_theta_dot, dtype=float) == pytest.approx(
+        np.array([0.0, 0.0, 0.05], dtype=float)
+    )
+    assert float(step_scale) == pytest.approx(0.05)
+    assert float(blend_weight) == pytest.approx(0.0)
+    assert float(gain_scale) == pytest.approx(1.0)
+    assert str(forecast["baseline_proposal_kind"]) == "tangent_secant_exact_v1"
+    assert bool(forecast["baseline_include_tangent_secant_proposal"]) is True
+    assert float(forecast["baseline_tangent_secant_projection_quality"]) == pytest.approx(0.95)
+    assert float(forecast["baseline_tangent_secant_displacement_norm"]) == pytest.approx(0.2)
+
+
+def test_anticipatory_drive_basis_proposals_include_lookahead_direction(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    replay_context, h_poly, hmat, psi_initial = _two_qubit_drive_context(theta_x=0.2)
+    controller = RealtimeCheckpointController(
+        cfg=RealtimeCheckpointConfig(
+            mode="exact_v1",
+            exact_forecast_baseline_proposal_mode="anticipatory_drive_basis_v1",
+            exact_forecast_baseline_blend_weights=(-0.5, 0.0, 1.0),
+        ),
+        replay_context=replay_context,
+        h_poly=h_poly,
+        hmat=hmat,
+        psi_initial=psi_initial,
+        best_theta=[0.2],
+        allow_repeats=False,
+        t_final=0.2,
+        num_times=3,
+        drive_config=ControllerDriveConfig(
+            enabled=True,
+            n_sites=1,
+            ordering="blocked",
+            drive_A=0.6,
+            drive_omega=2.0,
+            drive_tbar=2.5,
+            drive_phi=0.0,
+            drive_pattern="staggered",
+            drive_custom_weights=None,
+            drive_include_identity=False,
+            drive_time_sampling="midpoint",
+            drive_t0=0.0,
+            exact_steps_multiplier=2,
+        ),
+        wallclock_cap_s=60,
+    )
+    baseline = {
+        "theta_dot_step": np.array([1.0e-6, 0.0], dtype=float),
+        "G": np.eye(2, dtype=float),
+    }
+    lookahead_baseline = {
+        "theta_dot_step": np.array([1.0e-6, 0.0], dtype=float),
+        "G": np.eye(2, dtype=float),
+    }
+
+    def _fake_drive_only(*, baseline):
+        if baseline is lookahead_baseline:
+            return np.array([0.0, 2.0e-2], dtype=float)
+        return np.array([2.0e-6, 0.0], dtype=float)
+
+    monkeypatch.setattr(controller, "_drive_only_theta_dot_from_baseline", _fake_drive_only)
+    monkeypatch.setattr(
+        controller,
+        "_lookahead_drive_baseline",
+        lambda **kwargs: lookahead_baseline,
+    )
+
+    proposals = controller._baseline_theta_dot_proposals(
+        checkpoint_index=0,
+        baseline_theta_dot=np.array([1.0e-6, 0.0], dtype=float),
+        baseline=baseline,
+    )
+
+    proposal_kinds = {str(item["proposal_kind"]) for item in proposals}
+    assert "drive_only_lookahead" in proposal_kinds
+    lookahead = next(item for item in proposals if str(item["proposal_kind"]) == "drive_only_lookahead")
+    assert np.asarray(lookahead["theta_dot_direction"], dtype=float) == pytest.approx(np.array([0.0, 1.0]))
+    assert float(lookahead["current_baseline_norm"]) == pytest.approx(1.0e-6)
+    assert float(lookahead["lookahead_drive_norm"]) == pytest.approx(2.0e-2)
+
+
+def test_anticipatory_drive_basis_can_select_lookahead_proposal(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    replay_context, h_poly, hmat, psi_initial = _two_qubit_drive_context(theta_x=0.2)
+    controller = RealtimeCheckpointController(
+        cfg=RealtimeCheckpointConfig(
+            mode="exact_v1",
+            exact_forecast_baseline_proposal_mode="anticipatory_drive_basis_v1",
+            exact_forecast_baseline_gain_scales=(1.0,),
+        ),
+        replay_context=replay_context,
+        h_poly=h_poly,
+        hmat=hmat,
+        psi_initial=psi_initial,
+        best_theta=[0.2],
+        allow_repeats=False,
+        t_final=0.2,
+        num_times=3,
+        drive_config=ControllerDriveConfig(
+            enabled=True,
+            n_sites=1,
+            ordering="blocked",
+            drive_A=0.6,
+            drive_omega=2.0,
+            drive_tbar=2.5,
+            drive_phi=0.0,
+            drive_pattern="staggered",
+            drive_custom_weights=None,
+            drive_include_identity=False,
+            drive_time_sampling="midpoint",
+            drive_t0=0.0,
+            exact_steps_multiplier=2,
+        ),
+        wallclock_cap_s=60,
+    )
+    monkeypatch.setattr(
+        controller,
+        "_baseline_theta_dot_proposals",
+        lambda **kwargs: [
+            {
+                "proposal_kind": "baseline_current",
+                "blend_weight": 0.0,
+                "theta_dot_direction": np.array([1.0, 0.0, 0.0], dtype=float),
+                "current_baseline_norm": 1.0e-6,
+                "current_drive_norm": 2.0e-6,
+                "lookahead_drive_norm": 2.0e-2,
+            },
+            {
+                "proposal_kind": "drive_only_lookahead",
+                "blend_weight": 0.0,
+                "theta_dot_direction": np.array([0.0, 0.0, 1.0], dtype=float),
+                "current_baseline_norm": 1.0e-6,
+                "current_drive_norm": 2.0e-6,
+                "lookahead_drive_norm": 2.0e-2,
+            },
+        ],
+    )
+
+    def _fake_exact_forecast_rollout(**kwargs):
+        theta_dot_step = np.asarray(kwargs["theta_dot_step"], dtype=float).reshape(-1)
+        if abs(float(theta_dot_step[2])) > abs(float(theta_dot_step[0])):
+            forecast = {
+                "fidelity_exact_next": 0.9995,
+                "abs_energy_total_error_next": 0.001,
+                "abs_staggered_error_next": 0.001,
+                "abs_doublon_error_next": 0.001,
+                "site_occupations_abs_error_max_next": 0.001,
+                "energy_total_controller_next": 0.09,
+                "energy_total_exact_next": 0.09,
+            }
+            return dict(forecast), [dict(forecast)], 0.01
+        forecast = {
+            "fidelity_exact_next": 0.99,
+            "abs_energy_total_error_next": 0.02,
+            "abs_staggered_error_next": 0.02,
+            "abs_doublon_error_next": 0.02,
+            "site_occupations_abs_error_max_next": 0.02,
+            "energy_total_controller_next": 0.11,
+            "energy_total_exact_next": 0.09,
+        }
+        return dict(forecast), [dict(forecast)], 1.0
+
+    monkeypatch.setattr(controller, "_exact_forecast_rollout", _fake_exact_forecast_rollout)
+
+    scaled_theta_dot, step_scale, blend_weight, gain_scale, forecast = controller._select_exact_v1_baseline_step_scale(
+        checkpoint_index=0,
+        baseline_theta_dot=np.array([1.0e-6, 0.0, 0.0], dtype=float),
+        baseline={"theta_dot_step": np.array([1.0e-6, 0.0, 0.0], dtype=float), "G": np.eye(3, dtype=float)},
+        dt=0.1,
+        time_stop=0.1,
+    )
+
+    assert np.asarray(scaled_theta_dot, dtype=float) == pytest.approx(np.array([0.0, 0.0, 0.05]))
+    assert float(step_scale) == pytest.approx(0.05)
+    assert float(blend_weight) == pytest.approx(0.0)
+    assert float(gain_scale) == pytest.approx(1.0)
+    assert str(forecast["baseline_proposal_kind"]) == "drive_only_lookahead"
+    assert str(forecast["baseline_proposal_mode"]) == "anticipatory_drive_basis_v1"
+    assert float(forecast["baseline_lookahead_drive_only_norm"]) == pytest.approx(2.0e-2)
+
+
 def test_exact_v1_selects_baseline_gain_scale_above_one_when_forecast_prefers_stronger_same_shape(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

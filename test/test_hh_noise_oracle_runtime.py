@@ -424,6 +424,108 @@ def test_backend_scheduled_local_gate_twirling_records_details() -> None:
     assert int(details.get("twirled_metrics", {}).get("compiled_two_qubit_count", 0)) >= 1
 
 
+def test_backend_scheduled_rejects_invalid_local_zne_scales() -> None:
+    with pytest.raises(ValueError, match="odd positive integer noise scales"):
+        ExpectationOracle(
+            OracleConfig(
+                noise_mode="backend_scheduled",
+                shots=64,
+                seed=7,
+                oracle_repeats=1,
+                backend_name="FakeGuadalupeV2",
+                use_fake_backend=True,
+                mitigation={"mode": "none", "zne_scales": [1.0, 2.0, 3.0]},
+            )
+        )
+
+
+def test_backend_scheduled_rejects_local_zne_without_unit_scale() -> None:
+    with pytest.raises(ValueError, match="include the base factor 1"):
+        ExpectationOracle(
+            OracleConfig(
+                noise_mode="backend_scheduled",
+                shots=64,
+                seed=7,
+                oracle_repeats=1,
+                backend_name="FakeGuadalupeV2",
+                use_fake_backend=True,
+                mitigation={"mode": "none", "zne_scales": [3.0, 5.0]},
+            )
+        )
+
+
+def test_backend_scheduled_local_zne_records_details_and_extrapolates(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    obs = SparsePauliOp.from_list([("Z", 1.0)])
+    compiled = QuantumCircuit(1, name="probe")
+    compiled.rx(0.2, 0)
+
+    with ExpectationOracle(
+        OracleConfig(
+            noise_mode="backend_scheduled",
+            shots=64,
+            seed=7,
+            oracle_repeats=2,
+            backend_name="FakeGuadalupeV2",
+            use_fake_backend=True,
+            mitigation={"mode": "none", "zne_scales": [1.0, 3.0, 5.0]},
+        )
+    ) as oracle:
+        def _fake_single_scale(
+            compiled_base: QuantumCircuit,
+            logical_to_physical,
+            observable: SparsePauliOp,
+            *,
+            execution_target=None,
+            attribution_slice=None,
+            target_details=None,
+        ) -> tuple[nor.OracleEstimate, dict[str, object]]:
+            del logical_to_physical, observable, execution_target, attribution_slice, target_details
+            suffix = str(compiled_base.name or "").rsplit("_zne_x", 1)
+            scale = float(suffix[1]) if len(suffix) == 2 else 1.0
+            mean = 0.7 + 0.1 * float(scale)
+            return (
+                nor.OracleEstimate(
+                    mean=float(mean),
+                    std=0.01,
+                    stdev=0.01,
+                    stderr=0.01,
+                    n_samples=2,
+                    raw_values=[float(mean), float(mean)],
+                    aggregate="mean",
+                ),
+                {
+                    "readout_mitigation": {"mode": "none", "applied": False},
+                    "local_gate_twirling": {"requested": False, "applied": False},
+                    "local_dynamical_decoupling": {"requested": False, "applied": False},
+                },
+            )
+
+        monkeypatch.setattr(
+            oracle,
+            "_evaluate_backend_scheduled_single_scale_with_target",
+            _fake_single_scale,
+        )
+        est, details = oracle._evaluate_backend_scheduled_with_target(
+            compiled,
+            (0,),
+            obs,
+        )
+
+    local_zne = dict(details.get("local_zne", {}))
+    assert est.aggregate == "linear_zne"
+    assert est.mean == pytest.approx(0.7, abs=1e-9)
+    assert est.raw_values == pytest.approx([0.8, 1.0, 1.2], abs=1e-9)
+    assert local_zne.get("requested") is True
+    assert local_zne.get("applied") is True
+    assert local_zne.get("zne_scales") == [1.0, 3.0, 5.0]
+    assert local_zne.get("extrapolator") == "linear"
+    assert local_zne.get("zne_fold_scope") == "compiled_circuit_full"
+    assert len(local_zne.get("per_factor_results", [])) == 3
+    assert local_zne.get("base_factor_result", {}).get("noise_scale") == pytest.approx(1.0, abs=1e-9)
+
+
 def test_backend_scheduled_local_dd_with_gate_twirling_records_details() -> None:
     pytest.importorskip("mthree")
     qc = QuantumCircuit(2)
@@ -783,6 +885,24 @@ def test_backend_scheduled_attribution_rejects_local_gate_twirling() -> None:
         )
     ) as oracle:
         with pytest.raises(ValueError, match="local gate twirling off"):
+            oracle.evaluate_backend_scheduled_attribution(qc, obs)
+
+
+def test_backend_scheduled_attribution_rejects_local_zne() -> None:
+    qc = QuantumCircuit(1)
+    obs = SparsePauliOp.from_list([("Z", 1.0)])
+    with ExpectationOracle(
+        OracleConfig(
+            noise_mode="backend_scheduled",
+            shots=64,
+            seed=7,
+            oracle_repeats=1,
+            backend_name="FakeGuadalupeV2",
+            use_fake_backend=True,
+            mitigation={"mode": "none", "zne_scales": [1.0, 3.0, 5.0]},
+        )
+    ) as oracle:
+        with pytest.raises(ValueError, match="local ZNE off"):
             oracle.evaluate_backend_scheduled_attribution(qc, obs)
 
 

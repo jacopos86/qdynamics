@@ -132,7 +132,21 @@ def test_checkpoint_controller_exact_forecast_baseline_step_refine_rounds_accept
 
 def test_checkpoint_controller_exact_forecast_baseline_blend_weights_default_off() -> None:
     args = parse_args(["--L", "2", "--skip-pdf"])
+    assert str(args.checkpoint_controller_exact_forecast_baseline_proposal_mode) == "norm_locked_blend_v1"
     assert str(args.checkpoint_controller_exact_forecast_baseline_blend_weights) == ""
+
+
+def test_checkpoint_controller_exact_forecast_baseline_proposal_mode_accepts_value() -> None:
+    args = parse_args(
+        [
+            "--L",
+            "2",
+            "--skip-pdf",
+            "--checkpoint-controller-exact-forecast-baseline-proposal-mode",
+            "anticipatory_drive_basis_v1",
+        ]
+    )
+    assert str(args.checkpoint_controller_exact_forecast_baseline_proposal_mode) == "anticipatory_drive_basis_v1"
 
 
 def test_checkpoint_controller_exact_forecast_baseline_blend_weights_accepts_csv() -> None:
@@ -146,6 +160,18 @@ def test_checkpoint_controller_exact_forecast_baseline_blend_weights_accepts_csv
         ]
     )
     assert str(args.checkpoint_controller_exact_forecast_baseline_blend_weights) == "0,0.25,0.5,1.0"
+
+
+def test_checkpoint_controller_exact_forecast_baseline_blend_weights_accepts_signed_csv() -> None:
+    args = parse_args(
+        [
+            "--L",
+            "2",
+            "--skip-pdf",
+            "--checkpoint-controller-exact-forecast-baseline-blend-weights=-0.5,0,0.5",
+        ]
+    )
+    assert str(args.checkpoint_controller_exact_forecast_baseline_blend_weights) == "-0.5,0,0.5"
 
 
 def test_checkpoint_controller_exact_forecast_baseline_gain_scales_default_off() -> None:
@@ -164,6 +190,24 @@ def test_checkpoint_controller_exact_forecast_baseline_gain_scales_accepts_csv()
         ]
     )
     assert str(args.checkpoint_controller_exact_forecast_baseline_gain_scales) == "1.0,1.1,1.25"
+
+
+def test_checkpoint_controller_exact_forecast_tangent_secant_flags_accept_values() -> None:
+    args = parse_args(
+        [
+            "--L",
+            "2",
+            "--skip-pdf",
+            "--checkpoint-controller-exact-forecast-include-tangent-secant-proposal",
+            "--checkpoint-controller-exact-forecast-tangent-secant-trust-radius",
+            "0.75",
+            "--checkpoint-controller-exact-forecast-tangent-secant-signed-energy-lead-limit",
+            "1.5",
+        ]
+    )
+    assert bool(args.checkpoint_controller_exact_forecast_include_tangent_secant_proposal) is True
+    assert float(args.checkpoint_controller_exact_forecast_tangent_secant_trust_radius) == pytest.approx(0.75)
+    assert float(args.checkpoint_controller_exact_forecast_tangent_secant_signed_energy_lead_limit) == pytest.approx(1.5)
 
 
 def test_checkpoint_controller_exact_forecast_horizon_defaults_to_single_step() -> None:
@@ -240,6 +284,40 @@ def test_checkpoint_controller_exact_forecast_energy_excursion_band_accepts_valu
     )
     assert float(args.checkpoint_controller_exact_forecast_energy_excursion_over_weight) == 180.0
     assert float(args.checkpoint_controller_exact_forecast_energy_excursion_rel_tolerance) == 0.05
+
+
+def test_spectral_target_surface_defaults_to_auto_density_report() -> None:
+    args = parse_args(["--L", "2", "--skip-pdf"])
+    assert str(args.spectral_target_observable) == "auto"
+    assert str(args.spectral_target_pair) == ""
+    assert str(args.spectral_detrend) == "constant"
+    assert str(args.spectral_window) == "hann"
+    assert int(args.spectral_max_harmonic) == 3
+
+
+def test_spectral_target_surface_accepts_explicit_values() -> None:
+    args = parse_args(
+        [
+            "--L",
+            "2",
+            "--skip-pdf",
+            "--spectral-target-observable",
+            "density_difference",
+            "--spectral-target-pair",
+            "0,1",
+            "--spectral-detrend",
+            "linear",
+            "--spectral-window",
+            "none",
+            "--spectral-max-harmonic",
+            "5",
+        ]
+    )
+    assert str(args.spectral_target_observable) == "density_difference"
+    assert str(args.spectral_target_pair) == "0,1"
+    assert str(args.spectral_detrend) == "linear"
+    assert str(args.spectral_window) == "none"
+    assert int(args.spectral_max_harmonic) == 5
 
 
 def test_checkpoint_controller_exact_forecast_guardrail_defaults_off() -> None:

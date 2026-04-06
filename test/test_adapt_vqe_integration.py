@@ -369,6 +369,33 @@ class TestAdaptCLIParsing:
         args = _adapt_mod.parse_args()
         assert str(args.phase3_oracle_inner_objective_mode) == "noisy_v1"
 
+    def test_parse_accepts_phase3_oracle_local_mitigation_stack(self, monkeypatch: pytest.MonkeyPatch):
+        monkeypatch.setattr(
+            sys,
+            "argv",
+            [
+                "adapt_pipeline.py",
+                "--phase3-oracle-gradient-mode",
+                "backend_scheduled",
+                "--phase3-oracle-mitigation",
+                "readout",
+                "--phase3-oracle-local-readout-strategy",
+                "mthree",
+                "--phase3-oracle-zne-scales",
+                "1,3,5",
+                "--phase3-oracle-local-gate-twirling",
+                "--phase3-oracle-dd-sequence",
+                "XpXm",
+            ],
+        )
+        args = _adapt_mod.parse_args()
+        assert str(args.phase3_oracle_gradient_mode) == "backend_scheduled"
+        assert str(args.phase3_oracle_mitigation) == "readout"
+        assert str(args.phase3_oracle_local_readout_strategy) == "mthree"
+        assert str(args.phase3_oracle_zne_scales) == "1,3,5"
+        assert bool(args.phase3_oracle_local_gate_twirling) is True
+        assert str(args.phase3_oracle_dd_sequence) == "XpXm"
+
     def test_parse_accepts_final_noise_audit_runtime_mode_and_profile(self, monkeypatch: pytest.MonkeyPatch):
         monkeypatch.setattr(
             sys,
@@ -389,6 +416,41 @@ class TestAdaptCLIParsing:
         assert str(args.final_noise_audit_runtime_profile) == "main_twirled_readout_v1"
         assert str(args.final_noise_audit_runtime_session_policy) == "backend_only"
         assert bool(args.final_noise_audit_compare_unmitigated_baseline) is True
+
+    def test_parse_accepts_final_noise_audit_local_mitigation_stack(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+    ):
+        monkeypatch.setattr(
+            sys,
+            "argv",
+            [
+                "adapt_pipeline.py",
+                "--final-noise-audit-mode",
+                "backend_scheduled",
+                "--final-noise-audit-use-fake-backend",
+                "--final-noise-audit-backend-name",
+                "FakeNighthawk",
+                "--final-noise-audit-mitigation",
+                "readout",
+                "--final-noise-audit-local-readout-strategy",
+                "mthree",
+                "--final-noise-audit-zne-scales",
+                "1,3,5",
+                "--final-noise-audit-local-gate-twirling",
+                "--final-noise-audit-dd-sequence",
+                "XpXm",
+            ],
+        )
+        args = _adapt_mod.parse_args()
+        assert str(args.final_noise_audit_mode) == "backend_scheduled"
+        assert bool(args.final_noise_audit_use_fake_backend) is True
+        assert str(args.final_noise_audit_backend_name) == "FakeNighthawk"
+        assert str(args.final_noise_audit_mitigation) == "readout"
+        assert str(args.final_noise_audit_local_readout_strategy) == "mthree"
+        assert str(args.final_noise_audit_zne_scales) == "1,3,5"
+        assert bool(args.final_noise_audit_local_gate_twirling) is True
+        assert str(args.final_noise_audit_dd_sequence) == "XpXm"
 
     def test_parse_rejects_auto_continuation_mode(self, monkeypatch: pytest.MonkeyPatch):
         monkeypatch.setattr(
@@ -2204,6 +2266,9 @@ class TestHHPhase3Continuation:
             "gradient_step": 0.1,
             "mitigation_mode": "none",
             "local_readout_strategy": None,
+            "zne_scales": (),
+            "local_gate_twirling": False,
+            "dd_sequence": None,
             "scope": "selection_only",
             "execution_surface_requested": "auto",
             "execution_surface": "expectation_v1",
@@ -2227,6 +2292,9 @@ class TestHHPhase3Continuation:
             "seed": 7,
             "mitigation_mode": "none",
             "local_readout_strategy": None,
+            "zne_scales": (),
+            "local_gate_twirling": False,
+            "dd_sequence": None,
             "runtime_profile_name": "legacy_runtime_v0",
             "runtime_session_policy": "prefer_session",
             "compare_unmitigated_baseline": False,
@@ -3270,6 +3338,98 @@ class TestHHPhase3Continuation:
         )
 
         assert resolved.execution_surface == "expectation_v1"
+
+    def test_phase3_backend_scheduled_expectation_threads_full_local_mitigation_stack(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+    ):
+        oracle_instances = self._install_fake_oracle_bindings(
+            monkeypatch,
+            default_gradient=1.0,
+            default_sigma=0.1,
+            gradient_step=0.1,
+            backend_name="FakeNighthawk",
+        )
+        payload, _ = _run_hardcoded_adapt_vqe(
+            h_poly=self._hh_h(),
+            num_sites=2,
+            ordering="blocked",
+            problem="hh",
+            adapt_pool="paop_lf_std",
+            t=1.0,
+            u=2.0,
+            dv=0.0,
+            boundary="periodic",
+            omega0=1.0,
+            g_ep=0.5,
+            n_ph_max=1,
+            boson_encoding="binary",
+            max_depth=1,
+            eps_grad=1e-3,
+            eps_energy=1e-8,
+            maxiter=10,
+            seed=7,
+            allow_repeats=True,
+            finite_angle_fallback=False,
+            finite_angle=0.1,
+            finite_angle_min_improvement=1e-12,
+            adapt_continuation_mode="phase3_v1",
+            phase3_oracle_gradient_config=self._oracle_cfg(
+                noise_mode="backend_scheduled",
+                use_fake_backend=True,
+                backend_name="FakeNighthawk",
+                mitigation_mode="readout",
+                local_readout_strategy="mthree",
+                zne_scales=(1.0, 3.0, 5.0),
+                local_gate_twirling=True,
+                dd_sequence="XpXm",
+                gradient_step=0.1,
+            ),
+        )
+
+        mitigation = dict(getattr(oracle_instances[0].config, "mitigation", {}))
+        assert payload["continuation"]["oracle_execution_surface"] == "expectation_v1"
+        assert mitigation["mode"] == "readout"
+        assert mitigation["local_readout_strategy"] == "mthree"
+        assert mitigation["zne_scales"] == [1.0, 3.0, 5.0]
+        assert mitigation["local_gate_twirling"] is True
+        assert mitigation["dd_sequence"] == "XpXm"
+        assert oracle_instances and getattr(oracle_instances[0], "closed", False) is True
+
+    def test_phase3_backend_scheduled_local_zne_requires_unit_scale(self):
+        with pytest.raises(ValueError, match="must include the base noise scale 1"):
+            _run_hardcoded_adapt_vqe(
+                h_poly=self._hh_h(),
+                num_sites=2,
+                ordering="blocked",
+                problem="hh",
+                adapt_pool="paop_lf_std",
+                t=1.0,
+                u=2.0,
+                dv=0.0,
+                boundary="periodic",
+                omega0=1.0,
+                g_ep=0.5,
+                n_ph_max=1,
+                boson_encoding="binary",
+                max_depth=1,
+                eps_grad=1e-3,
+                eps_energy=1e-8,
+                maxiter=10,
+                seed=7,
+                allow_repeats=True,
+                finite_angle_fallback=False,
+                finite_angle=0.1,
+                finite_angle_min_improvement=1e-12,
+                adapt_continuation_mode="phase3_v1",
+                phase3_oracle_gradient_config=self._oracle_cfg(
+                    noise_mode="backend_scheduled",
+                    use_fake_backend=True,
+                    backend_name="FakeNighthawk",
+                    zne_scales=(3.0, 5.0),
+                    gradient_step=0.1,
+                ),
+            )
 
     def test_phase3_backend_scheduled_raw_inner_objective_routes_grouped_measurement(
         self,
@@ -4537,6 +4697,66 @@ class TestHHPhase3Continuation:
         assert audit["normalized_request"]["runtime_profile"]["name"] == "main_twirled_readout_v1"
         assert audit["normalized_request"]["runtime_session"]["mode"] == "backend_only"
         assert audit["normalized_request"]["execution_surface"] == "expectation_v1"
+
+    def test_final_noise_audit_backend_scheduled_threads_full_local_mitigation_stack(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+    ):
+        oracle_instances = self._install_fake_oracle_bindings(
+            monkeypatch,
+            objective_mean=-0.222,
+            backend_name="FakeNighthawk",
+        )
+        payload, _ = _run_hardcoded_adapt_vqe(
+            h_poly=self._hh_h(),
+            num_sites=2,
+            ordering="blocked",
+            problem="hh",
+            adapt_pool="paop_lf_std",
+            t=1.0,
+            u=2.0,
+            dv=0.0,
+            boundary="periodic",
+            omega0=1.0,
+            g_ep=0.5,
+            n_ph_max=1,
+            boson_encoding="binary",
+            max_depth=1,
+            eps_grad=1e-3,
+            eps_energy=1e-8,
+            maxiter=20,
+            seed=7,
+            allow_repeats=True,
+            finite_angle_fallback=False,
+            finite_angle=0.1,
+            finite_angle_min_improvement=1e-12,
+            adapt_reopt_policy="windowed",
+            adapt_window_size=1,
+            adapt_window_topk=0,
+            adapt_continuation_mode="phase3_v1",
+            final_noise_audit_config=self._final_audit_cfg(
+                noise_mode="backend_scheduled",
+                use_fake_backend=True,
+                backend_name="FakeNighthawk",
+                mitigation_mode="readout",
+                local_readout_strategy="mthree",
+                zne_scales=(1.0, 3.0, 5.0),
+                local_gate_twirling=True,
+                dd_sequence="XpXm",
+            ),
+        )
+        audit = payload["final_noise_audit_v1"]
+        mitigation = dict(getattr(oracle_instances[0].config, "mitigation", {}))
+        assert audit["status"] == "completed"
+        assert audit["normalized_request"]["mitigation"]["mode"] == "readout"
+        assert audit["normalized_request"]["mitigation"]["local_readout_strategy"] == "mthree"
+        assert audit["normalized_request"]["mitigation"]["zne_scales"] == [1.0, 3.0, 5.0]
+        assert audit["normalized_request"]["mitigation"]["local_gate_twirling"] is True
+        assert audit["normalized_request"]["mitigation"]["dd_sequence"] == "XpXm"
+        assert mitigation["zne_scales"] == [1.0, 3.0, 5.0]
+        assert mitigation["local_gate_twirling"] is True
+        assert mitigation["dd_sequence"] == "XpXm"
+        assert oracle_instances and getattr(oracle_instances[0], "closed", False) is True
 
     def test_final_noise_audit_runtime_rejects_fake_backend(self):
         with pytest.raises(ValueError, match="requires a real runtime backend"):

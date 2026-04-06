@@ -605,6 +605,13 @@ class RealtimeCheckpointController:
             raise ValueError(
                 f"Unsupported exact forecast guardrail mode {forecast_guardrail_mode!r}."
             )
+        baseline_proposal_mode = str(
+            getattr(cfg, "exact_forecast_baseline_proposal_mode", "norm_locked_blend_v1")
+        )
+        if baseline_proposal_mode not in {"norm_locked_blend_v1", "anticipatory_drive_basis_v1"}:
+            raise ValueError(
+                f"Unsupported exact forecast baseline proposal mode {baseline_proposal_mode!r}."
+            )
         confirm_score_mode = str(getattr(cfg, "confirm_score_mode", "exact_gain_ratio"))
         if confirm_score_mode not in {"exact_gain_ratio", "compressed_whitened_v1"}:
             raise ValueError(f"Unsupported confirm score mode {confirm_score_mode!r}.")
@@ -616,6 +623,8 @@ class RealtimeCheckpointController:
             "exact_forecast_abs_energy_error_increase_tol",
             "exact_forecast_energy_slope_weight",
             "exact_forecast_energy_curvature_weight",
+            "exact_forecast_tangent_secant_trust_radius",
+            "exact_forecast_tangent_secant_signed_energy_lead_limit",
             "confirm_compress_fraction",
             "prune_miss_threshold",
             "prune_stagnation_alpha",
@@ -2129,6 +2138,342 @@ class RealtimeCheckpointController:
             out.insert(0, 1.0)
         return tuple(out) if out else (1.0,)
 
+    def _exact_forecast_include_tangent_secant_proposal(self) -> bool:
+        return bool(
+            getattr(self.cfg, "exact_forecast_include_tangent_secant_proposal", False)
+        )
+
+    def _exact_forecast_tangent_secant_trust_radius(self) -> float:
+        return max(
+            0.0,
+            float(
+                getattr(self.cfg, "exact_forecast_tangent_secant_trust_radius", 0.0)
+            ),
+        )
+
+    def _exact_forecast_tangent_secant_signed_energy_lead_limit(self) -> float:
+        return max(
+            0.0,
+            float(
+                getattr(
+                    self.cfg,
+                    "exact_forecast_tangent_secant_signed_energy_lead_limit",
+                    0.0,
+                )
+            ),
+        )
+
+    def _exact_forecast_baseline_proposal_mode(self) -> str:
+        return str(
+            getattr(self.cfg, "exact_forecast_baseline_proposal_mode", "norm_locked_blend_v1")
+        ).strip().lower()
+
+    def _proposal_metric_norm(
+        self,
+        *,
+        baseline: Mapping[str, Any] | None,
+        theta_dot: np.ndarray | Sequence[float],
+    ) -> float:
+        vec = np.asarray(theta_dot, dtype=float).reshape(-1)
+        if vec.size <= 0:
+            return 0.0
+        if baseline is not None:
+            G = np.asarray(baseline.get("G", np.zeros((0, 0), dtype=float)), dtype=float)
+            if G.size and G.shape == (vec.size, vec.size):
+                quad = float(vec @ G @ vec)
+                if np.isfinite(quad) and quad > 1.0e-18:
+                    return float(np.sqrt(max(quad, 0.0)))
+        norm = float(np.linalg.norm(vec))
+        return float(norm if np.isfinite(norm) else 0.0)
+
+    def _normalize_proposal_direction(
+        self,
+        *,
+        baseline: Mapping[str, Any] | None,
+        theta_dot: np.ndarray | Sequence[float],
+    ) -> tuple[np.ndarray | None, float]:
+        vec = np.asarray(theta_dot, dtype=float).reshape(-1)
+        norm = float(self._proposal_metric_norm(baseline=baseline, theta_dot=vec))
+        if norm <= 1.0e-10:
+            return None, float(norm)
+        return np.asarray(vec / float(norm), dtype=float).reshape(-1), float(norm)
+
+    def _lookahead_drive_baseline(
+        self,
+        *,
+        checkpoint_index: int,
+    ) -> dict[str, Any] | None:
+        if not bool(self._drive_aligned_density_active):
+            return None
+        next_idx = int(checkpoint_index) + 1
+        if next_idx >= int(self.times.size):
+            return None
+        future_time_start = float(self.times[int(next_idx)])
+        future_time_stop = (
+            None
+            if int(next_idx) + 1 >= int(self.times.size)
+            else float(self.times[int(next_idx) + 1])
+        )
+        future_sample_time = self._projection_sample_time(
+            float(future_time_start),
+            future_time_stop,
+        )
+        future_step_hamiltonian = self._step_hamiltonian_artifacts(float(future_sample_time))
+        psi_current = self.current_executor.prepare_state(self.current_theta, self.replay_context.psi_ref)
+        checkpoint_ctx = make_checkpoint_context(
+            checkpoint_index=int(next_idx),
+            time_start=float(future_time_start),
+            time_stop=(None if future_time_stop is None else float(future_time_stop)),
+            scaffold_labels=self._current_scaffold_labels(),
+            theta=self.current_theta,
+            psi=psi_current,
+            logical_count=int(self.current_layout.logical_parameter_count),
+            runtime_count=int(self.current_layout.runtime_parameter_count),
+            resolved_family=str(self.replay_context.family_info.get("resolved", "unknown")),
+            grouping_mode=str(self.cfg.grouping_mode),
+            structure_locked=False,
+        )
+        cache = ExactCheckpointValueCache(
+            checkpoint_id=str(checkpoint_ctx.checkpoint_id),
+            grouping_mode=str(self.cfg.grouping_mode),
+        )
+        return self._compute_baseline_geometry_for_runtime_state(
+            checkpoint_ctx=checkpoint_ctx,
+            cache=cache,
+            executor=self.current_executor,
+            layout=self.current_layout,
+            theta_runtime=self.current_theta,
+            planning_audit=self._planning_audit,
+            step_hamiltonian=future_step_hamiltonian,
+        )
+
+    def _exact_tangent_secant_proposal(
+        self,
+        *,
+        baseline: Mapping[str, Any] | None,
+        dt: float,
+        time_stop: float,
+    ) -> dict[str, Any] | None:
+        if baseline is None or float(dt) <= 0.0:
+            return None
+        psi_current = np.asarray(baseline.get("psi", np.zeros(0, dtype=complex)), dtype=complex).reshape(-1)
+        tangents = np.asarray(
+            baseline.get("T", np.zeros((psi_current.size, 0), dtype=complex)),
+            dtype=complex,
+        )
+        K_pinv = np.asarray(
+            baseline.get("K_pinv", np.zeros((0, 0), dtype=float)),
+            dtype=float,
+        )
+        if (
+            psi_current.size <= 0
+            or tangents.ndim != 2
+            or tangents.shape[0] != psi_current.size
+            or tangents.shape[1] <= 0
+            or K_pinv.ndim != 2
+            or K_pinv.shape != (tangents.shape[1], tangents.shape[1])
+        ):
+            return None
+        psi_exact_next = np.asarray(
+            self._exact_state_at(float(time_stop)),
+            dtype=complex,
+        ).reshape(-1)
+        if psi_exact_next.shape != psi_current.shape:
+            return None
+        overlap = complex(np.vdot(psi_current, psi_exact_next))
+        if abs(overlap) > 1.0e-15:
+            psi_exact_next = np.asarray(
+                np.exp(-1.0j * float(np.angle(overlap))) * psi_exact_next,
+                dtype=complex,
+            ).reshape(-1)
+        delta_sec = np.asarray(psi_exact_next - psi_current, dtype=complex).reshape(-1)
+        delta_sec = np.asarray(
+            delta_sec - complex(np.vdot(psi_current, delta_sec)) * psi_current,
+            dtype=complex,
+        ).reshape(-1)
+        delta_norm = float(np.linalg.norm(delta_sec))
+        if (not np.isfinite(delta_norm)) or delta_norm <= 1.0e-12:
+            return None
+        xi_sec = np.asarray(
+            np.real(tangents.conj().T @ delta_sec),
+            dtype=float,
+        ).reshape(-1)
+        if xi_sec.size != int(tangents.shape[1]):
+            return None
+        coeff_sec = np.asarray(K_pinv @ xi_sec, dtype=float).reshape(-1)
+        if coeff_sec.size != xi_sec.size or not np.all(np.isfinite(coeff_sec)):
+            return None
+        theta_dot_sec = np.asarray(coeff_sec / float(dt), dtype=float).reshape(-1)
+        current_energy_bias: float | None = None
+        next_exact_energy_delta: float | None = None
+        signed_energy_lead: float | None = None
+        signed_energy_lead_taper = 1.0
+        signed_energy_lead_limit = self._exact_forecast_tangent_secant_signed_energy_lead_limit()
+        if signed_energy_lead_limit > 0.0:
+            time_start = float(time_stop) - float(dt)
+            current_step_hamiltonian = self._step_hamiltonian_artifacts(float(time_start))
+            next_step_hamiltonian = self._step_hamiltonian_artifacts(float(time_stop))
+            psi_exact_current = np.asarray(
+                self._exact_state_at(float(time_start)),
+                dtype=complex,
+            ).reshape(-1)
+            if psi_exact_current.shape == psi_current.shape:
+                energy_current_controller = float(
+                    np.real(np.vdot(psi_current, current_step_hamiltonian.hmat @ psi_current))
+                )
+                energy_current_exact = float(
+                    np.real(np.vdot(psi_exact_current, current_step_hamiltonian.hmat @ psi_exact_current))
+                )
+                energy_next_exact = float(
+                    np.real(np.vdot(psi_exact_next, next_step_hamiltonian.hmat @ psi_exact_next))
+                )
+                current_energy_bias = float(energy_current_controller - energy_current_exact)
+                next_exact_energy_delta = float(energy_next_exact - energy_current_exact)
+                if abs(float(next_exact_energy_delta)) > 1.0e-15:
+                    signed_energy_lead = float(
+                        max(
+                            0.0,
+                            float(np.sign(next_exact_energy_delta)) * float(current_energy_bias),
+                        )
+                    )
+                    lead_cap = float(signed_energy_lead_limit) * abs(float(next_exact_energy_delta))
+                    if lead_cap > 1.0e-15 and float(signed_energy_lead) > 0.0:
+                        signed_energy_lead_taper = max(
+                            0.0,
+                            1.0 - float(signed_energy_lead) / float(lead_cap),
+                        )
+                        if signed_energy_lead_taper <= 1.0e-12:
+                            return None
+                        theta_dot_sec = np.asarray(
+                            float(signed_energy_lead_taper) * theta_dot_sec,
+                            dtype=float,
+                        ).reshape(-1)
+        raw_metric_norm = float(
+            self._proposal_metric_norm(
+                baseline=baseline,
+                theta_dot=theta_dot_sec,
+            )
+        )
+        trust_radius = self._exact_forecast_tangent_secant_trust_radius()
+        if trust_radius > 0.0 and raw_metric_norm > float(trust_radius):
+            theta_dot_sec = np.asarray(
+                (float(trust_radius) / float(raw_metric_norm)) * theta_dot_sec,
+                dtype=float,
+            ).reshape(-1)
+        clipped_metric_norm = float(
+            self._proposal_metric_norm(
+                baseline=baseline,
+                theta_dot=theta_dot_sec,
+            )
+        )
+        projected_delta = np.asarray(tangents @ coeff_sec, dtype=complex).reshape(-1)
+        projection_quality = float(
+            np.linalg.norm(projected_delta) / max(float(delta_norm), 1.0e-15)
+        )
+        return {
+            "proposal_kind": "tangent_secant_exact_v1",
+            "blend_weight": 0.0,
+            "theta_dot_direction": np.asarray(theta_dot_sec, dtype=float).reshape(-1),
+            "current_baseline_norm": None,
+            "current_drive_norm": None,
+            "lookahead_drive_norm": None,
+            "tangent_secant_displacement_norm": float(delta_norm),
+            "tangent_secant_projection_quality": float(projection_quality),
+            "tangent_secant_raw_metric_norm": float(raw_metric_norm),
+            "tangent_secant_metric_norm": float(clipped_metric_norm),
+            "tangent_secant_current_energy_bias": (
+                None if current_energy_bias is None else float(current_energy_bias)
+            ),
+            "tangent_secant_next_exact_energy_delta": (
+                None if next_exact_energy_delta is None else float(next_exact_energy_delta)
+            ),
+            "tangent_secant_signed_energy_lead": (
+                None if signed_energy_lead is None else float(signed_energy_lead)
+            ),
+            "tangent_secant_signed_energy_lead_limit": float(signed_energy_lead_limit),
+            "tangent_secant_signed_energy_lead_taper": float(signed_energy_lead_taper),
+        }
+
+    def _baseline_theta_dot_proposals(
+        self,
+        *,
+        checkpoint_index: int | None,
+        baseline_theta_dot: np.ndarray | Sequence[float],
+        baseline: Mapping[str, Any] | None = None,
+    ) -> list[dict[str, Any]]:
+        baseline_vec = np.asarray(baseline_theta_dot, dtype=float).reshape(-1)
+        baseline_direction, baseline_norm = self._normalize_proposal_direction(
+            baseline=baseline,
+            theta_dot=baseline_vec,
+        )
+        drive_theta_dot = self._drive_only_theta_dot_from_baseline(baseline=baseline)
+        drive_direction, drive_norm = self._normalize_proposal_direction(
+            baseline=baseline,
+            theta_dot=(np.zeros_like(baseline_vec) if drive_theta_dot is None else drive_theta_dot),
+        )
+        lookahead_baseline = (
+            None
+            if checkpoint_index is None
+            else self._lookahead_drive_baseline(checkpoint_index=int(checkpoint_index))
+        )
+        lookahead_drive_theta_dot = (
+            None
+            if lookahead_baseline is None
+            else self._drive_only_theta_dot_from_baseline(baseline=lookahead_baseline)
+        )
+        lookahead_direction, lookahead_norm = self._normalize_proposal_direction(
+            baseline=baseline,
+            theta_dot=(
+                np.zeros_like(baseline_vec)
+                if lookahead_drive_theta_dot is None
+                else lookahead_drive_theta_dot
+            ),
+        )
+
+        proposals: list[dict[str, Any]] = []
+        seen: set[tuple[float, ...]] = set()
+
+        def _append(kind: str, vec: np.ndarray | None, *, blend_weight: float | None = None) -> None:
+            if vec is None:
+                return
+            normed, _ = self._normalize_proposal_direction(baseline=baseline, theta_dot=vec)
+            if normed is None:
+                return
+            key = tuple(np.round(np.asarray(normed, dtype=float).reshape(-1), 12).tolist())
+            if key in seen:
+                return
+            seen.add(key)
+            proposals.append(
+                {
+                    "proposal_kind": str(kind),
+                    "blend_weight": (
+                        None if blend_weight is None else float(blend_weight)
+                    ),
+                    "theta_dot_direction": np.asarray(normed, dtype=float).reshape(-1),
+                    "current_baseline_norm": float(baseline_norm),
+                    "current_drive_norm": float(drive_norm),
+                    "lookahead_drive_norm": float(lookahead_norm),
+                }
+            )
+
+        _append("baseline_current", baseline_direction, blend_weight=0.0)
+        _append("drive_only_current", drive_direction, blend_weight=None)
+        _append("drive_only_lookahead", lookahead_direction, blend_weight=None)
+        if baseline_direction is not None and lookahead_direction is not None:
+            for blend_weight in self._exact_forecast_baseline_blend_weights():
+                blended = np.asarray(
+                    baseline_direction + float(blend_weight) * lookahead_direction,
+                    dtype=float,
+                ).reshape(-1)
+                _append(
+                    "baseline_drive_lookahead_blend",
+                    blended,
+                    blend_weight=float(blend_weight),
+                )
+        if not proposals:
+            _append("baseline_current", baseline_vec, blend_weight=0.0)
+        return proposals
+
     def _drive_aligned_runtime_indices(
         self,
         *,
@@ -2263,6 +2608,7 @@ class RealtimeCheckpointController:
     def _select_exact_v1_baseline_step_scale(
         self,
         *,
+        checkpoint_index: int | None = None,
         baseline_theta_dot: np.ndarray | Sequence[float],
         baseline: Mapping[str, Any] | None = None,
         dt: float,
@@ -2274,6 +2620,19 @@ class RealtimeCheckpointController:
         best_step_score: float | None = None
         best_scale: float | None = None
         best_blend_weight: float | None = None
+        best_proposal_kind: str | None = None
+        best_current_baseline_norm: float | None = None
+        best_current_drive_norm: float | None = None
+        best_lookahead_drive_norm: float | None = None
+        best_tangent_secant_displacement_norm: float | None = None
+        best_tangent_secant_projection_quality: float | None = None
+        best_tangent_secant_raw_metric_norm: float | None = None
+        best_tangent_secant_metric_norm: float | None = None
+        best_tangent_secant_current_energy_bias: float | None = None
+        best_tangent_secant_next_exact_energy_delta: float | None = None
+        best_tangent_secant_signed_energy_lead: float | None = None
+        best_tangent_secant_signed_energy_lead_limit: float | None = None
+        best_tangent_secant_signed_energy_lead_taper: float | None = None
         evaluated: dict[
             tuple[float, float, tuple[float, ...]],
             tuple[np.ndarray, dict[str, Any], float],
@@ -2313,6 +2672,11 @@ class RealtimeCheckpointController:
             return cached
 
         def _consider_step(
+            proposal: Mapping[str, Any],
+            proposal_kind: str,
+            current_baseline_norm: float | None,
+            current_drive_norm: float | None,
+            lookahead_drive_norm: float | None,
             blend_weight: float,
             theta_dot: np.ndarray,
             step_scale: float,
@@ -2323,6 +2687,19 @@ class RealtimeCheckpointController:
             nonlocal best_step_score
             nonlocal best_scale
             nonlocal best_blend_weight
+            nonlocal best_proposal_kind
+            nonlocal best_current_baseline_norm
+            nonlocal best_current_drive_norm
+            nonlocal best_lookahead_drive_norm
+            nonlocal best_tangent_secant_displacement_norm
+            nonlocal best_tangent_secant_projection_quality
+            nonlocal best_tangent_secant_raw_metric_norm
+            nonlocal best_tangent_secant_metric_norm
+            nonlocal best_tangent_secant_current_energy_bias
+            nonlocal best_tangent_secant_next_exact_energy_delta
+            nonlocal best_tangent_secant_signed_energy_lead
+            nonlocal best_tangent_secant_signed_energy_lead_limit
+            nonlocal best_tangent_secant_signed_energy_lead_taper
             scaled_theta_dot, forecast, score = _evaluate_step(
                 float(blend_weight),
                 theta_dot,
@@ -2354,15 +2731,122 @@ class RealtimeCheckpointController:
                 best_step_score = float(score)
                 best_scale = float(step_scale)
                 best_blend_weight = float(blend_weight)
-        base_candidates = self._baseline_theta_dot_candidates(
-            baseline_theta_dot=np.asarray(baseline_theta_dot, dtype=float).reshape(-1),
-            baseline=baseline,
-        )
-        for blend_weight, theta_dot in base_candidates:
+                best_proposal_kind = str(proposal_kind)
+                best_current_baseline_norm = (
+                    None if current_baseline_norm is None else float(current_baseline_norm)
+                )
+                best_current_drive_norm = (
+                    None if current_drive_norm is None else float(current_drive_norm)
+                )
+                best_lookahead_drive_norm = (
+                    None if lookahead_drive_norm is None else float(lookahead_drive_norm)
+                )
+                best_tangent_secant_displacement_norm = (
+                    None
+                    if proposal.get("tangent_secant_displacement_norm") is None
+                    else float(proposal["tangent_secant_displacement_norm"])
+                )
+                best_tangent_secant_projection_quality = (
+                    None
+                    if proposal.get("tangent_secant_projection_quality") is None
+                    else float(proposal["tangent_secant_projection_quality"])
+                )
+                best_tangent_secant_raw_metric_norm = (
+                    None
+                    if proposal.get("tangent_secant_raw_metric_norm") is None
+                    else float(proposal["tangent_secant_raw_metric_norm"])
+                )
+                best_tangent_secant_metric_norm = (
+                    None
+                    if proposal.get("tangent_secant_metric_norm") is None
+                    else float(proposal["tangent_secant_metric_norm"])
+                )
+                best_tangent_secant_current_energy_bias = (
+                    None
+                    if proposal.get("tangent_secant_current_energy_bias") is None
+                    else float(proposal["tangent_secant_current_energy_bias"])
+                )
+                best_tangent_secant_next_exact_energy_delta = (
+                    None
+                    if proposal.get("tangent_secant_next_exact_energy_delta") is None
+                    else float(proposal["tangent_secant_next_exact_energy_delta"])
+                )
+                best_tangent_secant_signed_energy_lead = (
+                    None
+                    if proposal.get("tangent_secant_signed_energy_lead") is None
+                    else float(proposal["tangent_secant_signed_energy_lead"])
+                )
+                best_tangent_secant_signed_energy_lead_limit = (
+                    None
+                    if proposal.get("tangent_secant_signed_energy_lead_limit") is None
+                    else float(proposal["tangent_secant_signed_energy_lead_limit"])
+                )
+                best_tangent_secant_signed_energy_lead_taper = (
+                    None
+                    if proposal.get("tangent_secant_signed_energy_lead_taper") is None
+                    else float(proposal["tangent_secant_signed_energy_lead_taper"])
+                )
+        proposal_mode = self._exact_forecast_baseline_proposal_mode()
+        proposal_records: list[dict[str, Any]] = []
+        if (
+            proposal_mode == "anticipatory_drive_basis_v1"
+            and checkpoint_index is not None
+            and bool(self._drive_aligned_density_active)
+        ):
+            proposal_records = self._baseline_theta_dot_proposals(
+                checkpoint_index=int(checkpoint_index),
+                baseline_theta_dot=np.asarray(baseline_theta_dot, dtype=float).reshape(-1),
+                baseline=baseline,
+            )
+        else:
+            baseline_norm = self._proposal_metric_norm(
+                baseline=baseline,
+                theta_dot=np.asarray(baseline_theta_dot, dtype=float).reshape(-1),
+            )
+            drive_theta_dot = self._drive_only_theta_dot_from_baseline(baseline=baseline)
+            drive_norm = self._proposal_metric_norm(
+                baseline=baseline,
+                theta_dot=(
+                    np.zeros_like(np.asarray(baseline_theta_dot, dtype=float).reshape(-1))
+                    if drive_theta_dot is None
+                    else drive_theta_dot
+                ),
+            )
+            base_candidates = self._baseline_theta_dot_candidates(
+                baseline_theta_dot=np.asarray(baseline_theta_dot, dtype=float).reshape(-1),
+                baseline=baseline,
+            )
+            for blend_weight, theta_dot in base_candidates:
+                proposal_records.append(
+                    {
+                        "proposal_kind": "norm_locked_blend_v1",
+                        "blend_weight": float(blend_weight),
+                        "theta_dot_direction": np.asarray(theta_dot, dtype=float).reshape(-1),
+                        "current_baseline_norm": float(baseline_norm),
+                        "current_drive_norm": float(drive_norm),
+                        "lookahead_drive_norm": None,
+                    }
+                )
+        if self._exact_forecast_include_tangent_secant_proposal():
+            secant_proposal = self._exact_tangent_secant_proposal(
+                baseline=baseline,
+                dt=float(dt),
+                time_stop=float(time_stop),
+            )
+            if secant_proposal is not None:
+                proposal_records.append(dict(secant_proposal))
+        for proposal in proposal_records:
+            blend_weight = float(proposal.get("blend_weight", 0.0) or 0.0)
+            theta_dot = np.asarray(proposal["theta_dot_direction"], dtype=float).reshape(-1)
             for step_scale in self._drive_aligned_baseline_step_scales():
                 _consider_step(
+                    proposal,
+                    str(proposal.get("proposal_kind", "norm_locked_blend_v1")),
+                    proposal.get("current_baseline_norm"),
+                    proposal.get("current_drive_norm"),
+                    proposal.get("lookahead_drive_norm"),
                     float(blend_weight),
-                    np.asarray(theta_dot, dtype=float).reshape(-1),
+                    theta_dot,
                     float(step_scale),
                 )
         for _ in range(self._exact_forecast_baseline_step_refine_rounds()):
@@ -2403,6 +2887,21 @@ class RealtimeCheckpointController:
                     continue
                 new_proposal_found = True
                 _consider_step(
+                    {
+                        "tangent_secant_displacement_norm": best_tangent_secant_displacement_norm,
+                        "tangent_secant_projection_quality": best_tangent_secant_projection_quality,
+                        "tangent_secant_raw_metric_norm": best_tangent_secant_raw_metric_norm,
+                        "tangent_secant_metric_norm": best_tangent_secant_metric_norm,
+                        "tangent_secant_current_energy_bias": best_tangent_secant_current_energy_bias,
+                        "tangent_secant_next_exact_energy_delta": best_tangent_secant_next_exact_energy_delta,
+                        "tangent_secant_signed_energy_lead": best_tangent_secant_signed_energy_lead,
+                        "tangent_secant_signed_energy_lead_limit": best_tangent_secant_signed_energy_lead_limit,
+                        "tangent_secant_signed_energy_lead_taper": best_tangent_secant_signed_energy_lead_taper,
+                    },
+                    str(best_proposal_kind),
+                    best_current_baseline_norm,
+                    best_current_drive_norm,
+                    best_lookahead_drive_norm,
                     float(best_blend_weight),
                     np.asarray(best_candidate_theta_dot, dtype=float).reshape(-1),
                     float(step_scale),
@@ -2415,6 +2914,7 @@ class RealtimeCheckpointController:
             or best_step_score is None
             or best_scale is None
             or best_blend_weight is None
+            or best_proposal_kind is None
         ):
             raise RuntimeError("no exact-v1 baseline step-scale forecasts were produced")
         best_theta_dot = np.asarray(best_step_theta_dot, dtype=float).reshape(-1)
@@ -2467,6 +2967,68 @@ class RealtimeCheckpointController:
 
         for gain_scale in self._exact_forecast_baseline_gain_scales():
             _consider_gain(float(gain_scale))
+        best_forecast["baseline_proposal_mode"] = str(proposal_mode)
+        best_forecast["baseline_proposal_kind"] = str(best_proposal_kind)
+        best_forecast["baseline_current_theta_dot_norm"] = (
+            None if best_current_baseline_norm is None else float(best_current_baseline_norm)
+        )
+        best_forecast["baseline_current_drive_only_norm"] = (
+            None if best_current_drive_norm is None else float(best_current_drive_norm)
+        )
+        best_forecast["baseline_lookahead_drive_only_norm"] = (
+            None if best_lookahead_drive_norm is None else float(best_lookahead_drive_norm)
+        )
+        best_forecast["baseline_include_tangent_secant_proposal"] = bool(
+            self._exact_forecast_include_tangent_secant_proposal()
+        )
+        best_forecast["baseline_tangent_secant_trust_radius"] = float(
+            self._exact_forecast_tangent_secant_trust_radius()
+        )
+        best_forecast["baseline_tangent_secant_displacement_norm"] = (
+            None
+            if best_tangent_secant_displacement_norm is None
+            else float(best_tangent_secant_displacement_norm)
+        )
+        best_forecast["baseline_tangent_secant_projection_quality"] = (
+            None
+            if best_tangent_secant_projection_quality is None
+            else float(best_tangent_secant_projection_quality)
+        )
+        best_forecast["baseline_tangent_secant_raw_metric_norm"] = (
+            None
+            if best_tangent_secant_raw_metric_norm is None
+            else float(best_tangent_secant_raw_metric_norm)
+        )
+        best_forecast["baseline_tangent_secant_metric_norm"] = (
+            None
+            if best_tangent_secant_metric_norm is None
+            else float(best_tangent_secant_metric_norm)
+        )
+        best_forecast["baseline_tangent_secant_current_energy_bias"] = (
+            None
+            if best_tangent_secant_current_energy_bias is None
+            else float(best_tangent_secant_current_energy_bias)
+        )
+        best_forecast["baseline_tangent_secant_next_exact_energy_delta"] = (
+            None
+            if best_tangent_secant_next_exact_energy_delta is None
+            else float(best_tangent_secant_next_exact_energy_delta)
+        )
+        best_forecast["baseline_tangent_secant_signed_energy_lead"] = (
+            None
+            if best_tangent_secant_signed_energy_lead is None
+            else float(best_tangent_secant_signed_energy_lead)
+        )
+        best_forecast["baseline_tangent_secant_signed_energy_lead_limit"] = (
+            None
+            if best_tangent_secant_signed_energy_lead_limit is None
+            else float(best_tangent_secant_signed_energy_lead_limit)
+        )
+        best_forecast["baseline_tangent_secant_signed_energy_lead_taper"] = (
+            None
+            if best_tangent_secant_signed_energy_lead_taper is None
+            else float(best_tangent_secant_signed_energy_lead_taper)
+        )
         return (
             best_theta_dot,
             float(best_scale),
@@ -4297,6 +4859,7 @@ class RealtimeCheckpointController:
                 baseline_step_scale: float | None = None
                 baseline_blend_weight: float | None = None
                 baseline_gain_scale: float | None = None
+                baseline_proposal_kind: str | None = None
                 baseline_step_forecast: dict[str, Any] | None = None
                 selection_metric = (
                     "off_stay_baseline"
@@ -4318,6 +4881,7 @@ class RealtimeCheckpointController:
                             baseline_step_forecast,
                         ) = (
                             self._select_exact_v1_baseline_step_scale(
+                                checkpoint_index=int(checkpoint_index),
                                 baseline_theta_dot=np.asarray(
                                     baseline_exact["theta_dot_step"], dtype=float
                                 ).reshape(-1),
@@ -4330,6 +4894,11 @@ class RealtimeCheckpointController:
                         baseline_for_decision["theta_dot_step"] = np.asarray(
                             scaled_theta_dot, dtype=float
                         ).reshape(-1)
+                        baseline_proposal_kind = (
+                            None
+                            if baseline_step_forecast is None
+                            else baseline_step_forecast.get("baseline_proposal_kind")
+                        )
                     except Exception as exc:
                         degraded_reason = f"exact_baseline_step_scale_error: {type(exc).__name__}: {exc}"
                 predicted_displacement = self._predicted_displacement(dt=float(dt), baseline=baseline_for_decision)
@@ -4922,6 +5491,42 @@ class RealtimeCheckpointController:
                         "baseline_step_scale": baseline_step_scale,
                         "baseline_blend_weight": baseline_blend_weight,
                         "baseline_gain_scale": baseline_gain_scale,
+                        "baseline_proposal_kind": baseline_proposal_kind,
+                        "baseline_current_theta_dot_norm": (
+                            None
+                            if baseline_step_forecast is None
+                            else baseline_step_forecast.get("baseline_current_theta_dot_norm")
+                        ),
+                        "baseline_current_drive_only_norm": (
+                            None
+                            if baseline_step_forecast is None
+                            else baseline_step_forecast.get("baseline_current_drive_only_norm")
+                        ),
+                        "baseline_lookahead_drive_only_norm": (
+                            None
+                            if baseline_step_forecast is None
+                            else baseline_step_forecast.get("baseline_lookahead_drive_only_norm")
+                        ),
+                        "baseline_tangent_secant_current_energy_bias": (
+                            None
+                            if baseline_step_forecast is None
+                            else baseline_step_forecast.get("baseline_tangent_secant_current_energy_bias")
+                        ),
+                        "baseline_tangent_secant_next_exact_energy_delta": (
+                            None
+                            if baseline_step_forecast is None
+                            else baseline_step_forecast.get("baseline_tangent_secant_next_exact_energy_delta")
+                        ),
+                        "baseline_tangent_secant_signed_energy_lead": (
+                            None
+                            if baseline_step_forecast is None
+                            else baseline_step_forecast.get("baseline_tangent_secant_signed_energy_lead")
+                        ),
+                        "baseline_tangent_secant_signed_energy_lead_taper": (
+                            None
+                            if baseline_step_forecast is None
+                            else baseline_step_forecast.get("baseline_tangent_secant_signed_energy_lead_taper")
+                        ),
                         "selected_step_scale": selected_step_scale,
                         "forecast_stay_fidelity_exact_next": (
                             None if forecast_stay is None else float(forecast_stay["fidelity_exact_next"])
@@ -5189,6 +5794,9 @@ class RealtimeCheckpointController:
                     baseline_step_scale=baseline_step_scale,
                     baseline_blend_weight=baseline_blend_weight,
                     baseline_gain_scale=baseline_gain_scale,
+                    baseline_proposal_kind=(
+                        None if baseline_proposal_kind is None else str(baseline_proposal_kind)
+                    ),
                     selected_step_scale=selected_step_scale,
                     forecast_stay_fidelity_exact_next=(
                         None if forecast_stay is None else float(forecast_stay["fidelity_exact_next"])
@@ -5329,6 +5937,11 @@ class RealtimeCheckpointController:
                 for row in self._trajectory
                 if row.get("baseline_gain_scale", None) is not None
             ]
+            baseline_proposal_kind_vals = [
+                str(row.get("baseline_proposal_kind"))
+                for row in self._trajectory
+                if row.get("baseline_proposal_kind", None) not in {None, ""}
+            ]
             summary = {
                 "mode": str(self.cfg.mode),
                 "requested_decision_backend": (
@@ -5358,12 +5971,24 @@ class RealtimeCheckpointController:
                 "exact_forecast_baseline_step_refine_rounds": int(
                     self._exact_forecast_baseline_step_refine_rounds()
                 ),
+                "exact_forecast_baseline_proposal_mode": str(
+                    self._exact_forecast_baseline_proposal_mode()
+                ),
                 "exact_forecast_baseline_blend_weights": [
                     float(x) for x in self._exact_forecast_baseline_blend_weights()
                 ],
                 "exact_forecast_baseline_gain_scales": [
                     float(x) for x in self._exact_forecast_baseline_gain_scales()
                 ],
+                "exact_forecast_include_tangent_secant_proposal": bool(
+                    self._exact_forecast_include_tangent_secant_proposal()
+                ),
+                "exact_forecast_tangent_secant_trust_radius": float(
+                    self._exact_forecast_tangent_secant_trust_radius()
+                ),
+                "exact_forecast_tangent_secant_signed_energy_lead_limit": float(
+                    self._exact_forecast_tangent_secant_signed_energy_lead_limit()
+                ),
                 "exact_forecast_tracking_horizon_steps": int(
                     self._exact_forecast_tracking_horizon_steps()
                 ),
@@ -5393,6 +6018,7 @@ class RealtimeCheckpointController:
                 "baseline_gain_scale_values_used": sorted(
                     {round(float(x), 12) for x in baseline_gain_scale_vals}
                 ),
+                "baseline_proposal_kinds_used": sorted(set(baseline_proposal_kind_vals)),
                 "exact_forecast_guardrail_mode": str(
                     getattr(self.cfg, "exact_forecast_guardrail_mode", "off")
                 ),

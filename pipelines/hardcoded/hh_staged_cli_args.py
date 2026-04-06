@@ -196,6 +196,44 @@ def add_staged_hh_base_args(p: argparse.ArgumentParser) -> argparse.ArgumentPars
     p.add_argument("--phase3-oracle-seed-transpiler", type=int, default=None)
     p.add_argument("--phase3-oracle-transpile-optimization-level", type=int, default=1)
 
+    # Spectra-facing optimization report surface
+    p.add_argument(
+        "--spectral-target-observable",
+        choices=["auto", "density_difference", "staggered"],
+        default="auto",
+        help=(
+            "Primary spectra-facing observable to summarize in staged optimization reports. "
+            "'auto' uses d(t)=n0-n1 for L=2 and staggered density otherwise."
+        ),
+    )
+    p.add_argument(
+        "--spectral-target-pair",
+        type=str,
+        default="",
+        help=(
+            "Optional site pair i,j for density-difference reporting. "
+            "Leave blank to use the auto/default pair for the chosen observable."
+        ),
+    )
+    p.add_argument(
+        "--spectral-detrend",
+        choices=["constant", "linear"],
+        default="constant",
+        help="Detrending mode for the spectra-facing optimization summary.",
+    )
+    p.add_argument(
+        "--spectral-window",
+        choices=["hann", "none"],
+        default="hann",
+        help="Window used for drive-line and harmonic fits in the spectra-facing optimization summary.",
+    )
+    p.add_argument(
+        "--spectral-max-harmonic",
+        type=int,
+        default=3,
+        help="Maximum drive harmonic reported in the spectra-facing optimization summary.",
+    )
+
     # Final matched-family replay
     p.add_argument("--final-reps", type=int, default=None)
     p.add_argument("--final-restarts", type=int, default=None)
@@ -269,6 +307,16 @@ def add_staged_hh_base_args(p: argparse.ArgumentParser) -> argparse.ArgumentPars
         ),
     )
     p.add_argument(
+        "--checkpoint-controller-exact-forecast-baseline-proposal-mode",
+        choices=["norm_locked_blend_v1", "anticipatory_drive_basis_v1"],
+        default="norm_locked_blend_v1",
+        help=(
+            "exact_v1 stay-direction proposal family. "
+            "norm_locked_blend_v1 preserves the current norm-locked residual-blend search; "
+            "anticipatory_drive_basis_v1 adds independently normalized drive/look-ahead proposals."
+        ),
+    )
+    p.add_argument(
         "--checkpoint-controller-exact-forecast-baseline-blend-weights",
         type=str,
         default="",
@@ -286,6 +334,34 @@ def add_staged_hh_base_args(p: argparse.ArgumentParser) -> argparse.ArgumentPars
             "Optional comma-separated exact_v1 stay-direction gain scales applied after blend selection. "
             "Use values slightly above 1.0 to let the controller raise the chosen blended motion amplitude "
             "without changing the blend ladder itself. Leave blank for the default gain 1.0 only."
+        ),
+    )
+    p.add_argument(
+        "--checkpoint-controller-exact-forecast-include-tangent-secant-proposal",
+        action="store_true",
+        help=(
+            "Augment exact_v1 stay proposals with a projected exact one-step tangent-secant direction. "
+            "This proposal is added alongside the existing blend/anticipatory families rather than replacing them."
+        ),
+    )
+    p.add_argument(
+        "--checkpoint-controller-exact-forecast-tangent-secant-trust-radius",
+        type=float,
+        default=0.0,
+        help=(
+            "Optional independent metric-norm clip for the exact_v1 tangent-secant stay proposal. "
+            "0 disables clipping; positive values cap the secant proposal without tying it to the baseline norm."
+        ),
+    )
+    p.add_argument(
+        "--checkpoint-controller-exact-forecast-tangent-secant-signed-energy-lead-limit",
+        type=float,
+        default=0.0,
+        help=(
+            "Optional soft gate for the exact_v1 tangent-secant stay proposal. "
+            "Positive values taper secant startup motion once the controller is already leading the next exact "
+            "energy excursion in the same signed direction by more than this multiple of |ΔE_exact,next|. "
+            "0 disables the taper."
         ),
     )
     p.add_argument(
