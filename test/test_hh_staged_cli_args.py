@@ -76,6 +76,28 @@ def test_checkpoint_controller_mode_accepts_oracle_v1() -> None:
     assert str(args.checkpoint_controller_mode) == "oracle_v1"
 
 
+def test_staged_parser_accepts_analytic_noise_args() -> None:
+    args = parse_args(
+        [
+            "--L",
+            "2",
+            "--skip-pdf",
+            "--adapt-analytic-noise-std",
+            "0.125",
+            "--adapt-analytic-noise-seed",
+            "17",
+            "--checkpoint-controller-analytic-noise-std",
+            "0.25",
+            "--checkpoint-controller-analytic-noise-seed",
+            "33",
+        ]
+    )
+    assert float(args.adapt_analytic_noise_std) == pytest.approx(0.125)
+    assert int(args.adapt_analytic_noise_seed) == 17
+    assert float(args.checkpoint_controller_analytic_noise_std) == pytest.approx(0.25)
+    assert int(args.checkpoint_controller_analytic_noise_seed) == 33
+
+
 def test_checkpoint_controller_oracle_selection_policy_defaults_legacy_path() -> None:
     args = parse_args(["--L", "2", "--skip-pdf"])
     assert str(args.checkpoint_controller_oracle_selection_policy) == "measured_gain_commit_veto"

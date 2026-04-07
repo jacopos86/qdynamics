@@ -346,6 +346,10 @@ def test_workflow_runs_matched_family_replay_and_static_plus_drive_profiles(
             "pareto_lean",
             "--skip-pdf",
             "--enable-drive",
+            "--adapt-analytic-noise-std",
+            "0.125",
+            "--adapt-analytic-noise-seed",
+            "19",
             "--output-json",
             str(tmp_path / "hh_staged.json"),
             "--output-pdf",
@@ -363,6 +367,8 @@ def test_workflow_runs_matched_family_replay_and_static_plus_drive_profiles(
     assert warm_kwargs["ansatz_name"] == "hh_hva_ptw"
     assert str(adapt_kwargs["adapt_pool"]) == "pareto_lean"
     assert np.allclose(adapt_kwargs["psi_ref_override"], psi_warm)
+    assert float(adapt_kwargs["adapt_analytic_noise_std"]) == pytest.approx(0.125)
+    assert int(adapt_kwargs["adapt_analytic_noise_seed"]) == 19
     assert handoff_kwargs["handoff_state_kind"] == "prepared_state"
     assert np.allclose(handoff_kwargs["ansatz_input_state"], psi_warm)
     assert handoff_kwargs["ansatz_input_state_source"] == "warm_start_hva"
@@ -708,6 +714,10 @@ def test_run_adaptive_realtime_checkpoint_profile_allows_drive_and_forwards_driv
             "120",
             "--checkpoint-controller-exact-forecast-energy-excursion-rel-tolerance",
             "0.05",
+            "--checkpoint-controller-analytic-noise-std",
+            "0.2",
+            "--checkpoint-controller-analytic-noise-seed",
+            "41",
             "--output-json",
             str(tmp_path / "hh_staged.json"),
             "--output-pdf",
@@ -782,6 +792,8 @@ def test_run_adaptive_realtime_checkpoint_profile_allows_drive_and_forwards_driv
     assert float(controller_cfg.exact_forecast_energy_excursion_under_weight) == pytest.approx(300.0)
     assert float(controller_cfg.exact_forecast_energy_excursion_over_weight) == pytest.approx(120.0)
     assert float(controller_cfg.exact_forecast_energy_excursion_rel_tolerance) == pytest.approx(0.05)
+    assert float(controller_cfg.analytic_noise_std) == pytest.approx(0.2)
+    assert int(controller_cfg.analytic_noise_seed) == 41
     assert str(payload["reference"]["kind"]) == "driven_piecewise_constant_reference_from_replay_seed"
 
 

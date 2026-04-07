@@ -108,6 +108,18 @@ def add_staged_hh_base_args(p: argparse.ArgumentParser) -> argparse.ArgumentPars
     p.add_argument("--adapt-spsa-eval-agg", choices=["mean", "median"], default="mean")
     p.add_argument("--adapt-spsa-callback-every", type=int, default=5)
     p.add_argument("--adapt-spsa-progress-every-s", type=float, default=60.0)
+    p.add_argument(
+        "--adapt-analytic-noise-std",
+        type=float,
+        default=0.0,
+        help="Std-dev of run-local Gaussian noise injected into exact ADAPT search-time energy/gradient evaluations (0 = disabled).",
+    )
+    p.add_argument(
+        "--adapt-analytic-noise-seed",
+        type=int,
+        default=None,
+        help="Optional RNG seed for run-local ADAPT analytic Gaussian noise draws.",
+    )
     p.add_argument("--phase1-lambda-F", type=float, default=1.0)
     p.add_argument("--phase1-lambda-compile", type=float, default=0.05)
     p.add_argument("--phase1-lambda-measure", type=float, default=0.02)
@@ -511,6 +523,18 @@ def add_staged_hh_base_args(p: argparse.ArgumentParser) -> argparse.ArgumentPars
     p.add_argument("--checkpoint-controller-confirm-repeats", type=int, default=None)
     p.add_argument("--checkpoint-controller-commit-shots", type=int, default=None)
     p.add_argument("--checkpoint-controller-commit-repeats", type=int, default=None)
+    p.add_argument(
+        "--checkpoint-controller-analytic-noise-std",
+        type=float,
+        default=0.0,
+        help="Coarse native-units std-dev of run-local Gaussian noise injected into exact controller geometry G and f (0 = disabled).",
+    )
+    p.add_argument(
+        "--checkpoint-controller-analytic-noise-seed",
+        type=int,
+        default=None,
+        help="Optional RNG seed for run-local checkpoint-controller analytic Gaussian noise draws.",
+    )
 
     # Dynamics
     p.add_argument("--noiseless-methods", type=str, default="suzuki2,cfqm4")

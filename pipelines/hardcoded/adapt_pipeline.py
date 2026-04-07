@@ -3587,6 +3587,8 @@ def _run_hardcoded_adapt_vqe(
     adapt_spsa_eval_agg: str = "mean",
     adapt_spsa_callback_every: int = 1,
     adapt_spsa_progress_every_s: float = 60.0,
+    adapt_analytic_noise_std: float = 0.0,
+    adapt_analytic_noise_seed: int | None = None,
     allow_repeats: bool,
     finite_angle_fallback: bool,
     finite_angle: float,
@@ -3866,6 +3868,14 @@ def _run_hardcoded_adapt_vqe(
         raise ValueError("adapt_spsa_callback_every must be >= 1.")
     if float(adapt_spsa_progress_every_s) < 0.0:
         raise ValueError("adapt_spsa_progress_every_s must be >= 0.")
+    adapt_analytic_noise_std_val = float(adapt_analytic_noise_std)
+    if (not math.isfinite(adapt_analytic_noise_std_val)) or adapt_analytic_noise_std_val < 0.0:
+        raise ValueError("adapt_analytic_noise_std must be finite and >= 0.")
+    adapt_analytic_noise_seed_val = (
+        None if adapt_analytic_noise_seed is None else int(adapt_analytic_noise_seed)
+    )
+    adapt_analytic_noise_enabled = bool(adapt_analytic_noise_std_val > 0.0)
+    adapt_noise_rng = np.random.default_rng(adapt_analytic_noise_seed_val)
     if int(adapt_eps_energy_min_extra_depth) < -1:
         raise ValueError("adapt_eps_energy_min_extra_depth must be >= 0 or -1 (auto=L).")
     if int(adapt_eps_energy_patience) < -1 or int(adapt_eps_energy_patience) == 0:
@@ -4100,6 +4110,15 @@ def _run_hardcoded_adapt_vqe(
         "callback_every": int(adapt_spsa_callback_every),
         "progress_every_s": float(adapt_spsa_progress_every_s),
     }
+
+    def _add_adapt_analytic_noise(value: float) -> float:
+        value_f = float(value)
+        if not adapt_analytic_noise_enabled:
+            return value_f
+        return value_f + float(
+            adapt_noise_rng.normal(0.0, float(adapt_analytic_noise_std_val))
+        )
+
     t0 = time.perf_counter()
     hf_bits = "N/A"
     _ai_log(
@@ -4148,6 +4167,8 @@ def _run_hardcoded_adapt_vqe(
         max_depth=int(max_depth),
         maxiter=int(maxiter),
         adapt_inner_optimizer=str(adapt_inner_optimizer_key),
+        adapt_analytic_noise_std=float(adapt_analytic_noise_std_val),
+        adapt_analytic_noise_seed=adapt_analytic_noise_seed_val,
         finite_angle_fallback=bool(finite_angle_fallback),
         finite_angle=float(finite_angle),
         finite_angle_min_improvement=float(finite_angle_min_improvement),
@@ -7150,17 +7171,21 @@ def _run_hardcoded_adapt_vqe(
                     parameter_layout_now=layout_eval,
                 )
                 energy_obj, _ = energy_via_one_apply(psi_obj, h_compiled)
-                return float(energy_obj)
-            return float(
-                _adapt_energy_fn(
-                    h_poly,
-                    psi_ref,
-                    list(ops_now),
-                    theta_eval,
-                    h_compiled=h_compiled,
-                    parameter_layout=parameter_layout_now,
+                energy_exact = float(energy_obj)
+            else:
+                energy_exact = float(
+                    _adapt_energy_fn(
+                        h_poly,
+                        psi_ref,
+                        list(ops_now),
+                        theta_eval,
+                        h_compiled=h_compiled,
+                        parameter_layout=parameter_layout_now,
+                    )
                 )
-            )
+            if adapt_analytic_noise_enabled:
+                return _add_adapt_analytic_noise(energy_exact)
+            return energy_exact
 
         energy_current = _evaluate_selected_energy_objective(
             ops_now=list(selected_ops),
@@ -10775,7 +10800,11 @@ def _run_hardcoded_adapt_vqe(
             else:
                 for i in available_indices:
                     apsi = _apply_compiled_polynomial(psi_current, pool_compiled[i])
-                    gradients[i] = adapt_commutator_grad_from_hpsi(hpsi_current, apsi)
+                    if adapt_analytic_noise_enabled:
+                        grad_exact = float(adapt_commutator_grad_from_hpsi(hpsi_current, apsi))
+                        gradients[i] = _add_adapt_analytic_noise(grad_exact)
+                    else:
+                        gradients[i] = adapt_commutator_grad_from_hpsi(hpsi_current, apsi)
                     grad_magnitudes[i] = abs(float(gradients[i]))
                 if bool(adapt_gradient_parity_check) and available_indices:
                     parity_idx = max(available_indices, key=lambda idx: grad_magnitudes[int(idx)])
@@ -11940,7 +11969,9 @@ def _run_hardcoded_adapt_vqe(
                                 best_probe_theta = float(trial_theta)
 
                     fallback_best_probe_delta_e = float(best_probe_energy - energy_current)
-                    fallback_best_probe_theta = float(best_probe_theta) if best_probe_theta is not None else None
+                    fallback_best_probe_theta = (
+                        float(best_probe_theta) if best_probe_theta is not None else None
+                    )
                     _ai_log(
                         "hardcoded_adapt_fallback_scan",
                         depth=int(depth + 1),
@@ -11964,142 +11995,24 @@ def _run_hardcoded_adapt_vqe(
                         selection_mode = "finite_angle_fallback"
                         init_theta = float(best_probe_theta)
                         _ai_log(
-                            "hardcoded_adapt_fallback_scan",
+                            "hardcoded_adapt_fallback_selected",
                             depth=int(depth + 1),
-                            scan_size=int(fallback_scan_size),
-                            finite_angle=float(finite_angle),
-                            best_probe_idx=(int(best_probe_logical_idx) if best_probe_logical_idx is not None else None),
-                            best_probe_op=(
-                                str(logical_candidates[int(best_probe_logical_idx)].logical_label)
-                                if best_probe_logical_idx is not None
-                                else None
-                            ),
-                            best_probe_delta_e=float(fallback_best_probe_delta_e),
+                            selected_idx=int(best_idx),
+                            selected_op=str(pool[best_idx].label),
+                            selected_position=int(selected_position),
+                            init_theta=float(init_theta),
+                            probe_delta_e=float(fallback_best_probe_delta_e),
                         )
-
-                        if (
-                            best_probe_logical_idx is not None
-                            and (energy_current - best_probe_energy) > float(finite_angle_min_improvement)
-                        ):
-                            best_logical_idx = int(best_probe_logical_idx)
-                            logical_candidate = logical_candidates[int(best_logical_idx)]
-                            best_idx = int(logical_candidate.pool_indices[0])
-                            selected_position = int(append_position)
-                            phase1_feature_selected = None
-                            phase2_selected_records = []
-                            phase1_last_selected_score = None
-                            phase1_last_positions_considered = [int(append_position)]
-                            selection_mode = "finite_angle_fallback_seq2p"
-                            selected_logical_label = str(logical_candidate.logical_label)
-                            selected_logical_size = int(len(logical_candidate.pool_indices))
-                            selected_logical_pool_indices = [int(x) for x in logical_candidate.pool_indices]
-                            selected_grad_signed_components = list(
-                                logical_grad_signed_components_all[int(best_logical_idx)]
-                            )
-                            selected_grad_abs_components = list(
-                                logical_grad_abs_components_all[int(best_logical_idx)]
-                            )
-                            init_theta_values = (
-                                [float(x) for x in best_probe_theta_values]
-                                if best_probe_theta_values is not None
-                                else [0.0] * int(selected_logical_size)
-                            )
-                            if bool(eps_grad_trough) and int(probe_eval_eps["best_position"]) != int(append_position):
-                                phase1_last_probe_reason = "eps_grad_flat"
-                                phase1_last_positions_considered = [int(x) for x in probe_positions_eps]
-                                phase1_last_trough_detected = True
-                                phase1_last_trough_probe_triggered = True
-                                phase1_last_selected_score = float(probe_eval_eps["best_score"])
-                                phase1_feature_selected = dict(probe_eval_eps["best_feat"] or {})
-                                phase2_selected_records = []
-                                if phase1_feature_selected:
-                                    phase1_feature_selected["trough_detected"] = True
-                                best_idx = int(probe_eval_eps["best_idx"])
-                                selected_position = int(probe_eval_eps["best_position"])
-                                selection_mode = _cheap_selection_mode(
-                                    phase1_feature_selected,
-                                    probe=True,
-                                )
-                        if not bool(eps_grad_trough):
-                            rescue_record = None
-                            rescue_diag: dict[str, Any] | None = None
-                            if phase3_enabled:
-                                rescue_record, rescue_diag = _phase3_try_rescue(
-                                    psi_current_state=np.asarray(psi_current, dtype=complex),
-                                    shortlist_eval_records=list(phase2_last_shortlist_eval_records),
-                                    selected_position_append=int(append_position),
-                                    history_rows=list(history),
-                                    trough_detected_now=bool(phase1_last_trough_detected),
-                                )
-                                if rescue_diag is not None:
-                                    phase3_rescue_history.append(dict(rescue_diag))
-                            if isinstance(rescue_record, Mapping):
-                                best_idx = int(rescue_record.get("candidate_pool_index", best_idx))
-                                selected_position = int(rescue_record.get("position_id", append_position))
-                                init_theta = float(rescue_record.get("rescue_init_theta", finite_angle))
-                                selection_mode = "rescue_overlap"
-                                feat_rescue = rescue_record.get("feature")
-                                phase2_selected_records = [dict(rescue_record)] if phase2_enabled else []
-                                if isinstance(feat_rescue, CandidateFeatures):
-                                    phase1_feature_selected = dict(feat_rescue.__dict__)
-                                    phase1_feature_selected["actual_fallback_mode"] = "rescue_overlap"
-                                    phase1_last_selected_score = float(
-                                        feat_rescue.full_v2_score
-                                        if feat_rescue.full_v2_score is not None
-                                        else (
-                                            feat_rescue.cheap_score
-                                            if feat_rescue.cheap_score is not None
-                                            else feat_rescue.simple_score or float("-inf")
-                                        )
-                                    )
-                                    if str(feat_rescue.runtime_split_mode) != "off":
-                                        selection_mode = "rescue_overlap_split"
-                                _ai_log(
-                                    "hardcoded_adapt_phase3_rescue_selected",
-                                    depth=int(depth + 1),
-                                    selected_idx=int(best_idx),
-                                    selected_op=(
-                                        str(rescue_record.get("candidate_term").label)
-                                        if rescue_record.get("candidate_term") is not None
-                                        else str(pool[int(best_idx)].label)
-                                    ),
-                                    selected_position=int(selected_position),
-                                    init_theta=float(init_theta),
-                                    overlap_gain=float(rescue_record.get("overlap_gain", 0.0)),
-                                )
-                            else:
-                                if bool(eps_grad_termination_enabled):
-                                    stop_reason = "eps_grad"
-                                    _ai_log(
-                                        "hardcoded_adapt_converged_grad",
-                                        max_grad=float(max_grad),
-                                        eps_grad=float(eps_grad),
-                                        fallback_attempted=True,
-                                        fallback_best_probe_delta_e=float(fallback_best_probe_delta_e),
-                                        finite_angle_min_improvement=float(finite_angle_min_improvement),
-                                    )
-                                    break
-                                selection_mode = "eps_grad_suppressed_continue"
-                                _ai_log(
-                                    "hardcoded_adapt_converged_grad",
-                                    max_grad=float(max_grad),
-                                    eps_grad=float(eps_grad),
-                                    fallback_attempted=True,
-                                    fallback_best_probe_delta_e=float(fallback_best_probe_delta_e),
-                                    finite_angle_min_improvement=float(finite_angle_min_improvement),
-                                )
-                                break
-                            selection_mode = "eps_grad_suppressed_continue"
-                            _ai_log(
-                                "hardcoded_adapt_eps_grad_termination_suppressed",
-                                depth=int(depth + 1),
-                                max_grad=float(max_grad),
-                                eps_grad=float(eps_grad),
-                                fallback_attempted=True,
-                                fallback_best_probe_delta_e=float(fallback_best_probe_delta_e),
-                                finite_angle_min_improvement=float(finite_angle_min_improvement),
-                                continuation_mode=str(continuation_mode),
-                                problem=str(problem_key),
+                    else:
+                        rescue_record = None
+                        rescue_diag: dict[str, Any] | None = None
+                        if phase3_enabled:
+                            rescue_record, rescue_diag = _phase3_try_rescue(
+                                psi_current_state=np.asarray(psi_current, dtype=complex),
+                                shortlist_eval_records=list(phase2_last_shortlist_eval_records),
+                                selected_position_append=int(append_position),
+                                history_rows=list(history),
+                                trough_detected_now=bool(phase1_last_trough_detected),
                             )
                             if rescue_diag is not None:
                                 phase3_rescue_history.append(dict(rescue_diag))
@@ -12125,12 +12038,17 @@ def _run_hardcoded_adapt_vqe(
                                 if str(feat_rescue.runtime_split_mode) != "off":
                                     selection_mode = "rescue_overlap_split"
                             _ai_log(
-                                "hardcoded_adapt_fallback_selected",
+                                "hardcoded_adapt_phase3_rescue_selected",
                                 depth=int(depth + 1),
                                 selected_idx=int(best_idx),
-                                selected_op=str(pool[best_idx].label),
+                                selected_op=(
+                                    str(rescue_record.get("candidate_term").label)
+                                    if rescue_record.get("candidate_term") is not None
+                                    else str(pool[int(best_idx)].label)
+                                ),
+                                selected_position=int(selected_position),
                                 init_theta=float(init_theta),
-                                probe_delta_e=float(fallback_best_probe_delta_e),
+                                overlap_gain=float(rescue_record.get("overlap_gain", 0.0)),
                             )
                         else:
                             if bool(eps_grad_termination_enabled):
@@ -12159,7 +12077,11 @@ def _run_hardcoded_adapt_vqe(
                 else:
                     if bool(eps_grad_termination_enabled):
                         stop_reason = "eps_grad"
-                        _ai_log("hardcoded_adapt_converged_grad", max_grad=float(max_grad), eps_grad=float(eps_grad))
+                        _ai_log(
+                            "hardcoded_adapt_converged_grad",
+                            max_grad=float(max_grad),
+                            eps_grad=float(eps_grad),
+                        )
                         break
                     selection_mode = "eps_grad_suppressed_continue"
                     _ai_log(
@@ -14810,6 +14732,23 @@ def _run_hardcoded_adapt_vqe(
             "method": method_name,
             "energy": float(energy_current),
             "energy_source": str(phase3_oracle_inner_backend_name),
+            "analytic_noise_applied": bool(
+                adapt_analytic_noise_enabled
+                and (
+                    (not phase3_oracle_inner_objective_enabled)
+                    or (not phase3_oracle_gradient_enabled)
+                )
+            ),
+            "analytic_noise_energy_path_active": bool(
+                adapt_analytic_noise_enabled
+                and (not phase3_oracle_inner_objective_enabled)
+            ),
+            "analytic_noise_gradient_path_active": bool(
+                adapt_analytic_noise_enabled
+                and (not phase3_oracle_gradient_enabled)
+            ),
+            "analytic_noise_std": float(adapt_analytic_noise_std_val),
+            "analytic_noise_seed": adapt_analytic_noise_seed_val,
             "exact_energy_from_final_state": float(exact_energy_from_final_state),
             "exact_gs_energy": float(exact_gs),
             "delta_e": float(energy_current - exact_gs),
@@ -16103,6 +16042,18 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     )
     p.add_argument("--adapt-spsa-callback-every", type=int, default=5)
     p.add_argument("--adapt-spsa-progress-every-s", type=float, default=60.0)
+    p.add_argument(
+        "--adapt-analytic-noise-std",
+        type=float,
+        default=0.0,
+        help="Std-dev of run-local Gaussian noise injected into exact ADAPT search-time energy and exact commutator gradients (0 = disabled).",
+    )
+    p.add_argument(
+        "--adapt-analytic-noise-seed",
+        type=int,
+        default=None,
+        help="Optional RNG seed for run-local ADAPT analytic Gaussian noise draws.",
+    )
     p.add_argument("--adapt-seed", type=int, default=7)
     p.set_defaults(adapt_allow_repeats=True)
     p.add_argument("--adapt-allow-repeats", dest="adapt_allow_repeats", action="store_true")
@@ -16598,6 +16549,12 @@ def main(argv: Sequence[str] | None = None) -> None:
             adapt_spsa_eval_agg=str(args.adapt_spsa_eval_agg),
             adapt_spsa_callback_every=int(args.adapt_spsa_callback_every),
             adapt_spsa_progress_every_s=float(args.adapt_spsa_progress_every_s),
+            adapt_analytic_noise_std=float(args.adapt_analytic_noise_std),
+            adapt_analytic_noise_seed=(
+                None
+                if args.adapt_analytic_noise_seed is None
+                else int(args.adapt_analytic_noise_seed)
+            ),
             adapt_state_backend=str(args.adapt_state_backend),
             adapt_reopt_policy=str(args.adapt_reopt_policy),
             adapt_window_size=int(args.adapt_window_size),
@@ -16764,6 +16721,13 @@ def main(argv: Sequence[str] | None = None) -> None:
             "method": f"hardcoded_adapt_vqe_{str(args.adapt_pool).lower()}",
             "energy": None,
             "adapt_inner_optimizer": str(args.adapt_inner_optimizer),
+            "analytic_noise_applied": bool(float(args.adapt_analytic_noise_std) > 0.0),
+            "analytic_noise_std": float(args.adapt_analytic_noise_std),
+            "analytic_noise_seed": (
+                None
+                if args.adapt_analytic_noise_seed is None
+                else int(args.adapt_analytic_noise_seed)
+            ),
             "error": str(exc),
         }
         if str(args.adapt_inner_optimizer).strip().upper() == "SPSA":
@@ -16906,6 +16870,12 @@ def main(argv: Sequence[str] | None = None) -> None:
             "adapt_eps_energy_patience": int(args.adapt_eps_energy_patience),
             "adapt_ref_base_depth": int(adapt_ref_base_depth),
             "adapt_gradient_parity_check": bool(args.adapt_gradient_parity_check),
+            "adapt_analytic_noise_std": float(args.adapt_analytic_noise_std),
+            "adapt_analytic_noise_seed": (
+                None
+                if args.adapt_analytic_noise_seed is None
+                else int(args.adapt_analytic_noise_seed)
+            ),
             "adapt_seed": int(args.adapt_seed),
             "adapt_reopt_policy": str(args.adapt_reopt_policy),
             "adapt_window_size": int(args.adapt_window_size),

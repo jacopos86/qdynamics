@@ -34,6 +34,11 @@ class RealtimeCheckpointConfig:
     exact_forecast_tangent_secant_signed_energy_lead_limit: float = 0.0
     exact_forecast_tracking_horizon_steps: int = 1
     exact_forecast_tracking_horizon_weights: tuple[float, ...] = ()
+    exact_forecast_tracking_fidelity_defect_weight: float = 1.0
+    exact_forecast_tracking_staggered_error_weight: float = 1.0
+    exact_forecast_tracking_doublon_error_weight: float = 1.0
+    exact_forecast_tracking_site_occupations_error_weight: float = 1.0
+    exact_forecast_tracking_energy_total_error_weight: float = 1.0
     exact_forecast_energy_slope_weight: float = 0.0
     exact_forecast_energy_curvature_weight: float = 0.0
     exact_forecast_energy_excursion_under_weight: float = 0.0
@@ -52,6 +57,8 @@ class RealtimeCheckpointConfig:
     regularization_lambda: float = 1e-8
     candidate_regularization_lambda: float = 1e-8
     pinv_rcond: float = 1e-10
+    analytic_noise_std: float = 0.0
+    analytic_noise_seed: int | None = None
     compile_penalty_weight: float = 0.05
     measurement_penalty_weight: float = 0.02
     directional_penalty_weight: float = 0.01
@@ -308,6 +315,8 @@ class CheckpointLedgerEntry:
     raw_group_cache_misses: int = 0
     raw_group_cache_extensions: int = 0
     drive_term_count: int = 0
+    analytic_noise_std: float = 0.0
+    analytic_noise_seed: int | None = None
     degraded_reason: str | None = None
 
 

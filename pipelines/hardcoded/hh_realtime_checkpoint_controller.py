@@ -596,6 +596,17 @@ class RealtimeCheckpointController:
         self._oracle_instances: dict[str, Any] = {}
         self._degraded_checkpoint_count = 0
         self._temporal_ledger = TemporalMeasurementLedger()
+        analytic_noise_std = float(getattr(cfg, "analytic_noise_std", 0.0))
+        if (not np.isfinite(analytic_noise_std)) or analytic_noise_std < 0.0:
+            raise ValueError(
+                f"analytic_noise_std must be finite and nonnegative; got {analytic_noise_std!r}."
+            )
+        analytic_noise_seed = getattr(cfg, "analytic_noise_seed", None)
+        self._analytic_noise_std = float(analytic_noise_std)
+        self._analytic_noise_seed = (
+            None if analytic_noise_seed is None else int(analytic_noise_seed)
+        )
+        self._analytic_noise_rng = np.random.default_rng(self._analytic_noise_seed)
 
         mode = str(cfg.mode)
         if mode not in {"off", "exact_v1", "oracle_v1"}:
@@ -674,6 +685,18 @@ class RealtimeCheckpointController:
             if (not np.isfinite(weight)) or weight <= 0.0:
                 raise ValueError(
                     f"exact_forecast_tracking_horizon_weights must be finite and positive; got {weight!r}."
+                )
+        tracking_term_weights = (
+            float(getattr(cfg, "exact_forecast_tracking_fidelity_defect_weight", 1.0)),
+            float(getattr(cfg, "exact_forecast_tracking_staggered_error_weight", 1.0)),
+            float(getattr(cfg, "exact_forecast_tracking_doublon_error_weight", 1.0)),
+            float(getattr(cfg, "exact_forecast_tracking_site_occupations_error_weight", 1.0)),
+            float(getattr(cfg, "exact_forecast_tracking_energy_total_error_weight", 1.0)),
+        )
+        for weight in tracking_term_weights:
+            if (not np.isfinite(weight)) or weight < 0.0:
+                raise ValueError(
+                    "exact_forecast_tracking_*_weight values must be finite and nonnegative."
                 )
         excursion_under_weight = float(
             getattr(cfg, "exact_forecast_energy_excursion_under_weight", 0.0)
@@ -911,6 +934,40 @@ class RealtimeCheckpointController:
         tmp_path.write_text(json.dumps(payload, indent=2, sort_keys=True), encoding="utf-8")
         tmp_path.replace(self._partial_payload_path)
 
+    def _analytic_noise_enabled(self) -> bool:
+        return bool(self._analytic_noise_std > 0.0)
+
+    def _add_scalar_gaussian_noise(self, value: float) -> float:
+        value_f = float(value)
+        if not self._analytic_noise_enabled():
+            return value_f
+        return value_f + float(
+            self._analytic_noise_rng.normal(0.0, float(self._analytic_noise_std))
+        )
+
+    def _add_vector_gaussian_noise(self, value: np.ndarray) -> np.ndarray:
+        arr = np.asarray(value, dtype=float)
+        if not self._analytic_noise_enabled():
+            return arr
+        return np.asarray(
+            arr
+            + self._analytic_noise_rng.normal(
+                0.0, float(self._analytic_noise_std), size=arr.shape
+            ),
+            dtype=float,
+        )
+
+    def _add_symmetric_gaussian_noise(self, value: np.ndarray) -> np.ndarray:
+        arr = np.asarray(value, dtype=float)
+        if not self._analytic_noise_enabled():
+            return arr
+        noise = self._analytic_noise_rng.normal(
+            0.0, float(self._analytic_noise_std), size=arr.shape
+        )
+        noise = np.triu(noise)
+        noise = noise + np.triu(noise, 1).T
+        return np.asarray(arr + noise, dtype=float)
+
     def _build_executor(
         self,
         carriers: Sequence[RuntimeTermCarrier],
@@ -1010,6 +1067,18 @@ class RealtimeCheckpointController:
             weights = raw
         active_steps = configured_steps if steps is None else max(1, int(steps))
         return tuple(float(x) for x in weights[:active_steps])
+
+    def _exact_forecast_tracking_error_weights(self) -> tuple[float, float, float, float, float]:
+        return (
+            max(0.0, float(getattr(self.cfg, "exact_forecast_tracking_fidelity_defect_weight", 1.0))),
+            max(0.0, float(getattr(self.cfg, "exact_forecast_tracking_staggered_error_weight", 1.0))),
+            max(0.0, float(getattr(self.cfg, "exact_forecast_tracking_doublon_error_weight", 1.0))),
+            max(
+                0.0,
+                float(getattr(self.cfg, "exact_forecast_tracking_site_occupations_error_weight", 1.0)),
+            ),
+            max(0.0, float(getattr(self.cfg, "exact_forecast_tracking_energy_total_error_weight", 1.0))),
+        )
 
     def _exact_forecast_horizon_length(
         self,
@@ -1355,15 +1424,23 @@ class RealtimeCheckpointController:
         total_weight = float(sum(float(x) for x in weights))
         if total_weight <= 0.0:
             return float("inf")
+        (
+            fidelity_defect_weight,
+            staggered_error_weight,
+            doublon_error_weight,
+            site_occupations_error_weight,
+            energy_total_error_weight,
+        ) = self._exact_forecast_tracking_error_weights()
         score = 0.0
         for weight, item in zip(weights, forecasts):
             fidelity_defect = max(0.0, 1.0 - float(item["fidelity_exact_next"]))
             score += float(weight) * float(
-                fidelity_defect
-                + float(item["abs_staggered_error_next"])
-                + float(item["abs_doublon_error_next"])
-                + float(item["site_occupations_abs_error_max_next"])
-                + float(item["abs_energy_total_error_next"])
+                float(fidelity_defect_weight) * fidelity_defect
+                + float(staggered_error_weight) * float(item["abs_staggered_error_next"])
+                + float(doublon_error_weight) * float(item["abs_doublon_error_next"])
+                + float(site_occupations_error_weight)
+                * float(item["site_occupations_abs_error_max_next"])
+                + float(energy_total_error_weight) * float(item["abs_energy_total_error_next"])
             )
         total = float(score / total_weight)
         slope_weight, curvature_weight = self._exact_forecast_energy_shape_weights()
@@ -3980,35 +4057,95 @@ class RealtimeCheckpointController:
         norm_b_sq = float(max(0.0, np.real(np.vdot(b_bar, b_bar))))
         G = np.asarray(np.real(tangents_matrix.conj().T @ tangents_matrix), dtype=float)
         f = np.asarray(np.real(tangents_matrix.conj().T @ b_bar), dtype=float).reshape(-1)
-        G_pinv = np.linalg.pinv(G, rcond=float(self.cfg.pinv_rcond)) if G.size else np.zeros((0, 0), dtype=float)
-        K = np.asarray(G + float(self.cfg.regularization_lambda) * np.eye(int(G.shape[0])), dtype=float)
-        K_pinv = np.linalg.pinv(K, rcond=float(self.cfg.pinv_rcond)) if K.size else np.zeros((0, 0), dtype=float)
-        theta_dot_proj = np.asarray(G_pinv @ f, dtype=float).reshape(-1) if G.size else np.zeros(0, dtype=float)
-        theta_dot_step = np.asarray(K_pinv @ f, dtype=float).reshape(-1) if K.size else np.zeros(0, dtype=float)
-        epsilon_proj_sq = float(max(0.0, norm_b_sq - float(f @ theta_dot_proj))) if f.size else float(norm_b_sq)
-        residual_step = np.asarray(tangents_matrix @ theta_dot_step - b_bar, dtype=complex).reshape(-1)
-        epsilon_step_sq = float(max(0.0, np.real(np.vdot(residual_step, residual_step))))
-        rho_miss = float(epsilon_proj_sq / max(norm_b_sq, 1e-14))
-        rank = int(np.linalg.matrix_rank(K, tol=float(self.cfg.pinv_rcond))) if K.size else 0
-        cond = float(np.linalg.cond(K)) if K.size else 1.0
-        theta_dot_l2 = float(np.linalg.norm(theta_dot_step))
-        baseline_summary = BaselineGeometrySummary(
-            energy=float(energy),
-            variance=float(variance),
-            epsilon_proj_sq=float(epsilon_proj_sq),
-            epsilon_step_sq=float(epsilon_step_sq),
-            rho_miss=float(rho_miss),
-            theta_dot_l2=float(theta_dot_l2),
-            matrix_rank=int(rank),
-            condition_number=float(cond),
-            regularization_lambda=float(self.cfg.regularization_lambda),
-            solve_mode="pinv_reg",
-            logical_block_count=int(layout.logical_parameter_count),
-            runtime_parameter_count=int(layout.runtime_parameter_count),
-            planning_summary=dict(planning_audit.summary()),
-            exact_cache_summary=dict(cache.summary()),
-        )
-        return {
+
+        def _geometry_payload(G_now: np.ndarray, f_now: np.ndarray) -> dict[str, Any]:
+            G_eval = np.asarray(G_now, dtype=float)
+            f_eval = np.asarray(f_now, dtype=float).reshape(-1)
+            G_pinv = (
+                np.linalg.pinv(G_eval, rcond=float(self.cfg.pinv_rcond))
+                if G_eval.size
+                else np.zeros((0, 0), dtype=float)
+            )
+            K = np.asarray(
+                G_eval
+                + float(self.cfg.regularization_lambda) * np.eye(int(G_eval.shape[0])),
+                dtype=float,
+            )
+            K_pinv = (
+                np.linalg.pinv(K, rcond=float(self.cfg.pinv_rcond))
+                if K.size
+                else np.zeros((0, 0), dtype=float)
+            )
+            theta_dot_proj = (
+                np.asarray(G_pinv @ f_eval, dtype=float).reshape(-1)
+                if G_eval.size
+                else np.zeros(0, dtype=float)
+            )
+            theta_dot_step = (
+                np.asarray(K_pinv @ f_eval, dtype=float).reshape(-1)
+                if K.size
+                else np.zeros(0, dtype=float)
+            )
+            epsilon_proj_sq = (
+                float(max(0.0, norm_b_sq - float(f_eval @ theta_dot_proj)))
+                if f_eval.size
+                else float(norm_b_sq)
+            )
+            residual_step = np.asarray(
+                tangents_matrix @ theta_dot_step - b_bar, dtype=complex
+            ).reshape(-1)
+            epsilon_step_sq = float(
+                max(0.0, np.real(np.vdot(residual_step, residual_step)))
+            )
+            rho_miss = float(epsilon_proj_sq / max(norm_b_sq, 1e-14))
+            rank = (
+                int(np.linalg.matrix_rank(K, tol=float(self.cfg.pinv_rcond)))
+                if K.size
+                else 0
+            )
+            cond = float(np.linalg.cond(K)) if K.size else 1.0
+            theta_dot_l2 = float(np.linalg.norm(theta_dot_step))
+            return {
+                "G": G_eval,
+                "f": f_eval,
+                "K": K,
+                "K_pinv": K_pinv,
+                "theta_dot_proj": theta_dot_proj,
+                "theta_dot_step": theta_dot_step,
+                "residual_step": residual_step,
+                "summary": BaselineGeometrySummary(
+                    energy=float(energy),
+                    variance=float(variance),
+                    epsilon_proj_sq=float(epsilon_proj_sq),
+                    epsilon_step_sq=float(epsilon_step_sq),
+                    rho_miss=float(rho_miss),
+                    theta_dot_l2=float(theta_dot_l2),
+                    matrix_rank=int(rank),
+                    condition_number=float(cond),
+                    regularization_lambda=float(self.cfg.regularization_lambda),
+                    solve_mode="pinv_reg",
+                    logical_block_count=int(layout.logical_parameter_count),
+                    runtime_parameter_count=int(layout.runtime_parameter_count),
+                    planning_summary=dict(planning_audit.summary()),
+                    exact_cache_summary=dict(cache.summary()),
+                ),
+            }
+
+        def _geometry_payload_is_finite(payload: Mapping[str, Any]) -> bool:
+            for key in ("G", "f", "K", "K_pinv", "theta_dot_proj", "theta_dot_step"):
+                arr = np.asarray(payload.get(key), dtype=float)
+                if arr.size and (not np.all(np.isfinite(arr))):
+                    return False
+            summary = payload["summary"]
+            return bool(
+                np.isfinite(float(summary.epsilon_proj_sq))
+                and np.isfinite(float(summary.epsilon_step_sq))
+                and np.isfinite(float(summary.rho_miss))
+                and np.isfinite(float(summary.theta_dot_l2))
+                and np.isfinite(float(summary.condition_number))
+            )
+
+        baseline_payload = {
             "psi": psi_vec,
             "energy": float(energy),
             "variance": float(variance),
@@ -4016,15 +4153,25 @@ class RealtimeCheckpointController:
             "b_bar": b_bar,
             "norm_b_sq": float(norm_b_sq),
             "T": tangents_matrix,
-            "G": G,
-            "f": f,
-            "K": K,
-            "K_pinv": K_pinv,
-            "theta_dot_proj": theta_dot_proj,
-            "theta_dot_step": theta_dot_step,
-            "residual_step": residual_step,
-            "summary": baseline_summary,
+            **_geometry_payload(G, f),
+            "analytic_noise_applied": bool(self._analytic_noise_enabled()),
+            "analytic_noise_degraded_reason": None,
         }
+        if not self._analytic_noise_enabled() or not G.size:
+            return baseline_payload
+
+        noisy_payload = _geometry_payload(
+            self._add_symmetric_gaussian_noise(G),
+            self._add_vector_gaussian_noise(f),
+        )
+        if not _geometry_payload_is_finite(noisy_payload):
+            baseline_payload["analytic_noise_degraded_reason"] = (
+                "analytic_noise_nonfinite_metric"
+            )
+            return baseline_payload
+
+        baseline_payload.update(noisy_payload)
+        return baseline_payload
 
     def _energy_hpsi_variance(self, psi: np.ndarray, *, compiled_h: Any | None = None) -> tuple[float, np.ndarray, float]:
         psi_vec = np.asarray(psi, dtype=complex).reshape(-1)
@@ -4850,7 +4997,7 @@ class RealtimeCheckpointController:
                     step_hamiltonian=step_hamiltonian,
                 )
                 baseline_for_decision = baseline_exact
-                degraded_reason: str | None = None
+                degraded_reason = baseline_exact.get("analytic_noise_degraded_reason")
                 decision_backend = "exact"
                 decision_noise_mode: str | None = None
                 oracle_attempted = False
@@ -4871,6 +5018,7 @@ class RealtimeCheckpointController:
                     time_stop is not None
                     and str(self.cfg.mode) == "exact_v1"
                     and bool(self._drive_aligned_density_active)
+                    and degraded_reason is None
                 ):
                     try:
                         (
@@ -4909,24 +5057,32 @@ class RealtimeCheckpointController:
                 self._decrement_prune_cooldowns()
                 self._record_prune_histories(baseline=baseline_for_decision)
                 prune_candidates: list[dict[str, Any]] = []
-                prune_reason = "exact_rho_miss_below_threshold"
+                prune_reason = (
+                    str(degraded_reason)
+                    if degraded_reason is not None
+                    else "exact_rho_miss_below_threshold"
+                )
                 if (
                     time_stop is not None
                     and str(self.cfg.mode) != "off"
                     and str(getattr(self.cfg, "prune_mode", "off")) != "off"
                     and float(baseline_exact["summary"].rho_miss) <= float(self.cfg.miss_threshold)
+                    and degraded_reason is None
                 ):
                     prune_candidates, prune_reason = self._prune_candidates(
                         checkpoint_index=int(checkpoint_index),
                         baseline=baseline_exact,
                         motion=motion_telemetry,
                     )
-                controller_lane, controller_lane_reason = self._controller_lane(
-                    time_stop=time_stop,
-                    rho_miss=float(baseline_exact["summary"].rho_miss),
-                    prune_candidates_available=bool(prune_candidates),
-                    prune_reason=str(prune_reason),
-                )
+                if degraded_reason is not None:
+                    controller_lane, controller_lane_reason = "stay", str(degraded_reason)
+                else:
+                    controller_lane, controller_lane_reason = self._controller_lane(
+                        time_stop=time_stop,
+                        rho_miss=float(baseline_exact["summary"].rho_miss),
+                        prune_candidates_available=bool(prune_candidates),
+                        prune_reason=str(prune_reason),
+                    )
                 base_refresh_pressure = self._temporal_ledger.refresh_pressure(
                     predicted_displacement=float(predicted_displacement),
                     rho_miss=float(baseline_exact["summary"].rho_miss),
@@ -5864,6 +6020,8 @@ class RealtimeCheckpointController:
                     raw_group_cache_misses=(0 if raw_group_pool is None else int(raw_group_pool.summary()["misses"])),
                     raw_group_cache_extensions=(0 if raw_group_pool is None else int(raw_group_pool.summary()["extensions"])),
                     drive_term_count=int(step_hamiltonian.drive_term_count),
+                    analytic_noise_std=float(self.cfg.analytic_noise_std),
+                    analytic_noise_seed=getattr(self.cfg, "analytic_noise_seed", None),
                     degraded_reason=degraded_reason,
                 )
                 self._ledger.append(dataclass_to_payload(ledger_entry))
@@ -5998,6 +6156,21 @@ class RealtimeCheckpointController:
                         steps=self._exact_forecast_tracking_horizon_steps()
                     )
                 ],
+                "exact_forecast_tracking_fidelity_defect_weight": float(
+                    getattr(self.cfg, "exact_forecast_tracking_fidelity_defect_weight", 1.0)
+                ),
+                "exact_forecast_tracking_staggered_error_weight": float(
+                    getattr(self.cfg, "exact_forecast_tracking_staggered_error_weight", 1.0)
+                ),
+                "exact_forecast_tracking_doublon_error_weight": float(
+                    getattr(self.cfg, "exact_forecast_tracking_doublon_error_weight", 1.0)
+                ),
+                "exact_forecast_tracking_site_occupations_error_weight": float(
+                    getattr(self.cfg, "exact_forecast_tracking_site_occupations_error_weight", 1.0)
+                ),
+                "exact_forecast_tracking_energy_total_error_weight": float(
+                    getattr(self.cfg, "exact_forecast_tracking_energy_total_error_weight", 1.0)
+                ),
                 "exact_forecast_energy_slope_weight": float(
                     getattr(self.cfg, "exact_forecast_energy_slope_weight", 0.0)
                 ),

@@ -121,6 +121,33 @@ def _two_qubit_drive_context(
     return replay_context, h_poly, hmat, psi_initial
 
 
+def _baseline_geometry_payload(controller: RealtimeCheckpointController) -> dict[str, object]:
+    psi_current = controller.current_executor.prepare_state(
+        controller.current_theta, controller.replay_context.psi_ref
+    )
+    checkpoint_ctx = make_checkpoint_context(
+        checkpoint_index=0,
+        time_start=0.0,
+        time_stop=0.1,
+        scaffold_labels=controller._current_scaffold_labels(),
+        theta=controller.current_theta,
+        psi=psi_current,
+        logical_count=int(controller.current_layout.logical_parameter_count),
+        runtime_count=int(controller.current_layout.runtime_parameter_count),
+        resolved_family=str(controller.replay_context.family_info.get("resolved", "unknown")),
+        grouping_mode=str(controller.cfg.grouping_mode),
+        structure_locked=False,
+    )
+    cache = ExactCheckpointValueCache(
+        checkpoint_id=str(checkpoint_ctx.checkpoint_id),
+        grouping_mode=str(controller.cfg.grouping_mode),
+    )
+    geometry_memo = DerivedGeometryMemo(
+        checkpoint_id=str(checkpoint_ctx.checkpoint_id),
+    )
+    return controller._baseline_geometry(checkpoint_ctx, cache, geometry_memo)
+
+
 def _two_block_context(
     theta_x: float = 0.2,
     theta_y: float = 0.01,
@@ -317,6 +344,162 @@ def test_realtime_controller_select_action_scans_past_surrogate_top_candidate_th
     assert str(action_kind) == "append_candidate"
     assert selected is not None
     assert str(selected["candidate_label"]) == "candidate_b"
+
+
+def test_realtime_controller_analytic_noise_zero_std_matches_exact_baseline() -> None:
+    replay_context, h_poly, hmat, psi_initial = _toy_context(theta_x=0.2)
+    controller_plain = RealtimeCheckpointController(
+        cfg=RealtimeCheckpointConfig(mode="exact_v1"),
+        replay_context=replay_context,
+        h_poly=h_poly,
+        hmat=hmat,
+        psi_initial=psi_initial,
+        best_theta=[0.2],
+        allow_repeats=False,
+        t_final=0.2,
+        num_times=2,
+    )
+    controller_zero = RealtimeCheckpointController(
+        cfg=RealtimeCheckpointConfig(
+            mode="exact_v1",
+            analytic_noise_std=0.0,
+            analytic_noise_seed=17,
+        ),
+        replay_context=replay_context,
+        h_poly=h_poly,
+        hmat=hmat,
+        psi_initial=psi_initial,
+        best_theta=[0.2],
+        allow_repeats=False,
+        t_final=0.2,
+        num_times=2,
+    )
+
+    baseline_plain = _baseline_geometry_payload(controller_plain)
+    baseline_zero = _baseline_geometry_payload(controller_zero)
+
+    assert bool(baseline_plain["analytic_noise_applied"]) is False
+    assert bool(baseline_zero["analytic_noise_applied"]) is False
+    assert baseline_zero["summary"].rho_miss == pytest.approx(baseline_plain["summary"].rho_miss)
+    assert np.asarray(baseline_zero["G"], dtype=float) == pytest.approx(
+        np.asarray(baseline_plain["G"], dtype=float)
+    )
+    assert np.asarray(baseline_zero["f"], dtype=float) == pytest.approx(
+        np.asarray(baseline_plain["f"], dtype=float)
+    )
+    assert np.asarray(baseline_zero["theta_dot_step"], dtype=float) == pytest.approx(
+        np.asarray(baseline_plain["theta_dot_step"], dtype=float)
+    )
+
+
+def test_realtime_controller_analytic_noise_seed_is_reproducible_and_symmetric() -> None:
+    replay_context, h_poly, hmat, psi_initial = _toy_context(theta_x=0.2)
+    controller_a = RealtimeCheckpointController(
+        cfg=RealtimeCheckpointConfig(
+            mode="exact_v1",
+            analytic_noise_std=0.25,
+            analytic_noise_seed=7,
+        ),
+        replay_context=replay_context,
+        h_poly=h_poly,
+        hmat=hmat,
+        psi_initial=psi_initial,
+        best_theta=[0.2],
+        allow_repeats=False,
+        t_final=0.2,
+        num_times=2,
+    )
+    controller_b = RealtimeCheckpointController(
+        cfg=RealtimeCheckpointConfig(
+            mode="exact_v1",
+            analytic_noise_std=0.25,
+            analytic_noise_seed=7,
+        ),
+        replay_context=replay_context,
+        h_poly=h_poly,
+        hmat=hmat,
+        psi_initial=psi_initial,
+        best_theta=[0.2],
+        allow_repeats=False,
+        t_final=0.2,
+        num_times=2,
+    )
+    controller_c = RealtimeCheckpointController(
+        cfg=RealtimeCheckpointConfig(
+            mode="exact_v1",
+            analytic_noise_std=0.25,
+            analytic_noise_seed=8,
+        ),
+        replay_context=replay_context,
+        h_poly=h_poly,
+        hmat=hmat,
+        psi_initial=psi_initial,
+        best_theta=[0.2],
+        allow_repeats=False,
+        t_final=0.2,
+        num_times=2,
+    )
+
+    baseline_a = _baseline_geometry_payload(controller_a)
+    baseline_b = _baseline_geometry_payload(controller_b)
+    baseline_c = _baseline_geometry_payload(controller_c)
+
+    assert bool(baseline_a["analytic_noise_applied"]) is True
+    assert baseline_a["analytic_noise_degraded_reason"] is None
+    assert np.asarray(baseline_a["G"], dtype=float) == pytest.approx(
+        np.asarray(baseline_b["G"], dtype=float)
+    )
+    assert np.asarray(baseline_a["f"], dtype=float) == pytest.approx(
+        np.asarray(baseline_b["f"], dtype=float)
+    )
+    assert np.asarray(baseline_a["G"], dtype=float) == pytest.approx(
+        np.asarray(baseline_a["G"], dtype=float).T
+    )
+    assert not np.allclose(
+        np.asarray(baseline_a["G"], dtype=float),
+        np.asarray(baseline_c["G"], dtype=float),
+    )
+
+
+def test_realtime_controller_analytic_noise_nonfinite_metrics_degrade_to_stay(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    replay_context, h_poly, hmat, psi_initial = _toy_context(theta_x=0.2)
+    controller = RealtimeCheckpointController(
+        cfg=RealtimeCheckpointConfig(
+            mode="exact_v1",
+            miss_threshold=0.0,
+            gain_ratio_threshold=1e-9,
+            append_margin_abs=1e-12,
+            shortlist_size=4,
+            shortlist_fraction=1.0,
+            analytic_noise_std=0.5,
+            analytic_noise_seed=23,
+        ),
+        replay_context=replay_context,
+        h_poly=h_poly,
+        hmat=hmat,
+        psi_initial=psi_initial,
+        best_theta=[0.2],
+        allow_repeats=False,
+        t_final=0.2,
+        num_times=3,
+    )
+    monkeypatch.setattr(
+        controller,
+        "_add_symmetric_gaussian_noise",
+        lambda value: np.full_like(np.asarray(value, dtype=float), np.inf),
+    )
+    monkeypatch.setattr(controller, "_exact_v1_forecast_override_reason", lambda **kwargs: None)
+
+    result = controller.run()
+
+    assert str(result.trajectory[0]["action_kind"]) == "stay"
+    assert str(result.trajectory[0]["controller_lane"]) == "stay"
+    assert str(result.trajectory[0]["controller_lane_reason"]) == "analytic_noise_nonfinite_metric"
+    assert str(result.trajectory[0]["degraded_reason"]) == "analytic_noise_nonfinite_metric"
+    assert float(result.ledger[0]["analytic_noise_std"]) == pytest.approx(0.5)
+    assert int(result.ledger[0]["analytic_noise_seed"]) == 23
 
 
 def test_realtime_controller_prune_lane_can_commit_coordinate_removal(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -6020,3 +6203,97 @@ def test_realtime_controller_oracle_v1_runtime_uses_group_sampling_when_supporte
     oracle_rows = [row for row in result.ledger if str(row["decision_backend"]) == "oracle"]
     assert oracle_rows
     assert any(int(row["raw_group_cache_hits"]) >= 1 for row in oracle_rows)
+
+
+def test_exact_forecast_tracking_score_defaults_match_unweighted_sum() -> None:
+    replay_context, h_poly, hmat, psi_initial = _toy_context(theta_x=0.2)
+    controller = RealtimeCheckpointController(
+        cfg=RealtimeCheckpointConfig(
+            mode="exact_v1",
+            exact_forecast_tracking_horizon_steps=2,
+            exact_forecast_tracking_horizon_weights=(2.0, 1.0),
+        ),
+        replay_context=replay_context,
+        h_poly=h_poly,
+        hmat=hmat,
+        psi_initial=psi_initial,
+        best_theta=[0.2],
+        allow_repeats=False,
+        t_final=0.2,
+        num_times=3,
+    )
+    forecasts = [
+        {
+            "fidelity_exact_next": 0.97,
+            "abs_staggered_error_next": 0.02,
+            "abs_doublon_error_next": 0.03,
+            "site_occupations_abs_error_max_next": 0.04,
+            "abs_energy_total_error_next": 0.05,
+        },
+        {
+            "fidelity_exact_next": 0.96,
+            "abs_staggered_error_next": 0.01,
+            "abs_doublon_error_next": 0.02,
+            "site_occupations_abs_error_max_next": 0.03,
+            "abs_energy_total_error_next": 0.04,
+        },
+    ]
+    expected = (
+        2.0 * ((1.0 - 0.97) + 0.02 + 0.03 + 0.04 + 0.05)
+        + 1.0 * ((1.0 - 0.96) + 0.01 + 0.02 + 0.03 + 0.04)
+    ) / 3.0
+
+    actual = controller._forecast_tracking_score(forecast=forecasts)
+
+    assert float(actual) == pytest.approx(float(expected))
+
+
+def test_exact_forecast_tracking_score_respects_explicit_doublon_weight() -> None:
+    replay_context, h_poly, hmat, psi_initial = _toy_context(theta_x=0.2)
+    baseline = RealtimeCheckpointController(
+        cfg=RealtimeCheckpointConfig(mode="exact_v1"),
+        replay_context=replay_context,
+        h_poly=h_poly,
+        hmat=hmat,
+        psi_initial=psi_initial,
+        best_theta=[0.2],
+        allow_repeats=False,
+        t_final=0.2,
+        num_times=3,
+    )
+    doublon_heavy = RealtimeCheckpointController(
+        cfg=RealtimeCheckpointConfig(
+            mode="exact_v1",
+            exact_forecast_tracking_doublon_error_weight=10.0,
+        ),
+        replay_context=replay_context,
+        h_poly=h_poly,
+        hmat=hmat,
+        psi_initial=psi_initial,
+        best_theta=[0.2],
+        allow_repeats=False,
+        t_final=0.2,
+        num_times=3,
+    )
+    forecast_a = {
+        "fidelity_exact_next": 0.99,
+        "abs_staggered_error_next": 0.01,
+        "abs_doublon_error_next": 0.10,
+        "site_occupations_abs_error_max_next": 0.01,
+        "abs_energy_total_error_next": 0.01,
+    }
+    forecast_b = {
+        "fidelity_exact_next": 0.99,
+        "abs_staggered_error_next": 0.01,
+        "abs_doublon_error_next": 0.01,
+        "site_occupations_abs_error_max_next": 0.01,
+        "abs_energy_total_error_next": 0.14,
+    }
+
+    baseline_a = baseline._forecast_tracking_score(forecast=forecast_a)
+    baseline_b = baseline._forecast_tracking_score(forecast=forecast_b)
+    weighted_a = doublon_heavy._forecast_tracking_score(forecast=forecast_a)
+    weighted_b = doublon_heavy._forecast_tracking_score(forecast=forecast_b)
+
+    assert float(baseline_a) < float(baseline_b)
+    assert float(weighted_b) < float(weighted_a)

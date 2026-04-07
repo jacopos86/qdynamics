@@ -165,6 +165,11 @@ Do not hardcode an ansatz that cannot be decomposed into Pauli exponentials.
 - Do not replace the cached production gradient path with uncached per-term `apply_pauli_string` loops.
 - If refactoring this area, preserve cached-vs-uncached numerical parity and keep regression tests for that parity.
 
+### Phase 3 ADAPT and Pool Requirements
+- **Rule of Record:** New ADAPT and time-dynamics implementations must explicitly default to the `phase3_v1` logic defined in `MATH/adaptive_selection_and_mclachlan_time_dynamics.tex` and `MATH/adaptive_selection_staged_continuation.tex`.
+- **Banned Full Meta Pools:** The "full meta" pool is explicitly banned for standard runs to prevent excessive QPU depths and prohibitive memory overheads.
+- **Required Reduced Pools:** When running $L=2$ and $L=3$, agents must default to the specific reduced winning pools documented in `MATH/Math.md`.
+
 ---
 
 ## 4) Time-dynamics readiness (Suzuki–Trotter / QPE)
@@ -176,6 +181,11 @@ When implementing primitives, favor ones reusable for time evolution:
 
 If adding higher-order Suzuki–Trotter later:
 - do it by composition on top of the same primitive exp(PauliTerm) backend.
+
+### Secant Time Dynamics standard
+- **Primary Controller:** The `secant` time dynamics path is established as the "winning" standard and default time-dynamics solver/controller.
+- **Agent Pathing:** Any real-time propagation tasks should evaluate or implement configurations like `secant_lead100` before attempting exploratory or novel ODE approaches. 
+- Detailed mathematical backing is available in `MATH/Math.md`.
 
 ## 4a) Time-dependent drive implementation rules
 

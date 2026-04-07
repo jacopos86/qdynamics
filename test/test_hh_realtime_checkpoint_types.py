@@ -5,14 +5,18 @@ import json
 import sys
 
 import numpy as np
+import pytest
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
 from pipelines.hardcoded.hh_realtime_checkpoint_types import (
+    CheckpointLedgerEntry,
     GeometryValueKey,
     OracleValueKey,
+    RealtimeCheckpointConfig,
+    dataclass_to_payload,
     hash_statevector,
     hash_theta_vector,
     validate_scaffold_acceptance,
@@ -86,3 +90,33 @@ def test_oracle_value_key_includes_tier_identity() -> None:
     )
     assert key_a != key_b
     assert hash(key_a) != hash(key_b)
+
+
+def test_realtime_checkpoint_types_payloads_include_analytic_noise_fields() -> None:
+    cfg_payload = dataclass_to_payload(
+        RealtimeCheckpointConfig(analytic_noise_std=0.25, analytic_noise_seed=13)
+    )
+    ledger_payload = dataclass_to_payload(
+        CheckpointLedgerEntry(
+            checkpoint_index=0,
+            time=0.0,
+            action_kind="stay",
+            candidate_label=None,
+            position_id=None,
+            rho_miss=0.0,
+            gain_ratio_selected=0.0,
+            shortlist_size=0,
+            tier_reached="scout",
+            logical_block_count_before=1,
+            logical_block_count_after=1,
+            runtime_parameter_count_before=1,
+            runtime_parameter_count_after=1,
+            rate_change_l2=None,
+            analytic_noise_std=0.25,
+            analytic_noise_seed=13,
+        )
+    )
+    assert float(cfg_payload["analytic_noise_std"]) == pytest.approx(0.25)
+    assert int(cfg_payload["analytic_noise_seed"]) == 13
+    assert float(ledger_payload["analytic_noise_std"]) == pytest.approx(0.25)
+    assert int(ledger_payload["analytic_noise_seed"]) == 13

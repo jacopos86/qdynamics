@@ -25,7 +25,8 @@ Use this section first. Sections 1-6 remain the narrow Marrakesh 7-term line; th
 
 | Intent | Preferred entrypoint | Invocation note | Scope |
 |--------|-----------------------|-----------------|-------|
-| canonical direct HH ADAPT | `pipelines/hardcoded/adapt_pipeline.py` | direct CLI; HH omission defaults to `phase3_v1` | current default |
+| canonical direct HH ADAPT | `pipelines/hardcoded/adapt_pipeline.py` | direct CLI; HH omission defaults to `phase3_v1` (per `adaptive_selection_and_mclachlan_time_dynamics.tex` and `adaptive_selection_staged_continuation.tex`); use reduced winning pools from `Math.md` for L=2, L=3. | current default |
+| secant time dynamics | `python -m pipelines.hardcoded.hh_secant_time_dynamics` (or equivalent execution script) | primary recommended path for real-time propagation controller | definitive standard |
 | staged HH compatibility workflow | `pipelines/hardcoded/hh_staged_noiseless.py` | historical wrapper | compatibility |
 | staged HH noisy/import-side follow-ons | `pipelines/hardcoded/hh_staged_noise.py` | local noisy extension and imported fixed-scaffold routes | current |
 | HH noise validation / parity | `pipelines/exact_bench/hh_noise_hardware_validation.py` | structured JSON/PDF validator | current |
@@ -39,11 +40,19 @@ Use this section first. Sections 1-6 remain the narrow Marrakesh 7-term line; th
 Quick commands:
 
 ```bash
-# Canonical direct HH ADAPT
+# Secant time dynamics run (standard controller path)
+python -m pipelines.hardcoded.hh_secant_time_dynamics \
+  --L 2 --problem hh --omega0 1.0 --g-ep 0.5 --n-ph-max 1 \
+  --secant-controller --secant-lead 100 \
+  --time-dynamics-mode \
+  --output-json artifacts/json/time_dynamics_secant_lead100_L2.json
+
+# Canonical direct HH ADAPT (phase3_v1 logic with reduced pools)
 python pipelines/hardcoded/adapt_pipeline.py \
   --L 2 --problem hh --omega0 1.0 --g-ep 0.5 --n-ph-max 1 \
   --adapt-max-depth 30 --adapt-eps-grad 1e-5 --adapt-maxiter 800 \
   --initial-state-source adapt_vqe --skip-pdf \
+  --use-reduced-winning-pool \
   --output-json artifacts/json/adapt_hh_L2_phase3_v1.json
 
 # Current fixed-manifold exact compare

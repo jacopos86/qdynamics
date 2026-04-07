@@ -144,6 +144,8 @@ class AdaptConfig:
     spsa_eval_agg: str
     spsa_callback_every: int
     spsa_progress_every_s: float
+    analytic_noise_std: float
+    analytic_noise_seed: int | None
     phase1_lambda_F: float
     phase1_lambda_compile: float
     phase1_lambda_measure: float
@@ -908,6 +910,12 @@ def resolve_staged_hh_config(args: Any) -> StagedHHConfig:
         spsa_eval_agg=str(getattr(args, "adapt_spsa_eval_agg")),
         spsa_callback_every=int(getattr(args, "adapt_spsa_callback_every")),
         spsa_progress_every_s=float(getattr(args, "adapt_spsa_progress_every_s")),
+        analytic_noise_std=float(getattr(args, "adapt_analytic_noise_std", 0.0)),
+        analytic_noise_seed=(
+            None
+            if getattr(args, "adapt_analytic_noise_seed", None) is None
+            else int(getattr(args, "adapt_analytic_noise_seed"))
+        ),
         phase1_lambda_F=float(getattr(args, "phase1_lambda_F")),
         phase1_lambda_compile=float(getattr(args, "phase1_lambda_compile")),
         phase1_lambda_measure=float(getattr(args, "phase1_lambda_measure")),
@@ -1171,6 +1179,14 @@ def resolve_staged_hh_config(args: Any) -> StagedHHConfig:
             getattr(args, "checkpoint_controller_candidate_regularization_lambda")
         ),
         pinv_rcond=float(getattr(args, "checkpoint_controller_pinv_rcond")),
+        analytic_noise_std=float(
+            getattr(args, "checkpoint_controller_analytic_noise_std", 0.0)
+        ),
+        analytic_noise_seed=(
+            None
+            if getattr(args, "checkpoint_controller_analytic_noise_seed", None) is None
+            else int(getattr(args, "checkpoint_controller_analytic_noise_seed"))
+        ),
         compile_penalty_weight=float(getattr(args, "checkpoint_controller_compile_penalty_weight")),
         measurement_penalty_weight=float(
             getattr(args, "checkpoint_controller_measurement_penalty_weight")
@@ -1563,6 +1579,8 @@ def run_stage_pipeline(cfg: StagedHHConfig) -> StageExecutionResult:
         adapt_spsa_eval_agg=str(cfg.adapt.spsa_eval_agg),
         adapt_spsa_callback_every=int(cfg.adapt.spsa_callback_every),
         adapt_spsa_progress_every_s=float(cfg.adapt.spsa_progress_every_s),
+        adapt_analytic_noise_std=float(cfg.adapt.analytic_noise_std),
+        adapt_analytic_noise_seed=cfg.adapt.analytic_noise_seed,
         allow_repeats=bool(cfg.adapt.allow_repeats),
         finite_angle_fallback=bool(cfg.adapt.finite_angle_fallback),
         finite_angle=float(cfg.adapt.finite_angle),

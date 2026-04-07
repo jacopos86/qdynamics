@@ -369,6 +369,22 @@ class TestAdaptCLIParsing:
         args = _adapt_mod.parse_args()
         assert str(args.phase3_oracle_inner_objective_mode) == "noisy_v1"
 
+    def test_parse_accepts_adapt_analytic_noise_args(self, monkeypatch: pytest.MonkeyPatch):
+        monkeypatch.setattr(
+            sys,
+            "argv",
+            [
+                "adapt_pipeline.py",
+                "--adapt-analytic-noise-std",
+                "0.25",
+                "--adapt-analytic-noise-seed",
+                "17",
+            ],
+        )
+        args = _adapt_mod.parse_args()
+        assert float(args.adapt_analytic_noise_std) == pytest.approx(0.25)
+        assert int(args.adapt_analytic_noise_seed) == 17
+
     def test_parse_accepts_phase3_oracle_local_mitigation_stack(self, monkeypatch: pytest.MonkeyPatch):
         monkeypatch.setattr(
             sys,
@@ -3097,6 +3113,194 @@ class TestHHPhase3Continuation:
         assert payload["energy_source"] == "exact_statevector"
         assert payload["continuation"]["oracle_gradient_scope"] == "off"
         assert "final_noise_audit_v1" not in payload
+
+    def test_adapt_analytic_noise_zero_std_keeps_exact_baseline(self):
+        common_kwargs = dict(
+            h_poly=self._hh_h(),
+            num_sites=2,
+            ordering="blocked",
+            problem="hh",
+            adapt_pool="paop_lf_std",
+            t=1.0,
+            u=2.0,
+            dv=0.0,
+            boundary="periodic",
+            omega0=1.0,
+            g_ep=0.5,
+            n_ph_max=1,
+            boson_encoding="binary",
+            max_depth=1,
+            eps_grad=1e-3,
+            eps_energy=1e-8,
+            maxiter=5,
+            seed=7,
+            allow_repeats=True,
+            finite_angle_fallback=False,
+            finite_angle=0.1,
+            finite_angle_min_improvement=1e-12,
+            adapt_reopt_policy="windowed",
+            adapt_window_size=1,
+            adapt_window_topk=0,
+            adapt_continuation_mode="phase3_v1",
+            phase3_symmetry_mitigation_mode="verify_only",
+            phase3_enable_rescue=False,
+            phase3_lifetime_cost_mode="phase3_v1",
+        )
+        baseline_payload, _ = _run_hardcoded_adapt_vqe(**common_kwargs)
+        zero_std_payload, _ = _run_hardcoded_adapt_vqe(
+            **common_kwargs,
+            adapt_analytic_noise_std=0.0,
+            adapt_analytic_noise_seed=17,
+        )
+
+        assert bool(baseline_payload["analytic_noise_applied"]) is False
+        assert bool(zero_std_payload["analytic_noise_applied"]) is False
+        assert float(zero_std_payload["energy"]) == pytest.approx(float(baseline_payload["energy"]))
+        assert float(zero_std_payload["exact_energy_from_final_state"]) == pytest.approx(
+            float(baseline_payload["exact_energy_from_final_state"])
+        )
+        assert list(zero_std_payload["operators"]) == list(baseline_payload["operators"])
+
+    def test_adapt_analytic_noise_seed_controls_exact_path_reproducibly(self):
+        common_kwargs = dict(
+            h_poly=self._hh_h(),
+            num_sites=2,
+            ordering="blocked",
+            problem="hh",
+            adapt_pool="paop_lf_std",
+            t=1.0,
+            u=2.0,
+            dv=0.0,
+            boundary="periodic",
+            omega0=1.0,
+            g_ep=0.5,
+            n_ph_max=1,
+            boson_encoding="binary",
+            max_depth=1,
+            eps_grad=1e-3,
+            eps_energy=1e-8,
+            maxiter=5,
+            seed=7,
+            allow_repeats=True,
+            finite_angle_fallback=False,
+            finite_angle=0.1,
+            finite_angle_min_improvement=1e-12,
+            adapt_reopt_policy="windowed",
+            adapt_window_size=1,
+            adapt_window_topk=0,
+            adapt_continuation_mode="phase3_v1",
+            phase3_symmetry_mitigation_mode="verify_only",
+            phase3_enable_rescue=False,
+            phase3_lifetime_cost_mode="phase3_v1",
+            adapt_analytic_noise_std=0.5,
+        )
+        payload_a, _ = _run_hardcoded_adapt_vqe(
+            **common_kwargs,
+            adapt_analytic_noise_seed=123,
+        )
+        payload_b, _ = _run_hardcoded_adapt_vqe(
+            **common_kwargs,
+            adapt_analytic_noise_seed=123,
+        )
+        payload_c, _ = _run_hardcoded_adapt_vqe(
+            **common_kwargs,
+            adapt_analytic_noise_seed=124,
+        )
+
+        assert bool(payload_a["analytic_noise_applied"]) is True
+        assert int(payload_a["analytic_noise_seed"]) == 123
+        assert float(payload_a["energy"]) == pytest.approx(float(payload_b["energy"]))
+        assert list(payload_a["operators"]) == list(payload_b["operators"])
+        assert np.asarray(payload_a["optimal_point"], dtype=float) == pytest.approx(
+            np.asarray(payload_b["optimal_point"], dtype=float)
+        )
+        assert float(payload_c["energy"]) != pytest.approx(float(payload_a["energy"]))
+
+    def test_adapt_analytic_noise_does_not_modify_oracle_inner_objective_path(
+        self, monkeypatch: pytest.MonkeyPatch
+    ):
+        self._install_fake_oracle_bindings(
+            monkeypatch,
+            default_gradient=1.0,
+            default_sigma=0.1,
+            gradient_step=0.1,
+            objective_mean=-0.321,
+        )
+        payload, _ = _run_hardcoded_adapt_vqe(
+            h_poly=self._hh_h(),
+            num_sites=2,
+            ordering="blocked",
+            problem="hh",
+            adapt_pool="paop_lf_std",
+            t=1.0,
+            u=2.0,
+            dv=0.0,
+            boundary="periodic",
+            omega0=1.0,
+            g_ep=0.5,
+            n_ph_max=1,
+            boson_encoding="binary",
+            max_depth=1,
+            eps_grad=1e-3,
+            eps_energy=1e-8,
+            maxiter=1,
+            seed=7,
+            adapt_inner_optimizer="SPSA",
+            allow_repeats=True,
+            finite_angle_fallback=False,
+            finite_angle=0.1,
+            finite_angle_min_improvement=1e-12,
+            adapt_reopt_policy="windowed",
+            adapt_window_size=1,
+            adapt_window_topk=0,
+            adapt_continuation_mode="phase3_v1",
+            phase3_symmetry_mitigation_mode="verify_only",
+            phase3_enable_rescue=True,
+            phase3_lifetime_cost_mode="phase3_v1",
+            phase3_oracle_gradient_config=self._oracle_cfg(gradient_step=0.1),
+            phase3_oracle_inner_objective_mode="noisy_v1",
+            adapt_analytic_noise_std=10.0,
+            adapt_analytic_noise_seed=17,
+        )
+
+        assert payload["energy_source"] == "oracle_expectation_v1"
+        assert float(payload["energy"]) == pytest.approx(-0.321)
+        assert bool(payload["analytic_noise_applied"]) is False
+
+    def test_adapt_analytic_noise_rejects_negative_std(self):
+        with pytest.raises(ValueError, match="adapt_analytic_noise_std"):
+            _run_hardcoded_adapt_vqe(
+                h_poly=self._hh_h(),
+                num_sites=2,
+                ordering="blocked",
+                problem="hh",
+                adapt_pool="paop_lf_std",
+                t=1.0,
+                u=2.0,
+                dv=0.0,
+                boundary="periodic",
+                omega0=1.0,
+                g_ep=0.5,
+                n_ph_max=1,
+                boson_encoding="binary",
+                max_depth=1,
+                eps_grad=1e-3,
+                eps_energy=1e-8,
+                maxiter=5,
+                seed=7,
+                allow_repeats=True,
+                finite_angle_fallback=False,
+                finite_angle=0.1,
+                finite_angle_min_improvement=1e-12,
+                adapt_reopt_policy="windowed",
+                adapt_window_size=1,
+                adapt_window_topk=0,
+                adapt_continuation_mode="phase3_v1",
+                phase3_symmetry_mitigation_mode="verify_only",
+                phase3_enable_rescue=False,
+                phase3_lifetime_cost_mode="phase3_v1",
+                adapt_analytic_noise_std=-0.1,
+            )
 
     def test_phase3_oracle_gradient_mode_routes_sigma_through_real_oracle_path(self, monkeypatch: pytest.MonkeyPatch):
         oracle_instances = self._install_fake_oracle_bindings(

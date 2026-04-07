@@ -1,3 +1,17 @@
+# L=2 Noisy Surface Run Handoff
+
+For the **local/offline L=2 HH noisy surface** (`phase3_v1` + `pareto_lean_l2` + `FakeNighthawk`), see [MATH/l2_noisy_surface_run.md](l2_noisy_surface_run.md).
+
+This is the terminal-agent handoff note for the three mitigation lanes:
+
+- `none`
+- `readout`
+- `full`
+
+It is intentionally the front-page pointer so the noisy-surface run recipe is visible before the rest of the manuscript.
+
+---
+
 # ⚡ Real QPU Settings (April 5, 2026 Validated)
 
 > **This is the recommended configuration for real QPU deployment.**
@@ -82,6 +96,34 @@ Based on sweep validation:
 2. Expect |ΔE| ≈ 1.08e-4 (this is the best-known trustworthy result)
 3. Ansatz depth = 20 is excellent for NISQ mitigation
 4. No further local tuning will improve this configuration (sweep confirms)
+
+## Companion Driven Candidate
+
+The leading **driven realtime-controller** candidate for the same L=2 HH scaffold family is now the heavier-target
+`secant_lead100` setting from
+`artifacts/agent_runs/20260405_controller_drive_heavier_secant_lead_scan_v1/json/secant_lead100.json`.
+
+This should be tracked alongside the winning static/noiseless L=2 ADAPT anchor above when choosing real-QPU-facing settings, because it is currently the best controller law we have for recovering visible driven dynamics on the stronger `A=0.55`, `tbar=4.0`, `t_final=8.0` benchmark.
+
+### Current driven-controller headline metrics
+
+| Metric | Value | Notes |
+|--------|-------|-------|
+| Controller law | `secant_lead100` | Signed-energy-lead-tapered secant + signed blend |
+| Drive target | `A=0.55`, `omega=2.0`, `tbar=4.0`, `t0=0.0` | Heavier than the earlier fine-resolution regime |
+| Mean `|ΔE|` | **1.633e-3** | Best whole-window value among current heavier-target candidates |
+| Max `|ΔE|` | **6.501e-3** | Large improvement over prior signed-blend and raw secant anchors |
+| Early-window MAE (`t≤3.35`) | **1.176e-3** | Recovers the startup dip far better than `signed_mild_front_current` |
+| Late-window MAE (`t≥3.35`) | **1.964e-3** | Still slightly better than the previous late-time winner |
+| Energy span ratio | `1.032` | Slight overshoot, but close to exact |
+| Min fidelity | `0.9626` | Remains bounded with no append events |
+
+### Leading QPU-facing pair
+
+- **Static / ground-state anchor:** the validated `pareto_lean + phase3_v1` L=2 ADAPT command above.
+- **Driven / dynamics anchor:** the heavier-target `secant_lead100` controller result above.
+
+These are the two front-page candidates we should currently treat as the leading settings when optimizing toward a real QPU run.
 
 ---
 
