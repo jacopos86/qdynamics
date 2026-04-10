@@ -108,6 +108,7 @@ class OracleConfig:
     mitigation: dict[str, Any] | str = "none"
     symmetry_mitigation: dict[str, Any] | str = "off"
     runtime_profile: dict[str, Any] | str = "legacy_runtime_v0"
+    runtime_raw_profile: dict[str, Any] | str = "legacy_runtime_v0"
     runtime_session: dict[str, Any] | str = "prefer_session"
     execution_surface: str = "expectation_v1"
     raw_transport: str = "auto"
@@ -135,6 +136,7 @@ class NormalizedOracleSpec:
     mitigation: dict[str, Any] = field(default_factory=lambda: {"mode": "none"})
     symmetry_mitigation: dict[str, Any] = field(default_factory=lambda: {"mode": "off"})
     runtime_profile: dict[str, Any] = field(default_factory=lambda: {"name": "legacy_runtime_v0"})
+    runtime_raw_profile: dict[str, Any] = field(default_factory=lambda: {"name": "legacy_runtime_v0"})
     runtime_session: dict[str, Any] = field(default_factory=lambda: {"mode": "prefer_session"})
     execution_surface: str = "expectation_v1"
     raw_transport: str = "auto"
@@ -161,6 +163,7 @@ class NormalizedOracleSpec:
             mitigation=dict(self.mitigation),
             symmetry_mitigation=dict(self.symmetry_mitigation),
             runtime_profile=dict(self.runtime_profile),
+            runtime_raw_profile=dict(self.runtime_raw_profile),
             runtime_session=dict(self.runtime_session),
             execution_surface=str(self.execution_surface),
             raw_transport=str(self.raw_transport),
@@ -187,6 +190,7 @@ class MitigationConfig:
     dd_sequence: str | None = None
     local_readout_strategy: str | None = None
     local_gate_twirling: bool | None = None
+    local_gate_twirling_scope: str | None = None
 
 
 @dataclass(frozen=True)
@@ -200,6 +204,7 @@ class RuntimeEstimatorProfileConfig:
     measure_mitigation: bool | None = None
     measure_twirling: bool | None = None
     gate_twirling: bool | None = None
+    gate_twirling_scope: str | None = None
     twirling_strategy: str | None = None
     zne_mitigation: bool | None = None
     zne_noise_factors: tuple[float, ...] = ()
@@ -310,6 +315,7 @@ class SymmetryMitigationConfig:
 _MITIGATION_MODES = {"none", "readout", "zne", "dd"}
 _SYMMETRY_MITIGATION_MODES = {"off", "verify_only", "postselect_diag_v1", "projector_renorm_v1"}
 _LOCAL_READOUT_STRATEGIES = {"mthree"}
+_GATE_TWIRLING_SCOPES = {"2q_only"}
 _RUNTIME_PROFILE_NAMES = {
     "legacy_runtime_v0",
     "main_twirled_readout_v1",
@@ -365,12 +371,26 @@ def _coerce_optional_bool(raw: Any, *, field_name: str) -> bool | None:
     )
 
 
+def _normalize_gate_twirling_scope(raw: Any, *, field_name: str) -> str | None:
+    if raw is None:
+        return None
+    token = str(raw).strip().lower()
+    if token in {"", "none", "null"}:
+        return None
+    if token not in _GATE_TWIRLING_SCOPES:
+        raise ValueError(
+            f"Unsupported twirling scope for {field_name}: {raw!r}; expected one of {sorted(_GATE_TWIRLING_SCOPES)}."
+        )
+    return token
+
+
 def normalize_mitigation_config(mitigation: Any) -> dict[str, Any]:
     mode = "none"
     zne_scales: list[float] = []
     dd_sequence: str | None = None
     local_readout_strategy: str | None = None
     local_gate_twirling: bool | None = None
+    local_gate_twirling_scope: str | None = None
 
     if mitigation is None:
         pass
@@ -386,6 +406,10 @@ def normalize_mitigation_config(mitigation: Any) -> dict[str, Any]:
         local_gate_twirling = _coerce_optional_bool(
             mitigation.local_gate_twirling,
             field_name="local_gate_twirling",
+        )
+        local_gate_twirling_scope = _normalize_gate_twirling_scope(
+            mitigation.local_gate_twirling_scope,
+            field_name="local_gate_twirling_scope",
         )
     elif isinstance(mitigation, str):
         mode = str(mitigation).strip().lower() or "none"
@@ -409,6 +433,16 @@ def normalize_mitigation_config(mitigation: Any) -> dict[str, Any]:
             ),
             field_name="local_gate_twirling",
         )
+        local_gate_twirling_scope = _normalize_gate_twirling_scope(
+            mitigation.get(
+                "local_gate_twirling_scope",
+                mitigation.get(
+                    "localGateTwirlingScope",
+                    mitigation.get("gate_twirling_scope", mitigation.get("gateTwirlingScope", None)),
+                ),
+            ),
+            field_name="local_gate_twirling_scope",
+        )
     else:
         raise ValueError(
             "Unsupported mitigation config type; expected str, dict, MitigationConfig, or None."
@@ -425,6 +459,12 @@ def normalize_mitigation_config(mitigation: Any) -> dict[str, Any]:
             "Unsupported local readout strategy "
             f"{local_readout_strategy!r}; expected one of {sorted(_LOCAL_READOUT_STRATEGIES)}."
         )
+    if bool(local_gate_twirling):
+        local_gate_twirling_scope = (
+            "2q_only" if local_gate_twirling_scope in {None, ""} else str(local_gate_twirling_scope)
+        )
+    else:
+        local_gate_twirling_scope = None
 
     out = {
         "mode": str(mode),
@@ -434,6 +474,7 @@ def normalize_mitigation_config(mitigation: Any) -> dict[str, Any]:
     }
     if bool(local_gate_twirling):
         out["local_gate_twirling"] = True
+        out["local_gate_twirling_scope"] = str(local_gate_twirling_scope)
     return out
 
 
@@ -475,6 +516,7 @@ def normalize_runtime_estimator_profile_config(profile: Any) -> dict[str, Any]:
             "measure_mitigation": profile.measure_mitigation,
             "measure_twirling": profile.measure_twirling,
             "gate_twirling": profile.gate_twirling,
+            "gate_twirling_scope": profile.gate_twirling_scope,
             "twirling_strategy": profile.twirling_strategy,
             "zne_mitigation": profile.zne_mitigation,
             "zne_noise_factors": list(profile.zne_noise_factors),
@@ -509,6 +551,7 @@ def normalize_runtime_estimator_profile_config(profile: Any) -> dict[str, Any]:
             "measure_mitigation": None,
             "measure_twirling": None,
             "gate_twirling": None,
+            "gate_twirling_scope": None,
             "twirling_strategy": None,
             "zne_mitigation": None,
             "zne_noise_factors": [],
@@ -528,6 +571,7 @@ def normalize_runtime_estimator_profile_config(profile: Any) -> dict[str, Any]:
             "measure_mitigation": True,
             "measure_twirling": True,
             "gate_twirling": True,
+            "gate_twirling_scope": "2q_only",
             "twirling_strategy": "active-accum",
             "zne_mitigation": False,
             "zne_noise_factors": [],
@@ -547,6 +591,7 @@ def normalize_runtime_estimator_profile_config(profile: Any) -> dict[str, Any]:
             "measure_mitigation": True,
             "measure_twirling": True,
             "gate_twirling": False,
+            "gate_twirling_scope": None,
             "twirling_strategy": "active-accum",
             "zne_mitigation": False,
             "zne_noise_factors": [],
@@ -566,6 +611,7 @@ def normalize_runtime_estimator_profile_config(profile: Any) -> dict[str, Any]:
             "measure_mitigation": False,
             "measure_twirling": True,
             "gate_twirling": True,
+            "gate_twirling_scope": "2q_only",
             "twirling_strategy": "active-accum",
             "zne_mitigation": False,
             "zne_noise_factors": [],
@@ -585,6 +631,7 @@ def normalize_runtime_estimator_profile_config(profile: Any) -> dict[str, Any]:
             "measure_mitigation": False,
             "measure_twirling": True,
             "gate_twirling": False,
+            "gate_twirling_scope": None,
             "twirling_strategy": "active-accum",
             "zne_mitigation": False,
             "zne_noise_factors": [],
@@ -604,6 +651,7 @@ def normalize_runtime_estimator_profile_config(profile: Any) -> dict[str, Any]:
             "measure_mitigation": True,
             "measure_twirling": True,
             "gate_twirling": True,
+            "gate_twirling_scope": "2q_only",
             "twirling_strategy": "active-accum",
             "zne_mitigation": True,
             "zne_noise_factors": [1.0, 3.0, 5.0],
@@ -633,6 +681,11 @@ def normalize_runtime_estimator_profile_config(profile: Any) -> dict[str, Any]:
         ):
             if key in overrides and overrides.get(key, None) is not None:
                 cfg[key] = bool(overrides[key])
+        if "gate_twirling_scope" in overrides and overrides.get("gate_twirling_scope", None) not in {None, ""}:
+            cfg["gate_twirling_scope"] = _normalize_gate_twirling_scope(
+                overrides["gate_twirling_scope"],
+                field_name="gate_twirling_scope",
+            )
         if "twirling_strategy" in overrides and overrides.get("twirling_strategy", None) not in {None, ""}:
             cfg["twirling_strategy"] = str(overrides["twirling_strategy"])
         if "dd_sequence" in overrides and overrides.get("dd_sequence", None) not in {None, ""}:
@@ -647,6 +700,14 @@ def normalize_runtime_estimator_profile_config(profile: Any) -> dict[str, Any]:
         cfg["zne_extrapolator"] = []
     if not bool(cfg.get("dd_enable", False)):
         cfg["dd_sequence"] = None
+    if bool(cfg.get("gate_twirling", False)):
+        cfg["gate_twirling_scope"] = (
+            "2q_only"
+            if cfg.get("gate_twirling_scope", None) in {None, ""}
+            else str(cfg["gate_twirling_scope"])
+        )
+    else:
+        cfg["gate_twirling_scope"] = None
     return cfg
 
 
@@ -714,6 +775,7 @@ def _normalized_oracle_request_payload(spec: NormalizedOracleSpec) -> dict[str, 
         "mitigation": dict(spec.mitigation),
         "symmetry_mitigation": dict(spec.symmetry_mitigation),
         "runtime_profile": dict(spec.runtime_profile),
+        "runtime_raw_profile": dict(spec.runtime_raw_profile),
         "runtime_session": dict(spec.runtime_session),
         "execution_surface": str(spec.execution_surface),
         "raw_transport": str(spec.raw_transport),
@@ -757,6 +819,15 @@ def normalize_oracle_execution_request(config: Any) -> dict[str, Any]:
         runtime_profile=dict(
             normalize_runtime_estimator_profile_config(
                 getattr(config, "runtime_profile", "legacy_runtime_v0")
+            )
+        ),
+        runtime_raw_profile=dict(
+            normalize_runtime_raw_sampler_profile_config(
+                getattr(
+                    config,
+                    "runtime_raw_profile",
+                    getattr(config, "runtime_profile", "legacy_runtime_v0"),
+                )
             )
         ),
         runtime_session=dict(
@@ -883,7 +954,7 @@ def assess_oracle_execution_capability(config: Any) -> dict[str, Any]:
                     reason="runtime raw execution requires use_fake_backend=False.",
                 )
             try:
-                normalize_runtime_raw_sampler_profile_config(spec.runtime_profile)
+                normalize_runtime_raw_sampler_profile_config(spec.runtime_raw_profile)
             except ValueError as exc:
                 return _report(
                     supported=False,
@@ -1942,6 +2013,9 @@ def _build_estimator(
     runtime_profile_cfg = normalize_runtime_estimator_profile_config(
         getattr(cfg, "runtime_profile", "legacy_runtime_v0")
     )
+    runtime_raw_profile_cfg = normalize_runtime_raw_sampler_profile_config(
+        getattr(cfg, "runtime_raw_profile", getattr(cfg, "runtime_profile", "legacy_runtime_v0"))
+    )
     runtime_session_cfg = normalize_runtime_session_policy_config(
         getattr(cfg, "runtime_session", "prefer_session")
     )
@@ -1988,10 +2062,12 @@ def _build_estimator(
                 "runtime_execution_mode": str(runtime_mode_kind),
                 "runtime_session_policy": dict(runtime_session_cfg),
                 "runtime_profile": dict(runtime_profile_cfg),
+                "runtime_raw_profile": dict(runtime_raw_profile_cfg),
                 "session_fallback_reason": session_init_error,
                 "mitigation": dict(mitigation_cfg),
                 "runtime_mitigation": dict(runtime_mitigation_details),
                 "symmetry_mitigation": dict(symmetry_cfg),
+                "backend_snapshot": dict(_snapshot_backend_target_shared(backend)),
             },
         )
         return estimator, session, info, backend
@@ -2086,6 +2162,7 @@ def _configure_runtime_estimator_options(
                     "measure_mitigation": bool(runtime_profile_cfg.get("measure_mitigation", False)),
                     "measure_twirling": bool(runtime_profile_cfg.get("measure_twirling", False)),
                     "gate_twirling": bool(runtime_profile_cfg.get("gate_twirling", False)),
+                    "gate_twirling_scope": runtime_profile_cfg.get("gate_twirling_scope", None),
                     "twirling_strategy": runtime_profile_cfg.get("twirling_strategy", None),
                     "zne_mitigation": bool(runtime_profile_cfg.get("zne_mitigation", False)),
                     "zne_noise_factors": [float(x) for x in runtime_profile_cfg.get("zne_noise_factors", [])],
@@ -2222,6 +2299,7 @@ def _configure_runtime_sampler_options(
                 "applied": True,
                 "measure_twirling": bool(runtime_profile_cfg.get("measure_twirling", False)),
                 "gate_twirling": bool(runtime_profile_cfg.get("gate_twirling", False)),
+                "gate_twirling_scope": runtime_profile_cfg.get("gate_twirling_scope", None),
                 "twirling_strategy": runtime_profile_cfg.get("twirling_strategy", None),
                 "dd_enable": bool(runtime_profile_cfg.get("dd_enable", False)),
                 "dd_sequence": runtime_profile_cfg.get("dd_sequence", None),
@@ -3520,7 +3598,13 @@ def _apply_mthree_readout_correction(
 
 
 def _local_gate_twirling_enabled(mitigation_cfg: Mapping[str, Any]) -> bool:
-    return bool(mitigation_cfg.get("local_gate_twirling", False))
+    if not bool(mitigation_cfg.get("local_gate_twirling", False)):
+        return False
+    _normalize_gate_twirling_scope(
+        mitigation_cfg.get("local_gate_twirling_scope", None),
+        field_name="local_gate_twirling_scope",
+    )
+    return True
 
 
 def _twirl_compiled_two_qubit_base(
@@ -3537,6 +3621,7 @@ def _twirl_compiled_two_qubit_base(
             "applied": False,
             "reason": "no_two_qubit_gates",
             "engine": "qiskit.circuit.pauli_twirl_2q_gates",
+            "scope": "2q_only",
             "seed": int(seed),
             "gate_set": ["cx", "cz", "ecr", "iswap"],
             "base_metrics": dict(base_metrics),
@@ -3549,6 +3634,7 @@ def _twirl_compiled_two_qubit_base(
             "applied": False,
             "reason": "pauli_twirl_2q_gates_unavailable",
             "engine": "qiskit.circuit.pauli_twirl_2q_gates",
+            "scope": "2q_only",
             "seed": int(seed),
             "gate_set": ["cx", "cz", "ecr", "iswap"],
             "base_metrics": dict(base_metrics),
@@ -3572,6 +3658,7 @@ def _twirl_compiled_two_qubit_base(
         "applied": True,
         "reason": "",
         "engine": "qiskit.circuit.pauli_twirl_2q_gates",
+        "scope": "2q_only",
         "seed": int(seed),
         "gate_set": ["cx", "cz", "ecr", "iswap"],
         "base_metrics": dict(base_metrics),
@@ -5067,7 +5154,11 @@ class RawMeasurementOracle:
             ) from exc
         sampler = RuntimeSamplerV2(mode=self._runtime_mode)
         runtime_profile_cfg = normalize_runtime_raw_sampler_profile_config(
-            getattr(self.config, "runtime_profile", "legacy_runtime_v0")
+            getattr(
+                self.config,
+                "runtime_raw_profile",
+                getattr(self.config, "runtime_profile", "legacy_runtime_v0"),
+            )
         )
         self._runtime_sampler_configured_details = _configure_runtime_sampler_options(
             sampler,
@@ -5508,6 +5599,7 @@ class ExpectationOracle:
                     },
                     "aer_failed": False,
                     "fallback_used": False,
+                    "backend_snapshot": dict(_snapshot_backend_target_shared(backend_obj)),
                 },
             )
         else:
@@ -6132,11 +6224,23 @@ class ExpectationOracle:
         symmetry_cfg = normalize_symmetry_mitigation_config(
             getattr(self.config, "symmetry_mitigation", "off")
         )
-        return bool(
+        if not bool(
             str(self.config.noise_mode) == "runtime"
             and str(mitigation_cfg.get("mode", "none")) == "none"
             and str(symmetry_cfg.get("mode", "off")) in {"off", "verify_only"}
-        )
+        ):
+            return False
+        try:
+            normalize_runtime_raw_sampler_profile_config(
+                getattr(
+                    self.config,
+                    "runtime_raw_profile",
+                    getattr(self.config, "runtime_profile", "legacy_runtime_v0"),
+                )
+            )
+        except ValueError:
+            return False
+        return True
 
     def _get_runtime_sampler(self) -> Any:
         if self._runtime_sampler is not None:
@@ -6155,13 +6259,21 @@ class ExpectationOracle:
             ) from exc
         runtime_mode = self._session if self._session is not None else self._backend_target
         sampler = RuntimeSamplerV2(mode=runtime_mode)
-        runtime_profile_cfg = normalize_runtime_estimator_profile_config(
-            getattr(self.config, "runtime_profile", "legacy_runtime_v0")
+        runtime_profile_cfg = normalize_runtime_raw_sampler_profile_config(
+            getattr(
+                self.config,
+                "runtime_raw_profile",
+                getattr(self.config, "runtime_profile", "legacy_runtime_v0"),
+            )
         )
         self._runtime_sampler_configured_details = _configure_runtime_sampler_options(
             sampler,
             cfg=self.config,
             runtime_profile_cfg=runtime_profile_cfg,
+        )
+        self._update_backend_details(
+            runtime_raw_profile=dict(runtime_profile_cfg),
+            raw_transport="sampler_v2",
         )
         self._runtime_sampler = sampler
         return sampler
@@ -6905,11 +7017,21 @@ class ExpectationOracle:
         )
         self._update_backend_details(
             runtime_sampler=dict(sampler_details),
+            runtime_raw_profile=dict(
+                normalize_runtime_raw_sampler_profile_config(
+                    getattr(
+                        self.config,
+                        "runtime_raw_profile",
+                        getattr(self.config, "runtime_profile", "legacy_runtime_v0"),
+                    )
+                )
+            ),
             runtime_group_sampling={
                 "basis_label": str(measurement_basis_ixyz).upper(),
                 "active_logical_qubits": [int(q) for q in measured["active_logical_qubits"]],
                 "shots": int(self.config.shots),
             },
+            raw_transport="sampler_v2",
             runtime_job_ids=[
                 str(rec.get("job_id"))
                 for rec in runtime_jobs
@@ -6952,6 +7074,10 @@ class ExpectationOracle:
                     or sampler_details.get("measure_twirling", False)
                 ),
                 "engine": "runtime_sampler_options",
+                "scope": sampler_details.get(
+                    "gate_twirling_scope",
+                    ("2q_only" if sampler_details.get("gate_twirling", False) else None),
+                ),
                 "strategy": sampler_details.get("twirling_strategy", None),
             },
             "local_dynamical_decoupling": {

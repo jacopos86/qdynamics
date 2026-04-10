@@ -483,7 +483,7 @@ This future addition does **not** aim to:
 - remove current DD/twirling/ZNE routes
 - claim that readout no longer matters at all
 - rewrite the repo around a generic hardware-agnostic calibration framework
-- solve full raw-QPU architecture questions already covered in `QPU_RAW_VQE_IMPLEMENTATION_SPEC.md`
+- solve full raw-QPU architecture questions already covered in `notes/QPU_RAW_VQE_IMPLEMENTATION_SPEC.md`
 
 ---
 

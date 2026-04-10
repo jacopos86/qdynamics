@@ -94,7 +94,22 @@ def test_oracle_value_key_includes_tier_identity() -> None:
 
 def test_realtime_checkpoint_types_payloads_include_analytic_noise_fields() -> None:
     cfg_payload = dataclass_to_payload(
-        RealtimeCheckpointConfig(analytic_noise_std=0.25, analytic_noise_seed=13)
+        RealtimeCheckpointConfig(
+            analytic_noise_std=0.25,
+            analytic_noise_seed=13,
+            analytic_noise_model="hybrid_qpu_proxy_v1",
+            analytic_noise_nominal_shots=4096,
+            analytic_noise_nominal_repeats=2,
+            analytic_noise_shot_scale=1.25,
+            analytic_noise_two_qubit_depth_scale=0.4,
+            analytic_noise_groups_new_scale=0.3,
+            analytic_noise_time_corr=0.6,
+            analytic_noise_bias_energy=0.02,
+            analytic_noise_bias_doublon=0.01,
+            analytic_noise_bias_staggered=-0.03,
+            analytic_noise_metric_scale=1.5,
+            analytic_noise_force_psd=False,
+        )
     )
     ledger_payload = dataclass_to_payload(
         CheckpointLedgerEntry(
@@ -118,5 +133,17 @@ def test_realtime_checkpoint_types_payloads_include_analytic_noise_fields() -> N
     )
     assert float(cfg_payload["analytic_noise_std"]) == pytest.approx(0.25)
     assert int(cfg_payload["analytic_noise_seed"]) == 13
+    assert str(cfg_payload["analytic_noise_model"]) == "hybrid_qpu_proxy_v1"
+    assert int(cfg_payload["analytic_noise_nominal_shots"]) == 4096
+    assert int(cfg_payload["analytic_noise_nominal_repeats"]) == 2
+    assert float(cfg_payload["analytic_noise_shot_scale"]) == pytest.approx(1.25)
+    assert float(cfg_payload["analytic_noise_two_qubit_depth_scale"]) == pytest.approx(0.4)
+    assert float(cfg_payload["analytic_noise_groups_new_scale"]) == pytest.approx(0.3)
+    assert float(cfg_payload["analytic_noise_time_corr"]) == pytest.approx(0.6)
+    assert float(cfg_payload["analytic_noise_bias_energy"]) == pytest.approx(0.02)
+    assert float(cfg_payload["analytic_noise_bias_doublon"]) == pytest.approx(0.01)
+    assert float(cfg_payload["analytic_noise_bias_staggered"]) == pytest.approx(-0.03)
+    assert float(cfg_payload["analytic_noise_metric_scale"]) == pytest.approx(1.5)
+    assert bool(cfg_payload["analytic_noise_force_psd"]) is False
     assert float(ledger_payload["analytic_noise_std"]) == pytest.approx(0.25)
     assert int(ledger_payload["analytic_noise_seed"]) == 13

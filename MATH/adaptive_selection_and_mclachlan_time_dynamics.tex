@@ -661,7 +661,7 @@ If beam continuation is used, set \(\mathcal O_*:=\mathcal O_{\mathfrak b_*}\) a
 
 \newpage
 
-\section*{17. Projective McLachlan Real-Time Dynamics and Checkpoint-Adaptive Snake Control}
+\section*{17A. Projective McLachlan Real-Time Dynamics and Checkpoint-Adaptive Snake Control}
 
 This chapter is the real-time analogue of §11. The governing surface is the same staged-controller picture: fixed local geometry on the current scaffold, checkpoint-local structural search over candidate-position records \(r=(m,p)\), scout/confirm/commit screening for append actions, and checkpoint-local scaffold pruning to keep the tangent plane small. The intended snake doctrine is:
 \[
@@ -693,7 +693,7 @@ P_j^{\mathrm{pr}}(k),
 \]
 and the displays below isolate these quantities in terms of the primitive projective objects \(Q_\psi\), \(\bar b\), \(\bar T\), \(K\), and \(\bar r\). The older branch-level rollout and beam doctrine is retained only as a future extension, not as the canonical live runtime surface.
 
-\subsection*{17.1 Fixed-scaffold projective geometry}
+\subsection*{17A.1 Fixed-scaffold projective geometry}
 
 Fix a scaffold \(\mathcal O\), state family \(|\psi(\theta;\mathcal O)\rangle\) with \(\theta\in\mathbb R^{n_\theta}\), and Hamiltonian \(H(\tau)\). At the current state, let \(d:=\dim\mathcal H\), let
 \[
@@ -875,7 +875,7 @@ r_{\mathrm{raw}}:=T\dot\theta_\lambda+iH\psi,
 \]
 Thus \(\bar r\) is the local defect after the best available tangent velocity has been chosen on the current scaffold, and \(\rho_{\mathrm{miss}}\) is the corresponding local inadequacy ratio relative to exact projective drift. So, for \(\tau\in[\tau_k,\tau_{k+1})\), the live controller holds \(\mathcal O(\tau)=\mathcal O_k\) fixed and uses McLachlan only to evolve \(\theta(\tau)\) on that scaffold.
 
-\subsection*{17.2 Checkpoint miss test and telemetry-driven controller outputs}
+\subsection*{17A.2 Checkpoint miss test and telemetry-driven controller outputs}
 
 At checkpoint \(k\), with physical time \(\tau_k\), the controller baseline summary is
 \[
@@ -1021,7 +1021,7 @@ The oracle-budget multiplier is then
 \end{cases}
 \]
 
-\subsection*{17.3 Live checkpoint controller: stay, append, and prune}
+\subsection*{17A.3 Live checkpoint controller: stay, append, and prune}
 
 At each checkpoint, the discrete structural controller applies
 \[
@@ -1053,7 +1053,7 @@ The controller is lane-ordered rather than symmetric:
 \]
 Hence a large miss opens the append lane, pruning is visible only in the calm low-miss regime, and failed append confirmation falls back to \(\mathrm{stay}\), not to prune at the same checkpoint.
 
-\subsection*{17.4 Append broad screen over candidate-position records}
+\subsection*{17A.4 Append broad screen over candidate-position records}
 
 Candidate append is position-aware:
 \[
@@ -1226,7 +1226,7 @@ The normalized scout score is therefore
 \]
 Hence scout is already written on the same McLachlan geometry as commit, but uses only the residualized force and the candidate self-block rather than the full old-new Schur data.
 
-\subsection*{17.5 Append confirm, compressed rerank, and exact commit}
+\subsection*{17A.5 Append confirm, compressed rerank, and exact commit}
 
 The runtime remains organized in three tiers,
 \[
@@ -1362,7 +1362,7 @@ The clean commit rule is
 \]
 Otherwise the controller stays on \(\mathcal O_k\). Thus scout, confirm, and commit all remain inside the same McLachlan geometry, but use a staged Schur family that narrows measurement effort from residualized force, to selected old-mode responses, to the exact shared-baseline Schur complement.
 
-\subsection*{17.6 Local scaffold pruning and rollback}
+\subsection*{17A.6 Local scaffold pruning and rollback}
 
 Pruning acts on scaffold coordinates, not on branch objects. Let the current scaffold be \(\mathcal O_k=(m_1,\dots,m_{n_k})\) with \(n_k:=|\mathcal O_k|\), and let each coordinate carry the metadata \((\iota_j,\kappa_j,c_j)\), where \(\iota_j\) is the checkpoint at which coordinate \(j\) was appended, \(\kappa_j\) is its stored append-time burden, and \(c_j(k)\in\{0,1,\dots,c_{\mathrm{cool}}\}\) is its prune-cooldown counter. The hard protection set is
 \[
@@ -1534,7 +1534,7 @@ Otherwise rollback to the pre-prune scaffold and set \(c_{j_k^\star}(k^+)\leftar
 \]
 where append is selected by the shortlist/confirm/commit controller above, and prune is selected by the local remove-and-reintegrate controller above. Between checkpoints, the scaffold is fixed; at checkpoints, only one discrete append or prune action is committed.
 
-\subsection*{17.A Future branch-level rollout and beam extension}
+\subsection*{17A.7 Future branch-level rollout and beam extension}
 
 If one later lifts the local stay/append/prune controller to a branch controller, a natural future extension is to compare short rollout alternatives by segment residual cost. On a fixed scaffold over a segment \([\tau_a,\tau_b]\), the raw and projective segment costs are
 \[
@@ -1599,9 +1599,9 @@ This branch-level rollout and beam surface is retained only as a future extensio
 Propagate on the current scaffold by projective McLachlan. Measure miss at each checkpoint. If the miss is large, open a position-aware append search over records \(r=(m,p)\). Scout by residual overlap and hardware penalties, confirm by local Schur-complement gain, and append only if the miss and gain thresholds are passed. If the scaffold is already calm and well fit, prune stale scaffold generators by a local remove-and-reintegrate test with rollback. Treat branch-level rollout and beam competition only as a future extension.
 \end{quote}
 
-% Archived long-form derivation retained below for reference only.
-\iffalse
-\section*{17. Projective McLachlan Real-Time Geometry and Piecewise Beam-Adaptive Control}
+% Archived long-form derivation retained below for reference only, now surfaced in the compiled manuscript.
+\newpage
+\section*{17B. Projective McLachlan Real-Time Geometry and Piecewise Beam-Adaptive Control}
 
 
 Below is the cleanest mathematical story for what the projected real-time implementation is doing. It is most naturally written as a \textbf{piecewise-smooth control problem on a family of variational manifolds}, with $\hbar=1$, normalized pure states, and real parameters. The two geometric facts underneath everything are:
@@ -1612,7 +1612,7 @@ Below is the cleanest mathematical story for what the projected real-time implem
 
 \end{enumerate}
 
-\subsection*{17.1 What problem is being solved?}
+\subsection*{17B.1 What problem is being solved?}
 
 
 Fix a Hilbert space $\mathcal H\cong\mathbb C^d$, a Hamiltonian $H(\tau)$, and a current ansatz scaffold $\mathcal O$. That scaffold defines a parameterized family of states
@@ -1638,7 +1638,7 @@ The local projected-dynamics question is therefore:
 
 This is the local question answered by real-time McLachlan dynamics. It is also the quantity that drives adaptive manifold growth: enlarge the ansatz when the instantaneous projected defect becomes too large.
 
-\subsection*{17.2 Why projective Hilbert space is the right setting}
+\subsection*{17B.2 Why projective Hilbert space is the right setting}
 
 
 A normalized ket $|\psi\rangle$ and $e^{i\phi}|\psi\rangle$ represent the same physical state. So the physical state space is projective Hilbert space $\mathbb P(\mathcal H)$ rather than the unit sphere itself. At a normalized state $|\psi\rangle$, define the horizontal projector
@@ -1684,7 +1684,7 @@ Its squared norm is
 
 So the squared norm of the exact projective Schrödinger velocity is the energy variance. This is why $\operatorname{Var}_\psi(H)$ is the natural normalization scale for projected McLachlan defects.
 
-\subsection*{17.3 The current manifold and its allowed velocities}
+\subsection*{17B.3 The current manifold and its allowed velocities}
 
 
 Because the parameters are real, the attainable instantaneous velocities form the \textbf{real-linear} tangent cone
@@ -1706,7 +1706,7 @@ The variational velocity associated with parameter rates $\dot\theta$ is
 v(\dot\theta)=\bar T\dot\theta.
 \]
 
-\subsection*{17.4 The fixed-structure McLachlan step}
+\subsection*{17B.4 The fixed-structure McLachlan step}
 
 
 The fixed-structure local problem is
@@ -1727,7 +1727,7 @@ Its quadratic form, projective metric, force vector, and solved stationarity sys
 \end{aligned}
 \]
 
-\subsection*{17.5 What regularization means}
+\subsection*{17B.5 What regularization means}
 
 
 A stabilized runtime step solves
@@ -1752,7 +1752,7 @@ K\dot\theta_\lambda&=\bar f,\\
 \]
 So $\epsilon_{\mathrm{proj}}^2$ measures intrinsic model inadequacy, $\epsilon_{\mathrm{step}}^2$ measures the actual mismatch of the damped runtime step, and $\mathcal L_\lambda^\star$ is the stabilized solver objective.
 
-\subsection*{17.6 Why the residual is the right local error quantity}
+\subsection*{17B.6 Why the residual is the right local error quantity}
 
 
 Choose a local gauge in which the representatives are horizontal at the current physical time $\tau$. Then the exact and variational projective velocities are
@@ -1787,7 +1787,7 @@ h\,\bar r+O(h^2).
 
 So the correct local score is an \textbf{instantaneous derivative-mismatch score}. Static energy scores or novelty scores can help in secondary ranking, but they are not the primary real-time control quantity.
 
-\subsection*{17.7 The geometric projector behind the formulas}
+\subsection*{17B.7 The geometric projector behind the formulas}
 
 
 Because the tangent space is real-linear, the correct projector is
@@ -1808,7 +1808,7 @@ The unregularized optimal residual is therefore
 
 So the ansatz follows the component of the exact projective Schrödinger vector field that lies in the current real tangent plane, and the residual is the orthogonal complement.
 
-\subsection*{17.8 What a candidate generator really is}
+\subsection*{17B.8 What a candidate generator really is}
 
 
 Suppose the current scaffold is an ordered product ansatz
@@ -1842,7 +1842,7 @@ So a candidate is not merely “a promising operator.” It is a \textbf{new tan
 \bar U_r\in\mathbb C^{d\times q}.
 \]
 
-\subsection*{17.9 The exact local gain formula}
+\subsection*{17B.9 The exact local gain formula}
 
 
 Now augment the local problem:
@@ -1880,7 +1880,7 @@ For a single real candidate direction ($q=1$), this reduces to
 \Delta_{\mathrm{McL}}(r;\tau)=\frac{w_r^2}{S_r}.
 \]
 
-\subsection*{17.10 What $S$ and $w$ mean}
+\subsection*{17B.10 What $S$ and $w$ mean}
 
 
 The Schur-complement pair and resulting score may be read in one chain:
@@ -1894,7 +1894,7 @@ w_r&=q_r-B_r^\top K^{-1}\bar f,\\
 \]
 So $S_r$ is the metric of the new block after removing the part already explainable by the old tangent space, $w_r$ is the residualized overlap with the exact projective drift, and $\Delta_{\mathrm{McL}}(r;\tau)$ is residualized force squared divided by residualized norm.
 
-\subsection*{17.11 The unregularized geometric meaning}
+\subsection*{17B.11 The unregularized geometric meaning}
 
 
 Set $\Lambda=\Lambda_c=0$. For a single real candidate direction $\bar u$, define
@@ -1913,7 +1913,7 @@ Then the exact one-direction gain closes to
 \]
 The numerator uses $\Re\langle \bar u_\perp,\bar r_0\rangle$ rather than $|\langle \bar u_\perp,\bar r_0\rangle|$ because one is adding \textbf{one real parameter}, not an arbitrary complex tangent line.
 
-\subsection*{17.12 When should the ansatz adapt?}
+\subsection*{17B.12 When should the ansatz adapt?}
 
 
 The intrinsic normalized miss closes to
@@ -1941,7 +1941,7 @@ A clean rule is therefore
 
 One may also adapt for numerical unreliability or after a maximum interval without any structural update.
 
-\subsection*{17.13 Which candidates should be admissible?}
+\subsection*{17B.13 Which candidates should be admissible?}
 
 
 A candidate may have nonzero gain and still be numerically poor because it is nearly redundant. So before ranking by $\Delta_\lambda$, one should inspect the residualized geometry:
@@ -1963,7 +1963,7 @@ z:=\Sigma V^\top\dot\theta.
 
 Then penalizing $\|z\|^2$ is a penalty on \textbf{physical tangent speed} rather than coordinate speed. This is the least chart-dependent way to stabilize an overparameterized manifold.
 
-\subsection*{17.14 Two different residuals should be tracked}
+\subsection*{17B.14 Two different residuals should be tracked}
 
 
 The projective residual is
@@ -1995,7 +1995,7 @@ So:
 
 \end{itemize}
 
-\subsection*{17.15 Why integrated residual is the right branch-pruning quantity}
+\subsection*{17B.15 Why integrated residual is the right branch-pruning quantity}
 
 
 Let a branch be propagated on a fixed scaffold over a segment $[\tau_a,\tau_b]$. Let $|\psi_{\mathrm{ex}}\rangle$ be the exact state and $|\psi_{\mathrm{var}}\rangle$ the variational state with the same initial condition at $\tau_a$, and define
@@ -2016,7 +2016,7 @@ J_{\mathrm{seg}}^{\mathrm{raw}}&:=\int_{\tau_a}^{\tau_b}\|r_{\mathrm{raw}}(\tau)
 \]
 So $J_{\mathrm{seg}}^{\mathrm{raw}}$ is a natural upper-bound surrogate for accumulated state-vector error. If one wants a fully gauge-invariant pruning metric instead, replace $\|r_{\mathrm{raw}}(\tau)\|^2$ by $\|\bar r(\tau)\|^2=\|Q_\psi r_{\mathrm{raw}}(\tau)\|^2$ and interpret the result as a ray/projective error surrogate.
 
-\subsection*{17.16 The branch objective}
+\subsection*{17B.16 The branch objective}
 
 
 A branch $\mathfrak b$ is a sequence of scaffolds $\mathcal O_0,\mathcal O_1,\dots,\mathcal O_J$ used over consecutive checkpoint segments, and the cumulative objective closes as
@@ -2052,7 +2052,7 @@ J_{\mathrm{dyn}}(\mathfrak b)
 \]
 If one wants a fully gauge-invariant branch surrogate instead, replace $\|r_{\mathrm{raw}}^{(j)}(\tau)\|^2$ by $\|\bar r^{(j)}(\tau)\|^2=\|Q_{\psi^{(j)}}r_{\mathrm{raw}}^{(j)}(\tau)\|^2$.
 
-\subsection*{17.17 The full process, in one coherent sequence}
+\subsection*{17B.17 The full process, in one coherent sequence}
 
 
 At each physical time $\tau$, with current scaffold $\mathcal O$, the full loop can be written compactly as
@@ -2135,7 +2135,7 @@ J_{\mathrm{seg},r}^{\mathrm{raw}}
 \]
 That is the whole piecewise-manifold control loop.
 
-\subsection*{17.18 One concise interpretation}
+\subsection*{17B.18 One concise interpretation}
 
 
 The method is doing this:
@@ -2150,7 +2150,7 @@ Short probe rollouts then decide which structural choices remain best after actu
 \end{quote}
 
 
-\subsection*{17.19 Explicit symbolic--mathematical differences between the clean story and the current implementation}
+\subsection*{17B.19 Explicit symbolic--mathematical differences between the clean story and the current implementation}
 
 
 The clean story above is the right mathematical idealization. The current implementation differs from that idealization in a few explicit ways:
@@ -2330,5 +2330,88 @@ So the mathematical backbone is the same, but the implemented restricted surface
 \end{aligned}
 \]
 
-\fi
+
+
+\subsection*{17B.20 Discrete spectra and density-sector observables for HH checkpoint dynamics}
+A controller trajectory row $r_n$ (index $n=0,\dots,N-1$) carries either \texttt{time} or \texttt{physical\_time}, and stores raw lattice observables under keys such as \texttt{site\_occupations}, \texttt{site\_occupations\_exact}, \texttt{staggered}, \texttt{doublon}, and \texttt{doublon\_exact}.  The spectral stack in the repository works directly on these rows and does not re-simulate dynamics.
+
+\[
+t_n := \text{row}_n[\text{time}_\star],\qquad
+\text{time}_\star \in \{\texttt{time},\texttt{physical\_time}\}.
+\]
+For each site $j\in\{0,\dots,L-1\}$, define spin-resolved occupations
+\[
+n^{\uparrow}_{j}(t_n)=\langle \psi(t_n)|\hat n_{j,\uparrow}|\psi(t_n)\rangle,\quad
+n^{\downarrow}_{j}(t_n)=\langle \psi(t_n)|\hat n_{j,\downarrow}|\psi(t_n)\rangle,\quad
+n_{j}(t_n)=n^{\uparrow}_{j}(t_n)+n^{\downarrow}_{j}(t_n),
+\]
+with $\hat n_{j,\sigma}=(I-\hat Z_{j,\sigma})/2$ under this codebase's convention.  Equivalently, in the statevector path used by \texttt{hh\_realtime\_checkpoint\_controller.py}, these are evaluated as
+\[
+n^{\sigma}_{j}(t_n)=\sum_{s}p_s\,b^{\sigma}_{j}(s),\qquad
+D(t_n)=\sum_{s}p_s\sum_{j=0}^{L-1} b^{\uparrow}_{j}(s)b^{\downarrow}_{j}(s),
+\]
+where $p_s=|\psi_s|^2$ in the computational basis and $b^{\sigma}_{j}(s)\in\{0,1\}$ are basis bits.  The repository therefore records
+\[
+\texttt{site\_occupations}[n,j]=n_j(t_n),\qquad
+\texttt{staggered}[n]=\frac1L\sum_{j=0}^{L-1}(-1)^j n_j(t_n),\qquad
+\texttt{doublon}[n]=D(t_n),
+\]
+and the corresponding \texttt{\_exact} fields for the driven exact trajectory.
+\[
+D(t_n)=\sum_{j=0}^{L-1} n^{\uparrow}_{j}(t_n)n^{\downarrow}_{j}(t_n).
+\]
+Here $j$ denotes the lattice-site index, while $n$ denotes the discrete time-sample index.
+
+From $\{n_j(t_n)\}$ one obtains the secondary diagnostics used in the spectrum module:
+\[
+\delta n_j(t_n):=n_j(t_n)-\frac1L\sum_{m=0}^{L-1}n_m(t_n),
+\qquad
+d_{ij}(t_n):=n_i(t_n)-n_j(t_n),
+\qquad
+m(t_n):=\frac1L\sum_{j=0}^{L-1}(-1)^j n_j(t_n).
+\]
+(For $L=2$, $\delta n_0=\frac12\,d_{01}$ and $\delta n_1=-\frac12\,d_{01}$.)
+
+For spectral post-processing, let $x_n:=x(t_n)$ denote any sampled scalar observable.  The implemented V1 pipeline first infers or assumes a uniform step $t_{n+1}-t_n=\Delta t$, then detrends and re-centers the trace, applies either no window or a Hann window, and finally evaluates the one-sided real FFT.  In this notation, $\tilde x_n$ denotes the detrended and re-centered signal: for constant detrending it is $x_n$ with its sample mean removed, whereas for linear detrending it is the residual after subtracting the least-squares line in $t_n$, re-centered exactly as in the code path.  The windowed sequence is $y_n:=w_n\tilde x_n$, with $w_n=1$ for no window and $w_n$ equal to the standard Hann taper for Hann windowing.
+
+\[
+Y_k = \sum_{n=0}^{N-1} y_n e^{-i2\pi kn/N},\qquad
+k=0,\dots,\lfloor N/2\rfloor,
+\]
+which is the one-sided coefficient returned by the real-FFT stage (implemented with \texttt{np.fft.rfft}) for a real sampled trace.  The associated frequency grid is
+\[
+\omega_k=\frac{2\pi k}{N\Delta t},\qquad
+f_k=\frac{k}{N\Delta t},\qquad
+\omega_{\mathrm{Ny}}=\frac{\pi}{\Delta t},\qquad
+\Delta\omega=\frac{2\pi}{N\Delta t}.
+\]
+
+The reported one-sided amplitude $A_k$ is obtained from $|Y_k|$ by normalizing with the window-weight sum and doubling positive-frequency bins away from DC and Nyquist:
+\[
+A_k=
+\begin{cases}
+\dfrac{|Y_k|}{\sum_{n=0}^{N-1} w_n}, & k=0,\\
+\dfrac{2|Y_k|}{\sum_{n=0}^{N-1} w_n}, & 1\le k< N/2,\\
+\dfrac{|Y_k|}{\sum_{n=0}^{N-1} w_n}, & k=N/2 \text{ when } N \text{ is even}.
+\end{cases}
+\]
+
+Error-time signals are also treated as observables:
+\[
+x^{\mathrm{err}}_n=x^{\mathrm{ctrl}}_n-x^{\mathrm{exact}}_n
+\quad\Rightarrow\quad
+\text{apply the same FFT-processing machinery to }x^{\mathrm{err}}_n.
+\]
+
+When the drive frequency $\omega_d$ is known, the same centered trace is also fit to drive-locked harmonics:
+\[
+x(t)\approx c_0+\sum_{\ell=1}^{K_{\max}}\!\bigl(a_\ell\cos(\ell\omega_d t)+b_\ell\sin(\ell\omega_d t)\bigr),
+\quad
+R_\ell=\sqrt{a_\ell^2+b_\ell^2},\ \phi_\ell=\operatorname{atan2}(b_\ell,a_\ell).
+\]
+Here $R_\ell$ is the amplitude of the $\ell$-th drive-locked harmonic and $\phi_\ell$ is its phase.
+
+The spectral stack is therefore a full transform layer on top of trajectory observables: raw site-resolved occupations, staggered density, doublon, and pair imbalance are each converted to sampled series, then detrend-window-FFT processed in the same one-sided-amplitude form, with controller-versus-exact residuals using the same operators.
+
 \end{document}
+

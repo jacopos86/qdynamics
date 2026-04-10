@@ -1,28 +1,28 @@
 {
   "artifacts": {
-    "output_json": "artifacts/json/hh_prune_nighthawk_readapt_6op_compile_scout.json"
+    "output_json": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/artifacts/json/hh_prune_nighthawk_readapt_6op_compile_scout.json"
   },
   "config": {
     "candidate_backends": [],
     "optimization_level": 1,
     "output_json": null,
-    "requested_backend_name": "FakeNighthawk",
+    "requested_backend_name": "ibm_marrakesh",
     "seed_transpiler": 7,
     "source": {
       "default_subject": false,
       "mode": "imported_artifact",
-      "requested_json": "artifacts/json/hh_prune_nighthawk_readapt_6op.json",
-      "resolved_json": "artifacts/json/hh_prune_nighthawk_readapt_6op.json",
+      "requested_json": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/artifacts/json/hh_prune_nighthawk_readapt_6op.json",
+      "resolved_json": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/artifacts/json/hh_prune_nighthawk_readapt_6op.json",
       "source_kind": "direct_payload"
     },
     "sweep_backends": false
   },
-  "generated_utc": "2026-03-22T20:29:49.504502+00:00",
+  "generated_utc": "2026-04-08T15:32:45.161497+00:00",
   "import_source": {
     "default_subject": false,
     "mode": "imported_artifact",
-    "requested_json": "artifacts/json/hh_prune_nighthawk_readapt_6op.json",
-    "resolved_json": "artifacts/json/hh_prune_nighthawk_readapt_6op.json",
+    "requested_json": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/artifacts/json/hh_prune_nighthawk_readapt_6op.json",
+    "resolved_json": "/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/artifacts/json/hh_prune_nighthawk_readapt_6op.json",
     "source_kind": "direct_payload"
   },
   "logical_circuit": {
@@ -53,66 +53,66 @@
   "requested_backend": {
     "error": null,
     "fallback_to_sweep": false,
-    "name": "FakeNighthawk",
-    "resolved_name": "FakeNighthawk",
+    "name": "ibm_marrakesh",
+    "resolved_name": "FakeMarrakesh",
     "supported_locally": true
   },
   "rows": [
     {
       "backend_kind": "local_fake",
-      "backend_num_qubits": 120,
-      "compiled_count_2q": 48,
+      "backend_num_qubits": 156,
+      "compiled_count_2q": 57,
       "compiled_cx_count": 0,
-      "compiled_depth": 121,
+      "compiled_depth": 138,
       "compiled_ecr_count": 0,
-      "compiled_num_qubits": 120,
+      "compiled_num_qubits": 156,
       "compiled_op_counts": {
-        "cz": 48,
-        "rz": 99,
-        "sx": 75
+        "cz": 57,
+        "rz": 108,
+        "sx": 96
       },
-      "compiled_size": 222,
+      "compiled_size": 261,
       "error": null,
       "layout_physical_qubits": [
-        27,
-        47,
-        36,
-        38,
-        37,
-        48
+        14,
+        18,
+        12,
+        11,
+        13,
+        10
       ],
       "logical_qubits_required": 6,
-      "requested_backend_name": "FakeNighthawk",
-      "transpile_backend": "FakeNighthawk",
+      "requested_backend_name": "ibm_marrakesh",
+      "transpile_backend": "FakeMarrakesh",
       "transpile_status": "ok"
     }
   ],
   "selected_backend": {
     "backend_kind": "local_fake",
-    "backend_num_qubits": 120,
-    "compiled_count_2q": 48,
+    "backend_num_qubits": 156,
+    "compiled_count_2q": 57,
     "compiled_cx_count": 0,
-    "compiled_depth": 121,
+    "compiled_depth": 138,
     "compiled_ecr_count": 0,
-    "compiled_num_qubits": 120,
+    "compiled_num_qubits": 156,
     "compiled_op_counts": {
-      "cz": 48,
-      "rz": 99,
-      "sx": 75
+      "cz": 57,
+      "rz": 108,
+      "sx": 96
     },
-    "compiled_size": 222,
+    "compiled_size": 261,
     "error": null,
     "layout_physical_qubits": [
-      27,
-      47,
-      36,
-      38,
-      37,
-      48
+      14,
+      18,
+      12,
+      11,
+      13,
+      10
     ],
     "logical_qubits_required": 6,
-    "requested_backend_name": "FakeNighthawk",
-    "transpile_backend": "FakeNighthawk",
+    "requested_backend_name": "ibm_marrakesh",
+    "transpile_backend": "FakeMarrakesh",
     "transpile_status": "ok"
   },
   "success": true,
@@ -120,7 +120,7 @@
     "candidate_count": 1,
     "reference_state_embedded": true,
     "requested_backend_supported_locally": true,
-    "selected_backend": "FakeNighthawk",
+    "selected_backend": "FakeMarrakesh",
     "successful_candidates": 1,
     "warnings": []
   },

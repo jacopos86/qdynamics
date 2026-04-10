@@ -4,11 +4,11 @@
 
 ### Added
 
-- [HH_MEASUREMENT_BRIEF.md](/home/moh/Holstein_test/HH_MEASUREMENT_BRIEF.md)
+- [HH_MEASUREMENT_BRIEF.md](notes/HH_MEASUREMENT_BRIEF.md)
   Brief HH-only investigation note. Reframed the optimization order around the
   upstream noiseless staged ADAPT core rather than the downstream noisy wrapper.
 
-- [HH_MEASUREMENT_IMPL_GUIDE.md](/home/moh/Holstein_test/HH_MEASUREMENT_IMPL_GUIDE.md)
+- [HH_MEASUREMENT_IMPL_GUIDE.md](notes/HH_MEASUREMENT_IMPL_GUIDE.md)
   Detailed implementation guide for improving the staged HH `phase3_v1`
   `|Delta E| / (cost, measurements)` frontier.
 

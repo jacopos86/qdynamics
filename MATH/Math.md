@@ -12,10 +12,113 @@ It is intentionally the front-page pointer so the noisy-surface run recipe is vi
 
 ---
 
-# ⚡ Real QPU Settings (April 5, 2026 Validated)
+# ⚡ L=2 Winner Framing and Real QPU Settings (April 8, 2026)
+
+> Front-page contract: distinguish the best raw HF-start ADAPT result from the separately validated real-QPU deployment anchor. Do not conflate either one with later prune/readapt JSON post-processing or with fixed-scaffold runtime submissions.
+
+## Two Front-Page Objects
+
+- **Scientific raw HF-start winner.** This means direct ADAPT from the Hartree-Fock reference with `adapt_ref_json = null`, with no later JSON prune/recovery pass substituted in. Under the canonical `L=2, U=4.0, g=0.5` gate `|ΔE| \sim 10^{-4}`, the best substantiated raw HF-start line currently in hand is the direct `full_meta` artifact `hh_backend_adapt_fullhorse_powell_20260322T194155Z_fakenighthawk.json`, which reaches
+  $$
+  |\Delta E|=5.6178234645\times 10^{-5}
+  $$
+  at `81` transpiled two-qubit gates on `FakeMarrakesh`.
+- **Validated real-QPU deployment anchor.** This is the separately validated April 5 `pareto_lean + phase3_v1 + SPSA` raw HF-start command that is currently trusted for rerunability on the live public CLI surface. Its scaffold burden is heavier, but it remains the validated deployment recipe:
+  $$
+  |\Delta E|=1.0822209459\times 10^{-4},
+  $$
+  with `218` transpiled two-qubit gates on the same `FakeMarrakesh` proxy.
+
+## Raw HF-Start Direct ADAPT Table (`|\Delta E|\sim 10^{-4}`)
+
+| Role | Artifact / surface | Pool | `|\Delta E|` | Logical ops | Runtime params | Transpiled 2Q | Depth |
+|---|---|---|---:|---:|---:|---:|---:|
+| Best raw HF-start ADAPT winner | `hh_backend_adapt_fullhorse_powell_20260322T194155Z_fakenighthawk` | `full_meta` | `5.6178234645e-05` | 16 | 27 | 81 | 151 |
+| Best reduced-pool direct line | `adapt_hh_L2_ecut1_pareto_lean_l2_phase3_powell_rerun_currentcode_20260321T171615Z` | `pareto_lean_l2` | `5.6178234644e-05` | 14 | 25 | 97 | 208 |
+| Wide-shortlist direct comparison | `campaign_A7c_L2_shortlist_wide_phase3_v1` | `full_meta` | `5.6178234644e-05` | 14 | 30 | 116 | 310 |
+| Current-code reproduction of March 22 low-energy regime | `20260409_hh_l2_hist81_repro_powell_histbare_d16_v1` | `full_meta` historicalized POWELL surface | `5.7217492583e-05` | 17 | 54 | 265 | 786 |
+| Best current native recovery branch on today's diagnostic surface | `20260409_hh_l2_children_repeat_bridge_diag_v1` (`children_off + repeats_off + hist`) | `full_meta` diagnostic bridge surface | `5.6178241861e-05` | 13 | 36 | 160 | 408 |
+| Validated April 5 deployment anchor | `pareto_lean + phase3_v1 + SPSA` | `pareto_lean` | `1.0822209459e-04` | 20 | 52 | 218 | 633 |
+
+The final `218`-2Q row is the same raw HF-start scaffold family as the confirmed April 5 authority command; it is heavier than the scientific raw winner, but it is the currently validated deployment anchor on the public CLI surface.
+
+The post-processed `31/37/57`-2Q prune/readapt artifacts are **not** the object a fresh real-QPU ADAPT run from HF would execute. They remain useful comparison context only.
+
+### Current native recovery note (April 9, 2026)
+
+The new `children_off + repeats_off + hist` branch from `20260409_hh_l2_children_repeat_bridge_diag_v1` deserves front-page visibility because it is the best **current-code native recovery branch** on today's diagnostic/public surface:
+
+$$
+|\Delta E|=5.6178241861\times 10^{-5},\qquad
+F=0.9999719078,
+$$
+
+with `13` logical operators, `36` runtime parameters, and `160` transpiled two-qubit gates at depth `408` on `FakeMarrakesh`.
+
+This is **not** the absolute historical raw HF-start winner; the March 22 `81`-2Q `full_meta` artifact remains lighter overall. What makes the April 9 branch important is different: it is the first current diagnostic line that re-enters the good native basin while simultaneously showing that disabling children and literal repeats helps native recovery.
+
+It still does **not** recover the historical lean family exactly. Relative to the historical targets, it reaches `9/10` bridge overlap and `5/6` lean overlap, with the remaining extras concentrated in
+
+- `paop_full:paop_disp(site=1)`
+- `paop_lf_full:paop_dbl_p(site=0->phonon=1)`
+- `paop_lf_full:paop_dbl_p(site=1->phonon=0)`
+- `paop_full:paop_hopdrag(0,1)`
+
+This diagnostic result matters because it isolates the current native failure mode more sharply than the older heavy broad-pool lines: the good basin is real, but some quadrature and inside-family extras are still acting as **path operators** rather than merely removable terminal clutter.
+
+### Current-code reproduction of the March 22 low-energy regime
+
+The March 22 `81`-2Q `full_meta` line is still a real historical raw HF-start winner, but current code does **not** replay that exact burden from its historical settings block. What current code **does** reproduce is the same low-energy regime on a historicalized POWELL surface with a hard cap at the first in-run depth that re-enters the target band.
+
+The saved current-code replay is
+
+$$
+|\Delta E|=5.7217492583\times 10^{-5},
+$$
+
+from `20260409_hh_l2_hist81_repro_powell_histbare_d16_v1`, with `17` logical blocks, `54` runtime parameters, and `265` transpiled two-qubit gates at depth `786` on `FakeMarrakesh`.
+
+So this run should be interpreted as a **current-code low-energy reproduction**, not as a faithful current reproduction of the historical `81`-2Q scaffold burden.
+
+**Exact current-code replay CLI**
+
+```bash
+python pipelines/hardcoded/adapt_pipeline.py \
+  --L 2 --problem hh --t 1.0 --u 4.0 --dv 0.0 --omega0 1.0 --g-ep 0.5 --n-ph-max 1 \
+  --boson-encoding binary --ordering blocked --boundary open --term-order sorted \
+  --adapt-pool full_meta --adapt-continuation-mode phase3_v1 \
+  --adapt-max-depth 16 --adapt-eps-grad 5e-7 --adapt-eps-energy 1e-9 \
+  --adapt-inner-optimizer POWELL --adapt-state-backend compiled \
+  --adapt-reopt-policy windowed --adapt-window-size 999999 --adapt-window-topk 999999 \
+  --adapt-full-refit-every 8 --adapt-final-full-refit true \
+  --adapt-beam-live-branches 1 --adapt-beam-children-per-parent 1 --adapt-beam-terminated-keep 1 \
+  --phase1-lambda-F 1.0 --phase1-lambda-compile 0.05 --phase1-lambda-measure 0.02 --phase1-lambda-leak 0.0 \
+  --phase1-score-z-alpha 0.0 --phase1-shortlist-size 256 --phase1-probe-max-positions 999999 \
+  --phase1-plateau-patience 2 --phase1-trough-margin-ratio 1.0 \
+  --phase1-prune-enabled --phase1-prune-mode live --phase1-prune-fraction 0.25 --phase1-prune-max-candidates 6 --phase1-prune-max-regression 1e-8 \
+  --phase2-shortlist-fraction 1.0 --phase2-shortlist-size 128 \
+  --phase2-lambda-H 1e-6 --phase2-rho 0.25 --phase2-gamma-N 1.0 \
+  --phase2-enable-batching --phase2-batch-target-size 8 --phase2-batch-size-cap 16 --phase2-batch-near-degenerate-ratio 0.98 \
+  --phase2-w-depth 0.0 --phase2-w-group 0.0 --phase2-w-shot 0.0 --phase2-w-optdim 0.0 --phase2-w-reuse 0.0 --phase2-w-lifetime 0.0 \
+  --phase2-eta-L 0.0 --phase2-motif-bonus-weight 0.0 --phase2-duplicate-penalty-weight 0.0 \
+  --phase2-compat-overlap-weight 0.0 --phase2-compat-comm-weight 0.0 --phase2-compat-curv-weight 0.0 --phase2-compat-sched-weight 0.0 --phase2-compat-measure-weight 0.0 \
+  --phase2-frontier-ratio 1.0 --phase3-frontier-ratio 1.0 --phase2-remaining-evaluations-proxy-mode none \
+  --phase3-tie-beam-max-branches 1 \
+  --phase3-symmetry-mitigation-mode verify_only --phase3-enable-rescue \
+  --phase3-lifetime-cost-mode phase3_v1 --phase3-runtime-split-mode shortlist_pauli_children_v1 \
+  --phase3-backend-cost-mode transpile_single_v1 --phase3-backend-name FakeNighthawk \
+  --phase3-backend-transpile-seed 7 --phase3-backend-optimization-level 1 \
+  --adapt-seed 7 --adapt-finite-angle-fallback --adapt-finite-angle 0.1 --adapt-finite-angle-min-improvement 1e-12 \
+  --adapt-drop-floor 1e-11 --adapt-drop-patience 5 --adapt-drop-min-depth 12 --adapt-grad-floor -1.0 \
+  --paop-r 1 --paop-normalization none \
+  --initial-state-source adapt_vqe \
+  --skip-pdf
+```
+
+## Real QPU Deployment Anchor (April 5, 2026 Validated)
 
 > **This is the recommended configuration for real QPU deployment.**
-> Validated via narrow 36-case local sweep confirming optimality in the `pareto_lean` + `phase3_v1` regime.
+> Validated via narrow 36-case local sweep confirming rerunnable deployment optimality in the `pareto_lean` + `phase3_v1` regime. This is the deployment anchor, not the absolute lowest raw HF-start two-qubit line.
 
 ## Anchor Configuration
 
@@ -59,8 +162,9 @@ python -u -m pipelines.hardcoded.adapt_pipeline \
 |--------|-------|-------|
 | Energy | 0.15877612622031317 | Exact ground state reference |
 | \|ΔE\| | **1.082e-4** | Excellent accuracy for NISQ |
-| Ansatz depth | 20 | Shallow = low error on real hardware |
-| Parameters | 52 | Efficient parameterization |
+| Logical scaffold size | 20 | Validated raw HF-start deployment scaffold |
+| Runtime parameters | 52 | Efficient parameterization |
+| Marrakesh proxy burden | `218` 2Q, depth `633`, size `939` | Same raw HF-start scaffold as the confirmed strong template |
 | Wall-clock | ~43s | Fast convergence |
 
 ## Validation Results (April 5 Sweep)
@@ -137,7 +241,7 @@ toc: true
 toc-depth: 3
 ---
 
-> Canonical naming note: `MATH/Math.md` is the symbolic manuscript and corresponds to `MATH/Math.pdf`. The archival repo-oriented manuscript is `MATH/archaic_repo_math.md`.
+> Canonical naming note: `MATH/Math.md` is the markdown authoring source for manuscript sync, and `MATH/Math.tex` is the generated typesetting twin used to build `MATH/Math.pdf`. Regenerate the synchronized TeX/PDF pair with `python MATH/build_math_from_md.py` or `MATH/build_math.sh`. The archival repo-oriented manuscript is `MATH/archaic_repo_math.md`.
 
 # 1. Parameter Manifest and Reader Contract
 
@@ -634,6 +738,20 @@ $$
 \hat H_{\mathrm{HH}}(t)
 =
 \hat H_t + \hat H_U + \hat H_v + \hat H_{\mathrm{ph}} + \hat H_g + \hat H_{\mathrm{drive}}(t).
+$$
+
+
+The driven onsite-density contribution is written in fixed-label Pauli form as
+$$
+\hat H_{\mathrm{drive}}(t)=\sum_{\lambda\in\mathcal L_{\mathrm{drive}}} c_\lambda(t) P_\lambda,
+$$
+where the operator labels $P_\lambda$ are static and only the coefficients $c_\lambda(t)$ vary in time. For the site-density drive used in the active HH dynamics stack,
+$$
+\Delta c[Z_{p(i,\uparrow)}](t)=\Delta c[Z_{p(i,\downarrow)}](t)=-\frac{1}{2}v_i(t),
+$$
+and, if one retains the scalar offset explicitly,
+$$
+\Delta c[I](t)=\sum_i v_i(t).
 $$
 
 ## 6.1 Phonon energy
@@ -1287,1302 +1405,605 @@ They act as coarse polaronic and squeeze envelopes.
 # 11. Adaptive Selection and Staged Continuation
 
 ## 11.1 Cumulative phase construction for adaptive selection
+If a shortlisted macro generator $m$ admits a split family $\mathcal C_{\mathrm{split}}(m)=\{m_1,\dots,m_{K_m}\}$, then each split child inherits the same position $p$ and therefore defines a child record $r_j=(m_j,p)$. For simplicity we drop the $j$, and assume each $m$ below is a unique generator.
 
-Rather than treating Phase 1, Phase 2, and Phase 3 as three unrelated selector passes tried in reverse order, the current HH continuation logic is best read cumulatively. We write
-$$
-\mathcal G^{(3)} \subseteq \mathcal G^{(2)} \subseteq \mathcal G^{(1)} \subseteq \mathcal G,
-$$
-where $\mathcal G$ is the full expensive master pool, but the later phases reuse the earlier scoring and refinement machinery rather than replacing it with an unrelated fallback pass.
+Record-first view: the primary object is a candidate-position record $r:=(m,p)$, with projections \(\pi_m(m,p):=m\) and \(\pi_p(m,p):=p\). For each phase $k \in \{1,2,3\}$, the one-way selector flow is
+\[
+\mathcal R_k\longrightarrow\mathcal S_k\longrightarrow r_k^\star,
+\]
+with
+\[
+\mathcal R_k:=\{(m,p):m\in\mathcal G_k,\ p\in\mathcal P_m^{k}\},
+\qquad
+\mathcal S_k:=
+\{(m,p)\in\mathcal R_k:S_k(m,p)\ge\tau_k\}
+\quad\text{or}\quad
+\operatorname{Top}_{N_k}\!\left(S_k;\mathcal R_k\right),
+\qquad
+r_k^\star\in\mathcal S_k.
+\]
+where \(S_k\) denotes the phase-\(k\) score used for shortlist construction. Generator image and position image: \(\mathcal G^{(k)}:=\pi_m(\mathcal S_k)\) and \(\mathcal P_m^{(k)}:=\{p:(m,p)\in\mathcal S_k\}\). Record inheritance: when later phases inherit the same candidate-position records, the clean handoff is \(\mathcal R_{k+1}:=\mathcal S_k\). Hence the cumulative record chain is \(\mathcal R_3 \subseteq \mathcal R_2 \subseteq \mathcal R_1\), the cumulative generator chain is \(\mathcal G^{(3)} \subseteq \mathcal G^{(2)} \subseteq \mathcal G^{(1)} \subseteq \mathcal G\), the first chain follows from \(\mathcal R_{k+1}:=\mathcal S_k\subseteq\mathcal R_k\), and the retained position images inherit analogously via the corresponding record shortlists \(\mathcal S_1\to\mathcal S_2\to\mathcal S_3\). Post-shortlist admission, batching, pruning, and beam continuation are then defined in terms of the final Phase-3 surface.
 
-In that cumulative reading:
+Seed broadening: in addition, we use a smooth broadening of the initial candidate record $\mathcal R$ as expected generator utility saturates, anti-comensurate to scaffold depth, where the initial seeds are low-order generators and late-stage seeds are higher-order excitation and coupling terms.
 
-- **Phase 1** provides the broad cheap-screen surface over candidate-position records,
-- **Phase 2** reuses the Phase-1 records and adds shortlist-and-full-rerank refinement,
-- **Phase 3** reuses the Phase-1 and Phase-2 machinery and adds the highest-level augmentations used in current HH mainline.
+Chronology: thus the presentation chronologically accords with the algorithmic implementation: Phase 1 \(\to\) Phase 2 \(\to\) Phase 3, with each to-arrow filtering its preceding phase.
 
-Separately, the runtime controller may broaden the currently exposed candidate family through controller-stage transitions such as `seed/core $\to$ residual`; that controller-stage evolution should not be confused with the Phase-1/2/3 sophistication labels.
+## 11.2 Phase 1
 
-So the exposition below is written in the same constructive order **Phase 1 $\to$ Phase 2 $\to$ Phase 3** that the cumulative selector surface itself follows.
+### 11.2.1 Core signal, append position, and one-coordinate local model
+Core record, scaffold, and append slot: $r=(m,p)$, $\mathcal O=(a_1,\dots,a_n)$, $m\in\mathcal G$, and $p\in\mathcal P_m^{1}=\{0,\dots,n\}$. Here $m$ is a candidate generator already admitted by the generator gate (so $m\in\mathcal G_1$), and $p$ is the index of a slot in the pre-insertion, ordered scaffold $\mathcal O$. Window bias: note, the insertion window near the terminal scaffold point is biased to be small proportional to expected scaffold utility remaining.
 
-## 11.2 Phase 1 broad fallback selector surface
+Scaffold parameter space and energy map: WLOG consider $\mathcal O$, s.t. each $a$ is assigned one scalar $\theta (\mod 2 \pi)$, then define $\Theta_{\mathcal O}:=\mathbb R^{|\mathcal O|}$, $E(\mathcal O,\theta):=\langle\psi(\mathcal O,\theta)|H|\psi(\mathcal O,\theta)\rangle$, and $\theta\in\Theta_{\mathcal O}$. Scaffold insertion and parameter insertion: define $\mathcal O\oplus_p m:=(a_1,\dots,a_p,m,a_{p+1},\dots,a_n)$ and $\theta\oplus_p\vartheta:=(\theta_1,\dots,\theta_p,\vartheta,\theta_{p+1},\dots,\theta_n)\in\Theta_{\mathcal O\oplus_p m}$.
 
-### 11.2.1 Core signal, append position, and refit window
-
-Let $g\in\mathcal G^{(1)}$ be a candidate generator and $p$ a candidate insertion position. Let $W(p)$ denote the parameter window that is allowed to refit after insertion at $p$. The local post-refit drop is abstractly
-$$
-\delta E(g,p) = E(\theta) - \min_{\vartheta\in W(p)} E\bigl(\theta \oplus_p (g,\vartheta)\bigr).
-$$
-
-ie the old scaffold energy - energy-imporvement caused by reoptimizing generators  within a window inserted about position p
+Write $|\psi\rangle:=U_{>p}U_{\le p}|\psi_0\rangle$, $\widetilde A_r:=U_{>p}A_mU_{>p}^\dagger$, $U_r(\alpha):=e^{-i\alpha \widetilde A_r}$, and $|\psi_r(\alpha)\rangle:=U_r(\alpha)|\psi\rangle$. Let $Q_\psi:=I-|\psi\rangle\langle\psi|$, $|d_r\rangle:=\left.\partial_\alpha|\psi_r(\alpha)\rangle\right|_{\alpha=0}=-i\widetilde A_r|\psi\rangle$, $\tau_r:=Q_\psi|d_r\rangle$, $g_r:=2\Re\langle \psi|H|d_r\rangle$, $\sigma_r:=\operatorname{SE}\!\left[\widehat g(r)\right]\ge 0$, $g_{\mathrm{lcb}}(r):=\max\{|g_r|-z_\alpha\sigma_r,0\}$, and $F_{\mathrm{raw}}(r):=\langle \tau_r,\tau_r\rangle+\varepsilon_F$. The live broad Phase-1 one-coordinate trust-region proxy is
+\[
+\Delta E_{1,\mathrm{TR}}(r)
+:=
+\max_{|\alpha|\le \rho/\sqrt{F_{\mathrm{raw}}(r)}}
+\left[
+g_{\mathrm{lcb}}(r)|\alpha|
+-\frac12 \lambda_F F_{\mathrm{raw}}(r)\alpha^2
+\right].
+\]
+The strict one-coordinate insertion drop is retained as the exact auxiliary comparator
+\[
+\delta E_1(m,p\mid\mathcal O,\theta)
+=
+E(\mathcal O,\theta)
+-\inf_{\vartheta\in\mathbb R}E\bigl(\mathcal O\oplus_p m,\theta\oplus_p\vartheta\bigr).
+\]
+The infimum notation may be replaced by $\min$ or $\operatorname{Min}$ whenever the minimizer exists. Thus $\Delta E_{1,\mathrm{TR}}(r)$ is the live broad-pool second-order local insertion proxy, whereas $\delta E_1(m,p\mid\mathcal O,\theta)$ is the exact one-coordinate insertion drop. \footnote{User interest: How does window parameterization width scale with cost?}
 
 ### 11.2.2 Gates, burdens, and feature ingredients
 
-Each candidate-position pair is filtered by admissibility gates and assigned a burden
-$$
-B(g,p)=\lambda_{\mathrm{2q}} C_{\mathrm{2q}}(g,p)+\lambda_d D(g,p)+\lambda_\theta \Delta K(g,p),
-$$
-where $C_{\mathrm{2q}}$ is a two-qubit proxy cost, $D$ is a depth proxy, and $\Delta K$ is the marginal parameter count.
+Base hardware ingredients: each candidate-position pair carries the proxy triple \(C_{\mathrm{2q}}(m,p)\), \(D(m,p)\), and \(\Delta K(m,p)\), with fixed nonnegative weights \(\lambda_{\mathrm{2q}},\lambda_d,\lambda_\theta\).\footnote{Admissibility gate: For each selector stage \(k\), let \(\Gamma_k:\mathcal G_k^{\mathrm{in}}\to\{0,1\}\) be the generator-level admissibility gate and define \(\mathcal G_k^{\mathrm{adm}}:=\{m\in\mathcal G_k^{\mathrm{in}}:\Gamma_k(m)=1\}\). Record domain: the working candidate-record domain is built only from this gated generator pool, \(\mathcal R_k:=\{(m,p):m\in\mathcal G_k^{\mathrm{adm}},\ p\in\mathcal P_m^{\mathrm{in},k}\}\). Selector action: all selectors below act on \(\mathcal R_k\) itself, so admissibility is enforced by pre-score domain construction rather than post hoc score masking. Tie order: fix once and for all a total order \(\prec\) on records (for example, lexicographic order on \((m,p)\)). Tie-broken maximizer: for any score \(S:\mathcal R_k\to\mathbb R\), define \(\arg\max^{\prec}_{r\in\mathcal R_k} S(r):=\min_{\prec}\{r\in\mathcal R_k:S(r)=\max_{u\in\mathcal R_k}S(u)\}\), and similarly for \(\arg\min^{\prec}\). Shortlist surface: define \(\operatorname{Top}_K^{\prec}(S;\mathcal R_k)\) as the ordered list of the first \(K\) records obtained by sorting \(\mathcal R_k\) in descending score, with ties broken by \(\prec\). Unadorned \(\arg\max\), \(\arg\min\), and \(\operatorname{Top}_K\) below follow this convention.}
+Here \(C_{\mathrm{2q}}\) is a two-qubit proxy cost, \(D\) is an expected depth-induced by \(m\) (at \(p\)) proxy, and \(\Delta K\) is the marginal parameter count. Positivity assumptions: assume throughout that \(\lambda_{\mathrm{2q}}\ge 0\), \(C_{\mathrm{2q}}(m,p)\ge 0\), and \(\lambda_\theta,\lambda_d,\Delta K(m,p),D(m,p)>0\) on admissible records. \footnote{Depth and parameter count are constants for our L=2 pareto lean runs.}
 
-### 11.2.3 Cheap score
+### 11.2.3 Anticipated utility left and controller schedule
+Let $t$ denote the current selector step, let $D_{\mathrm{left}}(t)$ be the remaining controller depth budget, and let $\widehat N_{\mathrm{rem}}(t)$ be a heuristic forecast (expected count) of useful remaining admissions. For gain-process statistics, define \(\Delta_{\mathrm{adm}}(s):=E(\theta^{(s-1)})-E(\theta^{(s)})\), \(\Delta_{\mathrm{adm}}^{+}(s):=\operatorname{asinh}\!\left(\frac{\Delta_{\mathrm{adm}}(s)}{\tau_\Delta}\right)\), and let \(\mathcal I_t^+\) be the index set of past selector steps with valid admissions used for EWMA/MAD statistics.
 
-A Phase-1 broad score closes immediately to
-$$
-\begin{aligned}
-S_1(g,p)
-&=\frac{\underline{\delta E}(g,p)}{B(g,p)+\varepsilon}\\
-&=\frac{\underline{\delta E}(g,p)}{\lambda_{\mathrm{2q}}C_{\mathrm{2q}}(g,p)+\lambda_dD(g,p)+\lambda_\theta\Delta K(g,p)+\varepsilon},
-\end{aligned}
-$$
-where $\underline{\delta E}$ is a lower-bound or surrogate estimate of useful post-refit energy drop.
+Let \(D_{\mathrm{allow}}\) denote the total allowed depth budget, let \(\ell_t^{\mathrm{plat}}:=\max\{1,\lceil P\,D_{\mathrm{left}}(t)/D_{\mathrm{allow}}\rceil\}\) and \(\ell_t^{\mathrm{low}}:=\max\{1,\lceil L\,D_{\mathrm{left}}(t)/D_{\mathrm{allow}}\rceil\}\), and define the relative-flattening and absolute weak-gain thresholds by \(\tau_{\mathrm{plat}}^{+}(t):=\bigl(\eta_0+\eta_1(1-D_{\mathrm{left}}(t)/D_{\mathrm{allow}})\bigr)m_t\) and \(\tau_{\mathrm{low}}^{+}(t):=\operatorname{asinh}(\tau_{\mathrm{use},t}/\tau_\Delta)\). The corresponding depth-adaptive streak statistics are \(\operatorname{plateau\_streak}(t):=\frac{P}{\ell_t^{\mathrm{plat}}}\max\{q\in\{0,\dots,\ell_t^{\mathrm{plat}}\}:\Delta_{\mathrm{adm}}^{+}(t-j+1)\le \tau_{\mathrm{plat}}^{+}(t)\ \forall\,1\le j\le q\}\) and \(\operatorname{low\_streak}(t):=\frac{L}{\ell_t^{\mathrm{low}}}\max\{q\in\{0,\dots,\ell_t^{\mathrm{low}}\}:\Delta_{\mathrm{adm}}^{+}(t-j+1)\le \tau_{\mathrm{low}}^{+}(t)\ \forall\,1\le j\le q\}\).
 
-This broad score is intentionally early-stage: it privileges immediate drop estimates when the controller still has long useful runway. Later phases keep the candidate-position language but no longer value raw $\underline{\delta E}$ in the same dominant way; the later cheap/full surfaces progressively downweight immediate-drop dominance as the useful horizon contracts.
+For stagnation, gain, decay, and scale summaries, define \(u_{\mathrm{stag}}(t):=\operatorname{clip}\!\left(\max\!\left(\frac{\mathrm{plateau\_streak}(t)}{P},\frac{\mathrm{low\_streak}(t)}{L}\right),0,1\right)\), \(m_t:=\operatorname{EWMA}_{s\in\mathcal I_t^+}\!\bigl(\Delta_{\mathrm{adm}}^{+}(s)\bigr)\), \(\rho_t:=\operatorname{clip}\!\left(\frac{\operatorname{EWMA}_{\mathrm{recent}}(\Delta_{\mathrm{adm}})}{\operatorname{EWMA}_{\mathrm{older}}(\Delta_{\mathrm{adm}})+\varepsilon},\rho_{\min},1\right)\), \(\gamma_t:=[-\log\rho_t]_+\), and \(s_t:=\max\!\left(s_{\min},\operatorname{MAD}_{s\in\mathcal I_t^+}\!\bigl(\Delta_{\mathrm{adm}}^{+}(s)\bigr)\right)\).
 
-### 11.2.4 Position probing, trough detection, and effective selector
+For the frontier statistic, let \(s_{\mathrm{raw},1}^{(1)}(t)\ge s_{\mathrm{raw},2}^{(1)}(t)\ge 0\) denote the first two order statistics of the current broad Phase-1 score multiset \(\{S_1(r;t):r\in\mathcal R_1\}\) before any \(\tau_1(t)\)-thresholding or \(N_1(t)\)-truncation, with the conventions \(s_{\mathrm{raw},1}^{(1)}(t)=s_{\mathrm{raw},2}^{(1)}(t)=0\) if \(\mathcal R_1=\varnothing\) and \(s_{\mathrm{raw},2}^{(1)}(t)=0\) if \(|\mathcal R_1|=1\). Define
+\[
+u_{\mathrm{front}}(t)
+:=
+\frac{s_{\mathrm{raw},2}^{(1)}(t)+\varepsilon}{s_{\mathrm{raw},1}^{(1)}(t)+\varepsilon}.
+\]
+Thus \(u_{\mathrm{front}}(t)\in[0,1]\), with larger values corresponding to a flatter, more crowded current frontier and smaller values corresponding to a clearly separated leading record.\footnote{With the empty-pool convention \(s_{\mathrm{raw},1}^{(1)}(t)=s_{\mathrm{raw},2}^{(1)}(t)=0\), one gets \(u_{\mathrm{front}}(t)=1\). This treats the absence of a usable current frontier as maximal compression rather than as a missing-data null signal. An explicit signal-to-noise controller statistic is a possible implementation here, but it may not be necessary if worsening signal-to-noise already manifests as frontier flattening, which the present expected-utility model scores directly through \(u_{\mathrm{front}}(t)\). Here \(h_t(j)\) is the conditional probability that usefulness terminates at future offset \(j\), given survival through offset \(j-1\); accordingly, \(S_t(k)\) is the survival probability to the start of offset \(k\).}
 
-Rather than selecting only by generator identity, one probes positions $p$ and computes
-$$
-(g_1,p_1)=\arg\max_{(g,p)} S_1(g,p).
-$$
-If the best score remains below threshold across all positions, that can be treated as a plateau or trough signal.
+Then the survival hazard is \(h_t(j):=\sigma\!\Bigl(\beta_0+\beta_{\mathrm{stag}}u_{\mathrm{stag}}(t)+\beta_{\mathrm{front}}u_{\mathrm{front}}(t)+\eta_h(j-1)\Bigr)\).
 
-### 11.2.5 Full-pool limiting case
-
-If one removes the structured shortlist machinery and keeps only the final full-pool backstop, the limiting Phase-1 rule becomes: choose the admissible generator with largest gradient magnitude,
-$$
-g_* = \arg\max_{g\in\mathcal G^{(1)}_{\mathrm{admissible}}} |\partial_\epsilon E(\epsilon;g)|_{\epsilon=0}|,
-$$
-subject to symmetry and cost gates.
-
-## 11.3 Phase 2 relaxed selector surface
-
-Phase 2 should be read as an extension of the Phase-1 cheap screen: it keeps the same candidate-position language, but adds shortlist formation and a richer reranking model on top of the earlier score. More precisely, Phase 1 does not hand Phase 2 only the single best record from §11.2.4; it hands forward a retained family of candidate-position records, and the explicit retained set is the shortlist $\mathcal S_2$ defined below by threshold or Top-$K$ on $S_1$.
-
-### 11.3.1 Core signal, append position, refit window, and cheap screen
-
-The Phase-2 selector works over candidate-position pairs with
-$$
-g\in\mathcal G^{(2)},
+\[
+S_t(k):=\prod_{j=1}^{k-1}\bigl(1-h_t(j)\bigr),
 \qquad
-p\in\mathcal P_g,
-$$
-and the cheap screening surface closes as
-$$
+Q_t(k):=\Phi\!\left(
+\frac{m_t-\gamma_t(k-1)-\operatorname{asinh}\!\left(\frac{\tau_{\mathrm{use},t}}{\tau_\Delta}\right)}{s_t}
+\right).
+\]
+
+\[
+\widehat N_{\mathrm{rem}}(t)
+:=
+\sum_{k=1}^{D_{\mathrm{left}}(t)}
+S_t(k)\,Q_t(k).
+\]
+
+For pessimistic/optimistic runway envelopes, set \(h_t^{\mathrm{pess/opt}}(j):=\sigma\!\bigl(\operatorname{logit}h_t(j)\pm\Delta_h\bigr)\), \(m_t^{\mathrm{pess/opt}}:=m_t\mp\Delta_m\), \(s_t^{\mathrm{pess/opt}}:=s_t+\Delta_s\) (pess) or \(s_t^{\mathrm{pess/opt}}:=\max\!\left(s_{\min},s_t-\Delta_s\right)\) (opt), \(S_t^{\mathrm{pess/opt}}(k):=\prod_{j=1}^{k-1}\bigl(1-h_t^{\mathrm{pess/opt}}(j)\bigr)\), and \(Q_t^{\mathrm{pess/opt}}(k):=\Phi\!\left(
+\frac{m_t^{\mathrm{pess/opt}}-\gamma_t(k-1)-\operatorname{asinh}\!\left(\frac{\tau_{\mathrm{use},t}}{\tau_\Delta}\right)}{s_t^{\mathrm{pess/opt}}}
+\right)\). Then \(\widehat N_{\mathrm{rem}}^{\mathrm{low/high}}(t):=\sum_{k=1}^{D_{\mathrm{left}}(t)} S_t^{\mathrm{pess/opt}}(k)\,Q_t^{\mathrm{pess/opt}}(k)\), with \((\mathrm{low},\mathrm{high})\leftrightarrow(\mathrm{pess},\mathrm{opt})\), and the confidence ratio is \(C_t:=\frac{\widehat N_{\mathrm{rem}}^{\mathrm{low}}(t)}{\widehat N_{\mathrm{rem}}^{\mathrm{high}}(t)+\varepsilon}\).
+
+For the controller coordinate and directional transforms, define
+\[
+R_t:=\frac{\widehat N_{\mathrm{rem}}(t)}{D_{\mathrm{left}}(t)+\varepsilon}\in[0,1],
+\qquad
+e_t:=R_t^{a},
+\qquad
+g_t:=(1-R_t)^{b},
+\qquad
+a,b>0.
+\]
+Here \(R_t\) is remaining useful runway as a fraction of the depth-budget permitted by hardware/run-time constraints, and \(g_t\) is the late-stage activation coordinate that scales controller variables depending on age, where age is a normalized quantity relative to/determined by expected utility of more generators.
+
+Then \(R_t\approx 1\) early and \(R_t\approx 0\) late. Use \(e_t\) for early-dominant quantities and \(g_t\) for late-dominant quantities. In particular, define
+\[
+\tau_{\mathrm{pos}}(t):=\tau_{\mathrm{pos}}^{\min}+(\tau_{\mathrm{pos}}^{\max}-\tau_{\mathrm{pos}}^{\min})e_t,
+\qquad
+\lambda_F(t):=\lambda_F^{\min}+(\lambda_F^{\max}-\lambda_F^{\min})g_t,
+\qquad
+u_{\mathrm{sat}}(t):=1-R_t.
+\]
+The quantity \(\widehat N_{\mathrm{rem}}(t)\) is controller telemetry rather than a physical observable: it summarizes recent selector progress and remaining useful runway, but it is not itself a hard admissibility certificate.\footnote{Interpretation: the model has three layers --- (i) gain process (\(m_t,s_t\)), (ii) horizon-decay process (\(\gamma_t\)), and (iii) survival process (\(h_t(j)\)); together these drive the runway forecast \(\widehat N_{\mathrm{rem}}(t)\).}
+
+For inherited refit windows, use the maturity-shrinking retention law
+\[
+\rho_W(t):=\rho_W^{\min}+(\rho_W^{\max}-\rho_W^{\min})e_t,
+\qquad
+0\le \rho_W^{\min}\le \rho_W^{\max}\le 1,
+\]
+so that the retained old-coordinate fraction is largest early and contracts as useful runway is exhausted.
+
+For measurement effort, use the Phase-1 baseline schedule
+\[
+N_{\mathrm{shot},1}(t):=
+\left\lceil
+N_{\mathrm{shot}}^{\min}
++
+\bigl(N_{\mathrm{shot}}^{\max}-N_{\mathrm{shot}}^{\min}\bigr)
+\Bigl(
+\alpha_{\mathrm{front}}\,u_{\mathrm{front}}(t)
++
+\alpha_{\mathrm{util}}\,(1-R_t)
+\Bigr)
+\right\rceil,
+\]
+with \(N_{\mathrm{shot}}^{\min}\le N_{\mathrm{shot}}^{\max}\), \(\alpha_{\mathrm{front}},\alpha_{\mathrm{util}}\ge 0\), and \(\alpha_{\mathrm{front}}+\alpha_{\mathrm{util}}=1\). Thus Phase 1 increases shot count when the frontier flattens and when useful runway is being exhausted.
+
+For \(k\in\{2,3\}\), once the phase-\(k\) uncertainty summary \(u_{\sigma,k}(t)\) is available, use
+\[
+N_{\mathrm{shot},k}(t):=
+\left\lceil
+N_{\mathrm{shot}}^{\min}
++
+\bigl(N_{\mathrm{shot}}^{\max}-N_{\mathrm{shot}}^{\min}\bigr)
+\Bigl(
+\alpha_{\mathrm{front}}\,u_{\mathrm{front}}(t)
++
+\alpha_{\mathrm{util}}\,(1-R_t)
++
+\alpha_{\sigma}\,u_{\sigma,k}(t)
+\Bigr)
+\right\rceil,
+\qquad
+k\in\{2,3\},
+\]
+with \(\alpha_{\mathrm{front}},\alpha_{\mathrm{util}},\alpha_{\sigma}\ge 0\) and \(\alpha_{\mathrm{front}}+\alpha_{\mathrm{util}}+\alpha_{\sigma}=1\).\footnote{A one-weight simplification is the special case \(\alpha_{\mathrm{front}}=\alpha_{\mathrm{util}}=\frac{1-\alpha_{\sigma}}{2}\).} Thus Phase 2 and Phase 3 inherit the same controller baseline and then increase shot count further when geometric uncertainty rises.
+
+For phase thresholds, use the live monotone law
+\[
+\tau_k(t):=\tau_k^{\min}+(\tau_k^{\max}-\tau_k^{\min})e_t,
+\qquad
+\tau_k^{\min}\le \tau_k^{\max},
+\qquad
+k\in\{1,2,3\},
+\]
+so that shortlist admission is stricter early and more permissive later.
+
+For phase shortlist caps, use the live bounded law
+\[
+N_k(t):=
+\left\lceil
+N_k^{\min}+(\,N_k^{\max}-N_k^{\min}\,)g_t
+\right\rceil,
+\qquad
+N_k^{\min}\le N_k^{\max},
+\qquad
+k\in\{1,2,3\}.
+\]
+Thus \(N_k(t)\) and \(\tau_k(t)\) are both live shortlist-control quantities: \(N_k(t)\) ensures budget constraints are met, whereas \(\tau_k(t)\) helps ensure logical admissibility constraints proceed with time.
+
+### 11.2.4 Phase-local cost and structural burden definitions
+For any current phase-input record family \(\mathcal R_k(t)\), with \(\mathcal R_1(t):=\mathcal R_1\) and \(k\in\{1,2,3\}\), and any scalar record feature \(x:\mathcal R_k(t)\to\mathbb R_{\ge 0}\), define the empirical quantiles \(q_\alpha^x(t):=\operatorname{Quantile}_\alpha\bigl(\{x(u):u\in\mathcal R_k(t)\}\bigr)\) and \(m_x(t):=q_{0.5}^x(t)\), together with the robust scales \(s_x^{\mathrm{MAD}}(t):=1.4826\,\operatorname{median}_{u\in\mathcal R_k(t)}\bigl|x(u)-m_x(t)\bigr|\), \(s_x^{\mathrm{pct}}(t):=\frac{q_{0.9}^x(t)-q_{0.1}^x(t)}{2.563}\), and \(s_x(t):=\max\!\bigl(\varepsilon_x,\;s_x^{\mathrm{MAD}}(t),\;s_x^{\mathrm{pct}}(t)\bigr)\). Thus \(s_x(t)\) is a percentile/MAD hybrid reference scale, with percentile fallback when the MAD degenerates on sparse discrete features.
+
+Define the one-sided robust normalized excess by \(z_x(r;t):=\operatorname{asinh}\!\left(\frac{[x(r)-m_x(t)]_+}{s_x(t)}\right)\), with \([y]_+:=\max(y,0)\). When a direct ratio form is preferred, use the reference level \(x_{\mathrm{ref}}(t):=m_x(t)+s_x(t)\).
+
+For a candidate-position record \(r=(m,p)\), let \(\mathcal L_r:=\operatorname{supp}(m)=\{j:m_j\neq I\}\), \(\mathrm{wt}(r):=|\mathcal L_r|\), and \(\#_{X,Y}(r):=\left|\{j\in\mathcal L_r:m_j\in\{X,Y\}\}\right|\).
+
+Define feature-specific robust excesses by \(z_{\mathrm{wt}}(r;t):=z_x(r;t)\ \text{with }x=\mathrm{wt}\) and \(z_{XY}(r;t):=z_x(r;t)\ \text{with }x=\#_{X,Y}\). The structural burden term is
+\[
+D_{\mathrm{struct}}(r;t):=
+\beta_{\mathrm{wt}}\,z_{\mathrm{wt}}(r;t)
++\beta_{XY}\,z_{XY}(r;t),
+\]
+with nonnegative coefficients \(\beta_{\mathrm{wt}},\beta_{XY}\ge 0\).\footnote{Provenance note: generator novelty \(G_{\mathrm{new}}(r)\), family novelty \(\mathrm{groups}_{\mathrm{new}}(r)\) with single-valued \(\mathfrak g:\mathcal G\to\mathcal C\), lifetime/staleness \(\mathbf 1_{\mathrm{lifetime}}(r;t)\) with \(t_{\mathrm{first}}(m)\) meaning first time ever seen in the run, the auxiliary raw burden \(D_{\mathrm{raw}}(r;t):=D_{\mathrm{struct}}(r;t)+d_{\mathrm{pos}}(r)\) with \(d_{\mathrm{pos}}(r):=|p-p_{\mathrm{app}}|\), and the normalized descendants \(\bar D_{\mathrm{life}}^{\mathrm{struct}},\bar G_{\mathrm{new}},\bar C_{\mathrm{new}},\bar c,\bar P_{\mathrm{opt}}\) are omitted from the live hardware cost in the present draft and retained only as controller-side provenance/policy bookkeeping.}
+
+For candidate-specific measurement burden, let \(O_r:=i[H,\widetilde A_r]=\sum_{b\in\mathcal B_r} O_{r,b}\), with \(O_{r,b}:=\sum_{\ell\in B_{r,b}} c_{r,b\ell} P_{r,b\ell}\), where \(\mathcal B_r\) is the qubit-wise commuting partition of the candidate's gradient observable and \(\mathcal B_r^{\mathrm{new}}\subseteq\mathcal B_r\) is the subset not already covered by measurement reuse. Here \(\widetilde A_r\) is the dressed candidate generator at record \(r=(m,p)\), \(\mathcal B_r\) is the partition of \(O_r=i[H,\widetilde A_r]\) into qubit-wise commuting Pauli-string measurement groups, and \(\mathcal B_r^{\mathrm{new}}\) is the subset that still requires new measurement effort. When exact state-dependent variances are unavailable, use the commutator-based proxy
+\[
+\widehat v_{r,b}:=\sum_{\ell\in B_{r,b}} |c_{r,b\ell}|^2,
+\qquad
+\widehat{\bar C}_{\mathrm{shot}}(r):=
+\frac{1}{\mathrm{shot}_{\mathrm{ref}}}
+\cdot
+\frac{
+\left(
+\sum_{b\in\mathcal B_r^{\mathrm{new}}}\sqrt{\widehat v_{r,b}}
+\right)^2
+}{
+\sigma_{\star}^{2}
+}.
+\]
+Here \(\sigma_\star\) is the target standard error for the candidate gradient estimate. The positive constant \(\mathrm{shot}_{\mathrm{ref}}\) is a baseline measurement budget against which candidate-specific shot cost is compared.
+
+For the shared phase-\(k\) cost, define \(z_{\mathrm{2q}}(r;t):=z_x(r;t)\ \text{with }x=C_{\mathrm{2q}}\), \(z_d(r;t):=z_x(r;t)\ \text{with }x=D\), \(z_{\theta}(r;t):=z_x(r;t)\ \text{with }x=\Delta K\), \(z_{\mathrm{shot}}(r;t):=z_x(r;t)\ \text{with }x=\widehat{\bar C}_{\mathrm{shot}}\), and
+\[
+K_k(r;t):=
+\lambda_{\mathrm{2q}}\,z_{\mathrm{2q}}(r;t)
++\lambda_d\,z_d(r;t)
++\lambda_\theta\,z_{\theta}(r;t)
++\lambda_{\mathrm{shot}}\,z_{\mathrm{shot}}(r;t)
++D_{\mathrm{struct}}(r;t).
+\]
+Explicitly,
+\[
 \begin{aligned}
-\delta E(g,p)
-&=E(\theta)-\min_{\vartheta\in W(p)}E\bigl(\theta\oplus_p(g,\vartheta)\bigr),\\
-B(g,p)
-&=\lambda_{\mathrm{2q}}C_{\mathrm{2q}}(g,p)+\lambda_dD(g,p)+\lambda_\theta\Delta K(g,p),\\
-S_1(g,p)
-&=\frac{\underline{\delta E}(g,p)}{B(g,p)+\varepsilon}
-=\frac{\underline{\delta E}(g,p)}{\lambda_{\mathrm{2q}}C_{\mathrm{2q}}(g,p)+\lambda_dD(g,p)+\lambda_\theta\Delta K(g,p)+\varepsilon}.
+K_k(r;t)
+&=
+\lambda_{\mathrm{2q}}\,z_{\mathrm{2q}}(r;t)
++\lambda_d\,z_d(r;t)
++\lambda_\theta\,z_{\theta}(r;t)
++\lambda_{\mathrm{shot}}\,z_{\mathrm{shot}}(r;t)\\
+&\qquad
++\beta_{\mathrm{wt}}\,z_{\mathrm{wt}}(r;t)
++\beta_{XY}\,z_{XY}(r;t),
+\qquad
+k\in\{1,2,3\}.
 \end{aligned}
-$$
+\]
+
+### 11.2.5 Final Phase I Scoring
+For Phase 1, the set \(\mathcal R_1:=\{(m,p):m\in\mathcal G_1,\ p\in\mathcal P_m^{1}\}\) is scored by
+\[
+S_1(r;t)
+:=
+\frac{\Delta E_{1,\mathrm{TR}}(r)}{1+K_1(r;t)},
+\qquad r\in\mathcal R_1.
+\]
+Here \(\Delta E_{1,\mathrm{TR}}(r)\) is the Phase-1 one-coordinate trust-region proxy defined in \S 11.2.1, and the phase-1 cost is evaluated on the current Phase-1 input family. This Phase-1 score is intentionally broad as a screening surface: it privileges cheap local second-order insertion estimates while the controller still has long useful runway.
+The corresponding broad Phase-1 probing/evaluation budget is set by the baseline controller shot law \(N_{\mathrm{shot},1}(t)\).
+
+In the present draft, the live Phase-1 numerator is the one-coordinate trust-region proxy \(\Delta E_{1,\mathrm{TR}}(r)\), so that the broad screen remains in the same gradient-plus-second-order family later refined in Phases 2 and 3. The strict one-coordinate insertion drop \(\delta E_1(r\mid\mathcal O,\theta)\) is retained only as an auxiliary exact comparator for selective frontier confirmation, ablation studies, or future confirm-stage refinement. A broader early-stage local-refit numerator remains only a non-live hook. To make such a refinement live, one would first have to specify (i) the admissible refit-window family, (ii) the corresponding constrained local-refit drop, and (iii) a controller activation law independent of the current raw Phase-1 score multiset, so that the live Phase-1 law is not self-referential.
+
+### 11.2.6 Position probing, trough detection, and effective selector
+The Phase-1 scoring mechanism produces the retained record shortlist for further refined scoring. The retained model set is \(\mathcal G^{(1)}:=\pi_m(\mathcal S_1(t))\), the retained position fibers are \(\mathcal P_m^{(1)}:=\{p:(m,p)\in\mathcal S_1(t)\}\ \forall m\in\mathcal G^{(1)}\), the Phase-2 record pool is \(\mathcal R_2:=\mathcal S_1(t)\), and the acceptance set is \(\mathcal A_1(t):=\{r=(m,p)\in\mathcal R_1:S_1(r;t)\ge \tau_1(t)\}=\{r_{(1)},\dots,r_{(M)}\}\), with \(M:=|\mathcal A_1(t)|\). The ordered Phase-1 scores are \(s_k^{(1)}(t):=S_1(r_{(k)};t)\), with \(s^{(1)}_1(t)\ge s^{(1)}_2(t)\ge\cdots\ge s^{(1)}_M(t)\), and the candidate score distinction is \(u_{\mathrm{front},k}^{(1)}(t):=\frac{s^{(1)}_{k+1}(t)+\varepsilon}{s^{(1)}_{k}(t)+\varepsilon}\), with \(k=1,\dots,M-1\) and \(0<\eta_1<1\).
+\[
+\begin{aligned}
+k_1^\star(t)&:=
+\begin{cases}
+0, & M=0,\\[4pt]
+\min\!\left\{k\in\{1,\dots,\min(M-1,N_1(t)-1)\}:u_{\mathrm{front},k}^{(1)}(t)\le \eta_1\right\},
+& \text{if this set is nonempty},\\[6pt]
+\min\{M,N_1(t)\}, & \text{otherwise},
+\end{cases}\\
+\mathcal D_1(t)&:=\{r_{(j)}(t):1\le j\le k_1^\star(t)\},
+\qquad
+\mathcal S_1(t):=\mathcal A_1(t)\cap \mathcal D_1(t)=\mathcal D_1(t).
+\end{aligned}
+\]
+Here \(\eta_1\) is a controller parameter chosen either from policy intuition or from empirical calibration.
+
+## 11.3 Phase II
+Phase II is the raw geometric selector stage. It acts on the Phase-1 survivors, restores the coarse geometric signal that distinguishes directional usefulness beyond insertion-drop alone, and produces the filtered shortlist \(\mathcal S_2\).
+
+### 11.3.1 Raw geometry, restored novelty, and auxiliary overlap window
+
+The Phase-2 selector works over candidate-position records inherited from Phase 1. In the record-inheritance mode used here, the inherited and admissible domain is \(\mathcal R_2:=\mathcal S_1(t)\). For \(r=(m,p)\), let \(W(r;t)\subseteq\{1,\dots,n+1\}\) denote the inherited overlap window attached to \(r\). In the present three-phase architecture this window enters the Phase-2 selector authoritatively only through overlap against the current horizontal tangent family; the same inherited window is then carried forward to Phase 3, where reduced-window elimination and final reranking are performed.\footnote{Here \(p\) indexes the cut after \(U_p\). Thus \(U_{>p}:=U_K\cdots U_{p+1}\) and \(U_{\le p}:=U_p\cdots U_1\), and insertion at cut \(p\) means \( |\psi_r(\alpha)\rangle = U_{>p}e^{-i\alpha A_m}U_{\le p}|\psi_0\rangle = U_K\cdots U_{p+1}\,e^{-i\alpha A_m}\,U_p\cdots U_1|\psi_0\rangle \). So the new generator is inserted between \(U_p\) and \(U_{p+1}\).}
+
+Reusing the record-local insertion objects already introduced in Phase 1, let \(|d_r^{(2)}\rangle:=-\widetilde A_r^2|\psi\rangle\) and \(\chi_r:=\operatorname{clip}\!\left(1-\frac{z_\alpha\,\sigma_r}{|g_r|+\varepsilon_g},0,1\right)\).\footnote{Let \(\widehat g(r)\) denote the empirical gradient estimator for record \(r=(m,p)\) obtained from \(N_r\) independent shot-level repetitions. If \(X^{(r)}_1,\dots,X^{(r)}_{N_r}\) are the repetition-level gradient samples, then \(\widehat g(r):=\frac{1}{N_r}\sum_{i=1}^{N_r} X^{(r)}_i\) and \(\sigma_r:=\operatorname{SE}\!\big[\widehat g(r)\big]=\sqrt{\operatorname{Var}\!\big(\widehat g(r)\big)}\). Under independent repetitions, \(\operatorname{Var}\!\big(\widehat g(r)\big)=\frac{\operatorname{Var}\!\big(X^{(r)}_1\big)}{N_r}\), so in practice one estimates \(\sigma_r\approx \frac{s_r}{\sqrt{N_r}}\), where \(s_r\) is the sample standard deviation of the repetition-level gradients. Thus \(\sigma_r\) is the standard error of the mean gradient estimate, not the sample standard deviation itself.}
+For phase-dependent shot allocation in later phases, define
+\[
+u_{\sigma,k}(t):=
+\operatorname{clip}\!\left(
+\operatorname{median}_{r\in\mathcal R_k(t)}
+\frac{z_\alpha\,\sigma_r}{|g_r|+\varepsilon_g},
+\,0,\,1
+\right),
+\qquad
+k\in\{2,3\},
+\]
+where in Phase 2 the record-local gradient and uncertainty estimates are evaluated using \(N_{\mathrm{shot},2}(t)\), and in Phase 3 the pair \((g_r,\sigma_r)\) is inherited from the Phase-II raw geometry carried by the surviving records.
+
+The raw geometric quantities are
+\[
+\begin{aligned}
+F_{\mathrm{raw}}(r)&:=\langle \tau_r,\tau_r\rangle+\varepsilon_F,
+\qquad \varepsilon_F>0,\\
+\mathcal N_2(r;t)
+&:=1-\max_{j\in W(r;t)}
+\frac{\left|\langle d_r|Q_\psi|\partial_{\theta_j}\psi\rangle\right|}
+{\sqrt{F_{\mathrm{raw}}(r)}}
+\frac{1}{\sqrt{\langle \partial_{\theta_j}\psi|Q_\psi|\partial_{\theta_j}\psi\rangle+\varepsilon_F}},\\
+h_r&:=2\Re\!\left(\langle d_r|H|d_r\rangle+\langle \psi|H|d_r^{(2)}\rangle\right),\\
+\Delta E_{\mathrm{TR}}^{\mathrm{raw}}(r)
+&:=\max_{|\alpha|\le \rho/\sqrt{F_{\mathrm{raw}}(r)}}
+\left[g_{\mathrm{lcb}}(r)|\alpha|-\frac12\max\bigl(h_r,0\bigr)\alpha^2\right].
+\end{aligned}
+\]
+Here \(F_{\mathrm{raw}}(r)\) is the raw tangent norm, \(\mathcal N_2(r;t)\) is the restored Phase-2 novelty score, \(h_r\) is the raw local curvature, and \(\Delta E_{\mathrm{TR}}^{\mathrm{raw}}(r)\) is the raw trust-region gain before reduced-window elimination.
+
+The authoritative Phase-II score is
+\[
+S_2(r;t)
+:=
+\frac{\Delta E_{\mathrm{TR}}^{\mathrm{raw}}(r)\,\chi_r\,\mathcal N_2(r;t)}{1+K_2(r;t)},
+\qquad r\in\mathcal R_2.
+\]
+Thus Phase II remains the raw geometric selector stage: it restores directional discrimination beyond insertion-drop alone, damps that geometry when the candidate direction is poorly resolved against its own gradient noise, and filters the Phase-1 survivors before any reduced-window refit quantity is made authoritative.
+
+For continuity with the older local-refit notation, retain the auxiliary windowed drop
+\[
+\mathcal C_W(r;\theta):=\{\widetilde\theta\in\Theta_{\mathcal O\oplus_p m}:\widetilde\theta_j=(\theta\oplus_p 0)_j\ \forall j\notin W(r;t)\}
+\]
+and
+\[
+\delta E_2(r\mid\mathcal O,\theta):=
+E(\mathcal O,\theta)-\inf_{\widetilde\theta\in\mathcal C_W(r;\theta)}E(\mathcal O\oplus_p m,\widetilde\theta).
+\]
+This \(\delta E_2\) quantity is retained only as an auxiliary comparator for the inherited window. It may be used for notation continuity, diagnostics, or ablation studies, but it does not define a separate selector phase, it does not enter \(S_2(r;t)\), and it does not modify the Phase-II shortlist rule. Any authoritative reduced-window rerank remains deferred to Phase 3.
 
 ### 11.3.2 Shortlist rule
-
-Define the shortlist by threshold or cap:
-$$
+The Phase-II scoring mechanism produces the retained geometric shortlist for the later reduced-window stage. The acceptance set is \(\mathcal A_2(t):=\{r=(m,p)\in\mathcal R_2:S_2(r;t)\ge \tau_2(t)\}=\{r_{(1)},\dots,r_{(M)}\}\), with \(M:=|\mathcal A_2(t)|\). Here \(S_2\) is the raw geometric gain times restored novelty score. Let \(s_k^{(2)}(t):=S_2(r_{(k)};t)\), such that \(s^{(2)}_1(t)\ge s^{(2)}_2(t)\ge\cdots\ge s^{(2)}_M(t)\), with superscript denoting the phase scoring regime. Rate the candidate's score distinction by \(u_{\mathrm{front},k}^{(2)}(t):=\frac{s^{(2)}_{k+1}(t)+\varepsilon}{s^{(2)}_{k}(t)+\varepsilon}\), with \(k=1,\dots,M-1\) and \(0<\eta_2<1\). Then
+\[
 \begin{aligned}
-\mathcal S_2
-&=\{(g,p):S_1(g,p)\ge\tau_1\}\quad\text{or}\quad \operatorname{Top}_K\{(g,p)\text{ by }S_1(g,p)\}\\
-&=\left\{(g,p):\underline{\delta E}(g,p)\ge\tau_1\bigl[\lambda_{\mathrm{2q}}C_{\mathrm{2q}}(g,p)+\lambda_dD(g,p)+\lambda_\theta\Delta K(g,p)+\varepsilon\bigr]\right\}\\
-&\qquad\text{or}\quad \operatorname{Top}_K\left\{(g,p)\text{ by }\frac{\underline{\delta E}(g,p)}{\lambda_{\mathrm{2q}}C_{\mathrm{2q}}(g,p)+\lambda_dD(g,p)+\lambda_\theta\Delta K(g,p)+\varepsilon}\right\}.
-\end{aligned}
-$$
-If $\pi_g(g,p)=g$ denotes projection onto generator identity, then the generators actually carried forward by the shortlist are $\pi_g(\mathcal S_2)$. We therefore do not write $\mathcal G^{(2)}=\mathcal S_2$: $\mathcal G^{(2)}$ lives in generator space, whereas $\mathcal S_2$ is a state-dependent shortlist of candidate-position records.
-
-### 11.3.3 Reduced-path geometry, novelty, curvature, and trust-region drop
-
-For a shortlisted record $(g,p)$, let
-
-$$
-|\psi\rangle = U_{>p}\,U_{\le p}\,|\psi_0\rangle,
-\qquad
-|\psi_{(m,p)}(\alpha)\rangle = U_{>p}\,e^{-i\alpha A_m}\,U_{\le p}\,|\psi_0\rangle,
-$$
-
-$$
-\widetilde A_{(m,p)} := U_{>p}\,A_m\,U_{>p}^{\dagger},
-\qquad
-U_{>p}:=U_K(\theta_K)\cdots U_{p+1}(\theta_{p+1}),
-$$
-
-$$
-|\psi_{(m,p)}(\alpha)\rangle = e^{-i\alpha \widetilde A_{(m,p)}}|\psi\rangle,
-\qquad
-\left.\partial_{\alpha}|\psi_{(m,p)}(\alpha)\rangle\right|_{\alpha=0}
-=
--i\,\widetilde A_{(m,p)}|\psi\rangle.
-$$
-
-$$
-\begin{aligned}
-U_{g,p}(\alpha)&=e^{-i\alpha \widetilde A_{g,p}},&
-|\psi_{g,p}(\alpha)\rangle&=U_{g,p}(\alpha)|\psi\rangle,&
-Q_\psi&=I-|\psi\rangle\langle\psi|,\\
-|d_{g,p}\rangle&=\left.\partial_\alpha |\psi_{g,p}(\alpha)\rangle\right|_{\alpha=0}=-i\widetilde A_{g,p}|\psi\rangle,&
-|d^{(2)}_{g,p}\rangle&=\left.\partial_\alpha^2 |\psi_{g,p}(\alpha)\rangle\right|_{\alpha=0}=-\widetilde A_{g,p}^2|\psi\rangle,\\
-\tau_{g,p}&=Q_\psi |d_{g,p}\rangle=Q_\psi\left.\partial_\alpha |\psi_{g,p}(\alpha)\rangle\right|_{\alpha=0}=-iQ_\psi\widetilde A_{g,p}|\psi\rangle,\\
-g(g,p)&=\left.\partial_\alpha\langle \psi_{g,p}(\alpha)|H|\psi_{g,p}(\alpha)\rangle\right|_{\alpha=0}=2\Re\langle \psi|H|d_{g,p}\rangle,\\
-g_{\mathrm{lcb}}(g,p)&=\max\{|g(g,p)|-z_\alpha\sigma(g,p),0\}.
-\end{aligned}
-$$
-If $\{\tau_j\}_{j\in W(p)}$ are the current horizontal tangents in the inherited window, then
-$$
-\begin{aligned}
-F(g,p)&=\|\tau_{g,p}\|^2=\langle \tau_{g,p},\tau_{g,p}\rangle=\langle d_{g,p}|Q_\psi|d_{g,p}\rangle,\\
-\mathcal N(g,p)&=1-\max_{j\in W(p)} \frac{|\langle \tau_{g,p},\tau_j\rangle|}{\|\tau_{g,p}\|\,\|\tau_j\|}
-=1-\max_{j\in W(p)} \frac{|\langle d_{g,p}|Q_\psi|\partial_{\theta_j}\psi\rangle|}{\sqrt{\langle d_{g,p}|Q_\psi|d_{g,p}\rangle}\,\sqrt{\langle \partial_{\theta_j}\psi|Q_\psi|\partial_{\theta_j}\psi\rangle}},\\
-\kappa(g,p)&=h_{g,p}=\left.\partial_\alpha^2\langle \psi_{g,p}(\alpha)|H|\psi_{g,p}(\alpha)\rangle\right|_{\alpha=0}
-=2\Re\!\left(\langle d_{g,p}|H|d_{g,p}\rangle + \langle \psi|H|d^{(2)}_{g,p}\rangle\right),\\
-\delta E_{\mathrm{TR}}(g,p)&=\max_{|\alpha|\le \rho/\sqrt{F(g,p)}}\left[g_{\mathrm{lcb}}(g,p)|\alpha|-\frac12\max\bigl(h_{g,p},0\bigr)\alpha^2\right],\\
-\delta E_{\mathrm{quad}}(g,p)&=\frac{g_{\mathrm{lcb}}(g,p)^2}{2h_{g,p}}\qquad\text{when }h_{g,p}>0\text{ and the unconstrained minimizer lies inside the trust region.}
-\end{aligned}
-$$
-
-### 11.3.4 Full rerank score and effective selector
-
-The Phase-2 rerank score is not just symbolically
-$$
-S_2(g,p)=\frac{\delta E_{\mathrm{TR}}(g,p)\,\mathcal N(g,p)}{B(g,p)(1+\kappa(g,p)) + \varepsilon},
-$$
-but, after substitution of the local burden, miss, curvature, and tangent geometry,
-$$
-\begin{aligned}
-S_2(g,p)
-&=\frac{\delta E_{\mathrm{TR}}(g,p)\,\mathcal N(g,p)}{\bigl[\lambda_{\mathrm{2q}}C_{\mathrm{2q}}(g,p)+\lambda_dD(g,p)+\lambda_\theta\Delta K(g,p)\bigr]\bigl(1+h_{g,p}\bigr)+\varepsilon}\\
-&=\frac{\displaystyle \max_{|\alpha|\le \rho/\sqrt{\langle d_{g,p}|Q_\psi|d_{g,p}\rangle}}\left[\max\{|2\Re\langle \psi|H|d_{g,p}\rangle|-z_\alpha\sigma(g,p),0\}|\alpha|-\frac12\max\!\Bigl(2\Re\!\bigl(\langle d_{g,p}|H|d_{g,p}\rangle+\langle \psi|H|d^{(2)}_{g,p}\rangle\bigr),0\Bigr)\alpha^2\right]}{\bigl[\lambda_{\mathrm{2q}}C_{\mathrm{2q}}(g,p)+\lambda_dD(g,p)+\lambda_\theta\Delta K(g,p)\bigr]\Bigl(1+2\Re\!\bigl(\langle d_{g,p}|H|d_{g,p}\rangle+\langle \psi|H|d^{(2)}_{g,p}\rangle\bigr)\Bigr)+\varepsilon}\\
-&\qquad\times\left(1-\max_{j\in W(p)} \frac{|\langle d_{g,p}|Q_\psi|\partial_{\theta_j}\psi\rangle|}{\sqrt{\langle d_{g,p}|Q_\psi|d_{g,p}\rangle}\,\sqrt{\langle \partial_{\theta_j}\psi|Q_\psi|\partial_{\theta_j}\psi\rangle}}\right).
-\end{aligned}
-$$
-The selected candidate is then
-$$
-(g_2,p_2)=\arg\max_{(g,p)\in\mathcal S_2} S_2(g,p).
-$$
-
-## 11.4 Phase 3 primary selector surface
-
-This section describes the full symbolic Phase-3 selector surface: position-aware candidate records, inherited refit windows, split-aware reranking, and post-admission local simplification. In current HH mainline, Phase 3 is not a separate reverse-order fallback pass; it reuses the earlier cheap-screen and shortlist/full-rerank machinery, then adds the highest-level augmentations used in runtime policy.
-
-The formulas in §§11.4.1--11.4.4 are the corrected canonical Phase-3 target contract. Current repo code may still lag some details of this contract; that implementation lag is stated explicitly later in §19.4 rather than folded back into the symbolic definitions here.
-
-### 11.4.1 Core signal, append position, refit window, and cheap screen
-
-The cumulative Phase-3 selector is most naturally written over candidate-position pairs
-$$
-r=(m,p),
-\qquad
-m\in\mathcal G^{(3)}_{\mathrm{avail}},
-\quad
-p\in\mathcal P_m.
-$$
-Here $m$ is a candidate generator, $p$ is a candidate insertion position, and $\mathcal P_m$ is the set of admissible positions for $m$.
-
-The inherited refit window attached to position $p$ is denoted $W(p)$. A useful decomposition is
-$$
-W(p)=W_{\mathrm{new}}(p)\cup W_{|\theta|}(p),
-$$
-where $W_{\mathrm{new}}$ keeps the newest coordinates and $W_{|\theta|}$ optionally preserves a small set of older large-amplitude coordinates.
-
-The raw candidate-position universe entering the cumulative Phase-3 selector is
-$$
-\mathcal P_{\mathrm{avail}}^{(3)}
-=
-\left\{
-r=(m,p):
-m\in\mathcal G^{(3)}_{\mathrm{avail}},
-\ p\in\mathcal P_m
-\right\}.
-$$
-
-Let $t$ denote the current selector step, let $D_{\mathrm{left}}(t)$ be the remaining controller depth budget, let $\widehat N_{\mathrm{rem}}(t)$ be a heuristic forecast of useful remaining admissions, and define the effective useful horizon
-$$
-H_t=\min\!\bigl(D_{\mathrm{left}}(t),\widehat N_{\mathrm{rem}}(t)\bigr).
-$$
-One useful controller-level estimator writes
-$$
-S_t(k)=\prod_{j=1}^{k}\bigl(1-h_t(j)\bigr),
-\qquad
-\widehat N_{\mathrm{rem}}(t)=\sum_{k=1}^{D_{\mathrm{left}}(t)} S_t(k)\,Q_t(k),
-$$
-where $S_t(k)$ is a survival factor for still having a useful admission opportunity $k$ selector steps ahead, $Q_t(k)$ is the conditional usefulness of that future opportunity, and $h_t(j)$ is the corresponding controller hazard. A compact controller-level realization is
-$$
-u_{\mathrm{pat}}(t)=\operatorname{clip}\!\left(\max\!\left(\frac{\mathrm{plateau\_streak}(t)}{P},\frac{\mathrm{low\_streak}(t)}{L}\right),0,1\right),
-$$
-$$
-u_{\mathrm{front}}(t)=
-\left(1-\frac{s_1^{\mathrm{cheap}}(t)-s_2^{\mathrm{cheap}}(t)}{s_1^{\mathrm{cheap}}(t)+\varepsilon}\right)
-\left(1+\frac{s_1^{\mathrm{cheap}}(t)}{c_s\,s_{\mathrm{ref}}^{\mathrm{cheap}}(t)+\varepsilon}\right)^{-1},
-$$
-$$
-h_t(j)=\sigma\!\Bigl(\beta_0+\beta_{\mathrm{pat}}\nu_{\mathrm{pat}}(t)+\beta_{\mathrm{front}}\nu_{\mathrm{front}}(t)+\eta_h(j-1)\Bigr),
-$$
-$$
-m_t=\operatorname{EWMA}_{s\in W_t^+}\!\bigl(\log \Delta_{\mathrm{adm}}(s)\bigr),
-\qquad
-\rho_t=\operatorname{clip}\!\left(\frac{\operatorname{EWMA}_{\mathrm{recent}}(\Delta_{\mathrm{adm}})}{\operatorname{EWMA}_{\mathrm{older}}(\Delta_{\mathrm{adm}})+\varepsilon},\rho_{\min},1\right),
-$$
-$$
-\gamma_t=[-\log \rho_t]_+,
-\qquad
-s_t=\max\!\Bigl(s_{\min},\operatorname{MAD}_{s\in W_t^+}\!\bigl(\log \Delta_{\mathrm{adm}}(s)\bigr)\Bigr),
-$$
-$$
-Q_t(k)=\Phi\!\left(\frac{m_t-\gamma_t(k-1)-\log \tau_{\mathrm{use},t}}{s_t}\right).
-$$
-If optimistic and pessimistic runway envelopes
-$$
-\widehat N_{\mathrm{rem}}^{\mathrm{lo}}(t)\le \widehat N_{\mathrm{rem}}(t)\le \widehat N_{\mathrm{rem}}^{\mathrm{hi}}(t)
-$$
-are also tracked, one convenient band construction is
-$$
-\operatorname{logit} h_t^{\mathrm{pess}}(j)=\operatorname{logit} h_t(j)+\Delta_h,
-\qquad
-\operatorname{logit} h_t^{\mathrm{opt}}(j)=\operatorname{logit} h_t(j)-\Delta_h,
-$$
-$$
-m_t^{\mathrm{pess}}=m_t-\Delta_m,\quad s_t^{\mathrm{pess}}=s_t+\Delta_s,
-\qquad
-m_t^{\mathrm{opt}}=m_t+\Delta_m,\quad s_t^{\mathrm{opt}}=\max(s_{\min},s_t-\Delta_s),
-$$
-$$
-\widehat N_{\mathrm{rem}}^{\mathrm{lo}}(t)=\sum_{k=1}^{D_{\mathrm{left}}(t)} S_t^{\mathrm{pess}}(k)\,Q_t^{\mathrm{pess}}(k),
-\qquad
-\widehat N_{\mathrm{rem}}^{\mathrm{hi}}(t)=\sum_{k=1}^{D_{\mathrm{left}}(t)} S_t^{\mathrm{opt}}(k)\,Q_t^{\mathrm{opt}}(k),
-$$
-and then a compact confidence and saturation summary is
-$$
-C_t=\frac{\widehat N_{\mathrm{rem}}^{\mathrm{lo}}(t)}{\widehat N_{\mathrm{rem}}^{\mathrm{hi}}(t)+\varepsilon},
-\qquad
-W_{\mathrm{sat}}(t)=1-\frac{\widehat N_{\mathrm{rem}}(t)}{D_{\mathrm{left}}(t)+\varepsilon}.
-$$
-The corresponding selector mode and saturation regime may be written as
-$$
-\pi_t=
+k_2^\star(t)&:=
 \begin{cases}
-\mathrm{fast},&\widehat N_{\mathrm{rem}}^{\mathrm{lo}}(t)>n_{\mathrm{fast}},\\
-\mathrm{high\mbox{-}fidelity},&\widehat N_{\mathrm{rem}}^{\mathrm{hi}}(t)\le n_{\mathrm{slow}},\\
-\mathrm{mixed},&\text{otherwise},
-\end{cases}
-$$
-$$
-\mathrm{regime}_{\mathrm{sat}}(t)=
-\begin{cases}
-\mathrm{hungry},&W_{\mathrm{sat}}(t)<\tau_{\mathrm{off}},\\
-\mathrm{plateau},&W_{\mathrm{sat}}(t)>\tau_{\mathrm{on}},\\
-\mathrm{watch},&\text{otherwise}.
-\end{cases}
-$$
-The quantity $\widehat N_{\mathrm{rem}}(t)$ is controller telemetry rather than a physical observable: it summarizes recent selector progress and remaining useful runway, but it is not itself a hard admissibility certificate.
-
-For $r=(m,p)$, let
-$$
-\begin{aligned}
-U_r(\alpha)&=e^{-i\alpha \widetilde A_r},\\
-|\psi_r(\alpha)\rangle&=U_r(\alpha)|\psi\rangle,\\
-Q_\psi&=I-|\psi\rangle\langle\psi|,\\
-|d_r\rangle&=\left.\partial_\alpha|\psi_r(\alpha)\rangle\right|_{\alpha=0}=-i\widetilde A_r|\psi\rangle,\\
-t_r&=Q_\psi|d_r\rangle,\\
-F_{\mathrm{raw}}(r)&=\|t_r\|^2=\langle d_r|Q_\psi|d_r\rangle,\\
-g_r&=\left.\partial_\alpha\langle \psi_r(\alpha)|H|\psi_r(\alpha)\rangle\right|_{\alpha=0}=2\Re\langle \psi|H|d_r\rangle,\\
-g_{\mathrm{lcb}}(r)&=\max\{|g_r|-z_\alpha\sigma_r,0\},\\
-\Gamma_{\mathrm{stage}}(r)&:=\Gamma_{\mathrm{stage}}(m),\\
-\Gamma_{\mathrm{sym}}(r)&:=\Gamma_{\mathrm{sym}}(m,p),\\
-K_{\mathrm{cheap}}(r;t)
-&=1+w_R\bar R_{\mathrm{rem}}(r;t)+w_D\bar D_{\mathrm{life}}(r)\\
-&\quad +w_G\bar G_{\mathrm{new}}(r)+w_C\bar C_{\mathrm{new}}(r)+w_c\bar c(r).
+0, & M=0,\\[4pt]
+\min\!\left\{k\in\{1,\dots,\min(M-1,N_2(t)-1)\}:u_{\mathrm{front},k}^{(2)}(t)\le \eta_2\right\},
+& \text{if this set is nonempty},\\[6pt]
+\min\{M,N_2(t)\}, & \text{otherwise},
+\end{cases}\\
+\mathcal D_2(t)&:=\{r_{(j)}:1\le j\le k_2^\star(t)\},
+\qquad
+\mathcal S_2(t):=\mathcal A_2(t)\cap \mathcal D_2(t)=\mathcal D_2(t).
 \end{aligned}
-$$
-with
-$$
-p_{\mathrm{app}}:=|\mathcal O|
-$$
-for the current append slot, and
-$$
-\bar D_{\mathrm{life}}(r)=\frac{D_{\mathrm{raw}}(r)}{\mathrm{depth}_{\mathrm{ref}}},
-\qquad
-D_{\mathrm{raw}}(r)
-=
-\sum_{\ell\in\mathcal L_r}
-\left[
-2\max(\mathrm{wt}(\ell)-1,0)
-+
-\frac12\bigl(2\,\#_{X,Y}(\ell)+1\bigr)
-\right]
-+
-|p_{\mathrm{app}}-p|,
-$$
-$$
-\bar G_{\mathrm{new}}(r)=\frac{G_{\mathrm{new}}(r)}{\mathrm{group}_{\mathrm{ref}}},
-\qquad
-\bar C_{\mathrm{new}}(r)=\frac{C_{\mathrm{new}}(r)}{\mathrm{shot}_{\mathrm{ref}}},
-\qquad
-\bar c(r)=\frac{c(r)}{\mathrm{reuse}_{\mathrm{ref}}},
-$$
-$$
-C_{\mathrm{new}}(r)=G_{\mathrm{new}}(r)\,n_{\mathrm{shots/group}},
-\qquad
-c(r)=\mathrm{groups}_{\mathrm{new}}(r),
-\qquad
-\bar P_{\mathrm{opt}}(r)=\frac{|W(p)|}{\mathrm{optdim}_{\mathrm{ref}}},
-$$
-$$
-\bar R_{\mathrm{rem}}(r;t)
-=
-H_t\Bigl(
-\bar D_{\mathrm{life}}(r)+\bar G_{\mathrm{new}}(r)+\bar C_{\mathrm{new}}(r)+\bar c(r)+\bar P_{\mathrm{opt}}(r)
-\Bigr)\mathbf 1_{\mathrm{lifetime}}.
-$$
-Here $\bar D_{\mathrm{life}}$ is circuit/compile burden at the candidate record, $\bar G_{\mathrm{new}}$ and $\bar C_{\mathrm{new}}$ are measurement-group and shot burden of the new term, $\bar c$ is the reuse penalty, and $\bar R_{\mathrm{rem}}$ is the horizon-weighted lifetime multiplier applied only when lifetime-cost mode is on. The offset $|p_{\mathrm{app}}-p|$ is a local insertion-displacement penalty; it measures how far the proposal sits from the append slot and should not be conflated with expected remaining depth.
+\]
+Of course, \(\mathcal G^{(2)}:=\pi_m(\mathcal S_2(t))\), and \(\mathcal P_m^{(2)}:=\{p:(m,p)\in\mathcal S_2(t)\}\).
 
-To interpolate between a wide early-stage gradient screen and a later-stage cost-aware screen, define
-$$
-\lambda_t=\frac{H_t}{H_t+c_\lambda},
-\qquad c_\lambda>0,
-$$
-$$
-K_{\mathrm{coarse}}(t)=K_{\min}+\left\lfloor (K_{\max}-K_{\min})\frac{\widehat N_{\mathrm{rem}}^{\mathrm{hi}}(t)}{D_{\mathrm{left}}(t)+\varepsilon}\right\rfloor,
-$$
-and
-$$
-\begin{aligned}
-S_{3,\nabla}(r)
-&=
-\Gamma_{\mathrm{stage}}(r)\Gamma_{\mathrm{sym}}(r)\,
-\frac{g_{\mathrm{lcb}}(r)^2}{2\lambda_FF_{\mathrm{raw}}(r)},\\
-S_{3,\mathrm{late}}(r;t)
-&=
-\Gamma_{\mathrm{stage}}(r)\Gamma_{\mathrm{sym}}(r)\,
-\frac{g_{\mathrm{lcb}}(r)^2}{2\lambda_FF_{\mathrm{raw}}(r)}
-\frac{1}{K_{\mathrm{cheap}}(r;t)+\varepsilon},\\
-S_{3,\mathrm{cheap}}(r;t)
-&=
-\lambda_t\,S_{3,\nabla}(r)
-+
-\bigl(1-\lambda_t\bigr)S_{3,\mathrm{late}}(r;t).
-\end{aligned}
-$$
-Then the active coarse-shortlist size is
-$$
-N_{\mathrm{cheap}}(t)
-=
-\min\!\left\{
-\left|\mathcal P_{\mathrm{avail}}^{(3)}\right|,
-N_{\mathrm{cheap}}^{\max},
-K_{\mathrm{coarse}}(t)
-\right\},
-$$
-and the Phase-3 cheap universe is the full-pool cheap-score shortlist
-$$
-\mathcal C_{\mathrm{cheap}}
-=
-\operatorname{Top}_{N_{\mathrm{cheap}}(t)}\!\left(
-\mathcal P_{\mathrm{avail}}^{(3)};
-S_{3,\mathrm{cheap}}(\cdot;t)
-\right).
-$$
-So the cumulative Phase-3 cheap screen is applied over the full admissible candidate-position pool, not behind a separate upstream $g_{\mathrm{lcb}}$-only cap. The gates $\Gamma_{\mathrm{stage}}$ and $\Gamma_{\mathrm{sym}}$ determine admissibility, while $S_{3,\mathrm{cheap}}$ ranks only within that admissible pool. The horizon $H_t$ smooths cheap-stage width and burden, but it is not itself a new hard gate and it is not a theorem-level invariant of the Hamiltonian.
+## 11.4 Phase 3 reduced-window rerank and post-shortlist admission
+This section refines the surviving Phase-2 records with the more expensive reduced-window geometry, then uses that final rerank surface for shortlist formation, batched admission, pruning, and continuation.
 
-The term $S_{3,\nabla}(r)$ is the direct continuation of the early drop-dominant surface $S_1$. It matters most when useful runway is still long. The late-stage factor $S_{3,\mathrm{late}}(r;t)$ matters more once that runway contracts.
+### 11.4.1 Reduced-window geometry, curvature, and trust-region gain
+Phase 3 starts from the Phase-II raw quantities \(\tau_r\), \(g_r\), \(h_r\), \(g_{\mathrm{lcb}}(r)\), \(F_{\mathrm{raw}}(r)\), and \(\mathcal N_2(r;t)\), then refines them using the inherited refit window. The coarse novelty score \(\mathcal N_2(r;t)\) is not recomputed here; instead the candidate direction is reduced against the inherited window before the expensive rerank surface is formed.
 
-From first principles, $K_{\mathrm{cheap}}(r;t)$ is a dimensionless burden functional: the numerator of $S_{3,\mathrm{cheap}}(r;t)$ estimates local utility, and $K_{\mathrm{cheap}}(r;t)$ discounts that utility by how expensive it is to admit $r$ now and, through $\bar R_{\mathrm{rem}}(r;t)$, how expensive that decision is expected to remain over the useful horizon of the current run. The $2\max(\mathrm{wt}(\ell)-1,0)$ piece is a two-qubit-style burden proxy, the $\frac12(2\,\#_{X,Y}(\ell)+1)$ piece is a basis-change / one-qubit rotation proxy, and $|p_{\mathrm{app}}-p|$ penalizes inserting far from the current append location.
+### 11.4.2 Refit window, reduced geometry, and Phase-3 record family
+In the record-inheritance mode used here, the Phase-3 input set is \(\mathcal R_3(t):=\mathcal S_2(t)\). The inherited refit window attached to position \(p\) at selector step \(t\) is denoted \(W(p;t)\), with decomposition \(W(p;t)=W_{\mathrm{new}}^{(p)}\cup W_{\mathrm{age}}^{(p)}\), where \(W_{\mathrm{new}}^{(p)}\) keeps the newest coordinates and \(W_{\mathrm{age}}^{(p)}\) preserves the maturity-scaled set of oldest retained old coordinates defined later by the branch-local admission order. For each shortlisted record \(r=(m,p)\), let \(W_r:=W(r;t)\) be the inherited window that would actually be refit if \(m\) were admitted at position \(p\), and let \(\{\tau_j\}_{j\in W_r}\) be the current horizontal tangents in that inherited window.
+Phase 3 evaluates its inherited reduced-window geometry under the later-phase controller shot law \(N_{\mathrm{shot},3}(t)\).
 
-### 11.4.2 Shortlist, reduced-path geometry, novelty, full rerank score, and split-aware augmentation
-
-The shortlist size is
-$$
-N_{\mathrm{short}}=\min\left\{|\mathcal C_{\mathrm{cheap}}|,N_{\max},\left\lceil f_{\mathrm{short}}|\mathcal C_{\mathrm{cheap}}|\right\rceil\right\},
-\qquad
-\mathcal S_3\subseteq\mathcal C_{\mathrm{cheap}}.
-$$
-So the flow is
-$$
-\mathcal P_{\mathrm{avail}}^{(3)}
-\longrightarrow
-\mathcal C_{\mathrm{cheap}}
-\longrightarrow
-\mathcal S_3
-\longrightarrow
-\arg\max_{r\in\mathcal S_3} S_{3,\mathrm{base}}(r)
-\ \text{or}\
-\arg\max_{r\in\mathcal S_3} S_{3,\mathrm{aug}}(r),
-$$
-where the first arrow is the horizon-smoothed cheap ranking over the full admissible pool, the middle arrow forms the internal shortlist, and the later arrows perform the richer reranking and Phase-3 augmentation built on top of the earlier surfaces. The horizon forecast enters here only as a controller-side burden/width modulator; it does not turn shortlist membership into a theorem of global optimality.
-
-For each shortlisted record $r=(m,p)$, let $W_r=W(m,p)$ be the inherited window that would actually be refit if $m$ were admitted at position $p$, and let $\{t_j\}_{j\in W_r}$ be the current horizontal tangents in that inherited window. Then
-$$
-\begin{aligned}
-F_{\mathrm{raw}}(r)&=\langle t_r,t_r\rangle,\\
-(Q_r)_{jk}&=\Re\langle t_j,t_k\rangle,\\
-(q_r)_j&=\Re\langle t_j,t_r\rangle,\\
+Using the Phase-II raw tangent data, define \((Q_r)_{jk}=\Re\langle \tau_j,\tau_k\rangle\), \((q_r)_j=\Re\langle \tau_j,\tau_r\rangle\), \(E_0:=E(\theta;\mathcal O)\), \((b_r)_j:=\left.\partial_\alpha\partial_{\theta_j}E(\alpha,\delta\theta_{W_r};r)\right|_{\alpha=0,\,\delta\theta_{W_r}=0}\) for \(j\in W_r\), and \((H_{W_r})_{jk}:=\left.\partial_{\theta_j}\partial_{\theta_k}E(\alpha,\delta\theta_{W_r};r)\right|_{\alpha=0,\,\delta\theta_{W_r}=0}\) for \(j,k\in W_r\). The local reduced-window energy model is
+\[
 E(\alpha,\delta\theta_{W_r};r)
-&\approx E_0+g_r\alpha+\tfrac12 h_r\alpha^2\\
-&\quad +\alpha b_r^\top\delta\theta_{W_r}+\tfrac12\delta\theta_{W_r}^\top H_{W_r}\delta\theta_{W_r},\\
-M_r&=\tfrac12(H_{W_r}+H_{W_r}^{\top})+\lambda_H I,\\
-\widetilde h_r&=h_r-b_r^\top M_r^{-1}b_r,\\
-F_r^{\mathrm{red}}&=F_{\mathrm{raw}}(r)-2q_r^\top M_r^{-1}b_r+b_r^\top M_r^{-1}Q_rM_r^{-1}b_r,\\
-q_r^{\mathrm{red}}&=q_r-Q_rM_r^{-1}b_r,\\
-\nu_r&=\operatorname{clip}_{[0,1]}\!\left(1-\frac{(q_r^{\mathrm{red}})^\top(Q_r+\varepsilon_{\mathrm{nov}}I)^{-1}q_r^{\mathrm{red}}}{F_r^{\mathrm{red}}}\right),\\
+\approx
+E_0+g_r\alpha+\tfrac12 h_r\alpha^2+\alpha b_r^\top\delta\theta_{W_r}+\tfrac12\delta\theta_{W_r}^\top H_{W_r}\delta\theta_{W_r}.
+\]
+For reduction and reduced novelty, \(\mathbf R_r=\tfrac12(H_{W_r}+H_{W_r}^{\top})+\lambda_H I\), \(\widetilde h_r=h_r-b_r^\top \mathbf R_r^{-1}b_r\), \(F_r^{\mathrm{red}}=F_{\mathrm{raw}}(r)-2q_r^\top \mathbf R_r^{-1}b_r+b_r^\top \mathbf R_r^{-1}Q_r\mathbf R_r^{-1}b_r\), \(F_{r,\mathrm{safe}}^{\mathrm{red}}=\max\!\left(F_r^{\mathrm{red}},\varepsilon_{\mathrm{red}}\right)\) with \(\varepsilon_{\mathrm{red}}>0\), \(q_r^{\mathrm{red}}=q_r-Q_r\mathbf R_r^{-1}b_r\), and \(z_r:=\frac{(q_r^{\mathrm{red}})^\top (Q_r+\varepsilon_{\mathrm{nov}}I)^{-1} q_r^{\mathrm{red}}}{F_{r,\mathrm{safe}}^{\mathrm{red}}}\), \(\mathcal N_3(r;t):=\operatorname{clip}_{[0,1]}\!\left(1-z_r\right)\). The reduced trust-region gain is
+\[
 \Delta E_{\mathrm{TR}}(r)
-&=\max_{|\alpha|\le \rho/\sqrt{F_r^{\mathrm{red}}}}
-\left[g_{\mathrm{lcb}}(r)|\alpha|-\tfrac12\max(\widetilde h_r,0)\alpha^2\right],\\
-K_{\mathrm{full}}(r;t)
-&=1+w_R\bar R_{\mathrm{rem}}(r;t)+w_D\bar D_{\mathrm{life}}(r)\\
-&\quad +w_G\bar G_{\mathrm{new}}(r)+w_C\bar C_{\mathrm{new}}(r)+w_c\bar c(r).
-\end{aligned}
-$$
-So the base rerank score closes to
-$$
+:=
+\max_{|\alpha|\le \rho/\sqrt{F_{r,\mathrm{safe}}^{\mathrm{red}}}}
+\left[g_{\mathrm{lcb}}(r)|\alpha|-\tfrac12\max(\widetilde h_r,0)\alpha^2\right].
+\]
+
+### 11.4.3 Phase-3 rerank score and effective selector
+The authoritative Phase-3 rerank score is
+\[
+S_3(r;t)
+:=
+\frac{\Delta E_{\mathrm{TR}}(r)\,\chi_r\,\mathcal N_3(r;t)}{1+K_3(r;t)}
++\beta_{\mathrm{motif}}S_{\mathrm{motif}}(r)-\beta_{\mathrm{dup}}D_{\mathrm{dup}}(r),
+\qquad r\in\mathcal R_3(t).
+\]
+Here \(S_{\mathrm{motif}}\) measures motif compatibility or transferable local pattern alignment, and \(D_{\mathrm{dup}}\) penalizes near-duplicate continuation directions. These are controller-side feature functionals normalized to comparable scale and layered on top of the explicit reduced geometric product \(\Delta E_{\mathrm{TR}}(r)\,\chi_r\,\mathcal N_3(r;t)\); they are not part of the phase-invariant cost denominator.
+
+The retained Phase-3 shortlist is obtained from \(\mathcal A_3(t):=\{r=(m,p)\in\mathcal R_3(t):S_3(r;t)\ge \tau_3(t)\}=\{r_{(1)},\dots,r_{(M)}\}\), with \(M:=|\mathcal A_3(t)|\). Let \(s_k^{(3)}(t):=S_3(r_{(k)};t)\), such that \(s^{(3)}_1(t)\ge s^{(3)}_2(t)\ge\cdots\ge s^{(3)}_M(t)\). Rate the candidate's score distinction by \(u_{\mathrm{front},k}^{(3)}(t):=\frac{s^{(3)}_{k+1}(t)+\varepsilon}{s^{(3)}_{k}(t)+\varepsilon}\), with \(k=1,\dots,M-1\) and \(0<\eta_3<1\). Then
+\[
 \begin{aligned}
-S_{3,\mathrm{base}}(r;t)
-&=\Gamma_{\mathrm{stage}}(m)\Gamma_{\mathrm{sym}}(r)\,\nu_r^{\gamma_N}\frac{\Delta E_{\mathrm{TR}}(r)}{K_{\mathrm{full}}(r;t)+\varepsilon}\\
-&=\Gamma_{\mathrm{stage}}(m)\Gamma_{\mathrm{sym}}(r)
-\left[\operatorname{clip}_{[0,1]}\!\left(1-\frac{(q_r^{\mathrm{red}})^\top(Q_r+\varepsilon_{\mathrm{nov}}I)^{-1}q_r^{\mathrm{red}}}{F_r^{\mathrm{red}}}\right)\right]^{\gamma_N}
-\frac{\Delta E_{\mathrm{TR}}(r)}{K_{\mathrm{full}}(r;t)+\varepsilon}.
-\end{aligned}
-$$
-The augmented selector score is therefore
-$$
-\begin{aligned}
-S_{3,\mathrm{aug}}(r;t)
-&=S_{3,\mathrm{base}}(r;t)+\beta_{\mathrm{split}}\Sigma(r)+\beta_{\mathrm{motif}}M(r)+\beta_{\mathrm{sym}}Y(r)-\beta_{\mathrm{dup}}D_{\mathrm{dup}}(r)\\
-&=\Gamma_{\mathrm{stage}}(m)\Gamma_{\mathrm{sym}}(r)
-\left[\operatorname{clip}_{[0,1]}\!\left(1-\frac{(q_r^{\mathrm{red}})^\top(Q_r+\varepsilon_{\mathrm{nov}}I)^{-1}q_r^{\mathrm{red}}}{F_r^{\mathrm{red}}}\right)\right]^{\gamma_N}
-\frac{\Delta E_{\mathrm{TR}}(r)}{K_{\mathrm{full}}(r;t)+\varepsilon}\\
-&\qquad+\beta_{\mathrm{split}}\Sigma(r)+\beta_{\mathrm{motif}}M(r)+\beta_{\mathrm{sym}}Y(r)-\beta_{\mathrm{dup}}D_{\mathrm{dup}}(r).
-\end{aligned}
-$$
-Here $\Sigma$ measures the gain available from selective macro-splitting, $M$ measures motif compatibility or transferable local pattern alignment, $Y$ measures symmetry quality or mitigation value, and $D_{\mathrm{dup}}$ penalizes near-duplicate continuation directions.^[These four addends are intentionally higher-level selector covariates. They should be read as implementation-facing heuristic modifiers layered on top of the primitive geometric score $S_{3,\mathrm{base}}$, not as unique primitive invariants with a single repo-independent closed form.] If a shortlisted macro generator $m$ admits a split family
-$$
-\mathcal C_{\mathrm{split}}(m)=\{m_1,\dots,m_{K_m}\},
-$$
-then each split child inherits the same position $p$ and therefore defines a child record $r_j=(m_j,p)$, with replacement rule
-$$
-r\leadsto r_j^*\quad\text{if}\quad \max_j S_{3,\mathrm{aug}}(r_j) > S_{3,\mathrm{aug}}(r)+\tau_{\mathrm{split}}.
-$$
-
-$$
-\mathcal S_{3}=\{r_{1},\dots,r_{N}\},
-\qquad
-s(r)=S_{3,\mathrm{aug}}(r)\ \text{or}\ S_{3,\mathrm{base}}(r),
-$$
-and let the shortlist be sorted so that
-$$
-s(r_{1})\ge s(r_{2})\ge \cdots \ge s(r_{N}).
-$$
-A batch selector does not choose a single winner; it chooses a set
-$$
-\mathcal B_{\mathrm{batch}}\subseteq \mathcal S_{3},
-\qquad
-1\le |\mathcal B_{\mathrm{batch}}|\le B_{\mathrm{cap}},
-$$
-by starting from the top record and then greedily adding near-degenerate compatible records.
-
-$$
-r\in\mathcal B_{\mathrm{batch}}
-\quad\Longrightarrow\quad
-s(r)\ge \eta_{\mathrm{nd}}\,s(r_{\max}),
-$$
-where $r_{\max}$ is the top shortlisted record and $0<\eta_{\mathrm{nd}}\le 1$ is the near-degeneracy ratio. In other words, only candidates whose score is sufficiently close to the best score are even allowed to compete for the same batch.
-
-Then define a baseline pairwise incompatibility penalty
-$$
-\Pi_0(r,r')
-=
-w_{\mathrm{ov}}\,\Omega(r,r')
-+
-w_{\mathrm{comm}}\,\Xi(r,r')
-+
-w_{\mathrm{curv}}\,\mathcal K(r,r')
-+
-w_{\mathrm{sched}}\,\mathcal A(r,r')
-+
-w_{\mathrm{meas}}\,\mathcal M(r,r'),
-$$
-with
-$$
-\Omega(r,r')=\frac{|\operatorname{supp}(r)\cap \operatorname{supp}(r')|}{|\operatorname{supp}(r)\cup \operatorname{supp}(r')|},
-\qquad
-\Xi(r,r')=
+k_3^\star(t)&:=
 \begin{cases}
-0,&\text{if the candidate generators commute},\\
-1,&\text{otherwise},
-\end{cases}
-$$
-$$
-\mathcal K(r,r')=\text{cross-curvature / tangent-overlap proxy},
+0, & M=0,\\[4pt]
+\min\!\left\{k\in\{1,\dots,\min(M-1,N_3(t)-1)\}:u_{\mathrm{front},k}^{(3)}(t)\le \eta_3\right\},
+& \text{if this set is nonempty},\\[6pt]
+\min\{M,N_3(t)\}, & \text{otherwise},
+\end{cases}\\
+\mathcal D_3(t)&:=\{r_{(j)}:1\le j\le k_3^\star(t)\},
 \qquad
-\mathcal A(r,r')=\frac{|W_r\cap W_{r'}|}{|W_r\cup W_{r'}|},
-\qquad
-\mathcal M(r,r')=1-\text{measurement-overlap}(r,r').
-$$
-^[Batch note: $\mathcal K$ and $\mathcal M$ are proxy penalties rather than primitive-closed observables. On paper they are best interpreted as controller-supplied overlap costs used to discourage mutually awkward co-admissions.]
+\mathcal S_3(t):=\mathcal A_3(t)\cap \mathcal D_3(t)=\mathcal D_3(t).
+\end{aligned}
+\]
+Of course, \(\mathcal G^{(3)}:=\pi_m(\mathcal S_3(t))\), and \(\mathcal P_m^{(3)}:=\{p:(m,p)\in\mathcal S_3(t)\}\).
 
-The greedy admission rule is then
-$$
-r\ \text{is appended to}\ \mathcal B_{\mathrm{batch}}
-\quad\Longrightarrow\quad
-s(r)-\sum_{r'\in\mathcal B_{\mathrm{batch}}}\Pi_t(r,r')>0,
-$$
-together with
-$$
-|\mathcal B_{\mathrm{batch}}|<B_{\mathrm{target}}(t)
-\quad\text{or at worst}\quad
-|\mathcal B_{\mathrm{batch}}|<B_{\mathrm{cap}}.
-$$
-Here the batch target should itself depend on useful remaining runway. A canonical controller-level rule is
-$$
-B_{\mathrm{target}}(t)
-=
-B_{\min}
-+
-\left\lfloor
-(B_{\max}-B_{\min})
-\frac{\widehat N_{\mathrm{rem}}(t)}{D_{\mathrm{left}}(t)+\varepsilon}\,
-C_t
-\right\rfloor,
-$$
-where $B_{\min}$ and $B_{\max}$ are controller lower/upper batch-width bounds. So batch growth is largest only when useful runway is still long and the runway estimate is confident. The scheduler-scaled compatibility penalty is
-$$
-\Pi_t(r,r')=\gamma_{\mathrm{compat}}(t)\,\Pi_0(r,r'),
-\qquad
-\gamma_{\mathrm{compat}}(t)=\gamma_{\min}+(\gamma_{\max}-\gamma_{\min})W_{\mathrm{sat}}(t).
-$$
-Here $\gamma_{\min}$ and $\gamma_{\max}$ are controller lower/upper compatibility-pressure bounds.
-Thus both the allowed batch width and the effective pairwise compatibility pressure depend on expected useful depth remaining; batch is deliberately more permissive when the selector still expects several useful admissions and tighter when saturation pressure is high.
-So batch selection is a greedy set-building rule:
-$$
-\mathcal B_{\mathrm{batch},0}=\varnothing,
-\qquad
-\mathcal B_{\mathrm{batch},k+1}=
-\mathcal B_{\mathrm{batch},k}\cup\{r\}
-\ \text{only if }\
-r\ \text{is near-degenerate and still has positive net value after penalties.}
-$$
+### 11.4.4 Reduced-plane geometric batch selection after shortlisting
+After the Phase-3 shortlisting has produced the record family \(\mathcal S_3(t)\subseteq \mathcal R_3(t)\), batching is resolved by reduced-state-space geometry on a common inherited tangent plane, rather than by heuristic pairwise compatibility penalties. Support-overlap, commutation, and related proxy features may still be used as optional prescreens, but they are not part of the principled batching law below. Assume throughout that \(\mathcal S_3(t)\neq\varnothing\); otherwise no Phase-3 batch is formed.
 
-Qualitatively, batch means “several shortlisted candidates are so similarly good that we admit more than one at the same ADAPT depth, provided they do not clash too much.” It is not beam: beam keeps multiple alternative scaffolds alive, while batch commits multiple compatible admissions into one scaffold immediately. It is also not a joint global optimizer over subsets; it is a greedy compatibility-filtered multi-admission rule.
+Near-degenerate shell and structural feasibility: let \(s_t(r):=S_3(r;t)\) and \(r_{\max}(t)\in \arg\max_{r\in \mathcal S_3(t)} s_t(r)\). Fix a near-degenerate shell parameter \(\eta_{\mathrm{nd}}\in(0,1]\) and a batch cap \(B_{\max}(t)\in\mathbb N\). Define the near-degenerate record shell \(\mathcal N_3(t):=\left\{ r\in \mathcal S_3(t): s_t(r)\ge \eta_{\mathrm{nd}}\,s_t\!\bigl(r_{\max}(t)\bigr) \right\}\) and the corresponding near-degenerate batch family \(\mathfrak B_{\mathrm{nd}}(t):=\left\{ B\subseteq \mathcal N_3(t): r_{\max}(t)\in B,\quad 1\le |B|\le B_{\max}(t) \right\}\). Define a hard batch-structural gate \(\Gamma_{\mathrm{batch}}^{\mathrm{struct}}(B;t)\in\{0,1\}\) to mean that the records in \(B\) are jointly insertable on the current branch/state, satisfy all hard cross-record constraints, and determine a well-defined batched scaffold update \(\mathcal O_t\oplus B\) in the fixed canonical insertion order. The structurally feasible batch family is \(\mathfrak B_{\mathrm{struct}}(t):=\left\{ B\subseteq \mathcal S_3(t): \Gamma_{\mathrm{batch}}^{\mathrm{struct}}(B;t)=1 \right\}\). A controller-side transient beam fallback may also be defined on the same rerank shell.\footnote{One convenient rule is to set \(\mathcal T_{\mathrm{tie}}(t):=\{\,r\in\mathcal S_3(t): s_t(r)\ge \max(\eta_{\mathrm{tie}}\,s_t(r_{\max}(t)),\,s_t(r_{\max}(t))-\delta_{\mathrm{tie}})\,\}\). If \(|\mathcal T_{\mathrm{tie}}(t)|>1\) and the controller elects not to resolve the shell by an immediate one-scaffold batch, it may retain a highest-scoring subset \(\mathcal A_{\mathrm{tie}}(t)\subseteq \mathcal T_{\mathrm{tie}}(t)\) with \(1\le |\mathcal A_{\mathrm{tie}}(t)|\le B_{\mathrm{tie}}(t)\) and pass one retained alternative per record into the scaffold-beam machinery of \S 11.5.2.}
 
-### 11.4.3 Post-admission local simplification: permissibility, expendability, and gain-retention safety
+Common-window reduced geometry: write the current state as \(|\psi_t\rangle:=|\psi(\mathcal O_t,\theta_t)\rangle, \qquad Q_{\psi_t}:=I-|\psi_t\rangle\langle \psi_t|\), where \(Q_{\psi_t}\) is the horizontal projector. For any batch \(B\in \mathfrak B_{\mathrm{struct}}(t)\), define the common inherited refit window \(W_B(t):=\bigcup_{r\in B} W_r(t)\) and the corresponding inherited horizontal tangent matrix \(T_B(t):=[\,t_j(t)\,]_{j\in W_B(t)}, \qquad t_j(t):=Q_{\psi_t}\,\partial_{\theta_j}|\psi_t\rangle\). Let \(E_t(\alpha,\delta\theta_{W_B};B)\) denote the local energy obtained by inserting the records in \(B\) with batch amplitudes \(\alpha=(\alpha_r)_{r\in B}\) and varying the inherited coordinates on \(W_B(t)\) by \(\delta\theta_{W_B}\). For each \(r\in B\), let \(|\psi_{t,r}(\alpha_r)\rangle\) denote the state obtained by inserting only record \(r\) at amplitude \(\alpha_r\) into the current scaffold while keeping inherited coordinates fixed. Its zero-initialized horizontal candidate tangent is \(d_r(t):=Q_{\psi_t}\,\partial_{\alpha_r}|\psi_{t,r}(\alpha_r)\rangle\Big|_{\alpha_r=0}\). Let \(\mathsf H_{W_B}(t)\) denote the inherited-window Hessian block of \(E_t(\alpha,\delta\theta_{W_B};B)\) with respect to the coordinates on \(W_B(t)\) at \((\alpha,\delta\theta_{W_B})=(0,0)\), and set \(M_B(t):=\frac12\Bigl(\mathsf H_{W_B}(t)+\mathsf H_{W_B}(t)^\top\Bigr)+\lambda_H I, \qquad \lambda_H>0.\) For each \(r\in B\), define the mixed candidate-window curvature vector by \(\bigl(b_r^{(B)}(t)\bigr)_j:=\left.\partial_{\alpha_r}\partial_{\theta_j} E_t(\alpha,\delta\theta_{W_B};B)\right|_{(\alpha,\delta\theta_{W_B})=(0,0)}, \qquad j\in W_B(t)\). The reduced candidate tangent after linear relaxation of the common inherited window is then \(u_r^{(B)}(t):=d_r(t)-T_B(t)\,M_B(t)^{-1}b_r^{(B)}(t)\), hence the effective batch plane is \(\Pi_B(t):=\operatorname{span}\{u_r^{(B)}(t):r\in B\}\subseteq T_{\psi_t}\mathbb{P}(\mathcal H)\). Its reduced Gram matrix is \(\bigl(G_B(t)\bigr)_{rs}:=\Re\langle u_r^{(B)}(t),u_s^{(B)}(t)\rangle, \qquad r,s\in B\), and in particular \(\bigl(G_B(t)\bigr)_{rr}=F_r^{\mathrm{red},(B)}(t)\) is the reduced norm of record \(r\) in the common batch reduction. Next define the symmetrized raw candidate-candidate curvature on the same common reduction by \(h_{rs}^{(B)}(t):=\frac12 \left. \bigl( \partial_{\alpha_r}\partial_{\alpha_s} + \partial_{\alpha_s}\partial_{\alpha_r} \bigr) E_t(\alpha,\delta\theta_{W_B};B) \right|_{(\alpha,\delta\theta_{W_B})=(0,0)}, \qquad r,s\in B,\) and then the reduced curvature matrix \(\bigl(\widetilde H_B(t)\bigr)_{rs}:=h_{rs}^{(B)}(t)-\bigl(b_r^{(B)}(t)\bigr)^\top M_B(t)^{-1} b_s^{(B)}(t)\). For \(r=s\), the entry \(\bigl(\widetilde H_B(t)\bigr)_{rr}\) is the usual single-record reduced curvature in the common batch window; for \(r\neq s\), the entry \(\bigl(\widetilde H_B(t)\bigr)_{rs}\) is the mixed second-order coupling after inherited-window relaxation. The diagnostic coherences are \(\mu_{\mathrm{tan}}(B;t):=\max_{r\neq s\in B} \frac{|(G_B(t))_{rs}|} {\sqrt{(G_B(t))_{rr}(G_B(t))_{ss}}+\varepsilon}\) and \(\mu_{\mathrm{curv}}(B;t):=\max_{r\neq s\in B} \frac{|(\widetilde H_B(t))_{rs}|} {\sqrt{\bigl((\widetilde H_B(t))_{rr}\bigr)^{(+)} \bigl((\widetilde H_B(t))_{ss}\bigr)^{(+)} }+\varepsilon}, \qquad x^{(+)}:=\max\{x,0\}\); these may be used as optional early pruning diagnostics, but the actual batch objective is the joint reduced trust-region gain below.
 
-After Phase 3 admits its winning payload, the selector surface does not terminate immediately. Let $\mathcal A_d^\star$ denote the payload admitted at adaptive depth $d$: either a singleton $\{r^\star\}$ or a greedy batch $\mathcal B_{\mathrm{batch}}^\star$. Let
-$$
-(\mathcal O_d,\theta_d,E_d)
-$$
-be the scaffold state immediately before that admission, and let
-$$
-(\mathcal O_d^+,\theta_d^+,E_d^+)
-$$
-be the post-insertion state after the ordinary local reoptimization on the admitted scaffold has completed. The admitted-step gain is
-$$
-\Delta_{\mathrm{adm}}(\mathcal A_d^\star)=E_d-E_d^+.
-$$
-
-The local simplification pass is guarded first by a prune-permissibility gate
-$$
-\Gamma_{\mathrm{prune}}^{\mathrm{perm}}(\mathcal O_d^+,\mathcal A_d^\star)\in\{0,1\},
-$$
-which decides whether any post-admission removal attempt is allowed at all. A canonical controller-facing form is
-$$
-\Gamma_{\mathrm{prune}}^{\mathrm{perm}}(t)
-=
-\mathbf 1[\text{accepted admission at }t]\,
-\mathbf 1[\text{rollback-safe}]\,
-\mathbf 1\!\Bigl[
-W_{\mathrm{sat}}(t)\ge \tau_{\mathrm{hi}}
-\ \vee\
-\bigl(W_{\mathrm{sat}}(t)\ge \tau_{\mathrm{med}}
-\wedge
-\Delta_{\mathrm{adm}}(\mathcal A_d^\star)\le c_{\mathrm{weak}}\Delta_{\mathrm{scr}}(t)\bigr)
-\Bigr],
-$$
-with screening scale
-$$
-\Delta_{\mathrm{scr}}(t)=\max\!\Bigl(\tau_{\mathrm{use},t},\operatorname{EWMA}(\Delta_{\mathrm{adm}}^+),\Delta_{\mathrm{num}}\Bigr).
-$$
-Here $\tau_{\mathrm{hi}},\tau_{\mathrm{med}},c_{\mathrm{weak}},\tau_{\mathrm{use},t}$, and $\Delta_{\mathrm{num}}$ are controller thresholds or numerical safety scales.
-So the permissibility gate depends on global saturation/runway state and local step quality, but it is not itself a ranking score.
-
-If $\Gamma_{\mathrm{prune}}^{\mathrm{perm}}=1$, define the locally expendable set
-$$
-\mathcal J_{\mathrm{exp}}(\mathcal A_d^\star)\subseteq\{1,\dots,|\mathcal O_d^+|\},
-$$
-obtained from the mature eligible set
-$$
-\mathcal M_t
-=
-\Bigl\{
-j:
-a_j(t)\ge a_{\min},\ 
-j\notin\mathcal P_{\mathrm{protect}}(t),\ 
-c_j^{\mathrm{cool}}(t)=0
-\Bigr\},
-$$
-after excluding coordinates introduced by the just-admitted payload. Thus prune permissibility and local expendability remain separate notions: the first asks whether simplification may be attempted, while the second asks which previously active coordinates are locally weakest once admission has already succeeded.
-
-If a cheap local prescreen is desired, define
-$$
-\theta_{\mathrm{ref}}(t)=\max\!\Bigl(\theta_{\mathrm{abs}},c_\theta\,\operatorname{median}_{j\in\mathcal M_t}|\operatorname{wrap}(\theta_j(t))|\Bigr),
-$$
-$$
-S_\theta(j,t)=\left[1+\left(\frac{|\operatorname{wrap}(\theta_j(t))|}{\theta_{\mathrm{ref}}(t)+\varepsilon_\theta}\right)^{p_\theta}\right]^{-1},
-$$
-and let
-$$
-\mathcal P_{\mathrm{probe}}(t)=
-\begin{cases}
-\operatorname{Top}_{K_p}\bigl(\mathcal M_t;S_\theta(\cdot,t)\bigr),&\text{if angle prescreen is enabled},\\
-\mathcal M_t,&\text{otherwise}.
-\end{cases}
-$$
-This prescreen is computational only. It is not the authoritative local prune score.
-
-For each $j\in\mathcal P_{\mathrm{probe}}(t)$, let $E_{-j}^{\mathrm{frz}}$ denote the frozen-ablation energy obtained by removing coordinate $j$ from the post-admission scaffold while holding all remaining post-admission coordinates fixed at their values in $\theta_d^+$. The local frozen-ablation loss is then
-$$
-L_j^{\mathrm{frz}}(\mathcal A_d^\star)=E_{-j}^{\mathrm{frz}}-E_d^+.
-$$
-Coordinates with smaller $L_j^{\mathrm{frz}}$ are more expendable, so the canonical local prune ranking is
-$$
-X_j(t)
-=
+Joint reduced gain and additivity: let \(g_{B,\mathrm{lcb}}(t):=\bigl(g_{\mathrm{lcb}}(r;t)\bigr)_{r\in B}\), and let \(\bigl(\widetilde H_B(t)\bigr)^{(+)}\) denote the positive-semidefinite part of \(\widetilde H_B(t)\). The batch trust-region objective below is therefore a conservative convexified local gain model on the reduced batch plane:
+\[
+\Delta E_B^{\mathrm{TR}}(t)
+:=
+\max_{\alpha\in\mathbb R^{|B|},\ \alpha^\top G_B(t)\alpha\le \rho_B(t)^2}
 \left[
-1+\frac{L_j^{\mathrm{frz}}(\mathcal A_d^\star)}{\kappa_\delta\Delta_{\mathrm{scr}}(t)+\varepsilon}
-\right]^{-1},
-$$
-and the live prune candidate set is
-$$
-\mathcal C_{\mathrm{exp}}(t)=\{j\in\mathcal P_{\mathrm{probe}}(t):X_j(t)\ge \tau_{\mathrm{stale}}\}.
-$$
-A weak age/rank regularizer may then be written as
-$$
-B_j(t)=1+\lambda_{\mathrm{age}}\bigl(2\varrho_j(t)-1\bigr),
-\qquad 0\le \lambda_{\mathrm{age}}\le 0.1,
-$$
-$$
-R_j(t)=X_j(t)\,B_j(t),
+g_{B,\mathrm{lcb}}(t)^\top \alpha
+-
+\frac12 \alpha^\top \bigl(\widetilde H_B(t)\bigr)^{(+)}\alpha
+\right].
+\]
+Here \(\rho_B(t)>0\) is the Phase-3 batch trust-region radius. If record identity already includes the favorable orientation, one may additionally impose \(\alpha\ge 0\) componentwise. For each \(r\in B\), define the contextual single-record gain in the same common reduction by \(\Delta E_{r\mid B}^{\mathrm{TR}}(t):=\max_{\beta\in\mathbb R,\ \beta^2 (G_B(t))_{rr}\le \rho_B(t)^2} \left[ g_{\mathrm{lcb}}(r;t)\,\beta - \frac12 \bigl((\widetilde H_B(t))_{rr}\bigr)^{(+)}\beta^2 \right].\) Then the additivity defect is \(\delta_{\mathrm{add}}(B;t):=\left[ 1- \frac{\Delta E_B^{\mathrm{TR}}(t)} {\sum_{r\in B}\Delta E_{r\mid B}^{\mathrm{TR}}(t)+\varepsilon} \right]_{+}.\) Small \(\delta_{\mathrm{add}}(B;t)\) means that the joint reduced model is approximately additive on the common batch plane.
+
+Batch choice and greedy implementation: the geometric admissible batch family is \(\mathfrak B_{\mathrm{geom}}(t):=\left\{ B\in \mathfrak B_{\mathrm{nd}}(t)\cap \mathfrak B_{\mathrm{struct}}(t): \lambda_{\min}\!\bigl(G_B(t)\bigr) \ge \tau_{\mathrm{rank}}\, \frac{\operatorname{tr}G_B(t)}{|B|}, \quad \delta_{\mathrm{add}}(B;t)\le \tau_{\mathrm{add}} \right\}\). When a more aggressive pruning rule is desired, one may additionally require \(\mu_{\mathrm{tan}}(B;t)\le \tau_{\mathrm{tan}}, \qquad \mu_{\mathrm{curv}}(B;t)\le \tau_{\mathrm{curv}}.\) The principled post-shortlist batch choice is
+\[
+B_t^\star
+\in
+\arg\max_{B\in \mathfrak B_{\mathrm{geom}}(t)}
+\Delta E_B^{\mathrm{TR}}(t).
+\]
+If \(\mathfrak B_{\mathrm{geom}}(t)=\varnothing\), no Phase-3 batch is admitted from the current shortlist. A greedy implementation avoids exhaustive search: initialize \(B_t^{(1)}:=\{r_{\max}(t)\}\). Given a current batch \(B_t^{(k)}\), define the admissible add-on family \(\mathcal A_k(t):=\left\{ r\in \mathcal N_3(t)\setminus B_t^{(k)}: B_t^{(k)}\cup\{r\}\in \mathfrak B_{\mathrm{nd}}(t)\cap \mathfrak B_{\mathrm{struct}}(t) \right\}\). For each \(r\in \mathcal A_k(t)\), define the marginal joint gain \(\Delta_{\mathrm{marg}}(r\mid B_t^{(k)};t):=\Delta E_{B_t^{(k)}\cup\{r\}}^{\mathrm{TR}}(t)-\Delta E_{B_t^{(k)}}^{\mathrm{TR}}(t).\) Choose \(r_k^{\mathrm{best}}(t)\in \arg\max_{r\in \mathcal A_k(t)} \Delta_{\mathrm{marg}}(r\mid B_t^{(k)};t)\) subject to \(\lambda_{\min}\!\bigl(G_{B_t^{(k)}\cup\{r\}}(t)\bigr) \ge \tau_{\mathrm{rank}}\, \frac{\operatorname{tr}G_{B_t^{(k)}\cup\{r\}}(t)}{|B_t^{(k)}|+1}, \qquad \delta_{\mathrm{add}}(B_t^{(k)}\cup\{r\};t)\le \tau_{\mathrm{add}},\) and, when enabled, \(\mu_{\mathrm{tan}}(B_t^{(k)}\cup\{r\};t)\le \tau_{\mathrm{tan}}, \qquad \mu_{\mathrm{curv}}(B_t^{(k)}\cup\{r\};t)\le \tau_{\mathrm{curv}}.\) If no such \(r\) exists, or if the best feasible marginal gain is nonpositive, stop and set \(B_t^\star:=B_t^{(k)}\). Otherwise append the best add-on, \(B_t^{(k+1)}:=B_t^{(k)}\cup\{r_k^{\mathrm{best}}(t)\}\), and continue until no further feasible positive-gain append exists or until \(|B_t^{(k)}|=B_{\max}(t)\). The deployed Phase-3 action is the final batch \(B_t^\star\). If \(|B_t^\star|=1\), this reduces to the usual single-record admission. If \(|B_t^\star|>1\), the controller inserts the batch on the current branch in the canonical batch order and performs the common-window refit on \(W_{B_t^\star}(t)\).
+
+## 11.5 Post $m_p$ Application Entails Windowed-Refitting
+In ADAPT-VQE the variational problem is \(\min_{\boldsymbol\theta} E_L(\boldsymbol\theta)\) with \(E_L(\boldsymbol\theta)=\langle\phi_0|(\prod_{\ell=L}^{1}e^{i\theta_\ell G_\ell})H(\prod_{\ell=1}^{L}e^{-i\theta_\ell G_\ell})|\phi_0\rangle\), and the measurement bottleneck arises because one iteration must estimate not only \(E_L\) but also pool-selection scores \(s_\mu(\boldsymbol\theta)=|\langle\phi_0|(\prod_{\ell=L}^{1}e^{i\theta_\ell G_\ell}),i[H,A_\mu],(\prod_{\ell=1}^{L}e^{-i\theta_\ell G_\ell})|\phi_0\rangle|\) for \(\mu\in\mathcal P\), reoptimization gradients \(\partial_{\theta_j}E_L(\boldsymbol\theta)\), and, for geometry-aware updates, metric entries \(M_{jk}(\boldsymbol\theta)=\Re\langle \partial_{\theta_j}[(\prod_{\ell=1}^{L}e^{-i\theta_\ell G_\ell})|\phi_0\rangle]|\partial_{\theta_k}[(\prod_{\ell=1}^{L}e^{-i\theta_\ell G_\ell})|\phi_0\rangle]\rangle\), so at precisions \(\epsilon_s,\epsilon_g,\epsilon_M\) the shot cost obeys \(N_{\mathrm{iter}}\gtrsim \sum_{\mu\in\mathcal P}\mathrm{Var}(\hat s_\mu)/\epsilon_s^2+\sum_{j=1}^{L}\mathrm{Var}(\widehat{\partial_{\theta_j}E_L})/\epsilon_g^2+\sum_{j,k=1}^{L}\mathrm{Var}(\hat M_{jk})/\epsilon_M^2\); the proposed strategy is to choose disjoint sets \(F,A\subset{1,\dots,L}\) with \(F\cup A={1,\dots,L}\), impose \(\dot\theta_j=0\) for \(j\in F\), and optimize only \(j\in A\), which reduces the reparameterization sector to \(\sum_{j\in A}\mathrm{Var}(\widehat{\partial_{\theta_j}E_L})/\epsilon_g^2+\sum_{j,k\in A}\mathrm{Var}(\hat M_{jk})/\epsilon_M^2\) and therefore removes the growth coming from repeatedly updating old coordinates, but it leaves the pool-screening term \(\sum_{\mu\in\mathcal P}\mathrm{Var}(\hat s_\mu)/\epsilon_s^2\) unchanged and it does not shorten the physical circuit, since every shot still executes the full depth-\(L\) scaffold with entangling-gate count \(N_{2q}(L)\) and runtime \(t_{\mathrm{circ}}(L)\), so hardware fidelity still degrades roughly as \(e^{-t_{\mathrm{circ}}(L)/T_1}e^{-t_{\mathrm{circ}}(L)/T_2}(1-\varepsilon_{2q})^{N_{2q}(L)}\); consequently the freezing strategy cures only the reoptimization component of the ADAPT bottleneck, and the limiting cost after that is either the unchanged operator-pool screening overhead or, if screening is separately controlled, the conventional VQE bottleneck of resolving \(E_L\) on a deep noisy ansatz, with shots scaling as \(N_E\gtrsim \mathrm{Var}(H_{\mathrm{meas}}\mid \prod_{\ell=1}^{L}e^{-i\theta_\ell G_\ell},\phi_0,\text{noise})/(\Delta E)^2\) to distinguish an energy change \(\Delta E\).
+
+Let the length-\((m)\) scaffold be \(U^{(m)}(\boldsymbol{\theta})=\prod_{j=1}^{m} e^{-i\theta_j G_j}\), where \((G_j)\) is the \((j)\)-th appended generator and \((\theta_j)\) its coefficient. The reparameterization motif is to optimize only an active subset \((\mathcal A_m\subseteq {1,\dots,m})\), chosen by an activity functional \(a_j^{(m)}:=\lambda_{\mathrm{rec}}\,r_j^{(m)}+\lambda_{\mathrm{mob}}\,v_j^{(m)}-\lambda_{\mathrm{age}}\,\phi(m-j)-\lambda_{\mathrm{stag}}\,s_j^{(m)}\), and then set \((\mathcal A_m=\{j: a_j^{(m)}>\tau_m\})\). Here \((r_j^{(m)})\) is a recency weight, large for recently appended generators; \((v_j^{(m)}:=\sum_{k=j}^{m-1}\lvert \Delta\theta_j^{(k)}\rvert)\) is a lifetime mobility measure, large for parameters that have historically moved substantially; \((\phi(m-j))\) is an age penalty, biasing against early-added generators; and \((s_j^{(m)})\) is a stagnation indicator, large when a parameter has remained nearly inert over recent refits. Thus the inclusion bias is toward recent and historically labile generators, while the exclusion bias is toward old and typically stagnant generators.
+
+This is the same scaffold language used above: \(U^{(m)}(\boldsymbol\theta)\) is the scaffold \(\mathcal O\), the active set \(\mathcal A_m\) plays the role of the inherited refit window \(W(r;t)\), the frozen set is \(\{1,\ldots,n+1\}\setminus W(r;t)\), and the activity functional \(a_j^{(m)}\) is the same maturity-facing bookkeeping later summarized by the eligible set \(\mathcal M_t\).
+
+Concomitantly, as scaffold maturity increases, the controller shot laws \(N_{\mathrm{shot},1}(t)\) and \(N_{\mathrm{shot},k}(t)\) should also increase so as to preserve the decision-level signal-to-noise ratio on the active block. Formally, if \(\delta_t\) denotes a typical useful signal scale among the unfrozen directions and \(\sigma_t\) the corresponding estimator spread, then one chooses the phase-appropriate shot law so that \(\mathrm{SNR}_t\sim \frac{\delta_t\sqrt{N_{\mathrm{shot},1}(t)}}{\sigma_t}\ge \kappa\) in Phase 1 and \(\mathrm{SNR}_{t,k}\sim \frac{\delta_{t,k}\sqrt{N_{\mathrm{shot},k}(t)}}{\sigma_{t,k}}\ge \kappa\) for \(k\in\{2,3\}\) in later phases. Hence the control law is: as scaffold maturity grows, shrink the reoptimized subspace by freezing archaic or stagnant directions while increasing shots on the surviving active directions to maintain resolvable updates.
+
+### 11.5.1 Branch-local mature-scaffold pruning: permissibility, frozen-ablation ranking, and exact rollback
+All quantities in this subsection are branch-local. On a single active branch we suppress the branch label. Let \((\mathcal O_t^-,\theta_t^-,E_t^-)\) be the committed branch state immediately before the accepted Phase-3 payload \(\mathcal A_t^\star\) is applied, and let \((\mathcal O_t^+,\theta_t^+,E_t^+)\) be the committed post-admission state after the ordinary local refit on that same branch has completed. The admitted-step gain is \(\Delta_{\mathrm{adm}}(t):=E_t^- - E_t^+\).
+
+Each committed coordinate of \(\mathcal O_t^+\) carries the metadata \((m_j,\iota_j,r_j,\kappa_j,c_j)\): generator label \(m_j\), branch-local admission step \(\iota_j\), admission record \(r_j\), stored selector burden \(\kappa_j:=K_3(r_j;\iota_j)\), and prune-cooldown counter \(c_j(t)\in\{0,1,\dots,c_{\mathrm{cool}}\}\), transported with that coordinate under later scaffold edits. Here \(t_{\mathrm{first}}(m_j)\) denotes the first time the generator \(m_j\) was ever seen in the run.
+
+Use the maturity-increasing prune-pressure law \(\lambda_{\mathrm{prune}}(t):=\lambda_{\mathrm{prune}}^{\min}+(\lambda_{\mathrm{prune}}^{\max}-\lambda_{\mathrm{prune}}^{\min})g_t\), with \(0\le \lambda_{\mathrm{prune}}^{\min}\le \lambda_{\mathrm{prune}}^{\max}\). Let the baseline gain-resolution scale be \(\Delta_{\mathrm{scr}}(t):=\max\!\bigl(\tau_{\mathrm{use},t},\operatorname{EWMA}_{\mathrm{recent}}(\Delta_{\mathrm{adm}}),\Delta_{\mathrm{num}}\bigr)\), use the noise-aware screening scale \(\Delta_{\mathrm{scr}}^{\mathrm{noise}}(t):=\bigl(1+u_{\sigma,3}(t)\bigr)\Delta_{\mathrm{scr}}(t)\), and define the admitted-gain signal-to-noise ratio by \(\mathrm{SNR}_{\mathrm{adm}}(t):=\Delta_{\mathrm{adm}}(t)\big/\bigl(\Delta_{\mathrm{scr}}^{\mathrm{noise}}(t)+\varepsilon\bigr)\). A prune pass may open only after an accepted admission and its ordinary local refit have already committed. Let \(\mathcal T_{\mathrm{chk}}\subseteq\mathbb N\) be the scheduled checkpoint set, define \(C_t^{\mathrm{perm}}:=\bigl(u_{\mathrm{sat}}(t)\ge \tau_{\mathrm{med}}\bigr)\wedge\Bigl(\mathrm{SNR}_{\mathrm{adm}}(t)\le \kappa_{\mathrm{pr}}\ \vee\ t\in\mathcal T_{\mathrm{chk}}\Bigr)\), and \(\Gamma_{\mathrm{prune}}^{\mathrm{perm}}(t):=\mathbf 1[\text{accepted admission at }t]\mathbf 1[\text{post-admission local refit completed}]\mathbf 1[|\mathcal O_t^+|\ge 2]\mathbf 1[C_t^{\mathrm{perm}}]\). Thus pruning is a maturity-controlled maintenance action that opens only when the scaffold is already in the mature regime and the admitted gain is no longer cleanly resolved above the noise-aware screening floor, or when a maturity-gated checkpoint explicitly requests a simplification test.
+
+Newly admitted coordinates are protected for \(\ell_{\mathrm{protect}}\) admitted steps via \(\mathcal P_{\mathrm{protect}}(t):=\{\,j:\ t-\iota_j<\ell_{\mathrm{protect}}\,\}\). Let \(s_j^{\mathrm{stag}}(t)\) denote the branch-local \(t\)-indexed lift of the earlier coordinate stagnation indicator \(s_j^{(m)}\), with larger values meaning less recent parameter motion and therefore greater local stagnation. The mature prune-eligible set is
+\[
+\mathcal M_t
+:=
+\Bigl\{
+j:\ 
+t-t_{\mathrm{first}}(m_j)\ge A_{\mathrm{stale}},
+\ 
+s_j^{\mathrm{stag}}(t)\ge s_{\mathrm{stale}},
+\ 
+j\notin\mathcal P_{\mathrm{protect}}(t),
+\ 
+c_j(t)=0
+\Bigr\}.
+\]
+Hence prune eligibility is branch-local and conservative: old by first-seen age, stale by recent inactivity, not recently admitted, and not under temporary cooldown.
+
+Small angle is used only as a cheap nomination device. If \(\mathcal M_t\neq\varnothing\), set \(\theta_{\mathrm{small}}(t):=\max\!\bigl(\theta_{\mathrm{abs}},c_\theta\,\operatorname{median}_{j\in\mathcal M_t}|\operatorname{wrap}(\theta_j(t))|\bigr)\) and \(\mathcal J_{\angle}(t):=\{\,j\in\mathcal M_t:|\operatorname{wrap}(\theta_j(t))|\le \theta_{\mathrm{small}}(t)\,\}\); let \(\mathcal P_{\mathrm{probe}}(t)\subseteq\mathcal J_{\angle}(t)\) be the set of the \(\min\{K_p,|\mathcal J_{\angle}(t)|\}\) smallest values of \(|\operatorname{wrap}(\theta_j(t))|\) over \(j\in\mathcal J_{\angle}(t)\). If \(\mathcal M_t=\varnothing\), set \(\mathcal P_{\mathrm{probe}}(t)=\varnothing\). Thus old/stale and small-angle coordinates are nominated cheaply, but neither condition is itself an admissible proof of redundancy.
+
+For each \(j\in\mathcal P_{\mathrm{probe}}(t)\), let \(\mathcal O_{t,-j}^+\) denote the scaffold obtained from \(\mathcal O_t^+\) by deleting coordinate \(j\), and let \((\theta_t^+)_{-j}\) be \(\theta_t^+\) with the same entry removed. The frozen-ablation energy and immediate regression are \(E_{-j}^{\mathrm{frz}}:=E(\mathcal O_{t,-j}^+,(\theta_t^+)_{-j})\) and \(L_j^{\mathrm{frz}}(t):=E_{-j}^{\mathrm{frz}}-E_t^+\). Use the cheap prune score
+\[
+P_j^{\mathrm{pr}}(t)
+:=
+\frac{[L_j^{\mathrm{frz}}(t)]_+}{1+\kappa_j},
 \qquad
-j_t^\star=\arg\max_{j\in\mathcal C_{\mathrm{exp}}(t)}R_j(t).
-$$
-Thus $X_j(t)$ is the authoritative local expendability score, while $B_j(t)$ is only a weak policy bias. The frozen-ablation loss is therefore a local, solver-relative expendability score; it is not a theorem that the corresponding coordinate is globally redundant in the full optimization landscape. The global saturation variable $W_{\mathrm{sat}}(t)$ belongs in $\Gamma_{\mathrm{prune}}^{\mathrm{perm}}(t)$, not in $X_j(t)$ or $R_j(t)$ themselves.
+j\in\mathcal P_{\mathrm{probe}}(t),
+\]
+and, when \(\mathcal P_{\mathrm{probe}}(t)\neq\varnothing\), choose
+\[
+j_t^\star
+:=
+\arg\min_{j\in\mathcal P_{\mathrm{probe}}(t)}
+P_j^{\mathrm{pr}}(t).
+\]
+Thus the cheap ranking reuses the same \(K\)-style burden logic already used for admission: low retained frozen-ablation utility relative to stored selector burden means good prune-test priority, so smaller \(P_j^{\mathrm{pr}}(t)\) is better.
 
-Before the actual remove-refit trial, take the exact rollback snapshot
-$$
-\Xi_t^{\mathrm{trial}}
-=
-\bigl(
-\mathcal O_d^+,\theta_d^+,E_d^+,\mathcal M_{\mathrm{opt}}^+,\text{local prune metadata}
-\bigr).
-$$
-Each ranked removal attempt is then tested by a local remove-refit trial on the reduced scaffold. If $E_t^{(-j_t^\star)}$ is the post-refit energy of the scaffold with $j_t^\star$ removed, then the retained admitted-step gain is
-$$
-\Delta_{\mathrm{keep}}^{(j_t^\star)}=E_d-E_t^{(-j_t^\star)}.
-$$
-The canonical Phase-3 prune accept rule requires both a numerical safety guard and gain retention:
-$$
-E_t^{(-j_t^\star)}\le E_d^+ + \Delta_{\mathrm{safe}},
-\qquad
-\Delta_{\mathrm{keep}}^{(j_t^\star)}
-\ge
-\eta_{\mathrm{ret}}\,\Delta_{\mathrm{adm}}(\mathcal A_d^\star).
-$$
-In repo-facing notation, with
-$$
-E_t^-:=E_d,\qquad E_t:=E_d^+,\qquad \delta_t:=\Delta_{\mathrm{adm}}(\mathcal A_d^\star),\qquad \beta_{\mathrm{keep}}:=\eta_{\mathrm{ret}},
-$$
-the same accept rule is
-$$
-E_t^{(-j_t^\star)}
-\le
-E_t^- - \beta_{\mathrm{keep}}\delta_t + \Delta_{\mathrm{safe}}.
-$$
-The first form shows explicit retained gain. The second is the concise repo-facing energy inequality. If a trial fails, the state is restored exactly to $\Xi_t^{\mathrm{trial}}$.
+Before the authoritative trial, store the exact rollback snapshot \(\Xi_t^{\mathrm{pr}}:=(\mathcal O_t^+,\theta_t^+,E_t^+,\{c_i(t)\}_i,\text{current local optimizer state})\). Only one generator is tested per prune pass. If \(\Gamma_{\mathrm{prune}}^{\mathrm{perm}}(t)=0\) or \(\mathcal P_{\mathrm{probe}}(t)=\varnothing\), no prune trial is launched and the committed branch state remains \((\mathcal O_t^+,\theta_t^+,E_t^+)\).
 
-So the post-admission local simplification contract is
-$$
-\text{admit }\mathcal A_d^\star
-\;\longrightarrow\;
-\text{local reopt}
-\;\longrightarrow\;
-\text{snapshot }\Xi_t^{\mathrm{trial}}
-\;\longrightarrow\;
-\begin{cases}
-\text{keep that state},&\Gamma_{\mathrm{prune}}^{\mathrm{perm}}=0,\\
-\text{rank } \mathcal C_{\mathrm{exp}}(t) \text{ by }R_j(t),&\Gamma_{\mathrm{prune}}^{\mathrm{perm}}=1,
-\end{cases}
-$$
-followed, when pruning is permitted, by sequential remove-refit trials with exact rollback on every rejected trial. A failed local prune attempt restores the last committed post-admission state; prune rejection never invalidates the original admission event itself. In particular, prune permissibility is not a local expendability score, frozen ablation is not a global redundancy theorem, and global progress or stopping logic remain controller-level surfaces rather than consequences of the local prune ranking alone.
+For the authoritative trial on \(j_t^\star\), let \(n_t^+:=|\mathcal O_t^+|\), \(\omega_{\mathrm{eff}}^{(-j)}:=\max\{1,\min(\omega_{\mathrm{pr}},n_t^+-1)\}\), \(\ell_j:=\max\!\left\{1,\min\!\left(j-\left\lfloor\frac{\omega_{\mathrm{eff}}^{(-j)}-1}{2}\right\rfloor,\ n_t^+-\omega_{\mathrm{eff}}^{(-j)}\right)\right\}\), \(W_{\mathrm{loc}}(j):=\{\ell_j,\dots,\ell_j+\omega_{\mathrm{eff}}^{(-j)}-1\}\), \(C_{\mathrm{old}}^{(-j)}:=\{1,\dots,n_t^+-1\}\setminus W_{\mathrm{loc}}(j)\), and \(n_{\mathrm{old}}^{\mathrm{pr}}(t,j):=\left\lceil \rho_W(t)\,|C_{\mathrm{old}}^{(-j)}| \right\rceil\). Let \(W_{\mathrm{age}}^{(-j)}(t)\) be the set of the \(n_{\mathrm{old}}^{\mathrm{pr}}(t,j)\) oldest surviving coordinates in \(C_{\mathrm{old}}^{(-j)}\) under the stored admission-order values \(\iota_i\). The prune-refit window is
+\[
+W_{\mathrm{pr}}(j;t)
+:=
+W_{\mathrm{loc}}(j)\cup W_{\mathrm{age}}^{(-j)}(t).
+\]
+Hence the prune refit window contracts automatically as maturity increases, because \(\rho_W(t)\) decreases as useful runway is exhausted.
 
-### 11.4.4 Beam-adapt over scaffold alternatives: branch state, pruning, and effective selector
+The authoritative post-ablation refit is
+\[
+\theta_t^{(-j)}
+:=
+\arg\min_{\widetilde\theta\in\Theta_{\mathcal O_{t,-j}^+}}
+\left\{
+E(\mathcal O_{t,-j}^+,\widetilde\theta):
+\widetilde\theta_i=((\theta_t^+)_{-j})_i
+\ \forall i\notin W_{\mathrm{pr}}(j;t)
+\right\},
+\]
+with corresponding post-refit energy \(E_t^{(-j)}:=E(\mathcal O_{t,-j}^+,\theta_t^{(-j)})\). This ablation-plus-local-refit result is the authoritative prune test. No extra geometric score is required at this stage.
 
-In this section beam-adapt is **purely structural**: each branch carries an alternative ADAPT scaffold together with its locally refit amplitudes. There is no time checkpoint, probe rollout, or projected-dynamics integral in this section. Those belong to the separate time-dynamics beam surface developed in §17.
+Define the retained admitted-step gain after removing \(j\) by \(\Delta_{\mathrm{keep}}^{(-j)}(t):=E_t^- - E_t^{(-j)}\). Accept the prune of \(j_t^\star\) iff \(E_t^{(-j_t^\star)}\le E_t^+ + \Delta_{\mathrm{safe}}\) and \(\Delta_{\mathrm{keep}}^{(-j_t^\star)}(t)\ge \eta_{\mathrm{ret}}\Delta_{\mathrm{adm}}(t)\). Thus the final accept rule is recoverability-based: the reduced scaffold may be kept only when the ablation-plus-refit energy regression is numerically small and the pruned scaffold still retains a controlled fraction of the gain produced by the last admitted payload. The burden term \(\kappa_j\) is used only for cheap ranking; the final accept rule remains energy-based and conservative.
 
-Within each branch, the local cheap-screen / shortlist chain reuses §§11.4.1--11.4.2: the branch-local cheap universe is obtained by ranking the full branch-local admissible record set with $S_{3,\mathrm{cheap}}$, not by inserting a separate upstream gradient-only cap. The branch-level frontier-prune operators introduced below remain beam-management surfaces and are distinct from the post-admission scaffold-simplification prune contract of §11.4.3.
+If the prune is accepted, commit \((\mathcal O_{t,-j_t^\star}^+,\theta_t^{(-j_t^\star)},E_t^{(-j_t^\star)})\) as the new branch state and delete the metadata carried by coordinate \(j_t^\star\). If the prune is rejected, restore the branch state exactly to \(\Xi_t^{\mathrm{pr}}\), set \(c_{j_t^\star}(t)\leftarrow c_{\mathrm{cool}}\), and launch no second prune trial at the same selector step. On later admitted steps the cooldown counter decrements by one until it reaches zero. Hence prune failure never invalidates the already committed admission, and rollback is exact.
+
+### 11.5.2 Beam-adapt over scaffold alternatives: branch state, pruning, and effective selector
+In this section beam-adapt is \textbf{purely structural}: each branch carries an alternative ADAPT scaffold together with its locally refit amplitudes. There is no time checkpoint, probe rollout, or projected-dynamics integral in this section; those belong to the separate time-dynamics beam surface developed later.
 
 The cleanest way to read a live scaffold branch is
-$$
-\mathfrak b
-=
-(\text{identity/history};\ \text{current scaffold and amplitudes};\ \text{current energy/depth};\ \text{cumulative selector totals/status}).
-$$
+\[
+\mathfrak b=
+\begin{aligned}[t]
+\bigl(&\text{identity/history};\ \text{current scaffold and amplitudes};\\
+&\text{current energy/depth};\ \text{cumulative selector totals/controller telemetry/status}\bigr).
+\end{aligned}
+\]
 More explicitly, write
-$$
-\begin{aligned}
-\mathfrak b
-\!&=\bigl(\operatorname{id}_b,\pi_b,\mathcal H_b,\mathcal O_b,\theta_b,E_b,d_b,S_b^{\mathrm{cum}},K_b^{\mathrm{cum}},\sigma_b,\tau_b\bigr),\\
-\mathcal H_b&=(r_{b,1},\dots,r_{b,d_b}),
-\qquad
-r_{b,j}=(m_{b,j}^{\mathrm{adm}},p_{b,j}^{\mathrm{adm}}),\\
-\mathcal O_b&=(m_{b,1},\dots,m_{b,|\mathcal O_b|}),
-\qquad
-E_b=E(\theta_b;\mathcal O_b),\\
-S_b^{\mathrm{cum}}&=\sum_{j=1}^{d_b}s_{b,j},
-\qquad
-K_b^{\mathrm{cum}}=\sum_{j=1}^{d_b}\kappa_{b,j}.
-\end{aligned}
-$$
-Here $\operatorname{id}_b$ and $\pi_b$ are the branch and parent identifiers, $\mathcal H_b$ is the ordered history of admitted records, $\mathcal O_b$ is the scaffold currently carried by branch $b$, $\theta_b$ is the refit parameter vector on that scaffold, $E_b$ is the current variational energy, $d_b$ is the branch ADAPT depth, $s_{b,j}$ and $\kappa_{b,j}$ are the selector score and burden increment contributed by the $j$th admitted record in $\mathcal H_b$, and $(\sigma_b,\tau_b)$ record live/terminal status and termination label.
+\[
+\mathfrak b=\bigl(\operatorname{id}_b,\pi_b,\mathcal H_b,\mathcal O_b,\theta_b,E_b,d_b,S_b^{\mathrm{cum}},K_b^{\mathrm{cum}},\mathcal T_b^{\mathrm{ctrl}},\mathrm{status}_b,\mathrm{term}_b\bigr),
+\]
+with \(\mathcal H_b=(r_{b,1},\dots,r_{b,d_b})\) and \(r_{b,j}=(m_{b,j}^{\mathrm{adm}},p_{b,j}^{\mathrm{adm}})\). Here \(\operatorname{id}_b\) and \(\pi_b\) are the branch and parent identifiers, \(\mathcal H_b\) is the ordered history of admitted records, \(\mathcal O_b\) is the scaffold currently carried by branch \(b\), \(\theta_b\) is the refit parameter vector on that scaffold, \(E_b=E(\theta_b;\mathcal O_b)\) is the current variational energy, \(d_b\) is the branch ADAPT depth, \(S_b^{\mathrm{cum}}=\sum_{j=1}^{d_b}s_{b,j}\) is the cumulative admitted selector value, \(K_b^{\mathrm{cum}}=\sum_{j=1}^{d_b}K_{b,j}^{\mathrm{sel}}\) is the cumulative admitted selector burden, \(\mathcal T_b^{\mathrm{ctrl}}\) stores branch-local controller telemetry, and \((\mathrm{status}_b,\mathrm{term}_b)\) record live/terminal status and termination label. The increment \(K_{b,j}^{\mathrm{sel}}\) is the selector-cost contribution attached to the \(j\)-th admission on branch \(b\); for a newly materialized child this contribution is the branch-local Phase-3 cost \(K_3(r;\mathfrak b)\). Thus \(K_b^{\mathrm{cum}}\) is cumulative selector-side cost bookkeeping rather than a raw hardware count.
 
-If beam search is entered from an incumbent scaffold $(\mathcal O^{(0)},\theta^{(0)})$, the root branch is
-$$
-\begin{aligned}
-\mathfrak b_{\mathrm{root}}
-=
-\bigl(
-\operatorname{id}_0,\varnothing,\mathcal H^{(0)},\mathcal O^{(0)},\theta^{(0)},E(\theta^{(0)};\mathcal O^{(0)}),d_0,S_{\mathrm{root}}^{\mathrm{cum}},K_{\mathrm{root}}^{\mathrm{cum}},\mathrm{frontier},\varnothing
-\bigr),
-\end{aligned}
-$$
-with
-$$
-d_0=|\mathcal H^{(0)}|,
-\qquad
-S_{\mathrm{root}}^{\mathrm{cum}}=\sum_{j=1}^{d_0}s_j^{(0)},
-\qquad
-K_{\mathrm{root}}^{\mathrm{cum}}=\sum_{j=1}^{d_0}\kappa_j^{(0)}.
-$$
-If the beam is started from a fresh scaffold, then $\mathcal H^{(0)}=\varnothing$, $d_0=0$, and both cumulative sums vanish.
+If beam search is entered from an incumbent scaffold \((\mathcal O^{(0)},\theta^{(0)})\), the root branch is \(\mathfrak b_{\mathrm{root}}=\bigl(\operatorname{id}_0,\varnothing,\mathcal H^{(0)},\mathcal O^{(0)},\theta^{(0)},E(\theta^{(0)};\mathcal O^{(0)}),d_0,S_{\mathrm{root}}^{\mathrm{cum}},K_{\mathrm{root}}^{\mathrm{cum}},\mathcal T_{\mathrm{root}}^{\mathrm{ctrl}},\mathrm{frontier},\varnothing\bigr)\), with \(d_0=|\mathcal H^{(0)}|\), \(S_{\mathrm{root}}^{\mathrm{cum}}=\sum_{j=1}^{d_0}s_j^{(0)}\), and \(K_{\mathrm{root}}^{\mathrm{cum}}=\sum_{j=1}^{d_0}K_j^{\mathrm{sel},(0)}\), where \(K_j^{\mathrm{sel},(0)}\) denotes the selector-cost contribution attached to the \(j\)-th historical admission on the incumbent scaffold. If the beam is started from a fresh scaffold, then \(\mathcal H^{(0)}=\varnothing\), \(d_0=0\), and both cumulative sums vanish.
 
-One beam round is best read as four structural steps.
+For clock and budget, set \(t_b:=d_b\) and \(D_{\mathrm{left}}(\mathfrak b):=d_{\max}-d_b\). Now apply the branch lift rule: for any live-state quantity \(X\) from Phase 3 whose definition is written in terms of \((\mathcal H,\mathcal O,\theta,t,\mathcal T^{\mathrm{ctrl}})\), define \(X(\mathfrak b):=X\big|_{(\mathcal H,\mathcal O,\theta,t,\mathcal T^{\mathrm{ctrl}})\mapsto(\mathcal H_b,\mathcal O_b,\theta_b,t_b,\mathcal T_b^{\mathrm{ctrl}})}\); for any record-local quantity \(X(r;t)\), define \(X(r;\mathfrak b):=X(r;t)\big|_{(\mathcal H,\mathcal O,\theta,t,\mathcal T^{\mathrm{ctrl}})\mapsto(\mathcal H_b,\mathcal O_b,\theta_b,t_b,\mathcal T_b^{\mathrm{ctrl}})}\). In particular, \(R(\mathfrak b)\), \(u_{\mathrm{sat}}(\mathfrak b)\), \(\widehat N_{\mathrm{rem}}(\mathfrak b)\), \(K_3(r;\mathfrak b)\), and \(g_{\mathrm{lcb}}(r;\mathfrak b)\) are branch-lifted evaluations of their previously defined live-state counterparts.
 
-**(i) Recompute the branch-local cumulative Phase-3 screening chain.**  
-Each live branch $\mathfrak b\in\mathfrak F_c$ induces its own raw candidate-position surface. Let
-$$
-\eta_b\in\{\mathrm{core/seed},\mathrm{residual}\}
-$$
-be the branch-local stage label, and let the branch-local enabled generator family be
-$$
-\mathcal G_{\eta_b}^{(3)}(\mathfrak b)
-=
+The Phase-3 chain is branch-local by construction: all of its dependencies factor through the state tuple \((\mathcal O_b,\theta_b,t_b,\mathcal T_b^{\mathrm{ctrl}})\). Hence each live branch induces its own raw candidate-position surface \(\mathcal R_b^{\mathrm{raw}}\), its own branch-local shortlist \(\mathcal S_3(\mathfrak b)\), and its own retained admission set \(\mathcal A_b\).
+
+For stage and enabled family, let \(\eta_b\in\{\mathrm{core/seed},\mathrm{residual}\}\) and
+\[
+\mathcal G_{\eta_b}^{(3)}(\mathfrak b)=
 \begin{cases}
 \mathcal G_{\mathrm{core/seed}}^{(3)}(\mathfrak b),&\eta_b=\mathrm{core/seed},\\
 \mathcal G_{\mathrm{residual}}^{(3)}(\mathfrak b),&\eta_b=\mathrm{residual}.
 \end{cases}
-$$
-Let $\mathcal P_{\mathrm{residual}}(\mathfrak b)\subseteq\mathcal G^{(3)}$ denote the residual-only generator family on branch $b$.^[Implementation note: this is a controller-defined subset of the Phase-3 pool rather than a primitive Hamiltonian object. In practice it is decided from the branch's current stage/state and can depend on runtime policy rather than only on algebraic data.] Then the controller-stage gate and the branch-local available Phase-3 generator family are
-$$
-\Gamma_{\mathrm{stage},b}(m)
-=
+\]
+Let \(\mathcal P_{\mathrm{residual}}(\mathfrak b)\subseteq\mathcal G^{(3)}\) denote the residual-only generator family on branch \(b\). Then the controller-stage gate and branch-local available Phase-3 generator family are
+\[
+\Gamma_{\mathrm{stage},b}(m)=
 \begin{cases}
 1,&\eta_b=\mathrm{residual},\\
 1,&\eta_b=\mathrm{core/seed}\ \text{and}\ m\notin\mathcal P_{\mathrm{residual}}(\mathfrak b),\\
 0,&\eta_b=\mathrm{core/seed}\ \text{and}\ m\in\mathcal P_{\mathrm{residual}}(\mathfrak b),
 \end{cases}
 \qquad
-\mathcal G_{\mathrm{avail}}^{(3)}(\mathfrak b)
-=
-\{\,m\in\mathcal G^{(3)}:\Gamma_{\mathrm{stage},b}(m)=1\,\}.
-$$
-In the branch-local beam surface, the optional transient `seed` stage is absorbed into the label $\mathrm{core/seed}$ and resolves immediately before persistent beam branching. A convenient closed stage-label transition rule consistent with the stage-controller surface of §11.6 is^[Reader note: $\eta_b$, $n_d^{\mathrm{small}}$, $d_{\min}$, $M$, $\tau_{\mathrm{drop}}$, and $\chi_b^{\mathrm{trough}}$ are best read as controller-state quantities. The manuscript gives a mathematically usable surface for them, but they are still runtime decision variables/signals rather than primitive observables derived directly from the Hamiltonian.] 
-$$
-\eta_{\mathrm{root}}\in\{\mathrm{core/seed},\mathrm{residual}\},
-\qquad
-\eta_{b'}=
-\begin{cases}
-\mathrm{residual},&\eta_b=\mathrm{residual},\\
-\mathrm{residual},&\eta_b=\mathrm{core/seed},\ d_{b'}\ge d_{\min},\ n_{d_{b'}}^{\mathrm{small}}=M,\ \chi_{b'}^{\mathrm{trough}}=0,\\
-\mathrm{core/seed},&\text{otherwise},
-\end{cases}
-$$
-where $\chi_{b'}^{\mathrm{trough}}\in\{0,1\}$ is the branch-local trough indicator. Thus $\eta_{\mathrm{root}}$ is inherited from the incoming controller state, once a branch reaches residual stage it remains there, and the core/seed $\to$ residual transition occurs only after a branch-local plateau-patience hit without trough detection.
-Now let
-$$
-n_b=|\mathcal O_b|,
-\qquad
-p_{\mathrm{app}}(\mathfrak b)=n_b,
-\qquad
-W_{\mathrm{act}}(\mathfrak b)\subseteq\{0,\dots,n_b-1\}
-$$
-be the current scaffold length, append slot, and active position-probe window on branch $b$. The ordered probe list is
-$$
-\mathcal L_{\mathrm{probe}}(\mathfrak b)
-:=
-\bigl(p_{\mathrm{app}}(\mathfrak b),\,0,\,W_{\mathrm{act}}(\mathfrak b)\bigr),
-$$
-where the entries of $W_{\mathrm{act}}(\mathfrak b)$ are read in their native order. The distinct retained probe positions are^[Algorithmic note: $\operatorname{Dedup}_{\mathrm{ord}}$ means stable order-preserving deduplication of the probe list, and $\operatorname{Head}_{M_{\mathrm{probe}}}$ means truncation to the first $M_{\mathrm{probe}}$ surviving entries. These are algorithmic selection operators rather than primitive algebraic maps.]
-$$
-\mathcal P_{\mathrm{probe}}(\mathfrak b)
-=
-\operatorname{Head}_{M_{\mathrm{probe}}}
-\Bigl(
-\operatorname{Dedup}_{\mathrm{ord}}\bigl(\mathcal L_{\mathrm{probe}}(\mathfrak b)\bigr)
-\Bigr)
-\subseteq
-\{0,\dots,n_b\}.
-$$
-For each candidate-position record $r=(m,p)$, let the branch-local symmetry gate be
-$$
-\Gamma_{\mathrm{sym},b}(m,p)
-=
+\mathcal G_{\mathrm{avail}}^{(3)}(\mathfrak b)=\{m\in\mathcal G^{(3)}:\Gamma_{\mathrm{stage},b}(m)=1\}.
+\]
+For scaffold length, append slot, and active probe window, let \(n_b=|\mathcal O_b|\), \(p_{\mathrm{app}}(\mathfrak b)=n_b\), and \(W_{\mathrm{act}}(\mathfrak b)\subseteq\{0,\dots,n_b-1\}\). The ordered probe list is \(\mathcal L_{\mathrm{probe}}(\mathfrak b):=\bigl(p_{\mathrm{app}}(\mathfrak b),0,W_{\mathrm{act}}(\mathfrak b)\bigr)\), and the distinct retained probe positions are \(\mathcal P_{\mathrm{probe}}(\mathfrak b)=\operatorname{Head}_{M_{\mathrm{probe}}}\!\Bigl(\operatorname{Dedup}_{\mathrm{ord}}\bigl(\mathcal L_{\mathrm{probe}}(\mathfrak b)\bigr)\Bigr)\subseteq\{0,\dots,n_b\}\). For symmetry and admissible positions, let
+\[
+\Gamma_{\mathrm{sym},b}(m,p)=
 \begin{cases}
 0,&\text{the symmetry audit for }(m,p;\mathcal O_b)\text{ returns a hard violation},\\
-1,&\text{otherwise}.
+1,&\text{otherwise},
 \end{cases}
-$$
-Hence the branch-local admissible insertion-position set for generator $m$ is
-$$
-\mathcal P_m(\mathfrak b)
-=
-\{\,p\in\mathcal P_{\mathrm{probe}}(\mathfrak b):\Gamma_{\mathrm{sym},b}(m,p)=1\,\},
-$$
-and the resulting raw candidate-position surface is
-$$
+\]
+so the branch-local raw candidate-position surface is
+\[
 \mathcal R_b^{\mathrm{raw}}
-=
-\{\,r=(m,p):m\in\mathcal G_{\mathrm{avail}}^{(3)}(\mathfrak b),\ p\in\mathcal P_m(\mathfrak b)\,\},
-$$
-so the generator stage gate and the position-level symmetry gate are already absorbed into $\mathcal R_b^{\mathrm{raw}}$. In the maximally wide limit,
-$$
-W_{\mathrm{act}}(\mathfrak b)=\{0,\dots,n_b-1\},
-\qquad
-M_{\mathrm{probe}}\ge n_b+1
-\quad\Longrightarrow\quad
-\mathcal P_{\mathrm{probe}}(\mathfrak b)=\{0,\dots,n_b\},
-$$
-and the branch can test every insertion position on its current scaffold. The local screening flow is then
-$$
-\begin{aligned}
-N_{\mathrm{cheap}}(\mathfrak b)
-&=
-\min\!\left\{N_{\mathrm{cheap}}^{\max},|\mathcal R_b^{\mathrm{raw}}|,K_{\mathrm{coarse}}(\mathfrak b)\right\},\\
-\mathcal C_{\mathrm{cheap}}(\mathfrak b)
-&=
-\operatorname{Top}_{N_{\mathrm{cheap}}(\mathfrak b)}\!\left(\mathcal R_b^{\mathrm{raw}};S_{3,\mathrm{cheap}}\right),\\
-N_{\mathrm{short}}(\mathfrak b)
-&=
-\min\!\left\{|\mathcal C_{\mathrm{cheap}}(\mathfrak b)|,N_{\max},\left\lceil f_{\mathrm{short}}|\mathcal C_{\mathrm{cheap}}(\mathfrak b)|\right\rceil\right\},\\
-\mathcal S_3(\mathfrak b)
-&=
-\operatorname{Top}_{N_{\mathrm{short}}(\mathfrak b)}\!\left(\mathcal C_{\mathrm{cheap}}(\mathfrak b);S_{3,\mathrm{cheap}}\right).
-\end{aligned}
-$$
-where
-$$
-H_b=\min\!\bigl(D_{\mathrm{left}}(\mathfrak b),\widehat N_{\mathrm{rem}}(\mathfrak b)\bigr)
-$$
-is the branch-local useful horizon. The same controller layer may also induce
-$$
-K_{\mathrm{coarse}}(\mathfrak b)
-=
-K_{\min}+\left\lfloor (K_{\max}-K_{\min})\frac{\widehat N_{\mathrm{rem}}^{\mathrm{hi}}(\mathfrak b)}{D_{\mathrm{left}}(\mathfrak b)+\varepsilon}\right\rfloor,
-$$
-$$
-B_{\mathrm{target}}(\mathfrak b)
-=
-B_{\min}+\left\lfloor (B_{\max}-B_{\min})\frac{\widehat N_{\mathrm{rem}}(\mathfrak b)}{D_{\mathrm{left}}(\mathfrak b)+\varepsilon}C(\mathfrak b)\right\rfloor,
-$$
-$$
-\Pi_{\mathfrak b}(r,r')=\gamma_{\mathrm{compat}}(\mathfrak b)\,\Pi_0(r,r'),
-\qquad
-\gamma_{\mathrm{compat}}(\mathfrak b)=\gamma_{\min}+(\gamma_{\max}-\gamma_{\min})W_{\mathrm{sat}}(\mathfrak b),
-$$
-and mode/regime labels
-$$
-\pi(\mathfrak b)\in\{\mathrm{fast},\mathrm{mixed},\mathrm{high\mbox{-}fidelity}\},
-\qquad
-\mathrm{regime}_{\mathrm{sat}}(\mathfrak b)\in\{\mathrm{hungry},\mathrm{watch},\mathrm{plateau}\}.
-$$
-Using the same cumulative chain from §§11.4.1--11.4.2 — first the reused cheap screen, then the shortlist/full rerank, and finally the Phase-3 augmentations — this branch-local screen is now evaluated on the current branch state $(\mathcal O_b,\theta_b)$ with
-$$
-\Gamma_{\mathrm{stage}}(m)=\Gamma_{\mathrm{stage},b}(m),
-\qquad
-\Gamma_{\mathrm{sym}}(r)=\Gamma_{\mathrm{sym},b}(m,p)
-\quad\text{for }r=(m,p).
-$$
-Also set
-$$
-S_{3,\mathrm{cheap}}(r;\mathfrak b):=s_{b,\mathrm{cheap}}(r),
-\qquad
-S_{3,\mathrm{base}}(r;\mathfrak b):=s_{b,\mathrm{base}}(r),
-$$
-so the branch-local shortlist operators are using the same score names as §§11.4.1--11.4.2.
-Denote the resulting local selector by
-$$
-s_b(r)=S_{3,\mathrm{aug}}(r;\mathfrak b)
-\quad\text{or}\quad
-s_b(r)=S_{3,\mathrm{base}}(r;\mathfrak b).
-$$
-More explicitly, the branch-local score flow is
-$$
-\begin{aligned}
-s_{b,\mathrm{cheap}}(r)
-&=
-\Gamma_{\mathrm{stage},b}(m)\Gamma_{\mathrm{sym},b}(m,p)
-\frac{\max\!\left\{\left|2\Re\langle\psi_b|H|d_r^{(b)}\rangle\right|-z_\alpha\sigma_r(\mathfrak b),0\right\}^2}{2\lambda_F\langle d_r^{(b)}|Q_{\psi_b}|d_r^{(b)}\rangle\,(K_{\mathrm{cheap}}(r;\mathfrak b)+\varepsilon)},\\
-|\psi_b\rangle
-&=
-U(\theta_b;\mathcal O_b)|\phi_0\rangle,
-\qquad
-Q_{\psi_b}=I-|\psi_b\rangle\langle\psi_b|,\\
-|d_r^{(b)}\rangle
-&=
--i\widetilde A_r^{(b)}|\psi_b\rangle,
-\qquad
-t_r^{(b)}=Q_{\psi_b}|d_r^{(b)}\rangle,
-\qquad
-F_{\mathrm{raw}}(r;\mathfrak b)=\langle d_r^{(b)}|Q_{\psi_b}|d_r^{(b)}\rangle,\\
-t_j^{(b)}
-&=
-Q_{\psi_b}\partial_{\theta_j}|\psi_b\rangle,
-\qquad
-(Q_r(\mathfrak b))_{jk}=\Re\langle t_j^{(b)},t_k^{(b)}\rangle,
-\qquad
-(q_r(\mathfrak b))_j=\Re\langle t_j^{(b)},t_r^{(b)}\rangle,\\
-\widetilde h_r(\mathfrak b)
-&=
-h_r(\mathfrak b)-b_r(\mathfrak b)^\top M_r(\mathfrak b)^{-1}b_r(\mathfrak b),\\
-F_r^{\mathrm{red}}(\mathfrak b)
-&=
-F_{\mathrm{raw}}(r;\mathfrak b)
--2q_r(\mathfrak b)^\top M_r(\mathfrak b)^{-1}b_r(\mathfrak b)
-+b_r(\mathfrak b)^\top M_r(\mathfrak b)^{-1}Q_r(\mathfrak b)M_r(\mathfrak b)^{-1}b_r(\mathfrak b),\\
-q_r^{\mathrm{red}}(\mathfrak b)
-&=
-q_r(\mathfrak b)-Q_r(\mathfrak b)M_r(\mathfrak b)^{-1}b_r(\mathfrak b),\\
-\nu_r(\mathfrak b)
-&=
-\operatorname{clip}_{[0,1]}\!\left(
-1-\frac{(q_r^{\mathrm{red}}(\mathfrak b))^\top(Q_r(\mathfrak b)+\varepsilon_{\mathrm{nov}}I)^{-1}q_r^{\mathrm{red}}(\mathfrak b)}{F_r^{\mathrm{red}}(\mathfrak b)}
-\right),\\
-\Delta E_{\mathrm{TR}}(r;\mathfrak b)
-&=
-\max_{|\alpha|\le \rho/\sqrt{F_r^{\mathrm{red}}(\mathfrak b)}}
-\left[
-g_{\mathrm{lcb}}(r;\mathfrak b)|\alpha|-\frac12\max(\widetilde h_r(\mathfrak b),0)\alpha^2
-\right],\\
-s_{b,\mathrm{base}}(r)
-&=
-\Gamma_{\mathrm{stage},b}(m)\Gamma_{\mathrm{sym},b}(m,p)
-\left[
-\operatorname{clip}_{[0,1]}\!\left(
-1-\frac{(q_r^{\mathrm{red}}(\mathfrak b))^\top(Q_r(\mathfrak b)+\varepsilon_{\mathrm{nov}}I)^{-1}q_r^{\mathrm{red}}(\mathfrak b)}{F_r^{\mathrm{red}}(\mathfrak b)}
-\right)
-\right]^{\gamma_N}\\
-&\qquad\times
-\frac{
-\max_{|\alpha|\le \rho/\sqrt{F_r^{\mathrm{red}}(\mathfrak b)}}
-\left[
-\max\!\left\{\left|2\Re\langle\psi_b|H|d_r^{(b)}\rangle\right|-z_\alpha\sigma_r(\mathfrak b),0\right\}|\alpha|
--\frac12\max(\widetilde h_r(\mathfrak b),0)\alpha^2
-\right]
-}{
-K_{\mathrm{full}}(r;\mathfrak b)+\varepsilon
-},\\
-s_b(r)
-&=
-s_{b,\mathrm{base}}(r)
-+\beta_{\mathrm{split}}\Sigma(r;\mathfrak b)
-+\beta_{\mathrm{motif}}M(r;\mathfrak b)
-+\beta_{\mathrm{sym}}Y(r;\mathfrak b)
--\beta_{\mathrm{dup}}D_{\mathrm{dup}}(r;\mathfrak b).
-\end{aligned}
-$$
-So the branch-local screening/rerank chain closes as
-$$
-\mathcal R_b^{\mathrm{raw}}
-\xrightarrow{\ s_{b,\mathrm{cheap}}\ }
-\mathcal C_{\mathrm{cheap}}(\mathfrak b)
-\xrightarrow{\ s_{b,\mathrm{cheap}}\ }
-\mathcal S_3(\mathfrak b)
-\xrightarrow{\ s_b\ }
-\mathcal A_b^{\mathrm{raw}}
-\xrightarrow{\operatorname{Top}_{K_b}}
-\mathcal A_b.
-$$
-For $r=(m,p)\in\mathcal S_3(\mathfrak b)$, let the runtime-split child family be
-$$
-\mathcal C_{\mathrm{split}}(m)=\{m_1,\dots,m_{K_m}\}.
-$$
-For a child subset $S\subseteq\mathcal C_{\mathrm{split}}(m)$, define the combined child-set polynomial
-$$
-m_S:=\sum_{u\in S}u.
-$$
-For any real-coefficient Pauli polynomial
-$$
-m=\sum_{w}c_wP_w
-$$
-written in the internal $e/x/y/z$ word alphabet, define the canonical polynomial signature
-$$
-\operatorname{Sig}_{\mathrm{poly}}(m;\tau_{\mathrm{sig}})
 :=
-\operatorname{sort}
-\left\{
-\bigl(w,\operatorname{rnd}_{12}(c_w)\bigr):
-|c_w|>\tau_{\mathrm{sig}}
-\right\},
+\{\,r=(m,p):m\in\mathcal G_{\mathrm{avail}}^{(3)}(\mathfrak b),\ p\in\mathcal P_{\mathrm{probe}}(\mathfrak b),\ \Gamma_{\mathrm{sym},b}(m,p)=1\,\}.
+\]
+The resulting local shortlist and retained admission set are
+\[
+\mathcal S_3(\mathfrak b)
+:=
+\operatorname{Top}_{N_3(t_b)}\!\left(S_3(\cdot;\mathfrak b);\mathcal R_b^{\mathrm{raw}}\right),
 \qquad
-\operatorname{rnd}_{12}(x):=10^{-12}\operatorname{round}(10^{12}x).
-$$
-Thus $\operatorname{Dedup}_{\mathrm{sig}}$ retains one representative from each common value of $\operatorname{Sig}_{\mathrm{poly}}(\cdot;\tau_{\mathrm{sig}})$ after collecting like terms. Each singleton child is re-audited at the same insertion position $p$, and the symmetry-safe combined child-set family is
-$$
-\mathcal A_{\mathrm{split}}(m,p;\mathfrak b)
-=
-\operatorname{Dedup}_{\mathrm{sig}}
-\Bigl[
-\{\,S\subseteq\mathcal C_{\mathrm{split}}(m):\Gamma_{\mathrm{sym},b}(m_S,p)=1,\ m_S\not\equiv m\,\}
-\Bigr].
-$$
-Write
-$$
-r_j=(m_j,p),
-\qquad
-r_S=(m_S,p)\quad (|S|\ge 2),
-$$
-for the singleton and child-set representatives, where $r_S$ denotes the combined child-set polynomial placed at the same position $p$. Then the full split-aware promotion universe of the parent record is
-$$
-\mathcal U_b(r)
-=
-\{r\}
-\cup
-\{\,r_j:\Gamma_{\mathrm{sym},b}(m_j,p)=1\,\}
-\cup
-\{\,r_S:S\in\mathcal A_{\mathrm{split}}(m,p;\mathfrak b),\ |S|\ge 2\,\}.
-$$
-Unsafe child atoms and unsafe child sets are excluded from $\mathcal U_b(r)$ by the symmetry gate and therefore may remain in provenance only, not in the admissible promotion surface. Now define
-$$
-r_b^{\star}(r)
-=
-\arg\max_{u\in\mathcal U_b(r)} s_b(u),
-$$
-and then the split-aware promoted representative is
-$$
-\widehat r_b(r)
-=
-\begin{cases}
-r_b^{\star}(r),&\text{if }s_b\!\bigl(r_b^{\star}(r)\bigr)>s_b(r)+\tau_{\mathrm{split}},\\
-r,&\text{otherwise}.
-\end{cases}
-$$
-The actual raw admission set passed to the beam is therefore
-$$
-\mathcal A_b^{\mathrm{raw}}
-=
-\{\,\widehat r_b(r):r\in\mathcal S_3(\mathfrak b),\ s_b(\widehat r_b(r))>0\,\},
-$$
-and the retained candidate-admission set is
-$$
 \mathcal A_b
-=
-\operatorname{Top}_{K_b}\!\left(\mathcal A_b^{\mathrm{raw}};s_b\right),
-\qquad
-K_b\le B_{\mathrm{child}}-1.
-$$
-^[Beam-width note: $\operatorname{Top}_{K_b}$ is the score-ordered child selector on branch $b$. The inequality fixes only an admissible cap; the exact runtime choice of $K_b$ remains a controller policy decision unless specified separately.]
-
-**(ii) Materialize either stop or one new admission.**  
-The proposal family is
-$$
-\mathcal Q(b)=\{\mathrm{stop}\}\cup\mathcal A_b.
-$$
-The symbol $\mathrm{stop}$ means “terminate this scaffold as-is,” while each $r=(m,p)\in\mathcal A_b$ means “insert one new generator into this branch and refit.” If
-$$
-\mathcal O_b=(m_{b,1},\dots,m_{b,n_b}),
-\qquad
-0\le p\le n_b,
-$$
-then the scaffold insertion map is
-$$
-\operatorname{Insert}(\mathcal O_b,m,p)
-=
-(m_{b,1},\dots,m_{b,p},m,m_{b,p+1},\dots,m_{b,n_b}),
-$$
-and the insertion index transport is
-$$
-I_p(j)
-=
-\begin{cases}
-j,&1\le j\le p,\\
-j+1,&p<j\le n_b.
-\end{cases}
-$$
-The zero-lifted parameter vector is therefore
-$$
-\theta_b^{\uparrow(r)}
-=
-(\theta_{b,1},\dots,\theta_{b,p},0,\theta_{b,p+1},\dots,\theta_{b,n_b}).
-$$
-Equivalently,
-$$
-(\theta_b^{\uparrow(r)})_{I_p(j)}=\theta_{b,j},
-\qquad
-(\theta_b^{\uparrow(r)})_{p+1}=0.
-$$
-For newest-window cap $w_{\mathrm{new}}$ and amplitude-carry cap $k_{|\theta|}$, let
-$$
-w_{\mathrm{eff}}^{(p)}=\min\{w_{\mathrm{new}},n_b+1\},
-\qquad
-W_{\mathrm{new}}^{(p)}=\{n_b+2-w_{\mathrm{eff}}^{(p)},\dots,n_b+1\},
-$$
-$$
-W_{|\theta|}^{(p)}
-=
-\operatorname{Top}_{k_{|\theta|}}
-\Bigl(
-\{1,\dots,n_b+1\}\backslash W_{\mathrm{new}}^{(p)};
-\bigl|(\theta_b^{\uparrow(r)})_j\bigr|
-\Bigr).
-$$
-Hence the inherited refit window on the inserted scaffold is
-$$
-W_r=W(m,p)=W_{\mathrm{new}}^{(p)}\cup W_{|\theta|}^{(p)}.
-$$
-Then the branch-local refit map is
-$$
-\operatorname{Refit}_{W_r}(\theta_b;r)
 :=
-\arg\min_{\vartheta}
-\left\{
-E(\vartheta;\operatorname{Insert}(\mathcal O_b,m,p))
-:\ 
-\vartheta_j=(\theta_b^{\uparrow(r)})_j\ \forall j\notin W_r
-\right\}.
-$$
-The transfer map is
-$$
-\mathcal T(\mathfrak b,\mathrm{stop})=\mathfrak b'
-\quad\text{with}\quad
-\mathcal H_{b'}=\mathcal H_b,\ 
-\mathcal O_{b'}=\mathcal O_b,\ 
-\theta_{b'}=\theta_b,\ 
-\ E_{b'}=E_b,\ 
-\ d_{b'}=d_b,\ 
-\ S_{b'}^{\mathrm{cum}}=S_b^{\mathrm{cum}},\ 
-\ K_{b'}^{\mathrm{cum}}=K_b^{\mathrm{cum}},\ 
-\sigma_{b'}=\mathrm{terminal},
-\qquad
-\tau_{b'}=
-\begin{cases}
-\mathrm{empty},&\mathcal A_b=\varnothing,\\
-\mathrm{stop},&\mathcal A_b\neq\varnothing,
-\end{cases}
-$$
-and for $r=(m,p)$,
-$$
-\mathcal T(\mathfrak b,r)=\mathfrak b'
-\quad\text{with}\quad
-\mathcal O_{b'}=\operatorname{Insert}(\mathcal O_b,m,p),
-\qquad
-\theta_{b'}=\operatorname{Refit}_{W_r}(\theta_b;r),
-$$
-$$
-\mathcal H_{b'}=(\mathcal H_b,r),
-\qquad
-E_{b'}=E(\theta_{b'};\mathcal O_{b'}),
-\qquad
-d_{b'}=d_b+1,
-\qquad
-S_{b'}^{\mathrm{cum}}=S_b^{\mathrm{cum}}+s_b(r),
-\qquad
-K_{b'}^{\mathrm{cum}}=K_b^{\mathrm{cum}}+K_{\mathrm{full}}(r),
-\qquad
-\sigma_{b'}=
-\begin{cases}
-\mathrm{terminal},&d_{b'}\ge d_{\max}\ \text{or}\ \mathcal A_{b'}=\varnothing,\\
-\mathrm{frontier},&d_{b'}<d_{\max}\ \text{and}\ \mathcal A_{b'}\neq\varnothing,
-\end{cases}
-\qquad
-\tau_{b'}=
-\begin{cases}
-\mathrm{depth\_cap},&d_{b'}\ge d_{\max},\\
-\mathrm{empty},&d_{b'}<d_{\max}\ \text{and}\ \mathcal A_{b'}=\varnothing,\\
-\varnothing,&d_{b'}<d_{\max}\ \text{and}\ \mathcal A_{b'}\neq\varnothing,
-\end{cases}
-$$
-where $\mathcal A_{b'}$ is recomputed from step (i) on the child branch itself. So a non-stop child is exactly one more ADAPT admission applied to the parent scaffold, followed by the inherited-window refit already defined above. If $\mathcal A_b=\varnothing$, then $\mathcal Q(b)=\{\mathrm{stop}\}$ and the branch contributes only a terminal child.
+\operatorname{Top}_{K_b}\!\left(S_3(\cdot;\mathfrak b);\{r\in\mathcal S_3(\mathfrak b):S_3(r;\mathfrak b)>0\}\right).
+\]
+When a branch-local rerank shell is judged tie-degenerate, the retained admission set may be replaced by a transient tie-shell selector.\footnote{For example, if \(r_{b,\max}\in\arg\max_{r\in\mathcal S_3(\mathfrak b)}S_3(r;\mathfrak b)\), one may define \(\mathcal T_{\mathrm{tie}}(\mathfrak b):=\{\,r\in\mathcal S_3(\mathfrak b): S_3(r;\mathfrak b)\ge \max(\eta_{\mathrm{tie}}\,S_3(r_{b,\max};\mathfrak b),\,S_3(r_{b,\max};\mathfrak b)-\delta_{\mathrm{tie}})\,\}\) and replace \(\mathcal A_b\) by a retained subset \(\mathcal A_b^{\mathrm{tie}}\subseteq \mathcal T_{\mathrm{tie}}(\mathfrak b)\) with \(1\le |\mathcal A_b^{\mathrm{tie}}|\le B_{\mathrm{tie}}(t_b)\), chosen by descending \(S_3(\cdot;\mathfrak b)\).}
 
-**(iii) Classify, deduplicate, and prune the scaffold children.**  
-The frontier and terminal descendants of branch $b$ are
-$$
-\mathfrak C_b^{\mathrm{front}}
-=
-\{\mathfrak b' : \mathfrak b'=\mathcal T(\mathfrak b,r),\ r\in\mathcal A_b,\ \sigma_{b'}=\mathrm{frontier}\},
-$$
-$$
-\mathfrak C_b^{\mathrm{term}}
-=
-\{\mathfrak b' : \mathfrak b'=\mathcal T(\mathfrak b,q),\ q\in\mathcal Q(b),\ \sigma_{b'}=\mathrm{terminal}\}.
-$$
-Two branches are treated as duplicates when they represent the same scaffold and essentially the same refit point, for example under the fingerprint
-$$
-\operatorname{rnd}_{10}(x):=10^{-10}\operatorname{round}(10^{10}x),
-\qquad
-\operatorname{round}_{10}(\theta_b)
-:=
-\bigl(\operatorname{rnd}_{10}(\theta_{b,1}),\dots,\operatorname{rnd}_{10}(\theta_{b,n_b})\bigr),
-$$
-$$
-\mathrm{fp}(\mathfrak b)
-=
-\bigl(d_b,\operatorname{labels}(\mathcal O_b),\operatorname{round}_{10}(\theta_b)\bigr).
-$$
-Among near-equivalent branches, keep the one with best lexicographic prune key
-$$
-\kappa_{\mathrm{prune}}(\mathfrak b)
-=
-\bigl(E_b,-S_b^{\mathrm{cum}},K_b^{\mathrm{cum}},|\mathcal O_b|,\operatorname{labels}(\mathcal O_b),\operatorname{round}_{10}(\theta_b),\operatorname{id}_b\bigr).
-$$
-This means that, within the symbolic scaffold beam, lower current energy is primary; stronger cumulative admitted selector value is secondary; lower accumulated burden and then smaller/simpler equivalent scaffolds break the remaining ties.
+% [ARCHAIC/REVIEW: split-aware promotion machinery.]
+% Origin: §11.1 split family definition.
+% Status: removed from the main beam surface and retained only for provenance.
+% If reinstated, it should act on children of a single generator family at fixed position p,
+% not on unrelated branch children from different global generators.
 
-The beam operators are therefore
-$$
-\operatorname{Dedup}(\mathcal X)
-=
-\{\text{best branch per fingerprint under }\kappa_{\mathrm{prune}}\},
-\qquad
-\operatorname{Prune}(\mathcal X;B)
-=
-\text{lowest-}B\text{ branches in }\operatorname{Dedup}(\mathcal X)\text{ by }\kappa_{\mathrm{prune}}.
-$$
-Hence the live and terminal pools update by
-$$
-\mathfrak F_{c+1}
-=
-\operatorname{Prune}\!\left(\bigcup_{b\in\mathfrak F_c}\mathfrak C_b^{\mathrm{front}};B_{\mathrm{live}}\right),
-\qquad
-\mathfrak T_{c+1}
-=
-\operatorname{Prune}\!\left(\mathfrak T_c\cup\bigcup_{b\in\mathfrak F_c}\mathfrak C_b^{\mathrm{term}};B_{\mathrm{term}}\right).
-$$
+\textbf{(ii) Materialize either stop or one new admission.}
+The proposal family is \(\mathcal Q(b)=\{\mathrm{stop}\}\cup\mathcal A_b\). The symbol \(\mathrm{stop}\) means ``terminate this scaffold as-is,'' while each \(r=(m,p)\in\mathcal A_b\) means ``insert one new generator into this branch and refit.'' If \(\mathcal O_b=(m_{b,1},\dots,m_{b,n_b})\) and \(0\le p\le n_b\), then the scaffold insertion map is \(\operatorname{Insert}(\mathcal O_b,m,p)=(m_{b,1},\dots,m_{b,p},m,m_{b,p+1},\dots,m_{b,n_b})\), the insertion index transport is \(I_p(j)=\begin{cases} j,&1\le j\le p,\\ j+1,&p<j\le n_b, \end{cases}\), and the zero-lifted parameter vector is \(\theta_b^{\uparrow(r)}=(\theta_{b,1},\dots,\theta_{b,p},0,\theta_{b,p+1},\dots,\theta_{b,n_b})\).
 
-**(iv) Choose the final scaffold branch.**  
-After $C$ scaffold-beam rounds, the surviving candidate set is
-$$
-\mathfrak W_{\mathrm{final}}=\mathfrak F_C\cup\mathfrak T_C,
-$$
-and the effective beam selector is
-$$
-\mathfrak b_*
-=
-\arg\min_{\mathfrak b\in\mathfrak W_{\mathrm{final}}}\kappa_{\mathrm{prune}}(\mathfrak b).
-$$
-Equivalently,
-$$
-\mathfrak b_*
-=
-\arg\min_{\mathfrak b\in\mathfrak F_C\cup\mathfrak T_C}
-\bigl(E_b,-S_b^{\mathrm{cum}},K_b^{\mathrm{cum}},|\mathcal O_b|,\operatorname{labels}(\mathcal O_b),\operatorname{round}_{10}(\theta_b),\operatorname{id}_b\bigr).
-$$
+For contiguous inserted-window cap \(\omega_{\mathrm{new}}\), let \(\omega_{\mathrm{eff}}^{(p)}:=\max\{1,\min(\omega_{\mathrm{new}},n_b+1)\}\) and \(\ell_p:=\max\!\left\{1,\min\!\left(p+1-\left\lfloor\frac{\omega_{\mathrm{eff}}^{(p)}-1}{2}\right\rfloor,\;n_b+2-\omega_{\mathrm{eff}}^{(p)}\right)\right\}\). Then \(W_{\mathrm{new}}^{(p)}=\{\ell_p,\;\ell_p+1,\;\ldots,\;\ell_p+\omega_{\mathrm{eff}}^{(p)}-1\}\), so \(|W_{\mathrm{new}}^{(p)}|=\omega_{\mathrm{eff}}^{(p)}\) and \(p+1\in W_{\mathrm{new}}^{(p)}\). Let the retained old-coordinate fraction shrink with maturity according to \(\rho_W(t):=\rho_W^{\min}+(\rho_W^{\max}-\rho_W^{\min})e_t\), with \(0\le \rho_W^{\min}\le \rho_W^{\max}\le 1\), and define the old-coordinate complement by \(C_{\mathrm{old}}^{(p)}:=\{1,\dots,n_b+1\}\setminus W_{\mathrm{new}}^{(p)}\), so \(|C_{\mathrm{old}}^{(p)}|=n_b+1-\omega_{\mathrm{eff}}^{(p)}\). Then the retained old-coordinate count is \(n_{\mathrm{old}}(t,p):=\left\lceil \rho_W(t)\,|C_{\mathrm{old}}^{(p)}|\right\rceil=\left\lceil \rho_W(t)\,\bigl(n_b+1-\omega_{\mathrm{eff}}^{(p)}\bigr)\right\rceil\). For each current scaffold coordinate \(j\in\{1,\dots,n_b\}\), let \(a_{b,j}^{\mathrm{adm}}\) denote the admission step at which that coordinate entered the current scaffold on branch \(b\), with smaller values meaning older coordinates, and let the insertion-lifted admission-order vector be \(a_b^{\uparrow(r)}:=(a_{b,1}^{\mathrm{adm}},\dots,a_{b,p}^{\mathrm{adm}},+\infty,a_{b,p+1}^{\mathrm{adm}},\dots,a_{b,n_b}^{\mathrm{adm}})\), so the newly inserted slot is never selected as an old coordinate. The retained old-coordinate window is then \(W_{\mathrm{age}}^{(p)}:=\{\,j\in C_{\mathrm{old}}^{(p)}:\#\{\,i\in C_{\mathrm{old}}^{(p)}:(a_b^{\uparrow(r)})_i<(a_b^{\uparrow(r)})_j\,\}<n_{\mathrm{old}}(t,p)\,\}\), namely the set of the \(n_{\mathrm{old}}(t,p)\) oldest old coordinates outside \(W_{\mathrm{new}}^{(p)}\), and hence the inherited refit window on the inserted scaffold is \(W_r=W(r;t):=W_{\mathrm{new}}^{(p)}\cup W_{\mathrm{age}}^{(p)}\).
+
+Then, for \(r=(m,p)\) and \(\mathcal O_b\oplus_p m:=\operatorname{Insert}(\mathcal O_b,m,p)\), the branch-local refit map is \(\operatorname{Refit}_{W_r}(\theta_b;r):=\arg\min_{\widetilde\theta\in\Theta_{\mathcal O_b\oplus_p m}}\left\{E(\mathcal O_b\oplus_p m,\widetilde\theta):\ \widetilde\theta_j=(\theta_b^{\uparrow(r)})_j\ \forall j\notin W_r\right\}\).
+
+The transfer map is \(\mathcal T(\mathfrak b,\mathrm{stop})=\mathfrak b'\) with \(\mathcal H_{b'}=\mathcal H_b\), \(\mathcal O_{b'}=\mathcal O_b\), \(\theta_{b'}=\theta_b\), \(E_{b'}=E_b\), \(d_{b'}=d_b\), \(S_{b'}^{\mathrm{cum}}=S_b^{\mathrm{cum}}\), \(K_{b'}^{\mathrm{cum}}=K_b^{\mathrm{cum}}\), \(\mathrm{status}_{b'}=\mathrm{terminal}\), and \(\mathrm{term}_{b'}=\begin{cases} \mathrm{empty},&\mathcal A_b=\varnothing,\\ \mathrm{stop},&\mathcal A_b\neq\varnothing. \end{cases}\) For \(r=(m,p)\), \(\mathcal T(\mathfrak b,r)=\mathfrak b'\) with \(\mathcal O_{b'}=\operatorname{Insert}(\mathcal O_b,m,p)\), \(\theta_{b'}=\operatorname{Refit}_{W_r}(\theta_b;r)\), \(\mathcal H_{b'}=(\mathcal H_b,r)\), \(E_{b'}=E(\theta_{b'};\mathcal O_{b'})\), \(d_{b'}=d_b+1\), \(S_{b'}^{\mathrm{cum}}=S_b^{\mathrm{cum}}+S_3(r;\mathfrak b)\), \(K_{b'}^{\mathrm{cum}}=K_b^{\mathrm{cum}}+K_3(r;\mathfrak b)\), \(\mathrm{status}_{b'}=\begin{cases} \mathrm{terminal},&d_{b'}\ge d_{\max}\ \text{or}\ \mathcal A_{b'}=\varnothing,\\ \mathrm{frontier},&d_{b'}<d_{\max}\ \text{and}\ \mathcal A_{b'}\neq\varnothing, \end{cases}\), and \(\mathrm{term}_{b'}=\begin{cases} \mathrm{depth\_cap},&d_{b'}\ge d_{\max},\\ \mathrm{empty},&d_{b'}<d_{\max}\ \text{and}\ \mathcal A_{b'}=\varnothing,\\ \varnothing,&d_{b'}<d_{\max}\ \text{and}\ \mathcal A_{b'}\neq\varnothing. \end{cases}\)
+where \(\mathcal A_{b'}\) is recomputed from step (i) on the child branch itself. So a non-stop child is exactly one more ADAPT admission applied to the parent scaffold, followed by the inherited-window refit already defined above, and its cumulative \(K\)-coordinate is updated by the admitted branch-local Phase-3 selector burden \(K_3(r;\mathfrak b)\). If \(\mathcal A_b=\varnothing\), then \(\mathcal Q(b)=\{\mathrm{stop}\}\) and the branch contributes only a terminal child.
+
+\textbf{(iii) Classify, deduplicate, and prune the scaffold children.}
+The frontier and terminal descendants of branch \(b\) are \(\mathfrak C_b^{\mathrm{front}}=\{\mathfrak b' : \mathfrak b'=\mathcal T(\mathfrak b,r),\ r\in\mathcal A_b,\ \mathrm{status}_{b'}=\mathrm{frontier}\}\) and \(\mathfrak C_b^{\mathrm{term}}=\{\mathfrak b' : \mathfrak b'=\mathcal T(\mathfrak b,q),\ q\in\mathcal Q(b),\ \mathrm{status}_{b'}=\mathrm{terminal}\}\). Two branches are treated as duplicates when they represent the same scaffold and essentially the same refit point, for example under the fingerprint \(\operatorname{rnd}_{10}(x):=10^{-10}\operatorname{round}(10^{10}x)\), \(\operatorname{round}_{10}(\theta_b):=\bigl(\operatorname{rnd}_{10}(\theta_{b,1}),\dots,\operatorname{rnd}_{10}(\theta_{b,n_b})\bigr)\), and \(\mathrm{fp}(\mathfrak b)=\bigl(d_b,\operatorname{labels}(\mathcal O_b),\operatorname{round}_{10}(\theta_b)\bigr)\). Among near-equivalent branches, keep the one with best lexicographic prune key \(\pi_{\mathrm{prune}}(\mathfrak b)=\bigl(E_b,-S_b^{\mathrm{cum}},K_b^{\mathrm{cum}},|\mathcal O_b|,\operatorname{labels}(\mathcal O_b),\operatorname{round}_{10}(\theta_b),\operatorname{id}_b\bigr)\).
+
+The beam operators are therefore \(\operatorname{Dedup}(\mathcal X)=\{\text{best branch per fingerprint under }\pi_{\mathrm{prune}}\}\) and \(\operatorname{Prune}(\mathcal X;B)=\operatorname{Top}^{\min}_B\!\left(\pi_{\mathrm{prune}};\operatorname{Dedup}(\mathcal X)\right)\). Hence the live and terminal pools update by \(\mathfrak F_{c+1}=\operatorname{Prune}\!\left(\bigcup_{b\in\mathfrak F_c}\mathfrak C_b^{\mathrm{front}};B_{\mathrm{live}}\right)\) and \(\mathfrak T_{c+1}=\operatorname{Prune}\!\left(\mathfrak T_c\cup\bigcup_{b\in\mathfrak F_c}\mathfrak C_b^{\mathrm{term}};B_{\mathrm{term}}\right)\).
+
+\textbf{(iv) Choose the final scaffold branch.}
+After \(C\) scaffold-beam rounds, the surviving candidate set is \(\mathfrak W_{\mathrm{final}}=\mathfrak F_C\cup\mathfrak T_C\), and the effective beam selector is \(\mathfrak b_*=\arg\min_{\mathfrak b\in\mathfrak W_{\mathrm{final}}}\pi_{\mathrm{prune}}(\mathfrak b)\).
 
 A compact scaffold-beam algorithm block is therefore
-$$
+\[
 \begin{aligned}
 \text{A: }&
 \mathfrak F_0=\{\mathfrak b_{\mathrm{root}}\},
@@ -2590,8 +2011,6 @@ $$
 \mathfrak T_0=\varnothing,\\
 \text{B: }&
 \mathcal R_b^{\mathrm{raw}}
-\to
-\mathcal C_{\mathrm{cheap}}(\mathfrak b)
 \to
 \mathcal S_3(\mathfrak b)
 \to
@@ -2604,11 +2023,11 @@ $$
 \text{D: }&
 \mathfrak C_b^{\mathrm{front}}
 =
-\{\mathfrak b'\in\mathfrak C_b:\sigma_{b'}=\mathrm{frontier}\},
+\{\mathfrak b'\in\mathfrak C_b:\mathrm{status}_{b'}=\mathrm{frontier}\},
 \qquad
 \mathfrak C_b^{\mathrm{term}}
 =
-\{\mathfrak b'\in\mathfrak C_b:\sigma_{b'}=\mathrm{terminal}\},\\
+\{\mathfrak b'\in\mathfrak C_b:\mathrm{status}_{b'}=\mathrm{terminal}\},\\
 \text{E: }&
 \mathfrak F_{c+1}
 =
@@ -2620,63 +2039,15 @@ $$
 \text{F: }&
 \mathfrak W_{\mathrm{final}}=\mathfrak F_C\cup\mathfrak T_C,
 \qquad
-\mathfrak b_*=\arg\min_{\mathfrak b\in\mathfrak W_{\mathrm{final}}}\kappa_{\mathrm{prune}}(\mathfrak b).
+\mathfrak b_*=\arg\min_{\mathfrak b\in\mathfrak W_{\mathrm{final}}}\pi_{\mathrm{prune}}(\mathfrak b).
 \end{aligned}
-$$
+\]
 
-In words: each round keeps several scaffold alternatives alive, recomputes the local cumulative Phase-3 screening chain on each surviving scaffold, branches by admitting one additional generator or stopping, deduplicates nearly equivalent descendants, prunes back to the beam budgets, and finally returns the best surviving scaffold under the lexicographic selector key.
+## 11.6 Active HH pool surface and selected scaffold
+Identify the nested active HH pool with the retained generator images by \(\Omega_{\mathrm{HH}}^{(k)}:=\mathcal G^{(k)}\) for \(k\in\{1,2,3\}\). The active HH adaptive surface is therefore carried by \(\Omega_{\mathrm{HH}}^{(3)}\subseteq\Omega_{\mathrm{HH}}^{(2)}\subseteq\Omega_{\mathrm{HH}}^{(1)}\), with \(\mathcal G_{\mathrm{adapt}}^{(k)}=\{\tau_m\}_{m\in\Omega_{\mathrm{HH}}^{(k)}}\).
 
-The separate time-dynamics / projected-dynamics beam surface, with checkpoint advances, probe rollouts, and integrated residual objectives, is developed later in §17.
+If beam continuation is used, set \(\mathcal O_*:=\mathcal O_{\mathfrak b_*}\) and \(\theta_*^{\mathrm{adapt}}:=\theta_{\mathfrak b_*}\); otherwise \((\mathcal O_*,\theta_*^{\mathrm{adapt}})\) denotes the final admitted scaffold and its refit amplitudes on the main branch. The resulting state is \(|\psi_*\rangle=U(\theta_*^{\mathrm{adapt}};\mathcal O_*)|\phi_0\rangle\), so the active HH scaffold manifold selected by ADAPT may be written as \(\mathcal M_{\mathrm{scaf}}(\mathcal O_*)=\{\,U(\vartheta;\mathcal O_*)|\phi_0\rangle:\vartheta\in\mathbb R^{|\mathcal O_*|}\,\}\).
 
-## 11.5 Active HH pool surface and selected scaffold
-
-The active HH adaptive surface is carried by the nested pool family
-$$
-\Omega_{\mathrm{HH}}^{(3)}\subseteq\Omega_{\mathrm{HH}}^{(2)}\subseteq\Omega_{\mathrm{HH}}^{(1)},
-\qquad
-\mathcal G_{\mathrm{adapt}}^{(k)}=\{\tau_m\}_{m\in\Omega_{\mathrm{HH}}^{(k)}}.
-$$
-The adaptive output is the selected scaffold
-$$
-\mathcal O_*=(\tau_{m_1},\dots,\tau_{m_d}),
-\qquad
-\tau_{m_j}\in\mathcal G_{\mathrm{adapt}}^{(3)},
-$$
-together with its fitted amplitude vector and resulting state,
-$$
-(\mathcal O_*,\theta_*^{\mathrm{adapt}},|\psi_*\rangle),
-\qquad
-|\psi_*\rangle=U(\theta_*^{\mathrm{adapt}};\mathcal O_*)|\phi_0\rangle.
-$$
-Thus the active HH scaffold manifold selected by ADAPT may be written as
-$$
-\mathcal M_{\mathrm{scaf}}(\mathcal O_*)
-=
-\{\,U(\vartheta;\mathcal O_*)|\phi_0\rangle:\vartheta\in\mathbb R^{|\mathcal O_*|}\,\}.
-$$
-The obsolete historical warm-start $\to$ refine $\to$ ADAPT $\to$ replay chain is no longer part of the mainline symbolic flow and is recorded only in Appendix A.2.
-
-## 11.6 Stage controller
-
-Let the absolute error and its depth-to-depth improvement be
-$$
-\begin{aligned}
-\Delta_d^{\mathrm{abs}}&=|E_d-E_{\mathrm{exact}}|,\\
-\rho_d&=\Delta_{d-1}^{\mathrm{abs}}-\Delta_d^{\mathrm{abs}}=|E_{d-1}-E_{\mathrm{exact}}|-|E_d-E_{\mathrm{exact}}|.
-\end{aligned}
-$$
-A compact stage-controller surface is then
-$$
-\begin{aligned}
-n_d^{\mathrm{small}}
-&=\sum_{\ell=\max\{1,d-M+1\}}^d \mathbf 1\!\bigl(\rho_\ell\le\tau_{\mathrm{drop}}\bigr),\\
-\text{continue}
-&\iff d<d_{\min}\ \text{or}\ n_d^{\mathrm{small}}<M,\\
-\text{handoff/stop}
-&\iff d\ge d_{\min}\ \text{and}\ n_d^{\mathrm{small}}=M.
-\end{aligned}
-$$
-Gradient floors remain secondary diagnostics rather than the primary stop signal.
 
 # 12. SPSA and Optimizer Semantics
 
@@ -2730,382 +2101,1548 @@ Two standard return policies are:
 
 Stochastic inner optimizers are especially natural for large, noisy, or nondifferentiable effective surfaces, while deterministic optimizers are often effective on smaller and smoother fixed-structure manifolds.
 
-# 13. Drive, Exact Propagation, and Propagator Semantics
+# 17A. Projective McLachlan Real-Time Dynamics and Exact-Forecast Checkpoint-Adaptive Snake Control
 
-## 13.1 Static drive labels and time-dependent coefficients
+The canonical real-time law is piecewise smooth in physical time and piecewise discrete in scaffold structure. On each open checkpoint interval the scaffold is frozen and the state follows the projective McLachlan projection of the sampled Schrödinger drift. At the checkpoint itself one chooses exactly one structural action: keep the scaffold, append one new ordered block, or delete one old block. In what follows, each object is defined once, the main quantities are expanded linearly down to the operator/expectation-value primitives, and the condensed shorthand is given only after the fully expanded form has already appeared.
 
-Let $\mathcal L_{\mathrm{drive}}$ denote the fixed set of density operators appearing in the drive. Then the drive always has the form
+The driven $L=2$ controller printed at the front of this manuscript is one calibrated instance of the law below, but the formulas are written for a general scaffold length, a general driven Hamiltonian, a general finite forecast horizon, and a general left/midpoint/right drive-sampling rule.
+
+## 17A.1 Fixed-scaffold projective McLachlan geometry
+
+Here $n_k:=|\mathcal O_k|$ is the current scaffold length, $d:=\dim\mathcal H$ is the Hilbert-space dimension, $a\in\{1,\dots,d\}$ is the Hilbert-space row index, and $i,j\in\{1,\dots,n_k\}$ are scaffold-coordinate indices. The quantities introduced in this subsection are the scaffold state, its projected tangents, the projected Schrödinger drift, the tangent metric, the force vector, the regularized normal matrix, the quadratic McLachlan fit, and the projected velocity on the frozen scaffold.
+
 $$
-\hat H_{\mathrm{drive}}(t)=\sum_{\lambda\in\mathcal L_{\mathrm{drive}}} c_\lambda(t) P_\lambda,
-$$
-with fixed labels $P_\lambda$ and time-dependent coefficients $c_\lambda(t)$.
-
-## 13.2 Reference coefficient map
-
-For a site-density drive,
-$$
-\Delta c[Z_{p(i,\uparrow)}](t)=\Delta c[Z_{p(i,\downarrow)}](t)=-\frac{1}{2}v_i(t),
-$$
-and the identity shift is
-$$
-\Delta c[I](t)=\sum_i v_i(t)
-$$
-if one chooses to retain the scalar offset explicitly.
-
-## 13.3 Propagator surfaces
-
-A common propagator menu is:
-
-- second-order Suzuki,
-- piecewise exact propagation,
-- fourth-order CFQM,
-- sixth-order CFQM.
-
-For CFQM methods, the key mathematical point is that the stage times are fixed scheme nodes $c_j$, so a macro-step from $t_n$ to $t_{n+1}=t_n+\Delta t$ samples the Hamiltonian at
-$$
-t_n+c_j\Delta t,
-$$
-not at a left, midpoint, or right rule chosen independently.
-
-## 13.4 Reference propagator versus reported trajectory propagator
-
-Write the reported propagator as $U_{\mathrm{traj}}(t)$ and the high-accuracy reference propagator as $U_{\mathrm{ref}}(t)$. These need not be the same approximation.
-
-### 13.4.1 Static reference branch
-
-In the static case, one may take
-$$
-U_{\mathrm{ref}}(t)=e^{-it\hat H}.
-$$
-
-### 13.4.2 Drive-enabled reference branch
-
-For time-dependent $\hat H(t)$, a refined piecewise-constant reference is
-$$
-U_{\mathrm{ref}}(t_{n+1},t_n) \approx e^{-i\Delta t\hat H(t_n^*)},
-$$
-with $t_n^*$ sampled on a refined grid and the full reference obtained as an ordered product over the refined slices.
-
-## 13.5 CFQM macro-step mathematics
-
-A generic commutator-free quasi-Magnus macro-step takes the form
-$$
-U_{n+1,n}^{\mathrm{CFQM}} = \prod_{r=1}^{s} \exp\!\left[-i a_r \Delta t\,\hat H(t_n+c_r\Delta t)\right],
-$$
-with method-specific coefficients $a_r$ and nodes $c_r$. The formal order is achieved when the stage exponentials are themselves treated at the intended accuracy.
-
-## 13.6 Filtered exact manifold and subspace fidelity
-
-Let $\Pi_{\mathrm{sector}}$ denote the projector onto the target symmetry sector. Then the filtered exact energy is
-$$
-E_{\mathrm{exact,filtered}} = \min_{\psi\in\Pi_{\mathrm{sector}}\mathcal H} \langle \psi|\hat H|\psi\rangle,
-$$
-and a sector-aware fidelity may be defined by
-$$
-F_{\mathrm{sector}}(t) = \frac{|\langle \psi_{\mathrm{exact}}(t)|\Pi_{\mathrm{sector}}|\psi(t)\rangle|^2}{\langle \psi(t)|\Pi_{\mathrm{sector}}|\psi(t)\rangle}.
-$$
-
-## 13.7 Branch-resolved observable contracts
-
-If several trajectory branches are carried simultaneously, each observable should be indexed by branch label $b$:
-$$
-\mathcal O_b(t),
+\begin{aligned}
+|\psi_k\rangle
+&:=|\psi(\theta_k;\mathcal O_k)\rangle
+ =U(\theta_k;\mathcal O_k)|\psi_{\mathrm{ref}}\rangle,
 \qquad
-b\in\{\mathrm{var},\mathrm{traj},\mathrm{ref},\mathrm{noisy},\mathrm{ideal}\}.
+U(\theta_k;\mathcal O_k):=\prod_{j=n_k}^{1}e^{-i\theta_{k,j}A_{k,j}},\\[1mm]
+U_{k,>j}
+&:=\prod_{\ell=n_k}^{j+1}e^{-i\theta_{k,\ell}A_{k,\ell}},
+\qquad
+U_{k,<j}:=\prod_{\ell=j-1}^{1}e^{-i\theta_{k,\ell}A_{k,\ell}},
+\qquad
+\widetilde A_{k,j}:=U_{k,>j}A_{k,j}U_{k,>j}^{\dagger},\\[1mm]
+\tau_{k,j}
+&:=\partial_{\theta_{k,j}}|\psi_k\rangle
+ =-iU_{k,>j}A_{k,j}U_{k,<j}|\psi_{\mathrm{ref}}\rangle
+ =-i\widetilde A_{k,j}|\psi_k\rangle,\\[1mm]
+\bar\tau_{k,j}
+&:=\tau_{k,j}-\langle\psi_k,\tau_{k,j}\rangle|\psi_k\rangle
+ =Q_{\psi_k}\tau_{k,j}
+ =-i\bigl(\widetilde A_{k,j}-\langle\widetilde A_{k,j}\rangle_{\psi_k}\bigr)|\psi_k\rangle,
+\qquad
+Q_{\psi_k}:=I-|\psi_k\rangle\langle\psi_k|,\\[1mm]
+\bar T_k
+&:=\bigl[(\bar T_k)_{aj}\bigr]_{a=1,\dots,d}^{\,j=1,\dots,n_k}
+ =\bigl[(\bar\tau_{k,j})_a\bigr]_{a=1,\dots,d}^{\,j=1,\dots,n_k}\\
+&=\left[
+\begin{array}{ccc}
+-i\bigl((\widetilde A_{k,1}-\langle\widetilde A_{k,1}\rangle_{\psi_k})\psi_k\bigr)_1 & \cdots & -i\bigl((\widetilde A_{k,n_k}-\langle\widetilde A_{k,n_k}\rangle_{\psi_k})\psi_k\bigr)_1\\
+\vdots & \ddots & \vdots\\
+-i\bigl((\widetilde A_{k,1}-\langle\widetilde A_{k,1}\rangle_{\psi_k})\psi_k\bigr)_d & \cdots & -i\bigl((\widetilde A_{k,n_k}-\langle\widetilde A_{k,n_k}\rangle_{\psi_k})\psi_k\bigr)_d
+\end{array}
+\right],\\[1mm]
+\bar b_k
+&:=Q_{\psi_k}\bigl(-iH_k^{\sharp}|\psi_k\rangle\bigr)
+ =-i\bigl(H_k^{\sharp}-E_{\psi_k,k}^{\sharp}\bigr)|\psi_k\rangle,
+\qquad
+E_{\psi_k,k}^{\sharp}:=\langle\psi_k|H_k^{\sharp}|\psi_k\rangle,\\[1mm]
+&=\left[
+\begin{array}{c}
+\bigl(-i(H_k^{\sharp}-E_{\psi_k,k}^{\sharp})\psi_k\bigr)_1\\
+\vdots\\
+\bigl(-i(H_k^{\sharp}-E_{\psi_k,k}^{\sharp})\psi_k\bigr)_d
+\end{array}
+\right].
+\end{aligned}
 $$
-Typical observables are energy, density, doublon density, and fidelity.
 
-## 13.8 State import and handoff contract
+The metric, force, regularized system, quadratic fit, and projected velocity are then defined in one chain:
 
-A portable state bundle can be written abstractly as
 $$
-\mathcal B = (\Lambda,\theta,a,E,\mathcal C),
+\begin{aligned}
+G_k
+&:=\bigl[(G_k)_{ij}\bigr]_{i,j=1}^{n_k}
+ =\Re(\bar T_k^{\dagger}\bar T_k)
+ =\left[\Re\!\left(\sum_{a=1}^{d}(\bar T_k)_{ai}^{*}(\bar T_k)_{aj}\right)\right]_{i,j=1}^{n_k}\\
+&=\left[\Re\!\Bigl(\langle\psi_k|\widetilde A_{k,i}\widetilde A_{k,j}|\psi_k\rangle-\langle\widetilde A_{k,i}\rangle_{\psi_k}\langle\widetilde A_{k,j}\rangle_{\psi_k}\Bigr)\right]_{i,j=1}^{n_k},\\[1mm]
+f_k
+&:=\bigl[(f_k)_i\bigr]_{i=1}^{n_k}
+ =\Re(\bar T_k^{\dagger}\bar b_k)
+ =\left[\Re\!\left(\sum_{a=1}^{d}(\bar T_k)_{ai}^{*}(\bar b_k)_a\right)\right]_{i=1}^{n_k}\\
+&=\left[\Re\!\Bigl(\langle\psi_k|\widetilde A_{k,i}H_k^{\sharp}|\psi_k\rangle-\langle\widetilde A_{k,i}\rangle_{\psi_k}E_{\psi_k,k}^{\sharp}\Bigr)\right]_{i=1}^{n_k},\\[1mm]
+K_k
+&:=\bigl[(K_k)_{ij}\bigr]_{i,j=1}^{n_k}
+ =G_k+\Lambda_k
+ =\left[(G_k)_{ij}+(\Lambda_k)_{ij}\right]_{i,j=1}^{n_k}\\
+&=\left[\Re\!\Bigl(\langle\psi_k|\widetilde A_{k,i}\widetilde A_{k,j}|\psi_k\rangle-\langle\widetilde A_{k,i}\rangle_{\psi_k}\langle\widetilde A_{k,j}\rangle_{\psi_k}\Bigr)+(\Lambda_k)_{ij}\right]_{i,j=1}^{n_k},\\[1mm]
+\mathfrak m_k(v)
+&:=\|\bar T_kv-\bar b_k\|_2^2+v^{\top}\Lambda_kv\\
+&=\left\|\sum_{j=1}^{n_k}v_j\bigl[-i(\widetilde A_{k,j}-\langle\widetilde A_{k,j}\rangle_{\psi_k})|\psi_k\rangle\bigr]+i(H_k^{\sharp}-E_{\psi_k,k}^{\sharp})|\psi_k\rangle\right\|_2^2\\
+&=\sum_{i,j=1}^{n_k}v_i(K_k)_{ij}v_j-2\sum_{i=1}^{n_k}v_i(f_k)_i+\langle\psi_k|(H_k^{\sharp}-E_{\psi_k,k}^{\sharp})^2|\psi_k\rangle,\\[1mm]
+\mathcal Q_k(v)
+&:=2v^{\top}f_k-v^{\top}G_kv\\
+&=2\Re\!\left\langle\sum_{j=1}^{n_k}v_j\bigl[-i(\widetilde A_{k,j}-\langle\widetilde A_{k,j}\rangle_{\psi_k})|\psi_k\rangle\bigr],-i(H_k^{\sharp}-E_{\psi_k,k}^{\sharp})|\psi_k\rangle\right\rangle\\
+&\qquad-\left\|\sum_{j=1}^{n_k}v_j\bigl[-i(\widetilde A_{k,j}-\langle\widetilde A_{k,j}\rangle_{\psi_k})|\psi_k\rangle\bigr]\right\|_2^2,\\[1mm]
+\dot\theta_k
+&:=K_k^{+}f_k\\
+&=\left(\left[\Re\!\Bigl(\langle\psi_k|\widetilde A_{k,i}\widetilde A_{k,j}|\psi_k\rangle-\langle\widetilde A_{k,i}\rangle_{\psi_k}\langle\widetilde A_{k,j}\rangle_{\psi_k}\Bigr)+(\Lambda_k)_{ij}\right]_{i,j=1}^{n_k}\right)^{+}
+\left[\Re\!\Bigl(\langle\psi_k|\widetilde A_{k,i}H_k^{\sharp}|\psi_k\rangle-\langle\widetilde A_{k,i}\rangle_{\psi_k}E_{\psi_k,k}^{\sharp}\Bigr)\right]_{i=1}^{n_k},\\[1mm]
+\operatorname{Var}_{\psi_k}(H_k^{\sharp})
+&:=\|\bar b_k\|_2^2
+ =\langle\psi_k|(H_k^{\sharp}-E_{\psi_k,k}^{\sharp})^2|\psi_k\rangle.
+\end{aligned}
 $$
-where $\Lambda$ is the physical manifest, $\theta$ are variational parameters when available, $a$ is an amplitude map for the working state, $E$ stores energy summaries, and $\mathcal C$ is continuation metadata.
 
-## 13.9 Highest-tier continuation surfaces
+Equivalently, the regularized fixed-scaffold McLachlan solve may be written in condensed form as $K_k\dot\theta_k=f_k$, while the intrinsic unregularized projective optimum is $\dot\theta_k^{\mathrm{proj}}:=G_k^{+}f_k$ with $\mathcal Q_k(\dot\theta_k^{\mathrm{proj}})=f_k^{\top}G_k^{+}f_k$.
 
-At the highest continuation tier, $\mathcal C$ may include split-event summaries, motif data, symmetry diagnostics, replay policy data, and limited branch histories. These are naturally viewed as auxiliary mathematical metadata rather than as part of the operator algebra itself.
+## 17A.2 Piecewise-constant driven Hamiltonian on each checkpoint interval
 
-# 14. Continuation and Handoff Contract
+Here $H_{\mathrm{stat}}$ is the static Pauli polynomial, $H_{\mathrm{drv}}(t)$ is the driven Pauli polynomial, $I_k:=[\tau_k,\tau_{k+1}]$ is the $k$th checkpoint interval, $\Delta\tau_k:=\tau_{k+1}-\tau_k$, $M_k\ge 1$ is the exact-reference micro-step count, and $\sigma_k\in\{0,\tfrac12,1\}$ selects left, midpoint, or right time sampling. The driven Hamiltonian is kept simple and inline:
 
-## 14.1 Handoff state bundle
+$H(t):=H_{\mathrm{stat}}+H_{\mathrm{drv}}(t)=\sum_{\alpha\in\mathcal I_{\mathrm{stat}}}h_{\alpha}P_{\alpha}+\sum_{\beta\in\mathcal I_{\mathrm{drv}}}c_{\beta}(t)P_{\beta}$, $t_k^{\sharp}:=t_0+\tau_k+\sigma_k\Delta\tau_k$, and
+$H_k^{\sharp}:=H(t_k^{\sharp})=\sum_{\alpha\in\mathcal I_{\mathrm{stat}}}h_{\alpha}P_{\alpha}+\sum_{\beta\in\mathcal I_{\mathrm{drv}}}c_{\beta}(t_k^{\sharp})P_{\beta}$.
 
-A handoff bundle may contain:
+With this sampled Hamiltonian, the force entries of §17A.1 become
+$(f_k)_i=\sum_{\alpha\in\mathcal I_{\mathrm{stat}}}h_{\alpha}\Re\langle\bar\tau_{k,i},-iP_{\alpha}\psi_k\rangle+\sum_{\beta\in\mathcal I_{\mathrm{drv}}}c_{\beta}(t_k^{\sharp})\Re\langle\bar\tau_{k,i},-iP_{\beta}\psi_k\rangle$, while $G_k$ is unchanged because it depends only on tangent overlaps. For the refined exact reference path one sets $\delta\tau_k:=\Delta\tau_k/M_k$, $t_{k,\mu}^{\sharp}:=t_0+\tau_k+(\mu+\sigma_k)\delta\tau_k$, $H_{k,\mu}^{\sharp}:=H(t_{k,\mu}^{\sharp})$, and $|\psi_{k,\mu+1}^{\mathrm{ex}}\rangle:=\exp\bigl(-i\delta\tau_k H_{k,\mu}^{\sharp}\bigr)|\psi_{k,\mu}^{\mathrm{ex}}\rangle$. Thus midpoint sampling is simply the special case $\sigma_k=\tfrac12$.
 
-- the parameter manifest $\Lambda$,
-- the current energy summary,
-- the normalized statevector amplitudes,
-- an exact comparison target,
-- optional continuation metadata.
+## 17A.3 Residual geometry and local inadequacy of the scaffold
 
-One convenient symbolic amplitude map is
+This subsection measures how much of the sampled horizontal Schrödinger drift is not captured by the current scaffold tangent plane. The main quantities are the regularized residual $\bar r_k$, the realized step defect $\epsilon_{\mathrm{step},k}$, the intrinsic projective defect $\epsilon_{\mathrm{proj},k}$, and the normalized miss ratio $\rho_{\mathrm{miss},k}$.
+
 $$
-\{b_{N_q-1}\cdots b_0 \mapsto (\Re a_b,\Im a_b)\}.
+\begin{aligned}
+\bar r_k
+&:=\bar T_k\dot\theta_k-\bar b_k\\
+&=\sum_{j=1}^{n_k}(\dot\theta_k)_j\bigl[-i(\widetilde A_{k,j}-\langle\widetilde A_{k,j}\rangle_{\psi_k})|\psi_k\rangle\bigr]+i(H_k^{\sharp}-E_{\psi_k,k}^{\sharp})|\psi_k\rangle,\\[1mm]
+\epsilon_{\mathrm{step},k}^2
+&:=\|\bar r_k\|_2^2\\
+&=\left\|\sum_{j=1}^{n_k}(\dot\theta_k)_j\bigl[-i(\widetilde A_{k,j}-\langle\widetilde A_{k,j}\rangle_{\psi_k})|\psi_k\rangle\bigr]+i(H_k^{\sharp}-E_{\psi_k,k}^{\sharp})|\psi_k\rangle\right\|_2^2,\\[1mm]
+\epsilon_{\mathrm{proj},k}^2
+&:=\min_{v\in\mathbb R^{n_k}}\|\bar T_kv-\bar b_k\|_2^2\\
+&=\operatorname{Var}_{\psi_k}(H_k^{\sharp})-\sum_{i,j=1}^{n_k}(f_k)_i(G_k^{+})_{ij}(f_k)_j\\
+&=\langle\psi_k|(H_k^{\sharp}-E_{\psi_k,k}^{\sharp})^2|\psi_k\rangle
+-\sum_{i,j=1}^{n_k}\Re\!\Bigl(\langle\psi_k|\widetilde A_{k,i}H_k^{\sharp}|\psi_k\rangle-\langle\widetilde A_{k,i}\rangle_{\psi_k}E_{\psi_k,k}^{\sharp}\Bigr)
+(G_k^{+})_{ij}\\
+&\qquad\qquad\times\Re\!\Bigl(\langle\psi_k|\widetilde A_{k,j}H_k^{\sharp}|\psi_k\rangle-\langle\widetilde A_{k,j}\rangle_{\psi_k}E_{\psi_k,k}^{\sharp}\Bigr),\\[1mm]
+\rho_{\mathrm{miss},k}
+&:=\frac{\epsilon_{\mathrm{proj},k}^2}{\operatorname{Var}_{\psi_k}(H_k^{\sharp})+\varepsilon}\\
+&=\frac{\langle\psi_k|(H_k^{\sharp}-E_{\psi_k,k}^{\sharp})^2|\psi_k\rangle
+-\sum_{i,j=1}^{n_k}\Re\!\Bigl(\langle\psi_k|\widetilde A_{k,i}H_k^{\sharp}|\psi_k\rangle-\langle\widetilde A_{k,i}\rangle_{\psi_k}E_{\psi_k,k}^{\sharp}\Bigr)(G_k^{+})_{ij}\Re\!\Bigl(\langle\psi_k|\widetilde A_{k,j}H_k^{\sharp}|\psi_k\rangle-\langle\widetilde A_{k,j}\rangle_{\psi_k}E_{\psi_k,k}^{\sharp}\Bigr)}{\langle\psi_k|(H_k^{\sharp}-E_{\psi_k,k}^{\sharp})^2|\psi_k\rangle+\varepsilon}.
+\end{aligned}
 $$
 
-## 14.2 Continuation block
+After this fully expanded form one may use the shorthand $\rho_{\mathrm{miss},k}$ alone.
 
-The continuation payload can be treated abstractly as
+## 17A.4 Checkpoint-local decision surfaces and calmness gate
+
+The projected differential law determines motion only while the scaffold is frozen; it does not decide whether the scaffold itself should change. The checkpoint law does. Here $x\in\mathbb R^{m}$ and $y\in\mathbb R^{n}$ are coordinate vectors of possibly different lengths, $r:=\min(m,n)$ is their overlap length, $\dot\theta_{k-1}^{\mathrm{acc}}$ is the previously accepted checkpoint velocity after zero padding to the current coordinate length, and $\tau_{\mathrm{calm}}^{\cos},\tau_{\mathrm{calm}}^{\mathrm{rate}},\tau_{\mathrm{miss}},\tau_{\mathrm{pr}}>0$ are the calmness and miss thresholds.
+
 $$
-\mathcal C = (m,\mathcal S,\mathcal M_{\mathrm{opt}},\Gamma,\Sigma,\mathcal L,\mathcal U,\Xi,\mathcal R,\mathcal P),
+\begin{aligned}
+\|x-y\|_{\mathrm{ov}}^2
+&:=\sum_{j=1}^{r}(x_j-y_j)^2+\sum_{j=r+1}^{m}x_j^2+\sum_{j=r+1}^{n}y_j^2,\\[1mm]
+c_k^{\mathrm{dir}}
+&:=\frac{\langle \dot\theta_k,\dot\theta_{k-1}^{\mathrm{acc}}\rangle}{\max\{\|\dot\theta_k\|_2\,\|\dot\theta_{k-1}^{\mathrm{acc}}\|_2,\varepsilon\}},
+\qquad
+\eta_k^{\mathrm{rate}}:=\frac{\|\dot\theta_k-\dot\theta_{k-1}^{\mathrm{acc}}\|_{\mathrm{ov}}}{\max\{\|\dot\theta_k\|_2,\|\dot\theta_{k-1}^{\mathrm{acc}}\|_2,\varepsilon\}},\\[1mm]
+\mathfrak C_k
+&:=\mathbf 1\bigl[c_k^{\mathrm{dir}}\ge \tau_{\mathrm{calm}}^{\cos}\bigr]\,\mathbf 1\bigl[\eta_k^{\mathrm{rate}}\le \tau_{\mathrm{calm}}^{\mathrm{rate}}\bigr],\\[1mm]
+\mathcal U_k^{\mathrm{stay}}
+&:=\{(\mathrm{stay},p,a):p\in\mathcal P_k^{\mathrm{stay}},\ a\in\mathcal A_k\},
+\qquad
+\mathcal U_k^{\mathrm{app}}:=\{(\mathrm{append},r,a):r\in\mathcal R_k^{\mathrm{conf}},\ a\in\mathcal A_k\},\\[1mm]
+\nu_k^{\star}
+&:=\begin{cases}
+\displaystyle \arg\min_{u\in\mathcal U_k^{\mathrm{stay}}\cup\mathcal U_k^{\mathrm{app}}}\mathcal J_k^{\mathrm{forecast}}(u),&\rho_{\mathrm{miss},k}>\tau_{\mathrm{miss}},\\[2mm]
+\text{best admissible prune of §17A.9 or stay},&\rho_{\mathrm{miss},k}\le \tau_{\mathrm{pr}}\text{ and }\mathfrak C_k=1,\\[1mm]
+\mathrm{stay},&\text{otherwise.}
+\end{cases}
+\end{aligned}
 $$
-where:
 
-- $m$ is the continuation mode,
-- $\mathcal S$ is inherited manifold-structure data,
-- $\mathcal M_{\mathrm{opt}}$ is auxiliary optimizer state,
-- $\Gamma$ is selected-generator metadata,
-- $\Sigma$ is split-event data,
-- $\mathcal L$ is a motif library,
-- $\mathcal U$ is motif usage,
-- $\Xi$ is symmetry information,
-- $\mathcal R$ is rescue or recovery history,
-- $\mathcal P$ is optional historical replay-policy metadata when such provenance is still being carried.
+Thus the miss-dominant regime compares stay and append through the forecast score, the low-miss calm regime opens prune, and all other cases reduce to stay.
 
-When controller forecast telemetry is persisted, quantities such as $D_{\mathrm{left}}(t)$, $\widehat N_{\mathrm{rem}}(t)$, and $H_t$ belong naturally to this policy/provenance layer. They remain heuristic controller state rather than operator-level observables.
+## 17A.5 Position-aware append geometry and confirm-grade gain
 
-## 14.3 General handoff map
+An append move is a record $r=(m,p)$ rather than a bare generator because the new block is inserted at a definite ordered position. Let $m_r$ denote the number of new coordinates carried by the appended block, let $\eta=(\eta_1,\dots,\eta_{m_r})$ denote those new coordinates, let $\vartheta=(\theta,\eta)$ denote the augmented coordinate vector, and let $\eta=0$ at the append instant. The physical state therefore does not jump at the checkpoint, but the tangent plane acquires new columns. The append gain comes from solving the augmented McLachlan normal system and eliminating the old coordinates exactly.
 
-Let $\mathcal H_{A\to B}$ be a handoff map from source manifold $\mathcal M_A$ to target manifold $\mathcal M_B$:
 $$
-\mathcal H_{A\to B}: (|\psi_A\rangle,\theta_A,\mathcal C_A) \mapsto (|\psi_B^{(0)}\rangle,\theta_B^{(0)},\mathcal C_B).
+\begin{aligned}
+\bar U_{r,k}
+&:=\bigl[(\bar U_{r,k})_{sa}\bigr]_{s=1,\dots,d}^{\,a=1,\dots,m_r}
+ =\bigl[(Q_{\psi_k}\partial_{\eta_a}|\psi(\theta_k,\eta;\mathcal O_k^{+}(r))\rangle\vert_{\eta=0})_s\bigr]_{s=1,\dots,d}^{\,a=1,\dots,m_r}\\
+&=\left[
+\begin{array}{ccc}
+(\bar u_{r,1})_1 & \cdots & (\bar u_{r,m_r})_1\\
+\vdots & \ddots & \vdots\\
+(\bar u_{r,1})_d & \cdots & (\bar u_{r,m_r})_d
+\end{array}
+\right],\\[1mm]
+B_{r,k}
+&:=\bigl[(B_{r,k})_{ia}\bigr]_{i=1,\dots,n_k}^{\,a=1,\dots,m_r}
+ =\Re(\bar T_k^{\dagger}\bar U_{r,k})
+ =\left[\Re\!\left(\sum_{s=1}^{d}(\bar T_k)_{si}^{*}(\bar U_{r,k})_{sa}\right)\right]_{i=1,\dots,n_k}^{\,a=1,\dots,m_r},\\[1mm]
+C_{r,k}
+&:=\bigl[(C_{r,k})_{ab}\bigr]_{a,b=1}^{m_r}
+ =\Re(\bar U_{r,k}^{\dagger}\bar U_{r,k})
+ =\left[\Re\!\left(\sum_{s=1}^{d}(\bar U_{r,k})_{sa}^{*}(\bar U_{r,k})_{sb}\right)\right]_{a,b=1}^{m_r},\\[1mm]
+q_{r,k}
+&:=\bigl[(q_{r,k})_{a}\bigr]_{a=1}^{m_r}
+ =\Re(\bar U_{r,k}^{\dagger}\bar b_k)
+ =\left[\Re\!\left(\sum_{s=1}^{d}(\bar U_{r,k})_{sa}^{*}(\bar b_k)_s\right)\right]_{a=1}^{m_r},\\[1mm]
+\mathfrak m_{r,k}(v,\xi)
+&:=\|\bar T_kv+\bar U_{r,k}\xi-\bar b_k\|_2^2+v^{\top}\Lambda_kv+\xi^{\top}\Lambda_r\xi\\
+&=\begin{bmatrix}v\\ \xi\end{bmatrix}^{\!\top}
+\begin{bmatrix}K_k & B_{r,k}\\ B_{r,k}^{\top} & C_{r,k}+\Lambda_r\end{bmatrix}
+\begin{bmatrix}v\\ \xi\end{bmatrix}
+-2\begin{bmatrix}v\\ \xi\end{bmatrix}^{\!\top}\begin{bmatrix}f_k\\ q_{r,k}\end{bmatrix}
++\langle\psi_k|(H_k^{\sharp}-E_{\psi_k,k}^{\sharp})^2|\psi_k\rangle,\\[1mm]
+\begin{bmatrix}\dot\theta_{r,k}^{\mathrm{old}}\\ \dot\eta_{r,k}\end{bmatrix}
+&:=\begin{bmatrix}K_k & B_{r,k}\\ B_{r,k}^{\top} & C_{r,k}+\Lambda_r\end{bmatrix}^{+}\begin{bmatrix}f_k\\ q_{r,k}\end{bmatrix},
+\qquad
+v^{\star}(\xi):=K_k^{+}(f_k-B_{r,k}\xi),\\[1mm]
+\mathfrak m_{r,k}(v^{\star}(\xi),\xi)
+&=\langle\psi_k|(H_k^{\sharp}-E_{\psi_k,k}^{\sharp})^2|\psi_k\rangle-f_k^{\top}K_k^{+}f_k+\xi^{\top}S_{r,k}\xi-2\xi^{\top}w_{r,k},\\[1mm]
+w_{r,k}
+&:=q_{r,k}-B_{r,k}^{\top}K_k^{+}f_k\\
+&=\left[\Re\!\left(\sum_{s=1}^{d}(\bar U_{r,k})_{sa}^{*}(\bar b_k)_s\right)-\sum_{i=1}^{n_k}(B_{r,k})_{ia}(K_k^{+}f_k)_i\right]_{a=1}^{m_r},\\[1mm]
+S_{r,k}
+&:=C_{r,k}+\Lambda_r-B_{r,k}^{\top}K_k^{+}B_{r,k}\\
+&=\left[(C_{r,k})_{ab}+(\Lambda_r)_{ab}-\sum_{i,j=1}^{n_k}(B_{r,k})_{ia}(K_k^{+})_{ij}(B_{r,k})_{jb}\right]_{a,b=1}^{m_r},\\[1mm]
+\Delta_{r,k}^{\mathrm{exact}}
+&:=w_{r,k}^{\top}S_{r,k}^{+}w_{r,k}\\
+&=(q_{r,k}-B_{r,k}^{\top}K_k^{+}f_k)^{\top}(C_{r,k}+\Lambda_r-B_{r,k}^{\top}K_k^{+}B_{r,k})^{+}(q_{r,k}-B_{r,k}^{\top}K_k^{+}f_k),\\[1mm]
+\rho_{r,k}^{\mathrm{gain}}
+&:=\frac{\Delta_{r,k}^{\mathrm{exact}}}{\langle\psi_k|(H_k^{\sharp}-E_{\psi_k,k}^{\sharp})^2|\psi_k\rangle+\varepsilon}.
+\end{aligned}
 $$
-The map is intentionally abstract here: it records state, coordinates, and continuation payload transfer between manifolds without committing the main body to any obsolete replay-specific burn-in policy.
 
-## 14.4 Symmetry and tier-three payload note
-
-Symmetry information belongs in the handoff if later stages will use it for validation, postselection, or projector-renormalized estimation. Mathematically, the carried object is a projector or a list of commuting symmetry generators.
-
-## 14.5 Historical warm/refine chain note
-
-The obsolete warm-start $\to$ refine $\to$ ADAPT $\to$ replay path is kept only in Appendix A.2 and is not part of the active main-body symbolic contract.
-
-# 15. Cross-Checks and Exact-Benchmark Contracts
-
-## 15.1 Trial matrix by problem family
-
-For the Hubbard model, a natural benchmark trial set is
+The confirm-grade compressed path keeps the same append object and resolves only the old-coordinate contribution on a retained spectral support. If $K_k=V_k\Sigma_k^2V_k^{\top}$ is the supported factorization, $z_k:=\Sigma_k^{-1}V_k^{\top}f_k$, and $\Gamma_{r,k}:=\Sigma_k^{-1}V_k^{\top}B_{r,k}$, then $w_{r,k}=q_{r,k}-\Gamma_{r,k}^{\top}z_k$, the compressed Schur block on a retained mode set $J_r$ is $\widetilde S_{r,k}(J_r):=C_{r,k}+\Lambda_r-\Gamma_{r,k;J_r}^{\top}\Gamma_{r,k;J_r}$, the compressed gain is $\widetilde\Delta_{r,k}(J_r):=(q_{r,k}-\Gamma_{r,k}^{\top}z_k)^{\top}\widetilde S_{r,k}(J_r)^{+}(q_{r,k}-\Gamma_{r,k}^{\top}z_k)$, and with direction penalty $\delta_{r,k}^{\mathrm{dir}}:=\|\dot\vartheta_{r,k}^{\mathrm{aug}}-\dot\theta_{k-1}^{\mathrm{acc}}\|_{\mathrm{ov}}$ the confirm score is
 $$
-\mathcal T_{\mathrm{Hub}} = \{\text{layerwise},\;\text{excitation-based},\;\text{adaptive(exc)},\;\text{adaptive(full-H)}\}.
+\begin{aligned}
+S_{r,k}^{\mathrm{conf}}
+:=\begin{cases}
+\dfrac{(q_{r,k}-B_{r,k}^{\top}K_k^{+}f_k)^{\top}(C_{r,k}+\Lambda_r-B_{r,k}^{\top}K_k^{+}B_{r,k})^{+}(q_{r,k}-B_{r,k}^{\top}K_k^{+}f_k)}{\langle\psi_k|(H_k^{\sharp}-E_{\psi_k,k}^{\sharp})^2|\psi_k\rangle+\varepsilon}-\lambda_{\mathrm{dir}}\,\delta_{r,k}^{\mathrm{dir}}-\lambda_{\mathrm{meas}}g_{r,k}^{\mathrm{new}},&\text{exact confirm},\\[3mm]
+\dfrac{(q_{r,k}-\Gamma_{r,k}^{\top}z_k)^{\top}\widetilde S_{r,k}(J_r)^{+}(q_{r,k}-\Gamma_{r,k}^{\top}z_k)}{\langle\psi_k|(H_k^{\sharp}-E_{\psi_k,k}^{\sharp})^2|\psi_k\rangle+\varepsilon}-\lambda_{\mathrm{dir}}\,\delta_{r,k}^{\mathrm{dir}}-\lambda_{\mathrm{meas}}g_{r,k}^{\mathrm{new}},&\text{compressed confirm}.
+\end{cases}
+\end{aligned}
 $$
-For the HH model, the canonical sector-preserving core set is
-$$
-\mathcal T_{\mathrm{HH}} = \{\text{HH-layerwise},\;\text{HH-physical-termwise},\;\text{adaptive(full-H)}\}.
-$$
-A seed-surface extension can enlarge $\mathcal T_{\mathrm{HH}}$ by adding polaronic refinements built on the same sector-preserving fixed-family surface.
+Thus the confirmed append shortlist is $\mathcal R_k^{\mathrm{conf}}:=\{r:\rho_{r,k}^{\mathrm{gain}}\ge \tau_{\mathrm{gain}},\ S_{r,k}^{\mathrm{conf}}\ge \tau_{\mathrm{conf}}\}$.
 
-## 15.2 Auto-scaled parameter resolution
+## 17A.6 Proposal family for within-scaffold motion
+
+A stay action is a finite family of same-scaffold forecast proposals, not a single velocity. Here $M_k$ is the proposal metric, $I_k^{\mathrm{drv}}\subseteq\{1,\dots,n_k\}$ is the drive-aligned coordinate block, $\mathcal B_k$ is the finite blend-weight set, and $\mathcal A_k=\{a_{k,1},\dots,a_{k,m_k}\}\subset(0,\infty)$ is the finite step-scale set.
+
+$$
+\begin{aligned}
+M_k
+&:=\begin{cases}G_k,&\text{when the tangent metric is used on its supported subspace},\\ I,&\text{otherwise},\end{cases}
+\qquad
+\|v\|_{M_k}:=\sqrt{v^{\top}M_kv},
+\qquad
+\langle x,y\rangle_{M_k}:=x^{\top}M_ky,\\[1mm]
+v_k^{\mathrm{McL}}
+&:=\dot\theta_k,\\[1mm]
+v_{k,\mathrm{drv}}^{\mathrm{cur}}
+&:=\text{the unique vector with }v_{k,\mathrm{drv}}^{\mathrm{cur}}[I_k^{\mathrm{drv}}]=K_k[I_k^{\mathrm{drv}},I_k^{\mathrm{drv}}]^{+}f_k[I_k^{\mathrm{drv}}]\text{ and }v_{k,\mathrm{drv}}^{\mathrm{cur}}[(I_k^{\mathrm{drv}})^{c}]=0,\\[1mm]
+v_{k,\mathrm{drv}}^{\mathrm{next}}
+&:=\text{the unique vector with }v_{k,\mathrm{drv}}^{\mathrm{next}}[I_k^{\mathrm{drv}}]=K_{k+1}^{\sharp}[I_k^{\mathrm{drv}},I_k^{\mathrm{drv}}]^{+}f_{k+1}^{\sharp}[I_k^{\mathrm{drv}}]\text{ and }v_{k,\mathrm{drv}}^{\mathrm{next}}[(I_k^{\mathrm{drv}})^{c}]=0,\\[1mm]
+d_k^{\perp}
+&:=d_k-\dfrac{\langle v_k^{\mathrm{McL}},d_k\rangle_{M_k}}{\|v_k^{\mathrm{McL}}\|_{M_k}^2}v_k^{\mathrm{McL}},
+\qquad
+\widetilde d_k^{\perp}:=\sqrt{\dfrac{\|v_k^{\mathrm{McL}}\|_{M_k}^2}{\|d_k^{\perp}\|_{M_k}^2}}\,d_k^{\perp}\ \text{when }d_k^{\perp}\neq 0,\\[1mm]
+v_{k,\beta}^{\mathrm{blend}}
+&:=\sqrt{\dfrac{\|v_k^{\mathrm{McL}}\|_{M_k}^2}{\|v_k^{\mathrm{McL}}+\beta\widetilde d_k^{\perp}\|_{M_k}^2}}\,(v_k^{\mathrm{McL}}+\beta\widetilde d_k^{\perp}),
+\qquad \beta\in\mathcal B_k,\\[1mm]
+\widehat v
+&:=v/\|v\|_{M_k}\ \text{for }v\neq 0,
+\qquad
+\mathcal P_k^{\mathrm{stay}}\subseteq\{\widehat v_k^{\mathrm{McL}},\widehat v_{k,\mathrm{drv}}^{\mathrm{cur}},\widehat v_{k,\mathrm{drv}}^{\mathrm{next}},\widehat v_{k,\beta}^{\mathrm{blend}},\widehat v_k^{\mathrm{sec}}\},\\[1mm]
+\mathcal U_k^{\mathrm{stay}}
+&:=\{(\mathrm{stay},p,a):p\in\mathcal P_k^{\mathrm{stay}},\ a\in\mathcal A_k\}.
+\end{aligned}
+$$
+
+Thus every stay action is already written as an explicit proposal direction together with an explicit discrete scale.
+
+## 17A.7 Tangent-secant forecast proposal and signed-energy-lead taper
+
+The tangent-secant proposal is the tangent inverse image of the phase-aligned exact one-step secant displacement, followed by a metric trust clip and a signed-energy-lead taper. Here $R_k>0$ is the trust radius and $\eta_E>0$ is the relative energy-lead cap.
+
+$$
+\begin{aligned}
+|\widetilde\psi_{k+1}^{\mathrm{ex}}\rangle
+&:=\exp\bigl(-i\arg\langle\psi_k,\psi_{k+1}^{\mathrm{ex}}\rangle\bigr)|\psi_{k+1}^{\mathrm{ex}}\rangle,\\[1mm]
+\delta_k^{\mathrm{sec}}
+&:=Q_{\psi_k}\bigl(|\widetilde\psi_{k+1}^{\mathrm{ex}}\rangle-|\psi_k\rangle\bigr)
+ =|\widetilde\psi_{k+1}^{\mathrm{ex}}\rangle-|\psi_k\rangle-\langle\psi_k,\widetilde\psi_{k+1}^{\mathrm{ex}}-\psi_k\rangle|\psi_k\rangle,\\[1mm]
+\xi_k^{\mathrm{sec}}
+&:=\Re(\bar T_k^{\dagger}\delta_k^{\mathrm{sec}})
+ =\left[\Re\!\left(\sum_{a=1}^{d}(\bar T_k)_{aj}^{*}(\delta_k^{\mathrm{sec}})_a\right)\right]_{j=1}^{n_k},\\[1mm]
+v_k^{\mathrm{sec}}
+&:=\frac{1}{\Delta\tau_k}K_k^{+}\xi_k^{\mathrm{sec}},
+\qquad
+v_k^{\mathrm{sec}}\leftarrow \min\!\left\{1,\frac{R_k}{\|v_k^{\mathrm{sec}}\|_{M_k}}\right\}v_k^{\mathrm{sec}},\\[1mm]
+b_k^{E}
+&:=E_k^{\mathrm{ctrl}}-E_k^{\mathrm{ex}},
+\qquad
+\Delta E_k^{\mathrm{ex}}:=E_{k+1}^{\mathrm{ex}}-E_k^{\mathrm{ex}},
+\qquad
+\ell_k^{E}:=\bigl[\operatorname{sgn}(\Delta E_k^{\mathrm{ex}})b_k^{E}\bigr]_{+},\\[1mm]
+\chi_k^{E}
+&:=\left[1-\frac{\ell_k^{E}}{\eta_E|\Delta E_k^{\mathrm{ex}}|+\varepsilon}\right]_{+},
+\qquad
+v_k^{\mathrm{sec}}\leftarrow \chi_k^{E}v_k^{\mathrm{sec}}.
+\end{aligned}
+$$
+
+After the fully expanded chain above, one may use $\widehat v_k^{\mathrm{sec}}:=v_k^{\mathrm{sec}}/\|v_k^{\mathrm{sec}}\|_{M_k}$ as shorthand when it is inserted into $\mathcal P_k^{\mathrm{stay}}$.
+
+## 17A.8 Exact-forecast horizon score and stay-append decision law
+
+This subsection defines the forecast functional used when the miss ratio is too large to stay on the current scaffold blindly. The horizon index is $h\in\{1,\dots,H_k\}$, the horizon length is $H_k\ge 1$, the positive horizon weights are $\omega_h$, and $W_k:=\sum_{h=1}^{H_k}\omega_h$. The action $u$ is either a stay action $u=(\mathrm{stay},p,a)$ with $p\in\mathcal P_k^{\mathrm{stay}}$ and $a\in\mathcal A_k$, or an append action $u=(\mathrm{append},r,a)$ with $r=(m,p_{\mathrm{ins}})\in\mathcal R_k^{\mathrm{conf}}$ and $a\in\mathcal A_k$. The nonnegative weights $\lambda_F,\lambda_s,\lambda_D,\lambda_n,\lambda_E,\lambda_{\mathrm{slope}},\lambda_{\mathrm{curv}},\lambda_{\mathrm{under}},\lambda_{\mathrm{over}}$ determine the relative importance of fidelity, staggered density, doublon, site occupations, total energy, and the optional energy-shape and excursion penalties.
+
+A stay forecast keeps the current scaffold and moves along a normalized within-scaffold proposal, while an append forecast lifts to the zero-initialized augmented scaffold and moves along the augmented append velocity. Thus
+$$
+\begin{aligned}
+\theta_{k+h\mid k}^{(\mathrm{stay},p,a)}
+&:=\theta_k+h\,a\,\Delta\tau_k\,p,
+\qquad
+|\psi_{k+h}^{(\mathrm{stay},p,a)}\rangle:=U\bigl(\theta_{k+h\mid k}^{(\mathrm{stay},p,a)};\mathcal O_k\bigr)|\psi_{\mathrm{ref}}\rangle,\\[1mm]
+\vartheta_k^{(r)}&:=(\theta_k,0),
+\qquad
+\vartheta_{k+h\mid k}^{(\mathrm{append},r,a)}:=\vartheta_k^{(r)}+h\,a\,\Delta\tau_k\,\dot\vartheta_{r,k}^{\mathrm{aug}},
+\qquad
+|\psi_{k+h}^{(\mathrm{append},r,a)}\rangle:=U\bigl(\vartheta_{k+h\mid k}^{(\mathrm{append},r,a)};\mathcal O_k^{+}(r)\bigr)|\psi_{\mathrm{ref}}\rangle,\\[1mm]
+|\psi_{k+h}^{\mathrm{ex}}\rangle&:=\text{exact driven reference state at the same future checkpoint time.}
+\end{aligned}
+$$
+
+The tracked observables are the site occupations, the doublon, the staggered density, and the total energy. If $|\phi\rangle=\sum_x\phi_x|x\rangle$, then $b_{j,\sigma}(x)\in\{0,1\}$ is the occupation bit of basis state $|x\rangle$ at site-spin pair $(j,\sigma)$, and
+$$
+\begin{aligned}
+\hat n_j&:=\hat n_{j,\uparrow}+\hat n_{j,\downarrow},
+\qquad
+n_{j,\sigma}[\phi]:=\langle\phi|\hat n_{j,\sigma}|\phi\rangle=\sum_x|\phi_x|^2b_{j,\sigma}(x),
+\qquad
+n_j[\phi]:=\langle\phi|\hat n_j|\phi\rangle=\sum_x|\phi_x|^2\bigl(b_{j,\uparrow}(x)+b_{j,\downarrow}(x)\bigr),\\[1mm]
+\hat D&:=\sum_{j=1}^{L}\hat n_{j,\uparrow}\hat n_{j,\downarrow},
+\qquad
+D[\phi]:=\langle\phi|\hat D|\phi\rangle=\sum_x|\phi_x|^2\sum_{j=1}^{L}b_{j,\uparrow}(x)b_{j,\downarrow}(x),\\[1mm]
+\hat S&:=\frac{1}{L}\sum_{j=1}^{L}(-1)^{j-1}\hat n_j,
+\qquad
+s[\phi]:=\langle\phi|\hat S|\phi\rangle=\frac{1}{L}\sum_{j=1}^{L}(-1)^{j-1}n_j[\phi],\\[1mm]
+E_{k+h}^{\mathrm{ctrl}}(u)&:=\langle\psi_{k+h}^{(u)}|H_{k+h}^{\sharp}|\psi_{k+h}^{(u)}\rangle,
+\qquad
+E_{k+h}^{\mathrm{ex}}:=\langle\psi_{k+h}^{\mathrm{ex}}|H_{k+h}^{\sharp}|\psi_{k+h}^{\mathrm{ex}}\rangle,
+\qquad
+H_{k+h}^{\sharp}:=H(t_{k+h}^{\sharp}).
+\end{aligned}
+$$
+
+From these primitives the first-order forecast discrepancies are defined once by
+$$
+\begin{aligned}
+\varepsilon_{k+h}^{F}(u)
+&:=1-\bigl|\langle\psi_{k+h}^{\mathrm{ex}},\psi_{k+h}^{(u)}\rangle\bigr|^2,\\[1mm]
+\varepsilon_{k+h}^{s}(u)
+&:=\left|\frac{1}{L}\sum_{j=1}^{L}(-1)^{j-1}\bigl(n_j[\psi_{k+h}^{(u)}]-n_j[\psi_{k+h}^{\mathrm{ex}}]\bigr)\right|,\\[1mm]
+\varepsilon_{k+h}^{D}(u)
+&:=\left|\sum_{j=1}^{L}\Bigl(\langle\psi_{k+h}^{(u)}|\hat n_{j,\uparrow}\hat n_{j,\downarrow}|\psi_{k+h}^{(u)}\rangle-\langle\psi_{k+h}^{\mathrm{ex}}|\hat n_{j,\uparrow}\hat n_{j,\downarrow}|\psi_{k+h}^{\mathrm{ex}}\rangle\Bigr)\right|,\\[1mm]
+\varepsilon_{k+h}^{n}(u)
+&:=\max_{1\le j\le L}\bigl|n_j[\psi_{k+h}^{(u)}]-n_j[\psi_{k+h}^{\mathrm{ex}}]\bigr|,\\[1mm]
+\varepsilon_{k+h}^{E}(u)
+&:=\bigl|\langle\psi_{k+h}^{(u)}|H_{k+h}^{\sharp}|\psi_{k+h}^{(u)}\rangle-\langle\psi_{k+h}^{\mathrm{ex}}|H_{k+h}^{\sharp}|\psi_{k+h}^{\mathrm{ex}}\rangle\bigr|.
+\end{aligned}
+$$
+
+The energy-shape corrections compare first and second forward differences of the predicted and exact energy paths, while the excursion corrections compare the signed forecast excursion against a relative exact band. Writing $\varpi_h^{(1)}:=(\omega_h+\omega_{h+1})/2$, $\varpi_h^{(2)}:=(\omega_h+\omega_{h+1}+\omega_{h+2})/3$, and $\varrho_E\in[0,1)$,
+$$
+\begin{aligned}
+\Delta E_{k+h}^{\mathrm{ctrl}}(u)&:=E_{k+h+1}^{\mathrm{ctrl}}(u)-E_{k+h}^{\mathrm{ctrl}}(u),
+\qquad
+\Delta E_{k+h}^{\mathrm{ex}}:=E_{k+h+1}^{\mathrm{ex}}-E_{k+h}^{\mathrm{ex}},\\[1mm]
+\Delta^2E_{k+h}^{\mathrm{ctrl}}(u)&:=E_{k+h+2}^{\mathrm{ctrl}}(u)-2E_{k+h+1}^{\mathrm{ctrl}}(u)+E_{k+h}^{\mathrm{ctrl}}(u),
+\qquad
+\Delta^2E_{k+h}^{\mathrm{ex}}:=E_{k+h+2}^{\mathrm{ex}}-2E_{k+h+1}^{\mathrm{ex}}+E_{k+h}^{\mathrm{ex}},\\[1mm]
+\Xi_k^{\mathrm{shape,slope}}(u)&:=\frac{1}{\sum_h\varpi_h^{(1)}}\sum_h\varpi_h^{(1)}\bigl|\Delta E_{k+h}^{\mathrm{ctrl}}(u)-\Delta E_{k+h}^{\mathrm{ex}}\bigr|,\\[1mm]
+\Xi_k^{\mathrm{shape,curv}}(u)&:=\frac{1}{\sum_h\varpi_h^{(2)}}\sum_h\varpi_h^{(2)}\bigl|\Delta^2E_{k+h}^{\mathrm{ctrl}}(u)-\Delta^2E_{k+h}^{\mathrm{ex}}\bigr|,\\[1mm]
+x_{k+h}^{\mathrm{ctrl}}(u)&:=E_{k+h}^{\mathrm{ctrl}}(u)-E_k^{\mathrm{ctrl}},
+\qquad
+x_{k+h}^{\mathrm{ex}}:=E_{k+h}^{\mathrm{ex}}-E_k^{\mathrm{ex}},
+\qquad
+\Pi_{k+h}^{\mathrm{ctrl}}(u):=\operatorname{sgn}(x_{k+h}^{\mathrm{ex}})x_{k+h}^{\mathrm{ctrl}}(u),\\[1mm]
+L_{k+h}^{\mathrm{ex}}&:=(1-\varrho_E)|x_{k+h}^{\mathrm{ex}}|,
+\qquad
+U_{k+h}^{\mathrm{ex}}:=(1+\varrho_E)|x_{k+h}^{\mathrm{ex}}|,\\[1mm]
+\Xi_k^{\mathrm{exc,under}}(u)&:=\frac{1}{W_k}\sum_{h=1}^{H_k}\omega_h\bigl[L_{k+h}^{\mathrm{ex}}-\Pi_{k+h}^{\mathrm{ctrl}}(u)\bigr]_{+},
+\qquad
+\Xi_k^{\mathrm{exc,over}}(u):=\frac{1}{W_k}\sum_{h=1}^{H_k}\omega_h\bigl[\Pi_{k+h}^{\mathrm{ctrl}}(u)-U_{k+h}^{\mathrm{ex}}\bigr]_{+}.
+\end{aligned}
+$$
+
+The final quantity of interest in the miss-dominant regime is the full horizon score itself, so it is written first in fully expanded primitive form:
+$$
+\begin{aligned}
+\mathcal J_k^{\mathrm{forecast}}(u)
+&:=\frac{1}{W_k}\sum_{h=1}^{H_k}\omega_h\Biggl[
+\lambda_F\Bigl(1-\bigl|\langle\psi_{k+h}^{\mathrm{ex}},\psi_{k+h}^{(u)}\rangle\bigr|^2\Bigr)
++\lambda_s\left|\frac{1}{L}\sum_{j=1}^{L}(-1)^{j-1}\bigl(n_j[\psi_{k+h}^{(u)}]-n_j[\psi_{k+h}^{\mathrm{ex}}]\bigr)\right|\\
+&\qquad\qquad
++\lambda_D\left|\sum_{j=1}^{L}\Bigl(\langle\psi_{k+h}^{(u)}|\hat n_{j,\uparrow}\hat n_{j,\downarrow}|\psi_{k+h}^{(u)}\rangle-\langle\psi_{k+h}^{\mathrm{ex}}|\hat n_{j,\uparrow}\hat n_{j,\downarrow}|\psi_{k+h}^{\mathrm{ex}}\rangle\Bigr)\right|\\
+&\qquad\qquad
++\lambda_n\max_{1\le j\le L}\bigl|n_j[\psi_{k+h}^{(u)}]-n_j[\psi_{k+h}^{\mathrm{ex}}]\bigr|
++\lambda_E\bigl|\langle\psi_{k+h}^{(u)}|H_{k+h}^{\sharp}|\psi_{k+h}^{(u)}\rangle-\langle\psi_{k+h}^{\mathrm{ex}}|H_{k+h}^{\sharp}|\psi_{k+h}^{\mathrm{ex}}\rangle\bigr|\\
+&\qquad\qquad
++\lambda_{\mathrm{under}}\bigl[(1-\varrho_E)|E_{k+h}^{\mathrm{ex}}-E_k^{\mathrm{ex}}|-\operatorname{sgn}(E_{k+h}^{\mathrm{ex}}-E_k^{\mathrm{ex}})(E_{k+h}^{\mathrm{ctrl}}(u)-E_k^{\mathrm{ctrl}})\bigr]_{+}\\
+&\qquad\qquad
++\lambda_{\mathrm{over}}\bigl[\operatorname{sgn}(E_{k+h}^{\mathrm{ex}}-E_k^{\mathrm{ex}})(E_{k+h}^{\mathrm{ctrl}}(u)-E_k^{\mathrm{ctrl}})-(1+\varrho_E)|E_{k+h}^{\mathrm{ex}}-E_k^{\mathrm{ex}}|\bigr]_{+}
+\Biggr]\\[1mm]
+&\qquad
++\lambda_{\mathrm{slope}}\frac{1}{\sum_h\varpi_h^{(1)}}\sum_h\varpi_h^{(1)}\bigl|\Delta E_{k+h}^{\mathrm{ctrl}}(u)-\Delta E_{k+h}^{\mathrm{ex}}\bigr|
++\lambda_{\mathrm{curv}}\frac{1}{\sum_h\varpi_h^{(2)}}\sum_h\varpi_h^{(2)}\bigl|\Delta^2E_{k+h}^{\mathrm{ctrl}}(u)-\Delta^2E_{k+h}^{\mathrm{ex}}\bigr|.
+\end{aligned}
+$$
+For shorthand only, one may now write $\mathcal J_k^{\mathrm{forecast}}=\mathcal J_k^{\mathrm{trk}}+\lambda_{\mathrm{slope}}\Xi_k^{\mathrm{shape,slope}}+\lambda_{\mathrm{curv}}\Xi_k^{\mathrm{shape,curv}}+\lambda_{\mathrm{under}}\Xi_k^{\mathrm{exc,under}}+\lambda_{\mathrm{over}}\Xi_k^{\mathrm{exc,over}}$.
+
+The stay-versus-append comparison is then defined once by
+$$
+\begin{aligned}
+\nu_{k,\mathrm{stay}}^{\star}&\in\arg\min_{u\in\mathcal U_k^{\mathrm{stay}}}\mathcal J_k^{\mathrm{forecast}}(u),
+\qquad
+\nu_{k,\mathrm{app}}^{\star}\in\arg\min_{u\in\mathcal U_k^{\mathrm{app}}}\mathcal J_k^{\mathrm{forecast}}(u),\\[1mm]
+\Delta F_k&:=\bigl|\langle\psi_{k+1}^{\mathrm{ex}},\psi_{k+1}^{(\nu_{k,\mathrm{app}}^{\star})}\rangle\bigr|^2-\bigl|\langle\psi_{k+1}^{\mathrm{ex}},\psi_{k+1}^{(\nu_{k,\mathrm{stay}}^{\star})}\rangle\bigr|^2,
+\qquad
+\Delta\varepsilon_k^{E}:=\varepsilon_{k+1}^{E}(\nu_{k,\mathrm{app}}^{\star})-\varepsilon_{k+1}^{E}(\nu_{k,\mathrm{stay}}^{\star}),\\[1mm]
+\nu_k^{\star}
+&:=\begin{cases}
+\nu_{k,\mathrm{stay}}^{\star},&1-\bigl|\langle\psi_{k+1}^{\mathrm{ex}},\psi_{k+1}^{(\nu_{k,\mathrm{stay}}^{\star})}\rangle\bigr|^2\le 10^{-3},\ \varepsilon_{k+1}^{s}(\nu_{k,\mathrm{stay}}^{\star})\le 2\times 10^{-2},\ \varepsilon_{k+1}^{D}(\nu_{k,\mathrm{stay}}^{\star})\le 2\times 10^{-3},\ \varepsilon_{k+1}^{n}(\nu_{k,\mathrm{stay}}^{\star})\le 2\times 10^{-2},\ \varepsilon_{k+1}^{E}(\nu_{k,\mathrm{stay}}^{\star})\le 2\times 10^{-3},\\[2mm]
+\nu_{k,\mathrm{stay}}^{\star},&\Delta F_k<-\tau_F\text{ and }\Delta\varepsilon_k^{E}>\tau_E,\\[1mm]
+\nu_{k,\mathrm{app}}^{\star},&\mathcal J_k^{\mathrm{forecast}}(\nu_{k,\mathrm{app}}^{\star})<\mathcal J_k^{\mathrm{forecast}}(\nu_{k,\mathrm{stay}}^{\star}),\\[1mm]
+\nu_{k,\mathrm{stay}}^{\star},&\text{otherwise.}
+\end{cases}
+\end{aligned}
+$$
+
+## 17A.9 Exact local prune law in the calm regime
+
+The prune law deletes one old block only in the calm low-miss regime. Here $j$ is the logical block index, $I_j$ is the runtime coordinate block occupied by block $j$, $I_j^{c}$ is its complement, $m_{j,k}^{\mathrm{mov}}$ and $m_{j,k}^{\mathrm{fit}}$ are the recent normalized motion and fit-activity indicators, $\alpha_{\mathrm{pr}}\in[0,1]$ is the stagnation mixing weight, $N_{\mathrm{prot}}$ is the protection age, and $\tau_{\mathrm{stale}},\tau_{\mathrm{loss}}^{\mathrm{pr}},\tau_{\theta}^{\mathrm{pr}},\tau_{\psi}^{\mathrm{pr}},\tau_{\rho}^{\mathrm{pr}}>0$ are the prune thresholds.
+
+$$
+\begin{aligned}
+\sigma_{j,k}^{\mathrm{stag}}
+&:=\alpha_{\mathrm{pr}}\bigl(1-m_{j,k}^{\mathrm{mov}}\bigr)+(1-\alpha_{\mathrm{pr}})\bigl(1-m_{j,k}^{\mathrm{fit}}\bigr),\\[1mm]
+j\in\mathcal D_k^{\mathrm{pr}}
+&\Longleftrightarrow \operatorname{age}_{j,k}\ge N_{\mathrm{prot}},\ \operatorname{cooldown}_{j,k}=0,\ \sigma_{j,k}^{\mathrm{stag}}\ge \tau_{\mathrm{stale}},\ \mathfrak C_k=1,\\[1mm]
+G_{k,-j}
+&:=G_k[I_j^{c},I_j^{c}],
+\qquad
+f_{k,-j}:=f_k[I_j^{c}],
+\qquad
+\dot\theta_{k,-j}^{\mathrm{proj}}:=G_{k,-j}^{+}f_{k,-j},\\[1mm]
+L_{j,k}^{\mathrm{cache}}
+&:=\frac{\bigl[f_k^{\top}G_k^{+}f_k-f_{k,-j}^{\top}G_{k,-j}^{+}f_{k,-j}\bigr]_{+}}{\langle\psi_k|(H_k^{\sharp}-E_{\psi_k,k}^{\sharp})^2|\psi_k\rangle+\varepsilon},\\[1mm]
+|\psi_k^{(-j)}\rangle
+&:=U(\theta_k^{(-j)};\mathcal O_k^{(-j)})|\psi_{\mathrm{ref}}\rangle,
+\qquad
+\Theta_{j,k}^{\mathrm{blk}}:=\|\theta_{k,I_j}\|_2,
+\qquad
+\Delta\psi_{j,k}^{\mathrm{pr}}:=\|U(\theta_k^{(-j)};\mathcal O_k^{(-j)})|\psi_{\mathrm{ref}}\rangle-U(\theta_k;\mathcal O_k)|\psi_{\mathrm{ref}}\rangle\|_2,\\[1mm]
+\rho_{\mathrm{miss},k}^{(-j)}
+&:=\frac{\langle\psi_k^{(-j)}|(H_k^{\sharp}-E_{\psi_k^{(-j)},k}^{\sharp})^2|\psi_k^{(-j)}\rangle-f_{k,-j}^{\top}G_{k,-j}^{+}f_{k,-j}}{\langle\psi_k^{(-j)}|(H_k^{\sharp}-E_{\psi_k^{(-j)},k}^{\sharp})^2|\psi_k^{(-j)}\rangle+\varepsilon},
+\qquad
+\Delta\rho_{j,k}^{\mathrm{pr}}:=\rho_{\mathrm{miss},k}^{(-j)}-\rho_{\mathrm{miss},k},\\[1mm]
+\operatorname{accept\_prune}(j)
+&\Longleftrightarrow L_{j,k}^{\mathrm{cache}}\le \tau_{\mathrm{loss}}^{\mathrm{pr}},\ \Theta_{j,k}^{\mathrm{blk}}\le \tau_{\theta}^{\mathrm{pr}},\ \Delta\psi_{j,k}^{\mathrm{pr}}\le \tau_{\psi}^{\mathrm{pr}},\ \Delta\rho_{j,k}^{\mathrm{pr}}\le \tau_{\rho}^{\mathrm{pr}}.
+\end{aligned}
+$$
+
+Thus a block is deleted only if the cached projective loss, deleted-block norm, exact reduced-state jump, and reduced miss-ratio increase are all simultaneously small.
+
+## 17A.10 Canonical piecewise-smooth law
+
+We now assemble the previous pieces into the final law. Here $\mathcal O(\tau)$ is the active scaffold at physical time $\tau$, $\theta(\tau)$ is its coordinate vector on the open checkpoint interval, and the checkpoint times satisfy $\tau_0<\tau_1<\tau_2<\cdots$. The full law is written first in expanded form and only then summarized.
+
+$$
+\begin{aligned}
+|\psi(\tau)\rangle
+&:=U(\theta(\tau);\mathcal O_k)|\psi_{\mathrm{ref}}\rangle,
+\qquad \tau\in[\tau_k,\tau_{k+1}),\\[1mm]
+\dot\theta(\tau)
+&:=\left(\left[\Re\!\Bigl(\langle\psi_k|\widetilde A_{k,i}\widetilde A_{k,j}|\psi_k\rangle-\langle\widetilde A_{k,i}\rangle_{\psi_k}\langle\widetilde A_{k,j}\rangle_{\psi_k}\Bigr)+(\Lambda_k)_{ij}\right]_{i,j=1}^{n_k}\right)^{+}
+\left[\Re\!\Bigl(\langle\psi_k|\widetilde A_{k,i}H_k^{\sharp}|\psi_k\rangle-\langle\widetilde A_{k,i}\rangle_{\psi_k}E_{\psi_k,k}^{\sharp}\Bigr)\right]_{i=1}^{n_k},\\[1mm]
+\nu_k^{\star}
+&:=\begin{cases}
+\displaystyle \arg\min_{u\in\mathcal U_k^{\mathrm{stay}}\cup\mathcal U_k^{\mathrm{app}}}\mathcal J_k^{\mathrm{forecast}}(u),&\rho_{\mathrm{miss},k}>\tau_{\mathrm{miss}},\\[2mm]
+\text{the best }j\in\mathcal D_k^{\mathrm{pr}}\text{ satisfying }\operatorname{accept\_prune}(j),&\rho_{\mathrm{miss},k}\le \tau_{\mathrm{pr}}\text{ and }\mathfrak C_k=1,\\[1mm]
+\mathrm{stay},&\text{otherwise,}
+\end{cases}\\[1mm]
+(\mathcal O_{k+1},\theta_{k+1})
+&:=\begin{cases}
+(\mathcal O_k,\theta_{k+1}^{\mathrm{stay}}),&\nu_k^{\star}=\nu_{k,\mathrm{stay}}^{\star},\\[1mm]
+(\mathcal O_k^{+}(r_k^{\star}),\vartheta_{k+1}^{\mathrm{app}}),&\nu_k^{\star}=\nu_{k,\mathrm{app}}^{\star}=(\mathrm{append},r_k^{\star},a_k^{\star}),\\[1mm]
+(\mathcal O_k^{(-j_k^{\star})},\theta_{k+1}^{(-j_k^{\star})}),&\nu_k^{\star}=\mathrm{prune}(j_k^{\star}).
+\end{cases}
+\end{aligned}
+$$
+
+In condensed words only after the expanded law: project the sampled Schrödinger drift onto the current projective tangent space on each checkpoint interval; when the intrinsic miss ratio is large, choose between stay and append by the fully expanded horizon score; when the miss ratio is small and the motion is calm, choose deletion only by the fully expanded exact local prune law; then restart the next interval on the resulting scaffold.
+
+# 17B. Projective McLachlan Real-Time Dynamics and Checkpoint-Adaptive Snake Control
+
+This chapter is the real-time analogue of §11. The governing surface is the same staged-controller picture: fixed local geometry on the current scaffold, checkpoint-local structural search over candidate-position records \(r=(m,p)\), scout/confirm/commit screening for append actions, and checkpoint-local scaffold pruning to keep the tangent plane small. The intended snake doctrine is:
+\[
+\text{McLachlan}=\text{continuous within-scaffold motion law},
+\qquad
+\text{controller}=\text{discrete append/prune law at checkpoints}.
+\]
+Thus the scaffold is piecewise constant in physical time, and may change only at checkpoint events. Ordinary McLachlan dynamics is a local projection law on a fixed scaffold: at the current state it asks for the parameter-velocity vector whose tangent combination best matches the physical Schr\"odinger drift after removal of the physically irrelevant global-phase direction. Equivalently,
+\[
+\dot\theta_\lambda\in\arg\min_{v\in\mathbb R^{n_\theta}}
+\Bigl\{
+\|\bar T v-\bar b\|^2+v^\top\Lambda v
+\Bigr\}.
+\]
+Its practical outputs are the tangent metric \(\bar G\), the force vector \(\bar f\), and the projected residual \(\bar r\); this residual is the correct local inadequacy signal for the current scaffold, and its natural normalization scale is the energy variance \(\operatorname{Var}_\psi(H)\). Therefore McLachlan is treated here as the continuous within-scaffold motion oracle, while the checkpoint controller alone decides when the scaffold should expand or contract.
+The live controller-defining expressions are
+\[
+\rho_{\mathrm{miss},k},
+\qquad
+\Gamma_k^{\mathrm{live}},
+\qquad
+\Sigma_{\mathrm{scout}}(r;k),
+\qquad
+\Delta_{\mathrm{McL}}(r;\tau_k),
+\qquad
+\Sigma_{\mathrm{conf}}(r;k),
+\qquad
+P_j^{\mathrm{pr}}(k),
+\]
+and the displays below isolate these quantities in terms of the primitive projective objects \(Q_\psi\), \(\bar b\), \(\bar T\), \(K\), and \(\bar r\). The older branch-level rollout and beam doctrine is retained only as a future extension, not as the canonical live runtime surface.
+
+## 17B.1 Fixed-scaffold projective geometry
+
+Fix a scaffold \(\mathcal O\), state family \(|\psi(\theta;\mathcal O)\rangle\) with \(\theta\in\mathbb R^{n_\theta}\), and Hamiltonian \(H(\tau)\). At the current state, let \(d:=\dim\mathcal H\), let
+\[
+Q_\psi:=I-|\psi\rangle\langle\psi|,
+\qquad
+E_\psi:=\langle\psi|H|\psi\rangle,
+\]
+and define the projected Schr\"odinger drift vector by
+\[
+\bar b
+:=
+Q_\psi(-iH\psi)
+=
+\left[
+\begin{array}{c}
+\bigl(Q_\psi(-iH\psi)\bigr)_1\\
+\vdots\\
+\bigl(Q_\psi(-iH\psi)\bigr)_d
+\end{array}
+\right]
+=
+\left[
+\begin{array}{c}
+\bigl(-i(H-E_\psi)\psi\bigr)_1\\
+\vdots\\
+\bigl(-i(H-E_\psi)\psi\bigr)_d
+\end{array}
+\right]
+\in\mathbb C^d.
+\]
+Define the projected tangent matrix by
+\[
+\bar T
+:=
+\left[
+\begin{array}{ccc}
+\bigl(Q_\psi\,\partial_{\theta_1}|\psi(\theta;\mathcal O)\rangle\bigr)_1
+&
+\cdots
+&
+\bigl(Q_\psi\,\partial_{\theta_{n_\theta}}|\psi(\theta;\mathcal O)\rangle\bigr)_1
+\\
+\vdots & \ddots & \vdots\\
+\bigl(Q_\psi\,\partial_{\theta_1}|\psi(\theta;\mathcal O)\rangle\bigr)_d
+&
+\cdots
+&
+\bigl(Q_\psi\,\partial_{\theta_{n_\theta}}|\psi(\theta;\mathcal O)\rangle\bigr)_d
+\end{array}
+\right]
+\in\mathbb C^{d\times n_\theta}.
+\]
+Define the regularizer by
+\[
+\Lambda
+:=
+\left[
+\begin{array}{ccc}
+\Lambda_{11} & \cdots & \Lambda_{1n_\theta}\\
+\vdots & \ddots & \vdots\\
+\Lambda_{n_\theta 1} & \cdots & \Lambda_{n_\theta n_\theta}
+\end{array}
+\right]
+\in\mathbb R^{n_\theta\times n_\theta},
+\qquad
+\Lambda^\top=\Lambda,
+\qquad
+\Lambda\succeq 0,
+\]
+with simplest default \(\Lambda=\lambda_{\mathrm{ridge}}I\). Then the real McLachlan metric, force, and regularized system are
+\[
+\bar G:=\Re(\bar T^\dagger\bar T)
+=
+\left[
+\begin{array}{ccc}
+\Re\!\bigl(\sum_{a=1}^{d}(\bar T)_{a1}^*(\bar T)_{a1}\bigr)
+&
+\cdots
+&
+\Re\!\bigl(\sum_{a=1}^{d}(\bar T)_{a1}^*(\bar T)_{a n_\theta}\bigr)
+\\
+\vdots & \ddots & \vdots\\
+\Re\!\bigl(\sum_{a=1}^{d}(\bar T)_{a n_\theta}^*(\bar T)_{a1}\bigr)
+&
+\cdots
+&
+\Re\!\bigl(\sum_{a=1}^{d}(\bar T)_{a n_\theta}^*(\bar T)_{a n_\theta}\bigr)
+\end{array}
+\right],
+\]
+\[
+\bar f
+:=
+\Re(\bar T^\dagger\bar b)
+=
+\left[
+\begin{array}{c}
+\Re\!\bigl(\sum_{a=1}^{d}(\bar T)_{a1}^*\,\bar b_a\bigr)\\
+\vdots\\
+\Re\!\bigl(\sum_{a=1}^{d}(\bar T)_{a n_\theta}^*\,\bar b_a\bigr)
+\end{array}
+\right],
+\qquad
+K:=\bar G+\Lambda,
+\qquad
+K\dot\theta_\lambda=\bar f.
+\]
+Equivalently, on the fixed scaffold \(\mathcal O\), ordinary McLachlan dynamics solves
+\[
+\dot\theta_\lambda\in\arg\min_{v\in\mathbb R^{n_\theta}}
+\Bigl\{
+\|\bar T v-\bar b\|^2+v^\top\Lambda v
+\Bigr\},
+\]
+so the only role of the current scaffold is to define the available tangent plane. The solve itself is therefore a within-scaffold motion law, not a scaffold-construction law.
+On a fixed scaffold \(\mathcal O_k\), the runtime first solves \(K\dot\theta_\lambda=\bar f\) and propagates \(\theta(\tau)\) over the next checkpoint segment; it then measures \(\rho_{\mathrm{miss},k}\), and only if that miss is too large does the discrete checkpoint controller open the structural action set \(\{\mathrm{stay},\mathrm{append}(r),\mathrm{prune}(j)\}\).
+The baseline miss telemetry is
+\[
+\epsilon_{\mathrm{proj}}^2:=\|\bar b\|^2-\bar f^\top\bar G^+\bar f,
+\qquad
+\epsilon_{\mathrm{step}}^2:=\|\bar T\dot\theta_\lambda-\bar b\|^2,
+\qquad
+\rho_{\mathrm{miss}}:=\frac{\epsilon_{\mathrm{proj}}^2}{\|\bar b\|^2+\varepsilon}
+=\frac{\epsilon_{\mathrm{proj}}^2}{\operatorname{Var}_\psi(H)+\varepsilon}.
+\]
+So the miss statistic itself may be read as
+\[
+\begin{aligned}
+\epsilon_{\mathrm{proj}}^2
+&=
+\|\bar b\|^2-\bar f^\top\bar G^+\bar f\\
+&=
+\|Q_\psi(-iH\psi)\|^2
+-
+\bigl(\Re(\bar T^\dagger\bar b)\bigr)^\top
+\bigl(\Re(\bar T^\dagger\bar T)\bigr)^+
+\Re(\bar T^\dagger\bar b),\\
+\rho_{\mathrm{miss}}
+&=
+\frac{\epsilon_{\mathrm{proj}}^2}{\operatorname{Var}_\psi(H)+\varepsilon}.
+\end{aligned}
+\]
+For any admissible checkpoint-local tangent baseline \(A\) with basis matrix \(\bar T_{k,A}\) (for example a coordinate subset of the current scaffold tangents, or any chosen real tangent subspace with an explicit basis), define
+\[
+\bar G_{k,A}:=\Re(\bar T_{k,A}^\dagger \bar T_{k,A}),
+\qquad
+\bar f_{k,A}:=\Re(\bar T_{k,A}^\dagger \bar b_k),
+\]
+and the intrinsic reduced-space projective miss
+\[
+\epsilon_{\mathrm{proj},k}^2(A)
+:=
+\|\bar b_k\|^2-\bar f_{k,A}^\top \bar G_{k,A}^+\bar f_{k,A},
+\qquad
+\rho_{\mathrm{miss},k}(A)
+:=
+\frac{\epsilon_{\mathrm{proj},k}^2(A)}{\|\bar b_k\|^2+\varepsilon}.
+\]
+This quantity is exact for the reduced tangent space \(\operatorname{span}_{\mathbb R}(\bar T_{k,A})\). If \(A\subseteq A'\) as tangent subspaces, then
+\[
+\epsilon_{\mathrm{proj},k}^2(A')\le \epsilon_{\mathrm{proj},k}^2(A),
+\qquad
+\rho_{\mathrm{miss},k}(A')\le \rho_{\mathrm{miss},k}(A),
+\]
+because enlarging the tangent baseline can only decrease the orthogonal projection distance of \(\bar b_k\). In particular, if \(A_k^{\mathrm{sc}}\subseteq A_k^{\mathrm{cm}}\), then
+\[
+\rho_{\mathrm{miss},k}(A_k^{\mathrm{cm}})
+\le
+\rho_{\mathrm{miss},k}(A_k^{\mathrm{sc}}),
+\]
+so the scout-baseline miss is conservative for the larger shared commit baseline.
+The projective and raw residuals are
+\[
+\bar r:=\bar T\dot\theta_\lambda-\bar b,
+\qquad
+r_{\mathrm{raw}}:=T\dot\theta_\lambda+iH\psi,
+\qquad
+\bar r=Q_\psi r_{\mathrm{raw}}.
+\]
+Thus \(\bar r\) is the local defect after the best available tangent velocity has been chosen on the current scaffold, and \(\rho_{\mathrm{miss}}\) is the corresponding local inadequacy ratio relative to exact projective drift. So, for \(\tau\in[\tau_k,\tau_{k+1})\), the live controller holds \(\mathcal O(\tau)=\mathcal O_k\) fixed and uses McLachlan only to evolve \(\theta(\tau)\) on that scaffold.
+
+## 17B.2 Checkpoint miss test and telemetry-driven controller outputs
+
+At checkpoint \(k\), with physical time \(\tau_k\), the controller baseline summary is
+\[
+\Xi_k^{\mathrm{base}}
+:=
+\bigl(
+E_k,\,
+\operatorname{Var}_k,\,
+\epsilon_{\mathrm{proj},k}^2,\,
+\epsilon_{\mathrm{step},k}^2,\,
+\rho_{\mathrm{miss},k},\,
+\|\dot\theta_{\lambda,k}\|_2,\,
+\operatorname{rank}(K_k),\,
+\operatorname{cond}(K_k)
+\bigr).
+\]
+Let
+\[
+A_k^{\mathrm{sc}}\subseteq A_k^{\mathrm{cm}}\subseteq\{1,\dots,n_{\theta,k}\}
+\]
+denote the scout and shared commit baselines at checkpoint \(k\). Unless decorated otherwise, the live checkpoint shorthand is
+\[
+\epsilon_{\mathrm{proj},k}^2:=\epsilon_{\mathrm{proj},k}^2(A_k^{\mathrm{sc}}),
+\qquad
+\rho_{\mathrm{miss},k}:=\rho_{\mathrm{miss},k}(A_k^{\mathrm{sc}}).
+\]
+The clean rule is
+\[
+\text{stay on }\mathcal O_k\text{ if }\rho_{\mathrm{miss},k}\le \tau_{\mathrm{miss}},
+\qquad
+\text{open structural search otherwise.}
+\]
+The \texttt{fullclone\_3} runtime enriches this baseline with checkpoint cadence and telemetry-driven controller outputs. If \(\dot\theta_k,\dot\theta_{k-1},\dot\theta_{k-2}\) denote the aligned recent solved steps, define
+\[
+\delta_k:=\dot\theta_k-\dot\theta_{k-1},
+\qquad
+\alpha_k:=\delta_k-\delta_{k-1},
+\qquad
+\rho_k^{\mathrm{rate}}
+:=
+\frac{\|\delta_k\|_2}{\max(\|\dot\theta_k\|_2,\|\dot\theta_{k-1}\|_2,\varepsilon)},
+\]
+\[
+c_k^{\mathrm{dir}}
+:=
+\cos(\dot\theta_k,\dot\theta_{k-1}),
+\qquad
+c_k^{\mathrm{curv}}
+:=
+\cos(\alpha_k,\alpha_{k-1}),
+\qquad
+d_k^{\mathrm{pred}}:=\text{predicted displacement at checkpoint }k.
+\]
+Then the controller uses the indicators
+\[
+\mathbf 1_k^{\mathrm{rev}}
+:=
+\mathbf 1\!\bigl[
+c_k^{\mathrm{dir}}\le \tau_{\mathrm{rev}}
+\ \wedge\
+\rho_k^{\mathrm{rate}}\ge \tau_{\mathrm{calm}}^{\mathrm{rate}}
+\ \wedge\
+\|\delta_k\|_2\ge \tau_{\mathrm{acc}}
+\bigr],
+\]
+\[
+\mathbf 1_k^{\mathrm{flip}}
+:=
+\mathbf 1\!\bigl[
+c_k^{\mathrm{curv}}\le \tau_{\mathrm{flip}}
+\ \wedge\
+\|\alpha_k\|_2\ge \tau_{\mathrm{acc}}
+\ \wedge\
+\|\alpha_{k-1}\|_2\ge \tau_{\mathrm{acc}}
+\bigr],
+\]
+\[
+\mathbf 1_k^{\mathrm{kink}}
+:=
+\mathbf 1\!\bigl[
+\mathbf 1_k^{\mathrm{rev}}=1
+\ \vee\
+\mathbf 1_k^{\mathrm{flip}}=1
+\ \vee\
+\bigl(\|\delta_k\|_2\ge \tau_{\mathrm{acc}}
+\ \wedge\
+\rho_k^{\mathrm{rate}}\ge \tau_{\mathrm{kink}}^{\mathrm{rate}}\bigr)
+\bigr],
+\]
+\[
+\mathbf 1_k^{\mathrm{calm}}
+:=
+\mathbf 1\!\bigl[
+k>0
+\ \wedge\
+c_k^{\mathrm{dir}}\ge \tau_{\mathrm{calm}}^{\mathrm{dir}}
+\ \wedge\
+\rho_k^{\mathrm{rate}}\le \tau_{\mathrm{calm}}^{\mathrm{rate}}
+\ \wedge\
+\mathbf 1_k^{\mathrm{rev}}=0
+\ \wedge\
+\mathbf 1_k^{\mathrm{flip}}=0
+\ \wedge\
+d_k^{\mathrm{pred}}\le 0.05
+\bigr].
+\]
+If \(N_{\mathrm{short}}^0\) and \(f_{\mathrm{short}}^0\) are the base shortlist size and fraction, then
+\[
+N_{\mathrm{short}}(k)=
+\begin{cases}
+\max\!\bigl(1,N_{\mathrm{short}}^0+b_{\mathrm{kink}}^{\mathrm{short}}\bigr),&\mathbf 1_k^{\mathrm{kink}}=1,\\
+\max\!\bigl(1,\lceil s_{\mathrm{calm}}^{\mathrm{short}}N_{\mathrm{short}}^0\rceil\bigr),&\mathbf 1_k^{\mathrm{calm}}=1,\\
+N_{\mathrm{short}}^0,&\text{otherwise,}
+\end{cases}
+\]
+\[
+f_{\mathrm{short}}(k)=
+\begin{cases}
+\min\!\bigl(1,1.5\,f_{\mathrm{short}}^0\bigr),&\mathbf 1_k^{\mathrm{kink}}=1,\\
+\max\!\bigl(0.05,s_{\mathrm{calm}}^{\mathrm{short}}f_{\mathrm{short}}^0\bigr),&\mathbf 1_k^{\mathrm{calm}}=1,\\
+f_{\mathrm{short}}^0,&\text{otherwise,}
+\end{cases}
+\]
+while the effective refresh pressure is
+\[
+\pi_k:=\max_{\mathrm{ord}}\!\bigl(\pi_k^{\mathrm{base}},\pi_k^{\mathrm{tele}}\bigr),
+\qquad
+\pi_k^{\mathrm{tele}}
+=
+\begin{cases}
+\mathrm{medium},&k=0,\\
+\mathrm{high},&\mathbf 1_k^{\mathrm{kink}}=1,\\
+\mathrm{low},&\text{otherwise.}
+\end{cases}
+\]
+The oracle-budget multiplier is then
+\[
+\beta_{\mathrm{orc}}(k)=
+\begin{cases}
+\max\!\bigl(1,s_{\mathrm{kink}}^{\mathrm{orc}}\bigr),&\mathbf 1_k^{\mathrm{kink}}=1\ \vee\ \pi_k=\mathrm{high},\\
+\max\!\bigl(0.25,s_{\mathrm{calm}}^{\mathrm{orc}}\bigr),&\mathbf 1_k^{\mathrm{calm}}=1\ \wedge\ \pi_k=\mathrm{low},\\
+1,&\text{otherwise.}
+\end{cases}
+\]
+
+## 17B.3 Live checkpoint controller: stay, append, and prune
+
+At each checkpoint, the discrete structural controller applies
+\[
+\Gamma_k^{\mathrm{live}}:
+(\mathcal O_k,\theta_k^-,\Xi_k^{\mathrm{base}})
+\longmapsto
+(\mathcal O_{k+1},\theta_{k+1}^+),
+\]
+with action set
+\[
+\mathcal U_k^{\mathrm{live}}
+:=
+\{\mathrm{stay}\}
+\cup
+\{\mathrm{append}(r):r\in\mathcal R_k^{\mathrm{probe}}\}
+\cup
+\{\mathrm{prune}(j):j\in\mathcal D_k^{\mathrm{prune}}\}.
+\]
+Thus the live controller separates the continuous within-scaffold McLachlan motion from the discrete checkpoint-local scaffold edits. The append surface is the candidate-position record set from the current checkpoint, while the prune surface is the mature scaffold-coordinate set selected by the local prune controller. Only one discrete action is committed per checkpoint.
+The controller is lane-ordered rather than symmetric:
+\[
+\operatorname{lane}_k
+:=
+\begin{cases}
+\mathrm{append},&\rho_{\mathrm{miss},k}>\tau_{\mathrm{miss}},\\[2mm]
+\mathrm{prune},&\rho_{\mathrm{miss},k}\le \tau_{\mathrm{miss}}\ \wedge\ \Gamma_k^{\mathrm{prune,perm}}=1,\\[2mm]
+\mathrm{stay},&\text{otherwise.}
+\end{cases}
+\]
+Hence a large miss opens the append lane, pruning is visible only in the calm low-miss regime, and failed append confirmation falls back to \(\mathrm{stay}\), not to prune at the same checkpoint.
+
+## 17B.4 Append broad screen over candidate-position records
+
+Candidate append is position-aware:
+\[
+r=(m,p),
+\qquad
+\mathcal O_r^+:=\mathcal O_k\oplus_p m,
+\qquad
+\theta_r^+:=\theta_k\oplus_p 0.
+\]
+The probed positions are restricted to a capped active set built from a fixed active suffix window,
+\[
+W_k^{\mathrm{act}}
+:=
+\bigl\{\max(0,n_{\theta,k}-\omega_{\mathrm{act}}),\dots,n_{\theta,k}-1\bigr\},
+\]
+\[
+\mathcal P_k
+:=
+\operatorname{AllowedPositions}\!\bigl(
+n_{\theta,k},\,
+\mathrm{append}=n_{\theta,k},\,
+W_k^{\mathrm{act}},\,
+N_{\mathrm{probe}}^{\max}
+\bigr)
+\subseteq
+\{0,\dots,n_{\theta,k}\},
+\qquad
+|\mathcal P_k|\le N_{\mathrm{probe}}^{\max}.
+\]
+At zero initialization,
+\[
+|\psi_r^+(\theta_k,0)\rangle=|\psi_k\rangle,
+\qquad
+Q_{\psi_r^+}=Q_{\psi_k},
+\]
+and the old tangent columns transport exactly. If \(r=(m,p)\) inserts a \(q_r\)-parameter candidate block at position \(p\), define the old-index transport
+\[
+I_{r,p}(j)
+:=
+\begin{cases}
+j,& j\le p,\\
+j+q_r,& j>p.
+\end{cases}
+\]
+Then
+\[
+\bar\tau_{k,r,I_{r,p}(j)}^+=\bar\tau_{k,j},
+\]
+hence for every old tangent baseline \(A\),
+\[
+\bar G_{k,I_{r,p}(A),I_{r,p}(A)}^+
+=
+\bar G_{k,A},
+\qquad
+\bar f_{k,I_{r,p}(A)}^+
+=
+\bar f_{k,A},
+\qquad
+K_{k,I_{r,p}(A),I_{r,p}(A)}^+
+=
+K_{k,A}.
+\]
+Thus zero-init append transports the full old-old geometry exactly and requires no remeasurement of old-old blocks.
+
+At checkpoint \(k\), let \(x_k\in\mathbb R^{M_k}\) collect the measurement bank already available on the current scaffold. Then every current old-old block is a fixed linear image of \(x_k\):
+\[
+\operatorname{vec}(\bar G_{k,A})=L_{G,A}x_k,
+\qquad
+\bar f_{k,A}=L_{f,A}x_k,
+\qquad
+\|\bar b_k\|^2=\ell_{b,k}^\top x_k.
+\]
+For a candidate \(r\), let
+\[
+x_{k,r}^{\mathrm{aug}}
+:=
+\begin{bmatrix}
+x_k\\
+y_{k,r}
+\end{bmatrix}
+\]
+augment the bank only by those candidate-local observables not already present. Then scout, confirm, and commit are nested linear images of this common candidate-local augmentation bank:
+\[
+w_{r,k}^{\mathrm{cm}}=L_{w,r}^{\mathrm{sc}}x_{k,r}^{\mathrm{aug}},
+\qquad
+\operatorname{vec}(B_{r,k}^{\mathrm{cm}})=L_{B,r}^{\mathrm{cm}}x_{k,r}^{\mathrm{aug}},
+\qquad
+\operatorname{vec}(C_{r,k})=L_{C,r}x_{k,r}^{\mathrm{aug}}.
+\]
+Scout therefore needs only \(w_{r,k}^{\mathrm{cm}}\) and \(C_{r,k}\); confirm requests only selected \(K_k^{\mathrm{cm}}\)-whitened rows of \(B_{r,k}^{\mathrm{cm}}\); commit may materialize the full old-new block.
+
+Now fix the shared commit baseline \(A_k^{\mathrm{cm}}\). Write
+\[
+\bar T_k^{\mathrm{cm}}:=\bar T_{k,A_k^{\mathrm{cm}}},
+\qquad
+\bar G_k^{\mathrm{cm}}:=\bar G_{k,A_k^{\mathrm{cm}}},
+\qquad
+\bar f_k^{\mathrm{cm}}:=\bar f_{k,A_k^{\mathrm{cm}}},
+\qquad
+K_k^{\mathrm{cm}}:=\bar G_k^{\mathrm{cm}}+\Lambda_k^{\mathrm{cm}},
+\]
+and let
+\[
+K_k^{\mathrm{cm}}\dot\theta_{k,\lambda}^{\mathrm{cm}}=\bar f_k^{\mathrm{cm}},
+\qquad
+\bar r_k^{\mathrm{cm}}:=\bar T_k^{\mathrm{cm}}\dot\theta_{k,\lambda}^{\mathrm{cm}}-\bar b_k.
+\]
+The tangent space still gains a new column
+\[
+u_r:=\left.\partial_{\vartheta_r}|\psi_r^+(\theta_k,\vartheta_r)\rangle\right|_{\vartheta_r=0},
+\qquad
+\bar u_r:=Q_\psi u_r.
+\]
+For the candidate block \(\bar U_r\in\mathbb C^{d\times q_r}\), define
+\[
+B_{r,k}^{\mathrm{cm}}
+:=
+\Re\!\bigl((\bar T_k^{\mathrm{cm}})^\dagger \bar U_r\bigr),
+\qquad
+C_{r,k}
+:=
+\Re(\bar U_r^\dagger \bar U_r),
+\qquad
+q_{r,k}
+:=
+\Re(\bar U_r^\dagger \bar b_k),
+\]
+and the residualized force on the shared commit baseline
+\[
+w_{r,k}^{\mathrm{cm}}
+:=
+q_{r,k}-(B_{r,k}^{\mathrm{cm}})^\top (K_k^{\mathrm{cm}})^{-1}\bar f_k^{\mathrm{cm}}
+=
+-\Re(\bar U_r^\dagger \bar r_k^{\mathrm{cm}}).
+\]
+The scout-safe lower-bound Schur gain is
+\[
+\underline\Delta_{\mathrm{McL}}(r;\tau_k)
+:=
+(w_{r,k}^{\mathrm{cm}})^\top (C_{r,k}+\Lambda_r)^+ w_{r,k}^{\mathrm{cm}}
+=
+\max_{\eta\in\mathbb R^{q_r}}
+\left\{
+2\eta^\top w_{r,k}^{\mathrm{cm}}
+-\eta^\top(C_{r,k}+\Lambda_r)\eta
+\right\}.
+\]
+This is a conservative lower bound to the exact commit-grade gain because
+\[
+S_{r,k}^{\mathrm{cm}}
+:=
+C_{r,k}+\Lambda_r-(B_{r,k}^{\mathrm{cm}})^\top (K_k^{\mathrm{cm}})^{-1} B_{r,k}^{\mathrm{cm}}
+\preceq
+C_{r,k}+\Lambda_r.
+\]
+The normalized scout score is therefore
+\[
+\underline\rho_{\mathrm{gain}}(r;k)
+:=
+\frac{\underline\Delta_{\mathrm{McL}}(r;\tau_k)}{\|\bar b_k\|^2+\varepsilon},
+\]
+\[
+\Sigma_{\mathrm{scout}}(r;k)
+:=
+\underline\rho_{\mathrm{gain}}(r;k)
++b_{\mathrm{temp}}(r;k)
+-\beta_{\mathrm{comp}}\,C_{\mathrm{comp}}(r;k)
+-\beta_{\mathrm{meas}}\,G_{\mathrm{new}}(r;k)
+-\beta_{\mathrm{jump}}\,J_{\mathrm{jump}}(r;k).
+\]
+Hence scout is already written on the same McLachlan geometry as commit, but uses only the residualized force and the candidate self-block rather than the full old-new Schur data.
+
+## 17B.5 Append confirm, compressed rerank, and exact commit
+
+The runtime remains organized in three tiers,
+\[
+\mathrm{scout},
+\qquad
+\mathrm{confirm},
+\qquad
+\mathrm{commit},
+\]
+but confirm now enriches the same candidate on the shared commit baseline by a monotone family of \(K_k^{\mathrm{cm}}\)-whitened old-mode responses.
 
 Let
-$$
-S_{\mathrm{trot}}(L,n_{\mathrm{ph,max}}),
-\quad
-R_{\mathrm{restart}}(L,n_{\mathrm{ph,max}}),
-\quad
-I_{\max}(L,n_{\mathrm{ph,max}})
-$$
-be monotone nondecreasing control maps for Trotter steps, restart count, and optimizer effort. The key contract is monotonicity with problem size, not a single universal constant setting.
-
-## 15.3 Exact target and shared reference-state construction
-
-Within a benchmark matrix, all trial families should be compared against the same exact target and the same conserved-sector reference construction. Thus every trial is judged against the same $E_{\mathrm{exact,sector}}$ and the same physical Hamiltonian instance.
-
-## 15.4 Per-trial energy and trajectory semantics
-
-Each trial should at minimum record:
-
-- the variational ground-state energy,
-- the exact comparison target,
-- trajectory observables on a shared time grid when dynamics are studied,
-- fidelity or overlap relative to a common reference branch.
-
-## 15.5 Artifact contracts
-
-Every report artifact should begin with a concise parameter manifest listing:
-
-- model family,
-- ansatz family,
-- drive enabled or disabled,
-- $t$, $U$, $\omega_0$, $g$, and $n_{\mathrm{ph,max}}$,
-- any propagation parameters needed to reproduce the result.
-
-## 15.6 HH seed-surface preset and resource proxies
-
-A seed-surface comparison is naturally evaluated not only by energy but also by simple resource proxies such as
-$$
-C_{\mathrm{2q}},
+\[
+K_k^{\mathrm{cm}}=V_k\Sigma_k^2V_k^\top
+\]
+be the spectral factorization of the shared commit baseline on its numerical support, and define the corresponding \(K_k^{\mathrm{cm}}\)-whitened coordinates
+\[
+z_k:=\Sigma_k^{-1}V_k^\top \bar f_k^{\mathrm{cm}},
 \qquad
-D_{\mathrm{proxy}},
-\qquad
-C_{\mathrm{1q}}.
-$$
-One can then compare improvement per marginal resource,
-$$
-\frac{\Delta E}{C_{\mathrm{2q}}},
-\qquad
-\frac{\Delta E}{D_{\mathrm{proxy}}}.
-$$
-
-# 16. Noise Validation, Symmetry-Mitigation, and Parity Contracts
-
-## 16.1 Filtered versus full exact targets
-
-The filtered target is
-$$
-E_{\mathrm{exact,filtered}} = \min_{\psi\in\mathcal H_{\mathrm{sector}}} \langle \psi|\hat H|\psi\rangle,
-$$
-while the unrestricted target is
-$$
-E_{\mathrm{exact,full}} = \min \operatorname{spec}(\hat H).
-$$
-The two coincide only if the physical and computational sectors match exactly.
-
-## 16.2 Noisy-minus-ideal observable deltas
-
-For any observable $\mathcal O(t)$, define
-$$
-\Delta \mathcal O(t) = \mathcal O_{\mathrm{noisy}}(t)-\mathcal O_{\mathrm{ideal}}(t).
-$$
-In particular,
-$$
-\Delta E(t)=E_{\mathrm{noisy}}(t)-E_{\mathrm{ideal}}(t),
-\qquad
-\Delta D(t)=D_{\mathrm{noisy}}(t)-D_{\mathrm{ideal}}(t).
-$$
-
-## 16.3 Anchor parity gate
-
-If a new idealized path is compared against a fixed anchor trajectory, a strict parity gate takes the form
-$$
-\max_{t\in\mathcal T}\,|\mathcal O_{\mathrm{new}}(t)-\mathcal O_{\mathrm{anchor}}(t)| \le \varepsilon_{\mathrm{parity}}.
-$$
-This is an anchor-based equality test, not merely a qualitative agreement statement.
-
-## 16.4 Same-anchor paired comparison semantics
-
-Two noisy methods should be compared against the same ideal anchor, on the same time grid, with the same initial state, so that differences can be attributed to the noise or mitigation model rather than to different starting conditions.
-
-## 16.5 Symmetry-mitigation mode surface
-
-Three increasingly strong symmetry surfaces are:
-
-1. verify-only sector diagnostics,
-2. bitstring postselection,
-3. projector-renormalized estimators.
-
-If $\Pi$ is the projector onto the target symmetry sector, the renormalized estimator is
-$$
-\langle O\rangle_{\Pi} = \frac{\langle \psi|\Pi O \Pi|\psi\rangle}{\langle \psi|\Pi|\psi\rangle}.
-$$
-
-## 16.6 Parameter manifest and provenance digest
-
-Even in a symbolic setting, it is useful to view each artifact as carrying a manifest $\mathfrak M$ and a provenance digest $h(\mathfrak M)$. The purpose is not algebraic; it is to guarantee that the reported mathematics can be traced back to a unique physical parameter set.
-
-# 17. Projective McLachlan Real-Time Geometry and Piecewise Beam-Adaptive Control
-
-Below is the cleanest mathematical story for what the projected real-time implementation is doing. It is most naturally written as a **piecewise-smooth control problem on a family of variational manifolds**, with $\hbar=1$, normalized pure states, and real parameters. The two geometric facts underneath everything are:
-
-1. the McLachlan principle projects the exact Schrödinger velocity onto a **real-linear** tangent space using the real inner product $g(u,v)=\Re\langle u,v\rangle$, and
-2. physical pure states are rays, so the natural state space is **projective Hilbert space**, which means global-phase directions should be removed from the local scoring geometry.
-
-## 17.1 What problem is being solved?
-
-Fix a Hilbert space $\mathcal H\cong\mathbb C^d$, a Hamiltonian $H(t)$, and a current ansatz structure $\mathcal S$. That structure defines a parameterized family of states
-$$
-|\psi(\theta;\mathcal S)\rangle,
-\qquad
-\theta\in\mathbb R^m.
-$$
-
-At time $t$, the exact Schrödinger equation asks for the state velocity
-$$
-\frac{d}{dt}|\psi_{\mathrm{ex}}(t)\rangle
+\Gamma_{r,k}:=\Sigma_k^{-1}V_k^\top B_{r,k}^{\mathrm{cm}}.
+\]
+Then
+\[
+w_{r,k}^{\mathrm{cm}}
 =
--iH(t)|\psi_{\mathrm{ex}}(t)\rangle.
-$$
+q_{r,k}-\Gamma_{r,k}^\top z_k,
+\qquad
+S_{r,k}^{\mathrm{cm}}
+=
+C_{r,k}+\Lambda_r-\Gamma_{r,k}^\top \Gamma_{r,k}.
+\]
+
+Let
+\[
+J_r^{(0)}\subseteq J_r^{(1)}\subseteq \cdots \subseteq J_r^{(m_{\max})}
+\subseteq
+\{1,\dots,\operatorname{rank}(K_k^{\mathrm{cm}})\}
+\]
+be any nested candidate-local family of whitened baseline mode sets, and let \(\Pi_{J_r^{(m)}}\) denote the coordinate projector onto \(J_r^{(m)}\). A deterministic implementation may, for example, order the modes by decreasing row norm of \(\Gamma_{r,k}\), but the ladder below does not depend on the chosen ordering. Define the compressed Schur family
+\[
+\widetilde S_{r,k}^{(m)}
+:=
+C_{r,k}+\Lambda_r-\Gamma_{r,k}^\top \Pi_{J_r^{(m)}}\Gamma_{r,k},
+\]
+and the corresponding confirm-grade lower-bound gains
+\[
+\widetilde\Delta_{\mathrm{McL}}^{(m)}(r;\tau_k,J_r)
+:=
+(w_{r,k}^{\mathrm{cm}})^\top
+(\widetilde S_{r,k}^{(m)})^+
+w_{r,k}^{\mathrm{cm}}.
+\]
+Equivalently,
+\[
+\widetilde\Delta_{\mathrm{McL}}^{(m)}(r;\tau_k,J_r)
+=
+\max_{\eta\in\mathbb R^{q_r},\;\zeta\in\operatorname{range}(\Pi_{J_r^{(m)}})}
+\left\{
+2\eta^\top w_{r,k}^{\mathrm{cm}}
+-\eta^\top(C_{r,k}+\Lambda_r)\eta
+-2\zeta^\top\Gamma_{r,k}\eta
+-\|\zeta\|_2^2
+\right\}.
+\]
+Thus the confirm ladder is monotone:
+\[
+\underline\Delta_{\mathrm{McL}}(r;\tau_k)
+=
+\widetilde\Delta_{\mathrm{McL}}^{(0)}(r;\tau_k,J_r)
+\le
+\widetilde\Delta_{\mathrm{McL}}^{(1)}(r;\tau_k,J_r)
+\le
+\cdots
+\le
+\widetilde\Delta_{\mathrm{McL}}^{(m_{\max})}(r;\tau_k,J_r)
+\le
+\Delta_{\mathrm{McL}}(r;\tau_k,A_k^{\mathrm{cm}}),
+\]
+where the exact commit-grade gain on the shared baseline is
+\[
+\Delta_{\mathrm{McL}}(r;\tau_k,A_k^{\mathrm{cm}})
+:=
+(w_{r,k}^{\mathrm{cm}})^\top (S_{r,k}^{\mathrm{cm}})^+ w_{r,k}^{\mathrm{cm}}.
+\]
+
+The normalized confirm and commit gains are
+\[
+\widetilde\rho_{\mathrm{gain}}^{(m)}(r;k)
+:=
+\frac{\widetilde\Delta_{\mathrm{McL}}^{(m)}(r;\tau_k,J_r)}{\|\bar b_k\|^2+\varepsilon},
+\qquad
+\rho_{\mathrm{gain}}^{\mathrm{cm}}(r;k)
+:=
+\frac{\Delta_{\mathrm{McL}}(r;\tau_k,A_k^{\mathrm{cm}})}{\|\bar b_k\|^2+\varepsilon}.
+\]
+Scout keeps
+\[
+\mathcal S_k^{\mathrm{scout}}
+:=
+\operatorname{Top}_{N_{\mathrm{short}}(k)}
+\bigl(\Sigma_{\mathrm{scout}}(r;k);\,r\in\mathcal R_k^{\mathrm{probe}}\bigr).
+\]
+Confirm evaluates one chosen compressed level \(m_r\) for each scout survivor and ranks with
+\[
+\Sigma_{\mathrm{conf}}(r;k)
+:=
+\widetilde\rho_{\mathrm{gain}}^{(m_r)}(r;k)
+-\beta_{\mathrm{meas}}\,G_{\mathrm{new}}(r;k)
+-\beta_{\mathrm{dir}}\,D_{\mathrm{dir}}(r;k).
+\]
+The confirm shortlist is therefore
+\[
+\mathcal S_k^{\mathrm{conf}}
+:=
+\operatorname{Top}_{\max\{1,\lceil f_{\mathrm{short}}(k)\,|\mathcal S_k^{\mathrm{scout}}|\rceil\}}
+\bigl(\Sigma_{\mathrm{conf}}(r;k);\,r\in\mathcal S_k^{\mathrm{scout}}\bigr).
+\]
+The selected append record is
+\[
+r_k^\star
+:=
+\arg\max_{r\in\mathcal S_k^{\mathrm{conf}}}\Sigma_{\mathrm{conf}}(r;k).
+\]
+The clean commit rule is
+\[
+\text{append }r_k^\star
+\iff
+\rho_{\mathrm{miss},k}(A_k^{\mathrm{cm}})>\tau_{\mathrm{miss}},
+\quad
+\rho_{\mathrm{gain}}^{\mathrm{cm}}(r_k^\star;k)\ge \tau_{\mathrm{gain}},
+\quad
+\Delta_{\mathrm{McL}}(r_k^\star;\tau_k,A_k^{\mathrm{cm}})\ge \delta_{\mathrm{append}}.
+\]
+Otherwise the controller stays on \(\mathcal O_k\). Thus scout, confirm, and commit all remain inside the same McLachlan geometry, but use a staged Schur family that narrows measurement effort from residualized force, to selected old-mode responses, to the exact shared-baseline Schur complement.
+
+## 17B.6 Local scaffold pruning and rollback
+
+Pruning acts on scaffold coordinates, not on branch objects. Let the current scaffold be \(\mathcal O_k=(m_1,\dots,m_{n_k})\) with \(n_k:=|\mathcal O_k|\), and let each coordinate carry the metadata \((\iota_j,\kappa_j,c_j)\), where \(\iota_j\) is the checkpoint at which coordinate \(j\) was appended, \(\kappa_j\) is its stored append-time burden, and \(c_j(k)\in\{0,1,\dots,c_{\mathrm{cool}}\}\) is its prune-cooldown counter. The hard protection set is
+\[
+\mathcal P_{\mathrm{protect}}(k)
+:=
+\{\,j:\ k-\iota_j<\ell_{\mathrm{protect}}\,\},
+\]
+so coordinates inside \(\mathcal P_{\mathrm{protect}}(k)\) are never considered for pruning. For the recent-history stagnation window, let
+\[
+\mathcal I_j^{\mathrm{stag}}(k)
+:=
+\{\,\ell:\max(\iota_j+1,k-L_{\mathrm{stag}}+1)\le \ell\le k\,\},
+\qquad
+\Delta\theta_{j,\ell}
+:=
+\theta_j(\tau_\ell^-)-\theta_j(\tau_{\ell-1}^+),
+\qquad
+\bar f_{j,\ell}
+:=
+\bigl(\bar f_\ell\bigr)_j.
+\]
+Then the normalized recent-motion and fit-contribution summaries are
+\[
+m_j^{\mathrm{mov}}(k)
+:=
+\frac{1}{|\mathcal I_j^{\mathrm{stag}}(k)|}
+\sum_{\ell\in\mathcal I_j^{\mathrm{stag}}(k)}
+\frac{|\Delta\theta_{j,\ell}|}{\|\Delta\theta_\ell\|_\infty+\varepsilon_\theta},
+\]
+\[
+m_j^{\mathrm{fit}}(k)
+:=
+\frac{1}{|\mathcal I_j^{\mathrm{stag}}(k)|}
+\sum_{\ell\in\mathcal I_j^{\mathrm{stag}}(k)}
+\frac{|\Delta\theta_{j,\ell}|\,|\bar f_{j,\ell}|}{\sum_i |\Delta\theta_{i,\ell}|\,|\bar f_{i,\ell}|+\varepsilon_f}.
+\]
+The hybrid checkpoint-local stagnation score is
+\[
+s_j^{\mathrm{stag}}(k)
+:=
+\alpha_{\mathrm{stag}}
+\Bigl(1-\operatorname{clip}(m_j^{\mathrm{mov}}(k),0,1)\Bigr)
++
+(1-\alpha_{\mathrm{stag}})
+\Bigl(1-\operatorname{clip}(m_j^{\mathrm{fit}}(k),0,1)\Bigr),
+\qquad
+0\le \alpha_{\mathrm{stag}}\le 1,
+\]
+so larger values mean less recent motion and less recent contribution to local drift tracking. For coordinates outside the hard protection window, the optional soft early-removal penalty is
+\[
+\Pi_j^{\mathrm{age}}(k)
+:=
+1+\lambda_{\mathrm{age}}^{\mathrm{pr}}
+\exp\!\left(
+-\frac{k-\iota_j-\ell_{\mathrm{protect}}}{\ell_{\mathrm{age}}}
+\right),
+\qquad
+j\notin\mathcal P_{\mathrm{protect}}(k).
+\]
+The mature eligible set is
+\[
+\mathcal E_k^{\mathrm{prune}}
+:=
+\{\,j:\ j\notin\mathcal P_{\mathrm{protect}}(k),\ c_j(k)=0,\ |\mathcal I_j^{\mathrm{stag}}(k)|\ge 1,\ s_j^{\mathrm{stag}}(k)\ge s_{\mathrm{stale}}\,\}.
+\]
+Pruning is opened only when the current scaffold is already tracking the drift adequately. The permissibility gate is
+\[
+\Gamma_k^{\mathrm{prune,perm}}
+:=
+\mathbf 1[\rho_{\mathrm{miss},k}\le \tau_{\mathrm{prune}}^{\mathrm{miss}}]\,
+\mathbf 1[c_k^{\mathrm{dir}}\ge \tau_{\mathrm{calm}}^{\mathrm{dir}}]\,
+\mathbf 1[\rho_k^{\mathrm{rate}}\le \tau_{\mathrm{calm}}^{\mathrm{rate}}]\,
+\mathbf 1[n_k\ge 2],
+\qquad
+\tau_{\mathrm{prune}}^{\mathrm{miss}}\le \tau_{\mathrm{miss}}.
+\]
+Once the current baseline geometry \((\bar G_k^{\mathrm{cm}},\bar f_k^{\mathrm{cm}})\) is cached, broad prune nomination is shot-free. For each \(j\in\mathcal E_k^{\mathrm{prune}}\cap A_k^{\mathrm{cm}}\), let
+\[
+A_{k,-j}^{\mathrm{cm}}
+:=
+A_k^{\mathrm{cm}}\setminus\{j\},
+\qquad
+\bar G_{k,-j}
+:=
+\bar G_{k,A_{k,-j}^{\mathrm{cm}}},
+\qquad
+\bar f_{k,-j}
+:=
+\bar f_{k,A_{k,-j}^{\mathrm{cm}}}.
+\]
+Define the cached frozen-ablation miss increase
+\[
+L_{j,\mathrm{frz}}^{\mathrm{cache}}(k)
+:=
+\left[
+\frac{
+\epsilon_{\mathrm{proj},k}^2(A_{k,-j}^{\mathrm{cm}})
+-
+\epsilon_{\mathrm{proj},k}^2(A_k^{\mathrm{cm}})
+}{\|\bar b_k\|^2+\varepsilon}
+\right]_+
+=
+\left[
+\frac{
+(\bar f_k^{\mathrm{cm}})^\top (\bar G_k^{\mathrm{cm}})^+\bar f_k^{\mathrm{cm}}
+-
+\bar f_{k,-j}^\top \bar G_{k,-j}^+\bar f_{k,-j}
+}{\|\bar b_k\|^2+\varepsilon}
+\right]_+.
+\]
+This quantity depends only on cached submatrices and subvectors of the current geometry and therefore requires no new shots. The local prune probe set is then
+\[
+\mathcal D_k^{\mathrm{prune}}
+:=
+\begin{cases}
+\operatorname{Top}_{K_{\mathrm{pr}}}\!\left(-L_{j,\mathrm{frz}}^{\mathrm{cache}}(k);\,j\in\mathcal E_k^{\mathrm{prune}}\cap A_k^{\mathrm{cm}}\right),&\Gamma_k^{\mathrm{prune,perm}}=1,\\[2mm]
+\varnothing,&\Gamma_k^{\mathrm{prune,perm}}=0.
+\end{cases}
+\]
+When cached losses tie numerically, ties are broken in favor of larger stored burden \(\kappa_j\). Inside the nominated set, use the cheap shot-free prune score
+\[
+P_j^{\mathrm{pr}}(k)
+:=
+L_{j,\mathrm{frz}}^{\mathrm{cache}}(k),
+\qquad
+j_k^\star
+:=
+\arg\min_{j\in\mathcal D_k^{\mathrm{prune}}}
+P_j^{\mathrm{pr}}(k).
+\]
+Thus broad prune ranking is geometry-exact on the cached baseline and requires no new measurements; the later remove-and-reintegrate test remains the authoritative prune accept/reject stage.
+The short local prune horizon is fixed as
+\[
+\Delta\tau_{\mathrm{pr}}
+:=
+\eta_{\mathrm{pr}}(\tau_{k+1}-\tau_k),
+\qquad
+0<\eta_{\mathrm{pr}}\le 1.
+\]
+The authoritative prune test removes \(j_k^\star\), resolves McLachlan on the reduced scaffold over the short local probe segment \([\tau_k,\tau_k+\Delta\tau_{\mathrm{pr}}]\), and compares the reduced run against the incumbent by
+\[
+J_{\mathrm{seg},k}
+:=
+\int_{\tau_k}^{\tau_k+\Delta\tau_{\mathrm{pr}}}\|\bar r(\tau)\|^2\,d\tau,
+\]
+\[
+\Delta\rho_j^{\mathrm{pr}}(k)
+:=
+\rho_{\mathrm{miss},k}^{(-j)}-\rho_{\mathrm{miss},k},
+\qquad
+\Delta J_j^{\mathrm{pr}}(k)
+:=
+\int_{\tau_k}^{\tau_k+\Delta\tau_{\mathrm{pr}}}
+\Bigl(\|\bar r^{(-j)}(\tau)\|^2-\|\bar r(\tau)\|^2\Bigr)\,d\tau.
+\]
+Accept the prune iff
+\[
+\Delta\rho_{j_k^\star}^{\mathrm{pr}}(k)
+\le
+\Delta_{\mathrm{safe}}^{\mathrm{miss}},
+\qquad
+\Delta J_{j_k^\star}^{\mathrm{pr}}(k)
+\le
+\Delta_{\mathrm{safe}}^{\mathrm{seg}}.
+\]
+Otherwise rollback to the pre-prune scaffold and set \(c_{j_k^\star}(k^+)\leftarrow c_{\mathrm{cool}}\). Thus the live checkpoint action is
+\[
+\Gamma_k^{\mathrm{live}}\in\{\mathrm{stay},\mathrm{append}(r_k^\star),\mathrm{prune}(j_k^\star)\},
+\]
+where append is selected by the shortlist/confirm/commit controller above, and prune is selected by the local remove-and-reintegrate controller above. Between checkpoints, the scaffold is fixed; at checkpoints, only one discrete append or prune action is committed.
+
+## 17B.7 Future branch-level rollout and beam extension
+
+If one later lifts the local stay/append/prune controller to a branch controller, a natural future extension is to compare short rollout alternatives by segment residual cost. On a fixed scaffold over a segment \([\tau_a,\tau_b]\), the raw and projective segment costs are
+\[
+J_{\mathrm{seg}}^{\mathrm{raw}}
+:=
+\int_{\tau_a}^{\tau_b}\|r_{\mathrm{raw}}(\tau)\|^2\,d\tau,
+\qquad
+J_{\mathrm{seg}}^{\mathrm{proj}}
+:=
+\int_{\tau_a}^{\tau_b}\|\bar r(\tau)\|^2\,d\tau.
+\]
+A clean scalar branch objective is
+\[
+J_{\mathrm{dyn}}(\mathfrak b)
+:=
+\sum_{k=0}^{K-1}J_{\mathrm{seg},k}
++\beta\,C_{\mathrm{hw}}(\mathfrak b)
++\gamma\,N_{\mathrm{adapt}}(\mathfrak b).
+\]
+The associated residual ledgers may be summarized by
+\[
+\Delta J^{\epsilon}
+:=
+\int \epsilon_{\mathrm{step}}^2,
+\qquad
+\Delta J^{\mathrm{model}}
+:=
+\int \epsilon_{\mathrm{proj}}^2,
+\qquad
+\Delta J^{\mathrm{damp}}
+:=
+\int \max\!\bigl(\epsilon_{\mathrm{step}}^2-\epsilon_{\mathrm{proj}}^2,0\bigr),
+\]
+then culls rollout alternatives lexicographically after deduplicating by checkpoint index, scaffold labels, and rounded parameters.
+Thus the branch objective may be read as the integrated residual ledger plus explicit hardware and adaptation penalties:
+\[
+\begin{aligned}
+J_{\mathrm{dyn}}(\mathfrak b)
+&=
+\sum_{k=0}^{K-1}J_{\mathrm{seg},k}
++\beta\,C_{\mathrm{hw}}(\mathfrak b)
++\gamma\,N_{\mathrm{adapt}}(\mathfrak b),\\
+J_{\mathrm{seg},k}
+&\sim
+\int_{\tau_k}^{\tau_{k+1}}\|\bar r(\tau)\|^2\,d\tau,\\
+\Delta J^{\epsilon}
+&=
+\int \|\bar T\dot\theta_\lambda-\bar b\|^2,\\
+\Delta J^{\mathrm{model}}
+&=
+\int \bigl(\|\bar b\|^2-\bar f^\top\bar G^+\bar f\bigr),\\
+\Delta J^{\mathrm{damp}}
+&=
+\int \max\!\bigl(\epsilon_{\mathrm{step}}^2-\epsilon_{\mathrm{proj}}^2,0\bigr).
+\end{aligned}
+\]
+This branch-level rollout and beam surface is retained only as a future extension. It is not the canonical live runtime surface of \texttt{fullclone\_3}.
+\medskip
+
+\noindent\textbf{Implementation status.} The repo surface in \texttt{fullclone\_3} is already more structured than the original long-form derivation. It already implements checkpoint-local geometry caches, three measurement tiers, active-window and probe-position caps, position-aware zero-initialized single-parameter growth, and compile/measurement/directional/temporal-prior controller modifiers. The condensed doctrine is therefore:
+\begin{quote}
+Propagate on the current scaffold by projective McLachlan. Measure miss at each checkpoint. If the miss is large, open a position-aware append search over records \(r=(m,p)\). Scout by residual overlap and hardware penalties, confirm by local Schur-complement gain, and append only if the miss and gain thresholds are passed. If the scaffold is already calm and well fit, prune stale scaffold generators by a local remove-and-reintegrate test with rollback. Treat branch-level rollout and beam competition only as a future extension.
+\end{quote}
+
+# 17C. Projective McLachlan Real-Time Geometry and Piecewise Beam-Adaptive Control
+
+
+Below is the cleanest mathematical story for what the projected real-time implementation is doing. It is most naturally written as a \textbf{piecewise-smooth control problem on a family of variational manifolds}, with $\hbar=1$, normalized pure states, and real parameters. The two geometric facts underneath everything are:
+
+\begin{enumerate}
+\item the McLachlan principle projects the exact Schrödinger velocity onto a \textbf{real-linear} tangent space using the real inner product $g(u,v)=\Re\langle u,v\rangle$, and
+\item physical pure states are rays, so the natural state space is \textbf{projective Hilbert space}, which means global-phase directions should be removed from the local scoring geometry.
+
+\end{enumerate}
+
+## 17C.1 What problem is being solved?
+
+
+Fix a Hilbert space $\mathcal H\cong\mathbb C^d$, a Hamiltonian $H(\tau)$, and a current ansatz scaffold $\mathcal O$. That scaffold defines a parameterized family of states
+\[
+|\psi(\theta;\mathcal O)\rangle,
+\qquad
+\theta\in\mathbb R^{n_\theta}.
+\]
+
+At physical time $\tau$, the exact Schrödinger equation asks for the state velocity
+\[
+\frac{d}{d\tau}|\psi_{\mathrm{ex}}(\tau)\rangle
+=
+-iH(\tau)|\psi_{\mathrm{ex}}(\tau)\rangle.
+\]
 
 The local projected-dynamics question is therefore:
 
-> **At the current state, how closely can the current ansatz manifold reproduce the exact instantaneous quantum velocity?**
+\begin{quote}
+\textbf{At the current state, how closely can the current ansatz manifold reproduce the exact instantaneous quantum velocity?}
+\end{quote}
+
 
 This is the local question answered by real-time McLachlan dynamics. It is also the quantity that drives adaptive manifold growth: enlarge the ansatz when the instantaneous projected defect becomes too large.
 
-## 17.2 Why projective Hilbert space is the right setting
+## 17C.2 Why projective Hilbert space is the right setting
+
 
 A normalized ket $|\psi\rangle$ and $e^{i\phi}|\psi\rangle$ represent the same physical state. So the physical state space is projective Hilbert space $\mathbb P(\mathcal H)$ rather than the unit sphere itself. At a normalized state $|\psi\rangle$, define the horizontal projector
-$$
+\[
 Q_\psi:=I-|\psi\rangle\langle\psi|.
-$$
+\]
 
 For each parameter $\theta_j$, the raw tangent vector is
-$$
-\tau_j:=\partial_{\theta_j}|\psi(\theta;\mathcal S)\rangle,
-$$
+\[
+\tau_j:=\partial_{\theta_j}|\psi(\theta;\mathcal O)\rangle,
+\]
 and the horizontal tangent is
-$$
+\[
 \bar\tau_j:=Q_\psi\tau_j.
-$$
+\]
 
 Collect the horizontal tangents as columns:
-$$
-\bar T:=[\bar\tau_1,\dots,\bar\tau_m]\in\mathbb C^{d\times m}.
-$$
+\[
+\bar T:=[\bar\tau_1,\dots,\bar\tau_{n_\theta}]\in\mathbb C^{d\times n_\theta}.
+\]
 
 The exact Schrödinger drift is
-$$
+\[
 b:=-iH\psi,
-$$
+\]
 but the physically relevant local velocity is its horizontal part
-$$
+\[
 \bar b:=Q_\psi b
 =
 -i(H-E_\psi)\psi,
 \qquad
 E_\psi:=\langle\psi|H|\psi\rangle.
-$$
+\]
 
 Its squared norm is
-$$
+\[
 \|\bar b\|^2
 =
 \langle\psi|(H-E_\psi)^2|\psi\rangle
 =
 \operatorname{Var}_\psi(H).
-$$
+\]
 
 So the squared norm of the exact projective Schrödinger velocity is the energy variance. This is why $\operatorname{Var}_\psi(H)$ is the natural normalization scale for projected McLachlan defects.
 
-## 17.3 The current manifold and its allowed velocities
+## 17C.3 The current manifold and its allowed velocities
 
-Because the parameters are real, the attainable instantaneous velocities form the **real-linear** tangent cone
-$$
-T_\psi\mathcal M_{\mathcal S}
+
+Because the parameters are real, the attainable instantaneous velocities form the \textbf{real-linear} tangent cone
+\[
+T_\psi\mathcal M_{\mathcal O}
 =
 \left\{
-\bar T\dot\theta:\dot\theta\in\mathbb R^m
+\bar T\dot\theta:\dot\theta\in\mathbb R^{n_\theta}
 \right\}.
-$$
+\]
 
 This is not a complex-linear subspace in general. So the correct local geometry is built from the real inner product
-$$
+\[
 g(u,v):=\Re\langle u,v\rangle.
-$$
+\]
 
 The variational velocity associated with parameter rates $\dot\theta$ is
-$$
+\[
 v(\dot\theta)=\bar T\dot\theta.
-$$
+\]
 
-## 17.4 The fixed-structure McLachlan step
+## 17C.4 The fixed-structure McLachlan step
+
 
 The fixed-structure local problem is
-$$
-\dot\theta_0=\arg\min_{\dot\theta\in\mathbb R^m}\|\bar T\dot\theta-\bar b\|^2.
-$$
+\[
+\dot\theta_0=\arg\min_{\dot\theta\in\mathbb R^{n_\theta}}\|\bar T\dot\theta-\bar b\|^2.
+\]
 Its quadratic form, projective metric, force vector, and solved stationarity system close to
-$$
+\[
 \begin{aligned}
 \|\bar T\dot\theta-\bar b\|^2
 &=\|\bar b\|^2-2\Re\langle \bar T\dot\theta,\bar b\rangle+\dot\theta^\top\Re(\bar T^\dagger\bar T)\dot\theta,\\
@@ -3116,22 +3653,23 @@ $$
 \dot\theta_0&=\bar G^+\bar f\qquad\text{if }\bar G\text{ is singular or rank-deficient},\\
 0&=\Re\langle \bar\tau_i,\bar T\dot\theta_0-\bar b\rangle\qquad \forall i.
 \end{aligned}
-$$
+\]
 
-## 17.5 What regularization means
+## 17C.5 What regularization means
+
 
 A stabilized runtime step solves
-$$
-\dot\theta_\lambda=\arg\min_{\dot\theta\in\mathbb R^m}\left(\|\bar T\dot\theta-\bar b\|^2+\dot\theta^\top\Lambda\dot\theta\right),
+\[
+\dot\theta_\lambda=\arg\min_{\dot\theta\in\mathbb R^{n_\theta}}\left(\|\bar T\dot\theta-\bar b\|^2+\dot\theta^\top\Lambda\dot\theta\right),
 \qquad
 \Lambda\succeq 0.
-$$
+\]
 With
-$$
+\[
 K:=\bar G+\Lambda,
-$$
+\]
 the regularized geometry closes to
-$$
+\[
 \begin{aligned}
 K\dot\theta_\lambda&=\bar f,\\
 \epsilon_{\mathrm{proj}}^2&:=\min_{\dot\theta}\|\bar T\dot\theta-\bar b\|^2=\|\bar b\|^2-\bar f^\top\bar G^+\bar f,\\
@@ -3139,168 +3677,175 @@ K\dot\theta_\lambda&=\bar f,\\
 \mathcal L_\lambda^\star&:=\min_{\dot\theta}\left(\|\bar T\dot\theta-\bar b\|^2+\dot\theta^\top\Lambda\dot\theta\right)=\|\bar b\|^2-\bar f^\top K^{-1}\bar f\qquad (K\text{ invertible}),\\
 \mathcal L_\lambda^\star&=\epsilon_{\mathrm{step}}^2+\dot\theta_\lambda^\top\Lambda\dot\theta_\lambda.
 \end{aligned}
-$$
+\]
 So $\epsilon_{\mathrm{proj}}^2$ measures intrinsic model inadequacy, $\epsilon_{\mathrm{step}}^2$ measures the actual mismatch of the damped runtime step, and $\mathcal L_\lambda^\star$ is the stabilized solver objective.
 
-## 17.6 Why the residual is the right local error quantity
+## 17C.6 Why the residual is the right local error quantity
 
-Choose a local gauge in which the representatives are horizontal at the current time. Then the exact and variational projective velocities are
-$$
+
+Choose a local gauge in which the representatives are horizontal at the current physical time $\tau$. Then the exact and variational projective velocities are
+\[
 \bar b
 \qquad\text{and}\qquad
 \bar T\dot\theta.
-$$
+\]
 
 Define the horizontal residual
-$$
+\[
 \bar r:=\bar T\dot\theta-\bar b.
-$$
+\]
 
 Then, for a short step $h$,
-$$
-|\psi_{\mathrm{ex}}(t+h)\rangle
+\[
+|\psi_{\mathrm{ex}}(\tau+h)\rangle
 =
 |\psi\rangle+h\,\bar b+O(h^2),
-$$
-$$
-|\psi_{\mathrm{var}}(t+h)\rangle
+\]
+\[
+|\psi_{\mathrm{var}}(\tau+h)\rangle
 =
 |\psi\rangle+h\,\bar T\dot\theta+O(h^2),
-$$
+\]
 so
-$$
-|\psi_{\mathrm{var}}(t+h)\rangle-|\psi_{\mathrm{ex}}(t+h)\rangle
+\[
+|\psi_{\mathrm{var}}(\tau+h)\rangle-|\psi_{\mathrm{ex}}(\tau+h)\rangle
 =
 h\,\bar r+O(h^2).
-$$
+\]
 
-So the correct local score is an **instantaneous derivative-mismatch score**. Static energy scores or novelty scores can help in secondary ranking, but they are not the primary real-time control quantity.
+So the correct local score is an \textbf{instantaneous derivative-mismatch score}. Static energy scores or novelty scores can help in secondary ranking, but they are not the primary real-time control quantity.
 
-## 17.7 The geometric projector behind the formulas
+## 17C.7 The geometric projector behind the formulas
+
 
 Because the tangent space is real-linear, the correct projector is
-$$
+\[
 P_{\bar T}^{\mathbb R}v
 =
 \bar T\,\bar G^+\,\Re(\bar T^\dagger v).
-$$
+\]
 
 The unregularized optimal residual is therefore
-$$
+\[
 \bar r_0
 =
 \bar T\dot\theta_0-\bar b
 =
 \left(P_{\bar T}^{\mathbb R}-I\right)\bar b.
-$$
+\]
 
 So the ansatz follows the component of the exact projective Schrödinger vector field that lies in the current real tangent plane, and the residual is the orthogonal complement.
 
-## 17.8 What a candidate generator really is
+## 17C.8 What a candidate generator really is
 
-Suppose the current structure is an ordered product ansatz
-$$
-|\psi(\theta;\mathcal S)\rangle
+
+Suppose the current scaffold is an ordered product ansatz
+\[
+|\psi(\theta;\mathcal O)\rangle
 =
-e^{-i\theta_m A_m}\cdots e^{-i\theta_1 A_1}|\phi_0\rangle.
-$$
+e^{-i\theta_{n_\theta} a_{n_\theta}}\cdots e^{-i\theta_1 a_1}|\phi_0\rangle.
+\]
 
-Now insert a candidate block $A_c$ at position $p$, with new parameter $\eta$, initialized at zero:
-$$
-|\psi'(\theta,\eta)\rangle
+Now fix a candidate-position record $r=(m,p)$, insert the candidate generator $A_m$ at position $p$, and let the new parameter $\vartheta_r$ be initialized at zero:
+\[
+|\psi_r^+(\theta,\vartheta_r)\rangle
 =
-e^{-i\theta_m A_m}\cdots e^{-i\theta_p A_p}
-e^{-i\eta A_c}
-e^{-i\theta_{p-1}A_{p-1}}\cdots e^{-i\theta_1 A_1}|\phi_0\rangle.
-$$
+e^{-i\theta_{n_\theta} a_{n_\theta}}\cdots e^{-i\theta_p a_p}
+e^{-i\vartheta_r A_m}
+e^{-i\theta_{p-1}a_{p-1}}\cdots e^{-i\theta_1 a_1}|\phi_0\rangle.
+\]
 
-At $\eta=0$,
-$$
-|\psi'(\theta,0)\rangle=|\psi(\theta)\rangle.
-$$
+At $\vartheta_r=0$,
+\[
+|\psi_r^+(\theta,0)\rangle=|\psi(\theta)\rangle.
+\]
 So the state is continuous, but the tangent space changes immediately. The new tangent column is
-$$
-u_c:=\left.\partial_\eta|\psi'(\theta,\eta)\rangle\right|_{\eta=0},
+\[
+u_r:=\left.\partial_{\vartheta_r}|\psi_r^+(\theta,\vartheta_r)\rangle\right|_{\vartheta_r=0},
 \qquad
-\bar u_c:=Q_\psi\nu_c.
-$$
-So a candidate is not merely “a promising operator.” It is a **new tangent direction that becomes available at the current state without moving the state**. For a block candidate carrying $q$ new real parameters, collect the new columns into
-$$
-\bar U\in\mathbb C^{d\times q}.
-$$
+\bar u_r:=Q_\psi u_r.
+\]
+So a candidate is not merely “a promising operator.” It is a \textbf{new tangent direction that becomes available at the current state without moving the state}. For a block candidate carrying $q$ new real parameters, collect the new columns into
+\[
+\bar U_r\in\mathbb C^{d\times q}.
+\]
 
-## 17.9 The exact local gain formula
+## 17C.9 The exact local gain formula
+
 
 Now augment the local problem:
-$$
-\min_{\dot\theta,\eta}\Big(\|\bar T\dot\theta+\bar U\eta-\bar b\|^2+\dot\theta^\top\Lambda\dot\theta+\eta^\top\Lambda_c\eta\Big),
+\[
+\min_{\dot\theta,\eta}\Big(\|\bar T\dot\theta+\bar U_r\eta-\bar b\|^2+\dot\theta^\top\Lambda\dot\theta+\eta^\top\Lambda_r\eta\Big),
 \qquad
-\Lambda_c\succeq 0.
-$$
+\Lambda_r\succeq 0.
+\]
 With the mixed overlaps
-$$
+\[
 \begin{aligned}
-B_{ia}&=\Re\langle \bar\tau_i,\bar u_a\rangle,&
-B&=\Re(\bar T^\dagger\bar U)\in\mathbb R^{m\times q},\\
-C_{ab}&=\Re\langle \bar u_a,\bar u_b\rangle,&
-C&=\Re(\bar U^\dagger\bar U)\in\mathbb R^{q\times q},\\
-q_a&=\Re\langle \bar u_a,\bar b\rangle,&
-q&=\Re(\bar U^\dagger\bar b)\in\mathbb R^q,
+B_{r,ia}&=\Re\langle \bar\tau_i,\bar u_{r,a}\rangle,&
+B_r&=\Re(\bar T^\dagger\bar U_r)\in\mathbb R^{n_\theta\times q},\\
+C_{r,ab}&=\Re\langle \bar u_{r,a},\bar u_{r,b}\rangle,&
+C_r&=\Re(\bar U_r^\dagger\bar U_r)\in\mathbb R^{q\times q},\\
+q_{r,a}&=\Re\langle \bar u_{r,a},\bar b\rangle,&
+q_r&=\Re(\bar U_r^\dagger\bar b)\in\mathbb R^q,
 \end{aligned}
-$$
+\]
 the augmented normal equations, Schur complement, and gain reduce to
-$$
+\[
 \begin{aligned}
-\begin{bmatrix}K&B\\B^\top&C+\Lambda_c\end{bmatrix}\begin{bmatrix}\dot\theta\\\eta\end{bmatrix}&=\begin{bmatrix}\bar f\\q\end{bmatrix},\\
-\dot\theta(\eta)&=K^{-1}(\bar f-B\eta),\\
-\mathcal L_{\mathrm{aug},\lambda}^\star(\eta)&=\mathcal L_\lambda^\star-2\eta^\top w+\eta^\top S\eta,\\
-S&=C+\Lambda_c-B^\top K^{-1}B,\\
-w&=q-B^\top K^{-1}\bar f,\\
-\eta_\star&=S^+w,\\
-\Delta_\lambda&:=\mathcal L_\lambda^\star-\mathcal L_{\mathrm{aug},\lambda}^\star=w^\top S^+w\\
-&=\bigl(q-B^\top K^{-1}\bar f\bigr)^\top\bigl(C+\Lambda_c-B^\top K^{-1}B\bigr)^+\bigl(q-B^\top K^{-1}\bar f\bigr).
+\begin{bmatrix}K&B_r\\B_r^\top&C_r+\Lambda_r\end{bmatrix}\begin{bmatrix}\dot\theta\\\eta\end{bmatrix}&=\begin{bmatrix}\bar f\\q_r\end{bmatrix},\\
+\dot\theta(\eta)&=K^{-1}(\bar f-B_r\eta),\\
+\mathcal L_{\mathrm{aug},\lambda}^\star(\eta)&=\mathcal L_\lambda^\star-2\eta^\top w_r+\eta^\top S_r\eta,\\
+S_r&=C_r+\Lambda_r-B_r^\top K^{-1}B_r,\\
+w_r&=q_r-B_r^\top K^{-1}\bar f,\\
+\eta_\star&=S_r^+w_r,\\
+\Delta_{\mathrm{McL}}(r;\tau)&:=\mathcal L_\lambda^\star-\mathcal L_{\mathrm{aug},\lambda}^\star=w_r^\top S_r^+w_r\\
+&=\bigl(q_r-B_r^\top K^{-1}\bar f\bigr)^\top\bigl(C_r+\Lambda_r-B_r^\top K^{-1}B_r\bigr)^+\bigl(q_r-B_r^\top K^{-1}\bar f\bigr).
 \end{aligned}
-$$
+\]
 For a single real candidate direction ($q=1$), this reduces to
-$$
-\Delta_\lambda=\frac{w^2}{S}.
-$$
+\[
+\Delta_{\mathrm{McL}}(r;\tau)=\frac{w_r^2}{S_r}.
+\]
 
-## 17.10 What $S$ and $w$ mean
+## 17C.10 What $S$ and $w$ mean
+
 
 The Schur-complement pair and resulting score may be read in one chain:
-$$
+\[
 \begin{aligned}
-S&=C+\Lambda_c-B^\top K^{-1}B,\\
-w&=q-B^\top K^{-1}\bar f,\\
-\Delta_\lambda&=w^\top S^+w\\
-&=\bigl(q-B^\top K^{-1}\bar f\bigr)^\top\bigl(C+\Lambda_c-B^\top K^{-1}B\bigr)^+\bigl(q-B^\top K^{-1}\bar f\bigr).
+S_r&=C_r+\Lambda_r-B_r^\top K^{-1}B_r,\\
+w_r&=q_r-B_r^\top K^{-1}\bar f,\\
+\Delta_{\mathrm{McL}}(r;\tau)&=w_r^\top S_r^+w_r\\
+&=\bigl(q_r-B_r^\top K^{-1}\bar f\bigr)^\top\bigl(C_r+\Lambda_r-B_r^\top K^{-1}B_r\bigr)^+\bigl(q_r-B_r^\top K^{-1}\bar f\bigr).
 \end{aligned}
-$$
-So $S$ is the metric of the new block after removing the part already explainable by the old tangent space, $w$ is the residualized overlap with the exact projective drift, and $\Delta_\lambda$ is residualized force squared divided by residualized norm.
+\]
+So $S_r$ is the metric of the new block after removing the part already explainable by the old tangent space, $w_r$ is the residualized overlap with the exact projective drift, and $\Delta_{\mathrm{McL}}(r;\tau)$ is residualized force squared divided by residualized norm.
 
-## 17.11 The unregularized geometric meaning
+## 17C.11 The unregularized geometric meaning
+
 
 Set $\Lambda=\Lambda_c=0$. For a single real candidate direction $\bar u$, define
-$$
+\[
 \bar u_\perp:=(I-P_{\bar T}^{\mathbb R})\bar u,
 \qquad
 \bar r_0:=(I-P_{\bar T}^{\mathbb R})\bar b.
-$$
+\]
 Then the exact one-direction gain closes to
-$$
+\[
 \begin{aligned}
 \Delta_0
 &=\frac{\bigl(\Re\langle \bar u_\perp,\bar r_0\rangle\bigr)^2}{\|\bar u_\perp\|^2}\\
 &=\frac{\bigl(\Re\langle (I-P_{\bar T}^{\mathbb R})\bar u,(I-P_{\bar T}^{\mathbb R})\bar b\rangle\bigr)^2}{\|(I-P_{\bar T}^{\mathbb R})\bar u\|^2}.
 \end{aligned}
-$$
-The numerator uses $\Re\langle \bar u_\perp,\bar r_0\rangle$ rather than $|\langle \bar u_\perp,\bar r_0\rangle|$ because one is adding **one real parameter**, not an arbitrary complex tangent line.
+\]
+The numerator uses $\Re\langle \bar u_\perp,\bar r_0\rangle$ rather than $|\langle \bar u_\perp,\bar r_0\rangle|$ because one is adding \textbf{one real parameter}, not an arbitrary complex tangent line.
 
-## 17.12 When should the ansatz adapt?
+## 17C.12 When should the ansatz adapt?
+
 
 The intrinsic normalized miss closes to
-$$
+\[
 \begin{aligned}
 \rho_{\mathrm{miss}}
 &:=\frac{\epsilon_{\mathrm{proj}}^2}{\|\bar b\|^2+\varepsilon}
@@ -3308,127 +3853,141 @@ $$
 &=\frac{\operatorname{Var}_\psi(H)-\bar f^\top\bar G^+\bar f}{\operatorname{Var}_\psi(H)+\varepsilon}
 =\frac{\langle \psi|(H-E_\psi)^2|\psi\rangle-\bar f^\top\bar G^+\bar f}{\langle \psi|(H-E_\psi)^2|\psi\rangle+\varepsilon}.
 \end{aligned}
-$$
+\]
 Interpretation:
 
-- $\rho_{\mathrm{miss}}\approx 0$: the current manifold already captures the projective velocity well,
-- $\rho_{\mathrm{miss}}$ large: the manifold is missing important directions.
+\begin{itemize}
+\item $\rho_{\mathrm{miss}}\approx 0$: the current manifold already captures the projective velocity well,
+\item $\rho_{\mathrm{miss}}$ large: the manifold is missing important directions.
+
+\end{itemize}
 
 A clean rule is therefore
-$$
+\[
 \text{adapt if }\rho_{\mathrm{miss}}>\tau_{\mathrm{miss}}.
-$$
+\]
 
 One may also adapt for numerical unreliability or after a maximum interval without any structural update.
 
-## 17.13 Which candidates should be admissible?
+## 17C.13 Which candidates should be admissible?
+
 
 A candidate may have nonzero gain and still be numerically poor because it is nearly redundant. So before ranking by $\Delta_\lambda$, one should inspect the residualized geometry:
 
-- compute singular values of $S$, or of the corresponding whitened residualized block,
-- reject candidates whose retained support is too ill-conditioned.
+\begin{itemize}
+\item compute singular values of $S$, or of the corresponding whitened residualized block,
+\item reject candidates whose retained support is too ill-conditioned.
+
+\end{itemize}
 
 An invariant way to do this is to whiten the old tangent metric. If
-$$
+\[
 \bar G\approx V\Sigma^2V^\top
-$$
+\]
 on its numerical support, define whitened coordinates
-$$
+\[
 z:=\Sigma V^\top\dot\theta.
-$$
+\]
 
-Then penalizing $\|z\|^2$ is a penalty on **physical tangent speed** rather than coordinate speed. This is the least chart-dependent way to stabilize an overparameterized manifold.
+Then penalizing $\|z\|^2$ is a penalty on \textbf{physical tangent speed} rather than coordinate speed. This is the least chart-dependent way to stabilize an overparameterized manifold.
 
-## 17.14 Two different residuals should be tracked
+## 17C.14 Two different residuals should be tracked
+
 
 The projective residual is
-$$
+\[
 \bar r:=\bar T\dot\theta_\lambda-\bar b.
-$$
+\]
 
 This is the correct gauge-invariant quantity for local candidate scoring and local manifold-growth decisions.
 
 The raw Hilbert-space residual is
-$$
+\[
 r_{\mathrm{raw}}
 :=
 T\dot\theta_\lambda-(-iH\psi)
 =
 T\dot\theta_\lambda+iH\psi.
-$$
+\]
 
 These are related by
-$$
+\[
 \bar r=Q_\psi r_{\mathrm{raw}}.
-$$
+\]
 
 So:
 
-- use $\bar r$ for **local structure growth**,
-- use $r_{\mathrm{raw}}$ when a rigorous Hilbert-space accumulated-error bound is desired.
+\begin{itemize}
+\item use $\bar r$ for \textbf{local structure growth},
+\item use $r_{\mathrm{raw}}$ when a rigorous Hilbert-space accumulated-error bound is desired.
 
-## 17.15 Why integrated residual is the right branch-pruning quantity
+\end{itemize}
 
-Let a branch be propagated on a fixed structure over a segment $[t_a,t_b]$. Let $|\psi_{\mathrm{ex}}\rangle$ be the exact state and $|\psi_{\mathrm{var}}\rangle$ the variational state with the same initial condition at $t_a$, and define
-$$
-e(t):=|\psi_{\mathrm{var}}(t)\rangle-|\psi_{\mathrm{ex}}(t)\rangle.
-$$
+## 17C.15 Why integrated residual is the right branch-pruning quantity
+
+
+Let a branch be propagated on a fixed scaffold over a segment $[\tau_a,\tau_b]$. Let $|\psi_{\mathrm{ex}}\rangle$ be the exact state and $|\psi_{\mathrm{var}}\rangle$ the variational state with the same initial condition at $\tau_a$, and define
+\[
+e(\tau):=|\psi_{\mathrm{var}}(\tau)\rangle-|\psi_{\mathrm{ex}}(\tau)\rangle.
+\]
 Then the error evolution, Duhamel representation, norm bound, and segment cost close to
-$$
+\[
 \begin{aligned}
 \dot\psi_{\mathrm{ex}}&=-iH\psi_{\mathrm{ex}},&
 \dot\psi_{\mathrm{var}}&=T\dot\theta_\lambda,&
 r_{\mathrm{raw}}&=T\dot\theta_\lambda+iH\psi,\\
 \dot e&=-iHe+r_{\mathrm{raw}},\\
-e(t)&=\int_{t_a}^t U(t,s)\,r_{\mathrm{raw}}(s)\,ds,\\
-\|e(t)\|&\le\int_{t_a}^t\|r_{\mathrm{raw}}(s)\|\,ds\le\sqrt{t-t_a}\left(\int_{t_a}^t\|r_{\mathrm{raw}}(s)\|^2\,ds\right)^{1/2},\\
-J_{\mathrm{seg}}^{\mathrm{raw}}&:=\int_{t_a}^{t_b}\|r_{\mathrm{raw}}(t)\|^2\,dt=\int_{t_a}^{t_b}\|T\dot\theta_\lambda(t)+iH(t)\psi(t)\|^2\,dt.
+e(\tau)&=\int_{\tau_a}^\tau U(\tau,s)\,r_{\mathrm{raw}}(s)\,ds,\\
+\|e(\tau)\|&\le\int_{\tau_a}^\tau\|r_{\mathrm{raw}}(s)\|\,ds\le\sqrt{\tau-\tau_a}\left(\int_{\tau_a}^\tau\|r_{\mathrm{raw}}(s)\|^2\,ds\right)^{1/2},\\
+J_{\mathrm{seg}}^{\mathrm{raw}}&:=\int_{\tau_a}^{\tau_b}\|r_{\mathrm{raw}}(\tau)\|^2\,d\tau=\int_{\tau_a}^{\tau_b}\|T\dot\theta_\lambda(\tau)+iH(\tau)\psi(\tau)\|^2\,d\tau.
 \end{aligned}
-$$
-So $J_{\mathrm{seg}}^{\mathrm{raw}}$ is a natural upper-bound surrogate for accumulated state-vector error. If one wants a fully gauge-invariant pruning metric instead, replace $\|r_{\mathrm{raw}}(t)\|^2$ by $\|\bar r(t)\|^2=\|Q_\psi r_{\mathrm{raw}}(t)\|^2$ and interpret the result as a ray/projective error surrogate.
+\]
+So $J_{\mathrm{seg}}^{\mathrm{raw}}$ is a natural upper-bound surrogate for accumulated state-vector error. If one wants a fully gauge-invariant pruning metric instead, replace $\|r_{\mathrm{raw}}(\tau)\|^2$ by $\|\bar r(\tau)\|^2=\|Q_\psi r_{\mathrm{raw}}(\tau)\|^2$ and interpret the result as a ray/projective error surrogate.
 
-## 17.16 The branch objective
+## 17C.16 The branch objective
 
-A branch is a sequence of structures $\mathcal S_0,\mathcal S_1,\dots,\mathcal S_J$ used over consecutive checkpoint segments, and the cumulative objective closes as
-$$
+
+A branch $\mathfrak b$ is a sequence of scaffolds $\mathcal O_0,\mathcal O_1,\dots,\mathcal O_J$ used over consecutive checkpoint segments, and the cumulative objective closes as
+\[
 \begin{aligned}
-J_{\mathrm{branch}}
+J_{\mathrm{dyn}}(\mathfrak b)
 &=
 \sum_{j=0}^{J-1}J_{\mathrm{seg},j}
 +\beta\,C_{\mathrm{hw}}
 +\gamma\,N_{\mathrm{adapt}}
-+\mu_E\sum_{j=0}^{J-1}\int_{t_j}^{t_{j+1}}
++\mu_E\sum_{j=0}^{J-1}\int_{\tau_j}^{\tau_{j+1}}
 \left|
-\frac{d}{dt}\langle H(t)\rangle_j-\langle\partial_t H(t)\rangle_j
-\right|^2dt\\
+\frac{d}{d\tau}\langle H(\tau)\rangle_j-\langle\partial_\tau H(\tau)\rangle_j
+\right|^2d\tau\\
 &=
-\sum_{j=0}^{J-1}\int_{t_j}^{t_{j+1}}\|r_{\mathrm{raw}}^{(j)}(t)\|^2\,dt
+\sum_{j=0}^{J-1}\int_{\tau_j}^{\tau_{j+1}}\|r_{\mathrm{raw}}^{(j)}(\tau)\|^2\,d\tau
 +\beta\,C_{\mathrm{hw}}
 +\gamma\,N_{\mathrm{adapt}}
-+\mu_E\sum_{j=0}^{J-1}\int_{t_j}^{t_{j+1}}
++\mu_E\sum_{j=0}^{J-1}\int_{\tau_j}^{\tau_{j+1}}
 \left|
-\frac{d}{dt}\langle H(t)\rangle_j-\langle\partial_t H(t)\rangle_j
-\right|^2dt\\
+\frac{d}{d\tau}\langle H(\tau)\rangle_j-\langle\partial_\tau H(\tau)\rangle_j
+\right|^2d\tau\\
 &=
-\sum_{j=0}^{J-1}\int_{t_j}^{t_{j+1}}
-\bigl\|T^{(j)}(t)\dot\theta_\lambda^{(j)}(t)+iH(t)\psi^{(j)}(t)\bigr\|^2\,dt
+\sum_{j=0}^{J-1}\int_{\tau_j}^{\tau_{j+1}}
+\bigl\|T^{(j)}(\tau)\dot\theta_\lambda^{(j)}(\tau)+iH(\tau)\psi^{(j)}(\tau)\bigr\|^2\,d\tau
 +\beta\,C_{\mathrm{hw}}
 +\gamma\,N_{\mathrm{adapt}}
-+\mu_E\sum_{j=0}^{J-1}\int_{t_j}^{t_{j+1}}
++\mu_E\sum_{j=0}^{J-1}\int_{\tau_j}^{\tau_{j+1}}
 \left|
-\frac{d}{dt}\langle H(t)\rangle_j-\langle\partial_t H(t)\rangle_j
-\right|^2dt.
+\frac{d}{d\tau}\langle H(\tau)\rangle_j-\langle\partial_\tau H(\tau)\rangle_j
+\right|^2d\tau.
 \end{aligned}
-$$
-If one wants a fully gauge-invariant branch surrogate instead, replace $\|r_{\mathrm{raw}}^{(j)}(t)\|^2$ by $\|\bar r^{(j)}(t)\|^2=\|Q_{\psi^{(j)}}r_{\mathrm{raw}}^{(j)}(t)\|^2$.
+\]
+If one wants a fully gauge-invariant branch surrogate instead, replace $\|r_{\mathrm{raw}}^{(j)}(\tau)\|^2$ by $\|\bar r^{(j)}(\tau)\|^2=\|Q_{\psi^{(j)}}r_{\mathrm{raw}}^{(j)}(\tau)\|^2$.
 
-## 17.17 The full process, in one coherent sequence
+## 17C.17 The full process, in one coherent sequence
 
-At each time $t$, with current structure $\mathcal S$, the full loop can be written compactly as
-$$
+
+At each physical time $\tau$, with current scaffold $\mathcal O$, the full loop can be written compactly as
+\[
 \begin{aligned}
 \text{A: }&
-|\psi\rangle=|\psi(\theta;\mathcal S)\rangle,
+|\psi\rangle=|\psi(\theta;\mathcal O)\rangle,
 \qquad
 Q_\psi=I-|\psi\rangle\langle\psi|,
 \qquad
@@ -3460,82 +4019,93 @@ r_{\mathrm{raw}}=T\dot\theta_\lambda+iH\psi,\\
 \qquad
 \text{adapt iff }\rho_{\mathrm{miss}}>\tau_{\mathrm{miss}},\\
 \text{D: }&
-B_c=\Re(\bar T^\dagger\bar U_c),
+B_r=\Re(\bar T^\dagger\bar U_r),
 \qquad
-C_c=\Re(\bar U_c^\dagger\bar U_c),
+C_r=\Re(\bar U_r^\dagger\bar U_r),
 \qquad
-q_c=\Re(\bar U_c^\dagger\bar b),\\
+q_r=\Re(\bar U_r^\dagger\bar b),\\
 &
-S_c=C_c+\Lambda_c-B_c^\top K^+B_c,
+S_r=C_r+\Lambda_r-B_r^\top K^+B_r,
 \qquad
-w_c=q_c-B_c^\top K^+\bar f,
+w_r=q_r-B_r^\top K^+\bar f,
 \qquad
-\Delta_{\lambda,c}=w_c^\top S_c^+w_c.
+\Delta_{\mathrm{McL}}(r;\tau)=w_r^\top S_r^+w_r.
 \end{aligned}
-$$
-For each shortlisted admissible candidate $c$, one then creates a zero-initialized child, propagates it over the next probe segment, and prunes on the accumulated branch objective:
-$$
+\]
+For each shortlisted admissible candidate-position record $r=(m,p)$, one then creates a zero-initialized child, propagates it over the next probe segment, and prunes on the accumulated branch objective:
+\[
 \begin{aligned}
 \text{E: }&
-\mathcal S\mapsto\mathcal S_c^+,
+\mathcal O\mapsto\mathcal O_r^+,
 \qquad
-|\psi(\theta,0;\mathcal S_c^+)\rangle=|\psi(\theta;\mathcal S)\rangle,\\
+|\psi(\theta,0;\mathcal O_r^+)\rangle=|\psi(\theta;\mathcal O)\rangle,\\
 \text{F: }&
-J_{\mathrm{seg},c}^{\mathrm{raw}}
+J_{\mathrm{seg},r}^{\mathrm{raw}}
 =
-\int_{t_a}^{t_b}\|r_{\mathrm{raw},c}(t)\|^2\,dt
+\int_{\tau_a}^{\tau_b}\|r_{\mathrm{raw},r}(\tau)\|^2\,d\tau
 =
-\int_{t_a}^{t_b}\bigl\|T_c(t)\dot\theta_{\lambda,c}(t)+iH(t)\psi_c(t)\bigr\|^2\,dt,\\
+\int_{\tau_a}^{\tau_b}\bigl\|T_r(\tau)\dot\theta_{\lambda,r}(\tau)+iH(\tau)\psi_r(\tau)\bigr\|^2\,d\tau,\\
 \text{G: }&
-J_{\mathrm{branch},c}^{\mathrm{new}}
+J_{\mathrm{dyn}}^{\mathrm{new}}(r;\mathfrak b)
 =
-J_{\mathrm{branch}}^{\mathrm{old}}
+J_{\mathrm{dyn}}^{\mathrm{old}}(\mathfrak b)
 +
-J_{\mathrm{seg},c}^{\mathrm{raw}}
+J_{\mathrm{seg},r}^{\mathrm{raw}}
 +
-\beta\,C_{\mathrm{hw},c}
+\beta\,C_{\mathrm{hw},r}
 +
-\gamma\,N_{\mathrm{adapt},c},
+\gamma\,N_{\mathrm{adapt},r},
 \qquad
 \mathfrak B_{\mathrm{next}}
 =
-\operatorname{Prune}\!\left(\{(\mathcal S_c^+,J_{\mathrm{branch},c}^{\mathrm{new}})\}_c\right).
+\operatorname{Prune}\!\left(\{(\mathcal O_r^+,J_{\mathrm{dyn}}^{\mathrm{new}}(r;\mathfrak b))\}_r\right).
 \end{aligned}
-$$
+\]
 That is the whole piecewise-manifold control loop.
 
-## 17.18 One concise interpretation
+## 17C.18 One concise interpretation
+
 
 The method is doing this:
 
-> The exact quantum dynamics asks for a projective velocity $\bar b$.  
-> The current ansatz only provides a real tangent plane.  
-> McLachlan chooses the closest available tangent velocity.  
-> If the miss is too large, the algorithm enlarges the tangent plane by adding zero-initialized candidate directions.  
-> The local gain formula tells us which candidate most reduces the current miss.  
-> Short probe rollouts then decide which structural choices remain best after actual propagation.
+\begin{quote}
+The exact quantum dynamics asks for a projective velocity $\bar b$. \\
+The current ansatz only provides a real tangent plane. \\
+McLachlan chooses the closest available tangent velocity. \\
+If the miss is too large, the algorithm enlarges the tangent plane by adding zero-initialized candidate directions. \\
+The local gain formula tells us which candidate most reduces the current miss. \\
+Short probe rollouts then decide which structural choices remain best after actual propagation.
+\end{quote}
 
-## 17.19 Explicit symbolic--mathematical differences between the clean story and the current implementation
+
+## 17C.19 Explicit symbolic--mathematical differences between the clean story and the current implementation
+
 
 The clean story above is the right mathematical idealization. The current implementation differs from that idealization in a few explicit ways:
 
-1. **Sign convention.** The clean story uses
-   $$
+\begin{enumerate}
+\item \textbf{Sign convention.} The clean story uses
+\end{enumerate}
+
+\[
    \bar b=-iQ_\psi H\psi,
    \qquad
    \bar r=\bar T\dot\theta-\bar b.
-   $$
+\]
    The implementation instead uses
-   $$
+\[
    r=\bar T\dot\theta+iQ_\psi H\psi,
    \qquad
    f_i=\Im\langle \bar\tau_i|H|\psi\rangle,
    \qquad
    \Re\langle \bar\tau_i,-iH\psi\rangle=\Im\langle \bar\tau_i,H\psi\rangle.
-   $$
+\]
 
-2. **Regularization surface.** Rather than a general positive-semidefinite penalty $\Lambda$ or $\Lambda_c$, the implementation uses a scalar $\lambda\ge 0$ on either chart coordinates or whitened metric coordinates:
-   $$
+\begin{enumerate}
+\item \textbf{Regularization surface.} Rather than a general positive-semidefinite penalty $\Lambda$ or $\Lambda_c$, the implementation uses a scalar $\lambda\ge 0$ on either chart coordinates or whitened metric coordinates:
+\end{enumerate}
+
+\[
    \begin{aligned}
    K_{\mathrm{chart}}&=\bar G+\lambda I,\\
    \bar G&\approx V\Sigma^2V^\top,
@@ -3546,65 +4116,83 @@ The clean story above is the right mathematical idealization. The current implem
    \qquad
    \dot\theta=V\Sigma^{-1}z.
    \end{aligned}
-   $$
+\]
 
-3. **Propagation solve versus policy solve.** The clean story presents one stabilized local solve, whereas the implementation may separate the propagated step from the policy/telemetry step:
-   $$
+\begin{enumerate}
+\item \textbf{Propagation solve versus policy solve.} The clean story presents one stabilized local solve, whereas the implementation may separate the propagated step from the policy/telemetry step:
+\end{enumerate}
+
+\[
    (\dot\theta_{\mathrm{prop}},\epsilon_{\mathrm{step}}^{2,\mathrm{prop}})
    \neq
    (\dot\theta_{\mathrm{policy}},\epsilon_{\mathrm{step}}^{2,\mathrm{policy}})
    \quad\text{in general},
-   $$
+\]
    even when both are derived from the same local geometry.
 
-4. **Variance normalization and guards.** The clean story writes
-   $$
+\begin{enumerate}
+\item \textbf{Variance normalization and guards.} The clean story writes
+\end{enumerate}
+
+\[
    \rho_{\mathrm{miss}}=\frac{\epsilon_{\mathrm{proj}}^2}{\operatorname{Var}_\psi(H)+\varepsilon}.
-   $$
+\]
    The implemented ratio surface is closer to
-   $$
+\[
    \rho_{\mathrm{miss}}
    =
    \begin{cases}
    \epsilon_{\mathrm{proj}}^2/(\operatorname{Var}_\psi(H)+\varepsilon),&\operatorname{Var}_\psi(H)\ge \nu_{\min},\\
    \text{suppressed},&\operatorname{Var}_\psi(H)<\nu_{\min},
    \end{cases}
-   $$
+\]
    with an auxiliary guard flag recording the suppressed regime.
 
-5. **Active-parameter windows.** The clean story is written on the full tangent space, but the implementation may restrict to an active suffix or oracle-supplied index set:
-   $$
+\begin{enumerate}
+\item \textbf{Active-parameter windows.} The clean story is written on the full tangent space, but the implementation may restrict to an active suffix or oracle-supplied index set:
+\end{enumerate}
+
+\[
    T\mapsto T_{W_{\mathrm{act}}},
    \qquad
    \dot\theta\mapsto(\dot\theta_{W_{\mathrm{act}}},0),
    \qquad
    \bar G\mapsto \bar G_{W_{\mathrm{act}}W_{\mathrm{act}}},
-   $$
+\]
    so inactive coordinates are frozen.
 
-6. **Candidate gain evaluation.** The clean story scores candidates by the Schur-complement gain
-   $$
+\begin{enumerate}
+\item \textbf{Candidate gain evaluation.} The clean story scores candidates by the Schur-complement gain
+\end{enumerate}
+
+\[
    \Delta_\lambda=w^\top S^+w.
-   $$
+\]
    The implementation instead zero-initializes one append candidate, rebuilds the augmented local geometry, and scores by direct defect drops
-   $$
+\[
    \Delta_0=\epsilon_{\mathrm{proj,current}}^2-\epsilon_{\mathrm{proj,aug}}^2,
    \qquad
    \Delta_\lambda=\epsilon_{\mathrm{step,current}}^2-\epsilon_{\mathrm{step,aug}}^2.
-   $$
+\]
 
-7. **Position-aware current branch growth.** The clean story allows arbitrary insertion positions and multi-parameter blocks. The helper layer now supports position-aware insertion and position-centered post-insert refit windows,
-   $$
+\begin{enumerate}
+\item \textbf{Position-aware current branch growth.} The clean story allows arbitrary insertion positions and multi-parameter blocks. The helper layer now supports position-aware insertion and position-centered post-insert refit windows,
+\end{enumerate}
+
+\[
    \mathcal T(\mathfrak b,m,p)=\mathfrak b',
    \qquad
    \mathcal O_{b'}=\mathcal O_b\oplus_p m,
    \qquad
    \theta_{b'}=\theta_b\oplus_p 0,
-   $$
-   and the active probe set is built from the append slot, the left boundary, and the active reoptimization window. Hence, when the active window is made maximally large and the probe-position cap is also made large enough, the implementation can evaluate the full insertion set $p\in\{0,\dots,|\theta|\}$ rather than append only. The live surface still remains zero-initialized **single-parameter** growth, but not append-only growth.
+\]
+   and the active probe set is built from the append slot, the left boundary, and the active reoptimization window. Hence, when the active window is made maximally large and the probe-position cap is also made large enough, the implementation can evaluate the full insertion set $p\in\{0,\dots,|\theta|\}$ rather than append only. The live surface still remains zero-initialized \textbf{single-parameter} growth, but not append-only growth.
 
-8. **Checkpoint-trigger logic.** The clean story says “adapt when $\rho_{\mathrm{miss}}$ is too large.” The implemented trigger surface is richer:
-   $$
+\begin{enumerate}
+\item \textbf{Checkpoint-trigger logic.} The clean story says “adapt when $\rho_{\mathrm{miss}}$ is too large.” The implemented trigger surface is richer:
+\end{enumerate}
+
+\[
    \mathbf 1_{\mathrm{checkpoint}}
    =
    \mathbf 1_{\mathrm{cadence}}
@@ -3614,23 +4202,29 @@ The clean story above is the right mathematical idealization. The current implem
    \mathbf 1\!\bigl(\epsilon_{\mathrm{step}}^2>\tau_{\mathrm{step}}\bigr)
    \lor
    \mathbf 1\!\bigl(\rho_{\mathrm{miss}}>\tau_{\mathrm{miss}}\text{ when defined}\bigr),
-   $$
+\]
    together with a model-versus-damping failure classification.
 
-9. **Branch objective surface.** The clean story uses a scalar objective such as
-   $$
+\begin{enumerate}
+\item \textbf{Branch objective surface.} The clean story uses a scalar objective such as
+\end{enumerate}
+
+\[
    J_{\mathrm{scalar}}=\sum J_{\mathrm{seg}}+\beta C_{\mathrm{hw}}+\gamma N_{\mathrm{adapt}}.
-   $$
+\]
    The implementation instead prunes by the lexicographic key
-   $$
+\[
    \kappa_{\mathrm{prune}}
    =
    \bigl(J^{\mathrm{rt}},J^{\mathrm{res}},J^{\mathrm{model}},J^{\mathrm{damp}},J^{\mathrm{cons}},|\mathcal O|,k,\operatorname{labels}(\mathcal O),\operatorname{round}_{10}(\theta),\operatorname{id}\bigr),
-   $$
+\]
    after deduplicating by time index, selected-operator labels, and rounded parameter values.
 
-10. **Projective versus raw residual accumulation.** The clean story distinguishes a projective residual $\bar r$ from a raw Hilbert-space residual $r_{\mathrm{raw}}$. The implemented rollout telemetry is closer to
-   $$
+\begin{enumerate}
+\item \textbf{Projective versus raw residual accumulation.} The clean story distinguishes a projective residual $\bar r$ from a raw Hilbert-space residual $r_{\mathrm{raw}}$. The implemented rollout telemetry is closer to
+\end{enumerate}
+
+\[
    \bigl(\Delta J^{\epsilon},\Delta J^{\mathrm{model}},\Delta J^{\mathrm{damp}}\bigr)
    =
    \left(
@@ -3638,19 +4232,22 @@ The clean story above is the right mathematical idealization. The current implem
    \int\epsilon_{\mathrm{proj}}^2,
    \int\max\!\bigl(\epsilon_{\mathrm{step}}^2-\epsilon_{\mathrm{proj}}^2,0\bigr)
    \right),
-   $$
+\]
    rather than a separately stored raw Hilbert-space residual bound.
 
-11. **Geometry source.** The clean story is written as if the tangent vectors and $H\psi$ are assembled directly every time. The implementation may instead start from externally supplied local data:
-   $$
+\begin{enumerate}
+\item \textbf{Geometry source.} The clean story is written as if the tangent vectors and $H\psi$ are assembled directly every time. The implementation may instead start from externally supplied local data:
+\end{enumerate}
+
+\[
    (\bar G,\bar f,\operatorname{Var}_\psi(H))
    =
-   \mathcal O_{\mathrm{geom}}(\psi,H,\mathcal S),
-   $$
+   \mathcal O_{\mathrm{geom}}(\psi,H,\mathcal O),
+\]
    after which the host solves the McLachlan system on that returned geometry.
 
 So the mathematical backbone is the same, but the implemented restricted surface closes schematically to
-$$
+\[
 \begin{aligned}
 \text{projective policy geometry}
 &+\text{ scalar chart/whitened damping}
@@ -3659,7 +4256,90 @@ $$
 +\text{ lexicographic prune key}
 +\text{ optional oracle-supplied local geometry}.
 \end{aligned}
-$$
+\]
+
+
+
+## 17C.20 Discrete spectra and density-sector observables for HH checkpoint dynamics
+A controller trajectory row $r_n$ (index $n=0,\dots,N-1$) carries either \texttt{time} or \texttt{physical\_time}, and stores raw lattice observables under keys such as \texttt{site\_occupations}, \texttt{site\_occupations\_exact}, \texttt{staggered}, \texttt{doublon}, and \texttt{doublon\_exact}.  The spectral stack in the repository works directly on these rows and does not re-simulate dynamics.
+
+\[
+t_n := \text{row}_n[\text{time}_\star],\qquad
+\text{time}_\star \in \{\texttt{time},\texttt{physical\_time}\}.
+\]
+For each site $j\in\{0,\dots,L-1\}$, define spin-resolved occupations
+\[
+n^{\uparrow}_{j}(t_n)=\langle \psi(t_n)|\hat n_{j,\uparrow}|\psi(t_n)\rangle,\quad
+n^{\downarrow}_{j}(t_n)=\langle \psi(t_n)|\hat n_{j,\downarrow}|\psi(t_n)\rangle,\quad
+n_{j}(t_n)=n^{\uparrow}_{j}(t_n)+n^{\downarrow}_{j}(t_n),
+\]
+with $\hat n_{j,\sigma}=(I-\hat Z_{j,\sigma})/2$ under this codebase's convention.  Equivalently, in the statevector path used by \texttt{hh\_realtime\_checkpoint\_controller.py}, these are evaluated as
+\[
+n^{\sigma}_{j}(t_n)=\sum_{s}p_s\,b^{\sigma}_{j}(s),\qquad
+D(t_n)=\sum_{s}p_s\sum_{j=0}^{L-1} b^{\uparrow}_{j}(s)b^{\downarrow}_{j}(s),
+\]
+where $p_s=|\psi_s|^2$ in the computational basis and $b^{\sigma}_{j}(s)\in\{0,1\}$ are basis bits.  The repository therefore records
+\[
+\texttt{site\_occupations}[n,j]=n_j(t_n),\qquad
+\texttt{staggered}[n]=\frac1L\sum_{j=0}^{L-1}(-1)^j n_j(t_n),\qquad
+\texttt{doublon}[n]=D(t_n),
+\]
+and the corresponding \texttt{\_exact} fields for the driven exact trajectory.
+\[
+D(t_n)=\sum_{j=0}^{L-1} n^{\uparrow}_{j}(t_n)n^{\downarrow}_{j}(t_n).
+\]
+Here $j$ denotes the lattice-site index, while $n$ denotes the discrete time-sample index.
+
+From $\{n_j(t_n)\}$ one obtains the secondary diagnostics used in the spectrum module:
+\[
+\delta n_j(t_n):=n_j(t_n)-\frac1L\sum_{m=0}^{L-1}n_m(t_n),
+\qquad
+d_{ij}(t_n):=n_i(t_n)-n_j(t_n),
+\qquad
+m(t_n):=\frac1L\sum_{j=0}^{L-1}(-1)^j n_j(t_n).
+\]
+(For $L=2$, $\delta n_0=\frac12\,d_{01}$ and $\delta n_1=-\frac12\,d_{01}$.)
+
+For spectral post-processing, let $x_n:=x(t_n)$ denote any sampled scalar observable.  The implemented V1 pipeline first infers or assumes a uniform step $t_{n+1}-t_n=\Delta t$, then detrends and re-centers the trace, applies either no window or a Hann window, and finally evaluates the one-sided real FFT.  In this notation, $\tilde x_n$ denotes the detrended and re-centered signal: for constant detrending it is $x_n$ with its sample mean removed, whereas for linear detrending it is the residual after subtracting the least-squares line in $t_n$, re-centered exactly as in the code path.  The windowed sequence is $y_n:=w_n\tilde x_n$, with $w_n=1$ for no window and $w_n$ equal to the standard Hann taper for Hann windowing.
+
+\[
+Y_k = \sum_{n=0}^{N-1} y_n e^{-i2\pi kn/N},\qquad
+k=0,\dots,\lfloor N/2\rfloor,
+\]
+which is the one-sided coefficient returned by the real-FFT stage (implemented with \texttt{np.fft.rfft}) for a real sampled trace.  The associated frequency grid is
+\[
+\omega_k=\frac{2\pi k}{N\Delta t},\qquad
+f_k=\frac{k}{N\Delta t},\qquad
+\omega_{\mathrm{Ny}}=\frac{\pi}{\Delta t},\qquad
+\Delta\omega=\frac{2\pi}{N\Delta t}.
+\]
+
+The reported one-sided amplitude $A_k$ is obtained from $|Y_k|$ by normalizing with the window-weight sum and doubling positive-frequency bins away from DC and Nyquist:
+\[
+A_k=
+\begin{cases}
+\dfrac{|Y_k|}{\sum_{n=0}^{N-1} w_n}, & k=0,\\
+\dfrac{2|Y_k|}{\sum_{n=0}^{N-1} w_n}, & 1\le k< N/2,\\
+\dfrac{|Y_k|}{\sum_{n=0}^{N-1} w_n}, & k=N/2 \text{ when } N \text{ is even}.
+\end{cases}
+\]
+
+Error-time signals are also treated as observables:
+\[
+x^{\mathrm{err}}_n=x^{\mathrm{ctrl}}_n-x^{\mathrm{exact}}_n
+\quad\Rightarrow\quad
+\text{apply the same FFT-processing machinery to }x^{\mathrm{err}}_n.
+\]
+
+When the drive frequency $\omega_d$ is known, the same centered trace is also fit to drive-locked harmonics:
+\[
+x(t)\approx c_0+\sum_{\ell=1}^{K_{\max}}\!\bigl(a_\ell\cos(\ell\omega_d t)+b_\ell\sin(\ell\omega_d t)\bigr),
+\quad
+R_\ell=\sqrt{a_\ell^2+b_\ell^2},\ \phi_\ell=\operatorname{atan2}(b_\ell,a_\ell).
+\]
+Here $R_\ell$ is the amplitude of the $\ell$-th drive-locked harmonic and $\phi_\ell$ is its phase.
+
+The spectral stack is therefore a full transform layer on top of trajectory observables: raw site-resolved occupations, staggered density, doublon, and pair imbalance are each converted to sampled series, then detrend-window-FFT processed in the same one-sided-amplitude form, with controller-versus-exact residuals using the same operators.
 
 # 18. Final Primitive-Closed Summary
 
@@ -4126,9 +4806,282 @@ python -m pipelines.hardcoded.hh_staged_noise \
 
 Artifacts: `artifacts/json/heron_pareto_front_20260327T223120Z.json`, `artifacts/json/hh_6term_pareto_readout_twirl_fast_20260328.json`.
 
-# Appendix A. Spec-only or not-yet-formalized surfaces kept out of the main body
+# Appendix A. Drive, Exact Propagation, and Propagator Semantics
 
-## A.1 Broader continuation-theory items
+## A.1 Static drive labels and time-dependent coefficients
+
+Let $\mathcal L_{\mathrm{drive}}$ denote the fixed set of density operators appearing in the drive. Then the drive always has the form
+$$
+\hat H_{\mathrm{drive}}(t)=\sum_{\lambda\in\mathcal L_{\mathrm{drive}}} c_\lambda(t) P_\lambda,
+$$
+with fixed labels $P_\lambda$ and time-dependent coefficients $c_\lambda(t)$.
+
+## A.2 Reference coefficient map
+
+For a site-density drive,
+$$
+\Delta c[Z_{p(i,\uparrow)}](t)=\Delta c[Z_{p(i,\downarrow)}](t)=-\frac{1}{2}v_i(t),
+$$
+and the identity shift is
+$$
+\Delta c[I](t)=\sum_i v_i(t)
+$$
+if one chooses to retain the scalar offset explicitly.
+
+## A.3 Propagator surfaces
+
+A common propagator menu is:
+
+- second-order Suzuki,
+- piecewise exact propagation,
+- fourth-order CFQM,
+- sixth-order CFQM.
+
+For CFQM methods, the key mathematical point is that the stage times are fixed scheme nodes $c_j$, so a macro-step from $t_n$ to $t_{n+1}=t_n+\Delta t$ samples the Hamiltonian at
+$$
+t_n+c_j\Delta t,
+$$
+not at a left, midpoint, or right rule chosen independently.
+
+## A.4 Reference propagator versus reported trajectory propagator
+
+Write the reported propagator as $U_{\mathrm{traj}}(t)$ and the high-accuracy reference propagator as $U_{\mathrm{ref}}(t)$. These need not be the same approximation.
+
+### A.4.1 Static reference branch
+
+In the static case, one may take
+$$
+U_{\mathrm{ref}}(t)=e^{-it\hat H}.
+$$
+
+### A.4.2 Drive-enabled reference branch
+
+For time-dependent $\hat H(t)$, a refined piecewise-constant reference is
+$$
+U_{\mathrm{ref}}(t_{n+1},t_n) \approx e^{-i\Delta t\hat H(t_n^*)},
+$$
+with $t_n^*$ sampled on a refined grid and the full reference obtained as an ordered product over the refined slices.
+
+## A.5 CFQM macro-step mathematics
+
+A generic commutator-free quasi-Magnus macro-step takes the form
+$$
+U_{n+1,n}^{\mathrm{CFQM}} = \prod_{r=1}^{s} \exp\!\left[-i a_r \Delta t\,\hat H(t_n+c_r\Delta t)\right],
+$$
+with method-specific coefficients $a_r$ and nodes $c_r$. The formal order is achieved when the stage exponentials are themselves treated at the intended accuracy.
+
+## A.6 Filtered exact manifold and subspace fidelity
+
+Let $\Pi_{\mathrm{sector}}$ denote the projector onto the target symmetry sector. Then the filtered exact energy is
+$$
+E_{\mathrm{exact,filtered}} = \min_{\psi\in\Pi_{\mathrm{sector}}\mathcal H} \langle \psi|\hat H|\psi\rangle,
+$$
+and a sector-aware fidelity may be defined by
+$$
+F_{\mathrm{sector}}(t) = \frac{|\langle \psi_{\mathrm{exact}}(t)|\Pi_{\mathrm{sector}}|\psi(t)\rangle|^2}{\langle \psi(t)|\Pi_{\mathrm{sector}}|\psi(t)\rangle}.
+$$
+
+## A.7 Branch-resolved observable contracts
+
+If several trajectory branches are carried simultaneously, each observable should be indexed by branch label $b$:
+$$
+\mathcal O_b(t),
+\qquad
+b\in\{\mathrm{var},\mathrm{traj},\mathrm{ref},\mathrm{noisy},\mathrm{ideal}\}.
+$$
+Typical observables are energy, density, doublon density, and fidelity.
+
+## A.8 State import and handoff contract
+
+A portable state bundle can be written abstractly as
+$$
+\mathcal B = (\Lambda,\theta,a,E,\mathcal C),
+$$
+where $\Lambda$ is the physical manifest, $\theta$ are variational parameters when available, $a$ is an amplitude map for the working state, $E$ stores energy summaries, and $\mathcal C$ is continuation metadata.
+
+## A.9 Highest-tier continuation surfaces
+
+At the highest continuation tier, $\mathcal C$ may include split-event summaries, motif data, symmetry diagnostics, replay policy data, and limited branch histories. These are naturally viewed as auxiliary mathematical metadata rather than as part of the operator algebra itself.
+
+# Appendix B. Continuation and Handoff Contract
+
+## B.1 Handoff state bundle
+
+A handoff bundle may contain:
+
+- the parameter manifest $\Lambda$,
+- the current energy summary,
+- the normalized statevector amplitudes,
+- an exact comparison target,
+- optional continuation metadata.
+
+One convenient symbolic amplitude map is
+$$
+\{b_{N_q-1}\cdots b_0 \mapsto (\Re a_b,\Im a_b)\}.
+$$
+
+## B.2 Continuation block
+
+The continuation payload can be treated abstractly as
+$$
+\mathcal C = (m,\mathcal S,\mathcal M_{\mathrm{opt}},\Gamma,\Sigma,\mathcal L,\mathcal U,\Xi,\mathcal R,\mathcal P),
+$$
+where:
+
+- $m$ is the continuation mode,
+- $\mathcal S$ is inherited manifold-structure data,
+- $\mathcal M_{\mathrm{opt}}$ is auxiliary optimizer state,
+- $\Gamma$ is selected-generator metadata,
+- $\Sigma$ is split-event data,
+- $\mathcal L$ is a motif library,
+- $\mathcal U$ is motif usage,
+- $\Xi$ is symmetry information,
+- $\mathcal R$ is rescue or recovery history,
+- $\mathcal P$ is optional historical replay-policy metadata when such provenance is still being carried.
+
+When controller forecast telemetry is persisted, quantities such as $D_{\mathrm{left}}(t)$, $\widehat N_{\mathrm{rem}}(t)$, and $H_t$ belong naturally to this policy/provenance layer. They remain heuristic controller state rather than operator-level observables.
+
+## B.3 General handoff map
+
+Let $\mathcal H_{A\to B}$ be a handoff map from source manifold $\mathcal M_A$ to target manifold $\mathcal M_B$:
+$$
+\mathcal H_{A\to B}: (|\psi_A\rangle,\theta_A,\mathcal C_A) \mapsto (|\psi_B^{(0)}\rangle,\theta_B^{(0)},\mathcal C_B).
+$$
+The map is intentionally abstract here: it records state, coordinates, and continuation payload transfer between manifolds without committing the main body to any obsolete replay-specific burn-in policy.
+
+## B.4 Symmetry and tier-three payload note
+
+Symmetry information belongs in the handoff if later stages will use it for validation, postselection, or projector-renormalized estimation. Mathematically, the carried object is a projector or a list of commuting symmetry generators.
+
+## B.5 Historical warm/refine chain note
+
+The obsolete warm-start $\to$ refine $\to$ ADAPT $\to$ replay path is kept only in Appendix A.2 and is not part of the active main-body symbolic contract.
+
+# Appendix C. Cross-Checks and Exact-Benchmark Contracts
+
+## C.1 Trial matrix by problem family
+
+For the Hubbard model, a natural benchmark trial set is
+$$
+\mathcal T_{\mathrm{Hub}} = \{\text{layerwise},\;\text{excitation-based},\;\text{adaptive(exc)},\;\text{adaptive(full-H)}\}.
+$$
+For the HH model, the canonical sector-preserving core set is
+$$
+\mathcal T_{\mathrm{HH}} = \{\text{HH-layerwise},\;\text{HH-physical-termwise},\;\text{adaptive(full-H)}\}.
+$$
+A seed-surface extension can enlarge $\mathcal T_{\mathrm{HH}}$ by adding polaronic refinements built on the same sector-preserving fixed-family surface.
+
+## C.2 Auto-scaled parameter resolution
+
+Let
+$$
+S_{\mathrm{trot}}(L,n_{\mathrm{ph,max}}),
+\quad
+R_{\mathrm{restart}}(L,n_{\mathrm{ph,max}}),
+\quad
+I_{\max}(L,n_{\mathrm{ph,max}})
+$$
+be monotone nondecreasing control maps for Trotter steps, restart count, and optimizer effort. The key contract is monotonicity with problem size, not a single universal constant setting.
+
+## C.3 Exact target and shared reference-state construction
+
+Within a benchmark matrix, all trial families should be compared against the same exact target and the same conserved-sector reference construction. Thus every trial is judged against the same $E_{\mathrm{exact,sector}}$ and the same physical Hamiltonian instance.
+
+## C.4 Per-trial energy and trajectory semantics
+
+Each trial should at minimum record:
+
+- the variational ground-state energy,
+- the exact comparison target,
+- trajectory observables on a shared time grid when dynamics are studied,
+- fidelity or overlap relative to a common reference branch.
+
+## C.5 Artifact contracts
+
+Every report artifact should begin with a concise parameter manifest listing:
+
+- model family,
+- ansatz family,
+- drive enabled or disabled,
+- $t$, $U$, $\omega_0$, $g$, and $n_{\mathrm{ph,max}}$,
+- any propagation parameters needed to reproduce the result.
+
+## C.6 HH seed-surface preset and resource proxies
+
+A seed-surface comparison is naturally evaluated not only by energy but also by simple resource proxies such as
+$$
+C_{\mathrm{2q}},
+\qquad
+D_{\mathrm{proxy}},
+\qquad
+C_{\mathrm{1q}}.
+$$
+One can then compare improvement per marginal resource,
+$$
+\frac{\Delta E}{C_{\mathrm{2q}}},
+\qquad
+\frac{\Delta E}{D_{\mathrm{proxy}}}.
+$$
+
+# Appendix D. Noise Validation, Symmetry-Mitigation, and Parity Contracts
+
+## D.1 Filtered versus full exact targets
+
+The filtered target is
+$$
+E_{\mathrm{exact,filtered}} = \min_{\psi\in\mathcal H_{\mathrm{sector}}} \langle \psi|\hat H|\psi\rangle,
+$$
+while the unrestricted target is
+$$
+E_{\mathrm{exact,full}} = \min \operatorname{spec}(\hat H).
+$$
+The two coincide only if the physical and computational sectors match exactly.
+
+## D.2 Noisy-minus-ideal observable deltas
+
+For any observable $\mathcal O(t)$, define
+$$
+\Delta \mathcal O(t) = \mathcal O_{\mathrm{noisy}}(t)-\mathcal O_{\mathrm{ideal}}(t).
+$$
+In particular,
+$$
+\Delta E(t)=E_{\mathrm{noisy}}(t)-E_{\mathrm{ideal}}(t),
+\qquad
+\Delta D(t)=D_{\mathrm{noisy}}(t)-D_{\mathrm{ideal}}(t).
+$$
+
+## D.3 Anchor parity gate
+
+If a new idealized path is compared against a fixed anchor trajectory, a strict parity gate takes the form
+$$
+\max_{t\in\mathcal T}\,|\mathcal O_{\mathrm{new}}(t)-\mathcal O_{\mathrm{anchor}}(t)| \le \varepsilon_{\mathrm{parity}}.
+$$
+This is an anchor-based equality test, not merely a qualitative agreement statement.
+
+## D.4 Same-anchor paired comparison semantics
+
+Two noisy methods should be compared against the same ideal anchor, on the same time grid, with the same initial state, so that differences can be attributed to the noise or mitigation model rather than to different starting conditions.
+
+## D.5 Symmetry-mitigation mode surface
+
+Three increasingly strong symmetry surfaces are:
+
+1. verify-only sector diagnostics,
+2. bitstring postselection,
+3. projector-renormalized estimators.
+
+If $\Pi$ is the projector onto the target symmetry sector, the renormalized estimator is
+$$
+\langle O\rangle_{\Pi} = \frac{\langle \psi|\Pi O \Pi|\psi\rangle}{\langle \psi|\Pi|\psi\rangle}.
+$$
+
+## D.6 Parameter manifest and provenance digest
+
+Even in a symbolic setting, it is useful to view each artifact as carrying a manifest $\mathfrak M$ and a provenance digest $h(\mathfrak M)$. The purpose is not algebraic; it is to guarantee that the reported mathematics can be traced back to a unique physical parameter set.
+
+# Appendix E. Spec-only or not-yet-formalized surfaces kept out of the main body
+
+## E.1 Broader continuation-theory items
 
 Several topics belong naturally in a later symbolic pass rather than in the present core manuscript:
 
@@ -4138,7 +5091,7 @@ Several topics belong naturally in a later symbolic pass rather than in the pres
 - exact handoff-policy closure beyond the present abstract maps,
 - measured-geometry and backend-specific closure beyond the exact symbolic statevector surface.
 
-## A.2 Obsolete historical warm-start $\to$ refine $\to$ ADAPT $\to$ replay path
+## E.2 Obsolete historical warm-start $\to$ refine $\to$ ADAPT $\to$ replay path
 
 The historical staged path can be written symbolically as
 $$
@@ -4177,7 +5130,7 @@ A typical replay-style historical policy is:
 
 This path is kept for archival provenance only and is not part of the active main-body symbolic contract.
 
-## A.3 Drive-amplitude comparison path
+## E.3 Drive-amplitude comparison path
 
 A drive-amplitude comparison path can be expressed symbolically by comparing several amplitudes $A_0,A_1,\dots$ at fixed Hamiltonian parameters and examining
 $$
@@ -4185,7 +5138,7 @@ $$
 $$
 across the amplitude family. The formal structure is clear even if the exact report layout is deferred.
 
-## A.4 Appendix rule
+## E.4 Appendix rule
 
 The rule of this symbolic manuscript is therefore:
 
@@ -4489,3 +5442,38 @@ $$
 E=-0.25838912148429044,\qquad |\Delta E|=5.0332982161\times10^{-1},
 $$
 with negligible fidelity. Hence the current issue is not simply which reduced family is chosen. Rather, some additional execution-surface ingredient from the older successful $L=3$ lane is still missing from the present direct CLI reconstruction.
+
+#### Appendix: raw HF-start direct ADAPT burdens versus historical post-processed / fixed-scaffold submissions
+
+To avoid conflating the heavy raw recent ADAPT replay artifacts with the older locked fixed-manifold scaffold family, the following tables record the exact transpile-style cost snapshots discussed during the April 7 accounting pass.
+
+These counts are all on the same local hardware proxy surface, namely `FakeMarrakesh`, and they should be interpreted as scaffold burden rather than full campaign burden. In particular, the recent raw ADAPT ladders below are *not* the old locked 6/7-term artifacts.
+
+Throughout this appendix, **raw HF-start direct ADAPT** means `adapt_ref_json = null` with no later JSON prune/recovery substitution. The post-processed `31/37/57`-2Q readapt/prune artifacts listed later are comparison-only and are not the object a fresh real-QPU ADAPT run from HF would execute.
+
+##### A. Raw HF-start direct ADAPT / replay scaffold burden snapshots
+
+| Case | Logical blocks | Runtime rotations | Raw `cx` | Transpiled 2Q | Depth | Size |
+|---|---:|---:|---:|---:|---:|---:|
+| Noisy weak raw run (`20260407` ladder) | 19 | 47 | 142 | 221 | 631 | 922 |
+| Noisy mid raw run (`20260407` ladder) | 21 | 53 | 154 | 256 | 697 | 1084 |
+| Noisy high raw run (`20260407` ladder) | 23 | 56 | 160 | 262 | 764 | 1113 |
+| Noiseless Math front-page anchor (`w5_l2_strong_pareto_lean_b2c2k2_f0p85_0p85_f1_seed5`) | 20 | 52 | 152 | 218 | 633 | 939 |
+
+Interpretation: the validated front-page `pareto_lean + phase3_v1` deployment anchor is still a heavy raw HF-start ADAPT replay scaffold on Marrakesh (`218` two-qubit gates), i.e. it sits near the recent weak raw-noise lane and far above the post-processed prune/readapt and locked fixed-scaffold families. The lighter `81`-2Q direct HF-start winner is the separate scientific winner listed on the front page.
+
+##### B. Historical post-processed or fixed-scaffold runtime submissions
+
+The next table isolates the $L=2$ runtime submissions that were actually sent to the real `ibm_marrakesh` backend. The listed two-qubit counts are obtained by transpiling the exact submitted scaffold artifacts on `FakeMarrakesh` with the same transpiler settings recorded in the runtime-result JSON.
+
+| Real-QPU submission | Runtime source artifact | Runtime transpile settings | Transpiled 2Q | Depth | Notes |
+|---|---|---|---:|---:|---|
+| `hh_gatepruned7_fixedtheta_runtime_ibm_marrakesh_20260323T145219Z_direct` | `artifacts/json/hh_prune_nighthawk_gate_pruned_7term.json` | `opt=1`, `seed=42` | 25 | 63 | Locked 7-term fixed-theta Marrakesh submission |
+| `hh_readapt5_energyonly_runtime_ibm_marrakesh_20260323T153244Z` | `artifacts/json/hh_prune_nighthawk_readapt_5op.json` | `opt=1`, `seed=7` | 37 | 126 | Post-prune/recovery runtime candidate; not fresh HF-start ADAPT |
+| `hh_gatepruned6_fixedtheta_runtime_ibm_marrakesh_20260323T171528Z` | `artifacts/json/hh_marrakesh_fixed_scaffold_6term_drop_eyezee_20260323T171528Z.json` | `opt=1`, `seed=7` | 14 | 48 | Locked 6-term fixed-theta Marrakesh submission |
+
+So the historical real-QPU gate counts for the three recorded Marrakesh submissions were
+$$
+25,\qquad 37,\qquad 14
+$$
+two-qubit gates respectively for the locked 7-term, readapt-5, and locked 6-term submissions.

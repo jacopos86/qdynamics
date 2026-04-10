@@ -1,10 +1,10 @@
-# CODEX TASK: Finish presentation_pi_handoff.md
+# CODEX TASK: Finish notes/presentation_pi_handoff.md
 
 ## What exists already
 
-`presentation_pi_handoff.md` has lines 1-27 written (Sections 1-2 partial: executive thesis + ADAPT refresher start). The user has already uploaded lines 1-27 and `MATH/Math.md` to Google NotebookLM separately. So you do NOT need to reproduce Math.md content or lines 1-27.
+`notes/presentation_pi_handoff.md` has lines 1-27 written (Sections 1-2 partial: executive thesis + ADAPT refresher start). The user has already uploaded lines 1-27 and `MATH/Math.md` to Google NotebookLM separately. So you do NOT need to reproduce Math.md content or lines 1-27.
 
-**Your job:** Rewrite `presentation_pi_handoff.md` starting from line 27 onward. The file currently has placeholder content from line 27 on that references artifact paths but does NOT inline the actual data. Google NotebookLM cannot access the repo. You MUST inline all numbers, tables, operator lists, energy values, circuit metrics, SPSA traces, etc. directly into the markdown. No "see artifact X" without also pasting the relevant data from that artifact.
+**Your job:** Rewrite `notes/presentation_pi_handoff.md` starting from line 27 onward. The file currently has placeholder content from line 27 on that references artifact paths but does NOT inline the actual data. Google NotebookLM cannot access the repo. You MUST inline all numbers, tables, operator lists, energy values, circuit metrics, SPSA traces, etc. directly into the markdown. No "see artifact X" without also pasting the relevant data from that artifact.
 
 ## The narrative structure (keep these section headers exactly)
 
@@ -306,7 +306,7 @@ Chemical accuracy = 1 kcal/mol ≈ 1.6 mHa ≈ 0.0016 Ha.
 4. ZNE or PEC for gate-noise mitigation (mthree only handles readout)
 
 ### Section 8: Slide Blueprint
-(Keep existing content from presentation_pi_handoff.md — it's already good, just verify it references inlined data not artifact paths)
+(Keep existing content from notes/presentation_pi_handoff.md — it's already good, just verify it references inlined data not artifact paths)
 
 ### Section 9: Artifact Registry
 (Keep existing table — it's a lookup for the repo, not for Google)
@@ -560,4 +560,3 @@ Dormant at L=2 — near-degenerate gate never fires. Needs larger system.
 | 5 | Compile-cost regularization (λ) | **STRONG POSITIVE** | Sharp threshold at λ∈(0.01,0.02); basin-selection regularizer |
 | 6 | Shortlisting | **Moderate positive** | 28% fewer groups; superseded |
 | 7 | Batching | **Dormant at L=2** | Near-degenerate gate never fires |
-

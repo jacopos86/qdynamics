@@ -22,7 +22,7 @@ For this repo, the canonical target is:
 - **`SamplerV2` on current IBM Runtime** as the production IBM transport
 - **`backend.run()` only as an optional transport** when a non-IBM or legacy backend genuinely supports it
 
-That preserves the spirit of `HH_QPU_RAW_BRIEF.md`:
+That preserves the spirit of `notes/HH_QPU_RAW_BRIEF.md`:
 - canonical artifact = raw backend-level data
 - superior post-processing happens downstream of raw acquisition
 - `EstimatorV2` becomes explicit legacy compatibility only

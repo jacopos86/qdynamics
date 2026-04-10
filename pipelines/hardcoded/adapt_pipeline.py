@@ -1547,6 +1547,18 @@ class HHFullMetaClassFilterSpec:
     source_json: str | None = None
 
 
+@dataclass(frozen=True)
+class HHFullMetaLabelFilterSpec:
+    drop_labels: tuple[str, ...] = ()
+    drop_prefixes: tuple[str, ...] = ()
+    classifier_version: str = _HH_FULL_META_CLASSIFIER_VERSION
+    source_pool: str = "full_meta"
+    source_problem: str = "hh"
+    source_num_sites: int | None = None
+    source_n_ph_max: int | None = None
+    source_json: str | None = None
+
+
 def _classify_hh_full_meta_label(label: str) -> str | None:
     """Map a deduplicated full_meta label onto a stable operator-class name."""
     label_str = str(label)
@@ -1605,6 +1617,22 @@ def _normalize_hh_full_meta_keep_classes(classes: Sequence[Any]) -> tuple[str, .
     return tuple(keep_classes)
 
 
+def _normalize_nonempty_unique_strings(items: Sequence[Any], *, field_name: str) -> tuple[str, ...]:
+    out: list[str] = []
+    seen: set[str] = set()
+    for raw in items:
+        value = str(raw).strip()
+        if value == "":
+            continue
+        if value in seen:
+            continue
+        seen.add(value)
+        out.append(value)
+    if not out:
+        raise ValueError(f"HH full_meta label filter field {field_name!r} must contain at least one non-empty string.")
+    return tuple(out)
+
+
 def _load_hh_full_meta_class_filter_spec(path: Path) -> HHFullMetaClassFilterSpec:
     """Load a keep-spec JSON for filtering the HH full_meta pool by class."""
     raw = json.loads(Path(path).read_text(encoding="utf-8"))
@@ -1633,6 +1661,61 @@ def _load_hh_full_meta_class_filter_spec(path: Path) -> HHFullMetaClassFilterSpe
     source_n_ph_max_raw = raw.get("source_n_ph_max")
     return HHFullMetaClassFilterSpec(
         keep_classes=_normalize_hh_full_meta_keep_classes(keep_raw),
+        classifier_version=str(classifier_version),
+        source_pool=str(source_pool),
+        source_problem=str(source_problem),
+        source_num_sites=(
+            None if source_num_sites_raw is None else int(source_num_sites_raw)
+        ),
+        source_n_ph_max=(
+            None if source_n_ph_max_raw is None else int(source_n_ph_max_raw)
+        ),
+        source_json=str(path),
+    )
+
+
+def _load_hh_full_meta_label_filter_spec(path: Path) -> HHFullMetaLabelFilterSpec:
+    """Load a drop-spec JSON for filtering the HH full_meta pool by exact label/prefix."""
+    raw = json.loads(Path(path).read_text(encoding="utf-8"))
+    if not isinstance(raw, Mapping):
+        raise ValueError("HH full_meta label filter JSON must be an object.")
+    drop_labels_raw = raw.get("drop_labels", [])
+    drop_prefixes_raw = raw.get("drop_prefixes", [])
+    if not isinstance(drop_labels_raw, list):
+        raise ValueError("HH full_meta label filter JSON field 'drop_labels' must be a list.")
+    if not isinstance(drop_prefixes_raw, list):
+        raise ValueError("HH full_meta label filter JSON field 'drop_prefixes' must be a list.")
+    if len(drop_labels_raw) == 0 and len(drop_prefixes_raw) == 0:
+        raise ValueError("HH full_meta label filter JSON must contain non-empty 'drop_labels' or 'drop_prefixes'.")
+    classifier_version = str(raw.get("classifier_version", _HH_FULL_META_CLASSIFIER_VERSION)).strip()
+    if classifier_version != _HH_FULL_META_CLASSIFIER_VERSION:
+        raise ValueError(
+            "HH full_meta label filter classifier_version mismatch: "
+            f"got {classifier_version!r}, expected {_HH_FULL_META_CLASSIFIER_VERSION!r}."
+        )
+    source_pool = str(raw.get("source_pool", "")).strip().lower()
+    if source_pool != "full_meta":
+        raise ValueError(
+            "HH full_meta label filter JSON must declare source_pool='full_meta'."
+        )
+    source_problem = str(raw.get("source_problem", "hh")).strip().lower()
+    if source_problem != "hh":
+        raise ValueError(
+            "HH full_meta label filter JSON must declare source_problem='hh'."
+        )
+    source_num_sites_raw = raw.get("source_num_sites")
+    source_n_ph_max_raw = raw.get("source_n_ph_max")
+    return HHFullMetaLabelFilterSpec(
+        drop_labels=(
+            _normalize_nonempty_unique_strings(drop_labels_raw, field_name="drop_labels")
+            if len(drop_labels_raw) > 0
+            else tuple()
+        ),
+        drop_prefixes=(
+            _normalize_nonempty_unique_strings(drop_prefixes_raw, field_name="drop_prefixes")
+            if len(drop_prefixes_raw) > 0
+            else tuple()
+        ),
         classifier_version=str(classifier_version),
         source_pool=str(source_pool),
         source_problem=str(source_problem),
@@ -1696,6 +1779,49 @@ def _filter_hh_full_meta_pool_by_class(
         "class_counts_after": dict(counts_after),
         "dedup_total_before": int(len(pool)),
         "dedup_total_after": int(len(filtered_pool)),
+    }
+    return filtered_pool, meta
+
+
+def _filter_hh_full_meta_pool_by_label(
+    pool: Sequence[AnsatzTerm],
+    spec: HHFullMetaLabelFilterSpec,
+) -> tuple[list[AnsatzTerm], dict[str, Any]]:
+    """Filter a deduplicated HH full_meta pool down by exact labels and/or prefixes."""
+    counts_before = _summarize_hh_full_meta_pool_classes(pool)
+    drop_labels = set(str(x) for x in spec.drop_labels)
+    drop_prefixes = tuple(str(x) for x in spec.drop_prefixes)
+    removed_labels: list[str] = []
+    unmatched_labels = set(drop_labels)
+    unmatched_prefixes = set(drop_prefixes)
+    filtered_pool: list[AnsatzTerm] = []
+    for term in pool:
+        label = str(term.label)
+        drop_exact = label in drop_labels
+        drop_prefix = next((prefix for prefix in drop_prefixes if label.startswith(prefix)), None)
+        if drop_exact or drop_prefix is not None:
+            removed_labels.append(label)
+            unmatched_labels.discard(label)
+            if drop_prefix is not None:
+                unmatched_prefixes.discard(str(drop_prefix))
+            continue
+        filtered_pool.append(term)
+    if not filtered_pool:
+        raise ValueError("HH full_meta label filter removed every operator from the pool.")
+    counts_after = _summarize_hh_full_meta_pool_classes(filtered_pool)
+    meta = {
+        "classifier_version": str(spec.classifier_version),
+        "source_pool": str(spec.source_pool),
+        "source_problem": str(spec.source_problem),
+        "source_json": str(spec.source_json) if spec.source_json is not None else None,
+        "drop_labels": list(spec.drop_labels),
+        "drop_prefixes": list(spec.drop_prefixes),
+        "removed_count": int(len(removed_labels)),
+        "removed_labels_sample": [str(x) for x in removed_labels[:16]],
+        "unmatched_drop_labels": sorted(str(x) for x in unmatched_labels),
+        "unmatched_drop_prefixes": sorted(str(x) for x in unmatched_prefixes),
+        "class_counts_before": counts_before,
+        "class_counts_after": counts_after,
     }
     return filtered_pool, meta
 
@@ -2996,6 +3122,7 @@ def _oracle_mitigation_payload_from_fields(
     }
     if bool(local_gate_twirling):
         payload["local_gate_twirling"] = True
+        payload["local_gate_twirling_scope"] = "2q_only"
     return payload
 
 
@@ -3640,9 +3767,23 @@ def _run_hardcoded_adapt_vqe(
     phase1_plateau_patience: int = 2,
     phase1_trough_margin_ratio: float = 1.0,
     phase1_prune_enabled: bool = True,
+    phase1_prune_mode: str = "live",
     phase1_prune_fraction: float = 0.25,
+    phase1_prune_min_candidates: int = 1,
     phase1_prune_max_candidates: int = 6,
     phase1_prune_max_regression: float = 1e-8,
+    phase1_prune_retained_gain_ratio: float = 0.5,
+    phase1_prune_protect_steps: int = 2,
+    phase1_prune_stale_age: int = 2,
+    phase1_prune_stagnation_threshold: float = 0.0,
+    phase1_prune_small_theta_abs: float = 1e-3,
+    phase1_prune_small_theta_relative: float = 0.5,
+    phase1_prune_cooldown_steps: int = 2,
+    phase1_prune_local_window_size: int = 4,
+    phase1_prune_old_fraction: float = 0.25,
+    phase1_prune_checkpoint_period: int = 3,
+    phase1_prune_maturity_threshold: float = 0.5,
+    phase1_prune_snr_threshold: float = 1.0,
     phase2_shortlist_fraction: float = 0.2,
     phase2_shortlist_size: int = 12,
     phase2_lambda_H: float = 1e-6,
@@ -3702,6 +3843,7 @@ def _run_hardcoded_adapt_vqe(
     phase2_compat_measure_weight: float = 0.2,
     phase2_remaining_evaluations_proxy_mode: str = "auto",
     adapt_pool_class_filter_json: Path | None = None,
+    adapt_pool_label_filter_json: Path | None = None,
     phase3_motif_source_json: Path | None = None,
     phase3_symmetry_mitigation_mode: str = "off",
     phase3_enable_rescue: bool = False,
@@ -4076,6 +4218,7 @@ def _run_hardcoded_adapt_vqe(
                 raise ValueError("transpile_shortlist_v1 requires --phase3-backend-shortlist.")
     pool_key_input = None if adapt_pool is None else str(adapt_pool).strip().lower()
     full_meta_class_filter_spec: HHFullMetaClassFilterSpec | None = None
+    full_meta_label_filter_spec: HHFullMetaLabelFilterSpec | None = None
     if adapt_pool_class_filter_json is not None:
         if str(problem_key) != "hh":
             raise ValueError("adapt_pool_class_filter_json is only valid for problem='hh'.")
@@ -4097,6 +4240,28 @@ def _run_hardcoded_adapt_vqe(
             raise ValueError(
                 "HH full_meta class filter source_n_ph_max does not match this run: "
                 f"got {full_meta_class_filter_spec.source_n_ph_max}, expected {n_ph_max}."
+            )
+    if adapt_pool_label_filter_json is not None:
+        if str(problem_key) != "hh":
+            raise ValueError("adapt_pool_label_filter_json is only valid for problem='hh'.")
+        if pool_key_input != "full_meta":
+            raise ValueError("adapt_pool_label_filter_json is only valid when adapt_pool='full_meta'.")
+        full_meta_label_filter_spec = _load_hh_full_meta_label_filter_spec(Path(adapt_pool_label_filter_json))
+        if (
+            full_meta_label_filter_spec.source_num_sites is not None
+            and int(full_meta_label_filter_spec.source_num_sites) != int(num_sites)
+        ):
+            raise ValueError(
+                "HH full_meta label filter source_num_sites does not match this run: "
+                f"got {full_meta_label_filter_spec.source_num_sites}, expected {num_sites}."
+            )
+        if (
+            full_meta_label_filter_spec.source_n_ph_max is not None
+            and int(full_meta_label_filter_spec.source_n_ph_max) != int(n_ph_max)
+        ):
+            raise ValueError(
+                "HH full_meta label filter source_n_ph_max does not match this run: "
+                f"got {full_meta_label_filter_spec.source_n_ph_max}, expected {n_ph_max}."
             )
     adapt_spsa_params = {
         "a": float(adapt_spsa_a),
@@ -4129,6 +4294,9 @@ def _run_hardcoded_adapt_vqe(
         adapt_pool_class_filter_json=(
             str(adapt_pool_class_filter_json) if adapt_pool_class_filter_json is not None else None
         ),
+        adapt_pool_label_filter_json=(
+            str(adapt_pool_label_filter_json) if adapt_pool_label_filter_json is not None else None
+        ),
         adapt_pool_class_filter_classifier_version=(
             str(full_meta_class_filter_spec.classifier_version)
             if full_meta_class_filter_spec is not None
@@ -4137,6 +4305,21 @@ def _run_hardcoded_adapt_vqe(
         adapt_pool_class_filter_keep_classes=(
             list(full_meta_class_filter_spec.keep_classes)
             if full_meta_class_filter_spec is not None
+            else None
+        ),
+        adapt_pool_label_filter_classifier_version=(
+            str(full_meta_label_filter_spec.classifier_version)
+            if full_meta_label_filter_spec is not None
+            else None
+        ),
+        adapt_pool_label_filter_drop_labels=(
+            list(full_meta_label_filter_spec.drop_labels)
+            if full_meta_label_filter_spec is not None
+            else None
+        ),
+        adapt_pool_label_filter_drop_prefixes=(
+            list(full_meta_label_filter_spec.drop_prefixes)
+            if full_meta_label_filter_spec is not None
             else None
         ),
         adapt_continuation_mode=str(continuation_mode),
@@ -4235,9 +4418,10 @@ def _run_hardcoded_adapt_vqe(
 
     # Build operator pool(s)
     full_meta_class_filter_meta: dict[str, Any] | None = None
+    full_meta_label_filter_meta: dict[str, Any] | None = None
 
     def _build_hh_pool_by_key(pool_key_hh: str) -> tuple[list[AnsatzTerm], str]:
-        nonlocal full_meta_class_filter_meta
+        nonlocal full_meta_class_filter_meta, full_meta_label_filter_meta
         key = str(pool_key_hh).strip().lower()
         if key == "hva":
             hva_pool = _build_hva_pool(
@@ -4300,6 +4484,15 @@ def _run_hardcoded_adapt_vqe(
                 _ai_log(
                     "hardcoded_adapt_full_meta_class_filter_applied",
                     **dict(full_meta_class_filter_meta),
+                )
+            if full_meta_label_filter_spec is not None:
+                pool_full, full_meta_label_filter_meta = _filter_hh_full_meta_pool_by_label(
+                    pool_full,
+                    full_meta_label_filter_spec,
+                )
+                _ai_log(
+                    "hardcoded_adapt_full_meta_label_filter_applied",
+                    **dict(full_meta_label_filter_meta),
                 )
             return list(pool_full), "hardcoded_adapt_vqe_full_meta"
         if key == "pareto_lean":
@@ -5341,28 +5534,69 @@ def _run_hardcoded_adapt_vqe(
     phase1_features_history: list[dict[str, Any]] = []
     phase1_stage_events: list[dict[str, Any]] = []
     phase1_scaffold_pre_prune: dict[str, Any] | None = None
-    phase1_prune_cfg = PruneConfig(
-        max_candidates=int(max(1, phase1_prune_max_candidates)),
-        min_candidates=1,
-        fraction_candidates=float(max(0.0, phase1_prune_fraction)),
-        max_regression=float(max(0.0, phase1_prune_max_regression)),
-        retained_gain_ratio=0.5,
-        protect_steps=2,
-        stale_age=2,
-        stagnation_threshold=0.0,
-        small_theta_abs=1e-3,
-        small_theta_relative=0.5,
-        cooldown_steps=2,
-        local_window_size=4,
-        old_fraction=0.25,
-    )
-    phase1_prune_live_mode = bool(phase1_enabled and phase1_prune_enabled)
-    phase1_prune_checkpoint_period = 3
-    phase1_prune_maturity_threshold = 0.5
-    phase1_prune_snr_threshold = 1.0
+    phase1_prune_mode = str(phase1_prune_mode or "live").strip().lower()
+    if phase1_prune_mode not in {"live", "final", "both"}:
+        raise ValueError(f"Unsupported phase1_prune_mode: {phase1_prune_mode}")
+    phase1_prune_checkpoint_period = int(max(1, phase1_prune_checkpoint_period))
+    phase1_prune_maturity_threshold = float(max(0.0, phase1_prune_maturity_threshold))
+    phase1_prune_snr_threshold = float(max(0.0, phase1_prune_snr_threshold))
+
+    def _build_phase1_prune_cfg() -> PruneConfig:
+        return PruneConfig(
+            max_candidates=int(max(1, phase1_prune_max_candidates)),
+            min_candidates=int(max(1, phase1_prune_min_candidates)),
+            fraction_candidates=float(max(0.0, phase1_prune_fraction)),
+            max_regression=float(max(0.0, phase1_prune_max_regression)),
+            retained_gain_ratio=float(max(0.0, phase1_prune_retained_gain_ratio)),
+            protect_steps=int(max(0, phase1_prune_protect_steps)),
+            stale_age=int(max(0, phase1_prune_stale_age)),
+            stagnation_threshold=float(phase1_prune_stagnation_threshold),
+            small_theta_abs=float(max(0.0, phase1_prune_small_theta_abs)),
+            small_theta_relative=float(max(0.0, phase1_prune_small_theta_relative)),
+            cooldown_steps=int(max(0, phase1_prune_cooldown_steps)),
+            local_window_size=int(max(1, phase1_prune_local_window_size)),
+            old_fraction=float(min(1.0, max(0.0, phase1_prune_old_fraction))),
+        )
+
+    def _resolve_phase1_prune_modes() -> tuple[bool, bool]:
+        enabled_now = bool(phase1_enabled and phase1_prune_enabled)
+        return (
+            bool(enabled_now and phase1_prune_mode in {"live", "both"}),
+            bool(enabled_now and phase1_prune_mode in {"final", "both"}),
+        )
+
+    phase1_prune_cfg = _build_phase1_prune_cfg()
+    phase1_prune_live_mode, phase1_prune_final_mode = _resolve_phase1_prune_modes()
+
+    def _populate_prune_policy_fields(summary: dict[str, Any]) -> dict[str, Any]:
+        summary.update(
+            {
+                "prune_mode": str(phase1_prune_mode),
+                "live_mode_enabled": bool(phase1_prune_live_mode),
+                "final_mode_enabled": bool(phase1_prune_final_mode),
+                "maturity_threshold": float(phase1_prune_maturity_threshold),
+                "checkpoint_period": int(phase1_prune_checkpoint_period),
+                "snr_threshold": float(phase1_prune_snr_threshold),
+                "min_candidates": int(phase1_prune_cfg.min_candidates),
+                "max_candidates": int(phase1_prune_cfg.max_candidates),
+                "fraction_candidates": float(phase1_prune_cfg.fraction_candidates),
+                "max_regression": float(phase1_prune_cfg.max_regression),
+                "retained_gain_ratio": float(phase1_prune_cfg.retained_gain_ratio),
+                "protect_steps": int(phase1_prune_cfg.protect_steps),
+                "stale_age": int(phase1_prune_cfg.stale_age),
+                "stagnation_threshold": float(phase1_prune_cfg.stagnation_threshold),
+                "cooldown_steps": int(phase1_prune_cfg.cooldown_steps),
+                "small_theta_abs": float(phase1_prune_cfg.small_theta_abs),
+                "small_theta_relative": float(phase1_prune_cfg.small_theta_relative),
+                "local_window_size": int(phase1_prune_cfg.local_window_size),
+                "old_fraction": float(phase1_prune_cfg.old_fraction),
+                "theta_small": float(max(0.0, phase1_prune_cfg.small_theta_abs)),
+            }
+        )
+        return summary
 
     def _default_prune_summary(*, reason: str, energy: float) -> dict[str, Any]:
-        return {
+        return _populate_prune_policy_fields({
             "enabled": bool(phase1_enabled and phase1_prune_enabled),
             "executed": False,
             "rolled_back": False,
@@ -5371,20 +5605,12 @@ def _run_hardcoded_adapt_vqe(
             "mature_open": False,
             "runway_ratio": 1.0,
             "u_sat": 0.0,
-            "maturity_threshold": float(phase1_prune_maturity_threshold),
             "checkpoint_due": False,
-            "checkpoint_period": int(max(1, phase1_prune_checkpoint_period)),
             "sigma_phase3": 0.0,
             "gain_floor": 0.0,
             "gain_ewma_recent": 0.0,
             "snr_adm": 0.0,
-            "snr_threshold": float(phase1_prune_snr_threshold),
             "snr_low_enough": True,
-            "protect_steps": int(phase1_prune_cfg.protect_steps),
-            "stale_age": int(phase1_prune_cfg.stale_age),
-            "stagnation_threshold": float(phase1_prune_cfg.stagnation_threshold),
-            "cooldown_steps": int(phase1_prune_cfg.cooldown_steps),
-            "theta_small": float(max(0.0, phase1_prune_cfg.small_theta_abs)),
             "gate_rows": [],
             "stale_age_pass_indices": [],
             "stagnation_pass_indices": [],
@@ -5406,7 +5632,7 @@ def _run_hardcoded_adapt_vqe(
             "energy_after_prune": float(energy),
             "energy_after_post_refit": float(energy),
             "post_refit_executed": False,
-        }
+        })
 
     def _fallback_prune_metadata(*, label: str, theta_value: float) -> ScaffoldCoordinateMetadata:
         theta_abs = abs(float(theta_value))
@@ -6519,6 +6745,7 @@ def _run_hardcoded_adapt_vqe(
         finite_angle_fallback = False
         if not phase3_oracle_inner_objective_enabled:
             phase1_prune_enabled = False
+            phase1_prune_live_mode, phase1_prune_final_mode = _resolve_phase1_prune_modes()
 
     try:
         def _phase3_oracle_gradient_scout(
@@ -7605,6 +7832,7 @@ def _run_hardcoded_adapt_vqe(
             summary = dict(summary_raw) if isinstance(summary_raw, Mapping) else {}
             return {
                 "enabled": bool(summary.get("enabled", False)),
+                "prune_mode": str(summary.get("prune_mode", "live")),
                 "permission_open": bool(summary.get("permission_open", False)),
                 "permission_reason": str(summary.get("permission_reason", "unknown")),
                 "executed": bool(summary.get("executed", False)),
@@ -7880,6 +8108,7 @@ def _run_hardcoded_adapt_vqe(
                     ),
                     "ridge_growth_factor": float(getattr(phase2_score_cfg, "ridge_growth_factor", 0.0)),
                     "ridge_max_steps": int(getattr(phase2_score_cfg, "ridge_max_steps", 0)),
+                    "geometry_profile": str(getattr(phase2_score_cfg, "geometry_profile", "current_v1")),
                     "leakage_cap": float(getattr(phase2_score_cfg, "leakage_cap", 0.0)),
                     "motif_bonus_weight": float(getattr(phase2_score_cfg, "motif_bonus_weight", 0.0)),
                     "duplicate_penalty_weight": float(
@@ -13321,27 +13550,14 @@ def _run_hardcoded_adapt_vqe(
             if isinstance(prune_summary, Mapping)
             else _default_prune_summary(reason="final_checkpoint", energy=float(energy_current))
         )
-        if (not phase1_prune_live_mode) and phase1_enabled and bool(phase1_prune_enabled) and int(len(selected_ops)) > 1:
+        _populate_prune_policy_fields(prune_summary)
+        if phase1_prune_final_mode and phase1_enabled and bool(phase1_prune_enabled) and int(len(selected_ops)) > 1:
             phase1_scaffold_pre_prune = {
                 "operators": [str(op.label) for op in selected_ops],
                 "optimal_point": [float(x) for x in np.asarray(theta, dtype=float).tolist()],
                 "energy": float(energy_current),
             }
-            prune_cfg = PruneConfig(
-                max_candidates=int(max(1, phase1_prune_max_candidates)),
-                min_candidates=1,
-                fraction_candidates=float(max(0.0, phase1_prune_fraction)),
-                max_regression=float(max(0.0, phase1_prune_max_regression)),
-                retained_gain_ratio=0.5,
-                protect_steps=2,
-                stale_age=2,
-                stagnation_threshold=0.0,
-                small_theta_abs=1e-3,
-                small_theta_relative=0.5,
-                cooldown_steps=2,
-                local_window_size=4,
-                old_fraction=0.25,
-            )
+            prune_cfg = phase1_prune_cfg
 
             def _reconstruct_phase1_proxy_benefits() -> list[float]:
                 benefits: list[float] = []
@@ -13548,6 +13764,7 @@ def _run_hardcoded_adapt_vqe(
                 small_theta_abs=float(prune_cfg.small_theta_abs),
                 small_theta_relative=float(prune_cfg.small_theta_relative),
             )
+            prune_summary["permission_reason"] = "final_checkpoint"
             prune_summary["permission_open"] = bool(int(len(history)) >= int(prune_cfg.stale_age))
             prune_summary["candidate_count"] = int(len(candidate_indices))
             prune_summary["marginal_proxy_benefit"] = [float(x) for x in prune_proxy_benefit]
@@ -14661,6 +14878,7 @@ def _run_hardcoded_adapt_vqe(
                         ),
                         "ridge_growth_factor": float(phase2_score_cfg.ridge_growth_factor),
                         "ridge_max_steps": int(phase2_score_cfg.ridge_max_steps),
+                        "geometry_profile": str(getattr(phase2_score_cfg, "geometry_profile", "current_v1")),
                         "leakage_cap": float(phase2_score_cfg.leakage_cap),
                         "motif_bonus_weight": float(phase2_score_cfg.motif_bonus_weight),
                         "duplicate_penalty_weight": float(phase2_score_cfg.duplicate_penalty_weight),
@@ -14768,6 +14986,9 @@ def _run_hardcoded_adapt_vqe(
             "adapt_pool_class_filter_json": (
                 str(adapt_pool_class_filter_json) if adapt_pool_class_filter_json is not None else None
             ),
+            "adapt_pool_label_filter_json": (
+                str(adapt_pool_label_filter_json) if adapt_pool_label_filter_json is not None else None
+            ),
             "adapt_pool_class_filter_classifier_version": (
                 str(full_meta_class_filter_spec.classifier_version)
                 if full_meta_class_filter_spec is not None
@@ -14786,6 +15007,41 @@ def _run_hardcoded_adapt_vqe(
             "adapt_pool_class_filter_class_counts_after": (
                 dict(full_meta_class_filter_meta.get("class_counts_after", {}))
                 if full_meta_class_filter_meta is not None
+                else None
+            ),
+            "adapt_pool_label_filter_classifier_version": (
+                str(full_meta_label_filter_spec.classifier_version)
+                if full_meta_label_filter_spec is not None
+                else None
+            ),
+            "adapt_pool_label_filter_drop_labels": (
+                list(full_meta_label_filter_spec.drop_labels)
+                if full_meta_label_filter_spec is not None
+                else None
+            ),
+            "adapt_pool_label_filter_drop_prefixes": (
+                list(full_meta_label_filter_spec.drop_prefixes)
+                if full_meta_label_filter_spec is not None
+                else None
+            ),
+            "adapt_pool_label_filter_class_counts_before": (
+                dict(full_meta_label_filter_meta.get("class_counts_before", {}))
+                if full_meta_label_filter_meta is not None
+                else None
+            ),
+            "adapt_pool_label_filter_class_counts_after": (
+                dict(full_meta_label_filter_meta.get("class_counts_after", {}))
+                if full_meta_label_filter_meta is not None
+                else None
+            ),
+            "adapt_pool_label_filter_removed_count": (
+                int(full_meta_label_filter_meta.get("removed_count", 0))
+                if full_meta_label_filter_meta is not None
+                else None
+            ),
+            "adapt_pool_label_filter_removed_labels_sample": (
+                list(full_meta_label_filter_meta.get("removed_labels_sample", []))
+                if full_meta_label_filter_meta is not None
                 else None
             ),
             "phase3_oracle_inner_objective_mode": str(phase3_oracle_inner_objective_mode_key),
@@ -15371,6 +15627,15 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
         ),
     )
     p.add_argument(
+        "--adapt-pool-label-filter-json",
+        type=Path,
+        default=None,
+        help=(
+            "Optional JSON drop-spec for filtering the HH full_meta pool by exact label and/or prefix. "
+            "Only valid together with --problem hh --adapt-pool full_meta."
+        ),
+    )
+    p.add_argument(
         "--adapt-continuation-mode",
         choices=["legacy", "phase1_v1", "phase2_v1", "phase3_v1"],
         default=None,
@@ -15480,9 +15745,28 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     p.set_defaults(phase1_prune_enabled=True)
     p.add_argument("--phase1-prune-enabled", dest="phase1_prune_enabled", action="store_true")
     p.add_argument("--phase1-no-prune", dest="phase1_prune_enabled", action="store_false")
+    p.add_argument(
+        "--phase1-prune-mode",
+        choices=["live", "final", "both"],
+        default="live",
+        help="Choose whether phase-1 pruning runs live after admission, only at final checkpoint, or both.",
+    )
     p.add_argument("--phase1-prune-fraction", type=float, default=0.25)
+    p.add_argument("--phase1-prune-min-candidates", type=int, default=1)
     p.add_argument("--phase1-prune-max-candidates", type=int, default=6)
     p.add_argument("--phase1-prune-max-regression", type=float, default=1e-8)
+    p.add_argument("--phase1-prune-retained-gain-ratio", type=float, default=0.5)
+    p.add_argument("--phase1-prune-protect-steps", type=int, default=2)
+    p.add_argument("--phase1-prune-stale-age", type=int, default=2)
+    p.add_argument("--phase1-prune-stagnation-threshold", type=float, default=0.0)
+    p.add_argument("--phase1-prune-small-theta-abs", type=float, default=1e-3)
+    p.add_argument("--phase1-prune-small-theta-relative", type=float, default=0.5)
+    p.add_argument("--phase1-prune-cooldown-steps", type=int, default=2)
+    p.add_argument("--phase1-prune-local-window-size", type=int, default=4)
+    p.add_argument("--phase1-prune-old-fraction", type=float, default=0.25)
+    p.add_argument("--phase1-prune-checkpoint-period", type=int, default=3)
+    p.add_argument("--phase1-prune-maturity-threshold", type=float, default=0.5)
+    p.add_argument("--phase1-prune-snr-threshold", type=float, default=1.0)
     p.add_argument(
         "--phase2-shortlist-fraction",
         type=float,
@@ -15863,7 +16147,7 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     p.add_argument(
         "--phase3-oracle-local-gate-twirling",
         action="store_true",
-        help="Enable local two-qubit Pauli/gate twirling for backend_scheduled phase3 oracle-gradient execution.",
+        help="Enable local 2Q-only Pauli twirling for backend_scheduled phase3 oracle-gradient execution.",
     )
     p.add_argument(
         "--phase3-oracle-dd-sequence",
@@ -15980,7 +16264,7 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     p.add_argument(
         "--final-noise-audit-local-gate-twirling",
         action="store_true",
-        help="Enable local two-qubit Pauli/gate twirling for backend_scheduled final noise audit.",
+        help="Enable local 2Q-only Pauli twirling for backend_scheduled final noise audit.",
     )
     p.add_argument(
         "--final-noise-audit-dd-sequence",
@@ -16616,9 +16900,23 @@ def main(argv: Sequence[str] | None = None) -> None:
             phase1_plateau_patience=int(args.phase1_plateau_patience),
             phase1_trough_margin_ratio=float(args.phase1_trough_margin_ratio),
             phase1_prune_enabled=bool(args.phase1_prune_enabled),
+            phase1_prune_mode=str(args.phase1_prune_mode),
             phase1_prune_fraction=float(args.phase1_prune_fraction),
+            phase1_prune_min_candidates=int(args.phase1_prune_min_candidates),
             phase1_prune_max_candidates=int(args.phase1_prune_max_candidates),
             phase1_prune_max_regression=float(args.phase1_prune_max_regression),
+            phase1_prune_retained_gain_ratio=float(args.phase1_prune_retained_gain_ratio),
+            phase1_prune_protect_steps=int(args.phase1_prune_protect_steps),
+            phase1_prune_stale_age=int(args.phase1_prune_stale_age),
+            phase1_prune_stagnation_threshold=float(args.phase1_prune_stagnation_threshold),
+            phase1_prune_small_theta_abs=float(args.phase1_prune_small_theta_abs),
+            phase1_prune_small_theta_relative=float(args.phase1_prune_small_theta_relative),
+            phase1_prune_cooldown_steps=int(args.phase1_prune_cooldown_steps),
+            phase1_prune_local_window_size=int(args.phase1_prune_local_window_size),
+            phase1_prune_old_fraction=float(args.phase1_prune_old_fraction),
+            phase1_prune_checkpoint_period=int(args.phase1_prune_checkpoint_period),
+            phase1_prune_maturity_threshold=float(args.phase1_prune_maturity_threshold),
+            phase1_prune_snr_threshold=float(args.phase1_prune_snr_threshold),
             phase2_shortlist_fraction=float(args.phase2_shortlist_fraction),
             phase2_shortlist_size=int(args.phase2_shortlist_size),
             phase2_lambda_H=float(args.phase2_lambda_H),
@@ -16692,6 +16990,11 @@ def main(argv: Sequence[str] | None = None) -> None:
             adapt_pool_class_filter_json=(
                 Path(args.adapt_pool_class_filter_json)
                 if args.adapt_pool_class_filter_json is not None
+                else None
+            ),
+            adapt_pool_label_filter_json=(
+                Path(args.adapt_pool_label_filter_json)
+                if args.adapt_pool_label_filter_json is not None
                 else None
             ),
             phase3_motif_source_json=(Path(args.phase3_motif_source_json) if args.phase3_motif_source_json is not None else None),
@@ -16838,11 +17141,25 @@ def main(argv: Sequence[str] | None = None) -> None:
                 if args.adapt_pool_class_filter_json is not None
                 else None
             ),
+            "adapt_pool_label_filter_json": (
+                str(args.adapt_pool_label_filter_json)
+                if args.adapt_pool_label_filter_json is not None
+                else None
+            ),
             "adapt_pool_class_filter_classifier_version": (
                 adapt_payload.get("adapt_pool_class_filter_classifier_version")
             ),
             "adapt_pool_class_filter_keep_classes": (
                 adapt_payload.get("adapt_pool_class_filter_keep_classes")
+            ),
+            "adapt_pool_label_filter_classifier_version": (
+                adapt_payload.get("adapt_pool_label_filter_classifier_version")
+            ),
+            "adapt_pool_label_filter_drop_labels": (
+                adapt_payload.get("adapt_pool_label_filter_drop_labels")
+            ),
+            "adapt_pool_label_filter_drop_prefixes": (
+                adapt_payload.get("adapt_pool_label_filter_drop_prefixes")
             ),
             "adapt_continuation_mode": str(cli_adapt_continuation_mode),
             "adapt_max_depth": int(args.adapt_max_depth),
@@ -16906,9 +17223,23 @@ def main(argv: Sequence[str] | None = None) -> None:
             "phase1_plateau_patience": int(args.phase1_plateau_patience),
             "phase1_trough_margin_ratio": float(args.phase1_trough_margin_ratio),
             "phase1_prune_enabled": bool(args.phase1_prune_enabled),
+            "phase1_prune_mode": str(args.phase1_prune_mode),
             "phase1_prune_fraction": float(args.phase1_prune_fraction),
+            "phase1_prune_min_candidates": int(args.phase1_prune_min_candidates),
             "phase1_prune_max_candidates": int(args.phase1_prune_max_candidates),
             "phase1_prune_max_regression": float(args.phase1_prune_max_regression),
+            "phase1_prune_retained_gain_ratio": float(args.phase1_prune_retained_gain_ratio),
+            "phase1_prune_protect_steps": int(args.phase1_prune_protect_steps),
+            "phase1_prune_stale_age": int(args.phase1_prune_stale_age),
+            "phase1_prune_stagnation_threshold": float(args.phase1_prune_stagnation_threshold),
+            "phase1_prune_small_theta_abs": float(args.phase1_prune_small_theta_abs),
+            "phase1_prune_small_theta_relative": float(args.phase1_prune_small_theta_relative),
+            "phase1_prune_cooldown_steps": int(args.phase1_prune_cooldown_steps),
+            "phase1_prune_local_window_size": int(args.phase1_prune_local_window_size),
+            "phase1_prune_old_fraction": float(args.phase1_prune_old_fraction),
+            "phase1_prune_checkpoint_period": int(args.phase1_prune_checkpoint_period),
+            "phase1_prune_maturity_threshold": float(args.phase1_prune_maturity_threshold),
+            "phase1_prune_snr_threshold": float(args.phase1_prune_snr_threshold),
             "phase2_shortlist_fraction": float(args.phase2_shortlist_fraction),
             "phase2_shortlist_size": int(args.phase2_shortlist_size),
             "phase2_lambda_H": float(args.phase2_lambda_H),

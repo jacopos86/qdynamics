@@ -204,3 +204,74 @@ def test_hh_realtime_from_adapt_artifact_serializes_nondefault_controller_weight
     assert payload["controller_config"]["exact_forecast_energy_slope_weight"] == pytest.approx(50.0)
     assert payload["controller_config"]["exact_forecast_tracking_doublon_error_weight"] == pytest.approx(4.0)
     assert payload["controller_config"]["exact_forecast_tracking_site_occupations_error_weight"] == pytest.approx(2.5)
+
+
+def test_hh_realtime_from_adapt_artifact_oracle_v1_serializes_qpu_oracle_defaults(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    replay_context, _h_poly, _hmat, psi_initial = _two_qubit_drive_context(theta_x=0.2)
+
+    def _fake_load_run_context(spec, *, tag: str, lock_fixed_manifold: bool):
+        del spec, tag, lock_fixed_manifold
+        return SimpleNamespace(
+            cfg=SimpleNamespace(L=2, ordering="blocked"),
+            replay_context=replay_context,
+            psi_initial=psi_initial,
+        )
+
+    captured: dict[str, object] = {}
+
+    class _StubController:
+        def __init__(self, **kwargs):
+            captured.update(kwargs)
+
+        def run(self):
+            return SimpleNamespace(
+                summary={"mode": "oracle_v1", "decision_backend": "oracle"},
+                trajectory=[
+                    {
+                        "time_start": 0.0,
+                        "time_stop": 0.1,
+                        "decision_backend": "oracle",
+                    }
+                ],
+                ledger=[],
+                reference={"kind": "stub"},
+            )
+
+    monkeypatch.setattr(
+        "pipelines.hardcoded.hh_realtime_from_adapt_artifact.load_run_context",
+        _fake_load_run_context,
+    )
+    monkeypatch.setattr(
+        "pipelines.hardcoded.hh_realtime_from_adapt_artifact.RealtimeCheckpointController",
+        _StubController,
+    )
+    output_json = tmp_path / "oracle.json"
+    realtime_main(
+        [
+            "--artifact-json",
+            str(tmp_path / "artifact.json"),
+            "--output-json",
+            str(output_json),
+            "--checkpoint-controller-mode",
+            "oracle_v1",
+            "--use-fake-backend",
+            "--final-noise-audit-local-readout-strategy",
+            "mthree",
+            "--final-noise-audit-local-gate-twirling",
+        ]
+    )
+    payload = json.loads(output_json.read_text(encoding="utf-8"))
+
+    oracle_cfg = payload["oracle_config"]
+    assert oracle_cfg["noise_mode"] == "backend_scheduled"
+    assert oracle_cfg["backend_name"] == "FakeMarrakesh"
+    assert oracle_cfg["runtime_raw_profile"]["name"] == "legacy_runtime_v0"
+    assert oracle_cfg["mitigation"]["mode"] == "readout"
+    assert oracle_cfg["mitigation"]["local_readout_strategy"] == "mthree"
+    assert oracle_cfg["mitigation"]["local_gate_twirling"] is True
+    assert oracle_cfg["mitigation"]["local_gate_twirling_scope"] == "2q_only"
+    assert payload["oracle_capability"]["supported"] is True
+    assert captured["oracle_base_config"].backend_name == "FakeMarrakesh"

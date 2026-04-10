@@ -13,6 +13,7 @@ from pipelines.exact_bench.noise_oracle_runtime import (
     OracleConfig,
     _LOCAL_READOUT_STRATEGIES,
     normalize_mitigation_config,
+    normalize_runtime_raw_sampler_profile_config,
     normalize_symmetry_mitigation_config,
 )
 from pipelines.hardcoded.hh_continuation_scoring import (
@@ -1191,6 +1192,20 @@ def validate_controller_oracle_base_config(base_config: OracleConfig) -> None:
                 raise ValueError(
                     f"checkpoint controller oracle_v1 unsupported backend_scheduled readout strategy {strategy!r}; expected one of {sorted(_LOCAL_READOUT_STRATEGIES)}."
                 )
+    if noise_mode == "runtime":
+        try:
+            normalize_runtime_raw_sampler_profile_config(
+                getattr(
+                    base_config,
+                    "runtime_raw_profile",
+                    getattr(base_config, "runtime_profile", "legacy_runtime_v0"),
+                )
+            )
+        except ValueError as exc:
+            raise ValueError(
+                "checkpoint controller oracle_v1 runtime grouped sampling requires a suppression-only "
+                f"runtime_raw_profile. Details: {exc}"
+            ) from exc
 
 
 def controller_oracle_supports_raw_group_sampling(base_config: OracleConfig) -> bool:
@@ -1206,6 +1221,16 @@ def controller_oracle_supports_raw_group_sampling(base_config: OracleConfig) -> 
     if str(mitigation_cfg.get("mode", "none")) != "none":
         return False
     if str(symmetry_cfg.get("mode", "off")) not in {"off", "verify_only"}:
+        return False
+    try:
+        normalize_runtime_raw_sampler_profile_config(
+            getattr(
+                base_config,
+                "runtime_raw_profile",
+                getattr(base_config, "runtime_profile", "legacy_runtime_v0"),
+            )
+        )
+    except ValueError:
         return False
     return True
 

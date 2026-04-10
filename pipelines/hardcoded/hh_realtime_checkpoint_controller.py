@@ -606,11 +606,75 @@ class RealtimeCheckpointController:
         self._analytic_noise_seed = (
             None if analytic_noise_seed is None else int(analytic_noise_seed)
         )
+        self._analytic_noise_model = str(
+            getattr(cfg, "analytic_noise_model", "iid_gaussian_legacy")
+        ).strip().lower()
+        self._analytic_noise_nominal_shots = int(
+            getattr(cfg, "analytic_noise_nominal_shots", 2048)
+        )
+        self._analytic_noise_nominal_repeats = int(
+            getattr(cfg, "analytic_noise_nominal_repeats", 1)
+        )
+        self._analytic_noise_shot_scale = float(
+            getattr(cfg, "analytic_noise_shot_scale", 1.0)
+        )
+        self._analytic_noise_two_qubit_depth_scale = float(
+            getattr(cfg, "analytic_noise_two_qubit_depth_scale", 0.0)
+        )
+        self._analytic_noise_groups_new_scale = float(
+            getattr(cfg, "analytic_noise_groups_new_scale", 0.0)
+        )
+        self._analytic_noise_time_corr = float(
+            getattr(cfg, "analytic_noise_time_corr", 0.0)
+        )
+        self._analytic_noise_bias_energy = float(
+            getattr(cfg, "analytic_noise_bias_energy", 0.0)
+        )
+        self._analytic_noise_bias_doublon = float(
+            getattr(cfg, "analytic_noise_bias_doublon", 0.0)
+        )
+        self._analytic_noise_bias_staggered = float(
+            getattr(cfg, "analytic_noise_bias_staggered", 0.0)
+        )
+        self._analytic_noise_metric_scale = float(
+            getattr(cfg, "analytic_noise_metric_scale", 1.0)
+        )
+        self._analytic_noise_force_psd = bool(
+            getattr(cfg, "analytic_noise_force_psd", True)
+        )
         self._analytic_noise_rng = np.random.default_rng(self._analytic_noise_seed)
+        self._analytic_noise_prev_scalar: float | None = None
+        self._analytic_noise_prev_vector: np.ndarray | None = None
+        self._analytic_noise_prev_symmetric: np.ndarray | None = None
 
         mode = str(cfg.mode)
         if mode not in {"off", "exact_v1", "oracle_v1"}:
             raise ValueError(f"Unsupported realtime checkpoint controller mode {mode!r}.")
+        if self._analytic_noise_model not in {"iid_gaussian_legacy", "hybrid_qpu_proxy_v1"}:
+            raise ValueError(
+                f"Unsupported analytic noise model {self._analytic_noise_model!r}."
+            )
+        if self._analytic_noise_nominal_shots < 1:
+            raise ValueError("analytic_noise_nominal_shots must be >= 1.")
+        if self._analytic_noise_nominal_repeats < 1:
+            raise ValueError("analytic_noise_nominal_repeats must be >= 1.")
+        for field_name, raw_value in (
+            ("analytic_noise_shot_scale", self._analytic_noise_shot_scale),
+            ("analytic_noise_two_qubit_depth_scale", self._analytic_noise_two_qubit_depth_scale),
+            ("analytic_noise_groups_new_scale", self._analytic_noise_groups_new_scale),
+            ("analytic_noise_metric_scale", self._analytic_noise_metric_scale),
+        ):
+            if (not np.isfinite(raw_value)) or raw_value < 0.0:
+                raise ValueError(f"{field_name} must be finite and nonnegative.")
+        if (not np.isfinite(self._analytic_noise_time_corr)) or not (0.0 <= self._analytic_noise_time_corr < 1.0):
+            raise ValueError("analytic_noise_time_corr must lie in [0, 1).")
+        for field_name, raw_value in (
+            ("analytic_noise_bias_energy", self._analytic_noise_bias_energy),
+            ("analytic_noise_bias_doublon", self._analytic_noise_bias_doublon),
+            ("analytic_noise_bias_staggered", self._analytic_noise_bias_staggered),
+        ):
+            if not np.isfinite(raw_value):
+                raise ValueError(f"{field_name} must be finite.")
         forecast_guardrail_mode = str(getattr(cfg, "exact_forecast_guardrail_mode", "off"))
         if forecast_guardrail_mode not in {"off", "dual_metric_v1"}:
             raise ValueError(
@@ -935,12 +999,106 @@ class RealtimeCheckpointController:
         tmp_path.replace(self._partial_payload_path)
 
     def _analytic_noise_enabled(self) -> bool:
-        return bool(self._analytic_noise_std > 0.0)
+        if self._analytic_noise_model == "iid_gaussian_legacy":
+            return bool(self._analytic_noise_std > 0.0)
+        return bool(
+            self._analytic_noise_std > 0.0
+            or abs(self._analytic_noise_bias_energy) > 0.0
+            or abs(self._analytic_noise_bias_doublon) > 0.0
+            or abs(self._analytic_noise_bias_staggered) > 0.0
+        )
+
+    def _planning_group_burden(self, summary: BaselineGeometrySummary) -> float:
+        planning = dict(getattr(summary, "planning_summary", {}) or {})
+        for key in (
+            "groups_total",
+            "group_count",
+            "groups_new",
+            "measurement_groups_total",
+            "entries",
+        ):
+            raw = planning.get(key, None)
+            if raw is None:
+                continue
+            value = float(raw)
+            if np.isfinite(value) and value > 0.0:
+                return float(value)
+        return float(max(1, int(getattr(summary, "runtime_parameter_count", 1))))
+
+    def _hybrid_noise_scale(self, summary: BaselineGeometrySummary) -> float:
+        group_burden = float(max(1.0, self._planning_group_burden(summary)))
+        shots_eff = (
+            float(self._analytic_noise_nominal_shots)
+            * float(self._analytic_noise_nominal_repeats)
+            / float(group_burden)
+        )
+        shots_eff = float(max(shots_eff, 1.0))
+        depth_proxy = float(max(1, int(getattr(summary, "runtime_parameter_count", 1))))
+        depth_term = depth_proxy / 32.0
+        scale = float(self._analytic_noise_std) * float(self._analytic_noise_metric_scale)
+        scale *= float(self._analytic_noise_shot_scale) / float(np.sqrt(shots_eff))
+        scale *= 1.0 + float(self._analytic_noise_two_qubit_depth_scale) * float(depth_term)
+        scale *= 1.0 + float(self._analytic_noise_groups_new_scale) * float(np.log1p(group_burden))
+        return float(max(scale, 0.0))
+
+    def _apply_time_correlation(
+        self,
+        sample: np.ndarray,
+        *,
+        previous: np.ndarray | None,
+    ) -> np.ndarray:
+        corr = float(self._analytic_noise_time_corr)
+        if previous is None or corr <= 0.0:
+            return np.asarray(sample, dtype=float)
+        if previous.shape != sample.shape:
+            return np.asarray(sample, dtype=float)
+        mixed = corr * np.asarray(previous, dtype=float) + np.sqrt(max(0.0, 1.0 - corr * corr)) * np.asarray(sample, dtype=float)
+        return np.asarray(mixed, dtype=float)
+
+    def _force_psd_metric(self, value: np.ndarray) -> np.ndarray:
+        arr = np.asarray(value, dtype=float)
+        sym = 0.5 * (arr + arr.T)
+        eigvals, eigvecs = np.linalg.eigh(sym)
+        floor = float(max(1.0e-10, float(self.cfg.regularization_lambda)))
+        eigvals = np.maximum(np.asarray(eigvals, dtype=float), floor)
+        rebuilt = eigvecs @ np.diag(eigvals) @ np.asarray(eigvecs, dtype=float).T
+        return np.asarray(0.5 * (rebuilt + rebuilt.T), dtype=float)
+
+    def _hybrid_observable_bias_vector(
+        self,
+        *,
+        psi: np.ndarray,
+        energy: float,
+        f: np.ndarray,
+    ) -> np.ndarray:
+        f_arr = np.asarray(f, dtype=float).reshape(-1)
+        if f_arr.size == 0:
+            return f_arr
+        snapshot = self._observable_snapshot(np.asarray(psi, dtype=complex).reshape(-1))
+        bias_scalar = (
+            float(self._analytic_noise_bias_energy) * float(energy)
+            + float(self._analytic_noise_bias_doublon) * float(snapshot["doublon"])
+            + float(self._analytic_noise_bias_staggered) * float(snapshot["staggered"])
+        )
+        if abs(float(bias_scalar)) <= 0.0:
+            return np.zeros_like(f_arr, dtype=float)
+        direction = np.sign(f_arr)
+        direction[np.abs(direction) <= 1.0e-12] = 1.0
+        direction_norm = float(np.linalg.norm(direction))
+        if direction_norm <= 1.0e-12:
+            return np.zeros_like(f_arr, dtype=float)
+        direction = direction / direction_norm
+        return np.asarray(float(bias_scalar) * direction, dtype=float)
 
     def _add_scalar_gaussian_noise(self, value: float) -> float:
         value_f = float(value)
         if not self._analytic_noise_enabled():
             return value_f
+        if self._analytic_noise_model != "iid_gaussian_legacy":
+            sample = np.asarray([self._analytic_noise_rng.normal(0.0, 1.0)], dtype=float)
+            sample = self._apply_time_correlation(sample, previous=None if self._analytic_noise_prev_scalar is None else np.asarray([self._analytic_noise_prev_scalar], dtype=float))
+            self._analytic_noise_prev_scalar = float(sample[0])
+            return value_f + float(self._analytic_noise_std) * float(self._analytic_noise_metric_scale) * float(sample[0])
         return value_f + float(
             self._analytic_noise_rng.normal(0.0, float(self._analytic_noise_std))
         )
@@ -949,6 +1107,17 @@ class RealtimeCheckpointController:
         arr = np.asarray(value, dtype=float)
         if not self._analytic_noise_enabled():
             return arr
+        if self._analytic_noise_model != "iid_gaussian_legacy":
+            sample = np.asarray(
+                self._analytic_noise_rng.normal(0.0, 1.0, size=arr.shape),
+                dtype=float,
+            )
+            sample = self._apply_time_correlation(sample, previous=self._analytic_noise_prev_vector)
+            self._analytic_noise_prev_vector = np.asarray(sample, dtype=float)
+            return np.asarray(
+                arr + float(self._analytic_noise_std) * float(self._analytic_noise_metric_scale) * sample,
+                dtype=float,
+            )
         return np.asarray(
             arr
             + self._analytic_noise_rng.normal(
@@ -961,6 +1130,19 @@ class RealtimeCheckpointController:
         arr = np.asarray(value, dtype=float)
         if not self._analytic_noise_enabled():
             return arr
+        if self._analytic_noise_model != "iid_gaussian_legacy":
+            sample = np.asarray(
+                self._analytic_noise_rng.normal(0.0, 1.0, size=arr.shape),
+                dtype=float,
+            )
+            sample = np.triu(sample)
+            sample = sample + np.triu(sample, 1).T
+            sample = self._apply_time_correlation(sample, previous=self._analytic_noise_prev_symmetric)
+            self._analytic_noise_prev_symmetric = np.asarray(sample, dtype=float)
+            return np.asarray(
+                arr + float(self._analytic_noise_std) * float(self._analytic_noise_metric_scale) * sample,
+                dtype=float,
+            )
         noise = self._analytic_noise_rng.normal(
             0.0, float(self._analytic_noise_std), size=arr.shape
         )
@@ -3797,8 +3979,10 @@ class RealtimeCheckpointController:
         out: dict[str, Any] = {
             "stay_noisy_energy_mean": None,
             "stay_noisy_energy_stderr": None,
+            "stay_noisy_backend_info": None,
             "selected_noisy_energy_mean": None,
             "selected_noisy_energy_stderr": None,
+            "selected_noisy_backend_info": None,
             "selected_noisy_improvement_abs": None,
             "selected_noisy_improvement_ratio": None,
         }
@@ -3825,8 +4009,10 @@ class RealtimeCheckpointController:
         ):
             out["stay_noisy_energy_mean"] = float(baseline_energy_raw)
             out["stay_noisy_energy_stderr"] = None
+            out["stay_noisy_backend_info"] = dict(baseline.get("backend_info", {}))
             out["selected_noisy_energy_mean"] = float(baseline_energy_raw)
             out["selected_noisy_energy_stderr"] = None
+            out["selected_noisy_backend_info"] = dict(baseline.get("backend_info", {}))
             out["selected_noisy_improvement_abs"] = 0.0
             out["selected_noisy_improvement_ratio"] = 0.0
             return out, None
@@ -3851,9 +4037,11 @@ class RealtimeCheckpointController:
             )
             out["stay_noisy_energy_mean"] = float(stay_est["mean"])
             out["stay_noisy_energy_stderr"] = float(stay_est["stderr"])
+            out["stay_noisy_backend_info"] = dict(stay_est.get("backend_info", {}))
             if str(action_kind) == "stay" or selected is None:
                 out["selected_noisy_energy_mean"] = float(stay_est["mean"])
                 out["selected_noisy_energy_stderr"] = float(stay_est["stderr"])
+                out["selected_noisy_backend_info"] = dict(stay_est.get("backend_info", {}))
                 out["selected_noisy_improvement_abs"] = 0.0
                 out["selected_noisy_improvement_ratio"] = 0.0
                 return out, None
@@ -3882,6 +4070,7 @@ class RealtimeCheckpointController:
             improvement_abs = float(stay_est["mean"] - selected_est["mean"])
             out["selected_noisy_energy_mean"] = float(selected_est["mean"])
             out["selected_noisy_energy_stderr"] = float(selected_est["stderr"])
+            out["selected_noisy_backend_info"] = dict(selected_est.get("backend_info", {}))
             out["selected_noisy_improvement_abs"] = float(improvement_abs)
             out["selected_noisy_improvement_ratio"] = float(
                 improvement_abs / max(abs(float(stay_est["mean"])), 1e-14)
@@ -4155,15 +4344,53 @@ class RealtimeCheckpointController:
             "T": tangents_matrix,
             **_geometry_payload(G, f),
             "analytic_noise_applied": bool(self._analytic_noise_enabled()),
+            "analytic_noise_model": str(self._analytic_noise_model),
             "analytic_noise_degraded_reason": None,
         }
         if not self._analytic_noise_enabled() or not G.size:
             return baseline_payload
 
-        noisy_payload = _geometry_payload(
-            self._add_symmetric_gaussian_noise(G),
-            self._add_vector_gaussian_noise(f),
-        )
+        summary = baseline_payload["summary"]
+        if self._analytic_noise_model == "hybrid_qpu_proxy_v1":
+            scale = float(self._hybrid_noise_scale(summary))
+            group_burden = float(self._planning_group_burden(summary))
+            G_noise = self._add_symmetric_gaussian_noise(np.zeros_like(G, dtype=float))
+            f_noise = self._add_vector_gaussian_noise(np.zeros_like(f, dtype=float))
+            noisy_G = np.asarray(G + scale * G_noise, dtype=float)
+            noisy_f = np.asarray(
+                f
+                + scale * f_noise
+                + self._hybrid_observable_bias_vector(
+                    psi=psi_vec,
+                    energy=float(energy),
+                    f=f,
+                ),
+                dtype=float,
+            )
+            if bool(self._analytic_noise_force_psd):
+                noisy_G = self._force_psd_metric(noisy_G)
+            noisy_payload = _geometry_payload(noisy_G, noisy_f)
+            baseline_payload["analytic_noise_features"] = {
+                "shots_eff": float(
+                    max(
+                        1.0,
+                        (
+                            float(self._analytic_noise_nominal_shots)
+                            * float(self._analytic_noise_nominal_repeats)
+                            / max(group_burden, 1.0)
+                        ),
+                    )
+                ),
+                "group_burden": float(group_burden),
+                "runtime_parameter_count": int(summary.runtime_parameter_count),
+                "logical_block_count": int(summary.logical_block_count),
+                "resolved_scale": float(scale),
+            }
+        else:
+            noisy_payload = _geometry_payload(
+                self._add_symmetric_gaussian_noise(G),
+                self._add_vector_gaussian_noise(f),
+            )
         if not _geometry_payload_is_finite(noisy_payload):
             baseline_payload["analytic_noise_degraded_reason"] = (
                 "analytic_noise_nonfinite_metric"
@@ -5784,8 +6011,10 @@ class RealtimeCheckpointController:
                         "runtime_parameter_count": int(runtime_before),
                         "selected_noisy_energy_mean": oracle_commit_payload.get("selected_noisy_energy_mean", None),
                         "selected_noisy_energy_stderr": oracle_commit_payload.get("selected_noisy_energy_stderr", None),
+                        "selected_noisy_backend_info": oracle_commit_payload.get("selected_noisy_backend_info", None),
                         "stay_noisy_energy_mean": oracle_commit_payload.get("stay_noisy_energy_mean", None),
                         "stay_noisy_energy_stderr": oracle_commit_payload.get("stay_noisy_energy_stderr", None),
+                        "stay_noisy_backend_info": oracle_commit_payload.get("stay_noisy_backend_info", None),
                         "selected_noisy_improvement_abs": oracle_commit_payload.get("selected_noisy_improvement_abs", None),
                         "selected_noisy_improvement_ratio": oracle_commit_payload.get("selected_noisy_improvement_ratio", None),
                         "selected_prune_cached_loss": selected_prune_cached_loss,
@@ -6100,6 +6329,30 @@ class RealtimeCheckpointController:
                 for row in self._trajectory
                 if row.get("baseline_proposal_kind", None) not in {None, ""}
             ]
+            final_ledger_row = self._ledger[-1] if self._ledger else {}
+            oracle_backend_infos: list[dict[str, Any]] = []
+            for row in self._trajectory:
+                for key in ("selected_noisy_backend_info", "stay_noisy_backend_info"):
+                    info = row.get(key, None)
+                    if isinstance(info, Mapping) and info:
+                        oracle_backend_infos.append(dict(info))
+            final_oracle_backend_info = (
+                {} if not oracle_backend_infos else dict(oracle_backend_infos[-1])
+            )
+            final_oracle_backend_details = (
+                {}
+                if not isinstance(final_oracle_backend_info.get("details", {}), Mapping)
+                else dict(final_oracle_backend_info.get("details", {}))
+            )
+            runtime_job_ids = sorted(
+                {
+                    str(job_id)
+                    for info in oracle_backend_infos
+                    if isinstance(info.get("details", {}), Mapping)
+                    for job_id in info.get("details", {}).get("runtime_job_ids", [])
+                    if job_id not in {None, ""}
+                }
+            )
             summary = {
                 "mode": str(self.cfg.mode),
                 "requested_decision_backend": (
@@ -6204,6 +6457,9 @@ class RealtimeCheckpointController:
                 "oracle_decision_checkpoints": int(oracle_decision_checkpoints),
                 "oracle_attempted_checkpoints": int(oracle_attempted_checkpoints),
                 "degraded_checkpoints": int(self._degraded_checkpoint_count),
+                "raw_group_cache_hits": int(final_ledger_row.get("raw_group_cache_hits", 0)),
+                "raw_group_cache_misses": int(final_ledger_row.get("raw_group_cache_misses", 0)),
+                "raw_group_cache_extensions": int(final_ledger_row.get("raw_group_cache_extensions", 0)),
                 "final_logical_block_count": int(self.current_layout.logical_parameter_count),
                 "final_runtime_parameter_count": int(self.current_layout.runtime_parameter_count),
                 "final_fidelity_exact": float(final_row.get("fidelity_exact", float("nan"))),
@@ -6224,6 +6480,58 @@ class RealtimeCheckpointController:
                 "max_abs_site_occupations_error": float(
                     np.nanmax(np.asarray(site_occupation_error_vals, dtype=float))
                 ),
+                "oracle_backend_info": dict(final_oracle_backend_info),
+                "oracle_backend_snapshot": dict(
+                    final_oracle_backend_details.get("backend_snapshot", {})
+                ),
+                "oracle_execution_surface": final_oracle_backend_details.get(
+                    "execution_surface", None
+                ),
+                "oracle_runtime_profile": dict(
+                    final_oracle_backend_details.get("runtime_profile", {})
+                ),
+                "oracle_runtime_raw_profile": dict(
+                    final_oracle_backend_details.get("runtime_raw_profile", {})
+                ),
+                "oracle_runtime_session_policy": dict(
+                    final_oracle_backend_details.get("runtime_session_policy", {})
+                ),
+                "oracle_raw_transport": final_oracle_backend_details.get(
+                    "raw_transport", None
+                ),
+                "oracle_runtime_job_ids": list(runtime_job_ids),
+                "oracle_runtime_job_count": int(len(runtime_job_ids)),
+                "oracle_compile_request": {
+                    "transpile_optimization_level": final_oracle_backend_details.get(
+                        "transpile_optimization_level", None
+                    ),
+                    "transpile_seed": final_oracle_backend_details.get(
+                        "transpile_seed", None
+                    ),
+                },
+                "oracle_compile_observation": {
+                    "layout_physical_qubits": list(
+                        final_oracle_backend_details.get("layout_physical_qubits", [])
+                    ),
+                    "compiled_num_qubits": final_oracle_backend_details.get(
+                        "compiled_num_qubits", None
+                    ),
+                    "compiled_depth": final_oracle_backend_details.get(
+                        "compiled_depth", None
+                    ),
+                    "compiled_size": final_oracle_backend_details.get(
+                        "compiled_size", None
+                    ),
+                    "compiled_count_2q": final_oracle_backend_details.get(
+                        "compiled_count_2q", None
+                    ),
+                    "compiled_cx_count": final_oracle_backend_details.get(
+                        "compiled_cx_count", None
+                    ),
+                    "compiled_ecr_count": final_oracle_backend_details.get(
+                        "compiled_ecr_count", None
+                    ),
+                },
                 "planning_audit": dict(self._planning_audit.summary()),
                 "temporal_measurement_ledger": dict(self._temporal_ledger.summary()),
             }

@@ -624,12 +624,31 @@ exyz register order: [phonon1, phonon0, dn1, dn0, up1, up0]
 
 For new HH ADAPT work, use the direct ADAPT pipeline. On the direct CLI, omitting `--adapt-continuation-mode` now defaults to `phase3_v1`, which is the canonical current HH path.
 
+Direct HH ADAPT now exposes the full phase-1 prune surface. `--phase1-prune-mode` selects `live`, `final`, or `both`, and the advanced `--phase1-prune-*` thresholds let you neutralize or widen the mature-prune controller without editing code. Keep the defaults for normal science runs; use the heavy example below only as a recoverability stress surface.
+
 ```bash
 python -m pipelines.hardcoded.adapt_pipeline \
   --L 2 --problem hh --omega0 1.0 --g-ep 0.5 --n-ph-max 1 \
   --adapt-max-depth 30 --adapt-eps-grad 1e-5 --adapt-maxiter 800 \
   --initial-state-source adapt_vqe --skip-pdf \
   --output-json artifacts/json/adapt_hh_L2.json
+```
+
+Heavy/no-pressure recoverability stress example:
+
+```bash
+python -m pipelines.hardcoded.adapt_pipeline \
+  --L 2 --problem hh --boundary open --omega0 1.0 --g-ep 0.5 --n-ph-max 1 \
+  --adapt-pool full_meta --adapt-continuation-mode phase3_v1 \
+  --adapt-reopt-policy windowed --adapt-window-size 1000 --adapt-window-topk 1000 \
+  --adapt-beam-live-branches 1000 --adapt-beam-children-per-parent 1000 --adapt-beam-terminated-keep 1000 \
+  --phase1-shortlist-size 1000 --phase1-probe-max-positions 1000 \
+  --phase2-shortlist-fraction 1.0 --phase2-shortlist-size 1000 \
+  --phase1-prune-enabled --phase1-prune-mode both \
+  --phase1-prune-min-candidates 1 --phase1-prune-max-candidates 1000 \
+  --phase1-prune-local-window-size 1000 --phase1-prune-old-fraction 1.0 \
+  --initial-state-source adapt_vqe --skip-pdf \
+  --output-json artifacts/json/adapt_hh_L2_recoverability_stress.json
 ```
 
 True local noisy `phase3_v1` continuation (selection/scoring under oracle-backed local noise; reoptimization stays exact in v1):
@@ -741,6 +760,7 @@ The 5-op family is **not** faithfully executable through the current import/repl
 | `--adapt-inner-optimizer` | choice | `SPSA` | `COBYLA` or `SPSA` |
 | `--adapt-reopt-policy` | choice | `append_only` | `append_only`, `full`, `windowed` |
 | `--adapt-continuation-mode` | choice | `phase3_v1` (direct CLI) | Direct ADAPT default is `phase3_v1`; `legacy`, `phase1_v1`, and `phase2_v1` are historical/compatibility modes. Staged wrappers keep `phase1_v1` as their compatibility default. |
+| `--phase1-prune-mode` | choice | `live` | Prune timing surface for direct HH ADAPT: live after admission, final checkpoint only, or both. |
 | `--adapt-maxiter` | int | 300 | Inner optimizer maxiter |
 | `--adapt-seed` | int | 7 | RNG seed |
 

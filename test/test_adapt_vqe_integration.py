@@ -333,6 +333,76 @@ class TestAdaptCLIParsing:
         args = _adapt_mod.parse_args()
         assert str(args.adapt_continuation_mode) == "phase3_v1"
 
+    def test_parse_defaults_phase1_prune_surface_to_current_values(self, monkeypatch: pytest.MonkeyPatch):
+        monkeypatch.setattr(sys, "argv", ["adapt_pipeline.py"])
+        args = _adapt_mod.parse_args()
+        assert str(args.phase1_prune_mode) == "live"
+        assert int(args.phase1_prune_min_candidates) == 1
+        assert float(args.phase1_prune_retained_gain_ratio) == pytest.approx(0.5)
+        assert int(args.phase1_prune_protect_steps) == 2
+        assert int(args.phase1_prune_stale_age) == 2
+        assert float(args.phase1_prune_stagnation_threshold) == pytest.approx(0.0)
+        assert float(args.phase1_prune_small_theta_abs) == pytest.approx(1e-3)
+        assert float(args.phase1_prune_small_theta_relative) == pytest.approx(0.5)
+        assert int(args.phase1_prune_cooldown_steps) == 2
+        assert int(args.phase1_prune_local_window_size) == 4
+        assert float(args.phase1_prune_old_fraction) == pytest.approx(0.25)
+        assert int(args.phase1_prune_checkpoint_period) == 3
+        assert float(args.phase1_prune_maturity_threshold) == pytest.approx(0.5)
+        assert float(args.phase1_prune_snr_threshold) == pytest.approx(1.0)
+
+    def test_parse_accepts_custom_phase1_prune_surface(self, monkeypatch: pytest.MonkeyPatch):
+        monkeypatch.setattr(
+            sys,
+            "argv",
+            [
+                "adapt_pipeline.py",
+                "--phase1-prune-mode",
+                "both",
+                "--phase1-prune-min-candidates",
+                "3",
+                "--phase1-prune-retained-gain-ratio",
+                "0.2",
+                "--phase1-prune-protect-steps",
+                "4",
+                "--phase1-prune-stale-age",
+                "5",
+                "--phase1-prune-stagnation-threshold",
+                "0.15",
+                "--phase1-prune-small-theta-abs",
+                "1e-4",
+                "--phase1-prune-small-theta-relative",
+                "0.75",
+                "--phase1-prune-cooldown-steps",
+                "6",
+                "--phase1-prune-local-window-size",
+                "11",
+                "--phase1-prune-old-fraction",
+                "0.4",
+                "--phase1-prune-checkpoint-period",
+                "9",
+                "--phase1-prune-maturity-threshold",
+                "0.3",
+                "--phase1-prune-snr-threshold",
+                "1.7",
+            ],
+        )
+        args = _adapt_mod.parse_args()
+        assert str(args.phase1_prune_mode) == "both"
+        assert int(args.phase1_prune_min_candidates) == 3
+        assert float(args.phase1_prune_retained_gain_ratio) == pytest.approx(0.2)
+        assert int(args.phase1_prune_protect_steps) == 4
+        assert int(args.phase1_prune_stale_age) == 5
+        assert float(args.phase1_prune_stagnation_threshold) == pytest.approx(0.15)
+        assert float(args.phase1_prune_small_theta_abs) == pytest.approx(1e-4)
+        assert float(args.phase1_prune_small_theta_relative) == pytest.approx(0.75)
+        assert int(args.phase1_prune_cooldown_steps) == 6
+        assert int(args.phase1_prune_local_window_size) == 11
+        assert float(args.phase1_prune_old_fraction) == pytest.approx(0.4)
+        assert int(args.phase1_prune_checkpoint_period) == 9
+        assert float(args.phase1_prune_maturity_threshold) == pytest.approx(0.3)
+        assert float(args.phase1_prune_snr_threshold) == pytest.approx(1.7)
+
     def test_parse_rejects_archival_phase3_runtime_split_mode(self, monkeypatch: pytest.MonkeyPatch):
         monkeypatch.setattr(
             sys,
@@ -411,6 +481,16 @@ class TestAdaptCLIParsing:
         assert str(args.phase3_oracle_zne_scales) == "1,3,5"
         assert bool(args.phase3_oracle_local_gate_twirling) is True
         assert str(args.phase3_oracle_dd_sequence) == "XpXm"
+
+    def test_phase3_oracle_local_gate_twirling_payload_records_two_qubit_scope(self) -> None:
+        payload = _adapt_mod._oracle_mitigation_payload_from_fields(
+            mitigation_mode="readout",
+            local_readout_strategy="mthree",
+            local_gate_twirling=True,
+        )
+
+        assert payload["local_gate_twirling"] is True
+        assert payload["local_gate_twirling_scope"] == "2q_only"
 
     def test_parse_accepts_final_noise_audit_runtime_mode_and_profile(self, monkeypatch: pytest.MonkeyPatch):
         monkeypatch.setattr(
@@ -6176,6 +6256,190 @@ class TestHHBeamRuntimeFallbackRegression:
         assert math.isfinite(float(payload["abs_delta_e"]))
         assert float(payload["abs_delta_e"]) < 2e-2
         assert int(payload["ansatz_depth"]) >= 6
+
+    def test_final_only_prune_mode_routes_to_final_checkpoint(self):
+        h_poly = build_hubbard_holstein_hamiltonian(
+            dims=2,
+            J=1.0,
+            U=0.5,
+            omega0=1.0,
+            g=0.2,
+            n_ph_max=1,
+            boson_encoding="binary",
+            repr_mode="JW",
+            indexing="blocked",
+            pbc=False,
+            include_zero_point=True,
+        )
+
+        payload, _psi = _run_hardcoded_adapt_vqe(
+            h_poly=h_poly,
+            num_sites=2,
+            ordering="blocked",
+            problem="hh",
+            adapt_pool="full_meta",
+            t=1.0,
+            u=0.5,
+            dv=0.0,
+            boundary="open",
+            omega0=1.0,
+            g_ep=0.2,
+            n_ph_max=1,
+            boson_encoding="binary",
+            max_depth=4,
+            eps_grad=5e-7,
+            eps_energy=1e-9,
+            maxiter=400,
+            seed=7,
+            adapt_inner_optimizer="POWELL",
+            allow_repeats=True,
+            finite_angle_fallback=True,
+            finite_angle=0.1,
+            finite_angle_min_improvement=1e-12,
+            adapt_state_backend="compiled",
+            adapt_reopt_policy="windowed",
+            adapt_window_size=64,
+            adapt_window_topk=64,
+            adapt_full_refit_every=0,
+            adapt_final_full_refit=False,
+            adapt_drop_floor=-1.0,
+            adapt_grad_floor=-1.0,
+            adapt_continuation_mode="phase3_v1",
+            phase1_prune_enabled=True,
+            phase1_prune_mode="final",
+            phase1_prune_fraction=0.25,
+            phase1_prune_min_candidates=1,
+            phase1_prune_max_candidates=4,
+            phase1_prune_max_regression=1e-8,
+            phase1_prune_stale_age=1,
+            phase1_shortlist_size=64,
+            phase1_probe_max_positions=64,
+            phase1_trough_margin_ratio=1.0,
+            phase2_shortlist_fraction=1.0,
+            phase2_shortlist_size=32,
+            phase2_enable_batching=True,
+            phase2_batch_target_size=4,
+            phase2_batch_size_cap=8,
+            phase2_batch_near_degenerate_ratio=0.98,
+            phase2_lambda_H=1e-6,
+            phase2_rho=0.25,
+            phase2_gamma_N=1.0,
+            phase3_runtime_split_mode="off",
+            phase3_lifetime_cost_mode="phase3_v1",
+            phase3_symmetry_mitigation_mode="verify_only",
+            phase3_enable_rescue=False,
+            phase3_backend_cost_mode="proxy",
+            adapt_beam_live_branches=1,
+            adapt_beam_children_per_parent=1,
+            adapt_beam_terminated_keep=1,
+        )
+
+        assert payload["prune_summary"]["prune_mode"] == "final"
+        assert payload["prune_summary"]["live_mode_enabled"] is False
+        assert payload["prune_summary"]["final_mode_enabled"] is True
+        assert payload["prune_summary"]["permission_reason"] == "final_checkpoint"
+        assert payload["history"][-1]["post_admission_prune"]["executed"] is False
+
+    def test_both_prune_mode_records_live_and_final_surface_metadata(self):
+        h_poly = build_hubbard_holstein_hamiltonian(
+            dims=2,
+            J=1.0,
+            U=0.5,
+            omega0=1.0,
+            g=0.2,
+            n_ph_max=1,
+            boson_encoding="binary",
+            repr_mode="JW",
+            indexing="blocked",
+            pbc=False,
+            include_zero_point=True,
+        )
+
+        payload, _psi = _run_hardcoded_adapt_vqe(
+            h_poly=h_poly,
+            num_sites=2,
+            ordering="blocked",
+            problem="hh",
+            adapt_pool="full_meta",
+            t=1.0,
+            u=0.5,
+            dv=0.0,
+            boundary="open",
+            omega0=1.0,
+            g_ep=0.2,
+            n_ph_max=1,
+            boson_encoding="binary",
+            max_depth=4,
+            eps_grad=5e-7,
+            eps_energy=1e-9,
+            maxiter=400,
+            seed=7,
+            adapt_inner_optimizer="POWELL",
+            allow_repeats=True,
+            finite_angle_fallback=True,
+            finite_angle=0.1,
+            finite_angle_min_improvement=1e-12,
+            adapt_state_backend="compiled",
+            adapt_reopt_policy="windowed",
+            adapt_window_size=64,
+            adapt_window_topk=64,
+            adapt_full_refit_every=0,
+            adapt_final_full_refit=False,
+            adapt_drop_floor=-1.0,
+            adapt_grad_floor=-1.0,
+            adapt_continuation_mode="phase3_v1",
+            phase1_prune_enabled=True,
+            phase1_prune_mode="both",
+            phase1_prune_fraction=0.25,
+            phase1_prune_min_candidates=1,
+            phase1_prune_max_candidates=4,
+            phase1_prune_max_regression=1e-8,
+            phase1_prune_retained_gain_ratio=0.25,
+            phase1_prune_protect_steps=1,
+            phase1_prune_stale_age=1,
+            phase1_prune_stagnation_threshold=0.0,
+            phase1_prune_small_theta_abs=5e-4,
+            phase1_prune_small_theta_relative=0.6,
+            phase1_prune_cooldown_steps=3,
+            phase1_prune_local_window_size=5,
+            phase1_prune_old_fraction=0.5,
+            phase1_prune_checkpoint_period=1,
+            phase1_prune_maturity_threshold=0.0,
+            phase1_prune_snr_threshold=10.0,
+            phase1_shortlist_size=64,
+            phase1_probe_max_positions=64,
+            phase1_trough_margin_ratio=1.0,
+            phase2_shortlist_fraction=1.0,
+            phase2_shortlist_size=32,
+            phase2_enable_batching=True,
+            phase2_batch_target_size=4,
+            phase2_batch_size_cap=8,
+            phase2_batch_near_degenerate_ratio=0.98,
+            phase2_lambda_H=1e-6,
+            phase2_rho=0.25,
+            phase2_gamma_N=1.0,
+            phase3_runtime_split_mode="off",
+            phase3_lifetime_cost_mode="phase3_v1",
+            phase3_symmetry_mitigation_mode="verify_only",
+            phase3_enable_rescue=False,
+            phase3_backend_cost_mode="proxy",
+            adapt_beam_live_branches=1,
+            adapt_beam_children_per_parent=1,
+            adapt_beam_terminated_keep=1,
+        )
+
+        assert payload["prune_summary"]["prune_mode"] == "both"
+        assert payload["prune_summary"]["live_mode_enabled"] is True
+        assert payload["prune_summary"]["final_mode_enabled"] is True
+        assert payload["prune_summary"]["permission_reason"] == "final_checkpoint"
+        assert all(row["post_admission_prune"]["prune_mode"] == "both" for row in payload["history"])
+        assert all(row["post_admission_prune"]["live_mode_enabled"] is True for row in payload["history"])
+        assert all(row["post_admission_prune"]["final_mode_enabled"] is True for row in payload["history"])
+        assert all(int(row["post_admission_prune"]["min_candidates"]) == 1 for row in payload["history"])
+        assert all(int(row["post_admission_prune"]["max_candidates"]) == 4 for row in payload["history"])
+        assert all(float(row["post_admission_prune"]["retained_gain_ratio"]) == pytest.approx(0.25) for row in payload["history"])
+        assert all(int(row["post_admission_prune"]["local_window_size"]) == 5 for row in payload["history"])
+        assert all(float(row["post_admission_prune"]["old_fraction"]) == pytest.approx(0.5) for row in payload["history"])
 
     def test_beam_class_filtered_run_tolerates_missing_phase3_scores(self, tmp_path: Path):
         spec_path = tmp_path / "keep.json"

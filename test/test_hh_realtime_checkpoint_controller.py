@@ -461,6 +461,162 @@ def test_realtime_controller_analytic_noise_seed_is_reproducible_and_symmetric()
     )
 
 
+def test_realtime_controller_hybrid_proxy_shot_scaling_and_psd_guard() -> None:
+    replay_context, h_poly, hmat, psi_initial = _toy_context(theta_x=0.2)
+    common_kwargs = dict(
+        replay_context=replay_context,
+        h_poly=h_poly,
+        hmat=hmat,
+        psi_initial=psi_initial,
+        best_theta=[0.2],
+        allow_repeats=False,
+        t_final=0.2,
+        num_times=2,
+    )
+    controller_low = RealtimeCheckpointController(
+        cfg=RealtimeCheckpointConfig(
+            mode="exact_v1",
+            analytic_noise_model="hybrid_qpu_proxy_v1",
+            analytic_noise_std=0.35,
+            analytic_noise_seed=21,
+            analytic_noise_nominal_shots=256,
+            analytic_noise_two_qubit_depth_scale=0.2,
+            analytic_noise_groups_new_scale=0.1,
+            analytic_noise_force_psd=True,
+        ),
+        **common_kwargs,
+    )
+    controller_high = RealtimeCheckpointController(
+        cfg=RealtimeCheckpointConfig(
+            mode="exact_v1",
+            analytic_noise_model="hybrid_qpu_proxy_v1",
+            analytic_noise_std=0.35,
+            analytic_noise_seed=21,
+            analytic_noise_nominal_shots=8192,
+            analytic_noise_two_qubit_depth_scale=0.2,
+            analytic_noise_groups_new_scale=0.1,
+            analytic_noise_force_psd=True,
+        ),
+        **common_kwargs,
+    )
+
+    baseline_low = _baseline_geometry_payload(controller_low)
+    baseline_high = _baseline_geometry_payload(controller_high)
+
+    assert bool(baseline_low["analytic_noise_applied"]) is True
+    assert str(baseline_low["analytic_noise_model"]) == "hybrid_qpu_proxy_v1"
+    assert float(baseline_low["analytic_noise_features"]["resolved_scale"]) > float(
+        baseline_high["analytic_noise_features"]["resolved_scale"]
+    )
+    assert float(baseline_low["analytic_noise_features"]["shots_eff"]) < float(
+        baseline_high["analytic_noise_features"]["shots_eff"]
+    )
+    eigvals = np.linalg.eigvalsh(np.asarray(baseline_low["G"], dtype=float))
+    assert float(np.min(eigvals)) >= -1.0e-8
+
+
+def test_realtime_controller_hybrid_proxy_group_burden_increases_noise_scale() -> None:
+    replay_context, h_poly, hmat, psi_initial = _toy_context(theta_x=0.2)
+    common_kwargs = dict(
+        replay_context=replay_context,
+        h_poly=h_poly,
+        hmat=hmat,
+        psi_initial=psi_initial,
+        best_theta=[0.2],
+        allow_repeats=False,
+        t_final=0.2,
+        num_times=2,
+    )
+    controller_light = RealtimeCheckpointController(
+        cfg=RealtimeCheckpointConfig(
+            mode="exact_v1",
+            analytic_noise_model="hybrid_qpu_proxy_v1",
+            analytic_noise_std=0.25,
+            analytic_noise_seed=33,
+            analytic_noise_groups_new_scale=0.35,
+        ),
+        **common_kwargs,
+    )
+    controller_heavy = RealtimeCheckpointController(
+        cfg=RealtimeCheckpointConfig(
+            mode="exact_v1",
+            analytic_noise_model="hybrid_qpu_proxy_v1",
+            analytic_noise_std=0.25,
+            analytic_noise_seed=33,
+            analytic_noise_groups_new_scale=0.35,
+        ),
+        **common_kwargs,
+    )
+    controller_light._planning_group_burden = lambda summary: 1.0
+    controller_heavy._planning_group_burden = lambda summary: 16.0
+
+    baseline_light = _baseline_geometry_payload(controller_light)
+    baseline_heavy = _baseline_geometry_payload(controller_heavy)
+
+    assert float(baseline_heavy["analytic_noise_features"]["group_burden"]) > float(
+        baseline_light["analytic_noise_features"]["group_burden"]
+    )
+    assert float(baseline_heavy["analytic_noise_features"]["resolved_scale"]) > float(
+        baseline_light["analytic_noise_features"]["resolved_scale"]
+    )
+
+
+def test_realtime_controller_hybrid_proxy_time_correlation_reduces_successive_jump() -> None:
+    replay_context, h_poly, hmat, psi_initial = _toy_context(theta_x=0.2)
+    common_kwargs = dict(
+        replay_context=replay_context,
+        h_poly=h_poly,
+        hmat=hmat,
+        psi_initial=psi_initial,
+        best_theta=[0.2],
+        allow_repeats=False,
+        t_final=0.2,
+        num_times=2,
+    )
+    controller_uncorrelated = RealtimeCheckpointController(
+        cfg=RealtimeCheckpointConfig(
+            mode="exact_v1",
+            analytic_noise_model="hybrid_qpu_proxy_v1",
+            analytic_noise_std=0.25,
+            analytic_noise_seed=51,
+            analytic_noise_time_corr=0.0,
+        ),
+        **common_kwargs,
+    )
+    controller_correlated = RealtimeCheckpointController(
+        cfg=RealtimeCheckpointConfig(
+            mode="exact_v1",
+            analytic_noise_model="hybrid_qpu_proxy_v1",
+            analytic_noise_std=0.25,
+            analytic_noise_seed=51,
+            analytic_noise_time_corr=0.9,
+        ),
+        **common_kwargs,
+    )
+
+    first_uncorrelated = np.asarray(
+        controller_uncorrelated._add_vector_gaussian_noise(np.zeros(6, dtype=float)),
+        dtype=float,
+    )
+    second_uncorrelated = np.asarray(
+        controller_uncorrelated._add_vector_gaussian_noise(np.zeros(6, dtype=float)),
+        dtype=float,
+    )
+    first_correlated = np.asarray(
+        controller_correlated._add_vector_gaussian_noise(np.zeros(6, dtype=float)),
+        dtype=float,
+    )
+    second_correlated = np.asarray(
+        controller_correlated._add_vector_gaussian_noise(np.zeros(6, dtype=float)),
+        dtype=float,
+    )
+
+    assert first_correlated == pytest.approx(first_uncorrelated)
+    assert np.linalg.norm(second_correlated - first_correlated) < np.linalg.norm(
+        second_uncorrelated - first_uncorrelated
+    )
+
+
 def test_realtime_controller_analytic_noise_nonfinite_metrics_degrade_to_stay(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -1763,6 +1919,85 @@ def test_realtime_controller_off_mode_uses_measured_baseline_when_shots_oracle_s
     assert all(str(row["decision_backend"]) == "off" for row in result.trajectory)
     assert all(str(row["action_kind"]) == "stay" for row in result.trajectory)
     assert str(result.trajectory[0]["decision_noise_mode"]) == "shots"
+
+
+def test_realtime_controller_summary_surfaces_oracle_backend_provenance(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    replay_context, h_poly, hmat, psi_initial = _toy_context(theta_x=0.2)
+    controller = RealtimeCheckpointController(
+        cfg=RealtimeCheckpointConfig(mode="off"),
+        replay_context=replay_context,
+        h_poly=h_poly,
+        hmat=hmat,
+        psi_initial=psi_initial,
+        best_theta=[0.2],
+        allow_repeats=False,
+        t_final=0.2,
+        num_times=2,
+        oracle_base_config=OracleConfig(
+            noise_mode="backend_scheduled",
+            oracle_aggregate="mean",
+            backend_name="FakeMarrakesh",
+            use_fake_backend=True,
+            shots=32,
+            oracle_repeats=1,
+        ),
+    )
+
+    def _fake_measured_baseline(**kwargs):
+        baseline = controller._baseline_geometry(
+            kwargs["checkpoint_ctx"],
+            kwargs["cache"],
+            kwargs["geometry_memo"],
+            step_hamiltonian=controller._step_hamiltonian_artifacts(
+                float(kwargs["checkpoint_ctx"].time_start)
+            ),
+        )
+        return {
+            **baseline,
+            "summary": dataclass_replace(
+                baseline["summary"],
+                energy=float(baseline["summary"].energy) + 0.25,
+                solve_mode="grouped_raw_measured",
+            ),
+            "backend_info": {
+                "noise_mode": "backend_scheduled",
+                "backend_name": "FakeMarrakesh",
+                "estimator_kind": "fake_backend.run(counts)",
+                "using_fake_backend": True,
+                "details": {
+                    "backend_snapshot": {"backend_name": "FakeMarrakesh"},
+                    "runtime_profile": {"name": "legacy_runtime_v0"},
+                    "runtime_raw_profile": {"name": "legacy_runtime_v0"},
+                    "runtime_session_policy": {"mode": "prefer_session"},
+                    "raw_transport": "auto",
+                    "runtime_job_ids": ["job-1"],
+                    "transpile_optimization_level": 2,
+                    "transpile_seed": 0,
+                    "compiled_depth": 12,
+                    "compiled_size": 20,
+                    "compiled_count_2q": 5,
+                    "compiled_cx_count": 5,
+                    "compiled_ecr_count": 0,
+                    "compiled_num_qubits": 2,
+                    "layout_physical_qubits": [0, 1],
+                },
+            },
+            "observable_estimates": {
+                "baseline": {"mean": float(baseline["summary"].energy) + 0.25}
+            },
+            "raw_group_pool_summary": {"calls": 1},
+        }
+
+    monkeypatch.setattr(controller, "_oracle_measured_baseline_geometry", _fake_measured_baseline)
+
+    result = controller.run()
+
+    assert result.summary["oracle_backend_snapshot"] == {"backend_name": "FakeMarrakesh"}
+    assert result.summary["oracle_runtime_job_ids"] == ["job-1"]
+    assert result.summary["oracle_compile_request"]["transpile_optimization_level"] == 2
+    assert result.summary["oracle_compile_observation"]["compiled_count_2q"] == 5
 
 
 def test_oracle_for_tier_allows_off_mode_when_oracle_surface_configured(

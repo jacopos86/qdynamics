@@ -11,7 +11,11 @@ if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
 from pipelines.hardcoded.hh_continuation_scoring import MeasurementCacheAudit
-from pipelines.exact_bench.noise_oracle_runtime import OracleConfig
+from pipelines.exact_bench.noise_oracle_runtime import (
+    OracleConfig,
+    normalize_mitigation_config,
+    normalize_runtime_estimator_profile_config,
+)
 from pipelines.hardcoded.hh_fixed_manifold_measured import (
     FixedManifoldMeasuredConfig,
     assemble_measured_geometry,
@@ -155,6 +159,26 @@ def test_exact_checkpoint_value_cache_rejects_checkpoint_mismatch() -> None:
         cache.get_or_compute(key, tier_name="scout", compute=lambda: 1)
 
 
+def test_normalize_mitigation_config_records_two_qubit_twirling_scope() -> None:
+    payload = normalize_mitigation_config(
+        {
+            "mode": "readout",
+            "local_readout_strategy": "mthree",
+            "local_gate_twirling": True,
+        }
+    )
+
+    assert payload["local_gate_twirling"] is True
+    assert payload["local_gate_twirling_scope"] == "2q_only"
+
+
+def test_normalize_runtime_estimator_profile_config_records_two_qubit_twirling_scope() -> None:
+    payload = normalize_runtime_estimator_profile_config({"name": "main_twirled_readout_v1"})
+
+    assert payload["gate_twirling"] is True
+    assert payload["gate_twirling_scope"] == "2q_only"
+
+
 def test_planning_audit_stays_separate_from_exact_cache() -> None:
     term = _simple_term()
     audit = MeasurementCacheAudit()
@@ -265,6 +289,50 @@ def test_temporal_measurement_ledger_bonus_is_only_a_low_displacement_prior() ->
     assert float(high_bonus) == 0.0
     assert float(missing_bonus) == 0.0
     assert int(ledger.summary()["prior_entries"]) == 1
+
+
+def test_validate_controller_oracle_base_config_accepts_runtime_raw_sampler_profile() -> None:
+    cfg = OracleConfig(
+        noise_mode="runtime",
+        oracle_aggregate="mean",
+        backend_name="ibm_marrakesh",
+        runtime_profile={"name": "main_twirled_readout_v1"},
+        runtime_raw_profile={"name": "raw_sampler_twirled_v1"},
+    )
+    validate_controller_oracle_base_config(cfg)
+
+
+def test_validate_controller_oracle_base_config_rejects_runtime_estimator_profile_as_raw_profile() -> None:
+    cfg = OracleConfig(
+        noise_mode="runtime",
+        oracle_aggregate="mean",
+        backend_name="ibm_marrakesh",
+        runtime_raw_profile={"name": "main_twirled_readout_v1"},
+    )
+    with pytest.raises(ValueError, match="runtime_raw_profile"):
+        validate_controller_oracle_base_config(cfg)
+
+
+def test_controller_oracle_supports_raw_group_sampling_runtime_requires_valid_raw_sampler_profile() -> None:
+    valid_cfg = OracleConfig(
+        noise_mode="runtime",
+        oracle_aggregate="mean",
+        backend_name="ibm_marrakesh",
+        mitigation={"mode": "none"},
+        symmetry_mitigation={"mode": "verify_only"},
+        runtime_raw_profile={"name": "raw_sampler_dd_probe_v1"},
+    )
+    invalid_cfg = OracleConfig(
+        noise_mode="runtime",
+        oracle_aggregate="mean",
+        backend_name="ibm_marrakesh",
+        mitigation={"mode": "none"},
+        symmetry_mitigation={"mode": "verify_only"},
+        runtime_raw_profile={"name": "main_twirled_readout_v1"},
+    )
+
+    assert controller_oracle_supports_raw_group_sampling(valid_cfg) is True
+    assert controller_oracle_supports_raw_group_sampling(invalid_cfg) is False
 
 
 def test_backend_scheduled_raw_group_pool_reuses_and_extends_same_term_key() -> None:

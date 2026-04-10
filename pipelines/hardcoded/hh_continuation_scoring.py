@@ -644,7 +644,9 @@ def phase_shortlist_records(
     cap_eff = int(max(1, min(int(cap), len(ranked))))
     shortlist_size = int(cap_eff)
     frontier_cut = float(max(0.0, min(1.0, frontier_ratio)))
-    if cap_eff > 1 and frontier_cut > 0.0:
+    # Treat 1.0 as "no frontier cut" so callers can make the frontier nonbinding.
+    frontier_enabled = bool(0.0 < frontier_cut < 1.0)
+    if cap_eff > 1 and frontier_enabled:
         for idx in range(cap_eff - 1):
             s_cur = float(_record_score(ranked[idx], score_key))
             s_next = float(_record_score(ranked[idx + 1], score_key))

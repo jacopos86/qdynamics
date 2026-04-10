@@ -22,6 +22,7 @@ from pipelines.hardcoded.hh_continuation_scoring import (
     compatibility_penalty,
     full_v2_score,
     lifetime_weight_components,
+    phase_shortlist_records,
     reduced_plane_batch_select,
     measurement_group_keys_for_term,
     raw_f_metric_from_state,
@@ -86,6 +87,40 @@ def test_simple_v1_prefers_higher_gradient_with_equal_costs() -> None:
         cfg=cfg,
     )
     assert float(feat_a.simple_score or 0.0) > float(feat_b.simple_score or 0.0)
+
+
+def test_phase_shortlist_frontier_ratio_one_is_nonbinding() -> None:
+    records = [
+        {"candidate_label": "a", "full_v2_score": 10.0, "simple_score": 10.0, "candidate_pool_index": 0, "position_id": 0},
+        {"candidate_label": "b", "full_v2_score": 8.6, "simple_score": 8.6, "candidate_pool_index": 1, "position_id": 0},
+        {"candidate_label": "c", "full_v2_score": 7.0, "simple_score": 7.0, "candidate_pool_index": 2, "position_id": 0},
+    ]
+    shortlisted = phase_shortlist_records(
+        records,
+        score_key="full_v2_score",
+        threshold=float("-inf"),
+        cap=3,
+        frontier_ratio=1.0,
+        tie_break_score_key="simple_score",
+    )
+    assert [rec["candidate_label"] for rec in shortlisted] == ["a", "b", "c"]
+
+
+def test_phase_shortlist_frontier_ratio_below_one_can_cut_shell() -> None:
+    records = [
+        {"candidate_label": "a", "full_v2_score": 10.0, "simple_score": 10.0, "candidate_pool_index": 0, "position_id": 0},
+        {"candidate_label": "b", "full_v2_score": 8.6, "simple_score": 8.6, "candidate_pool_index": 1, "position_id": 0},
+        {"candidate_label": "c", "full_v2_score": 7.0, "simple_score": 7.0, "candidate_pool_index": 2, "position_id": 0},
+    ]
+    shortlisted = phase_shortlist_records(
+        records,
+        score_key="full_v2_score",
+        threshold=float("-inf"),
+        cap=3,
+        frontier_ratio=0.85,
+        tie_break_score_key="simple_score",
+    )
+    assert [rec["candidate_label"] for rec in shortlisted] == ["a", "b"]
 
 
 def test_stage_gate_blocks_score() -> None:

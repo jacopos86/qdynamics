@@ -1,0 +1,236 @@
+\contentsline {section}{L=2 Noisy Surface Run Handoff}{5}{section*.2}%
+\contentsline {section}{{[}QPU{]} L=2 Winner Framing and Real QPU Settings (April 8, 2026)}{5}{section*.3}%
+\contentsline {subsection}{Two Front-Page Objects}{6}{section*.4}%
+\contentsline {subsection}{Raw HF-Start Direct ADAPT Table (\texttt {\textbar {}\textbackslash {}Delta\ E\textbar {}\textbackslash {}sim\ 10\^{}\{-4\}})}{6}{section*.5}%
+\contentsline {subsection}{Real QPU Deployment Anchor (April 5, 2026 Validated)}{6}{section*.6}%
+\contentsline {subsection}{Anchor Configuration}{7}{section*.7}%
+\contentsline {subsection}{Expected Performance}{7}{section*.8}%
+\contentsline {subsection}{Validation Results (April 5 Sweep)}{7}{section*.9}%
+\contentsline {subsubsection}{Critical Finding}{8}{section*.10}%
+\contentsline {subsection}{What NOT to Change}{8}{section*.11}%
+\contentsline {subsection}{For Real QPU Deployment}{8}{section*.12}%
+\contentsline {subsection}{Companion Driven Candidate}{8}{section*.13}%
+\contentsline {subsubsection}{Current driven-controller headline metrics}{8}{section*.14}%
+\contentsline {subsubsection}{Leading QPU-facing pair}{8}{section*.15}%
+\contentsline {section}{1. Parameter Manifest and Reader Contract}{9}{section*.16}%
+\contentsline {subsection}{1.1 Required parameter manifest}{9}{section*.17}%
+\contentsline {subsection}{1.2 Reader contract}{9}{section*.18}%
+\contentsline {subsubsection}{1.2.1 Quick notation glossary for adaptive and continuation sections}{9}{section*.19}%
+\contentsline {subsubsection}{1.2.2 Quick parameter glossary for adaptive and continuation sections}{10}{section*.20}%
+\contentsline {subsection}{1.3 Non-negotiable representational conventions}{11}{section*.21}%
+\contentsline {subsubsection}{1.3.1 Internal Pauli alphabet}{11}{section*.22}%
+\contentsline {subsubsection}{1.3.2 Pauli-word and qubit ordering}{11}{section*.23}%
+\contentsline {subsubsection}{1.3.3 Canonical algebra sources}{12}{section*.24}%
+\contentsline {subsubsection}{1.3.4 Surface-specific defaults}{12}{section*.25}%
+\contentsline {subsection}{1.4 Canonical mathematical anchors}{12}{section*.26}%
+\contentsline {section}{2. Ordering, Indexing, and Register Layout}{12}{section*.27}%
+\contentsline {subsection}{2.1 Site, spin, and mode indices}{12}{section*.28}%
+\contentsline {subsubsection}{2.1.1 Interleaved ordering}{12}{section*.29}%
+\contentsline {subsubsection}{2.1.2 Blocked ordering}{12}{section*.30}%
+\contentsline {subsection}{2.2 Pauli-word placement and basis-index extraction}{13}{section*.31}%
+\contentsline {subsection}{2.3 Full HH register layout}{13}{section*.32}%
+\contentsline {section}{3. Fermionic Primitives and Direct Substitution}{13}{section*.33}%
+\contentsline {subsection}{3.1 Jordan-Wigner ladder primitives}{13}{section*.34}%
+\contentsline {subsection}{3.2 Number primitive}{13}{section*.35}%
+\contentsline {subsection}{3.3 Site densities and doublon operator}{14}{section*.36}%
+\contentsline {subsection}{3.4 Worked ordering substitutions}{14}{section*.37}%
+\contentsline {subsubsection}{3.4.1 Interleaved}{14}{section*.38}%
+\contentsline {subsubsection}{3.4.2 Blocked}{14}{section*.39}%
+\contentsline {section}{4. Boson Primitives and Encodings}{14}{section*.40}%
+\contentsline {subsection}{4.1 Local boson Hilbert space}{14}{section*.41}%
+\contentsline {subsection}{4.2 Binary encoding}{15}{section*.42}%
+\contentsline {subsection}{4.3 Unary encoding}{15}{section*.43}%
+\contentsline {subsection}{4.4 Phonon vacuum}{15}{section*.44}%
+\contentsline {subsubsection}{4.4.1 Binary vacuum}{15}{section*.45}%
+\contentsline {subsubsection}{4.4.2 Unary vacuum}{15}{section*.46}%
+\contentsline {section}{5. Hubbard Hamiltonian by Explicit Substitution}{15}{section*.47}%
+\contentsline {subsection}{5.1 Kinetic term}{15}{section*.48}%
+\contentsline {subsection}{5.2 Onsite interaction}{16}{section*.49}%
+\contentsline {subsection}{5.3 Static potential term}{16}{section*.50}%
+\contentsline {subsection}{5.4 Fully substituted Hubbard Hamiltonian}{16}{section*.51}%
+\contentsline {section}{6. Hubbard-Holstein Hamiltonian by Explicit Substitution}{16}{section*.52}%
+\contentsline {subsection}{6.1 Phonon energy}{16}{section*.53}%
+\contentsline {subsubsection}{6.1.1 Unary explicit form}{17}{section*.54}%
+\contentsline {subsubsection}{6.1.2 Binary explicit form}{17}{section*.55}%
+\contentsline {subsection}{6.2 Electron-phonon coupling}{17}{section*.56}%
+\contentsline {subsubsection}{6.2.1 Unary explicit form}{17}{section*.57}%
+\contentsline {subsubsection}{6.2.2 Binary explicit form}{17}{section*.58}%
+\contentsline {subsection}{6.2.3 Worked Holstein-only reduction after Jordan-Wigner fermions and unary phonons}{17}{section*.59}%
+\contentsline {subsubsection}{6.2.3.1 Qubit indexing used}{18}{section*.60}%
+\contentsline {subsubsection}{6.2.3.2 Jordan-Wigner fermionic number operators}{18}{section*.61}%
+\contentsline {subsubsection}{6.2.3.3 Unary phonon ladder operators in Pauli form}{18}{section*.62}%
+\contentsline {subsubsection}{6.2.3.4 Explicit Holstein Hamiltonian in the qubit basis}{18}{section*.63}%
+\contentsline {paragraph}{(a) Phonon energy term}{18}{section*.64}%
+\contentsline {paragraph}{(b) Electron-phonon coupling term}{19}{section*.65}%
+\contentsline {paragraph}{Final Holstein Hamiltonian in JW + unary form}{19}{section*.66}%
+\contentsline {subsection}{6.3 Time-dependent density drive}{19}{section*.67}%
+\contentsline {subsubsection}{6.3.1 Generic density-drive waveform surface}{19}{section*.68}%
+\contentsline {subsection}{6.4 Two HH assembly surfaces}{19}{section*.69}%
+\contentsline {subsubsection}{6.4.1 Exact Hamiltonian surface}{19}{section*.70}%
+\contentsline {subsubsection}{6.4.2 Variational HH ansatz surface}{20}{section*.71}%
+\contentsline {subsection}{6.5 Fully substituted HH master form}{20}{section*.72}%
+\contentsline {section}{7. Reference States and Exact Sector ED}{20}{section*.73}%
+\contentsline {subsection}{7.1 Fermionic Hartree-Fock determinant}{20}{section*.74}%
+\contentsline {subsection}{7.2 Hubbard-Holstein reference state}{20}{section*.75}%
+\contentsline {subsection}{7.3 Exact HH sector basis}{20}{section*.76}%
+\contentsline {subsubsection}{7.3.1 Binary index map}{20}{section*.77}%
+\contentsline {subsubsection}{7.3.2 Unary index map}{20}{section*.78}%
+\contentsline {subsection}{7.4 Exact HH matrix elements}{20}{section*.79}%
+\contentsline {subsubsection}{7.4.1 Diagonal elements}{20}{section*.80}%
+\contentsline {subsubsection}{7.4.2 Hopping matrix elements}{21}{section*.81}%
+\contentsline {subsubsection}{7.4.3 Electron-phonon matrix elements}{21}{section*.82}%
+\contentsline {section}{8. Statevector Action, Expectation, and Exponential Primitives}{21}{section*.83}%
+\contentsline {subsection}{8.1 Basis-state primitive}{21}{section*.84}%
+\contentsline {subsection}{8.2 Explicit Pauli-word action}{21}{section*.85}%
+\contentsline {subsection}{8.3 Expectation values}{21}{section*.86}%
+\contentsline {subsection}{8.4 Pauli rotations}{21}{section*.87}%
+\contentsline {subsection}{8.5 Exponential of a Pauli polynomial}{22}{section*.88}%
+\contentsline {subsection}{8.6 Exact sector energy target}{22}{section*.89}%
+\contentsline {section}{9. Fixed VQE Ansatz Families}{22}{section*.90}%
+\contentsline {subsection}{9.1 Hubbard layerwise ansatz}{22}{section*.91}%
+\contentsline {subsection}{9.2 Hubbard excitation-based surface}{22}{section*.92}%
+\contentsline {subsection}{9.3 HH layerwise ansatz}{22}{section*.93}%
+\contentsline {subsection}{9.4 HH physical-termwise ansatz}{23}{section*.94}%
+\contentsline {subsection}{9.5 Reference-state and ansatz pairing principle}{23}{section*.95}%
+\contentsline {section}{10. Polaronic Operator Families}{23}{section*.96}%
+\contentsline {subsection}{10.1 Primitive polaronic ingredients}{23}{section*.97}%
+\contentsline {subsubsection}{10.1.1 Shifted density}{23}{section*.98}%
+\contentsline {subsubsection}{10.1.2 Phonon primitives \(P_i\) and \(x_i\)}{23}{section*.99}%
+\contentsline {subsubsection}{10.1.3 Local squeeze primitive}{23}{section*.100}%
+\contentsline {subsubsection}{10.1.4 Doublon primitive}{23}{section*.101}%
+\contentsline {subsubsection}{10.1.5 Even hopping channel}{23}{section*.102}%
+\contentsline {subsubsection}{10.1.6 Odd current channel}{24}{section*.103}%
+\contentsline {subsection}{10.2 Representative dressed channels}{24}{section*.104}%
+\contentsline {subsubsection}{10.2.1 Conditional displacement}{24}{section*.105}%
+\contentsline {subsubsection}{10.2.2 Doublon dressing}{24}{section*.106}%
+\contentsline {subsubsection}{10.2.3 Dressed hopping drag}{24}{section*.107}%
+\contentsline {subsubsection}{10.2.4 Odd-channel drag}{24}{section*.108}%
+\contentsline {subsubsection}{10.2.5 Second-order even channel}{24}{section*.109}%
+\contentsline {subsubsection}{10.2.6 Third-order odd current channel}{24}{section*.110}%
+\contentsline {subsubsection}{10.2.7 Fourth-order even hopping channel}{24}{section*.111}%
+\contentsline {subsubsection}{10.2.8 Bond-conditioned displacement and squeeze channels}{24}{section*.112}%
+\contentsline {subsubsection}{10.2.9 Local squeeze channels}{24}{section*.113}%
+\contentsline {subsubsection}{10.2.10 Extended cloud channels}{24}{section*.114}%
+\contentsline {subsubsection}{10.2.11 Doublon-translation and doublon-squeeze channels}{25}{section*.115}%
+\contentsline {subsection}{10.3 Pool-family map}{25}{section*.116}%
+\contentsline {subsubsection}{10.3.1 Compact displacement/squeeze macro families}{25}{section*.117}%
+\contentsline {section}{11. Adaptive Selection and Staged Continuation}{25}{section*.118}%
+\contentsline {subsection}{11.1 Cumulative phase construction for adaptive selection}{25}{section*.119}%
+\contentsline {subsection}{11.2 Phase 1}{25}{section*.120}%
+\contentsline {subsubsection}{11.2.1 Core signal, append position, and one-coordinate local model}{25}{section*.121}%
+\contentsline {subsubsection}{11.2.2 Gates, burdens, and feature ingredients}{26}{section*.122}%
+\contentsline {subsubsection}{11.2.3 Anticipated utility left and controller schedule}{26}{section*.123}%
+\contentsline {subsubsection}{11.2.4 Phase-local cost and structural burden definitions}{28}{section*.124}%
+\contentsline {subsubsection}{11.2.6 Position probing, trough detection, and effective selector}{29}{section*.125}%
+\contentsline {subsection}{11.3 Phase II}{29}{section*.126}%
+\contentsline {subsubsection}{11.3.1 Raw geometry, restored novelty, and auxiliary overlap window}{29}{section*.127}%
+\contentsline {subsubsection}{11.3.2 Shortlist rule}{30}{section*.128}%
+\contentsline {subsection}{11.4 Phase 3 reduced-window rerank and post-shortlist admission}{31}{section*.129}%
+\contentsline {subsubsection}{11.4.1 Reduced-window geometry, curvature, and trust-region gain}{31}{section*.130}%
+\contentsline {subsubsection}{11.4.2 Refit window, reduced geometry, and Phase-3 record family}{31}{section*.131}%
+\contentsline {subsubsection}{11.4.4 Reduced-plane geometric batch selection after shortlisting}{32}{section*.132}%
+\contentsline {subsection}{11.5 Post \(m_p\) Application Entails Windowed-Refitting}{33}{section*.133}%
+\contentsline {subsubsection}{11.5.1 Branch-local mature-scaffold pruning: permissibility, frozen-ablation ranking, and exact rollback}{34}{section*.134}%
+\contentsline {subsubsection}{11.5.2 Beam-adapt over scaffold alternatives: branch state, pruning, and effective selector}{35}{section*.135}%
+\contentsline {section}{12. SPSA and Optimizer Semantics}{38}{section*.136}%
+\contentsline {subsection}{12.1 SPSA schedules}{38}{section*.137}%
+\contentsline {subsection}{12.2 Two-point stochastic gradient}{38}{section*.138}%
+\contentsline {subsection}{12.3 Update and projection}{38}{section*.139}%
+\contentsline {subsection}{12.4 Repeat aggregation}{38}{section*.140}%
+\contentsline {subsection}{12.5 Return policy}{38}{section*.141}%
+\contentsline {subsection}{12.6 Surface note}{39}{section*.142}%
+\contentsline {section}{17A. Projective McLachlan Real-Time Dynamics and Exact-Forecast Checkpoint-Adaptive Snake Control}{39}{section*.143}%
+\contentsline {subsection}{17A.1 Fixed-scaffold projective McLachlan geometry}{39}{section*.144}%
+\contentsline {subsection}{17A.2 Piecewise-constant driven Hamiltonian on each checkpoint interval}{40}{section*.145}%
+\contentsline {subsection}{17A.3 Residual geometry and local inadequacy of the scaffold}{41}{section*.146}%
+\contentsline {subsection}{17A.4 Checkpoint-local decision surfaces and calmness gate}{41}{section*.147}%
+\contentsline {subsection}{17A.5 Position-aware append geometry and confirm-grade gain}{42}{section*.148}%
+\contentsline {subsection}{17A.6 Proposal family for within-scaffold motion}{43}{section*.149}%
+\contentsline {subsection}{17A.7 Tangent-secant forecast proposal and signed-energy-lead taper}{43}{section*.150}%
+\contentsline {subsection}{17A.8 Exact-forecast horizon score and stay-append decision law}{44}{section*.151}%
+\contentsline {subsection}{17A.9 Exact local prune law in the calm regime}{46}{section*.152}%
+\contentsline {subsection}{17A.10 Canonical piecewise-smooth law}{46}{section*.153}%
+\contentsline {section}{17B. Projective McLachlan Real-Time Dynamics and Checkpoint-Adaptive Snake Control}{47}{section*.154}%
+\contentsline {subsection}{17B.1 Fixed-scaffold projective geometry}{47}{section*.155}%
+\contentsline {subsection}{17B.2 Checkpoint miss test and telemetry-driven controller outputs}{49}{section*.156}%
+\contentsline {subsection}{17B.4 Append broad screen over candidate-position records}{50}{section*.157}%
+\contentsline {subsection}{17B.5 Append confirm, compressed rerank, and exact commit}{51}{section*.158}%
+\contentsline {subsection}{17B.6 Local scaffold pruning and rollback}{53}{section*.159}%
+\contentsline {subsection}{17B.7 Future branch-level rollout and beam extension}{54}{section*.160}%
+\contentsline {section}{17C. Projective McLachlan Real-Time Geometry and Piecewise Beam-Adaptive Control}{55}{section*.161}%
+\contentsline {subsection}{17C.1 What problem is being solved?}{55}{section*.162}%
+\contentsline {subsection}{17C.2 Why projective Hilbert space is the right setting}{55}{section*.163}%
+\contentsline {subsection}{17C.3 The current manifold and its allowed velocities}{56}{section*.164}%
+\contentsline {subsection}{17C.6 Why the residual is the right local error quantity}{57}{section*.165}%
+\contentsline {subsection}{17C.7 The geometric projector behind the formulas}{57}{section*.166}%
+\contentsline {subsection}{17C.8 What a candidate generator really is}{57}{section*.167}%
+\contentsline {subsection}{17C.11 The unregularized geometric meaning}{58}{section*.168}%
+\contentsline {subsection}{17C.12 When should the ansatz adapt?}{59}{section*.169}%
+\contentsline {subsection}{17C.13 Which candidates should be admissible?}{59}{section*.170}%
+\contentsline {subsection}{17C.14 Two different residuals should be tracked}{59}{section*.171}%
+\contentsline {subsection}{17C.15 Why integrated residual is the right branch-pruning quantity}{60}{section*.172}%
+\contentsline {subsection}{17C.16 The branch objective}{60}{section*.173}%
+\contentsline {subsection}{17C.17 The full process, in one coherent sequence}{60}{section*.174}%
+\contentsline {subsection}{17C.18 One concise interpretation}{61}{section*.175}%
+\contentsline {subsection}{17C.19 Explicit symbolic--mathematical differences between the clean story and the current implementation}{61}{section*.176}%
+\contentsline {section}{18. Final Primitive-Closed Summary}{64}{section*.177}%
+\contentsline {section}{19. Data}{64}{section*.178}%
+\contentsline {subsection}{19.1 Matched novelty ablation}{64}{section*.179}%
+\contentsline {subsection}{19.2 Interpretation of the novelty ablation}{65}{section*.180}%
+\contentsline {subsection}{19.3 Pool-family redundancy}{66}{section*.181}%
+\contentsline {subsubsection}{19.3.1 Weak-coupling \(L=2\) class-prune redo}{66}{section*.182}%
+\contentsline {subsubsection}{19.3.2 Live four-run supervised status block}{68}{section*.183}%
+\contentsline {subsection}{19.4 Relation to live Phase-3 selector/pruning implementation}{69}{section*.184}%
+\contentsline {subsection}{19.5 Data provenance note}{69}{section*.185}%
+\contentsline {subsection}{19.6 Machine-agent redo note for the successful L=2 pruning session}{69}{section*.186}%
+\contentsline {subsection}{19.7 Direct noisy \texttt {backend\_scheduled} L=2 fastprobe note}{70}{section*.187}%
+\contentsline {subsection}{19.8 Fixed-scaffold compile-control scout note}{70}{section*.188}%
+\contentsline {subsection}{19.9 Heron transpile Pareto front and noisy replay for fixed L=2 scaffolds}{71}{section*.189}%
+\contentsline {section}{Appendix A. Drive, Exact Propagation, and Propagator Semantics}{73}{section*.190}%
+\contentsline {subsection}{A.1 Static drive labels and time-dependent coefficients}{73}{section*.191}%
+\contentsline {subsection}{A.2 Reference coefficient map}{73}{section*.192}%
+\contentsline {subsection}{A.3 Propagator surfaces}{73}{section*.193}%
+\contentsline {subsection}{A.4 Reference propagator versus reported trajectory propagator}{73}{section*.194}%
+\contentsline {subsubsection}{A.4.1 Static reference branch}{73}{section*.195}%
+\contentsline {subsubsection}{A.4.2 Drive-enabled reference branch}{73}{section*.196}%
+\contentsline {subsection}{A.5 CFQM macro-step mathematics}{73}{section*.197}%
+\contentsline {subsection}{A.6 Filtered exact manifold and subspace fidelity}{74}{section*.198}%
+\contentsline {subsection}{A.7 Branch-resolved observable contracts}{74}{section*.199}%
+\contentsline {subsection}{A.8 State import and handoff contract}{74}{section*.200}%
+\contentsline {subsection}{A.9 Highest-tier continuation surfaces}{74}{section*.201}%
+\contentsline {section}{Appendix B. Continuation and Handoff Contract}{74}{section*.202}%
+\contentsline {subsection}{B.1 Handoff state bundle}{74}{section*.203}%
+\contentsline {subsection}{B.2 Continuation block}{74}{section*.204}%
+\contentsline {subsection}{B.3 General handoff map}{75}{section*.205}%
+\contentsline {subsection}{B.4 Symmetry and tier-three payload note}{75}{section*.206}%
+\contentsline {subsection}{B.5 Historical warm/refine chain note}{75}{section*.207}%
+\contentsline {section}{Appendix C. Cross-Checks and Exact-Benchmark Contracts}{75}{section*.208}%
+\contentsline {subsection}{C.1 Trial matrix by problem family}{75}{section*.209}%
+\contentsline {subsection}{C.2 Auto-scaled parameter resolution}{75}{section*.210}%
+\contentsline {subsection}{C.3 Exact target and shared reference-state construction}{75}{section*.211}%
+\contentsline {subsection}{C.4 Per-trial energy and trajectory semantics}{76}{section*.212}%
+\contentsline {subsection}{C.5 Artifact contracts}{76}{section*.213}%
+\contentsline {subsection}{C.6 HH seed-surface preset and resource proxies}{76}{section*.214}%
+\contentsline {section}{Appendix D. Noise Validation, Symmetry-Mitigation, and Parity Contracts}{76}{section*.215}%
+\contentsline {subsection}{D.1 Filtered versus full exact targets}{76}{section*.216}%
+\contentsline {subsection}{D.2 Noisy-minus-ideal observable deltas}{76}{section*.217}%
+\contentsline {subsection}{D.3 Anchor parity gate}{76}{section*.218}%
+\contentsline {subsection}{D.4 Same-anchor paired comparison semantics}{77}{section*.219}%
+\contentsline {subsection}{D.5 Symmetry-mitigation mode surface}{77}{section*.220}%
+\contentsline {subsection}{D.6 Parameter manifest and provenance digest}{77}{section*.221}%
+\contentsline {section}{Appendix E. Spec-only or not-yet-formalized surfaces kept out of the main body}{77}{section*.222}%
+\contentsline {subsection}{E.1 Broader continuation-theory items}{77}{section*.223}%
+\contentsline {subsection}{E.2 Obsolete historical warm-start \(\to \) refine \(\to \) ADAPT \(\to \) replay path}{77}{section*.224}%
+\contentsline {subsection}{E.3 Drive-amplitude comparison path}{78}{section*.225}%
+\contentsline {subsection}{E.4 Appendix rule}{78}{section*.226}%
+\contentsline {section}{References}{78}{section*.227}%
+\contentsline {subsubsection}{Addendum (2026-04-04): manuscript-aligned direct HH ADAPT / \texttt {phase3\_v1} sweep notes}{78}{section*.228}%
+\contentsline {paragraph}{Current status on the new manuscript-aligned surface}{79}{section*.229}%
+\contentsline {paragraph}{Executed run families and outcomes}{79}{section*.230}%
+\contentsline {paragraph}{Good parameters versus bad parameters}{80}{section*.231}%
+\contentsline {paragraph}{Practical interpretation}{80}{section*.232}%
+\contentsline {paragraph}{2026-04-04 update: public-CLI runtime weights and reduced-pool sweeps}{80}{section*.233}%
+\contentsline {paragraph}{2026-04-04 update: completed reduced-pool \texttt {L=2/L=3} matrix}{82}{section*.234}%
+\contentsline {paragraph}{Appendix: raw HF-start direct ADAPT burdens versus historical post-processed / fixed-scaffold submissions}{83}{section*.235}%
+\contentsline {subparagraph}{A. Raw HF-start direct ADAPT / replay scaffold burden snapshots}{83}{section*.236}%
+\contentsline {subparagraph}{B. Historical post-processed or fixed-scaffold runtime submissions}{83}{section*.237}%

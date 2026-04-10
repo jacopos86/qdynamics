@@ -604,7 +604,7 @@ def add_staged_hh_noise_args(p: argparse.ArgumentParser) -> argparse.ArgumentPar
         dest="local_gate_twirling",
         action="store_true",
         help=(
-            "Opt-in local 2Q Pauli twirling for compiled fake-backend backend_scheduled audits. "
+            "Opt-in local 2Q-only Pauli twirling for compiled fake-backend backend_scheduled audits. "
             "This is a local heuristic analogue of Runtime gate twirling, not a full TREX implementation."
         ),
     )

@@ -1,10 +1,11 @@
-% AUTO-GENERATED FROM MATH/Math.md (sections 11, 17A, 17B, 17C) BY build_math_from_md.py.
+% AUTO-GENERATED FROM MATH/Math.md BY build_math_from_md.py.
 % Edit Math.md or the builder, then regenerate.
 % Options for packages loaded elsewhere
 \PassOptionsToPackage{unicode}{hyperref}
 \PassOptionsToPackage{hyphens}{url}
 %
 \documentclass[
+  10pt,
 ]{article}
 \usepackage{amsmath,amssymb}
 \usepackage{lmodern}
@@ -38,9 +39,60 @@
 \IfFileExists{xurl.sty}{\usepackage{xurl}}{} % add URL line breaks if available
 \IfFileExists{bookmark.sty}{\usepackage{bookmark}}{\usepackage{hyperref}}
 \hypersetup{
+  pdftitle={Hubbard-Holstein Mathematical Notes (Symbolic-Only Edition)},
+  pdfauthor={Jake Skyler Strobel},
   hidelinks,
   pdfcreator={LaTeX via pandoc}}
 \urlstyle{same} % disable monospaced font for URLs
+\usepackage[margin=0.8in]{geometry}
+\usepackage{color}
+\usepackage{fancyvrb}
+\newcommand{\VerbBar}{|}
+\newcommand{\VERB}{\Verb[commandchars=\\\{\}]}
+\DefineVerbatimEnvironment{Highlighting}{Verbatim}{commandchars=\\\{\}}
+% Add ',fontsize=\small' for more characters per line
+\newenvironment{Shaded}{}{}
+\newcommand{\AlertTok}[1]{\textcolor[rgb]{1.00,0.00,0.00}{\textbf{#1}}}
+\newcommand{\AnnotationTok}[1]{\textcolor[rgb]{0.38,0.63,0.69}{\textbf{\textit{#1}}}}
+\newcommand{\AttributeTok}[1]{\textcolor[rgb]{0.49,0.56,0.16}{#1}}
+\newcommand{\BaseNTok}[1]{\textcolor[rgb]{0.25,0.63,0.44}{#1}}
+\newcommand{\BuiltInTok}[1]{#1}
+\newcommand{\CharTok}[1]{\textcolor[rgb]{0.25,0.44,0.63}{#1}}
+\newcommand{\CommentTok}[1]{\textcolor[rgb]{0.38,0.63,0.69}{\textit{#1}}}
+\newcommand{\CommentVarTok}[1]{\textcolor[rgb]{0.38,0.63,0.69}{\textbf{\textit{#1}}}}
+\newcommand{\ConstantTok}[1]{\textcolor[rgb]{0.53,0.00,0.00}{#1}}
+\newcommand{\ControlFlowTok}[1]{\textcolor[rgb]{0.00,0.44,0.13}{\textbf{#1}}}
+\newcommand{\DataTypeTok}[1]{\textcolor[rgb]{0.56,0.13,0.00}{#1}}
+\newcommand{\DecValTok}[1]{\textcolor[rgb]{0.25,0.63,0.44}{#1}}
+\newcommand{\DocumentationTok}[1]{\textcolor[rgb]{0.73,0.13,0.13}{\textit{#1}}}
+\newcommand{\ErrorTok}[1]{\textcolor[rgb]{1.00,0.00,0.00}{\textbf{#1}}}
+\newcommand{\ExtensionTok}[1]{#1}
+\newcommand{\FloatTok}[1]{\textcolor[rgb]{0.25,0.63,0.44}{#1}}
+\newcommand{\FunctionTok}[1]{\textcolor[rgb]{0.02,0.16,0.49}{#1}}
+\newcommand{\ImportTok}[1]{#1}
+\newcommand{\InformationTok}[1]{\textcolor[rgb]{0.38,0.63,0.69}{\textbf{\textit{#1}}}}
+\newcommand{\KeywordTok}[1]{\textcolor[rgb]{0.00,0.44,0.13}{\textbf{#1}}}
+\newcommand{\NormalTok}[1]{#1}
+\newcommand{\OperatorTok}[1]{\textcolor[rgb]{0.40,0.40,0.40}{#1}}
+\newcommand{\OtherTok}[1]{\textcolor[rgb]{0.00,0.44,0.13}{#1}}
+\newcommand{\PreprocessorTok}[1]{\textcolor[rgb]{0.74,0.48,0.00}{#1}}
+\newcommand{\RegionMarkerTok}[1]{#1}
+\newcommand{\SpecialCharTok}[1]{\textcolor[rgb]{0.25,0.44,0.63}{#1}}
+\newcommand{\SpecialStringTok}[1]{\textcolor[rgb]{0.73,0.40,0.53}{#1}}
+\newcommand{\StringTok}[1]{\textcolor[rgb]{0.25,0.44,0.63}{#1}}
+\newcommand{\VariableTok}[1]{\textcolor[rgb]{0.10,0.09,0.49}{#1}}
+\newcommand{\VerbatimStringTok}[1]{\textcolor[rgb]{0.25,0.44,0.63}{#1}}
+\newcommand{\WarningTok}[1]{\textcolor[rgb]{0.38,0.63,0.69}{\textbf{\textit{#1}}}}
+\usepackage{longtable,booktabs,array}
+\usepackage{calc} % for calculating minipage widths
+% Correct order of tables after \paragraph or \subparagraph
+\usepackage{etoolbox}
+\makeatletter
+\patchcmd\longtable{\par}{\if@noskipsec\mbox{}\fi\par}{}{}
+\makeatother
+% Allow footnotes in longtable head/foot
+\IfFileExists{footnotehyper.sty}{\usepackage{footnotehyper}}{\usepackage{footnote}}
+\makesavenoteenv{longtable}
 \setlength{\emergencystretch}{3em} % prevent overfull lines
 \providecommand{\tightlist}{%
   \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
@@ -49,10 +101,1783 @@
   \usepackage{selnolig}  % disable illegal ligatures
 \fi
 
-\author{}
-\date{}
+\title{Hubbard-Holstein Mathematical Notes (Symbolic-Only Edition)}
+\author{Jake Skyler Strobel}
+\date{March 20, 2026}
 
 \begin{document}
+\maketitle
+
+{
+\setcounter{tocdepth}{3}
+\tableofcontents
+}
+\hypertarget{l2-noisy-surface-run-handoff}{%
+\section{L=2 Noisy Surface Run
+Handoff}\label{l2-noisy-surface-run-handoff}}
+
+For the \textbf{local/offline L=2 HH noisy surface} (\texttt{phase3\_v1}
++ \texttt{pareto\_lean\_l2} + \texttt{FakeNighthawk}), see
+\href{l2_noisy_surface_run.md}{MATH/l2\_noisy\_surface\_run.md}.
+
+This is the terminal-agent handoff note for the three mitigation lanes:
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{none}
+\item
+  \texttt{readout}
+\item
+  \texttt{full}
+\end{itemize}
+
+It is intentionally the front-page pointer so the noisy-surface run
+recipe is visible before the rest of the manuscript.
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\hypertarget{qpu-l2-winner-framing-and-real-qpu-settings-april-8-2026}{%
+\section{{[}QPU{]} L=2 Winner Framing and Real QPU Settings (April 8,
+2026)}\label{qpu-l2-winner-framing-and-real-qpu-settings-april-8-2026}}
+
+\begin{quote}
+Front-page contract: distinguish the best raw HF-start ADAPT result from
+the separately validated real-QPU deployment anchor. Do not conflate
+either one with later prune/readapt JSON post-processing or with
+fixed-scaffold runtime submissions.
+\end{quote}
+
+\hypertarget{two-front-page-objects}{%
+\subsection{Two Front-Page Objects}\label{two-front-page-objects}}
+
+\begin{itemize}
+\tightlist
+\item
+  \textbf{Scientific raw HF-start winner.} This means direct ADAPT from
+  the Hartree-Fock reference with \texttt{adapt\_ref\_json\ =\ null},
+  with no later JSON prune/recovery pass substituted in. Under the
+  canonical \texttt{L=2,\ U=4.0,\ g=0.5} gate
+  \texttt{\textbar{}ΔE\textbar{}\ \textbackslash{}sim\ 10\^{}\{-4\}},
+  the best substantiated raw HF-start line currently in hand is the
+  direct \texttt{full\_meta} artifact
+  \texttt{hh\_backend\_adapt\_fullhorse\_powell\_20260322T194155Z\_fakenighthawk.json},
+  which reaches \[
+  |\Delta E|=5.6178234645\times 10^{-5}
+  \] at \texttt{81} transpiled two-qubit gates on
+  \texttt{FakeMarrakesh}.
+\item
+  \textbf{Validated real-QPU deployment anchor.} This is the separately
+  validated April 5 \texttt{pareto\_lean\ +\ phase3\_v1\ +\ SPSA} raw
+  HF-start command that is currently trusted for rerunability on the
+  live public CLI surface. Its scaffold burden is heavier, but it
+  remains the validated deployment recipe: \[
+  |\Delta E|=1.0822209459\times 10^{-4},
+  \] with \texttt{218} transpiled two-qubit gates on the same
+  \texttt{FakeMarrakesh} proxy.
+\end{itemize}
+
+\hypertarget{raw-hf-start-direct-adapt-table-delta-esim-10-4}{%
+\subsection{\texorpdfstring{Raw HF-Start Direct ADAPT Table
+(\texttt{\textbar{}\textbackslash{}Delta\ E\textbar{}\textbackslash{}sim\ 10\^{}\{-4\}})}{Raw HF-Start Direct ADAPT Table (\textbar\textbackslash Delta E\textbar\textbackslash sim 10\^{}\{-4\})}}\label{raw-hf-start-direct-adapt-table-delta-esim-10-4}}
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 14\tabcolsep) * \real{0.10}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 14\tabcolsep) * \real{0.10}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 14\tabcolsep) * \real{0.10}}
+  >{\raggedleft\arraybackslash}p{(\columnwidth - 14\tabcolsep) * \real{0.14}}
+  >{\raggedleft\arraybackslash}p{(\columnwidth - 14\tabcolsep) * \real{0.14}}
+  >{\raggedleft\arraybackslash}p{(\columnwidth - 14\tabcolsep) * \real{0.14}}
+  >{\raggedleft\arraybackslash}p{(\columnwidth - 14\tabcolsep) * \real{0.14}}
+  >{\raggedleft\arraybackslash}p{(\columnwidth - 14\tabcolsep) * \real{0.14}}@{}}
+\toprule
+Role & Artifact / surface & Pool &
+\texttt{\textbar{}\textbackslash{}Delta\ E\textbar{}} & Logical ops &
+Runtime params & Transpiled 2Q & Depth \\
+\midrule
+\endhead
+Best raw HF-start ADAPT winner &
+\texttt{hh\_backend\_adapt\_fullhorse\_powell\_20260322T194155Z\_fakenighthawk}
+& \texttt{full\_meta} & \texttt{5.6178234645e-05} & 16 & 27 & 81 &
+151 \\
+Best reduced-pool direct line &
+\texttt{adapt\_hh\_L2\_ecut1\_pareto\_lean\_l2\_phase3\_powell\_rerun\_currentcode\_20260321T171615Z}
+& \texttt{pareto\_lean\_l2} & \texttt{5.6178234644e-05} & 14 & 25 & 97 &
+208 \\
+Wide-shortlist direct comparison &
+\texttt{campaign\_A7c\_L2\_shortlist\_wide\_phase3\_v1} &
+\texttt{full\_meta} & \texttt{5.6178234644e-05} & 14 & 30 & 116 & 310 \\
+Validated April 5 deployment anchor &
+\texttt{pareto\_lean\ +\ phase3\_v1\ +\ SPSA} & \texttt{pareto\_lean} &
+\texttt{1.0822209459e-04} & 20 & 52 & 218 & 633 \\
+\bottomrule
+\end{longtable}
+
+The final \texttt{218}-2Q row is the same raw HF-start scaffold family
+as the confirmed April 5 authority command; it is heavier than the
+scientific raw winner, but it is the currently validated deployment
+anchor on the public CLI surface.
+
+The post-processed \texttt{31/37/57}-2Q prune/readapt artifacts are
+\textbf{not} the object a fresh real-QPU ADAPT run from HF would
+execute. They remain useful comparison context only.
+
+\hypertarget{real-qpu-deployment-anchor-april-5-2026-validated}{%
+\subsection{Real QPU Deployment Anchor (April 5, 2026
+Validated)}\label{real-qpu-deployment-anchor-april-5-2026-validated}}
+
+\begin{quote}
+\textbf{This is the recommended configuration for real QPU deployment.}
+Validated via narrow 36-case local sweep confirming rerunnable
+deployment optimality in the \texttt{pareto\_lean} + \texttt{phase3\_v1}
+regime. This is the deployment anchor, not the absolute lowest raw
+HF-start two-qubit line.
+\end{quote}
+
+\hypertarget{anchor-configuration}{%
+\subsection{Anchor Configuration}\label{anchor-configuration}}
+
+\textbf{Use this exact command for real QPU L=2 ADAPT runs:}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\ExtensionTok{python} \AttributeTok{{-}u} \AttributeTok{{-}m}\NormalTok{ pipelines.hardcoded.adapt\_pipeline }\DataTypeTok{\textbackslash{}}
+  \AttributeTok{{-}{-}L}\NormalTok{ 2 }\AttributeTok{{-}{-}problem}\NormalTok{ hh }\AttributeTok{{-}{-}t}\NormalTok{ 1.0 }\AttributeTok{{-}{-}u}\NormalTok{ 4.0 }\AttributeTok{{-}{-}dv}\NormalTok{ 0.0 }\DataTypeTok{\textbackslash{}}
+  \AttributeTok{{-}{-}omega0}\NormalTok{ 1.0 }\AttributeTok{{-}{-}g{-}ep}\NormalTok{ 0.5 }\AttributeTok{{-}{-}n{-}ph{-}max}\NormalTok{ 1 }\DataTypeTok{\textbackslash{}}
+  \AttributeTok{{-}{-}boson{-}encoding}\NormalTok{ binary }\AttributeTok{{-}{-}ordering}\NormalTok{ blocked }\AttributeTok{{-}{-}boundary}\NormalTok{ open }\AttributeTok{{-}{-}term{-}order}\NormalTok{ sorted }\DataTypeTok{\textbackslash{}}
+  \AttributeTok{{-}{-}adapt{-}pool}\NormalTok{ pareto\_lean }\AttributeTok{{-}{-}adapt{-}continuation{-}mode}\NormalTok{ phase3\_v1 }\DataTypeTok{\textbackslash{}}
+  \AttributeTok{{-}{-}adapt{-}max{-}depth}\NormalTok{ 160 }\AttributeTok{{-}{-}adapt{-}eps{-}grad}\NormalTok{ 5e{-}7 }\AttributeTok{{-}{-}adapt{-}eps{-}energy}\NormalTok{ 1e{-}9 }\AttributeTok{{-}{-}adapt{-}seed}\NormalTok{ 5 }\DataTypeTok{\textbackslash{}}
+  \AttributeTok{{-}{-}adapt{-}inner{-}optimizer}\NormalTok{ SPSA }\DataTypeTok{\textbackslash{}}
+  \AttributeTok{{-}{-}adapt{-}spsa{-}a}\NormalTok{ 0.1 }\AttributeTok{{-}{-}adapt{-}spsa{-}c}\NormalTok{ 0.02 }\AttributeTok{{-}{-}adapt{-}spsa{-}A}\NormalTok{ 5.0 }\DataTypeTok{\textbackslash{}}
+  \AttributeTok{{-}{-}adapt{-}spsa{-}callback{-}every}\NormalTok{ 5 }\AttributeTok{{-}{-}adapt{-}spsa{-}progress{-}every{-}s}\NormalTok{ 30 }\DataTypeTok{\textbackslash{}}
+  \AttributeTok{{-}{-}adapt{-}maxiter}\NormalTok{ 3200 }\DataTypeTok{\textbackslash{}}
+  \AttributeTok{{-}{-}adapt{-}state{-}backend}\NormalTok{ compiled }\DataTypeTok{\textbackslash{}}
+  \AttributeTok{{-}{-}adapt{-}reopt{-}policy}\NormalTok{ windowed }\AttributeTok{{-}{-}adapt{-}window{-}size}\NormalTok{ 999999 }\AttributeTok{{-}{-}adapt{-}window{-}topk}\NormalTok{ 999999 }\DataTypeTok{\textbackslash{}}
+  \AttributeTok{{-}{-}adapt{-}full{-}refit{-}every}\NormalTok{ 8 }\AttributeTok{{-}{-}adapt{-}final{-}full{-}refit}\NormalTok{ true }\DataTypeTok{\textbackslash{}}
+  \AttributeTok{{-}{-}adapt{-}beam{-}live{-}branches}\NormalTok{ 2 }\AttributeTok{{-}{-}adapt{-}beam{-}children{-}per{-}parent}\NormalTok{ 2 }\AttributeTok{{-}{-}adapt{-}beam{-}terminated{-}keep}\NormalTok{ 2 }\DataTypeTok{\textbackslash{}}
+  \AttributeTok{{-}{-}phase1{-}prune{-}enabled} \AttributeTok{{-}{-}phase1{-}prune{-}fraction}\NormalTok{ 0.25 }\AttributeTok{{-}{-}phase1{-}prune{-}max{-}candidates}\NormalTok{ 6 }\AttributeTok{{-}{-}phase1{-}prune{-}max{-}regression}\NormalTok{ 1e{-}8 }\DataTypeTok{\textbackslash{}}
+  \AttributeTok{{-}{-}phase1{-}probe{-}max{-}positions}\NormalTok{ 999999 }\AttributeTok{{-}{-}phase1{-}trough{-}margin{-}ratio}\NormalTok{ 1.0 }\AttributeTok{{-}{-}phase1{-}shortlist{-}size}\NormalTok{ 64 }\DataTypeTok{\textbackslash{}}
+  \AttributeTok{{-}{-}phase2{-}shortlist{-}fraction}\NormalTok{ 1.0 }\AttributeTok{{-}{-}phase2{-}shortlist{-}size}\NormalTok{ 64 }\DataTypeTok{\textbackslash{}}
+  \AttributeTok{{-}{-}phase2{-}frontier{-}ratio}\NormalTok{ 0.85 }\DataTypeTok{\textbackslash{}}
+  \AttributeTok{{-}{-}phase2{-}lambda{-}H}\NormalTok{ 1e{-}06 }\AttributeTok{{-}{-}phase2{-}rho}\NormalTok{ 0.25 }\AttributeTok{{-}{-}phase2{-}gamma{-}N}\NormalTok{ 1.0 }\DataTypeTok{\textbackslash{}}
+  \AttributeTok{{-}{-}phase2{-}w{-}depth}\NormalTok{ 0.1 }\AttributeTok{{-}{-}phase2{-}w{-}group}\NormalTok{ 0.075 }\AttributeTok{{-}{-}phase2{-}w{-}shot}\NormalTok{ 0.075 }\AttributeTok{{-}{-}phase2{-}w{-}optdim}\NormalTok{ 0.05 }\AttributeTok{{-}{-}phase2{-}w{-}reuse}\NormalTok{ 0.05 }\AttributeTok{{-}{-}phase2{-}w{-}lifetime}\NormalTok{ 0.05 }\DataTypeTok{\textbackslash{}}
+  \AttributeTok{{-}{-}phase2{-}eta{-}L}\NormalTok{ 0.0 }\AttributeTok{{-}{-}phase2{-}motif{-}bonus{-}weight}\NormalTok{ 0.05 }\AttributeTok{{-}{-}phase2{-}duplicate{-}penalty{-}weight}\NormalTok{ 0.0 }\DataTypeTok{\textbackslash{}}
+  \AttributeTok{{-}{-}phase2{-}compat{-}overlap{-}weight}\NormalTok{ 0.4 }\AttributeTok{{-}{-}phase2{-}compat{-}comm{-}weight}\NormalTok{ 0.2 }\AttributeTok{{-}{-}phase2{-}compat{-}curv{-}weight}\NormalTok{ 0.2 }\DataTypeTok{\textbackslash{}}
+  \AttributeTok{{-}{-}phase2{-}compat{-}sched{-}weight}\NormalTok{ 0.2 }\AttributeTok{{-}{-}phase2{-}compat{-}measure{-}weight}\NormalTok{ 0.2 }\DataTypeTok{\textbackslash{}}
+  \AttributeTok{{-}{-}phase2{-}remaining{-}evaluations{-}proxy{-}mode}\NormalTok{ auto }\DataTypeTok{\textbackslash{}}
+  \AttributeTok{{-}{-}phase3{-}frontier{-}ratio}\NormalTok{ 0.85 }\DataTypeTok{\textbackslash{}}
+  \AttributeTok{{-}{-}phase3{-}symmetry{-}mitigation{-}mode}\NormalTok{ verify\_only }\AttributeTok{{-}{-}phase3{-}enable{-}rescue} \DataTypeTok{\textbackslash{}}
+  \AttributeTok{{-}{-}phase3{-}backend{-}cost{-}mode}\NormalTok{ proxy }\AttributeTok{{-}{-}phase3{-}runtime{-}split{-}mode}\NormalTok{ off }\AttributeTok{{-}{-}phase3{-}lifetime{-}cost{-}mode}\NormalTok{ off }\DataTypeTok{\textbackslash{}}
+  \AttributeTok{{-}{-}adapt{-}drop{-}floor}\NormalTok{ 0.0005 }\AttributeTok{{-}{-}adapt{-}drop{-}patience}\NormalTok{ 3 }\AttributeTok{{-}{-}adapt{-}drop{-}min{-}depth}\NormalTok{ 12 }\DataTypeTok{\textbackslash{}}
+  \AttributeTok{{-}{-}initial{-}state{-}source}\NormalTok{ adapt\_vqe }\AttributeTok{{-}{-}skip{-}pdf} \AttributeTok{{-}{-}phase2{-}no{-}batching}
+\end{Highlighting}
+\end{Shaded}
+
+\hypertarget{expected-performance}{%
+\subsection{Expected Performance}\label{expected-performance}}
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 4\tabcolsep) * \real{0.36}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 4\tabcolsep) * \real{0.32}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 4\tabcolsep) * \real{0.32}}@{}}
+\toprule
+Metric & Value & Notes \\
+\midrule
+\endhead
+Energy & 0.15877612622031317 & Exact ground state reference \\
+\textbar ΔE\textbar{} & \textbf{1.082e-4} & Excellent accuracy for
+NISQ \\
+Logical scaffold size & 20 & Validated raw HF-start deployment
+scaffold \\
+Runtime parameters & 52 & Efficient parameterization \\
+Marrakesh proxy burden & \texttt{218} 2Q, depth \texttt{633}, size
+\texttt{939} & Same raw HF-start scaffold as the confirmed strong
+template \\
+Wall-clock & \textasciitilde43s & Fast convergence \\
+\bottomrule
+\end{longtable}
+
+\hypertarget{validation-results-april-5-sweep}{%
+\subsection{Validation Results (April 5
+Sweep)}\label{validation-results-april-5-sweep}}
+
+A 36-case narrow local sweep confirmed this configuration is optimal:
+
+\begin{itemize}
+\tightlist
+\item
+  {[}OK{]} \textbf{SPSA maxiter=3200}: Goldilocks zone (2400
+  undershoots, 4000 overshoots)
+\item
+  {[}OK{]} \textbf{Frontier ratio 0.85}: All values (0.80--0.90)
+  converge to same energy; 0.85 balances quality
+\item
+  {[}OK{]} \textbf{Beam (2,2,2)}: Sufficient; wider beam (3,2,3) costs
+  50\% more time, zero quality gain
+\item
+  {[}OK{]} \textbf{Drop policy (0.0005, 3, 12)}: Optimal shallowness;
+  tighter drop \(\to\) shallower circuits for QPU
+\end{itemize}
+
+\hypertarget{critical-finding}{%
+\subsubsection{Critical Finding}\label{critical-finding}}
+
+Increasing SPSA \texttt{maxiter} beyond 3200 \textbf{degrades}
+performance (1.27--1.54e-4 vs 1.082e-4): - Suggests pool saturation:
+\texttt{pareto\_lean} operators are exhausted at this budget - SPSA
+noise amplification: longer optimization in finite ansatz space doesn't
+help
+
+\textbf{Do not deviate from maxiter=3200 in this regime.}
+
+\hypertarget{what-not-to-change}{%
+\subsection{What NOT to Change}\label{what-not-to-change}}
+
+Based on sweep validation: - {[}X{]} Pool: Do not switch from
+\texttt{pareto\_lean} - {[}X{]} Continuation: Do not move away from
+\texttt{phase3\_v1} - {[}X{]} Runtime split: Keep \texttt{off} for L=2 -
+{[}X{]} SPSA budget: Do not increase \texttt{maxiter} beyond 3200 -
+{[}X{]} Frontier: Do not vary frontier ratio (insensitive in 0.80--0.90
+range) - {[}X{]} Beam: Do not use (3,2,3); keep (2,2,2)
+
+\hypertarget{for-real-qpu-deployment}{%
+\subsection{For Real QPU Deployment}\label{for-real-qpu-deployment}}
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  Use the command above exactly as written
+\item
+  Expect \textbar ΔE\textbar{} \(\approx\) 1.08e-4 (this is the
+  best-known trustworthy result)
+\item
+  Ansatz depth = 20 is excellent for NISQ mitigation
+\item
+  No further local tuning will improve this configuration (sweep
+  confirms)
+\end{enumerate}
+
+\hypertarget{companion-driven-candidate}{%
+\subsection{Companion Driven
+Candidate}\label{companion-driven-candidate}}
+
+The leading \textbf{driven realtime-controller} candidate for the same
+L=2 HH scaffold family is now the heavier-target
+\texttt{secant\_lead100} setting from
+\texttt{artifacts/agent\_runs/20260405\_controller\_drive\_heavier\_secant\_lead\_scan\_v1/json/secant\_lead100.json}.
+
+This should be tracked alongside the winning static/noiseless L=2 ADAPT
+anchor above when choosing real-QPU-facing settings, because it is
+currently the best controller law we have for recovering visible driven
+dynamics on the stronger \texttt{A=0.55}, \texttt{tbar=4.0},
+\texttt{t\_final=8.0} benchmark.
+
+\hypertarget{current-driven-controller-headline-metrics}{%
+\subsubsection{Current driven-controller headline
+metrics}\label{current-driven-controller-headline-metrics}}
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 4\tabcolsep) * \real{0.36}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 4\tabcolsep) * \real{0.32}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 4\tabcolsep) * \real{0.32}}@{}}
+\toprule
+Metric & Value & Notes \\
+\midrule
+\endhead
+Controller law & \texttt{secant\_lead100} & Signed-energy-lead-tapered
+secant + signed blend \\
+Drive target & \texttt{A=0.55}, \texttt{omega=2.0}, \texttt{tbar=4.0},
+\texttt{t0=0.0} & Heavier than the earlier fine-resolution regime \\
+Mean \texttt{\textbar{}ΔE\textbar{}} & \textbf{1.633e-3} & Best
+whole-window value among current heavier-target candidates \\
+Max \texttt{\textbar{}ΔE\textbar{}} & \textbf{6.501e-3} & Large
+improvement over prior signed-blend and raw secant anchors \\
+Early-window MAE (\texttt{t≤3.35}) & \textbf{1.176e-3} & Recovers the
+startup dip far better than \texttt{signed\_mild\_front\_current} \\
+Late-window MAE (\texttt{t≥3.35}) & \textbf{1.964e-3} & Still slightly
+better than the previous late-time winner \\
+Energy span ratio & \texttt{1.032} & Slight overshoot, but close to
+exact \\
+Min fidelity & \texttt{0.9626} & Remains bounded with no append
+events \\
+\bottomrule
+\end{longtable}
+
+\hypertarget{leading-qpu-facing-pair}{%
+\subsubsection{Leading QPU-facing pair}\label{leading-qpu-facing-pair}}
+
+\begin{itemize}
+\tightlist
+\item
+  \textbf{Static / ground-state anchor:} the validated
+  \texttt{pareto\_lean\ +\ phase3\_v1} L=2 ADAPT command above.
+\item
+  \textbf{Driven / dynamics anchor:} the heavier-target
+  \texttt{secant\_lead100} controller result above.
+\end{itemize}
+
+These are the two front-page candidates we should currently treat as the
+leading settings when optimizing toward a real QPU run.
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\begin{quote}
+Canonical naming note: \texttt{MATH/Math.md} is the markdown authoring
+source for manuscript sync, and \texttt{MATH/Math.tex} is the generated
+typesetting twin used to build \texttt{MATH/Math.pdf}. Regenerate the
+synchronized TeX/PDF pair with
+\texttt{python\ MATH/build\_math\_from\_md.py} or
+\texttt{MATH/build\_math.sh}. The archival repo-oriented manuscript is
+\texttt{MATH/archaic\_repo\_math.md}.
+\end{quote}
+
+\hypertarget{parameter-manifest-and-reader-contract}{%
+\section{1. Parameter Manifest and Reader
+Contract}\label{parameter-manifest-and-reader-contract}}
+
+This duplicate is intentionally symbolic-first. It keeps the same broad
+manuscript shape as the existing mathematical notes,
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  primitives first,
+\item
+  composite operators second,
+\item
+  explicit substitutions third,
+\item
+  reduced master forms last,
+\end{enumerate}
+
+but it suppresses almost all implementation labels, file names, mode
+strings, and executable-surface commentary. The goal is to make the
+document readable as mathematics rather than as a repository audit.
+
+\hypertarget{required-parameter-manifest}{%
+\subsection{1.1 Required parameter
+manifest}\label{required-parameter-manifest}}
+
+A complete symbolic run or derivation should specify at least the
+following data.
+
+\begin{itemize}
+\tightlist
+\item
+  Model family: Hubbard or Hubbard-Holstein.
+\item
+  Lattice size: \(L\).
+\item
+  Ordering map: interleaved or blocked, i.e.~a choice of
+  \(p(i,\sigma)\).
+\item
+  Boundary condition: open or periodic.
+\item
+  Fermionic parameters: hopping \(t\), onsite interaction \(U\), and
+  static site potentials \(v_i\).
+\item
+  Bosonic parameters: phonon frequency \(\omega_0\), electron-phonon
+  coupling \(g\), and cutoff \(n_{\mathrm{ph,max}}\).
+\item
+  Boson encoding choice: binary or unary.
+\item
+  Variational family, when relevant: layerwise, physical-termwise,
+  excitation-based, or adaptive.
+\item
+  Control parameters, when relevant: optimizer family, propagation rule,
+  drive waveform parameters, and benchmark grid.
+\end{itemize}
+
+\hypertarget{reader-contract}{%
+\subsection{1.2 Reader contract}\label{reader-contract}}
+
+This manuscript favors explicit substitution over compressed
+abstraction.
+
+\begin{itemize}
+\tightlist
+\item
+  If a primitive operator exists, it is written first.
+\item
+  If a composite object is built from primitives, the primitive form is
+  shown.
+\item
+  If a later equation can be simplified by inserting an earlier
+  primitive explicitly, that insertion is made.
+\item
+  If multiple mathematical surfaces exist, such as different index
+  orderings or boson encodings, the surface is named locally rather than
+  hidden behind an unnamed default.
+\end{itemize}
+
+\hypertarget{quick-notation-glossary-for-adaptive-and-continuation-sections}{%
+\subsubsection{1.2.1 Quick notation glossary for adaptive and
+continuation
+sections}\label{quick-notation-glossary-for-adaptive-and-continuation-sections}}
+
+This subsection is a compact map for the symbols that recur in the
+adaptive-selection, split-aware, replay, and beam-style sections.
+
+\begin{itemize}
+\tightlist
+\item
+  \(g,m\): generic candidate generators. The manuscript uses both
+  letters in different sections; they play the same role.
+\item
+  \(p\): candidate insertion position in the ordered scaffold.
+\item
+  \(r=(m,p)\): a candidate-position record, i.e.~a generator together
+  with a chosen insertion position.
+\item
+  \(\mathcal G\): the full master generator pool.
+\item
+  \(\mathcal G^{(1)},\mathcal G^{(2)},\mathcal G^{(3)}\): progressively
+  more restricted candidate universes, with \[
+  \mathcal G^{(3)}\subseteq\mathcal G^{(2)}\subseteq\mathcal G^{(1)}\subseteq\mathcal G.
+  \]
+\item
+  \(\mathcal P_g\) or \(\mathcal P_m\): admissible insertion positions
+  for candidate \(g\) or \(m\).
+\item
+  \(W(p)\): inherited refit window used if a candidate is inserted at
+  position \(p\).
+\item
+  \(W_{\mathrm{new}}(p)\): the newest-parameter portion of the refit
+  window.
+\item
+  \(W_{|\theta|}(p)\): the older large-amplitude carry subset of the
+  refit window.
+\item
+  \(\mathcal P_{\mathrm{avail}}^{(3)}\): the full available set of
+  Phase-3 candidate-position records.
+\item
+  \(\mathcal C_{\mathrm{cheap}}\): the horizon-sized coarse shortlist
+  obtained by cheap-score ranking over the full admissible Phase-3
+  candidate-position pool.
+\item
+  \(\mathcal S_2,\mathcal S_3\): the Phase-2 and Phase-3 shortlists that
+  survive cheap screening before full reranking.
+\item
+  \(\mathcal C_{\mathrm{split}}(m)\): the family of split children
+  generated from macro generator \(m\).
+\item
+  \(\Gamma_{\mathrm{prune}}^{\mathrm{perm}}\): post-admission
+  prune-permissibility gate deciding whether local scaffold
+  simplification is attempted.
+\item
+  \(\mathcal J_{\mathrm{exp}}\): the post-admission set of locally
+  expendable scaffold coordinates or generators considered by the prune
+  pass.
+\item
+  \(\mathcal O_*\): the finally selected adaptive scaffold, i.e.~the
+  ordered generator sequence admitted by the adaptive stage.
+\item
+  \(\mathcal M_{\mathrm{warm}},\mathcal M_{\mathrm{refine}},\mathcal M_{\mathrm{replay}}\):
+  archival appendix-only warm-start, optional refine, and replay
+  manifolds.
+\item
+  \(\mathcal B\): a portable handoff/state bundle carrying manifest,
+  amplitudes, energies, and continuation metadata.
+\item
+  \(\mathcal C\): continuation payload / provenance payload attached to
+  a handoff bundle.
+\item
+  \(\Gamma_{\mathrm{stage}}\): stage-admissibility gate.
+\item
+  \(\Gamma_{\mathrm{sym}}\): symmetry-admissibility gate.
+\item
+  \(\mathfrak b\): a beam branch state. In §11 it indexes alternative
+  ADAPT scaffolds; in §17 it indexes projected-dynamics branches over
+  checkpoint segments.
+\item
+  \(\mathcal H_b\): admitted-record history carried by scaffold branch
+  \(b\).
+\item
+  \(\mathcal A_b\): branch-local admissible admission set retained for
+  scaffold-beam expansion.
+\item
+  \(\mathcal Q(b)\): scaffold-beam proposal family, usually
+  \(\{\mathrm{stop}\}\cup\mathcal A_b\).
+\item
+  \(\eta_b\): branch-local stage label for the scaffold beam,
+  e.g.~core/seed versus residual.
+\item
+  \(W_{\mathrm{act}}(\mathfrak b)\): the currently active position-probe
+  window on branch \(b\).
+\item
+  \(\mathfrak F_c\): live frontier at beam round \(c\).
+\item
+  \(\mathfrak T_c\): terminal-branch pool at beam round \(c\).
+\item
+  \(\mathfrak W_{\mathrm{final}}\): final union of surviving frontier
+  and terminal branches.
+\item
+  \(J_b\): cumulative branch objective tuple used to rank or prune
+  branch \(b\); its coordinates are section-specific.
+\end{itemize}
+
+\hypertarget{quick-parameter-glossary-for-adaptive-and-continuation-sections}{%
+\subsubsection{1.2.2 Quick parameter glossary for adaptive and
+continuation
+sections}\label{quick-parameter-glossary-for-adaptive-and-continuation-sections}}
+
+The symbols below are the main scalar controls that appear in the
+adaptive-selection, split-aware, and beam-style formulas.
+
+\begin{itemize}
+\tightlist
+\item
+  \(\lambda_{\mathrm{2q}}\): weight on two-qubit proxy burden.
+\item
+  \(\lambda_d\): weight on depth-style proxy burden.
+\item
+  \(\lambda_\theta\): weight on marginal parameter-count burden.
+\item
+  \(\lambda_F\): cheap-stage normalization weight multiplying the
+  tangent metric term.
+\item
+  \(\lambda_H\): regularization strength for inherited-window Hessian
+  blocks.
+\item
+  \(\rho\): trust-region radius scale used in one-dimensional local
+  improvement models.
+\item
+  \(N_{\mathrm{cheap}}^{\max}\): absolute cap on the horizon-sized
+  Phase-3 coarse shortlist.
+\item
+  \(N_{\max}\): maximum shortlist size.
+\item
+  \(f_{\mathrm{short}}\): shortlist fraction used in Phase 3.
+\item
+  \(w_R\): weight on useful-horizon lifetime burden.
+\item
+  \(w_D\): weight on lifetime depth/compile burden.
+\item
+  \(w_G\): weight on newly introduced grouped-measurement burden.
+\item
+  \(w_C\): weight on newly introduced compile or circuit burden.
+\item
+  \(w_c\): weight on any extra cheap-path correction burden.
+\item
+  \(\gamma_N\): exponent applied to novelty factors in full rerank
+  scores.
+\item
+  \(\varepsilon\): small positive stabilizer used in denominators and
+  tie-safe quotients.
+\item
+  \(\varepsilon_{\mathrm{nov}}\): novelty regularizer used when
+  inverting or stabilizing tangent-overlap matrices.
+\item
+  \(z_\alpha\): confidence multiplier used to convert a raw gradient
+  estimate into a lower-confidence gradient.
+\item
+  \(\sigma(g,p)\) or \(\sigma_r\): uncertainty estimate attached to the
+  candidate-position gradient signal.
+\item
+  \(\tau_1\): Phase-2 shortlist threshold.
+\item
+  \(\tau_{\mathrm{split}}\): split-replacement margin required before a
+  split child or child-set beats its parent.
+\item
+  \(\tau_{\mathrm{drop}}\): minimum per-depth absolute-error improvement
+  regarded as meaningful by the stage controller.
+\item
+  \(M\): patience window used when counting repeated small-drop depths.
+\item
+  \(D_{\mathrm{left}}(t)\): remaining controller depth budget at
+  selector step \(t\).
+\item
+  \(S_t(k)\): survival factor for having a still-useful admission
+  opportunity \(k\) selector steps ahead.
+\item
+  \(Q_t(k)\): conditional usefulness factor for the \(k\)-ahead
+  admission opportunity.
+\item
+  \(\widehat N_{\mathrm{rem}}(t)\): heuristic forecast of useful
+  remaining admissions at selector step \(t\).
+\item
+  \(C_t\): confidence attached to the current useful-runway forecast.
+\item
+  \(K_{\mathrm{coarse}}(t)\): dynamic coarse-cap induced by the current
+  useful-runway forecast.
+\item
+  \(H_t\): effective useful-depth horizon, \[
+  H_t=\min\bigl(D_{\mathrm{left}}(t),\widehat N_{\mathrm{rem}}(t)\bigr).
+  \]
+\item
+  \(W_{\mathrm{sat}}(t)\): saturation pressure induced by the current
+  useful-runway forecast.
+\item
+  \(\pi_t\): selector mode tag, e.g.~fast / mixed / high-fidelity.
+\item
+  \(\mathrm{regime}_{\mathrm{sat}}(t)\): hungry / watch / plateau
+  saturation regime.
+\item
+  \(\eta_{\mathrm{ret}}\): minimum retained-gain fraction required by
+  the post-admission prune accept rule.
+\item
+  \(\beta_{\mathrm{keep}}\): repo-facing retained-gain floor used in
+  prune acceptance; in this manuscript it plays the same role as
+  \(\eta_{\mathrm{ret}}\).
+\item
+  \(\tau_{\mathrm{miss}}\): projected-miss threshold used in
+  manifold-growth logic.
+\item
+  \(B_{\mathrm{child}}\): beam child cap per parent branch-expansion
+  round.
+\item
+  \(B_{\mathrm{target}}(t)\): active batch target size at selector step
+  \(t\).
+\item
+  \(B_{\mathrm{live}}\): live-frontier beam width retained after
+  pruning.
+\item
+  \(B_{\mathrm{term}}\): cap on stored terminal branches.
+\item
+  \(M_{\mathrm{probe}}\): cap on distinct probed insertion positions
+  retained in order.
+\item
+  \(a_j(t)\): admission age of scaffold coordinate or generator \(j\) at
+  selector step \(t\).
+\item
+  \(\varrho_j(t)\): normalized admission-rank score of coordinate or
+  generator \(j\) at selector step \(t\).
+\item
+  \(\mathcal P_{\mathrm{protect}}(t)\): hard-protected coordinate set
+  excluded from the live prune pass.
+\item
+  \(c_j^{\mathrm{cool}}(t)\): local prune cooldown on coordinate \(j\).
+\item
+  \(S_\theta(j,t)\): optional small-angle prescreen score used only to
+  save local prune work.
+\item
+  \(\tau_{\mathrm{stale}}\): minimum local expendability score required
+  before a prune trial is even considered.
+\item
+  \(\Xi_t^{\mathrm{trial}}\): exact rollback snapshot taken before a
+  local prune/remove-refit trial.
+\item
+  \(\Delta k_{\mathrm{cp}}\): checkpoint advance used in the
+  projected-dynamics beam of §17, not in the scaffold beam of §11.
+\item
+  \(\Delta k_{\mathrm{probe}}\): probe advance used in the
+  projected-dynamics beam of §17, not in the scaffold beam of §11.
+\item
+  \(C\): final beam round index / number of retained beam-update rounds.
+\end{itemize}
+
+In §11, the index \(t\) denotes a selector/controller step rather than
+the real-time variable used later in the dynamics sections.
+
+\hypertarget{non-negotiable-representational-conventions}{%
+\subsection{1.3 Non-negotiable representational
+conventions}\label{non-negotiable-representational-conventions}}
+
+\hypertarget{internal-pauli-alphabet}{%
+\subsubsection{1.3.1 Internal Pauli
+alphabet}\label{internal-pauli-alphabet}}
+
+In formulas below we use the standard alphabet \[
+\{I,X,Y,Z\}.
+\] If one prefers the lower-case alphabet \(\{e,x,y,z\}\), the
+identification is simply \[
+e \leftrightarrow I,
+\qquad
+x \leftrightarrow X,
+\qquad
+y \leftrightarrow Y,
+\qquad
+z \leftrightarrow Z.
+\]
+
+\hypertarget{pauli-word-and-qubit-ordering}{%
+\subsubsection{1.3.2 Pauli-word and qubit
+ordering}\label{pauli-word-and-qubit-ordering}}
+
+Pauli words and computational-basis labels are written left-to-right as
+\[
+q_{N_q-1}\cdots q_1 q_0,
+\] with qubit \(q_0\) the rightmost symbol and also the
+least-significant bit in basis-index arithmetic.
+
+\hypertarget{canonical-algebra-sources}{%
+\subsubsection{1.3.3 Canonical algebra
+sources}\label{canonical-algebra-sources}}
+
+The canonical mathematical primitives are:
+
+\begin{itemize}
+\tightlist
+\item
+  Jordan-Wigner ladder operators \(\hat c_p^\dagger\) and \(\hat c_p\),
+\item
+  fermion number operators \(\hat n_p\),
+\item
+  boson ladder operators \(\hat b_i^\dagger\) and \(\hat b_i\),
+\item
+  Hermitian Pauli words and Pauli polynomials,
+\item
+  ordered exponentials generated from those primitives.
+\end{itemize}
+
+\hypertarget{surface-specific-defaults}{%
+\subsubsection{1.3.4 Surface-specific
+defaults}\label{surface-specific-defaults}}
+
+This symbolic version does not pretend there is a single universal
+surface. The mathematics admits several equally valid choices:
+
+\begin{itemize}
+\tightlist
+\item
+  interleaved or blocked fermion ordering,
+\item
+  open or periodic boundary conditions,
+\item
+  binary or unary boson encoding,
+\item
+  static or driven Hamiltonians,
+\item
+  fixed-structure or adaptive variational manifolds.
+\end{itemize}
+
+Whenever a formula depends on the choice of surface, that dependence is
+shown locally.
+
+\hypertarget{canonical-mathematical-anchors}{%
+\subsection{1.4 Canonical mathematical
+anchors}\label{canonical-mathematical-anchors}}
+
+The main objects carried through the manuscript are:
+
+\begin{itemize}
+\tightlist
+\item
+  the ordering map \(p(i,\sigma)\),
+\item
+  the ladder primitives \(\hat c_p^\dagger\), \(\hat c_p\),
+  \(\hat b_i^\dagger\), \(\hat b_i\),
+\item
+  the density operators \(\hat n_{i\sigma}\), \(\hat n_i\), and
+  \(\hat D_i\),
+\item
+  the Hubbard and Hubbard-Holstein Hamiltonians,
+\item
+  the reference state \(|\psi_{\mathrm{ref}}\rangle\),
+\item
+  the variational manifold \(\mathcal M\) and its ansatz map
+  \(\theta \mapsto |\psi(\theta)\rangle\),
+\item
+  the propagation rule \(U(t)\),
+\item
+  the continuation or handoff bundle \(\mathcal B\).
+\end{itemize}
+
+\hypertarget{ordering-indexing-and-register-layout}{%
+\section{2. Ordering, Indexing, and Register
+Layout}\label{ordering-indexing-and-register-layout}}
+
+\hypertarget{site-spin-and-mode-indices}{%
+\subsection{2.1 Site, spin, and mode
+indices}\label{site-spin-and-mode-indices}}
+
+The site index is \[
+i \in \{0,1,\dots,L-1\},
+\] and the spin label is stored as \[
+\sigma \in \{\uparrow,\downarrow\} \equiv \{0,1\}.
+\] The fermion mode index is the Jordan-Wigner qubit index.
+
+\hypertarget{interleaved-ordering}{%
+\subsubsection{2.1.1 Interleaved ordering}\label{interleaved-ordering}}
+
+The interleaved map is \[
+p(i,\sigma)=2i+\sigma,
+\] so that \[
+p(i,\uparrow)=2i,
+\qquad
+p(i,\downarrow)=2i+1.
+\]
+
+\hypertarget{blocked-ordering}{%
+\subsubsection{2.1.2 Blocked ordering}\label{blocked-ordering}}
+
+The blocked map is \[
+p(i,\uparrow)=i,
+\qquad
+p(i,\downarrow)=L+i.
+\]
+
+\hypertarget{pauli-word-placement-and-basis-index-extraction}{%
+\subsection{2.2 Pauli-word placement and basis-index
+extraction}\label{pauli-word-placement-and-basis-index-extraction}}
+
+If a Pauli letter acts on qubit \(q\), then in a printed word of length
+\(N_q\) it sits at string position \[
+\operatorname{pos}(q)=N_q-1-q.
+\]
+
+If the computational-basis index is \(k\), then the occupation bit on
+qubit \(q\) is \[
+b_q(k)=\left\lfloor\frac{k}{2^q}\right\rfloor \bmod 2.
+\] Thus the printed bitstring and integer basis index obey the same
+rightmost-\(q_0\) convention.
+
+\hypertarget{full-hh-register-layout}{%
+\subsection{2.3 Full HH register layout}\label{full-hh-register-layout}}
+
+The fermion register uses \[
+N_{\mathrm{ferm}}=2L
+\] qubits.
+
+If the local phonon cutoff is \(n_{\mathrm{ph,max}}\), then the local
+phonon Hilbert dimension is \[
+d=n_{\mathrm{ph,max}}+1.
+\] The number of phonon qubits per site is \[
+q_{\mathrm{pb}}=
+\begin{cases}
+\max\{1,\lceil \log_2 d\rceil\}, & \text{binary},\\
+d, & \text{unary}.
+\end{cases}
+\] Therefore the total HH qubit count is \[
+N_q=2L+Lq_{\mathrm{pb}}.
+\]
+
+In qubit-index order, the register is naturally partitioned as \[
+[\text{fermions}\;|\;\text{site-0 phonons}\;|\;\cdots\;|\;\text{site-(L-1) phonons}].
+\] In printed order \(q_{N_q-1}\cdots q_0\), the high-index phonon
+blocks appear on the left.
+
+\hypertarget{fermionic-primitives-and-direct-substitution}{%
+\section{3. Fermionic Primitives and Direct
+Substitution}\label{fermionic-primitives-and-direct-substitution}}
+
+\hypertarget{jordan-wigner-ladder-primitives}{%
+\subsection{3.1 Jordan-Wigner ladder
+primitives}\label{jordan-wigner-ladder-primitives}}
+
+For mode \(p\), the creation operator is \[
+\hat c_p^\dagger
+=
+\frac{1}{2}(X_p-iY_p)\prod_{r=0}^{p-1}Z_r,
+\] and the annihilation operator is \[
+\hat c_p
+=
+\frac{1}{2}(X_p+iY_p)\prod_{r=0}^{p-1}Z_r.
+\]
+
+In fully expanded printed-word form, the operator acts on the word
+ordered as \(q_{N_q-1}\cdots q_0\) with the Jordan-Wigner \(Z\)-string
+extending through all modes below \(p\).
+
+\hypertarget{number-primitive}{%
+\subsection{3.2 Number primitive}\label{number-primitive}}
+
+The fermion number operator is \[
+\hat n_p=\hat c_p^\dagger\hat c_p=\frac{I-Z_p}{2}.
+\]
+
+\hypertarget{site-densities-and-doublon-operator}{%
+\subsection{3.3 Site densities and doublon
+operator}\label{site-densities-and-doublon-operator}}
+
+At site \(i\), define \[
+\hat n_i = \hat n_{i\uparrow}+\hat n_{i\downarrow},
+\] and the doublon operator \[
+\hat D_i = \hat n_{i\uparrow}\hat n_{i\downarrow}.
+\] By direct substitution, \[
+\hat D_i = \frac{1}{4}(I-Z_{p(i,\uparrow)})(I-Z_{p(i,\downarrow)}).
+\]
+
+\hypertarget{worked-ordering-substitutions}{%
+\subsection{3.4 Worked ordering
+substitutions}\label{worked-ordering-substitutions}}
+
+\hypertarget{interleaved}{%
+\subsubsection{3.4.1 Interleaved}\label{interleaved}}
+
+Under interleaved ordering, \[
+\hat n_i = I - \frac{1}{2}(Z_{2i}+Z_{2i+1}),
+\] and \[
+\hat D_i = \frac{1}{4}(I-Z_{2i})(I-Z_{2i+1}).
+\] For nearest-neighbor spin-up hopping in a one-dimensional chain, \[
+\hat c_{i\uparrow}^\dagger \hat c_{i+1,\uparrow} + \hat c_{i+1,\uparrow}^\dagger \hat c_{i\uparrow}
+=
+\frac{1}{2}\Bigl(X_{2i} Z_{2i+1} X_{2i+2} + Y_{2i} Z_{2i+1} Y_{2i+2}\Bigr).
+\]
+
+\hypertarget{blocked}{%
+\subsubsection{3.4.2 Blocked}\label{blocked}}
+
+Under blocked ordering, \[
+\hat n_i = I - \frac{1}{2}(Z_i + Z_{L+i}),
+\] and \[
+\hat D_i = \frac{1}{4}(I-Z_i)(I-Z_{L+i}).
+\] For spin-up nearest-neighbor hopping, the Jordan-Wigner string is
+empty because the two blocked spin-up modes are adjacent, so \[
+\hat c_{i\uparrow}^\dagger \hat c_{i+1,\uparrow} + \hat c_{i+1,\uparrow}^\dagger \hat c_{i\uparrow}
+=
+\frac{1}{2}\Bigl(X_i X_{i+1} + Y_i Y_{i+1}\Bigr).
+\] The general blocked-ordering formula uses the same Jordan-Wigner
+interval rule as before, with an empty product for adjacent modes.
+
+\hypertarget{boson-primitives-and-encodings}{%
+\section{4. Boson Primitives and
+Encodings}\label{boson-primitives-and-encodings}}
+
+\hypertarget{local-boson-hilbert-space}{%
+\subsection{4.1 Local boson Hilbert
+space}\label{local-boson-hilbert-space}}
+
+For each site \(i\), the truncated boson Hilbert space is \[
+\mathcal H_{b,i}=\operatorname{span}\{|n_i\rangle : 0\le n_i\le n_{\mathrm{ph,max}}\}.
+\] The ladder operators satisfy \[
+\hat b_i^\dagger |n\rangle = \sqrt{n+1}\,|n+1\rangle,
+\qquad
+\hat b_i |n\rangle = \sqrt{n}\,|n-1\rangle,
+\] with \[
+\hat n_{b,i}=\hat b_i^\dagger \hat b_i,
+\qquad
+\hat x_i=\hat b_i+\hat b_i^\dagger,
+\qquad
+\hat P_i=i(\hat b_i^\dagger-\hat b_i).
+\]
+
+\hypertarget{binary-encoding}{%
+\subsection{4.2 Binary encoding}\label{binary-encoding}}
+
+In binary encoding, each local occupation number \(n\in\{0,\dots,d-1\}\)
+is mapped to a binary word on \(q_{\mathrm{pb}}=\lceil \log_2 d\rceil\)
+qubits: \[
+|n\rangle \longmapsto |\operatorname{bin}(n)\rangle.
+\] The truncated number operator is then \[
+\hat n_{b,i} = \sum_{n=0}^{d-1} n\,|n\rangle\langle n|,
+\] understood as an operator on the binary-encoded subspace.
+
+\hypertarget{unary-encoding}{%
+\subsection{4.3 Unary encoding}\label{unary-encoding}}
+
+In unary encoding, each local occupation \(n\) is represented by a
+one-hot basis state on \(d\) qubits: \[
+|n\rangle \longmapsto |0\cdots 010\cdots 0\rangle,
+\] with the single \(1\) marking the occupied unary slot. The number
+operator remains \[
+\hat n_{b,i} = \sum_{n=0}^{d-1} n\,|n\rangle\langle n|,
+\] but now the basis states are embedded in a one-hot code space.
+
+\hypertarget{phonon-vacuum}{%
+\subsection{4.4 Phonon vacuum}\label{phonon-vacuum}}
+
+\hypertarget{binary-vacuum}{%
+\subsubsection{4.4.1 Binary vacuum}\label{binary-vacuum}}
+
+The local binary vacuum is \[
+|0\rangle_{b,i} \longmapsto |00\cdots 0\rangle.
+\]
+
+\hypertarget{unary-vacuum}{%
+\subsubsection{4.4.2 Unary vacuum}\label{unary-vacuum}}
+
+The local unary vacuum is the one-hot state carrying occupancy zero, \[
+|0\rangle_{b,i} \longmapsto |10\cdots 0\rangle,
+\] or whichever one-hot convention is chosen consistently for the lowest
+occupation.
+
+\hypertarget{hubbard-hamiltonian-by-explicit-substitution}{%
+\section{5. Hubbard Hamiltonian by Explicit
+Substitution}\label{hubbard-hamiltonian-by-explicit-substitution}}
+
+Write the static Hubbard Hamiltonian as \[
+\hat H_{\mathrm{Hub}} = \hat H_t + \hat H_U + \hat H_v.
+\]
+
+\hypertarget{kinetic-term}{%
+\subsection{5.1 Kinetic term}\label{kinetic-term}}
+
+The kinetic term is \[
+\hat H_t = -t\sum_{\langle i,j\rangle,\sigma}
+\left(
+\hat c_{i\sigma}^\dagger \hat c_{j\sigma}
++
+\hat c_{j\sigma}^\dagger \hat c_{i\sigma}
+\right).
+\] For two fermion modes \(p<q\), direct Jordan-Wigner substitution
+gives \[
+\hat c_p^\dagger \hat c_q + \hat c_q^\dagger \hat c_p
+=
+\frac{1}{2}
+\left(
+X_p Z_{p+1}\cdots Z_{q-1} X_q
++
+Y_p Z_{p+1}\cdots Z_{q-1} Y_q
+\right).
+\]
+
+\hypertarget{onsite-interaction}{%
+\subsection{5.2 Onsite interaction}\label{onsite-interaction}}
+
+The onsite interaction term is \[
+\hat H_U = U\sum_i \hat n_{i\uparrow}\hat n_{i\downarrow}
+= U\sum_i \hat D_i.
+\] Substituting the number primitive, \[
+\hat H_U = \frac{U}{4}\sum_i (I-Z_{p(i,\uparrow)})(I-Z_{p(i,\downarrow)}).
+\]
+
+\hypertarget{static-potential-term}{%
+\subsection{5.3 Static potential term}\label{static-potential-term}}
+
+The static potential term is \[
+\hat H_v = \sum_{i,\sigma} v_i \hat n_{i\sigma}.
+\] After substitution, \[
+\hat H_v = \sum_i v_i\left(I-\frac{1}{2}(Z_{p(i,\uparrow)}+Z_{p(i,\downarrow)})\right).
+\]
+
+\hypertarget{fully-substituted-hubbard-hamiltonian}{%
+\subsection{5.4 Fully substituted Hubbard
+Hamiltonian}\label{fully-substituted-hubbard-hamiltonian}}
+
+Combining the pieces, \[
+\hat H_{\mathrm{Hub}}
+=
+-t\sum_{\langle i,j\rangle,\sigma}
+\left(
+\hat c_{i\sigma}^\dagger \hat c_{j\sigma} + \hat c_{j\sigma}^\dagger \hat c_{i\sigma}
+\right)
++
+\frac{U}{4}\sum_i (I-Z_{p(i,\uparrow)})(I-Z_{p(i,\downarrow)})
++
+\sum_i v_i\left(I-\frac{1}{2}(Z_{p(i,\uparrow)}+Z_{p(i,\downarrow)})\right),
+\] with the kinetic term expanded further into Pauli strings as needed.
+
+\hypertarget{hubbard-holstein-hamiltonian-by-explicit-substitution}{%
+\section{6. Hubbard-Holstein Hamiltonian by Explicit
+Substitution}\label{hubbard-holstein-hamiltonian-by-explicit-substitution}}
+
+The driven Hubbard-Holstein Hamiltonian is \[
+\hat H_{\mathrm{HH}}(t)
+=
+\hat H_t + \hat H_U + \hat H_v + \hat H_{\mathrm{ph}} + \hat H_g + \hat H_{\mathrm{drive}}(t).
+\]
+
+The driven onsite-density contribution is written in fixed-label Pauli
+form as \[
+\hat H_{\mathrm{drive}}(t)=\sum_{\lambda\in\mathcal L_{\mathrm{drive}}} c_\lambda(t) P_\lambda,
+\] where the operator labels \(P_\lambda\) are static and only the
+coefficients \(c_\lambda(t)\) vary in time. For the site-density drive
+used in the active HH dynamics stack, \[
+\Delta c[Z_{p(i,\uparrow)}](t)=\Delta c[Z_{p(i,\downarrow)}](t)=-\frac{1}{2}v_i(t),
+\] and, if one retains the scalar offset explicitly, \[
+\Delta c[I](t)=\sum_i v_i(t).
+\]
+
+\hypertarget{phonon-energy}{%
+\subsection{6.1 Phonon energy}\label{phonon-energy}}
+
+The phonon energy is \[
+\hat H_{\mathrm{ph}} = \omega_0\sum_i \left(\hat n_{b,i}+\frac{1}{2}I\right).
+\]
+
+\hypertarget{unary-explicit-form}{%
+\subsubsection{6.1.1 Unary explicit form}\label{unary-explicit-form}}
+
+In unary form, \(\hat n_{b,i}\) is diagonal on the one-hot occupation
+basis: \[
+\hat n_{b,i} = \sum_{n=0}^{d-1} n\,|n\rangle_i\langle n|.
+\] For the full qubit-level Pauli reduction in the spin-block JW + unary
+setting, including the explicit \(I/Z\) form of
+\(\hat H_{\mathrm{ph}}\), see Section 6.2.3.4(a).
+
+\hypertarget{binary-explicit-form}{%
+\subsubsection{6.1.2 Binary explicit form}\label{binary-explicit-form}}
+
+In binary form, \[
+\hat n_{b,i} = \sum_{n=0}^{d-1} n\,|\operatorname{bin}(n)\rangle_i\langle \operatorname{bin}(n)|,
+\] understood as an operator on the truncated binary code space.
+
+\hypertarget{electron-phonon-coupling}{%
+\subsection{6.2 Electron-phonon
+coupling}\label{electron-phonon-coupling}}
+
+A natural density-shifted coupling is \[
+\hat H_g = g\sum_i \hat x_i\bigl(\hat n_i-\bar n I\bigr),
+\] where \(\bar n = N_e/L\) is the reference density, often \(\bar n=1\)
+at half filling.
+
+\hypertarget{unary-explicit-form-1}{%
+\subsubsection{6.2.1 Unary explicit form}\label{unary-explicit-form-1}}
+
+In unary encoding, \(\hat x_i\) acts as nearest-neighbor hopping on the
+truncated local occupation chain: \[
+\hat x_i = \sum_{n=0}^{d-2} \sqrt{n+1}\Bigl(|n+1\rangle_i\langle n| + |n\rangle_i\langle n+1|\Bigr).
+\] Thus \[
+\hat H_g = g\sum_i \hat x_i\bigl(\hat n_i-\bar n I\bigr)
+\] with \(\hat x_i\) understood in that unary basis. For the detailed
+spin-block JW + unary Pauli reduction of the Holstein sector, including
+the explicit \(ZXX/ZYY\) expansion, see Sections 6.2.3.2--6.2.3.4.
+
+\hypertarget{binary-explicit-form-1}{%
+\subsubsection{6.2.2 Binary explicit
+form}\label{binary-explicit-form-1}}
+
+In binary encoding, the same operator is written on the binary code
+space: \[
+\hat x_i = \sum_{n=0}^{d-2} \sqrt{n+1}\Bigl(|\operatorname{bin}(n+1)\rangle_i\langle \operatorname{bin}(n)| + |\operatorname{bin}(n)\rangle_i\langle \operatorname{bin}(n+1)|\Bigr),
+\] with the same density factor \((\hat n_i-\bar n I)\).
+
+\hypertarget{worked-holstein-only-reduction-after-jordan-wigner-fermions-and-unary-phonons}{%
+\subsection{6.2.3 Worked Holstein-only reduction after Jordan-Wigner
+fermions and unary
+phonons}\label{worked-holstein-only-reduction-after-jordan-wigner-fermions-and-unary-phonons}}
+
+Set \[
+N_b = n_{\mathrm{ph,max}}.
+\] In this worked subsection, isolate the Holstein part of the
+Hubbard-Holstein Hamiltonian: \[
+\hat H_{\mathrm{Hol}}
+=
+\omega_0\sum_{i=0}^{L-1}\hat b_i^\dagger \hat b_i
+\;+
+\;g\sum_{i=0}^{L-1}(\hat b_i^\dagger+\hat b_i)(\hat n_i-1),
+\qquad
+\hat n_i=\hat n_{i\uparrow}+\hat n_{i\downarrow}.
+\]
+
+\hypertarget{qubit-indexing-used}{%
+\subsubsection{6.2.3.1 Qubit indexing used}\label{qubit-indexing-used}}
+
+For fermions, use spin-block Jordan-Wigner ordering: \[
+q(i,\sigma)=i+\sigma L,
+\qquad
+\sigma=0\equiv\uparrow,
+\quad
+\sigma=1\equiv\downarrow.
+\] Thus \[
+q_{i\uparrow}=i,
+\qquad
+q_{i\downarrow}=i+L,
+\qquad
+i=0,\dots,L-1.
+\]
+
+For phonons, use a unary register with cutoff \(N_b\). Per site \(i\),
+allocate \(N_b+1\) qubits labelled by \(n=0,\dots,N_b\), and place all
+fermions first and phonons second: \[
+q_{i,n}^{(b)} = 2L + i(N_b+1)+n,
+\qquad
+n=0,\dots,N_b.
+\]
+
+Let \(X_q\), \(Y_q\), and \(Z_q\) denote the Pauli operators on qubit
+\(q\).
+
+\hypertarget{jordan-wigner-fermionic-number-operators}{%
+\subsubsection{6.2.3.2 Jordan-Wigner fermionic number
+operators}\label{jordan-wigner-fermionic-number-operators}}
+
+Jordan-Wigner gives \[
+\hat n_{i\sigma} = \frac{I-Z_{q_{i\sigma}}}{2},
+\] so \[
+\hat n_i-1
+=
+\left(\frac{I-Z_{q_{i\uparrow}}}{2}+\frac{I-Z_{q_{i\downarrow}}}{2}\right)-1
+=
+-\frac{Z_{q_{i\uparrow}}+Z_{q_{i\downarrow}}}{2}.
+\]
+
+\hypertarget{unary-phonon-ladder-operators-in-pauli-form}{%
+\subsubsection{6.2.3.3 Unary phonon ladder operators in Pauli
+form}\label{unary-phonon-ladder-operators-in-pauli-form}}
+
+Define the single-qubit combinations \[
+(+)_{q}=\frac{X_q+iY_q}{2},
+\qquad
+(-)_{q}=\frac{X_q-iY_q}{2}.
+\]
+
+Then the unary truncated ladder operators are \[
+\hat b_i^\dagger
+=
+\sum_{n=0}^{N_b-1}\sqrt{n+1}\,(+)_{q_{i,n}^{(b)}}\,(-)_{q_{i,n+1}^{(b)}},
+\] \[
+\hat b_i
+=
+\sum_{n=1}^{N_b}\sqrt{n}\,(-)_{q_{i,n-1}^{(b)}}\,(+)_{q_{i,n}^{(b)}}.
+\]
+
+A convenient real Pauli expansion is \[
+\hat b_i^\dagger+\hat b_i
+=
+\frac12\sum_{n=0}^{N_b-1}\sqrt{n+1}
+\Big(
+X_{q_{i,n}^{(b)}}X_{q_{i,n+1}^{(b)}}
++
+Y_{q_{i,n}^{(b)}}Y_{q_{i,n+1}^{(b)}}
+\Big).
+\]
+
+\hypertarget{explicit-holstein-hamiltonian-in-the-qubit-basis}{%
+\subsubsection{6.2.3.4 Explicit Holstein Hamiltonian in the qubit
+basis}\label{explicit-holstein-hamiltonian-in-the-qubit-basis}}
+
+\hypertarget{a-phonon-energy-term}{%
+\paragraph{(a) Phonon energy term}\label{a-phonon-energy-term}}
+
+On the unary one-hot code space, the phonon number operator is diagonal
+and may be written as \[
+\hat b_i^\dagger\hat b_i \equiv \hat n_i^{(b)}
+=
+\sum_{n=0}^{N_b} n\,\frac{I-Z_{q_{i,n}^{(b)}}}{2}
+\qquad
+\text{(exact on the one-hot subspace)}.
+\] Therefore \[
+\boxed{
+\hat H_{\mathrm{ph}}
+=
+\omega_0\sum_{i=0}^{L-1}\sum_{n=0}^{N_b} n\,\frac{I-Z_{q_{i,n}^{(b)}}}{2}
+}.
+\]
+
+Equivalently, as constant plus Pauli-\(Z\), \[
+\hat H_{\mathrm{ph}}
+=
+\underbrace{
+\omega_0\frac12\sum_i\sum_{n=0}^{N_b} n
+}_{\displaystyle \omega_0 L\frac{N_b(N_b+1)}{4}}
+I
+-
+\frac{\omega_0}{2}\sum_{i=0}^{L-1}\sum_{n=0}^{N_b} n\,Z_{q_{i,n}^{(b)}}.
+\] The global constant shift may be dropped if desired.
+
+\hypertarget{b-electron-phonon-coupling-term}{%
+\paragraph{(b) Electron-phonon coupling
+term}\label{b-electron-phonon-coupling-term}}
+
+Using \[
+\hat n_i-1 = -\frac{Z_{q_{i\uparrow}}+Z_{q_{i\downarrow}}}{2}
+\] and the unary expansion of \(\hat b_i^\dagger+\hat b_i\), one obtains
+\[
+\boxed{
+\hat H_{e\text{-}ph}
+=
+-\frac{g}{4}\sum_{i=0}^{L-1}\sum_{n=0}^{N_b-1}\sqrt{n+1}
+\bigl(Z_{q_{i\uparrow}}+Z_{q_{i\downarrow}}\bigr)
+\Big(
+X_{q_{i,n}^{(b)}}X_{q_{i,n+1}^{(b)}}
++
+Y_{q_{i,n}^{(b)}}Y_{q_{i,n+1}^{(b)}}
+\Big)
+}.
+\]
+
+The fully expanded Pauli-string sum is \[
+\hat H_{e\text{-}ph}
+=
+-\frac{g}{4}\sum_{i=0}^{L-1}\sum_{n=0}^{N_b-1}\sqrt{n+1}
+\Big[
+Z_{q_{i\uparrow}}X_{q_{i,n}^{(b)}}X_{q_{i,n+1}^{(b)}}
++
+Z_{q_{i\uparrow}}Y_{q_{i,n}^{(b)}}Y_{q_{i,n+1}^{(b)}}
++
+Z_{q_{i\downarrow}}X_{q_{i,n}^{(b)}}X_{q_{i,n+1}^{(b)}}
++
+Z_{q_{i\downarrow}}Y_{q_{i,n}^{(b)}}Y_{q_{i,n+1}^{(b)}}
+\Big].
+\] Each summand is three-local.
+
+\hypertarget{final-holstein-hamiltonian-in-jw-unary-form}{%
+\paragraph{Final Holstein Hamiltonian in JW + unary
+form}\label{final-holstein-hamiltonian-in-jw-unary-form}}
+
+Collecting the phonon-energy and electron-phonon pieces, \[
+\boxed{
+\hat H_{\mathrm{Hol}}^{\mathrm{(JW+unary)}}
+=
+\omega_0\sum_{i=0}^{L-1}\sum_{n=0}^{N_b} n\,\frac{I-Z_{q_{i,n}^{(b)}}}{2}
+-
+\frac{g}{4}\sum_{i=0}^{L-1}\sum_{n=0}^{N_b-1}\sqrt{n+1}
+\bigl(Z_{q_{i\uparrow}}+Z_{q_{i\downarrow}}\bigr)
+\Big(
+X_{q_{i,n}^{(b)}}X_{q_{i,n+1}^{(b)}}
++
+Y_{q_{i,n}^{(b)}}Y_{q_{i,n+1}^{(b)}}
+\Big)
+}.
+\]
+
+\hypertarget{time-dependent-density-drive}{%
+\subsection{6.3 Time-dependent density
+drive}\label{time-dependent-density-drive}}
+
+A general density drive may be written as \[
+\hat H_{\mathrm{drive}}(t) = \sum_i v_i(t)\hat n_i.
+\] A useful waveform class is \[
+v_i(t)=A s_i \sin(\omega t + \phi)\exp\!\left[-\frac{(t-t_0)^2}{2\bar t^2}\right],
+\] where \(A\) is the amplitude, \(s_i\) is a static spatial pattern,
+\(\omega\) is the drive frequency, \(\phi\) is the phase, and \(\bar t\)
+is the envelope width.
+
+\hypertarget{generic-density-drive-waveform-surface}{%
+\subsubsection{6.3.1 Generic density-drive waveform
+surface}\label{generic-density-drive-waveform-surface}}
+
+After inserting
+\(\hat n_i=I-\tfrac12(Z_{p(i,\uparrow)}+Z_{p(i,\downarrow)})\), the
+drive separates into an identity offset and a sum of time-dependent
+\(Z\)-coefficients. Thus the time dependence resides in the coefficients
+rather than in the operator labels.
+
+\hypertarget{two-hh-assembly-surfaces}{%
+\subsection{6.4 Two HH assembly
+surfaces}\label{two-hh-assembly-surfaces}}
+
+\hypertarget{exact-hamiltonian-surface}{%
+\subsubsection{6.4.1 Exact Hamiltonian
+surface}\label{exact-hamiltonian-surface}}
+
+The exact surface treats \(\hat H_{\mathrm{HH}}(t)\) as an operator to
+be diagonalized, exponentiated, projected, or applied directly to
+statevectors.
+
+\hypertarget{variational-hh-ansatz-surface}{%
+\subsubsection{6.4.2 Variational HH ansatz
+surface}\label{variational-hh-ansatz-surface}}
+
+The variational surface treats the same physical pieces as generator
+families from which one builds a structured manifold \[
+|\psi(\theta)\rangle = U(\theta)|\psi_{\mathrm{ref}}\rangle.
+\]
+
+\hypertarget{fully-substituted-hh-master-form}{%
+\subsection{6.5 Fully substituted HH master
+form}\label{fully-substituted-hh-master-form}}
+
+The full symbolic master form is therefore \[
+\hat H_{\mathrm{HH}}(t)
+=
+\hat H_{\mathrm{Hub}}
++
+\omega_0\sum_i \left(\hat n_{b,i}+\frac{1}{2}I\right)
++
+ g\sum_i \hat x_i(\hat n_i-\bar n I)
++
+\sum_i v_i(t)\hat n_i,
+\] with \(\hat n_i\), \(\hat n_{b,i}\), and \(\hat x_i\) expanded
+according to the chosen fermion ordering and boson encoding.
+
+\hypertarget{reference-states-and-exact-sector-ed}{%
+\section{7. Reference States and Exact Sector
+ED}\label{reference-states-and-exact-sector-ed}}
+
+\hypertarget{fermionic-hartree-fock-determinant}{%
+\subsection{7.1 Fermionic Hartree-Fock
+determinant}\label{fermionic-hartree-fock-determinant}}
+
+Let \(\mathcal O\) denote the occupied spin-orbital set in a Slater
+determinant reference. Then \[
+|\Phi_{\mathrm{HF}}\rangle = \prod_{p\in\mathcal O} \hat c_p^\dagger |\mathrm{vac}_f\rangle.
+\]
+
+\hypertarget{hubbard-holstein-reference-state}{%
+\subsection{7.2 Hubbard-Holstein reference
+state}\label{hubbard-holstein-reference-state}}
+
+The natural HH reference is the tensor product of the phonon vacuum and
+fermionic Hartree-Fock state: \[
+|\psi_{\mathrm{ref}}^{\mathrm{HH}}\rangle = |\mathrm{vac}_{\mathrm{ph}}\rangle \otimes |\Phi_{\mathrm{HF}}\rangle.
+\]
+
+\hypertarget{exact-hh-sector-basis}{%
+\subsection{7.3 Exact HH sector basis}\label{exact-hh-sector-basis}}
+
+Fixing the fermion particle numbers \((N_\uparrow,N_\downarrow)\), the
+exact sector basis is \[
+\mathcal H_{\mathrm{sector}} = \operatorname{span}\{|f\rangle\otimes|\mathbf n_b\rangle : |f\rangle\in\mathcal H_{N_\uparrow,N_\downarrow},\; 0\le n_{b,i}\le n_{\mathrm{ph,max}}\}.
+\]
+
+\hypertarget{binary-index-map}{%
+\subsubsection{7.3.1 Binary index map}\label{binary-index-map}}
+
+For binary boson encoding, one may order basis states by the pair \[
+(f,\mathbf n_b),
+\] where \(f\) is the fermionic bit pattern and
+\(\mathbf n_b=(n_{b,0},\dots,n_{b,L-1})\) is the vector of local phonon
+occupations, each encoded in binary.
+
+\hypertarget{unary-index-map}{%
+\subsubsection{7.3.2 Unary index map}\label{unary-index-map}}
+
+For unary boson encoding, the same sector is indexed by \[
+(f,\mathbf e_{n_{b,0}},\dots,\mathbf e_{n_{b,L-1}}),
+\] where \(\mathbf e_n\) denotes the unary one-hot representation of
+occupation \(n\).
+
+\hypertarget{exact-hh-matrix-elements}{%
+\subsection{7.4 Exact HH matrix
+elements}\label{exact-hh-matrix-elements}}
+
+\hypertarget{diagonal-elements}{%
+\subsubsection{7.4.1 Diagonal elements}\label{diagonal-elements}}
+
+For basis state \(|f\rangle\otimes|\mathbf n_b\rangle\), the diagonal
+contribution is \[
+U\sum_i n_{i\uparrow}(f)n_{i\downarrow}(f)
++
+\sum_i v_i\,n_i(f)
++
+\omega_0\sum_i \left(n_{b,i}+\frac{1}{2}\right).
+\]
+
+\hypertarget{hopping-matrix-elements}{%
+\subsubsection{7.4.2 Hopping matrix
+elements}\label{hopping-matrix-elements}}
+
+If \(|f'\rangle\) differs from \(|f\rangle\) by a single allowed
+nearest-neighbor hop with the same phonon occupations, then \[
+\langle f',\mathbf n_b|\hat H_t|f,\mathbf n_b\rangle
+=
+-t\,(-1)^{\chi(f;p,q)},
+\] where \(\chi(f;p,q)\) is the Jordan-Wigner parity count between the
+two fermion modes \(p\) and \(q\).
+
+\hypertarget{electron-phonon-matrix-elements}{%
+\subsubsection{7.4.3 Electron-phonon matrix
+elements}\label{electron-phonon-matrix-elements}}
+
+At fixed fermion configuration, the electron-phonon term changes the
+local phonon number by one. For site \(i\), \[
+\langle n_{b,i}+1|\hat x_i|n_{b,i}\rangle = \sqrt{n_{b,i}+1},
+\qquad
+\langle n_{b,i}-1|\hat x_i|n_{b,i}\rangle = \sqrt{n_{b,i}}.
+\] Hence the off-diagonal electron-phonon matrix elements are
+proportional to \[
+g\,(n_i(f)-\bar n)\sqrt{n_{b,i}+1}
+\quad\text{or}\quad
+g\,(n_i(f)-\bar n)\sqrt{n_{b,i}},
+\] according to whether the phonon occupation increases or decreases.
+
+\hypertarget{statevector-action-expectation-and-exponential-primitives}{%
+\section{8. Statevector Action, Expectation, and Exponential
+Primitives}\label{statevector-action-expectation-and-exponential-primitives}}
+
+\hypertarget{basis-state-primitive}{%
+\subsection{8.1 Basis-state primitive}\label{basis-state-primitive}}
+
+A statevector on \(N_q\) qubits is written as \[
+|\psi\rangle = \sum_{k=0}^{2^{N_q}-1} a_k |k\rangle
+= \sum_{b\in\{0,1\}^{N_q}} a_b |b\rangle.
+\]
+
+\hypertarget{explicit-pauli-word-action}{%
+\subsection{8.2 Explicit Pauli-word
+action}\label{explicit-pauli-word-action}}
+
+Let \(P\) be a Pauli word. Then its action on a computational basis
+state can be written in the form \[
+P|b\rangle = \omega_P(b)\,|b\oplus \chi_P\rangle,
+\] where \(\chi_P\) records which qubits are flipped by \(X\) or \(Y\),
+and \(\omega_P(b)\) is the phase determined by the \(Y\) and \(Z\)
+letters acting on the bitstring \(b\).
+
+\hypertarget{expectation-values}{%
+\subsection{8.3 Expectation values}\label{expectation-values}}
+
+If \[
+\hat H = \sum_\alpha h_\alpha P_\alpha,
+\] then the expectation value is \[
+E(\psi)=\langle \psi|\hat H|\psi\rangle = \sum_\alpha h_\alpha \langle \psi|P_\alpha|\psi\rangle.
+\]
+
+\hypertarget{pauli-rotations}{%
+\subsection{8.4 Pauli rotations}\label{pauli-rotations}}
+
+For any Hermitian Pauli word with \(P^2=I\), \[
+e^{-i\theta P} = \cos\theta\,I - i\sin\theta\,P.
+\] This identity is the primitive behind fast statevector application of
+Pauli exponentials.
+
+\hypertarget{exponential-of-a-pauli-polynomial}{%
+\subsection{8.5 Exponential of a Pauli
+polynomial}\label{exponential-of-a-pauli-polynomial}}
+
+For a Pauli polynomial \[
+A = \sum_\alpha a_\alpha P_\alpha,
+\] one has \[
+U_A(\theta)=e^{-i\theta A}.
+\] If the \(P_\alpha\) commute pairwise, then \[
+U_A(\theta)=\prod_\alpha e^{-i\theta a_\alpha P_\alpha}.
+\] If they do not commute, one may use either exact exponentiation on
+the working subspace or an ordered product formula.
+
+\hypertarget{exact-sector-energy-target}{%
+\subsection{8.6 Exact sector energy
+target}\label{exact-sector-energy-target}}
+
+The natural exact comparison target in a fixed fermion sector is \[
+E_{\mathrm{exact,sector}} = \min_{\psi\in\mathcal H_{\mathrm{sector}}} \langle \psi|\hat H|\psi\rangle.
+\] This is distinct from the unrestricted full-Hilbert minimum when a
+sector constraint is imposed.
+
+\hypertarget{fixed-vqe-ansatz-families}{%
+\section{9. Fixed VQE Ansatz Families}\label{fixed-vqe-ansatz-families}}
+
+This section records the main symbolic manifold families without tying
+them to any implementation names.
+
+\hypertarget{hubbard-layerwise-ansatz}{%
+\subsection{9.1 Hubbard layerwise
+ansatz}\label{hubbard-layerwise-ansatz}}
+
+For the static Hubbard model, write \[
+\hat H_{\mathrm{Hub}} = \hat H_t + \hat H_U + \hat H_v.
+\] A layerwise ansatz uses one parameter per physical group per layer:
+\[
+U_{\mathrm{Hub}}^{(\ell)}
+=
+\exp(-i\theta_t^{(\ell)}\hat H_t)
+\exp(-i\theta_U^{(\ell)}\hat H_U)
+\exp(-i\theta_v^{(\ell)}\hat H_v),
+\] with the understanding that each grouped generator may itself be
+split into Pauli exponentials internally while sharing the same scalar
+parameter within the group.
+
+\hypertarget{hubbard-excitation-based-surface}{%
+\subsection{9.2 Hubbard excitation-based
+surface}\label{hubbard-excitation-based-surface}}
+
+Relative to a Hartree-Fock occupied/virtual partition, single- and
+double-excitation generators take the form \[
+G_{i\to a}^{(\sigma)} = i\left(\hat c_{a\sigma}^\dagger \hat c_{i\sigma} - \hat c_{i\sigma}^\dagger \hat c_{a\sigma}\right),
+\] and \[
+G_{ij\to ab}^{(\sigma,\sigma')} = i\left(\hat c_{a\sigma}^\dagger \hat c_{b\sigma'}^\dagger \hat c_{j\sigma'}\hat c_{i\sigma} - \text{h.c.}\right).
+\] A layered excitation manifold is then \[
+U_{\mathrm{exc}}(\theta)=\prod_r e^{-i\theta_r G_r}.
+\]
+
+\hypertarget{hh-layerwise-ansatz}{%
+\subsection{9.3 HH layerwise ansatz}\label{hh-layerwise-ansatz}}
+
+For the HH model, define grouped generators \[
+G_t,\;G_U,\;G_v,\;G_{\mathrm{ph}},\;G_g,\;G_{\mathrm{drive}}.
+\] One layer is \[
+U_{\mathrm{HH,lw}}^{(\ell)}
+=
+\exp(-i\theta_{t,\ell}G_t)
+\exp(-i\theta_{U,\ell}G_U)
+\exp(-i\theta_{v,\ell}G_v)
+\exp(-i\theta_{\mathrm{ph},\ell}G_{\mathrm{ph}})
+\exp(-i\theta_{g,\ell}G_g)
+\exp(-i\theta_{\mathrm{drive},\ell}G_{\mathrm{drive}}),
+\] with inactive groups omitted.
+
+\hypertarget{hh-physical-termwise-ansatz}{%
+\subsection{9.4 HH physical-termwise
+ansatz}\label{hh-physical-termwise-ansatz}}
+
+A physical-termwise layer sits between the grouped and fully split
+extremes. Let \[
+\mathcal A_{\mathrm{phys}} = \{A_m\}
+\] be the collection of unsplit physical HH generators such as bond
+hopping terms, onsite interactions, local phonon energies, local
+couplings, and local drive terms. Then \[
+U_{\mathrm{HH,phys}}^{(\ell)} = \prod_{A_m\in\mathcal A_{\mathrm{phys}}} e^{-i\phi_{m,\ell}A_m}.
+\] Because the generators remain grouped at the physical-operator level,
+this fixed-family surface stays aligned with the same conserved-sector
+story as the HH layerwise surface. In this symbolic HH manuscript, the
+canonical fixed-family surface is intentionally restricted to the
+sector-preserving HH layerwise and HH physical-termwise families.
+
+\hypertarget{reference-state-and-ansatz-pairing-principle}{%
+\subsection{9.5 Reference-state and ansatz pairing
+principle}\label{reference-state-and-ansatz-pairing-principle}}
+
+The reference state and variational family should be paired by three
+criteria:
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  the conserved sector they preserve,
+\item
+  the expressive scale needed by the target Hamiltonian,
+\item
+  the conditioning and optimization burden induced by the chosen
+  parameterization.
+\end{enumerate}
+
+\hypertarget{polaronic-operator-families}{%
+\section{10. Polaronic Operator
+Families}\label{polaronic-operator-families}}
+
+\hypertarget{primitive-polaronic-ingredients}{%
+\subsection{10.1 Primitive polaronic
+ingredients}\label{primitive-polaronic-ingredients}}
+
+\hypertarget{shifted-density}{%
+\subsubsection{10.1.1 Shifted density}\label{shifted-density}}
+
+If the total electron number is \(N_e\), define the mean density \[
+\bar n = \frac{N_e}{L},
+\] and the shifted density \[
+\tilde n_i = \hat n_i - \bar n I.
+\] At half filling \(N_e=L\), this reduces to \[
+\tilde n_i = -\frac{1}{2}(Z_{p(i,\uparrow)}+Z_{p(i,\downarrow)}).
+\]
+
+\hypertarget{phonon-primitives-p_i-and-x_i}{%
+\subsubsection{\texorpdfstring{10.1.2 Phonon primitives \(P_i\) and
+\(x_i\)}{10.1.2 Phonon primitives P\_i and x\_i}}\label{phonon-primitives-p_i-and-x_i}}
+
+Define \[
+P_i=i(\hat b_i^\dagger-\hat b_i),
+\qquad
+x_i=\hat b_i+\hat b_i^\dagger.
+\]
+
+\hypertarget{local-squeeze-primitive}{%
+\subsubsection{10.1.3 Local squeeze
+primitive}\label{local-squeeze-primitive}}
+
+A natural local squeeze generator is \[
+S_i = i\left((\hat b_i^\dagger)^2-\hat b_i^2\right).
+\]
+
+\hypertarget{doublon-primitive}{%
+\subsubsection{10.1.4 Doublon primitive}\label{doublon-primitive}}
+
+The doublon projector is \[
+D_i = \hat n_{i\uparrow}\hat n_{i\downarrow}.
+\]
+
+\hypertarget{even-hopping-channel}{%
+\subsubsection{10.1.5 Even hopping channel}\label{even-hopping-channel}}
+
+A bond-even hopping operator is \[
+T_{ij}^{(+)} = \sum_\sigma\left(\hat c_{i\sigma}^\dagger\hat c_{j\sigma}+\hat c_{j\sigma}^\dagger\hat c_{i\sigma}\right).
+\]
+
+\hypertarget{odd-current-channel}{%
+\subsubsection{10.1.6 Odd current channel}\label{odd-current-channel}}
+
+A bond-odd current operator is \[
+J_{ij}^{(-)} = i\sum_\sigma\left(\hat c_{i\sigma}^\dagger\hat c_{j\sigma}-\hat c_{j\sigma}^\dagger\hat c_{i\sigma}\right).
+\]
+
+\hypertarget{representative-dressed-channels}{%
+\subsection{10.2 Representative dressed
+channels}\label{representative-dressed-channels}}
+
+The exact family boundaries can vary, but the symbolic equivalents of
+the common channels can be written as follows.
+
+\hypertarget{conditional-displacement}{%
+\subsubsection{10.2.1 Conditional
+displacement}\label{conditional-displacement}}
+
+\[
+G_i^{(\mathrm{cd})} = \tilde n_i P_i.
+\]
+
+\hypertarget{doublon-dressing}{%
+\subsubsection{10.2.2 Doublon dressing}\label{doublon-dressing}}
+
+\[
+G_i^{(\mathrm{dd})} = D_i P_i.
+\]
+
+\hypertarget{dressed-hopping-drag}{%
+\subsubsection{10.2.3 Dressed hopping drag}\label{dressed-hopping-drag}}
+
+\[
+G_{ij}^{(\mathrm{hd})} = T_{ij}^{(+)}(P_i-P_j).
+\]
+
+\hypertarget{odd-channel-drag}{%
+\subsubsection{10.2.4 Odd-channel drag}\label{odd-channel-drag}}
+
+\[
+G_{ij}^{(\mathrm{od})} = J_{ij}^{(-)}(x_i-x_j).
+\]
+
+\hypertarget{second-order-even-channel}{%
+\subsubsection{10.2.5 Second-order even
+channel}\label{second-order-even-channel}}
+
+\[
+G_{ij}^{(2)} = T_{ij}^{(+)}(x_i-x_j)^2.
+\]
+
+\hypertarget{third-order-odd-current-channel}{%
+\subsubsection{10.2.6 Third-order odd current
+channel}\label{third-order-odd-current-channel}}
+
+\[
+G_{ij}^{(3)} = J_{ij}^{(-)}(x_i-x_j)^3.
+\]
+
+\hypertarget{fourth-order-even-hopping-channel}{%
+\subsubsection{10.2.7 Fourth-order even hopping
+channel}\label{fourth-order-even-hopping-channel}}
+
+\[
+G_{ij}^{(4)} = T_{ij}^{(+)}(x_i-x_j)^4.
+\]
+
+\hypertarget{bond-conditioned-displacement-and-squeeze-channels}{%
+\subsubsection{10.2.8 Bond-conditioned displacement and squeeze
+channels}\label{bond-conditioned-displacement-and-squeeze-channels}}
+
+With a bond-sensitive scalar observable \(B_{ij}\), one may write \[
+G_{ij}^{(\mathrm{bd})}=B_{ij}P_i,
+\qquad
+G_{ij}^{(\mathrm{bs})}=B_{ij}S_i.
+\] A simple choice is \(B_{ij}=\hat n_i-\hat n_j\).
+
+\hypertarget{local-squeeze-channels}{%
+\subsubsection{10.2.9 Local squeeze
+channels}\label{local-squeeze-channels}}
+
+\[
+G_i^{(\mathrm{sq})}=S_i,
+\qquad
+\tilde G_i^{(\mathrm{sq})}=\tilde n_i S_i.
+\]
+
+\hypertarget{extended-cloud-channels}{%
+\subsubsection{10.2.10 Extended cloud
+channels}\label{extended-cloud-channels}}
+
+A symbolic extended cloud family is \[
+G_i^{(\mathrm{cloud})}=\tilde n_i\sum_{r\in\mathcal N(i)} \alpha_{ir} P_r,
+\] with coefficients \(\alpha_{ir}\) controlling cloud shape.
+
+\hypertarget{doublon-translation-and-doublon-squeeze-channels}{%
+\subsubsection{10.2.11 Doublon-translation and doublon-squeeze
+channels}\label{doublon-translation-and-doublon-squeeze-channels}}
+
+\[
+G_{ij}^{(\mathrm{DT})}=D_i T_{ij}^{(+)},
+\qquad
+G_i^{(\mathrm{DS})}=D_i S_i.
+\]
+
+\hypertarget{pool-family-map}{%
+\subsection{10.3 Pool-family map}\label{pool-family-map}}
+
+A useful abstract partition is \[
+\mathcal G = \mathcal G_{\mathrm{local}} \cup \mathcal G_{\mathrm{bond}} \cup \mathcal G_{\mathrm{squeeze}} \cup \mathcal G_{\mathrm{cloud}} \cup \mathcal G_{\mathrm{doublon}}.
+\] These families can be opened gradually rather than all at once.
+
+\hypertarget{compact-displacementsqueeze-macro-families}{%
+\subsubsection{10.3.1 Compact displacement/squeeze macro
+families}\label{compact-displacementsqueeze-macro-families}}
+
+Two especially compact subfamilies are \[
+\mathcal G_{\mathrm{VLF}} = \{\tilde n_i P_i\}_i,
+\qquad
+\mathcal G_{\mathrm{SQ}} = \{S_i,\tilde n_i S_i\}_i.
+\] They act as coarse polaronic and squeeze envelopes.
 
 \hypertarget{adaptive-selection-and-staged-continuation}{%
 \section{11. Adaptive Selection and Staged
@@ -1407,6 +3232,69 @@ state is
 \(|\psi_*\rangle=U(\theta_*^{\mathrm{adapt}};\mathcal O_*)|\phi_0\rangle\),
 so the active HH scaffold manifold selected by ADAPT may be written as
 \(\mathcal M_{\mathrm{scaf}}(\mathcal O_*)=\{\,U(\vartheta;\mathcal O_*)|\phi_0\rangle:\vartheta\in\mathbb R^{|\mathcal O_*|}\,\}\).
+
+\hypertarget{spsa-and-optimizer-semantics}{%
+\section{12. SPSA and Optimizer
+Semantics}\label{spsa-and-optimizer-semantics}}
+
+\hypertarget{spsa-schedules}{%
+\subsection{12.1 SPSA schedules}\label{spsa-schedules}}
+
+The standard SPSA schedules are \[
+c_k=\frac{c}{(k+1)^\gamma},
+\qquad
+a_k=\frac{a}{(A+k+1)^\alpha}.
+\]
+
+\hypertarget{two-point-stochastic-gradient}{%
+\subsection{12.2 Two-point stochastic
+gradient}\label{two-point-stochastic-gradient}}
+
+At iteration \(k\), with Rademacher direction \(\Delta_k\), evaluate \[
+y_+=f(x_k+c_k\Delta_k),
+\qquad
+y_-=f(x_k-c_k\Delta_k),
+\] and form the gradient estimate \[
+\hat g_k = \frac{y_+-y_-}{2c_k}\,\Delta_k.
+\]
+
+\hypertarget{update-and-projection}{%
+\subsection{12.3 Update and projection}\label{update-and-projection}}
+
+The update is \[
+x_{k+1}=x_k-a_k\hat g_k.
+\] If projection or clipping is imposed, it is applied to both the
+perturbed points and the updated iterate.
+
+\hypertarget{repeat-aggregation}{%
+\subsection{12.4 Repeat aggregation}\label{repeat-aggregation}}
+
+If the same point is sampled multiple times, the repeated evaluations
+may be aggregated by \[
+\operatorname{mean}
+\qquad\text{or}\qquad
+\operatorname{median}.
+\]
+
+\hypertarget{return-policy}{%
+\subsection{12.5 Return policy}\label{return-policy}}
+
+Two standard return policies are:
+
+\begin{itemize}
+\tightlist
+\item
+  return an averaged late-trajectory iterate,
+\item
+  return the best sampled point observed during the run.
+\end{itemize}
+
+\hypertarget{surface-note}{%
+\subsection{12.6 Surface note}\label{surface-note}}
+
+Stochastic inner optimizers are especially natural for large, noisy, or
+nondifferentiable effective surfaces, while deterministic optimizers are
+often effective on smaller and smoother fixed-structure manifolds.
 
 \hypertarget{a.-projective-mclachlan-real-time-dynamics-and-exact-forecast-checkpoint-adaptive-snake-control}{%
 \section{17A. Projective McLachlan Real-Time Dynamics and Exact-Forecast
@@ -3738,5 +5626,2022 @@ density, doublon, and pair imbalance are each converted to sampled
 series, then detrend-window-FFT processed in the same
 one-sided-amplitude form, with controller-versus-exact residuals using
 the same operators.
+
+\hypertarget{final-primitive-closed-summary}{%
+\section{18. Final Primitive-Closed
+Summary}\label{final-primitive-closed-summary}}
+
+The symbolic substitution chain is linear and closed:
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  choose the fermion ordering \(p(i,\sigma)\),
+\item
+  write the Jordan-Wigner ladder primitives \(\hat c_p^\dagger\) and
+  \(\hat c_p\),
+\item
+  reduce number operators to \((I-Z_p)/2\),
+\item
+  substitute them into \(\hat H_t\), \(\hat H_U\), and \(\hat H_v\),
+\item
+  write \(\hat b_i\), \(\hat b_i^\dagger\), \(\hat n_{b,i}\),
+  \(\hat x_i\), and \(\hat P_i\),
+\item
+  substitute them into \(\hat H_{\mathrm{ph}}\) and \(\hat H_g\),
+\item
+  reduce the drive term to explicit identity-plus-\(Z\) coefficients,
+\item
+  propagate those operators into statevector primitives,
+\item
+  build fixed and adaptive variational manifolds from the same
+  operators,
+\item
+  define projective McLachlan tangent geometry on those manifolds,
+\item
+  define branch growth, probe rollout, and beam pruning on top of the
+  local defect geometry,
+\item
+  define continuation and handoff on top of those manifolds, with
+  historical replay paths kept in the appendix,
+\item
+  define benchmark and noise-validation contracts relative to the same
+  exact targets.
+\end{enumerate}
+
+This is the point of the symbolic duplicate: the same mathematical
+skeleton remains, but implementation labels are stripped away so the
+document can serve as a clean theory-facing reference.
+
+\hypertarget{data}{%
+\section{19. Data}\label{data}}
+
+This final chapter records empirical evidence for the selector and
+pruning claims developed in the main body. The goal is not to replace
+the symbolic formulas above, but to show that the live Phase-3 HH
+selector surfaces described in §§11 and 17 materially change the
+observed outcomes on matched runs.
+
+\hypertarget{matched-novelty-ablation}{%
+\subsection{19.1 Matched novelty
+ablation}\label{matched-novelty-ablation}}
+
+The freshest clean ablation available is a matched four-run HH study
+with \[
+L=2,\qquad t=1,\qquad U=4,\qquad \omega_0=1,\qquad g=0.5,\qquad n_{\mathrm{ph,max}}=1,
+\] using binary bosons, blocked ordering, open boundaries, the same
+seed, the same compiled backend path, the same windowed reoptimization
+policy, the same live pruning machinery, and the same
+rescue/symmetry/lifetime settings. The only changes are:
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  operator pool: \texttt{pareto\_lean\_l2} versus \texttt{full\_meta},
+\item
+  novelty exponent: \(\gamma_N=1\) versus \(\gamma_N=0\).
+\end{enumerate}
+
+Writing the final filtered-energy error as \[
+\lvert \Delta E \rvert = \bigl|E_{\mathrm{final}}-E_{\mathrm{exact,filtered}}\bigr|,
+\] the matched runs give:
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 14\tabcolsep) * \real{0.10}}
+  >{\raggedleft\arraybackslash}p{(\columnwidth - 14\tabcolsep) * \real{0.13}}
+  >{\raggedleft\arraybackslash}p{(\columnwidth - 14\tabcolsep) * \real{0.13}}
+  >{\raggedleft\arraybackslash}p{(\columnwidth - 14\tabcolsep) * \real{0.13}}
+  >{\raggedleft\arraybackslash}p{(\columnwidth - 14\tabcolsep) * \real{0.13}}
+  >{\raggedleft\arraybackslash}p{(\columnwidth - 14\tabcolsep) * \real{0.13}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 14\tabcolsep) * \real{0.10}}
+  >{\raggedleft\arraybackslash}p{(\columnwidth - 14\tabcolsep) * \real{0.13}}@{}}
+\toprule
+Pool & \(\gamma_N\) & \(E_{\mathrm{final}}\) &
+\(\lvert \Delta E \rvert\) & Depth & Parameters & Stop reason & Prune
+kept \\
+\midrule
+\endhead
+\texttt{pareto\_lean\_l2} & \texttt{1.0} & \texttt{0.15872408236037028}
+& \texttt{5.6178234644\ \textbackslash{}times\ 10\^{}\{-5\}} &
+\texttt{14} & \texttt{25} & \texttt{drop\_plateau} & \texttt{4\ /\ 5} \\
+\texttt{pareto\_lean\_l2} & \texttt{0.0} & \texttt{0.48696021436469644}
+& \texttt{3.2829231024\ \textbackslash{}times\ 10\^{}\{-1\}} &
+\texttt{14} & \texttt{23} & \texttt{drop\_plateau} & \texttt{4\ /\ 5} \\
+\texttt{full\_meta} & \texttt{1.0} & \texttt{0.15872408236037047} &
+\texttt{5.6178234644\ \textbackslash{}times\ 10\^{}\{-5\}} & \texttt{13}
+& \texttt{28} & \texttt{drop\_plateau} & \texttt{5\ /\ 5} \\
+\texttt{full\_meta} & \texttt{0.0} & \texttt{0.48699090951182056} &
+\texttt{3.2832300539\ \textbackslash{}times\ 10\^{}\{-1\}} & \texttt{13}
+& \texttt{22} & \texttt{drop\_plateau} & \texttt{5\ /\ 5} \\
+\bottomrule
+\end{longtable}
+
+If \[
+R_{\mathrm{nov}}(\mathcal G)
+=
+\frac{\lvert \Delta E \rvert_{\gamma_N=0,\mathcal G}}{\lvert \Delta E \rvert_{\gamma_N=1,\mathcal G}},
+\] then the two matched pool ratios are \[
+R_{\mathrm{nov}}(\texttt{pareto\_lean\_l2})\approx 5.84376\times 10^3,
+\qquad
+R_{\mathrm{nov}}(\texttt{full\_meta})\approx 5.84431\times 10^3.
+\]
+
+So, on this matched HH benchmark, turning novelty weighting off worsens
+the final filtered-energy error by roughly a factor of
+\(5.8\times 10^3\) in both a lean pool and a heavy pool.
+
+\hypertarget{interpretation-of-the-novelty-ablation}{%
+\subsection{19.2 Interpretation of the novelty
+ablation}\label{interpretation-of-the-novelty-ablation}}
+
+Several points survive this comparison cleanly.
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\item
+  \textbf{Novelty-on recovers the low-error line.} In both pools,
+  \(\gamma_N=1\) reaches the same final error scale, \[
+  \lvert \Delta E \rvert \approx 5.62\times 10^{-5}.
+  \]
+\item
+  \textbf{Novelty-off collapses to a much worse terminal scaffold.} In
+  both pools, \(\gamma_N=0\) ends near \[
+  E_{\mathrm{final}}\approx 0.487,
+  \qquad
+  \lvert \Delta E \rvert \approx 3.28\times 10^{-1},
+  \] far above the filtered exact target near \(0.158668\).
+\item
+  \textbf{This is not merely a depth effect.} The on/off pairs stop at
+  the same logical depth within each pool, so the dominant difference is
+  the operator-ranking trajectory rather than a simple ``more steps''
+  explanation.
+\item
+  \textbf{This is not merely a pruning-on versus pruning-off effect.}
+  Pruning stays active in all four runs. What changes is the upstream
+  ranking rule. In particular, novelty telemetry is still assembled when
+  \(\gamma_N=0\); what is ablated is the multiplicative use of novelty
+  inside the selector score, not the underlying geometric information
+  itself.
+\end{enumerate}
+
+These runs therefore support the claim that the reduced-tangent-space
+novelty factor is doing real work inside the ADAPT ranking rule rather
+than serving as passive telemetry.
+
+\hypertarget{pool-family-redundancy}{%
+\subsection{19.3 Pool-family redundancy}\label{pool-family-redundancy}}
+
+The same data story also sharpens the pool-reduction claim. For the
+studied HH regime \[
+L=2,\qquad n_{\mathrm{ph,max}}=1,
+\] the heavy \texttt{full\_meta} pool has size \(46\), while the lean
+\texttt{pareto\_lean\_l2} pool has size \(11\). Hence the pool-reduction
+fraction is \[
+\eta_{\mathrm{pool}}
+=
+1-\frac{11}{46}
+=
+\frac{35}{46}
+\approx 0.7609.
+\]
+
+Equivalently, the lean pool removes about \(76\%\) of the heavy-pool
+candidates while still retaining the same practical final energy scale,
+\[
+E_{\mathrm{final}}\approx 0.15872408,
+\qquad
+\lvert \Delta E \rvert \approx 5.62\times 10^{-5},
+\] on the current-code lean rerun.
+
+The generator classes discussed in this L=2 comparison may be
+represented symbolically by \[
+\begin{aligned}
+A^{\mathrm{sing}}_{ia,\sigma}
+&=
+i\!\left(\hat c^\dagger_{a\sigma}\hat c_{i\sigma}-\hat c^\dagger_{i\sigma}\hat c_{a\sigma}\right),\\
+A^{\mathrm{dbl}}_{ijab}
+&=
+i\!\left(\hat c^\dagger_a\hat c^\dagger_b\hat c_j\hat c_i-\mathrm{h.c.}\right),\\
+G_i^{(\mathrm{cloud})}
+&=
+\tilde n_i\sum_{r\in\mathcal N(i)}\alpha_{ir}P_r,\\
+G_{ij}^{(\mathrm{hd})}
+&=
+T_{ij}^{(+)}(P_i-P_j),\\
+G_i^{(\mathrm{dd})}
+&=
+D_iP_i,\\
+G_{ij}^{(\mathrm{od})}
+&=
+J_{ij}^{(-)}(x_i-x_j),\\
+G_{ij}^{(2)}
+&=
+T_{ij}^{(+)}(x_i-x_j)^2,\\
+x_i
+&=
+\hat b_i+\hat b_i^\dagger,
+\qquad
+P_i
+=
+i(\hat b_i^\dagger-\hat b_i).
+\end{aligned}
+\] On this \(L=2\) benchmark, the retained/useful classes were
+\(A^{\mathrm{sing}}\), the \(P\)-type polaronic classes
+\(G_i^{(\mathrm{cloud})}\), \(G_{ij}^{(\mathrm{hd})}\), and
+\(G_i^{(\mathrm{dd})}\), together with the quadrature seeds. By
+contrast, \(A^{\mathrm{dbl}}\), HVA, and the x-type / higher-order
+channels \(G_{ij}^{(\mathrm{od})}\) and \(G_{ij}^{(2)}\) were not needed
+to preserve the achieved error scale.
+
+Empirically, the following heavy-pool families are absent from the lean
+pool yet are not needed to retain that achieved accuracy scale on this
+benchmark:
+
+\begin{itemize}
+\tightlist
+\item
+  lifted UCCSD doubles,
+\item
+  HH unit terms,
+\item
+  HVA layers,
+\item
+  \texttt{paop\_cloud\_x},
+\item
+  \texttt{paop\_disp},
+\item
+  \texttt{paop\_dbl},
+\item
+  \texttt{paop\_dbl\_x},
+\item
+  \texttt{paop\_curdrag},
+\item
+  \texttt{paop\_hop2}.
+\end{itemize}
+
+This should be read as a scoped data claim, not as a universal proof:
+for the present HH \(L=2\), \(n_{\mathrm{ph,max}}=1\) target problem,
+the heavy pool carries substantial operator-family redundancy relative
+to the observed energy objective.
+
+\hypertarget{weak-coupling-l2-class-prune-redo}{%
+\subsubsection{\texorpdfstring{19.3.1 Weak-coupling \(L=2\) class-prune
+redo}{19.3.1 Weak-coupling L=2 class-prune redo}}\label{weak-coupling-l2-class-prune-redo}}
+
+A second \(L=2\) class-prune line at weaker coupling sharpens the same
+conclusion. For \[
+L=2,\qquad t=1,\qquad U=0.5,\qquad \omega_0=1,\qquad g=0.2,\qquad n_{\mathrm{ph,max}}=1,
+\] using binary bosons, blocked ordering, open boundaries, the compiled
+backend path, full-window reoptimization, beam width \(B=3\), and the
+direct \texttt{phase3\_v1} HH selector, the heavy parent
+\texttt{full\_meta} run reached \[
+E_{\mathrm{parent}}=-0.7763497696348323,
+\qquad
+\lvert\Delta E\rvert_{\mathrm{parent}}=2.7761269927\times 10^{-5},
+\qquad
+F_{\mathrm{parent}}=0.9999861889450502,
+\] at logical depth \(d_{\mathrm{parent}}=7\).
+
+From that parent, a class-first pruning loop removed one operator family
+at a time and reran fresh ADAPT after every proposed removal. A removal
+was accepted only if the rerun satisfied \[
+\lvert\Delta E\rvert \le 5\times 10^{-4},
+\qquad
+F \ge F_{\mathrm{parent}}-10^{-4}.
+\] The accepted removals were
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{hh\_termwise\_unit},
+\item
+  \texttt{hva\_layer},
+\item
+  \texttt{paop\_cloud\_x},
+\item
+  \texttt{paop\_curdrag},
+\item
+  \texttt{paop\_dbl},
+\item
+  \texttt{paop\_dbl\_p},
+\item
+  \texttt{paop\_dbl\_x},
+\item
+  \texttt{paop\_disp},
+\item
+  \texttt{paop\_hop2},
+\item
+  \texttt{paop\_hopdrag},
+\item
+  \texttt{hh\_termwise\_quadrature}.
+\end{itemize}
+
+Hence the final validated keep-set was simply \[
+\mathcal G_{\mathrm{lean,weak}}
+=
+\{\texttt{uccsd\_sing},\ \texttt{uccsd\_dbl},\ \texttt{paop\_cloud\_p}\}.
+\] A fresh rerun using only this class-filtered pool then produced \[
+E_{\mathrm{lean}}=-0.7763497696348325,
+\qquad
+\lvert\Delta E\rvert_{\mathrm{lean}}=2.7761269927\times 10^{-5},
+\qquad
+F_{\mathrm{lean}}=0.9999861889437017,
+\] at logical depth \(d_{\mathrm{lean}}=4\). Thus, to numerical
+precision, \[
+E_{\mathrm{lean}}\approx E_{\mathrm{parent}},
+\qquad
+\lvert\Delta E\rvert_{\mathrm{lean}}\approx \lvert\Delta E\rvert_{\mathrm{parent}},
+\qquad
+F_{\mathrm{lean}}\approx F_{\mathrm{parent}},
+\] while the logical depth drops from \(7\) to \(4\).
+
+A separate optimizer check on this same weak-coupling direct Phase-3
+beam surface asked a narrower question: whether SPSA, still run
+locally/noiselessly with the pre-transpile proxy-cost surface
+(\texttt{phase3\_backend\_cost\_mode=proxy}) and still using the same
+reduced class-filtered pool with full-window refits, could at least
+reach the practical noise-threshold regime even if it did not exactly
+recover the Powell basin. The best completed local SPSA artifact on that
+surface was \[
+E_{\mathrm{SPSA,local}}=-0.7763064877481185,
+\qquad
+\lvert\Delta E\rvert_{\mathrm{SPSA,local}}=7.1043156641\times 10^{-5},
+\qquad
+F_{\mathrm{SPSA,local}}=0.9999653825260001,
+\] from the direct beam-enabled class-filtered run
+\texttt{20260328\_hh\_l2\_u05\_g02\_local\_beam\_b3\_spsa\_case4\_direct\_m3200\_a0p1\_c0p02\_A5}.
+This did not match the Powell/class-pruned reference value
+\(2.7761269927\times 10^{-5}\), but it did enter the sub-\(10^{-4}\)
+regime and therefore satisfied the more practical gate of crossing below
+the anticipated noise floor. In that sense the local SPSA question at
+weak coupling was answered positively: exact-basin recovery remained
+unresolved, but threshold-level local recovery was achieved strongly
+enough to justify a direct noisy/backend follow-on on the same
+algorithmic surface.
+
+A direct noisy transfer follow-on then kept the same reduced pool
+\(\{\texttt{uccsd\_sing},\texttt{uccsd\_dbl},\texttt{paop\_cloud\_p}\}\),
+the same beam/full-window \texttt{phase3\_v1} surface, and the same SPSA
+recipe \((a,c,A,\texttt{maxiter})=(0.1,0.02,5.0,3200)\), but turned on
+\texttt{backend\_scheduled} FakeMarrakesh scoring with
+\texttt{expectation\_v1}, \texttt{512} shots, \texttt{1} repeat, and no
+mitigation; the exact command is recorded at
+\texttt{artifacts/agent\_runs/20260328\_hh\_l2\_u05\_g02\_phase3\_beam\_b3\_fake\_marrakesh\_spsa\_case4\_recipe\_attempt3\_supervised/logs/command.sh}.
+During that supervised run, the best observed heartbeat reached \[
+E_{\mathrm{SPSA,noisy,best}}=-0.7762934955401648,
+\qquad
+\lvert\Delta E\rvert_{\mathrm{SPSA,noisy,best}}=8.4035364595\times 10^{-5},
+\] at depth \(95\), as preserved in
+\texttt{artifacts/agent\_runs/20260328\_hh\_l2\_u05\_g02\_phase3\_beam\_b3\_fake\_marrakesh\_spsa\_case4\_recipe\_attempt3\_supervised/best\_so\_far\_snapshot.json}.
+So, before final max-depth termination, the same reduced-pool direct
+Phase-3 beam SPSA lane already crossed the practical noisy
+sub-\(10^{-4}\) regime under transpiled FakeMarrakesh selection/scoring.
+
+\hypertarget{live-four-run-supervised-status-block}{%
+\subsubsection{19.3.2 Live four-run supervised status
+block}\label{live-four-run-supervised-status-block}}
+
+\begin{verbatim}
+Objective<As of March 28, 2026 at 10:59:12 CDT, all 4 noisy
+  reduced-pool backend_scheduled SPSA runs are still genuinely
+  running with live child PIDs and no stderr in artifacts/
+  agent_runs/20260328_hh_l2_u05_g02_phase3_beam_b3_fake_marrake
+  sh_spsa_case4_recipe_attempt4_dropstop/progress.json,
+  artifacts/
+  agent_runs/20260328_hh_l2_u05_g02_phase3_beam_b3_fake_marrake
+  sh_spsa_case4_recipe_attempt5_dropstop_lifetimeoff/
+  progress.json, artifacts/
+  agent_runs/20260328_hh_l2_u05_g02_phase3_beam_b4_c3_k4_fake_m
+  arrakesh_spsa_case4_recipe_attempt6_dropstop_lifetimeoff/
+  sh_spsa_case4_recipe_attempt7_dropstop_transpile_single/
+  progress.json. Best observed noisy gaps so far are: attempt4
+  3.3871153069520155e-05 at depth 76 in artifacts/
+  agent_runs/20260328_hh_l2_u05_g02_phase3_beam_b3_fake_marrake
+  sh_spsa_case4_recipe_attempt4_dropstop/logs/stdout.log,
+  attempt6 3.733262477279009e-05 at depth 49 in artifacts/
+  agent_runs/20260328_hh_l2_u05_g02_phase3_beam_b4_c3_k4_fake_m
+  arrakesh_spsa_case4_recipe_attempt6_dropstop_lifetimeoff/
+  logs/stdout.log, attempt7 3.899366517123859e-05 at depth 67
+  in artifacts/
+  agent_runs/20260328_hh_l2_u05_g02_phase3_beam_b3_fake_marrake
+  sh_spsa_case4_recipe_attempt7_dropstop_transpile_single/logs/
+  stdout.log, and attempt5 1.0855648531227224e-04 at depth 67
+  in artifacts/
+  agent_runs/20260328_hh_l2_u05_g02_phase3_beam_b3_fake_marrake
+  sh_spsa_case4_recipe_attempt5_dropstop_lifetimeoff/logs/
+  stdout.log.>
+  Why/Intent<So the current result ordering is: baseline clean-
+  stop attempt4 best, then wider-beam+lifetime-off attempt6,
+  then transpile_single_v1 attempt7, with lifetime-off only
+  attempt5 trailing. None has written a final JSON yet because
+  the clean stop is intentionally gated by --adapt-drop-min-
+  depth 96, so even though three runs are already well below
+  the practical 1e-4 threshold, the normal drop_plateau exit
+  cannot fire before depth 96.>
+  Suggested Next step/how this fits into broader picture<I
+  recommend we keep these running until the first one crosses
+  depth 96 and exits normally, because that will give us the
+  first clean final JSON on this surface without interrupting a
+  good basin. If the ranking stays similar, attempt4 should
+  finish first, while attempt6 and attempt7 already look
+  scientifically competitive enough to justify keeping them
+  alive as the main comparison axes.>
+\end{verbatim}
+
+The rejected removals show which families remained indispensable under
+this contract:
+
+\begin{itemize}
+\tightlist
+\item
+  removing \texttt{paop\_cloud\_p} gave
+  \(\lvert\Delta E\rvert\approx 1.0813\times 10^{-2}\) and
+  \(F\approx 0.996632\),
+\item
+  removing \texttt{uccsd\_sing} gave
+  \(\lvert\Delta E\rvert\approx 2.19934\) and \(F\approx 0.214233\),
+\item
+  removing \texttt{uccsd\_dbl} gave
+  \(\lvert\Delta E\rvert\approx 1.31029\times 10^{-2}\) and
+  \(F\approx 0.996691\).
+\end{itemize}
+
+So at this weaker-coupling \(L=2\) point the validated lean pool is even
+smaller than the earlier heavy/lean \(U=4\), \(g=0.5\) line: the heavy
+search may still visit quadrature seeds, but the final class-level
+support needed to preserve the achieved energy/fidelity scale is just \[
+\texttt{uccsd\_sing}\;\cup\;\texttt{uccsd\_dbl}\;\cup\;\texttt{paop\_cloud\_p}.
+\]
+
+For the backend-facing follow-up at this same weak-coupling point, the
+Heron/Marrakesh optimization should be done as a \textbf{transpile-only}
+sweep rather than through the noisy staged wrapper: run
+\texttt{python\ -m\ pipelines.hardcoded.adapt\_circuit\_cost} on the
+promoted locked scaffold
+\texttt{hh\_l2\_u05\_g02\_full\_meta\_class\_pruned\_lean4\_locked\_scaffold\_v1.json}
+over
+\texttt{\textbackslash{}texttt\{optimization\textbackslash{}\_level\}\textbackslash{}in\textbackslash{}\{1,2\textbackslash{}\}}
+and
+\texttt{\textbackslash{}texttt\{seed\textbackslash{}\_transpiler\}\textbackslash{}in\textbackslash{}\{0,\textbackslash{}dots,9\textbackslash{}\}},
+then rank by compiled two-qubit count, depth, and size. On
+\texttt{\textbackslash{}texttt\{FakeMarrakesh\}} the winning setting was
+\texttt{\textbackslash{}texttt\{optimization\textbackslash{}\_level\}=2},
+\texttt{\textbackslash{}texttt\{seed\textbackslash{}\_transpiler\}=5},
+reducing the same 4-operator, 6-runtime-term scaffold from about
+\texttt{25} two-qubit gates, depth \texttt{63}, size \texttt{109} to
+\texttt{18} two-qubit gates, depth \texttt{43}, size \texttt{83} without
+changing the physics or operator order.
+
+\hypertarget{relation-to-live-phase-3-selectorpruning-implementation}{%
+\subsection{19.4 Relation to live Phase-3 selector/pruning
+implementation}\label{relation-to-live-phase-3-selectorpruning-implementation}}
+
+The canonical Phase-3 target contract is the one stated in
+§§11.4.1--11.4.3. Current live repo code still lags that contract in two
+visible ways.
+
+First, the live selector path still applies a hard uncertainty-adjusted
+gradient pre-cap before the cheap screen and still uses a raw
+remaining-depth / remaining-evaluations proxy inside the lifetime-burden
+term. The corrected canonical contract in §11.4.1 instead ranks the full
+admissible candidate-position pool with the horizon-smoothed cheap score
+\(S_{3,\mathrm{cheap}}(r;t)\), forms a horizon-sized coarse shortlist
+\(\mathcal C_{\mathrm{cheap}}\), and uses the useful horizon \[
+H_t=\min\!\bigl(D_{\mathrm{left}}(t),\widehat N_{\mathrm{rem}}(t)\bigr)
+\] inside the lifetime multiplier. Here \(\widehat N_{\mathrm{rem}}(t)\)
+is controller telemetry and therefore a ranking/burden aid, not a hard
+admissibility theorem.
+
+Second, the live pruning path still ranks removals primarily by small
+amplitude together with weaker prior proxy-benefit tie-breaks and
+accepts removals through a standalone post-refit regression threshold.
+The corrected canonical contract in §11.4.3 instead separates prune
+permissibility from local expendability, ranks permissible removals by
+frozen-ablation loss, and uses retained admitted-step gain as the
+principal energetic safety condition. Thus frozen ablation is to be read
+as a local, solver-relative expendability heuristic, while the
+gain-retention inequality is the actual prune safety condition.
+
+So the honest status note is: current code still trails the canonical
+Phase-3 mathematics, but the intended direction of alignment is \[
+\text{live implementation}\longrightarrow \text{corrected canonical contract of §§11.4.1--11.4.3},
+\] not the reverse.
+
+\hypertarget{data-provenance-note}{%
+\subsection{19.5 Data provenance note}\label{data-provenance-note}}
+
+The novelty-ablation numbers in this chapter come from the fresh direct
+\texttt{adapt\_pipeline} artifacts
+\texttt{pi\_ablate\_pareto\_lean\_l2\_novelty\_on.json},
+\texttt{pi\_ablate\_pareto\_lean\_l2\_novelty\_off.json},
+\texttt{pi\_ablate\_full\_meta\_novelty\_on.json}, and
+\texttt{pi\_ablate\_full\_meta\_novelty\_off.json}, all dated
+\texttt{2026-03-24}. The heavy-versus-lean pool-family comparison is
+anchored by the \texttt{2026-03-21} comparison bundle summarized in
+\texttt{pareto\_lean\_l2\_vs\_heavy\_L2\_ecut1\_comparison.md} together
+with the corresponding lean rerun artifact. The data are therefore
+matched and current enough for PI-facing evidence.
+
+The honesty caveat is the same one stated in the reporting notes: these
+matched ablations share the same physics, seed, and selector family, but
+they are not claimed to be byte-for-byte reproductions of every earlier
+March 21/22 runtime-resolved default. That caveat does not weaken the
+on/off comparisons above, because the resolved settings were shared
+inside each matched pair.
+
+\hypertarget{machine-agent-redo-note-for-the-successful-l2-pruning-session}{%
+\subsection{19.6 Machine-agent redo note for the successful L=2 pruning
+session}\label{machine-agent-redo-note-for-the-successful-l2-pruning-session}}
+
+For the validated HH prune line, keep the problem fixed at \[
+L=2,\qquad t=1,\qquad U=4,\qquad \omega_0=1,\qquad g=0.5,\qquad n_{\mathrm{ph,max}}=1,
+\] with the saved fullhorse parent artifact as the starting point. A
+machine agent can reproduce the session in three steps from repo root:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\ExtensionTok{python} \AttributeTok{{-}m}\NormalTok{ pipelines.hardcoded.hh\_prune\_nighthawk }\DataTypeTok{\textbackslash{}}
+  \AttributeTok{{-}{-}input{-}json}\NormalTok{ artifacts/json/hh\_backend\_adapt\_fullhorse\_powell\_20260322T194155Z\_fakenighthawk.json }\DataTypeTok{\textbackslash{}}
+  \AttributeTok{{-}{-}mode}\NormalTok{ both }\DataTypeTok{\textbackslash{}}
+  \AttributeTok{{-}{-}prune{-}threshold}\NormalTok{ 1e{-}4 }\DataTypeTok{\textbackslash{}}
+  \AttributeTok{{-}{-}output{-}json}\NormalTok{ artifacts/json/hh\_prune\_nighthawk\_}\OperatorTok{\textless{}}\NormalTok{timestamp}\OperatorTok{\textgreater{}}\NormalTok{.json}
+
+\ExtensionTok{python} \AttributeTok{{-}m}\NormalTok{ pipelines.hardcoded.hh\_prune\_nighthawk }\DataTypeTok{\textbackslash{}}
+  \AttributeTok{{-}{-}mode}\NormalTok{ export\_fixed\_scaffolds }\DataTypeTok{\textbackslash{}}
+  \AttributeTok{{-}{-}source{-}artifact{-}json}\NormalTok{ artifacts/json/hh\_prune\_nighthawk\_aggressive\_5op.json}
+
+\ExtensionTok{python} \AttributeTok{{-}m}\NormalTok{ pipelines.hardcoded.adapt\_circuit\_cost }\DataTypeTok{\textbackslash{}}
+  \AttributeTok{{-}{-}artifact{-}json}\NormalTok{ artifacts/json/hh\_prune\_nighthawk\_gate\_pruned\_7term.json }\DataTypeTok{\textbackslash{}}
+  \AttributeTok{{-}{-}backend{-}name}\NormalTok{ ibm\_marrakesh }\DataTypeTok{\textbackslash{}}
+  \AttributeTok{{-}{-}seed{-}transpiler}\NormalTok{ 7 }\AttributeTok{{-}{-}optimization{-}level}\NormalTok{ 1 }\DataTypeTok{\textbackslash{}}
+  \AttributeTok{{-}{-}sweep{-}backends}
+\end{Highlighting}
+\end{Shaded}
+
+The redo is not complete unless it records \textbf{fidelity as well as
+energy}. For each surviving scaffold and exported fixed scaffold, save
+at least: \texttt{abs\_delta\_e}, exact-state fidelity
+(\texttt{exact\_state\_fidelity},
+\texttt{local\_exact\_state\_fidelity}, or
+\texttt{expected\_local\_exact\_state\_fidelity}), retained exyz labels,
+backend, transpiler seed, optimization level, compiled
+\texttt{count\_2q}, compiled depth, and compiled size. The validated
+executable anchor is the \texttt{gate\_pruned\_7term} artifact, not
+\texttt{circuit\_optimized\_7term}: the trustworthy target is \[
+\lvert\Delta E\rvert\approx 4.23\times 10^{-4},\qquad F\approx 0.9998,
+\] with Marrakesh compile cost near \texttt{25} two-qubit gates and
+depth \texttt{63-75}. A leaner 6-term executable may reach about
+\texttt{14} two-qubit gates and depth \texttt{48}, but its exact
+regression is materially worse, near \[
+\lvert\Delta E\rvert\approx 4.61\times 10^{-3}.
+\]
+
+\hypertarget{direct-noisy-backend_scheduled-l2-fastprobe-note}{%
+\subsection{\texorpdfstring{19.7 Direct noisy
+\texttt{backend\_scheduled} L=2 fastprobe
+note}{19.7 Direct noisy backend\_scheduled L=2 fastprobe note}}\label{direct-noisy-backend_scheduled-l2-fastprobe-note}}
+
+For the same HH point \[
+L=2,\qquad t=1,\qquad U=4,\qquad \omega_0=1,\qquad g=0.5,\qquad n_{\mathrm{ph,max}}=1,
+\] a useful data line is the direct local noisy \texttt{phase3\_v1}
+fastprobe on \texttt{FakeNighthawk} with \texttt{backend\_scheduled}
+oracle evaluation, \texttt{512} shots, \texttt{2} repeats, and optional
+\texttt{mthree} readout mitigation. The March 26 command family is
+recorded in
+\texttt{artifacts/runstate/hh\_phase3\_v1\_local\_noisy\_backend\_scheduled\_fastprobe\_retry2\_20260326\_cmd.sh}
+and the stabilized readout follow-up
+\texttt{artifacts/runstate/hh\_phase3\_v1\_local\_noisy\_backend\_scheduled\_fastprobe\_retry3\_20260326\_cmd.sh},
+with the no-readout comparator in
+\texttt{artifacts/runstate/hh\_phase3\_v1\_local\_noisy\_backend\_scheduled\_noreadout\_retry1\_20260326/}.
+
+These probes were intentionally weak
+(\texttt{\textbackslash{}texttt\{adapt\textbackslash{}\_max\textbackslash{}\_depth\}=1})
+and were stopped after the first scout evaluation timing split was
+captured, so they are debug-quality runtime evidence rather than
+convergence-quality VQE runs. The first measured \texttt{plus}
+evaluation on the readout+mthree path gave \[
+T_{\mathrm{total,readout}}\approx 37.04\,\mathrm{s},
+\qquad
+T_{\mathrm{term}}\approx 26.39\,\mathrm{s},
+\qquad
+T_{\mathrm{calib}}\approx 10.64\,\mathrm{s},
+\] with readout-apply time negligible at about \texttt{0.01s}. The
+no-readout comparator gave \[
+T_{\mathrm{total,no\,readout}}\approx 26.84\,\mathrm{s},
+\qquad
+T_{\mathrm{term}}\approx 26.83\,\mathrm{s}.
+\] So on this \(L=2\) HH debug line the dominant cost is
+backend-scheduled term execution itself, while readout mitigation
+contributes a secondary first-hit warmup rather than the main runtime
+burden. The practical lesson is that \texttt{backend\_scheduled} is
+honest enough for a very small late shortlist or confirmation pass, but
+too expensive to act as the broad pre-shortlist scout surface.
+
+\hypertarget{fixed-scaffold-compile-control-scout-note}{%
+\subsection{19.8 Fixed-scaffold compile-control scout
+note}\label{fixed-scaffold-compile-control-scout-note}}
+
+For the locked Marrakesh/Heron 6-term HH scaffold
+\texttt{artifacts/json/hh\_marrakesh\_fixed\_scaffold\_6term\_drop\_eyezee\_20260323T171528Z.json},
+the useful local compile-control test is a transpile-only scout on
+\texttt{FakeMarrakesh} with fixed circuit/parameters,
+\texttt{shots=4096}, \texttt{oracle\_repeats=8}, readout/mthree
+mitigation, and grid
+\((\texttt{optimization\_level},\texttt{seed\_transpiler})\in\{1,2\}\times\{0,\dots,4\}\),
+ranking by \(\Delta E=E_{\mathrm{noisy}}-E_{\mathrm{ideal}}\) then by
+compiled cost; among the saved \texttt{8/10} completed candidates in
+\texttt{artifacts/agent\_runs/20260328\_direct\_fixed\_scaffold\_compile\_scout\_fullaccess\_attempt2\_timeout7200/json/20260328\_direct\_fixed\_scaffold\_compile\_scout\_fullaccess\_attempt2\_timeout7200.json},
+the best-so-far setting was \texttt{opt1\_seed4} with
+\(\Delta E\approx 9.9899\times 10^{-2}\), two-qubit count \texttt{14},
+and depth \texttt{48}, whereas the completed lower-depth
+\texttt{opt2\_*} candidates kept the same two-qubit count \texttt{14}
+but had depth \texttt{38} and worse \(\Delta E\):
+\texttt{opt2\_seed0\textbackslash{}approx\ 1.1726\textbackslash{}times\ 10\^{}\{-1\}},
+\texttt{opt2\_seed1\textbackslash{}approx\ 1.2245\textbackslash{}times\ 10\^{}\{-1\}},
+\texttt{opt2\_seed2\textbackslash{}approx\ 1.2029\textbackslash{}times\ 10\^{}\{-1\}},
+so lower compiled depth alone did not improve noisy accuracy and the
+current hardware-facing compile preset is
+\texttt{(optimization\_level=1,\ seed\_transpiler=4)}.
+
+As an \(L=2\) run-planning prior rather than a theorem, the earlier
+local FakeMarrakesh ablations were mixed between readout-only and twirl
+while DD usually underperformed, but the completed 12-cell
+saved-\(\theta^\star\) mitigation matrix in
+\texttt{artifacts/json/20260328\_fixed\_scaffold\_saved\_theta\_mitigation\_matrix\_attempt5\_timeout86400\_delta\_logs\_fixed\_scaffold\_saved\_theta\_mitigation\_matrix.json}
+now supersedes that partial prior: the top three cells were
+\texttt{opt2\_seed0\_\_zne\_on\_\_twirl\_dd} with
+\(\Delta E\approx-6.6431\times 10^{-4}\) and stderr
+\(\approx1.2322\times 10^{-2}\) at 14 two-qubit gates and depth 38,
+\texttt{opt1\_seed4\_\_zne\_on\_\_twirl\_dd} with
+\(\Delta E\approx8.2990\times 10^{-3}\) and stderr
+\(\approx2.6104\times 10^{-2}\) at 14 two-qubit gates and depth 48, and
+\texttt{opt2\_seed0\_\_zne\_on\_\_twirl} with
+\(\Delta E\approx1.4807\times 10^{-2}\) and stderr
+\(\approx1.1157\times 10^{-2}\) at 14 two-qubit gates and depth 38. For
+a real-QPU first pass on this locked 6-term scaffold, the current best
+local starting lane is therefore
+\texttt{(optimization\_level=2,\ seed\_transpiler=0)} with
+\texttt{ZNE\ on\ +\ twirl\ +\ DD}, with
+\texttt{(optimization\_level=1,\ seed\_transpiler=4)} plus the same
+mitigation stack as the nearest fallback if one wants to hedge against
+ZNE-fit variance while staying on the same two-qubit count.
+
+For the weak-coupling locked scaffold
+\texttt{artifacts/json/useful/L2/hh\_l2\_u05\_g02\_full\_meta\_class\_pruned\_lean4\_locked\_scaffold\_v1.json},
+the completed 4-cell readout+mthree shortlist in
+\texttt{artifacts/json/20260329\_weak\_fixed\_scaffold\_top4\_mitigation\_readout\_opt2seed5\_fixed\_scaffold\_saved\_theta\_mitigation\_matrix.json}
+had top two cells \texttt{opt2\_seed5\_\_zne\_on\_\_twirl\_dd} with
+\(\Delta E\approx1.0800\times 10^{-2}\) and stderr
+\(\approx4.7014\times 10^{-3}\), and
+\texttt{opt2\_seed5\_\_zne\_on\_\_dd} with
+\(\Delta E\approx1.6984\times 10^{-2}\) and stderr
+\(\approx1.9163\times 10^{-3}\), both at 18 two-qubit gates and depth
+43.
+
+The later readout-on versus readout-off ablations showed that base
+readout mitigation was helping rather than hurting on both
+fixed-scaffold winner lines. For the strong-coupling local winner, the
+same \texttt{opt2\_seed0\_\_zne\_on\_\_twirl\_dd} lane moved from
+\(\Delta E\approx-6.6431\times 10^{-4}\) with readout on in
+\texttt{artifacts/json/20260328\_fixed\_scaffold\_saved\_theta\_mitigation\_matrix\_attempt5\_timeout86400\_delta\_logs\_fixed\_scaffold\_saved\_theta\_mitigation\_matrix.json}
+to \(\Delta E\approx5.4456\times 10^{-2}\) with readout off in
+\texttt{artifacts/json/20260329\_strong\_fixed\_scaffold\_winner\_readout\_off\_ablation\_opt2seed0\_twirl\_dd\_retry2\_fixed\_scaffold\_saved\_theta\_mitigation\_matrix.json},
+at the same compiled cost (14 two-qubit gates, depth 38). For the
+weak-coupling 18-two-qubit compile \texttt{opt2\_seed5}, the analogous
+readout-off follow-up in
+\texttt{artifacts/json/20260330\_weak\_fixed\_scaffold\_top2\_readout\_off\_ablation\_opt2seed5\_fixed\_scaffold\_saved\_theta\_mitigation\_matrix.json}
+gave \texttt{opt2\_seed5\_\_zne\_on\_\_twirl\_dd} at
+\(\Delta E\approx5.6830\times 10^{-2}\) and
+\texttt{opt2\_seed5\_\_zne\_on\_\_dd} at
+\(\Delta E\approx5.8131\times 10^{-2}\), versus the readout-on values
+\(\approx1.0800\times 10^{-2}\) and \(\approx1.6984\times 10^{-2}\)
+respectively, so turning readout off worsened the best weak lanes by
+about \(4.60\times10^{-2}\) and \(4.11\times10^{-2}\).
+
+The surprising regime comparison is therefore not in the noiseless
+scaffold bias but in the noisy response. The strong locked scaffold had
+\(E_{\mathrm{ideal}}-E_{\mathrm{exact}}\approx4.6131\times10^{-3}\) from
+\texttt{artifacts/json/hh\_marrakesh\_fixed\_scaffold\_6term\_drop\_eyezee\_20260323T171528Z.json},
+while the weak locked scaffold had
+\(E_{\mathrm{ideal}}-E_{\mathrm{exact}}\approx2.7761\times10^{-5}\) from
+\texttt{artifacts/json/useful/L2/hh\_l2\_u05\_g02\_full\_meta\_class\_pruned\_lean4\_locked\_scaffold\_v1.json}.
+Thus the weak scaffold was much closer to exact in the noiseless sense,
+yet still produced a worse noisy \(\Delta E\) after the current
+suppression stack; the deficit is therefore a noise-response /
+mitigation-effect issue rather than a larger ideal-state approximation
+error.
+
+\hypertarget{heron-transpile-pareto-front-and-noisy-replay-for-fixed-l2-scaffolds}{%
+\subsection{19.9 Heron transpile Pareto front and noisy replay for fixed
+L=2
+scaffolds}\label{heron-transpile-pareto-front-and-noisy-replay-for-fixed-l2-scaffolds}}
+
+All scaffolds share \(L=2\), \(n_{\mathrm{ph,max}}=1\), binary bosons,
+blocked ordering, open boundaries. Each was transpiled to
+\texttt{FakeMarrakesh} over
+\((\texttt{optimization\_level},\texttt{seed\_transpiler})\in\{1,2\}\times\{0,\dots,9\}\);
+the table reports the best compiled two-qubit count per scaffold.
+Term-pruned variants start from the 7-term locked scaffold and drop
+Pauli rotation terms, then reoptimize \(\theta\) via Powell.
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 12\tabcolsep) * \real{0.12}}
+  >{\raggedleft\arraybackslash}p{(\columnwidth - 12\tabcolsep) * \real{0.16}}
+  >{\raggedleft\arraybackslash}p{(\columnwidth - 12\tabcolsep) * \real{0.16}}
+  >{\raggedleft\arraybackslash}p{(\columnwidth - 12\tabcolsep) * \real{0.16}}
+  >{\raggedleft\arraybackslash}p{(\columnwidth - 12\tabcolsep) * \real{0.16}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 12\tabcolsep) * \real{0.12}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 12\tabcolsep) * \real{0.12}}@{}}
+\toprule
+Scaffold & \(\lvert\Delta E\rvert\) & CZ gates & Depth & \(F\) &
+Coupling & Source \\
+\midrule
+\endhead
+\texttt{weak\_lean4\_locked} (4 ops) & \(2.78\times 10^{-5}\) & 18 & 43
+& 0.9999 & \(U{=}0.5,g{=}0.2\) & class-prune \\
+\texttt{aggressive\_5op} (12 terms) & \(5.62\times 10^{-5}\) & 26 & 72 &
+--- & \(U{=}4,g{=}0.5\) & op-prune \\
+\texttt{gate\_pruned\_7term} (7 terms) & \(4.23\times 10^{-4}\) & 21 &
+51 & 0.9998 & \(U{=}4,g{=}0.5\) & term-prune \\
+\texttt{6term\_drop\_eyezee} (6 terms) & \(4.61\times 10^{-3}\) & 14 &
+38 & 0.9985 & \(U{=}4,g{=}0.5\) & term-prune \\
+\texttt{6term\_drop\_eyeeez} (6 terms) & \(4.61\times 10^{-3}\) & 14 &
+56 & 0.9985 & \(U{=}4,g{=}0.5\) & term-prune \\
+\texttt{5term\_drop\_both\_disp} (5 terms) & \(6.92\times 10^{-3}\) & 12
+& 48 & 0.9986 & \(U{=}4,g{=}0.5\) & term-prune \\
+\bottomrule
+\end{longtable}
+
+The Pareto front over \((\lvert\Delta E\rvert,\,\text{CZ count})\)
+contains two points when both coupling regimes are pooled: \[
+\bigl(2.78\times 10^{-5},\;18\;\text{CZ}\bigr)_{\text{weak}},
+\qquad
+\bigl(4.61\times 10^{-3},\;14\;\text{CZ}\bigr)_{\text{strong}}.
+\] Within strong coupling alone, the three-point front is
+\(\{(5.62\times 10^{-5},26),\;(4.61\times 10^{-3},14),\;(6.92\times 10^{-3},12)\}\).
+The dominated scaffolds (\texttt{pruned\_scaffold\_11op} at 51 CZ,
+\texttt{ultra\_lean\_6op}/\texttt{readapt\_6op} at 38 CZ,
+\texttt{gate\_pruned\_7term} at 21 CZ) offer no accuracy benefit
+relative to cheaper alternatives.
+
+\textbf{Noisy replay on \texttt{FakeMarrakesh}
+(\texttt{backend\_scheduled})} for the strong-coupling Pareto-optimal
+6-term scaffold (14 CZ, depth 38, \texttt{optimization\_level=2},
+\texttt{seed\_transpiler=0}):
+
+\begin{longtable}[]{@{}lrr@{}}
+\toprule
+Configuration & \(E_{\mathrm{noisy}}\) &
+\(E_{\mathrm{noisy}}-E_{\mathrm{exact}}\) \\
+\midrule
+\endhead
+Saved \(\theta^*\) + readout/mthree & \(0.2773\) & \(+0.119\) \\
+Saved \(\theta^*\) + readout + gate twirling & \(0.2208\) &
+\(+0.062\) \\
+SPSA-128 best + readout + gate twirling & \(0.1368\) & \(-0.022\) \\
+Saved \(\theta^*\) ideal (noiseless) & \(0.1633\) & \(+0.005\) \\
+Exact GS & \(0.1587\) & \(0\) \\
+\bottomrule
+\end{longtable}
+
+Mitigation stack: readout/mthree plus local 2Q Pauli twirling, symmetry
+\texttt{verify\_only}, no ZNE, no DD. SPSA: 128 iterations, 1024 shots,
+1 repeat, seed 19. The SPSA-optimized noisy energy undershoots exact by
+\(0.022\), indicating noise-induced bias below the variational floor;
+the ideal energy at the SPSA-best \(\theta\) is \(0.189\), confirming
+parameter drift. At the noiseless-optimal \(\theta^*\), gate twirling
+halves the noise bias from \(0.119\) to \(0.062\).
+
+Reproduction:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\ExtensionTok{python} \AttributeTok{{-}m}\NormalTok{ pipelines.exact\_bench.heron\_pareto\_sweep }\AttributeTok{{-}{-}backend}\NormalTok{ FakeMarrakesh }\AttributeTok{{-}{-}coupling}\NormalTok{ both}
+\ExtensionTok{python} \AttributeTok{{-}m}\NormalTok{ pipelines.hardcoded.hh\_staged\_noise }\DataTypeTok{\textbackslash{}}
+  \AttributeTok{{-}{-}L}\NormalTok{ 2 }\AttributeTok{{-}{-}t}\NormalTok{ 1.0 }\AttributeTok{{-}{-}u}\NormalTok{ 4.0 }\AttributeTok{{-}{-}g{-}ep}\NormalTok{ 0.5 }\AttributeTok{{-}{-}omega0}\NormalTok{ 1.0 }\AttributeTok{{-}{-}n{-}ph{-}max}\NormalTok{ 1 }\DataTypeTok{\textbackslash{}}
+  \AttributeTok{{-}{-}ordering}\NormalTok{ blocked }\AttributeTok{{-}{-}boundary}\NormalTok{ open }\AttributeTok{{-}{-}boson{-}encoding}\NormalTok{ binary }\DataTypeTok{\textbackslash{}}
+  \AttributeTok{{-}{-}include{-}fixed{-}scaffold{-}noisy{-}replay} \DataTypeTok{\textbackslash{}}
+  \AttributeTok{{-}{-}fixed{-}final{-}state{-}json}\NormalTok{ artifacts/json/hh\_marrakesh\_fixed\_scaffold\_6term\_drop\_eyezee\_20260323T171528Z.json }\DataTypeTok{\textbackslash{}}
+  \AttributeTok{{-}{-}use{-}fake{-}backend} \AttributeTok{{-}{-}backend{-}name}\NormalTok{ FakeMarrakesh }\DataTypeTok{\textbackslash{}}
+  \AttributeTok{{-}{-}fixed{-}scaffold{-}runtime{-}transpile{-}optimization{-}level}\NormalTok{ 2 }\DataTypeTok{\textbackslash{}}
+  \AttributeTok{{-}{-}fixed{-}scaffold{-}runtime{-}seed{-}transpiler}\NormalTok{ 0 }\DataTypeTok{\textbackslash{}}
+  \AttributeTok{{-}{-}final{-}method}\NormalTok{ SPSA }\AttributeTok{{-}{-}final{-}maxiter}\NormalTok{ 128 }\AttributeTok{{-}{-}final{-}seed}\NormalTok{ 19 }\DataTypeTok{\textbackslash{}}
+  \AttributeTok{{-}{-}mitigation}\NormalTok{ readout }\AttributeTok{{-}{-}local{-}readout{-}strategy}\NormalTok{ mthree }\AttributeTok{{-}{-}local{-}gate{-}twirling} \DataTypeTok{\textbackslash{}}
+  \AttributeTok{{-}{-}symmetry{-}mitigation{-}mode}\NormalTok{ verify\_only }\DataTypeTok{\textbackslash{}}
+  \AttributeTok{{-}{-}shots}\NormalTok{ 1024 }\AttributeTok{{-}{-}oracle{-}repeats}\NormalTok{ 1 }\AttributeTok{{-}{-}noise{-}seed}\NormalTok{ 7 }\DataTypeTok{\textbackslash{}}
+  \AttributeTok{{-}{-}smoke{-}test{-}intentionally{-}weak} \AttributeTok{{-}{-}skip{-}pdf}
+\end{Highlighting}
+\end{Shaded}
+
+Artifacts:
+\texttt{artifacts/json/heron\_pareto\_front\_20260327T223120Z.json},
+\texttt{artifacts/json/hh\_6term\_pareto\_readout\_twirl\_fast\_20260328.json}.
+
+\hypertarget{appendix-a.-drive-exact-propagation-and-propagator-semantics}{%
+\section{Appendix A. Drive, Exact Propagation, and Propagator
+Semantics}\label{appendix-a.-drive-exact-propagation-and-propagator-semantics}}
+
+\hypertarget{a.1-static-drive-labels-and-time-dependent-coefficients}{%
+\subsection{A.1 Static drive labels and time-dependent
+coefficients}\label{a.1-static-drive-labels-and-time-dependent-coefficients}}
+
+Let \(\mathcal L_{\mathrm{drive}}\) denote the fixed set of density
+operators appearing in the drive. Then the drive always has the form \[
+\hat H_{\mathrm{drive}}(t)=\sum_{\lambda\in\mathcal L_{\mathrm{drive}}} c_\lambda(t) P_\lambda,
+\] with fixed labels \(P_\lambda\) and time-dependent coefficients
+\(c_\lambda(t)\).
+
+\hypertarget{a.2-reference-coefficient-map}{%
+\subsection{A.2 Reference coefficient
+map}\label{a.2-reference-coefficient-map}}
+
+For a site-density drive, \[
+\Delta c[Z_{p(i,\uparrow)}](t)=\Delta c[Z_{p(i,\downarrow)}](t)=-\frac{1}{2}v_i(t),
+\] and the identity shift is \[
+\Delta c[I](t)=\sum_i v_i(t)
+\] if one chooses to retain the scalar offset explicitly.
+
+\hypertarget{a.3-propagator-surfaces}{%
+\subsection{A.3 Propagator surfaces}\label{a.3-propagator-surfaces}}
+
+A common propagator menu is:
+
+\begin{itemize}
+\tightlist
+\item
+  second-order Suzuki,
+\item
+  piecewise exact propagation,
+\item
+  fourth-order CFQM,
+\item
+  sixth-order CFQM.
+\end{itemize}
+
+For CFQM methods, the key mathematical point is that the stage times are
+fixed scheme nodes \(c_j\), so a macro-step from \(t_n\) to
+\(t_{n+1}=t_n+\Delta t\) samples the Hamiltonian at \[
+t_n+c_j\Delta t,
+\] not at a left, midpoint, or right rule chosen independently.
+
+\hypertarget{a.4-reference-propagator-versus-reported-trajectory-propagator}{%
+\subsection{A.4 Reference propagator versus reported trajectory
+propagator}\label{a.4-reference-propagator-versus-reported-trajectory-propagator}}
+
+Write the reported propagator as \(U_{\mathrm{traj}}(t)\) and the
+high-accuracy reference propagator as \(U_{\mathrm{ref}}(t)\). These
+need not be the same approximation.
+
+\hypertarget{a.4.1-static-reference-branch}{%
+\subsubsection{A.4.1 Static reference
+branch}\label{a.4.1-static-reference-branch}}
+
+In the static case, one may take \[
+U_{\mathrm{ref}}(t)=e^{-it\hat H}.
+\]
+
+\hypertarget{a.4.2-drive-enabled-reference-branch}{%
+\subsubsection{A.4.2 Drive-enabled reference
+branch}\label{a.4.2-drive-enabled-reference-branch}}
+
+For time-dependent \(\hat H(t)\), a refined piecewise-constant reference
+is \[
+U_{\mathrm{ref}}(t_{n+1},t_n) \approx e^{-i\Delta t\hat H(t_n^*)},
+\] with \(t_n^*\) sampled on a refined grid and the full reference
+obtained as an ordered product over the refined slices.
+
+\hypertarget{a.5-cfqm-macro-step-mathematics}{%
+\subsection{A.5 CFQM macro-step
+mathematics}\label{a.5-cfqm-macro-step-mathematics}}
+
+A generic commutator-free quasi-Magnus macro-step takes the form \[
+U_{n+1,n}^{\mathrm{CFQM}} = \prod_{r=1}^{s} \exp\!\left[-i a_r \Delta t\,\hat H(t_n+c_r\Delta t)\right],
+\] with method-specific coefficients \(a_r\) and nodes \(c_r\). The
+formal order is achieved when the stage exponentials are themselves
+treated at the intended accuracy.
+
+\hypertarget{a.6-filtered-exact-manifold-and-subspace-fidelity}{%
+\subsection{A.6 Filtered exact manifold and subspace
+fidelity}\label{a.6-filtered-exact-manifold-and-subspace-fidelity}}
+
+Let \(\Pi_{\mathrm{sector}}\) denote the projector onto the target
+symmetry sector. Then the filtered exact energy is \[
+E_{\mathrm{exact,filtered}} = \min_{\psi\in\Pi_{\mathrm{sector}}\mathcal H} \langle \psi|\hat H|\psi\rangle,
+\] and a sector-aware fidelity may be defined by \[
+F_{\mathrm{sector}}(t) = \frac{|\langle \psi_{\mathrm{exact}}(t)|\Pi_{\mathrm{sector}}|\psi(t)\rangle|^2}{\langle \psi(t)|\Pi_{\mathrm{sector}}|\psi(t)\rangle}.
+\]
+
+\hypertarget{a.7-branch-resolved-observable-contracts}{%
+\subsection{A.7 Branch-resolved observable
+contracts}\label{a.7-branch-resolved-observable-contracts}}
+
+If several trajectory branches are carried simultaneously, each
+observable should be indexed by branch label \(b\): \[
+\mathcal O_b(t),
+\qquad
+b\in\{\mathrm{var},\mathrm{traj},\mathrm{ref},\mathrm{noisy},\mathrm{ideal}\}.
+\] Typical observables are energy, density, doublon density, and
+fidelity.
+
+\hypertarget{a.8-state-import-and-handoff-contract}{%
+\subsection{A.8 State import and handoff
+contract}\label{a.8-state-import-and-handoff-contract}}
+
+A portable state bundle can be written abstractly as \[
+\mathcal B = (\Lambda,\theta,a,E,\mathcal C),
+\] where \(\Lambda\) is the physical manifest, \(\theta\) are
+variational parameters when available, \(a\) is an amplitude map for the
+working state, \(E\) stores energy summaries, and \(\mathcal C\) is
+continuation metadata.
+
+\hypertarget{a.9-highest-tier-continuation-surfaces}{%
+\subsection{A.9 Highest-tier continuation
+surfaces}\label{a.9-highest-tier-continuation-surfaces}}
+
+At the highest continuation tier, \(\mathcal C\) may include split-event
+summaries, motif data, symmetry diagnostics, replay policy data, and
+limited branch histories. These are naturally viewed as auxiliary
+mathematical metadata rather than as part of the operator algebra
+itself.
+
+\hypertarget{appendix-b.-continuation-and-handoff-contract}{%
+\section{Appendix B. Continuation and Handoff
+Contract}\label{appendix-b.-continuation-and-handoff-contract}}
+
+\hypertarget{b.1-handoff-state-bundle}{%
+\subsection{B.1 Handoff state bundle}\label{b.1-handoff-state-bundle}}
+
+A handoff bundle may contain:
+
+\begin{itemize}
+\tightlist
+\item
+  the parameter manifest \(\Lambda\),
+\item
+  the current energy summary,
+\item
+  the normalized statevector amplitudes,
+\item
+  an exact comparison target,
+\item
+  optional continuation metadata.
+\end{itemize}
+
+One convenient symbolic amplitude map is \[
+\{b_{N_q-1}\cdots b_0 \mapsto (\Re a_b,\Im a_b)\}.
+\]
+
+\hypertarget{b.2-continuation-block}{%
+\subsection{B.2 Continuation block}\label{b.2-continuation-block}}
+
+The continuation payload can be treated abstractly as \[
+\mathcal C = (m,\mathcal S,\mathcal M_{\mathrm{opt}},\Gamma,\Sigma,\mathcal L,\mathcal U,\Xi,\mathcal R,\mathcal P),
+\] where:
+
+\begin{itemize}
+\tightlist
+\item
+  \(m\) is the continuation mode,
+\item
+  \(\mathcal S\) is inherited manifold-structure data,
+\item
+  \(\mathcal M_{\mathrm{opt}}\) is auxiliary optimizer state,
+\item
+  \(\Gamma\) is selected-generator metadata,
+\item
+  \(\Sigma\) is split-event data,
+\item
+  \(\mathcal L\) is a motif library,
+\item
+  \(\mathcal U\) is motif usage,
+\item
+  \(\Xi\) is symmetry information,
+\item
+  \(\mathcal R\) is rescue or recovery history,
+\item
+  \(\mathcal P\) is optional historical replay-policy metadata when such
+  provenance is still being carried.
+\end{itemize}
+
+When controller forecast telemetry is persisted, quantities such as
+\(D_{\mathrm{left}}(t)\), \(\widehat N_{\mathrm{rem}}(t)\), and \(H_t\)
+belong naturally to this policy/provenance layer. They remain heuristic
+controller state rather than operator-level observables.
+
+\hypertarget{b.3-general-handoff-map}{%
+\subsection{B.3 General handoff map}\label{b.3-general-handoff-map}}
+
+Let \(\mathcal H_{A\to B}\) be a handoff map from source manifold
+\(\mathcal M_A\) to target manifold \(\mathcal M_B\): \[
+\mathcal H_{A\to B}: (|\psi_A\rangle,\theta_A,\mathcal C_A) \mapsto (|\psi_B^{(0)}\rangle,\theta_B^{(0)},\mathcal C_B).
+\] The map is intentionally abstract here: it records state,
+coordinates, and continuation payload transfer between manifolds without
+committing the main body to any obsolete replay-specific burn-in policy.
+
+\hypertarget{b.4-symmetry-and-tier-three-payload-note}{%
+\subsection{B.4 Symmetry and tier-three payload
+note}\label{b.4-symmetry-and-tier-three-payload-note}}
+
+Symmetry information belongs in the handoff if later stages will use it
+for validation, postselection, or projector-renormalized estimation.
+Mathematically, the carried object is a projector or a list of commuting
+symmetry generators.
+
+\hypertarget{b.5-historical-warmrefine-chain-note}{%
+\subsection{B.5 Historical warm/refine chain
+note}\label{b.5-historical-warmrefine-chain-note}}
+
+The obsolete warm-start \(\to\) refine \(\to\) ADAPT \(\to\) replay path
+is kept only in Appendix A.2 and is not part of the active main-body
+symbolic contract.
+
+\hypertarget{appendix-c.-cross-checks-and-exact-benchmark-contracts}{%
+\section{Appendix C. Cross-Checks and Exact-Benchmark
+Contracts}\label{appendix-c.-cross-checks-and-exact-benchmark-contracts}}
+
+\hypertarget{c.1-trial-matrix-by-problem-family}{%
+\subsection{C.1 Trial matrix by problem
+family}\label{c.1-trial-matrix-by-problem-family}}
+
+For the Hubbard model, a natural benchmark trial set is \[
+\mathcal T_{\mathrm{Hub}} = \{\text{layerwise},\;\text{excitation-based},\;\text{adaptive(exc)},\;\text{adaptive(full-H)}\}.
+\] For the HH model, the canonical sector-preserving core set is \[
+\mathcal T_{\mathrm{HH}} = \{\text{HH-layerwise},\;\text{HH-physical-termwise},\;\text{adaptive(full-H)}\}.
+\] A seed-surface extension can enlarge \(\mathcal T_{\mathrm{HH}}\) by
+adding polaronic refinements built on the same sector-preserving
+fixed-family surface.
+
+\hypertarget{c.2-auto-scaled-parameter-resolution}{%
+\subsection{C.2 Auto-scaled parameter
+resolution}\label{c.2-auto-scaled-parameter-resolution}}
+
+Let \[
+S_{\mathrm{trot}}(L,n_{\mathrm{ph,max}}),
+\quad
+R_{\mathrm{restart}}(L,n_{\mathrm{ph,max}}),
+\quad
+I_{\max}(L,n_{\mathrm{ph,max}})
+\] be monotone nondecreasing control maps for Trotter steps, restart
+count, and optimizer effort. The key contract is monotonicity with
+problem size, not a single universal constant setting.
+
+\hypertarget{c.3-exact-target-and-shared-reference-state-construction}{%
+\subsection{C.3 Exact target and shared reference-state
+construction}\label{c.3-exact-target-and-shared-reference-state-construction}}
+
+Within a benchmark matrix, all trial families should be compared against
+the same exact target and the same conserved-sector reference
+construction. Thus every trial is judged against the same
+\(E_{\mathrm{exact,sector}}\) and the same physical Hamiltonian
+instance.
+
+\hypertarget{c.4-per-trial-energy-and-trajectory-semantics}{%
+\subsection{C.4 Per-trial energy and trajectory
+semantics}\label{c.4-per-trial-energy-and-trajectory-semantics}}
+
+Each trial should at minimum record:
+
+\begin{itemize}
+\tightlist
+\item
+  the variational ground-state energy,
+\item
+  the exact comparison target,
+\item
+  trajectory observables on a shared time grid when dynamics are
+  studied,
+\item
+  fidelity or overlap relative to a common reference branch.
+\end{itemize}
+
+\hypertarget{c.5-artifact-contracts}{%
+\subsection{C.5 Artifact contracts}\label{c.5-artifact-contracts}}
+
+Every report artifact should begin with a concise parameter manifest
+listing:
+
+\begin{itemize}
+\tightlist
+\item
+  model family,
+\item
+  ansatz family,
+\item
+  drive enabled or disabled,
+\item
+  \(t\), \(U\), \(\omega_0\), \(g\), and \(n_{\mathrm{ph,max}}\),
+\item
+  any propagation parameters needed to reproduce the result.
+\end{itemize}
+
+\hypertarget{c.6-hh-seed-surface-preset-and-resource-proxies}{%
+\subsection{C.6 HH seed-surface preset and resource
+proxies}\label{c.6-hh-seed-surface-preset-and-resource-proxies}}
+
+A seed-surface comparison is naturally evaluated not only by energy but
+also by simple resource proxies such as \[
+C_{\mathrm{2q}},
+\qquad
+D_{\mathrm{proxy}},
+\qquad
+C_{\mathrm{1q}}.
+\] One can then compare improvement per marginal resource, \[
+\frac{\Delta E}{C_{\mathrm{2q}}},
+\qquad
+\frac{\Delta E}{D_{\mathrm{proxy}}}.
+\]
+
+\hypertarget{appendix-d.-noise-validation-symmetry-mitigation-and-parity-contracts}{%
+\section{Appendix D. Noise Validation, Symmetry-Mitigation, and Parity
+Contracts}\label{appendix-d.-noise-validation-symmetry-mitigation-and-parity-contracts}}
+
+\hypertarget{d.1-filtered-versus-full-exact-targets}{%
+\subsection{D.1 Filtered versus full exact
+targets}\label{d.1-filtered-versus-full-exact-targets}}
+
+The filtered target is \[
+E_{\mathrm{exact,filtered}} = \min_{\psi\in\mathcal H_{\mathrm{sector}}} \langle \psi|\hat H|\psi\rangle,
+\] while the unrestricted target is \[
+E_{\mathrm{exact,full}} = \min \operatorname{spec}(\hat H).
+\] The two coincide only if the physical and computational sectors match
+exactly.
+
+\hypertarget{d.2-noisy-minus-ideal-observable-deltas}{%
+\subsection{D.2 Noisy-minus-ideal observable
+deltas}\label{d.2-noisy-minus-ideal-observable-deltas}}
+
+For any observable \(\mathcal O(t)\), define \[
+\Delta \mathcal O(t) = \mathcal O_{\mathrm{noisy}}(t)-\mathcal O_{\mathrm{ideal}}(t).
+\] In particular, \[
+\Delta E(t)=E_{\mathrm{noisy}}(t)-E_{\mathrm{ideal}}(t),
+\qquad
+\Delta D(t)=D_{\mathrm{noisy}}(t)-D_{\mathrm{ideal}}(t).
+\]
+
+\hypertarget{d.3-anchor-parity-gate}{%
+\subsection{D.3 Anchor parity gate}\label{d.3-anchor-parity-gate}}
+
+If a new idealized path is compared against a fixed anchor trajectory, a
+strict parity gate takes the form \[
+\max_{t\in\mathcal T}\,|\mathcal O_{\mathrm{new}}(t)-\mathcal O_{\mathrm{anchor}}(t)| \le \varepsilon_{\mathrm{parity}}.
+\] This is an anchor-based equality test, not merely a qualitative
+agreement statement.
+
+\hypertarget{d.4-same-anchor-paired-comparison-semantics}{%
+\subsection{D.4 Same-anchor paired comparison
+semantics}\label{d.4-same-anchor-paired-comparison-semantics}}
+
+Two noisy methods should be compared against the same ideal anchor, on
+the same time grid, with the same initial state, so that differences can
+be attributed to the noise or mitigation model rather than to different
+starting conditions.
+
+\hypertarget{d.5-symmetry-mitigation-mode-surface}{%
+\subsection{D.5 Symmetry-mitigation mode
+surface}\label{d.5-symmetry-mitigation-mode-surface}}
+
+Three increasingly strong symmetry surfaces are:
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  verify-only sector diagnostics,
+\item
+  bitstring postselection,
+\item
+  projector-renormalized estimators.
+\end{enumerate}
+
+If \(\Pi\) is the projector onto the target symmetry sector, the
+renormalized estimator is \[
+\langle O\rangle_{\Pi} = \frac{\langle \psi|\Pi O \Pi|\psi\rangle}{\langle \psi|\Pi|\psi\rangle}.
+\]
+
+\hypertarget{d.6-parameter-manifest-and-provenance-digest}{%
+\subsection{D.6 Parameter manifest and provenance
+digest}\label{d.6-parameter-manifest-and-provenance-digest}}
+
+Even in a symbolic setting, it is useful to view each artifact as
+carrying a manifest \(\mathfrak M\) and a provenance digest
+\(h(\mathfrak M)\). The purpose is not algebraic; it is to guarantee
+that the reported mathematics can be traced back to a unique physical
+parameter set.
+
+\hypertarget{appendix-e.-spec-only-or-not-yet-formalized-surfaces-kept-out-of-the-main-body}{%
+\section{Appendix E. Spec-only or not-yet-formalized surfaces kept out
+of the main
+body}\label{appendix-e.-spec-only-or-not-yet-formalized-surfaces-kept-out-of-the-main-body}}
+
+\hypertarget{e.1-broader-continuation-theory-items}{%
+\subsection{E.1 Broader continuation-theory
+items}\label{e.1-broader-continuation-theory-items}}
+
+Several topics belong naturally in a later symbolic pass rather than in
+the present core manuscript:
+
+\begin{itemize}
+\tightlist
+\item
+  multi-source motif transfer and motif tiling,
+\item
+  richer split-event formalism,
+\item
+  more detailed rescue dynamics,
+\item
+  exact handoff-policy closure beyond the present abstract maps,
+\item
+  measured-geometry and backend-specific closure beyond the exact
+  symbolic statevector surface.
+\end{itemize}
+
+\hypertarget{e.2-obsolete-historical-warm-start-to-refine-to-adapt-to-replay-path}{%
+\subsection{\texorpdfstring{E.2 Obsolete historical warm-start \(\to\)
+refine \(\to\) ADAPT \(\to\) replay
+path}{E.2 Obsolete historical warm-start \textbackslash to refine \textbackslash to ADAPT \textbackslash to replay path}}\label{e.2-obsolete-historical-warm-start-to-refine-to-adapt-to-replay-path}}
+
+The historical staged path can be written symbolically as \[
+\begin{aligned}
+\mathcal M_{\mathrm{warm}}
+&=\{\,U_{\mathrm{warm}}(\theta_{\mathrm{w}})|\phi_0\rangle:\theta_{\mathrm{w}}\in\mathbb R^{m_{\mathrm{w}}}\,\},\\
+\mathcal M_{\mathrm{refine}}
+&=\{\,U_{\mathrm{refine}}(\theta_{\mathrm{r}})U_{\mathrm{warm}}(\theta_{\mathrm{w}}^*)|\phi_0\rangle:\theta_{\mathrm{r}}\in\mathbb R^{m_{\mathrm{r}}}\,\},\\
+\mathcal M_{\mathrm{replay}}(\mathcal O_*)
+&=\{\,U_{\mathrm{replay}}(\varphi;\mathcal O_*)|\phi_0\rangle:\varphi\in\mathbb R^{m_{\mathrm{rep}}}\,\}.
+\end{aligned}
+\] The corresponding historical handoff chain is \[
+\begin{aligned}
+(\theta_{\mathrm{w}}^*,|\psi_{\mathrm{warm}}\rangle)
+&\in\mathcal M_{\mathrm{warm}}
+\mapsto
+(\theta_{\mathrm{r}}^*,|\psi_{\mathrm{refine}}\rangle)
+\in\mathcal M_{\mathrm{refine}}\\
+&\mapsto
+(\mathcal O_*,\theta_*^{\mathrm{adapt}},|\psi_*\rangle)\\
+&\mapsto
+(\varphi^{(0)},|\psi_{\mathrm{replay}}^{(0)}\rangle)
+=
+\mathcal H_{\mathrm{replay}}(|\psi_*\rangle,\theta_*^{\mathrm{adapt}},\mathcal O_*,\mathcal C_*)
+\in\mathcal M_{\mathrm{replay}}(\mathcal O_*).
+\end{aligned}
+\] A typical replay-style historical policy is:
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  preserve inherited scaffold parameters,
+\item
+  initialize residual parameters at zero,
+\item
+  optionally freeze inherited coordinates for a burn-in stage,
+\item
+  then unfreeze and refit in a controlled window.
+\end{enumerate}
+
+This path is kept for archival provenance only and is not part of the
+active main-body symbolic contract.
+
+\hypertarget{e.3-drive-amplitude-comparison-path}{%
+\subsection{E.3 Drive-amplitude comparison
+path}\label{e.3-drive-amplitude-comparison-path}}
+
+A drive-amplitude comparison path can be expressed symbolically by
+comparing several amplitudes \(A_0,A_1,\dots\) at fixed Hamiltonian
+parameters and examining \[
+\Delta E_A(t),\qquad \Delta D_A(t),\qquad F_A(t)
+\] across the amplitude family. The formal structure is clear even if
+the exact report layout is deferred.
+
+\hypertarget{e.4-appendix-rule}{%
+\subsection{E.4 Appendix rule}\label{e.4-appendix-rule}}
+
+The rule of this symbolic manuscript is therefore:
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  main body = closed mathematical definitions and comparison contracts,
+\item
+  appendix = promising but not yet fully formalized extensions.
+\end{enumerate}
+
+\hypertarget{references}{%
+\section{References}\label{references}}
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\item
+  Grimsley, Economou, Barnes, and Mayhall, An adaptive variational
+  algorithm for exact molecular simulations on a quantum computer,
+  Nature Communications 10, 3007 (2019), DOI:
+  10.1038/s41467-019-10988-2.
+\item
+  Provost and Vallée, Riemannian structure on manifolds of quantum
+  states, Communications in Mathematical Physics 76, 289-301 (1980),
+  DOI: 10.1007/BF02193559.
+\item
+  Stokes, Izaac, Killoran, and Carleo, Quantum Natural Gradient, Quantum
+  4, 269 (2020), DOI: 10.22331/q-2020-05-25-269.
+\item
+  Nocedal and Wright, Trust-Region Methods, in Numerical Optimization,
+  Springer, DOI: 10.1007/0-387-22742-3\_4.
+\item
+  Ramôa, Santos, Mayhall, Barnes, and Economou, Reducing measurement
+  costs by recycling the Hessian in adaptive variational quantum
+  algorithms, Quantum Science and Technology 10, 015031 (2025), DOI:
+  10.1088/2058-9565/ad904e.
+\item
+  Ramôa, Anastasiou, Santos, Mayhall, Barnes, and Economou, Reducing the
+  resources required by ADAPT-VQE using coupled exchange operators and
+  improved subroutines, npj Quantum Information (2025), DOI:
+  10.1038/s41534-025-01039-4.
+\item
+  Verteletskyi, Yen, and Izmaylov, Measurement optimization in the
+  variational quantum eigensolver using a minimum clique cover, The
+  Journal of Chemical Physics 152, 124114 (2020), DOI:
+  10.1063/1.5141458.
+\item
+  Yen, Verteletskyi, and Izmaylov, Measuring All Compatible Operators in
+  One Series of Single-Qubit Measurements Using Unitary Transformations,
+  Journal of Chemical Theory and Computation (2020), DOI:
+  10.1021/acs.jctc.0c00008.
+\item
+  Ikhtiarudin, Sunnardianto, Fathurrahman, Agusta, and Dipojono,
+  Shot-Efficient ADAPT-VQE via Reused Pauli Measurements and
+  Variance-Based Shot Allocation, arXiv:2507.16879 (2025).
+\item
+  Stadelmann, Übelher, Ramôa, Sambasivam, Barnes, and Economou,
+  Strategies for Overcoming Gradient Troughs in the ADAPT-VQE Algorithm,
+  arXiv:2512.25004 (2025).
+\end{enumerate}
+
+\hypertarget{addendum-2026-04-04-manuscript-aligned-direct-hh-adapt-phase3_v1-sweep-notes}{%
+\subsubsection{\texorpdfstring{Addendum (2026-04-04): manuscript-aligned
+direct HH ADAPT / \texttt{phase3\_v1} sweep
+notes}{Addendum (2026-04-04): manuscript-aligned direct HH ADAPT / phase3\_v1 sweep notes}}\label{addendum-2026-04-04-manuscript-aligned-direct-hh-adapt-phase3_v1-sweep-notes}}
+
+This addendum records the new manuscript-aligned direct HH ADAPT
+behavior on the public \texttt{phase3\_v1} surface, with
+\texttt{runtime\_split=off} treated as the canonical manuscript/public
+setting.
+
+Physics point for the main recovery study. - \texttt{L=2} -
+\texttt{t=1.0} - \texttt{U=4.0} - \texttt{g\_ep=0.5} -
+\texttt{omega0=1.0} - \texttt{n\_ph\_max=1} - \texttt{problem=hh} -
+binary bosons - blocked ordering - open boundary
+
+Authority targets for interpretation. - Manuscript matched-ADAPT target
+from §19.1: \texttt{E\ =\ 0.1587240823603703},
+\texttt{\textbar{}ΔE\textbar{}\ =\ 5.6178234644e-05},
+\texttt{stop\_reason\ =\ drop\_plateau}. - Fixed-scaffold anchor from
+§19.6: \texttt{\textbar{}ΔE\textbar{}\ ≈\ 4.23e-04},
+\texttt{F\ ≈\ 0.9998}.
+
+\hypertarget{current-status-on-the-new-manuscript-aligned-surface}{%
+\paragraph{Current status on the new manuscript-aligned
+surface}\label{current-status-on-the-new-manuscript-aligned-surface}}
+
+The best live strong-coupling beam line on the direct public surface is
+\texttt{beam\_runtime\_split-off\_\_batching-off\_\_lifetime-off\_\_profile-tight\_\_gamma-1.0}
+with - \texttt{E\ =\ 0.15872511715315915} -
+\texttt{\textbar{}ΔE\textbar{}\ =\ 5.721302743347256e-05} -
+\texttt{ansatz\_depth\ =\ 20} - \texttt{logical\_num\_parameters\ =\ 20}
+- \texttt{num\_parameters\ =\ 48} -
+\texttt{stop\_reason\ =\ drop\_plateau} -
+\texttt{exact\_state\_fidelity\ =\ 0.9999715655261739}
+
+This line clearly beats the fixed-scaffold anchor, but it does not yet
+numerically match the manuscript matched-ADAPT target. The residual gap
+to the manuscript matched-ADAPT line is \texttt{1.0347927889e-06} in
+\texttt{\textbar{}ΔE\textbar{}}.
+
+A historical diagnostic reoptimization run with windowed \texttt{COBYLA}
+reached - \texttt{E\ =\ 0.15872468271899687} -
+\texttt{\textbar{}ΔE\textbar{}\ =\ 5.6778593271189504e-05} - residual
+gap to the manuscript matched-ADAPT line: \texttt{6.0035862640e-07}
+
+This is useful as a numerical diagnostic, but it is not the forward
+recipe for new runs. Going forward, the intended optimizer family is
+\texttt{SPSA}, not \texttt{COBYLA}.
+
+\hypertarget{executed-run-families-and-outcomes}{%
+\paragraph{Executed run families and
+outcomes}\label{executed-run-families-and-outcomes}}
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  Strong-coupling beam sweep.
+\end{enumerate}
+
+\begin{itemize}
+\tightlist
+\item
+  Artifact root:
+  \texttt{artifacts/agent\_runs/20260403\_hh\_l2\_u4\_g05\_beam\_sweep\_stage1/}
+\item
+  Best case:
+  \texttt{beam\_runtime\_split-off\_\_batching-off\_\_lifetime-off\_\_profile-tight\_\_gamma-1.0}
+\item
+  Result: \texttt{\textbar{}ΔE\textbar{}\ =\ 5.721302743347256e-05}
+\item
+  Interpretation: beam search nearly recovers the manuscript
+  matched-ADAPT quality.
+\end{itemize}
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\setcounter{enumi}{1}
+\tightlist
+\item
+  Strong-coupling runtime sweep.
+\end{enumerate}
+
+\begin{itemize}
+\tightlist
+\item
+  Artifact root:
+  \texttt{artifacts/agent\_runs/20260403\_hh\_l2\_u4\_g05\_runtime\_sweep\_stage1/}
+\item
+  Best case still bad:
+  \texttt{\textbar{}ΔE\textbar{}\ =\ 0.3282923042519191}
+\item
+  Interpretation: the single-trajectory runtime line collapses into the
+  same bad basin seen in the manuscript novelty-off failure scale.
+\end{itemize}
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\setcounter{enumi}{2}
+\tightlist
+\item
+  Phase-3 beam-vs-batching diagnostic.
+\end{enumerate}
+
+\begin{itemize}
+\tightlist
+\item
+  Artifact root:
+  \texttt{artifacts/agent\_runs/20260403\_hh\_l2\_u4\_g05\_phase3\_diag\_beam\_vs\_batch\_v1/}
+\item
+  Single-trajectory cases stayed at
+  \texttt{\textbar{}ΔE\textbar{}\ ≈\ 0.3282923}.
+\item
+  Beam \texttt{b3,c2,k3} immediately recovered
+  \texttt{\textbar{}ΔE\textbar{}\ =\ 5.721302743347256e-05}.
+\item
+  Interpretation: the decisive lever is frontier diversity from beam
+  search, not batching.
+\end{itemize}
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\setcounter{enumi}{3}
+\tightlist
+\item
+  Beam-capacity recovery slice.
+\end{enumerate}
+
+\begin{itemize}
+\tightlist
+\item
+  Artifact root:
+  \texttt{artifacts/agent\_runs/20260403\_hh\_l2\_u4\_g05\_phase3\_beam\_capacity\_recovery\_v1/}
+\item
+  \texttt{b3,c2,k3} and \texttt{b4,c2,k4} tied at
+  \texttt{\textbar{}ΔE\textbar{}\ =\ 5.721302743347256e-05}.
+\item
+  Interpretation: larger beam width by itself does not improve the
+  recovered solution once the beam is already large enough.
+\end{itemize}
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\setcounter{enumi}{4}
+\tightlist
+\item
+  Prune/shortlist micro-sweep.
+\end{enumerate}
+
+\begin{itemize}
+\tightlist
+\item
+  Artifact root:
+  \texttt{artifacts/agent\_runs/20260404\_hh\_l2\_u4\_g05\_phase3\_prune\_shortlist\_micro\_v1/}
+\item
+  All cases were numerically identical to saved precision.
+\item
+  Interpretation: \texttt{phase1\_prune\_fraction},
+  \texttt{phase1\_prune\_max\_candidates}, and shortlist width are not
+  the active driver of the remaining manuscript gap on this beam-fixed
+  line.
+\end{itemize}
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\setcounter{enumi}{5}
+\tightlist
+\item
+  Reoptimization slice.
+\end{enumerate}
+
+\begin{itemize}
+\tightlist
+\item
+  Artifact root:
+  \texttt{artifacts/agent\_runs/20260404\_hh\_l2\_u4\_g05\_phase3\_reopt\_slice\_v1/}
+\item
+  Windowed \texttt{COBYLA} improved the gap to
+  \texttt{\textbar{}ΔE\textbar{}\ =\ 5.6778593271189504e-05}.
+\item
+  \texttt{POWELL} windowed stayed at the original beam winner.
+\item
+  \texttt{POWELL} periodic/full refits got worse.
+\item
+  \texttt{append\_only} failed badly at
+  \texttt{\textbar{}ΔE\textbar{}\ =\ 0.6244148638396572}.
+\item
+  Interpretation: optimizer/refit policy can move the line, but the
+  \texttt{COBYLA} improvement should be treated as diagnostic only, not
+  as the new manuscript-forward recipe.
+\end{itemize}
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\setcounter{enumi}{6}
+\tightlist
+\item
+  Score-weight slice.
+\end{enumerate}
+
+\begin{itemize}
+\tightlist
+\item
+  Artifact root:
+  \texttt{artifacts/agent\_runs/20260404\_hh\_l2\_u4\_g05\_phase3\_score\_weight\_slice\_v1/}
+\item
+  \texttt{near=0.90} gave a small improvement to
+  \texttt{\textbar{}ΔE\textbar{}\ =\ 5.721150236287498e-05} and also
+  reduced the scaffold to \texttt{logical\_num\_parameters\ =\ 19},
+  \texttt{num\_parameters\ =\ 46}, \texttt{ansatz\_depth\ =\ 19}.
+\item
+  Other \texttt{rho} and \texttt{lambda\_H} variants were essentially
+  flat at the saved precision.
+\end{itemize}
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\setcounter{enumi}{7}
+\tightlist
+\item
+  Seed robustness slice.
+\end{enumerate}
+
+\begin{itemize}
+\tightlist
+\item
+  Artifact root:
+  \texttt{artifacts/agent\_runs/20260404\_hh\_l2\_u4\_g05\_phase3\_seed\_robustness\_slice\_v1/}
+\item
+  Seeds \texttt{5,\ 7,\ 11,\ 13,\ 17} all reproduced the same
+  \texttt{POWELL} baseline result exactly to saved precision.
+\item
+  Interpretation: the current beam-fixed \texttt{POWELL} plateau is
+  deterministic across this seed set.
+\end{itemize}
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\setcounter{enumi}{8}
+\tightlist
+\item
+  Weak-coupling diagnostic lanes.
+\end{enumerate}
+
+\begin{itemize}
+\tightlist
+\item
+  Canonical weak sweep root:
+  \texttt{artifacts/agent\_runs/20260403\_hh\_l2\_u05\_g02\_weak\_logical\_scaffold\_canonical\_sweep\_v1/}
+\item
+  Weak beam sweep root:
+  \texttt{artifacts/agent\_runs/20260403\_hh\_l2\_u05\_g02\_beam\_sweep\_stage1\_parent\_full\_meta/}
+\item
+  Best weak result in both lanes stayed at
+  \texttt{\textbar{}ΔE\textbar{}\ ≈\ 0.0131029358626}.
+\item
+  Parent-quality target from §19.3.1 is much smaller, so weak coupling
+  remains a diagnostic regime rather than a recovered manuscript-quality
+  regime.
+\end{itemize}
+
+\hypertarget{good-parameters-versus-bad-parameters}{%
+\paragraph{Good parameters versus bad
+parameters}\label{good-parameters-versus-bad-parameters}}
+
+Parameters/choices that consistently helped or were at least required
+for recovery. - Direct HH ADAPT on the public \texttt{phase3\_v1}
+surface. - \texttt{runtime\_split=off}. - Beam search on. - Beam at or
+above \texttt{live\_branches=3}, \texttt{children\_per\_parent=2},
+\texttt{terminated\_keep=3}. - \texttt{gamma\_N=1.0} on the public
+strong-coupling line. - \texttt{batching=off} was slightly better than
+\texttt{batching=on} in the best recovered beam lane. -
+\texttt{lifetime\_cost\_mode=off} was at least as good as
+\texttt{phase3\_v1} within the explored resolution. - \texttt{near=0.90}
+was the only score-weight variation that gave a measurable improvement
+in the explored \texttt{POWELL} lane.
+
+Parameters/choices that were neutral or nearly inert in the explored
+region. - Beam width beyond the \texttt{b3,c2,k3} threshold. -
+\texttt{profile=tight} versus \texttt{profile=wide}. -
+\texttt{phase1\_prune\_fraction} in the explored \texttt{0.15} to
+\texttt{0.35} range. - \texttt{phase1\_prune\_max\_candidates} in the
+explored \texttt{4} to \texttt{8} range. - shortlist width in the
+explored micro-sweep. - Most \texttt{rho} and \texttt{lambda\_H}
+score-weight perturbations.
+
+Parameters/choices that consistently hurt. - Single-trajectory runtime
+mode with no beam. - Runtime line behavior that reproduces
+\texttt{\textbar{}ΔE\textbar{}\ ≈\ 0.3282923}. -
+\texttt{runtime\_split=shortlist\_pauli\_children\_v1} relative to
+\texttt{off} on this manuscript/public lane. - \texttt{POWELL}
+periodic/full refits relative to the windowed baseline. -
+\texttt{append\_only} refit policy, which failed catastrophically.
+
+\hypertarget{practical-interpretation}{%
+\paragraph{Practical interpretation}\label{practical-interpretation}}
+
+For the manuscript-aligned direct HH ADAPT path at strong coupling, the
+main qualitative lesson is now clear: beam-induced frontier diversity is
+the key ingredient that recovers the near-manuscript solution, while
+pruning pressure, shortlist width, profile choice, and modest
+score-weight changes are second-order. The live public-surface recipe
+already beats the fixed-scaffold anchor by a large margin, but it still
+does not numerically match the manuscript matched-ADAPT target.
+
+\hypertarget{update-public-cli-runtime-weights-and-reduced-pool-sweeps}{%
+\paragraph{2026-04-04 update: public-CLI runtime weights and
+reduced-pool
+sweeps}\label{update-public-cli-runtime-weights-and-reduced-pool-sweeps}}
+
+After exposing the manuscript-facing selector/runtime knobs on the
+public direct \texttt{phase3\_v1} CLI, two additional conclusions
+emerged for the same strong-coupling \(L=2\) point.
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  Public-CLI \texttt{full\_meta\ +\ SPSA} improved once frontier ratios
+  were decoupled from the near-degenerate batch shell.
+\end{enumerate}
+
+\begin{itemize}
+\tightlist
+\item
+  Artifact root:
+  \texttt{artifacts/agent\_runs/20260404\_hh\_l2\_u4\_g05\_phase3\_public\_weights\_frontier\_spsa\_v1/}
+\item
+  Best public-CLI \texttt{full\_meta\ +\ SPSA} line: \[
+  E=0.15878350593338042,\qquad |\Delta E|=1.1560180765\times 10^{-4},
+  \] with \texttt{logical\_num\_parameters=21},
+  \texttt{num\_parameters=53}, \texttt{ansatz\_depth=21}, and
+  \texttt{fidelity=0.9999480673}.
+\item
+  The corresponding \texttt{weights\_zero} line was only slightly worse,
+  \[
+  |\Delta E|=1.1722877711\times 10^{-4},
+  \] while the tighter coupled-frontier setting \[
+  (\text{phase2 frontier},\text{phase3 frontier})=(0.98,0.98)
+  \] reproduced the older worse basin \[
+  |\Delta E|=1.4383993770\times 10^{-4}.
+  \]
+\item
+  So the main gain from that patch was not a delicate burden-weight
+  choice; it was fixing the implementation coupling between shortlist
+  frontiering and the batch-shell threshold so that
+  \texttt{phase2\_frontier\_ratio}, \texttt{phase3\_frontier\_ratio},
+  and \texttt{eta\_\{nd\}} became genuinely independent controls.
+\end{itemize}
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\setcounter{enumi}{1}
+\tightlist
+\item
+  The reduced-pool \texttt{pareto\_lean\ +\ SPSA} lane remained rigid.
+\end{enumerate}
+
+\begin{itemize}
+\tightlist
+\item
+  Artifact roots:
+
+  \begin{itemize}
+  \tightlist
+  \item
+    \texttt{artifacts/agent\_runs/20260404\_hh\_l2\_u4\_g05\_phase3\_pool\_family\_spsa\_fixed\_v1/}
+  \item
+    \texttt{artifacts/agent\_runs/20260404\_hh\_l2\_u4\_g05\_phase3\_pareto\_lean\_gamma\_spsa\_fixed\_v1/}
+  \item
+    \texttt{artifacts/agent\_runs/20260404\_hh\_l2\_u4\_g05\_phase3\_pareto\_lean\_drop\_policy\_spsa\_fixed\_v1/}
+  \item
+    \texttt{artifacts/agent\_runs/20260404\_hh\_l2\_u4\_g05\_pareto\_lean\_new\_cli\_weights\_spsa\_v1/}
+  \item
+    \texttt{artifacts/agent\_runs/20260404\_hh\_l2\_u4\_g05\_pareto\_lean\_compat\_proxy\_spsa\_v1/}
+  \item
+    \texttt{artifacts/agent\_runs/20260404\_hh\_l2\_u4\_g05\_pareto\_lean\_frontier\_ratio\_spsa\_v1/}
+  \end{itemize}
+\item
+  Baseline reduced-pool result: \[
+  E=0.1587895750333393,\qquad |\Delta E|=1.2167090761\times 10^{-4},
+  \] with \texttt{logical\_num\_parameters=21},
+  \texttt{num\_parameters=52}, \texttt{ansatz\_depth=21}, and
+  \texttt{fidelity=0.9999443566}.
+\item
+  This value persisted across all tested variations of:
+
+  \begin{itemize}
+  \tightlist
+  \item
+    \texttt{gamma\_N} in the explored \texttt{0.75} to \texttt{1.5}
+    range,
+  \item
+    drop-policy parameters,
+  \item
+    motif bonus,
+  \item
+    duplicate penalty,
+  \item
+    leakage penalty \texttt{eta\_L},
+  \item
+    compatibility-prescreen weights,
+  \item
+    remaining-evaluations proxy mode,
+  \item
+    frontier ratios from \texttt{(0.85,0.85)} up through
+    \texttt{(0.95,0.95)} and the asymmetric \texttt{(0.90,0.75)},
+    \texttt{(0.90,0.95)}, \texttt{(0.95,0.90)} cases.
+  \end{itemize}
+\item
+  Loosening the phase-2 frontier too far did hurt: \texttt{(0.75,0.75)}
+  gave \[
+  |\Delta E|=1.5234589586\times 10^{-4},
+  \] and \texttt{(0.75,0.90)} gave \[
+  |\Delta E|=1.5457582580\times 10^{-4}.
+  \]
+\item
+  Hence the reduced \texttt{pareto\_lean} line appears structurally
+  plateaued under the currently exposed runtime-law knobs: it is not
+  rescued by more local tuning of \texttt{gamma\_N}, batching pressure,
+  motif/repetition heuristics, or compatibility/proxy terms.
+\end{itemize}
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\setcounter{enumi}{2}
+\tightlist
+\item
+  Cost-aware ranking versus raw-energy ranking now separate.
+\end{enumerate}
+
+\begin{itemize}
+\tightlist
+\item
+  On raw strong-coupling energy error alone, the best historical rerank
+  observed in these sweeps was the diagnostic \texttt{COBYLA} line \[
+  E=0.15872468271899687,\qquad |\Delta E|=5.6778593271\times 10^{-5},
+  \] with \texttt{logical\_num\_parameters=20},
+  \texttt{num\_parameters=50}, \texttt{ansatz\_depth=20}.
+\item
+  However, the best currently observed \(|\Delta E|/K\)-style point
+  among runs that reported logical scaffold size was the
+  \texttt{near=0.90} strong-coupling line from the score-weight slice:
+  \[
+  E=0.15872511562808855,\qquad |\Delta E|=5.7211502363\times 10^{-5},
+  \] with \[
+  K_{\text{logical}}=19,\qquad K_{\text{runtime}}=46,\qquad d=19.
+  \]
+\item
+  So the present picture is:
+
+  \begin{itemize}
+  \tightlist
+  \item
+    best raw-\(|\Delta E|\) line: slightly better than the old beam
+    winner, but achieved on a non-preferred optimizer branch,
+  \item
+    best cost-aware line: slightly worse in \(|\Delta E|\) but leaner in
+    both logical scaffold size and runtime parameter count,
+  \item
+    best reduced-pool SPSA line: still stuck near \(1.22\times 10^{-4}\)
+    and therefore materially behind the broad-beam public lane.
+  \end{itemize}
+\end{itemize}
+
+\hypertarget{update-completed-reduced-pool-l2l3-matrix}{%
+\paragraph{\texorpdfstring{2026-04-04 update: completed reduced-pool
+\texttt{L=2/L=3}
+matrix}{2026-04-04 update: completed reduced-pool L=2/L=3 matrix}}\label{update-completed-reduced-pool-l2l3-matrix}}
+
+The overnight reduced-pool matrix
+\texttt{artifacts/agent\_runs/20260404\_hh\_phase3\_reduced\_pool\_matrix\_v1/}
+completed through the strong confirmation and weak-transfer waves. Its
+campaign summary and final strong templates are recorded in
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{artifacts/agent\_runs/20260404\_hh\_phase3\_reduced\_pool\_matrix\_v1/campaign\_summary.json},
+\item
+  \texttt{artifacts/agent\_runs/20260404\_hh\_phase3\_reduced\_pool\_matrix\_v1/final\_strong\_templates\_by\_L.json},
+\item
+  \texttt{artifacts/agent\_runs/20260404\_hh\_phase3\_reduced\_pool\_matrix\_v1/matrix\_leaderboard.json}.
+\end{itemize}
+
+Data field: the completed matrix contained \texttt{212} successful
+cases, \texttt{36} failed cases, and \texttt{184} unique successful
+configurations.
+
+For the strong-coupling \(L=2\) target point, the best matrix result was
+\[
+E=0.15877612622031317,\qquad |\Delta E|=1.0822209459\times 10^{-4},
+\] with \[
+K_{\mathrm{logical}}=20,\qquad K_{\mathrm{runtime}}=52,\qquad d=20,\qquad F=0.9999519211,
+\] from the confirmed \texttt{pareto\_lean} template with \[
+(\text{beam},\text{frontier})=(2,2,2;\,0.85,0.85).
+\] This improved over the earlier reduced-pool SPSA plateau near
+\(1.2167\times10^{-4}\), but it still did not recover the
+manuscript-quality strong-coupling target at
+\(5.6178234644\times10^{-5}\) and did not beat the earlier broad-lane
+live recovery line near \(5.7213027433\times10^{-5}\).
+
+For the strong-coupling \(L=3\) point, the reduced-pool matrix failed
+badly. Its best confirmed case was \[
+E=-0.2564741176143438,\qquad |\Delta E|=5.0141481774\times 10^{-1},
+\] with fidelity only \[
+F\approx 5.81\times 10^{-8}.
+\] The best matrix lane there was \texttt{uccsd\_paop\_lf\_full}, not
+the more aggressively reduced families. Hence the completed reduced-pool
+matrix should be read as negative evidence for the current public
+reduced execution surface at \(L=3\), not as evidence that the
+historical \(L=3\) HH target itself is unattainable.
+
+For weak coupling, the transferred \(L=2\) reduced-pool line remained
+poor: \[
+E=-0.7632521982953032,\qquad |\Delta E|=1.3125332609\times10^{-2},
+\] so the matrix did not close the weak-coupling parent-quality gap
+there. By contrast, the transferred \(L=3\) weak baseline was
+numerically much better, \[
+E=-1.0439438365685594,\qquad |\Delta E|=4.1313925567\times10^{-4},
+\] with fidelity \[
+F=0.9998116001.
+\] That \(L=3\) weak result is still not a manuscript anchor, but it
+does show that the reduced families are not uniformly broken across all
+\(L=3\) HH regimes; the main failure is the strong-coupling \(L=3\)
+execution surface.
+
+To make that contrast explicit, the surviving historical broad-pool
+\(L=3\) reference from
+\texttt{artifacts/reports/hh\_heavy\_scaffold\_best\_yet\_20260321.md}
+was \[
+E=0.24502564220194084,\qquad |\Delta E|=8.4942074026\times10^{-5},
+\] while the matched lean comparison report
+\texttt{artifacts/reports/pareto\_lean\_vs\_heavy\_L3\_comparison.md}
+recorded the lean/class-pruned line at about \[
+|\Delta E|\approx 1.15\times10^{-4}.
+\] Both are therefore qualitatively incompatible with the present
+reconstructed direct-surface reruns, which all collapsed to the same bad
+basin.
+
+In particular, the explicit three-way reproduction run
+\texttt{artifacts/agent\_runs/20260404\_hh\_l3\_u4\_g05\_historical\_surface\_pool\_compare\_v1/}
+reconstructed the documented historical settings \[
+\texttt{phase3\_v1},\ \texttt{POWELL},\ \texttt{phase1 shortlist}=256,\ \texttt{phase2 shortlist}=128,\ \texttt{split}=\texttt{shortlist\_pauli\_children\_v1},
+\] and compared
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{full\_meta},
+\item
+  class-filtered \texttt{full\_meta},
+\item
+  \texttt{pareto\_lean\_l3}.
+\end{itemize}
+
+All three produced the same failed result, \[
+E=-0.25838912148429044,\qquad |\Delta E|=5.0332982161\times10^{-1},
+\] with negligible fidelity. Hence the current issue is not simply which
+reduced family is chosen. Rather, some additional execution-surface
+ingredient from the older successful \(L=3\) lane is still missing from
+the present direct CLI reconstruction.
+
+\hypertarget{appendix-raw-hf-start-direct-adapt-burdens-versus-historical-post-processed-fixed-scaffold-submissions}{%
+\paragraph{Appendix: raw HF-start direct ADAPT burdens versus historical
+post-processed / fixed-scaffold
+submissions}\label{appendix-raw-hf-start-direct-adapt-burdens-versus-historical-post-processed-fixed-scaffold-submissions}}
+
+To avoid conflating the heavy raw recent ADAPT replay artifacts with the
+older locked fixed-manifold scaffold family, the following tables record
+the exact transpile-style cost snapshots discussed during the April 7
+accounting pass.
+
+These counts are all on the same local hardware proxy surface, namely
+\texttt{FakeMarrakesh}, and they should be interpreted as scaffold
+burden rather than full campaign burden. In particular, the recent raw
+ADAPT ladders below are \emph{not} the old locked 6/7-term artifacts.
+
+Throughout this appendix, \textbf{raw HF-start direct ADAPT} means
+\texttt{adapt\_ref\_json\ =\ null} with no later JSON prune/recovery
+substitution. The post-processed \texttt{31/37/57}-2Q readapt/prune
+artifacts listed later are comparison-only and are not the object a
+fresh real-QPU ADAPT run from HF would execute.
+
+\hypertarget{a.-raw-hf-start-direct-adapt-replay-scaffold-burden-snapshots}{%
+\subparagraph{A. Raw HF-start direct ADAPT / replay scaffold burden
+snapshots}\label{a.-raw-hf-start-direct-adapt-replay-scaffold-burden-snapshots}}
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 12\tabcolsep) * \real{0.11}}
+  >{\raggedleft\arraybackslash}p{(\columnwidth - 12\tabcolsep) * \real{0.15}}
+  >{\raggedleft\arraybackslash}p{(\columnwidth - 12\tabcolsep) * \real{0.15}}
+  >{\raggedleft\arraybackslash}p{(\columnwidth - 12\tabcolsep) * \real{0.15}}
+  >{\raggedleft\arraybackslash}p{(\columnwidth - 12\tabcolsep) * \real{0.15}}
+  >{\raggedleft\arraybackslash}p{(\columnwidth - 12\tabcolsep) * \real{0.15}}
+  >{\raggedleft\arraybackslash}p{(\columnwidth - 12\tabcolsep) * \real{0.15}}@{}}
+\toprule
+Case & Logical blocks & Runtime rotations & Raw \texttt{cx} & Transpiled
+2Q & Depth & Size \\
+\midrule
+\endhead
+Noisy weak raw run (\texttt{20260407} ladder) & 19 & 47 & 142 & 221 &
+631 & 922 \\
+Noisy mid raw run (\texttt{20260407} ladder) & 21 & 53 & 154 & 256 & 697
+& 1084 \\
+Noisy high raw run (\texttt{20260407} ladder) & 23 & 56 & 160 & 262 &
+764 & 1113 \\
+Noiseless Math front-page anchor
+(\texttt{w5\_l2\_strong\_pareto\_lean\_b2c2k2\_f0p85\_0p85\_f1\_seed5})
+& 20 & 52 & 152 & 218 & 633 & 939 \\
+\bottomrule
+\end{longtable}
+
+Interpretation: the validated front-page
+\texttt{pareto\_lean\ +\ phase3\_v1} deployment anchor is still a heavy
+raw HF-start ADAPT replay scaffold on Marrakesh (\texttt{218} two-qubit
+gates), i.e.~it sits near the recent weak raw-noise lane and far above
+the post-processed prune/readapt and locked fixed-scaffold families. The
+lighter \texttt{81}-2Q direct HF-start winner is the separate scientific
+winner listed on the front page.
+
+\hypertarget{b.-historical-post-processed-or-fixed-scaffold-runtime-submissions}{%
+\subparagraph{B. Historical post-processed or fixed-scaffold runtime
+submissions}\label{b.-historical-post-processed-or-fixed-scaffold-runtime-submissions}}
+
+The next table isolates the \(L=2\) runtime submissions that were
+actually sent to the real \texttt{ibm\_marrakesh} backend. The listed
+two-qubit counts are obtained by transpiling the exact submitted
+scaffold artifacts on \texttt{FakeMarrakesh} with the same transpiler
+settings recorded in the runtime-result JSON.
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 10\tabcolsep) * \real{0.15}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 10\tabcolsep) * \real{0.15}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 10\tabcolsep) * \real{0.15}}
+  >{\raggedleft\arraybackslash}p{(\columnwidth - 10\tabcolsep) * \real{0.20}}
+  >{\raggedleft\arraybackslash}p{(\columnwidth - 10\tabcolsep) * \real{0.20}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 10\tabcolsep) * \real{0.15}}@{}}
+\toprule
+Real-QPU submission & Runtime source artifact & Runtime transpile
+settings & Transpiled 2Q & Depth & Notes \\
+\midrule
+\endhead
+\texttt{hh\_gatepruned7\_fixedtheta\_runtime\_ibm\_marrakesh\_20260323T145219Z\_direct}
+& \texttt{artifacts/json/hh\_prune\_nighthawk\_gate\_pruned\_7term.json}
+& \texttt{opt=1}, \texttt{seed=42} & 25 & 63 & Locked 7-term fixed-theta
+Marrakesh submission \\
+\texttt{hh\_readapt5\_energyonly\_runtime\_ibm\_marrakesh\_20260323T153244Z}
+& \texttt{artifacts/json/hh\_prune\_nighthawk\_readapt\_5op.json} &
+\texttt{opt=1}, \texttt{seed=7} & 37 & 126 & Post-prune/recovery runtime
+candidate; not fresh HF-start ADAPT \\
+\texttt{hh\_gatepruned6\_fixedtheta\_runtime\_ibm\_marrakesh\_20260323T171528Z}
+&
+\texttt{artifacts/json/hh\_marrakesh\_fixed\_scaffold\_6term\_drop\_eyezee\_20260323T171528Z.json}
+& \texttt{opt=1}, \texttt{seed=7} & 14 & 48 & Locked 6-term fixed-theta
+Marrakesh submission \\
+\bottomrule
+\end{longtable}
+
+So the historical real-QPU gate counts for the three recorded Marrakesh
+submissions were \[
+25,\qquad 37,\qquad 14
+\] two-qubit gates respectively for the locked 7-term, readapt-5, and
+locked 6-term submissions.
 
 \end{document}
