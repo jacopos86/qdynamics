@@ -1,10 +1,16 @@
+This repo should be optimized for AI Agents; Humans do not read this repo code nor interact with it except for PDFS of run results.
+
 ## Default working scope
 
 Default focus for coding tasks:
 - `src/`
+- `pipelines/static_adapt/`
+- `pipelines/time_dynamics/`
+- `pipelines/scaffold/`
 - `pipelines/hardcoded/`
+- `pipelines/reporting/`
 - `test/`
-- `pipelines/run_guide.md`
+- `run_guide.md`
 - `AGENTS.md`
 - `README.md`
 
@@ -39,9 +45,9 @@ The priority is **correctness and consistency of operator conventions**, not “
 ## 1) Non-negotiable conventions
 
 ### Runbook authority for operational workflows
-- For HH staging, run presets, and the new `ecut_1`/`ecut_2` interpretation, agents must consult `pipelines/run_guide.md` before editing pipeline invocation defaults, scaling tables, or manual run plans.
+- For HH staging, run presets, and the new `ecut_1`/`ecut_2` interpretation, agents must consult `run_guide.md` before editing pipeline invocation defaults, scaling tables, or manual run plans.
 - Treat this as the canonical source for execution contracts that are not operator-level invariants (e.g., thresholds, gating policy, and recommended run ladders).
-- Canonical doc order for agent decisions: `AGENTS.md` -> `pipelines/run_guide.md` -> `README.md` -> task-specific `MATH/` notes.
+- Canonical doc order for agent decisions: `AGENTS.md` -> `run_guide.md` -> `README.md` -> task-specific `MATH/` notes.
 - Root-level supporting docs for agents: `README.md` and task-specific `MATH/` notes.
 - Math naming contract for agents:
   - `MATH/Math.md` is the markdown authoring source for manuscript sync.
@@ -54,14 +60,28 @@ The priority is **correctness and consistency of operator conventions**, not “
 ### Skill-aware run/report routing
 - When the task is to **choose, plan, or execute** an HH run, agents should route through the `hh-experiment` skill **if that skill is available in the current agent environment**.
 - When the task is to **interpret, compare, or summarize** HH artifacts — or when a run has just completed — agents should route through the `hh-reporting` skill **if that skill is available in the current agent environment**.
-- These skills are **wrappers over this repo's authority docs**, not replacements for them. Authority order remains: `AGENTS.md` -> `pipelines/run_guide.md` -> `README.md`.
+- These skills are **wrappers over this repo's authority docs**, not replacements for them. Authority order remains: `AGENTS.md` -> `run_guide.md` -> `README.md`.
 - If a skill contract and repo policy ever diverge, agents must surface:
   - `AGENTS target`
   - `Skill/runtime behavior`
   - `Required action: ask user before proceeding`
-- Repo-facing run plans should follow the short objective-first run contract already captured in `pipelines/run_guide.md §0a`.
+- Repo-facing run plans should follow the short objective-first run contract already captured in `run_guide.md §0a`.
 - Repo-facing reports should mirror that contract, restate the original objective, and keep interpretation logic/math/physics-first rather than only repo-prose-first. The default report deliverable is a short in-chat retell in the compact three-line format `Objective<...>`, `Why/Intent<...>`, `Suggested Next step/how this fits into broader picture<...>`, with no blank lines and 1-3 sentences max per line.
 - After a completed run, the default repo-agent convention is to hand the artifact bundle to the reporting path for a short objective-aware retell. Only generate/update persistent report files when report output is in scope and the user has not narrowed the task to execution-only.
+
+### GPT export reveal rule
+- When the task creates a persistent GPT/Atlas/ChatGPT handoff markdown in `prompt-exports/`, agents must automatically reveal the final user-facing `.md` file in Finder after writing it.
+- Use `open -R <absolute-path>` on the final persistent export file.
+- Do this without asking the user for an extra confirmation.
+- Reveal the final GPT-facing export, not a temporary `/tmp` sender file.
+- If both a raw intermediate export and a final GPT-facing export exist, reveal the final GPT-facing export unless the user explicitly asks to inspect the raw intermediate too.
+
+### GPT export length rule
+- For GPT prompt exports in this repo, the default user-facing handoff should be much longer than the old compact style.
+- Treat the first concise draft as incomplete by default.
+- Expand the final GPT-facing export to about **2.5x** the length of that first short draft unless the user explicitly asks for brevity.
+- For HH exports, spend that added length on `MATH/Math.md`, notation, equations, quantitative comparisons, artifact evidence, commands, caveats, and unresolved tensions rather than repo-agent prose.
+- If a broad HH GPT export lands only around a few thousand words, assume it is still too short and expand it further before finalizing.
 
 ### Policy-vs-code conflict rule (mandatory)
 - If AGENTS policy and current code/CLI behavior diverge, agents must **stop and ask the user before proceeding**.
@@ -217,8 +237,9 @@ Three built-in patterns (`--drive-pattern`):
 | `custom` | User-supplied JSON array via `--drive-custom-s` |
 
 ### Rules for agents modifying drive code
-- Do **not** add new drive parameters without also updating: (1) both pipeline `parse_args()`, (2) the compare pipeline's `_build_drive_args()` and `_build_drive_args_with_amplitude()`, (3) `pipelines/run_guide.md`.
+- Do **not** add new drive parameters without also updating: (1) both pipeline `parse_args()`, (2) the compare pipeline's `_build_drive_args()` and `_build_drive_args_with_amplitude()`, (3) `run_guide.md`.
 - Drive must be **opt-in** (`--enable-drive`). Default behaviour (no flag) must be bit-for-bit identical to the static case.
+- Ground-state ADAPT is **static / undriven by default**; drive belongs to later dynamics or compare workflows unless a run explicitly opts in with drive flags.
 - All drive-related CLI args must have the `--drive-` prefix (except `--enable-drive` and `--exact-steps-multiplier`).
 - The safe-test (`_safe_test_check`) must remain: A=0 drive must produce trajectories identical to the no-drive case within `_SAFE_TEST_THRESHOLD = 1e-10`.
 
@@ -340,56 +361,27 @@ When the user says "run cross-check L=3" or "cross-check L 4":
 - JSON: `<output-dir>/xchk_L{L}_{problem}_t{t}_U{U}.json`
 - PDF: same path with `.pdf` — parameter manifest, scoreboard table, per-ansatz 3-panel trajectory plots (fidelity, energy, occupation), fidelity/energy/doublon overlay pages, command page.
 
-## 4f) CFQM propagation rules (`hubbard_pipeline.py`)
+## 4f) Trajectory propagation rules (`hubbard_pipeline.py`)
 
-CFQM support is available in the hardcoded pipeline via:
-- `--propagator cfqm4`
-- `--propagator cfqm6`
+The live hardcoded trajectory surface keeps:
+- `--propagator suzuki2`
+- `--propagator piecewise_exact`
 
-### CFQM semantics (must preserve)
-- CFQM node sampling is fixed by scheme nodes `c_j`; it does **not** use midpoint/left/right `--drive-time-sampling`.
-- `--exact-steps-multiplier` is reference-only (piecewise/reference refinement) and must not alter CFQM macro-step count.
-- Default behavior remains unchanged unless `--propagator` is switched from `suzuki2`.
-
-### Required warning strings (exact text)
-- `CFQM ignores midpoint/left/right sampling; uses fixed scheme nodes c_j.`
-- `Inner Suzuki-2 makes overall method 2nd order; use expm_multiply_sparse/dense_expm for true CFQM order.`
+### Propagation semantics (must preserve)
+- `suzuki2` is the only maintained approximate hardcoded propagator.
+- `piecewise_exact` remains the reference-style propagation option on the reported trajectory grid.
+- `--exact-steps-multiplier` is reference-only refinement; it must not change the reported Suzuki macro-step count.
 
 ### Invariants and guardrails
 - Keep A=0 safe-test invariant: drive-enabled run with `A=0` must match no-drive within `<= 1e-10`.
-- Keep zero-increment insertion guard in CFQM stage accumulation (do not insert new keys for exact-zero increments).
-- Keep deterministic stage assembly keyed by `ordered_labels`.
+- Keep deterministic ordered-label handling in drive assembly.
 - Drive labels not present in `ordered_labels` must not be inserted.
-- Current default policy: warn once per unknown label for nontrivial coefficients, then ignore; tiny coefficients (`abs(coeff) <= 1e-14`) are silently ignored.
-- Keep fail-fast validation for:
-  - `dt > 0`
-  - `n_steps >= 1`
-  - finite drive coefficients (NaN/inf -> explicit error with label/time)
-  - CFQM scheme validation (`validate_scheme`)
-
-### Backend rule
-- For `--cfqm-stage-exp expm_multiply_sparse`, prefer sparse-native stage assembly + `scipy.sparse.linalg.expm_multiply`.
-- Avoid dense intermediate stage matrices in the sparse backend path.
 - Shared Pauli action primitives live in `src/quantum/pauli_actions.py`; do not reintroduce `src/quantum` -> `pipelines/*` import dependency.
-
-### Normalization rule
-- No renormalization by default; renormalize only when `--cfqm-normalize` is explicitly enabled.
-
-### Benchmarking rule (CFQM vs Suzuki)
-- For propagator comparison reports, use hardware-oriented proxy budgets (at minimum 2-qubit/depth-style proxies such as `cx_proxy_total`) as the primary axis.
-- Local machine wall-clock is secondary and must not be the only headline comparison metric.
-- For efficiency reports generated by `pipelines/exact_bench/cfqm_vs_suzuki_efficiency_suite.py`, keep main apple-to-apple tables to exact-cost ties (`delta=0`) only.
-- Do not mix nearest-neighbor fallback matches into the same main comparison table; fallback rows belong in an appendix/diagnostic section only.
-- `S` in benchmark tables means macro-step count (`trotter_steps`) and must not be treated as fairness axis.
 
 ### Minimal post-edit verification commands
 
 ```bash
-# CFQM unit/acceptance tests
-pytest -q test/test_cfqm_schemes.py test/test_cfqm_propagator.py test/test_cfqm_acceptance.py
-
-# Help/flag sanity
-python pipelines/hardcoded/hubbard_pipeline.py --help | rg -n "propagator|cfqm-stage-exp|cfqm-coeff-drop-abs-tol|cfqm-normalize"
+python pipelines/hardcoded/hubbard_pipeline.py --help | rg -n "propagator|piecewise_exact|suzuki2"
 ```
 
 ## 4g) Codex-run HH warm cutoff + state handoff (no manual keypresses)
@@ -459,7 +451,7 @@ Qiskit baseline scripts may be used to sanity check, but they are not the core t
 - Do not introduce Qiskit into core/'hardcoded' algorithm modules.
 - Do not add heavy dependencies without a strong reason.
 - Do not "optimize" by rewriting algebra rules unless correctness is proven with regression tests.
-- Do not add new drive parameters without updating all three pipelines' `parse_args()`, `_build_drive_args()`, `_build_drive_args_with_amplitude()`, and `pipelines/run_guide.md`.
+- Do not add new drive parameters without updating all three pipelines' `parse_args()`, `_build_drive_args()`, `_build_drive_args_with_amplitude()`, and `run_guide.md`.
 - Do not break the safe-test invariant (A=0 drive must equal no-drive to machine precision).
 - Do not stop a run because you think it is taking up too much run-time. The only acceptable reason to stop/interrupt an already active run/script is for debugging.
 - **Do not run a pipeline with parameters below the §4d minimum table.** If the user does not specify parameters, look up the table — never guess or use L=2 defaults for larger L.

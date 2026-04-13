@@ -399,7 +399,7 @@ def test_workflow_runs_matched_family_replay_and_static_plus_drive_profiles(
     assert payload["pareto_tracking"]["rolling"]["ledger_row_count"] == 3
     assert Path(payload["artifacts"]["pareto"]["run_rows_json"]).exists()
     assert Path(payload["artifacts"]["pareto"]["rolling_frontier_json"]).exists()
-    assert calls["propagators"] == ["suzuki2", "cfqm4", "suzuki2", "cfqm4"]
+    assert calls["propagators"] == ["suzuki2", "suzuki2"]
     assert Path(cfg.artifacts.output_json).exists()
 
 

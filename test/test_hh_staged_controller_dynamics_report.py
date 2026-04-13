@@ -10,7 +10,7 @@ _REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 
-from pipelines.hardcoded.hh_staged_controller_dynamics_report import (
+from pipelines.reporting.hh_staged_controller_dynamics_report import (
     _interp_series,
     _set_fidelity_ylim_top_one,
     load_workflow_report_entry,
@@ -126,7 +126,7 @@ def _write_workflow_artifact(
                 "drive_pattern": "staggered",
                 "drive_time_sampling": "midpoint",
                 "drive_t0": 0.0,
-                "methods": ["cfqm4"],
+                "methods": ["suzuki2"],
                 "t_final": 0.1,
                 "num_times": 3,
                 "trotter_steps": 2,
@@ -156,7 +156,7 @@ def _write_workflow_artifact(
                         "t0": 0.0,
                     },
                     "methods": {
-                        "cfqm4": {
+                        "suzuki2": {
                             "trajectory": [
                                 {
                                     "time": 0.0,
@@ -203,7 +203,7 @@ def _write_workflow_artifact(
                         "t0": 0.0,
                     },
                     "methods": {
-                        "cfqm4": {
+                        "suzuki2": {
                             "modes": {
                                 "shots": {
                                     "trajectory": [

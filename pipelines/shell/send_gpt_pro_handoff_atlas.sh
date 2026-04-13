@@ -16,6 +16,8 @@ Options:
   --timeout SECONDS     Max wait time after opening Atlas. Default: 120.
   --wait-seconds SECS   Delay after opening the tab before pasting. Default: 6.
   --no-open-tab         Skip opening a new Atlas tab.
+  --no-reveal-prompt-file
+                        Do not reveal the original --prompt-file in Finder after send.
   --dry-run             Do not send; only write the temporary handoff file.
   --keep-file           Keep the temporary handoff file after execution.
   --print-final-file    Print the final handoff markdown to stdout.
@@ -30,6 +32,7 @@ chat_url="https://chatgpt.com/"
 timeout_sec=120
 wait_seconds=6
 open_tab=1
+reveal_prompt_file=1
 dry_run=0
 keep_file=0
 print_final_file=0
@@ -67,6 +70,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --no-open-tab)
       open_tab=0
+      shift
+      ;;
+    --no-reveal-prompt-file)
+      reveal_prompt_file=0
       shift
       ;;
     --dry-run)
@@ -114,6 +121,21 @@ fi
   exit 1
 }
 
+reveal_original_prompt_file() {
+  if [[ "$reveal_prompt_file" -ne 1 || -z "$prompt_file" ]]; then
+    return 0
+  fi
+  [[ -f "$prompt_file" ]] || return 0
+  local prompt_dir prompt_name prompt_abs
+  prompt_dir="$(cd "$(dirname "$prompt_file")" && pwd)"
+  prompt_name="$(basename "$prompt_file")"
+  prompt_abs="$prompt_dir/$prompt_name"
+  if command -v open >/dev/null 2>&1; then
+    open -R "$prompt_abs" || true
+    echo "Revealed in Finder: $prompt_abs" >&2
+  fi
+}
+
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 atlas_cli="$HOME/.codex/skills/atlas/scripts/atlas_cli.py"
 if [[ ! -f "$atlas_cli" ]]; then
@@ -144,6 +166,7 @@ fi
 echo "Handoff file: $tmp_md" >&2
 
 if [[ "$dry_run" -eq 1 ]]; then
+  reveal_original_prompt_file
   echo "Dry run: not sending" >&2
   exit 0
 fi
@@ -166,5 +189,7 @@ tell application "System Events"
   key code 36
 end tell
 APPLESCRIPT
+
+reveal_original_prompt_file
 
 echo "Sent via Atlas: $chat_url"

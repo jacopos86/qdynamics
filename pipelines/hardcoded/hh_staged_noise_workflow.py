@@ -39,7 +39,7 @@ from pipelines.hardcoded.imported_artifact_resolution import (
 )
 
 
-_ALLOWED_NOISY_METHODS = {"suzuki2", "cfqm4", "cfqm6"}
+_ALLOWED_NOISY_METHODS = {"suzuki2"}
 _ALLOWED_NOISE_MODES = {"ideal", "shots", "aer_noise", "runtime"}
 _ALLOWED_AUDIT_NOISE_MODES = {"ideal", "shots", "aer_noise", "runtime", "backend_scheduled"}
 
@@ -1633,7 +1633,6 @@ def _run_single_noisy_mode(
         "omp_shm_workaround": bool(noise_cfg.omp_shm_workaround),
         "method": str(method),
         "benchmark_active_coeff_tol": float(noise_cfg.benchmark_active_coeff_tol),
-        "cfqm_coeff_drop_abs_tol": float(staged_cfg.dynamics.cfqm_coeff_drop_abs_tol),
     }
     return noise_report._run_noisy_mode_isolated(
         kwargs=kwargs,

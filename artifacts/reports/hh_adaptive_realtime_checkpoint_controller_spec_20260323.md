@@ -10,7 +10,7 @@
 This spec is grounded in the following existing repo materials:
 
 - `MATH/Math.md` §17 — projective McLachlan geometry, normalized miss, Schur-complement gain, branch objective
-- `MATH/IMPLEMENT_SOON.md` — measurement reuse as a subsystem, continuation/controller objects, cache/planner interfaces
+- `notes/IMPLEMENT_SOON.md` — measurement reuse as a subsystem, continuation/controller objects, cache/planner interfaces
 - `artifacts/reports/investigation_hh_realtime_shortlist_measurement_reuse_20260323.md` — diagnosis of current gaps
 - `artifacts/reports/hh_prune_nighthawk_pareto_menu_20260322.md` — operator-level 5-op Re-ADAPT versus locked 7-term scaffold distinction
 - `artifacts/json/hh_prune_nighthawk_readapt_5op.json` — preferred operator-level adaptive scaffold object

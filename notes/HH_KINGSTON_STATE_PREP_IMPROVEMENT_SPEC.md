@@ -103,7 +103,7 @@ Primary current surfaces:
 - [pipelines/exact_bench/noise_oracle_runtime.py](/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/pipelines/exact_bench/noise_oracle_runtime.py)
 - [pipelines/hardcoded/hh_staged_cli_args.py](/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/pipelines/hardcoded/hh_staged_cli_args.py)
 - [pipelines/hardcoded/hh_staged_noise_workflow.py](/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/pipelines/hardcoded/hh_staged_noise_workflow.py)
-- [pipelines/run_guide.md](/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/pipelines/run_guide.md)
+- [run_guide.md](/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_fullclone_3/run_guide.md)
 
 Important current contract:
 - DD is treated as a saved-theta local probe, not optimizer-loop mitigation

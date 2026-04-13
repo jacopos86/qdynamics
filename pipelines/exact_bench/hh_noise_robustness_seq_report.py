@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
-"""HH noise-robustness sequential report (stage-transition + Magnus/Trotter).
+"""HH noise-robustness sequential report (stage-transition + Suzuki/Magnus).
 
 Pipeline sequence:
 1) HVA warm-start VQE
 2) ADAPT-VQE with Pool B strict union: UCCSD_lifted + HVA + PAOP_FULL
 3) Conventional VQE seeded from ADAPT final state
 
-Then audits noiseless dynamics (Suzuki-2, midpoint Magnus-2, CFQM4/CFQM6, exact)
-and noisy dynamics for selected methods (default: cfqm4,suzuki2) under
+Then audits noiseless dynamics (Suzuki-2, midpoint Magnus-2, exact)
+and noisy dynamics for selected methods (default: suzuki2) under
 ideal/shots/aer_noise for static + drive profiles.
 """
 
@@ -75,7 +75,6 @@ from src.quantum.operator_pools import make_pool as make_paop_pool
 from src.quantum.pauli_polynomial_class import PauliPolynomial
 from src.quantum.qubitization_module import PauliTerm
 from src.quantum.spsa_optimizer import spsa_minimize
-from src.quantum.time_propagation.cfqm_schemes import get_cfqm_scheme
 from src.quantum.ansatz_parameterization import project_runtime_theta_block_mean
 from src.quantum.vqe_latex_python_pairs import (
     AnsatzTerm,
@@ -150,7 +149,7 @@ _HH_MINIMUMS: dict[tuple[int, int], dict[str, Any]] = {
     (3, 1): {"trotter_steps": 192, "reps": 2, "restarts": 4, "maxiter": 2400, "method": "COBYLA"},
 }
 
-_NOISY_METHODS_ALLOWED = {"suzuki2", "cfqm4", "cfqm6"}
+_NOISY_METHODS_ALLOWED = {"suzuki2"}
 
 
 def _half_filled_particles(num_sites: int) -> tuple[int, int]:
@@ -2667,95 +2666,6 @@ def _build_suzuki2_time_dependent_circuit(
     return qc
 
 
-def _build_cfqm_stage_map_exyz(
-    *,
-    ordered_labels_exyz: list[str],
-    static_coeff_map_exyz: dict[str, complex],
-    drive_maps_exyz: list[dict[str, complex]],
-    a_row: list[float],
-    s_static: float,
-    coeff_drop_abs_tol: float,
-) -> dict[str, complex]:
-    ordered_set = set(ordered_labels_exyz)
-    stage_map: dict[str, complex] = {}
-
-    for lbl in ordered_labels_exyz:
-        coeff0 = static_coeff_map_exyz.get(lbl, 0.0 + 0.0j)
-        scaled = complex(float(s_static)) * complex(coeff0)
-        if scaled != 0.0:
-            stage_map[lbl] = scaled
-
-    for j, drive_map in enumerate(drive_maps_exyz):
-        w = float(a_row[j])
-        if w == 0.0:
-            continue
-        for lbl, coeff_drive in drive_map.items():
-            if lbl not in ordered_set:
-                continue
-            inc = complex(w) * complex(coeff_drive)
-            if inc == 0.0 and lbl not in stage_map:
-                continue
-            stage_map[lbl] = stage_map.get(lbl, 0.0 + 0.0j) + inc
-
-    drop = float(max(0.0, coeff_drop_abs_tol))
-    if drop > 0.0:
-        for lbl in list(stage_map):
-            if abs(stage_map[lbl]) < drop:
-                del stage_map[lbl]
-    return stage_map
-
-
-def _build_cfqm_time_dependent_circuit(
-    *,
-    method: str,
-    initial_circuit: QuantumCircuit,
-    ordered_labels_exyz: list[str],
-    static_coeff_map_exyz: dict[str, complex],
-    drive_provider_exyz: Any | None,
-    time_value: float,
-    trotter_steps: int,
-    drive_t0: float,
-    coeff_drop_abs_tol: float,
-) -> QuantumCircuit:
-    qc = initial_circuit.copy()
-    if abs(float(time_value)) <= 1e-15:
-        return qc
-
-    scheme = get_cfqm_scheme(str(method))
-    c_nodes = [float(x) for x in scheme["c"]]
-    a_rows = [[float(v) for v in row] for row in scheme["a"]]
-    s_static = [float(v) for v in scheme["s_static"]]
-
-    dt = float(time_value) / float(trotter_steps)
-    synthesis = SuzukiTrotter(order=2, reps=1, preserve_order=True)
-    qubits = list(range(int(initial_circuit.num_qubits)))
-
-    for step_idx in range(int(trotter_steps)):
-        t_abs = float(drive_t0) + float(step_idx) * float(dt)
-        drive_maps_exyz: list[dict[str, complex]] = []
-        for c_j in c_nodes:
-            t_node = float(t_abs) + float(c_j) * float(dt)
-            raw = {} if drive_provider_exyz is None else dict(drive_provider_exyz(float(t_node)))
-            drive_maps_exyz.append({str(k): complex(v) for k, v in raw.items()})
-
-        for k, a_row in enumerate(a_rows):
-            stage_map = _build_cfqm_stage_map_exyz(
-                ordered_labels_exyz=list(ordered_labels_exyz),
-                static_coeff_map_exyz=dict(static_coeff_map_exyz),
-                drive_maps_exyz=drive_maps_exyz,
-                a_row=[float(v) for v in a_row],
-                s_static=float(s_static[k]),
-                coeff_drop_abs_tol=float(coeff_drop_abs_tol),
-            )
-            qop = build_time_dependent_sparse_qop(
-                ordered_labels_exyz=ordered_labels_exyz,
-                static_coeff_map_exyz=static_coeff_map_exyz,
-                drive_coeff_map_exyz=stage_map,
-            )
-            qc.append(PauliEvolutionGate(qop, time=float(dt), synthesis=synthesis), qubits)
-    return qc
-
-
 def _pauli_weight(label_exyz: str) -> int:
     return int(sum(1 for ch in str(label_exyz) if ch in {"x", "y", "z"}))
 
@@ -2807,7 +2717,6 @@ def _compute_time_dynamics_proxy_cost(
     static_coeff_map_exyz: dict[str, complex],
     drive_provider_exyz: Any | None,
     active_coeff_tol: float,
-    coeff_drop_abs_tol: float,
 ) -> dict[str, int]:
     method_norm = str(method).strip().lower()
     if method_norm not in _NOISY_METHODS_ALLOWED:
@@ -2822,46 +2731,17 @@ def _compute_time_dynamics_proxy_cost(
     total_sq = 0
     dt = float(t_final) / float(trotter_steps)
 
-    if method_norm == "suzuki2":
-        for step_idx in range(int(trotter_steps)):
-            t_sample = _time_sample(step_idx, dt, str(drive_time_sampling))
-            raw = {} if drive_provider_exyz is None else dict(drive_provider_exyz(float(drive_t0) + float(t_sample)))
-            merged: dict[str, complex] = {}
-            for lbl in ordered_labels_exyz:
-                merged[lbl] = complex(static_coeff_map_exyz.get(lbl, 0.0 + 0.0j)) + complex(raw.get(lbl, 0.0))
-            active = _active_labels_exyz(merged, ordered_labels_exyz, float(active_coeff_tol))
-            sweep = _compute_sweep_proxy_cost(active)
-            total_term += int(sweep["term_exp_count"])
-            total_cx += int(sweep["cx_proxy"])
-            total_sq += int(sweep["sq_proxy"])
-    else:
-        scheme = get_cfqm_scheme(str(method_norm))
-        c_nodes = [float(x) for x in scheme["c"]]
-        a_rows = [[float(v) for v in row] for row in scheme["a"]]
-        s_static = [float(v) for v in scheme["s_static"]]
-
-        for step_idx in range(int(trotter_steps)):
-            t_abs = float(drive_t0) + float(step_idx) * float(dt)
-            drive_maps_exyz: list[dict[str, complex]] = []
-            for c_j in c_nodes:
-                t_node = float(t_abs) + float(c_j) * float(dt)
-                raw = {} if drive_provider_exyz is None else dict(drive_provider_exyz(float(t_node)))
-                drive_maps_exyz.append({str(k): complex(v) for k, v in raw.items()})
-
-            for k, a_row in enumerate(a_rows):
-                stage_map = _build_cfqm_stage_map_exyz(
-                    ordered_labels_exyz=list(ordered_labels_exyz),
-                    static_coeff_map_exyz=dict(static_coeff_map_exyz),
-                    drive_maps_exyz=drive_maps_exyz,
-                    a_row=[float(v) for v in a_row],
-                    s_static=float(s_static[k]),
-                    coeff_drop_abs_tol=float(coeff_drop_abs_tol),
-                )
-                active = _active_labels_exyz(stage_map, ordered_labels_exyz, float(active_coeff_tol))
-                sweep = _compute_sweep_proxy_cost(active)
-                total_term += int(sweep["term_exp_count"])
-                total_cx += int(sweep["cx_proxy"])
-                total_sq += int(sweep["sq_proxy"])
+    for step_idx in range(int(trotter_steps)):
+        t_sample = _time_sample(step_idx, dt, str(drive_time_sampling))
+        raw = {} if drive_provider_exyz is None else dict(drive_provider_exyz(float(drive_t0) + float(t_sample)))
+        merged: dict[str, complex] = {}
+        for lbl in ordered_labels_exyz:
+            merged[lbl] = complex(static_coeff_map_exyz.get(lbl, 0.0 + 0.0j)) + complex(raw.get(lbl, 0.0))
+        active = _active_labels_exyz(merged, ordered_labels_exyz, float(active_coeff_tol))
+        sweep = _compute_sweep_proxy_cost(active)
+        total_term += int(sweep["term_exp_count"])
+        total_cx += int(sweep["cx_proxy"])
+        total_sq += int(sweep["sq_proxy"])
 
     return {
         "term_exp_count_total": int(total_term),
@@ -3144,7 +3024,6 @@ def _run_noisy_method_trajectory(
     omp_shm_workaround: bool,
     method: str,
     benchmark_active_coeff_tol: float,
-    cfqm_coeff_drop_abs_tol: float,
 ) -> dict[str, Any]:
     t_wall_start = float(time.perf_counter())
     method_norm = str(method).strip().lower()
@@ -3215,31 +3094,18 @@ def _run_noisy_method_trajectory(
     with ExpectationOracle(noisy_cfg) as noisy_oracle, ExpectationOracle(ideal_cfg) as ideal_oracle:
         for t_val in times:
             t_circ0 = float(time.perf_counter())
-            if method_norm == "suzuki2":
-                qc_t = _build_suzuki2_time_dependent_circuit(
-                    initial_circuit=initial_circuit,
-                    ordered_labels_exyz=ordered_labels_exyz,
-                    static_coeff_map_exyz=static_coeff_map_exyz,
-                    drive_provider_exyz=drive_provider_exyz,
-                    time_value=float(t_val),
-                    trotter_steps=int(trotter_steps),
-                    drive_t0=float(0.0 if drive_profile is None else drive_profile.get("t0", 0.0)),
-                    drive_time_sampling=str(
-                        "midpoint" if drive_profile is None else drive_profile.get("time_sampling", "midpoint")
-                    ),
-                )
-            else:
-                qc_t = _build_cfqm_time_dependent_circuit(
-                    method=str(method_norm),
-                    initial_circuit=initial_circuit,
-                    ordered_labels_exyz=ordered_labels_exyz,
-                    static_coeff_map_exyz=static_coeff_map_exyz,
-                    drive_provider_exyz=drive_provider_exyz,
-                    time_value=float(t_val),
-                    trotter_steps=int(trotter_steps),
-                    drive_t0=float(0.0 if drive_profile is None else drive_profile.get("t0", 0.0)),
-                    coeff_drop_abs_tol=float(cfqm_coeff_drop_abs_tol),
-                )
+            qc_t = _build_suzuki2_time_dependent_circuit(
+                initial_circuit=initial_circuit,
+                ordered_labels_exyz=ordered_labels_exyz,
+                static_coeff_map_exyz=static_coeff_map_exyz,
+                drive_provider_exyz=drive_provider_exyz,
+                time_value=float(t_val),
+                trotter_steps=int(trotter_steps),
+                drive_t0=float(0.0 if drive_profile is None else drive_profile.get("t0", 0.0)),
+                drive_time_sampling=str(
+                    "midpoint" if drive_profile is None else drive_profile.get("time_sampling", "midpoint")
+                ),
+            )
             circuit_build_s_total += float(time.perf_counter() - t_circ0)
 
             if drive_provider_exyz is None:
@@ -3391,7 +3257,6 @@ def _run_noisy_method_trajectory(
         static_coeff_map_exyz=dict(static_coeff_map_exyz),
         drive_provider_exyz=drive_provider_exyz,
         active_coeff_tol=float(benchmark_active_coeff_tol),
-        coeff_drop_abs_tol=float(cfqm_coeff_drop_abs_tol),
     )
     benchmark_runtime = {
         "wall_total_s": float(time.perf_counter() - t_wall_start),
@@ -9027,9 +8892,6 @@ def _run_hardcoded_suzuki_profile(
             int(args.exact_steps_multiplier) if drive_profile is not None else 1
         ),
         propagator="suzuki2",
-        cfqm_stage_exp=str(args.cfqm_stage_exp),
-        cfqm_coeff_drop_abs_tol=float(args.cfqm_coeff_drop_abs_tol),
-        cfqm_normalize=bool(args.cfqm_normalize),
     )
 
     return {
@@ -9074,8 +8936,6 @@ def _run_noiseless_profile(
     methods = [
         ("suzuki2", "suzuki2"),
         ("magnus2", "piecewise_exact"),
-        ("cfqm4", "cfqm4"),
-        ("cfqm6", "cfqm6"),
     ]
 
     method_payloads: dict[str, Any] = {}
@@ -9108,9 +8968,6 @@ def _run_noiseless_profile(
                 int(args.exact_steps_multiplier) if drive_profile is not None else 1
             ),
             propagator=str(propagator_key),
-            cfqm_stage_exp=str(args.cfqm_stage_exp),
-            cfqm_coeff_drop_abs_tol=float(args.cfqm_coeff_drop_abs_tol),
-            cfqm_normalize=bool(args.cfqm_normalize),
         )
         if reference_rows is None:
             reference_rows = rows
@@ -9585,14 +9442,6 @@ def _build_equation_registry_and_contracts(payload: dict[str, Any]) -> tuple[dic
         source_keys=["dynamics_noiseless.profiles.*.methods.magnus2"],
     )
     _add(
-        "eq_cfqm",
-        latex=r"U_{\mathrm{CFQM}}(\Delta t)\approx\prod_{m} \exp[-i\,a_m\Delta t\,H(t+c_m\Delta t)]",
-        plain="Commutator-free Magnus stage product (CFQM4/CFQM6).",
-        symbols={"a_m,c_m": "scheme coefficients"},
-        units="unitary",
-        source_keys=["dynamics_noiseless.profiles.*.methods.cfqm4", "dynamics_noiseless.profiles.*.methods.cfqm6"],
-    )
-    _add(
         "eq_error_abs",
         latex=r"\epsilon_X(t)=|X_{\mathrm{approx}}(t)-X_{\mathrm{exact}}(t)|",
         plain="Absolute trajectory error metric.",
@@ -9638,13 +9487,13 @@ def _build_equation_registry_and_contracts(payload: dict[str, Any]) -> tuple[dic
         "notes": "Windowed abs-slope switching traces.",
     }
     for profile in profiles:
-        contracts[f"plot_{profile}_magnus_cfqm_overlay"] = {
+        contracts[f"plot_{profile}_method_overlay"] = {
             "x": "time grid",
-            "y": ["suzuki2.energy_total_trotter", "magnus2.energy_total_trotter", "cfqm4.energy_total_trotter", "cfqm6.energy_total_trotter", "exact.energy_total_exact"],
+            "y": ["suzuki2.energy_total_trotter", "magnus2.energy_total_trotter", "exact.energy_total_exact"],
             "source": [f"dynamics_noiseless.profiles.{profile}.methods.*.trajectory"],
             "notes": "Noiseless method comparison.",
         }
-        contracts[f"plot_{profile}_magnus_cfqm_error"] = {
+        contracts[f"plot_{profile}_method_error"] = {
             "x": "time grid",
             "y": ["|E_method-E_exact|", "|F_method-1|"],
             "source": [f"dynamics_noiseless.profiles.{profile}.methods.*.trajectory"],
@@ -9758,21 +9607,21 @@ def _build_caption_overrides(shots: int) -> dict[str, list[str]]:
             "Drive (final-seed trajectory): top F_sub, middle E_total, bottom doublon vs time.",
             "Exact reference vs noiseless ADAPT-HVA + Suzuki-2.",
         ],
-        "plot_static_magnus_cfqm_overlay": [
+        "plot_static_method_overlay": [
             "Static: noiseless integrator comparison - top E_total, bottom F_sub.",
-            "Methods: Suzuki-2 / Magnus-2 / CFQM4 / CFQM6; exact reference in black.",
+            "Methods: Suzuki-2 / Magnus-2; exact reference in black.",
         ],
-        "plot_static_magnus_cfqm_error": [
+        "plot_static_method_error": [
             "Static: integrator error vs exact - top |E-E_exact|, bottom (1-F_sub).",
-            "Smaller is better for ranking Suzuki-2 vs Magnus/CFQM baselines.",
+            "Smaller is better for ranking Suzuki-2 vs Magnus baselines.",
         ],
-        "plot_drive_magnus_cfqm_overlay": [
+        "plot_drive_method_overlay": [
             "Drive: noiseless integrator comparison - top E_total, bottom F_sub.",
-            "Methods: Suzuki-2 / Magnus-2 / CFQM4 / CFQM6; exact reference in black.",
+            "Methods: Suzuki-2 / Magnus-2; exact reference in black.",
         ],
-        "plot_drive_magnus_cfqm_error": [
+        "plot_drive_method_error": [
             "Drive: integrator error vs exact - top |E-E_exact|, bottom (1-F_sub).",
-            "Smaller is better for ranking Suzuki-2 vs Magnus/CFQM baselines.",
+            "Smaller is better for ranking Suzuki-2 vs Magnus baselines.",
         ],
         "plot_static_overlay_energy": [
             "Static: energy vs time - top E_total, bottom E_static.",
@@ -10106,8 +9955,6 @@ def _write_pdf(pdf_path: Path, payload: dict[str, Any]) -> None:
     method_style_lines = [
         "method suzuki2: #1f77b4",
         "method magnus2: #ff7f0e",
-        "method cfqm4  : #2ca02c",
-        "method cfqm6  : #d62728",
         "exact ref     : #111111",
     ]
     noise_style_lines = _noise_style_legend_lines()
@@ -10118,7 +9965,7 @@ def _write_pdf(pdf_path: Path, payload: dict[str, Any]) -> None:
     drive_enabled = bool(isinstance(drive_cfg, dict) and drive_cfg.get("enabled", False))
     selected_noisy_methods = _normalize_display_string_list(
         settings.get("noisy_methods"),
-        default=["cfqm4", "suzuki2"],
+        default=["suzuki2"],
     )
     selected_noise_modes = _normalize_display_string_list(
         settings.get("noise_modes"),
@@ -10143,7 +9990,7 @@ def _write_pdf(pdf_path: Path, payload: dict[str, Any]) -> None:
                 (report_stage_label("warm_start"), "hh_hva_ptw"),
                 (report_stage_label("adapt_pool_b"), "Pool B (UCCSD + HVA + PAOP_FULL)"),
                 (report_stage_label("conventional_vqe"), "hh_hva_ptw"),
-                ("Noiseless comparison methods", [report_method_label(name) for name in ("suzuki2", "magnus2", "cfqm4", "cfqm6")]),
+                ("Noiseless comparison methods", [report_method_label(name) for name in ("suzuki2", "magnus2")]),
             ],
         ),
         (
@@ -10233,7 +10080,7 @@ def _write_pdf(pdf_path: Path, payload: dict[str, Any]) -> None:
             sections=summary_sections,
             notes=[
                 f"Configured noisy method set: {', '.join(report_method_label(m) for m in selected_noisy_methods) or 'none'}.",
-                "Magnus / CFQM stay in the noiseless comparison matrix; method-level coverage is recorded in the benchmark appendix.",
+                "Suzuki and Magnus stay in the noiseless comparison matrix; method-level coverage is recorded in the benchmark appendix.",
             ],
         )
         render_section_divider_page(
@@ -10345,7 +10192,7 @@ def _write_pdf(pdf_path: Path, payload: dict[str, Any]) -> None:
         render_section_divider_page(
             pdf,
             title="Dynamics from final replay state",
-            summary="Noiseless comparison pages show exact reference versus final-state propagation with Suzuki, Magnus, and CFQM methods.",
+            summary="Noiseless comparison pages show exact reference versus final-state propagation with Suzuki and Magnus methods.",
             bullets=[
                 "Warm / ADAPT / final checkpoints do not appear as propagated branches here.",
                 "Method labels are presentation labels only; raw payload keys remain in sidecars.",
@@ -10358,13 +10205,13 @@ def _write_pdf(pdf_path: Path, payload: dict[str, Any]) -> None:
                     "SECTION: RESULTS METHOD COMPARISON",
                     "",
                     "Time-dynamics propagation disabled by --disable-time-dynamics.",
-                    "No Suzuki/Magnus/CFQM trajectory overlays are produced in this run.",
+                    "No Suzuki/Magnus trajectory overlays are produced in this run.",
                     "Noisy outputs are reported via final-state t=0 audit pages.",
                 ],
                 fontsize=10,
             )
 
-        # Noiseless overlays for static + drive (Magnus/CFQM extension)
+        # Noiseless overlays for static + drive (Suzuki/Magnus extension)
         for profile_name in ("static", "drive"):
             pdata = noiseless.get(profile_name)
             if not isinstance(pdata, dict):
@@ -10382,8 +10229,6 @@ def _write_pdf(pdf_path: Path, payload: dict[str, Any]) -> None:
             for name, color in [
                 ("suzuki2", "#1f77b4"),
                 ("magnus2", "#ff7f0e"),
-                ("cfqm4", "#2ca02c"),
-                ("cfqm6", "#d62728"),
             ]:
                 m = pdata.get("methods", {}).get(name, {})
                 traj = m.get("trajectory", [])
@@ -10404,13 +10249,13 @@ def _write_pdf(pdf_path: Path, payload: dict[str, Any]) -> None:
             axes[1].legend(fontsize=8, ncol=3)
             _annotate_plot_with_equations(
                 fig,
-                eq_ids=["eq_energy_total", "eq_subspace_fidelity", "eq_suzuki2", "eq_magnus2", "eq_cfqm"],
+                eq_ids=["eq_energy_total", "eq_subspace_fidelity", "eq_suzuki2", "eq_magnus2"],
                 equation_registry=equation_registry,
-                plot_id=f"plot_{profile_name}_magnus_cfqm_overlay",
+                plot_id=f"plot_{profile_name}_method_overlay",
                 plot_contracts=plot_contracts,
                 style_legend_lines=method_style_lines,
             )
-            used_eq_ids.update(["eq_energy_total", "eq_subspace_fidelity", "eq_suzuki2", "eq_magnus2", "eq_cfqm"])
+            used_eq_ids.update(["eq_energy_total", "eq_subspace_fidelity", "eq_suzuki2", "eq_magnus2"])
             fig.tight_layout()
             pdf.savefig(fig)
             plt.close(fig)
@@ -10421,8 +10266,6 @@ def _write_pdf(pdf_path: Path, payload: dict[str, Any]) -> None:
             for name, color in [
                 ("suzuki2", "#1f77b4"),
                 ("magnus2", "#ff7f0e"),
-                ("cfqm4", "#2ca02c"),
-                ("cfqm6", "#d62728"),
             ]:
                 traj = pdata.get("methods", {}).get(name, {}).get("trajectory", [])
                 if not traj:
@@ -10438,16 +10281,16 @@ def _write_pdf(pdf_path: Path, payload: dict[str, Any]) -> None:
             axes_err[1].set_xlabel("Time")
             axes_err[1].grid(alpha=0.25)
             axes_err[1].legend(fontsize=8, ncol=3)
-            axes_err[0].set_title(f"{profile_name}: Magnus/CFQM error-to-exact")
+            axes_err[0].set_title(f"{profile_name}: Suzuki/Magnus error-to-exact")
             _annotate_plot_with_equations(
                 fig_err,
-                eq_ids=["eq_error_abs", "eq_subspace_fidelity", "eq_suzuki2", "eq_magnus2", "eq_cfqm"],
+                eq_ids=["eq_error_abs", "eq_subspace_fidelity", "eq_suzuki2", "eq_magnus2"],
                 equation_registry=equation_registry,
-                plot_id=f"plot_{profile_name}_magnus_cfqm_error",
+                plot_id=f"plot_{profile_name}_method_error",
                 plot_contracts=plot_contracts,
                 style_legend_lines=method_style_lines,
             )
-            used_eq_ids.update(["eq_error_abs", "eq_subspace_fidelity", "eq_suzuki2", "eq_magnus2", "eq_cfqm"])
+            used_eq_ids.update(["eq_error_abs", "eq_subspace_fidelity", "eq_suzuki2", "eq_magnus2"])
             fig_err.tight_layout()
             pdf.savefig(fig_err)
             plt.close(fig_err)
@@ -11111,7 +10954,7 @@ def _write_pdf(pdf_path: Path, payload: dict[str, Any]) -> None:
             if rows:
                 render_compact_table(
                     ax,
-                    title="Noisy dynamics benchmark (Trotter vs CFQM under noise)",
+                    title="Noisy dynamics benchmark (Suzuki under noise)",
                     col_labels=headers,
                     rows=rows,
                     fontsize=7,
@@ -11319,9 +11162,6 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     p.add_argument("--trotter-steps", type=int, default=None)
     p.add_argument("--exact-steps-multiplier", type=int, default=2)
     p.add_argument("--fidelity-subspace-energy-tol", type=float, default=1e-9)
-    p.add_argument("--cfqm-stage-exp", choices=["expm_multiply_sparse", "dense_expm", "pauli_suzuki2"], default="expm_multiply_sparse")
-    p.add_argument("--cfqm-coeff-drop-abs-tol", type=float, default=0.0)
-    p.add_argument("--cfqm-normalize", action="store_true")
     p.add_argument("--disable-time-dynamics", action="store_true")
 
     p.add_argument("--include-drive-profile", action="store_true", default=True)
@@ -11336,7 +11176,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     p.add_argument("--drive-t0", type=float, default=0.0)
 
     p.add_argument("--noise-modes", type=str, default="ideal,shots,aer_noise")
-    p.add_argument("--noisy-methods", type=str, default="cfqm4,suzuki2")
+    p.add_argument("--noisy-methods", type=str, default="suzuki2")
     p.add_argument("--benchmark-active-coeff-tol", type=float, default=1e-12)
     p.add_argument("--shots", type=int, default=2048)
     p.add_argument("--oracle-repeats", type=int, default=4)
@@ -11667,7 +11507,6 @@ def main(argv: list[str] | None = None) -> None:
                         "omp_shm_workaround": bool(args.omp_shm_workaround),
                         "method": str(method),
                         "benchmark_active_coeff_tol": float(args.benchmark_active_coeff_tol),
-                        "cfqm_coeff_drop_abs_tol": float(args.cfqm_coeff_drop_abs_tol),
                     }
                     mode_result = _run_noisy_mode_isolated(
                         kwargs=kwargs,

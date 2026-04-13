@@ -496,7 +496,7 @@ Possible symbols to modify only if required:
 
 ---
 
-## 3.10 `pipelines/run_guide.md`
+## 3.10 `run_guide.md`
 
 ### Update docs to reflect reality
 Add a section stating:
@@ -680,7 +680,7 @@ pytest -q \
 - `pipelines/hardcoded/hh_staged_cli_args.py`
 - `pipelines/hardcoded/hh_staged_noise_workflow.py`
 - `pipelines/qiskit_backend_tools.py`
-- `pipelines/run_guide.md`
+- `run_guide.md`
 - `test/test_hh_noise_oracle_runtime.py`
 - `test/test_adapt_vqe_integration.py`
 - `test/test_hh_realtime_measurement.py`
@@ -714,7 +714,7 @@ Files to edit:
 - `pipelines/hardcoded/hh_staged_cli_args.py`
 - `pipelines/hardcoded/hh_staged_noise_workflow.py`
 - `pipelines/qiskit_backend_tools.py`
-- `pipelines/run_guide.md`
+- `run_guide.md`
 - `test/test_hh_noise_oracle_runtime.py`
 - `test/test_adapt_vqe_integration.py`
 - `test/test_hh_realtime_measurement.py`

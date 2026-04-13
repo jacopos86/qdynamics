@@ -20,12 +20,12 @@ def test_parse_args_noisy_benchmark_flags() -> None:
     args = parse_args(
         [
             "--noisy-methods",
-            "suzuki2,cfqm4",
+            "suzuki2",
             "--benchmark-active-coeff-tol",
             "1e-9",
         ]
     )
-    assert str(args.noisy_methods) == "suzuki2,cfqm4"
+    assert str(args.noisy_methods) == "suzuki2"
     assert float(args.benchmark_active_coeff_tol) == 1e-9
     assert bool(args.disable_time_dynamics) is False
 
@@ -63,7 +63,12 @@ def test_parse_args_disable_time_dynamics_flag() -> None:
 def test_mitigation_schema_defaults_and_caption() -> None:
     mit = _build_mitigation_config(mitigation="none", zne_scales=None, dd_sequence=None)
     sym = _build_symmetry_mitigation_config(mode="postselect_diag_v1", L=2, ordering="blocked")
-    assert mit == {"mode": "none", "zne_scales": [], "dd_sequence": None}
+    assert mit == {
+        "mode": "none",
+        "zne_scales": [],
+        "dd_sequence": None,
+        "local_readout_strategy": None,
+    }
     assert sym == {
         "mode": "postselect_diag_v1",
         "num_sites": 2,
@@ -87,14 +92,14 @@ def test_mitigation_schema_defaults_and_caption() -> None:
 
 
 def test_parse_noisy_methods_csv_validation() -> None:
-    assert _parse_noisy_methods_csv("suzuki2,cfqm4,suzuki2") == ["suzuki2", "cfqm4"]
+    assert _parse_noisy_methods_csv("suzuki2,suzuki2") == ["suzuki2"]
 
 
 def test_normalize_display_string_list_uses_defaults_when_missing() -> None:
-    assert _normalize_display_string_list(None, default=["cfqm4", "suzuki2"]) == ["cfqm4", "suzuki2"]
+    assert _normalize_display_string_list(None, default=["suzuki2"]) == ["suzuki2"]
     assert _normalize_display_string_list([], default=["ideal", "shots", "aer_noise"]) == ["ideal", "shots", "aer_noise"]
     assert _normalize_display_string_list(["shots", "aer_noise"], default=["ideal"]) == ["shots", "aer_noise"]
-    assert _normalize_display_string_list("cfqm4,suzuki2", default=["ideal"]) == ["cfqm4", "suzuki2"]
+    assert _normalize_display_string_list("suzuki2", default=["ideal"]) == ["suzuki2"]
 
 
 def test_pool_b_enforcement_passes_for_exact_family_set() -> None:
@@ -121,9 +126,9 @@ def test_pool_b_enforcement_fails_on_missing_family() -> None:
         assert "Pool B composition mismatch" in str(exc)
 
 
-def test_cfqm_proxy_cost_is_deterministic() -> None:
+def test_suzuki_proxy_cost_is_deterministic() -> None:
     kwargs = dict(
-        method="cfqm4",
+        method="suzuki2",
         t_final=1.0,
         trotter_steps=4,
         drive_t0=0.0,
@@ -132,7 +137,6 @@ def test_cfqm_proxy_cost_is_deterministic() -> None:
         static_coeff_map_exyz={"ee": 1.0 + 0.0j, "xz": 0.2 + 0.0j, "yy": -0.1 + 0.0j},
         drive_provider_exyz=None,
         active_coeff_tol=1e-12,
-        coeff_drop_abs_tol=0.0,
     )
     c1 = _compute_time_dynamics_proxy_cost(**kwargs)
     c2 = _compute_time_dynamics_proxy_cost(**kwargs)
@@ -141,8 +145,9 @@ def test_cfqm_proxy_cost_is_deterministic() -> None:
     assert int(c1["term_exp_count_total"]) > 0
 
 
-def test_suzuki_and_cfqm_proxy_cost_sanity() -> None:
-    base_kwargs = dict(
+def test_suzuki_proxy_cost_schema_and_sanity() -> None:
+    rec = _compute_time_dynamics_proxy_cost(
+        method="suzuki2",
         t_final=1.0,
         trotter_steps=4,
         drive_t0=0.0,
@@ -151,20 +156,16 @@ def test_suzuki_and_cfqm_proxy_cost_sanity() -> None:
         static_coeff_map_exyz={"ee": 1.0 + 0.0j, "xz": 0.2 + 0.0j, "yy": -0.1 + 0.0j},
         drive_provider_exyz=None,
         active_coeff_tol=1e-12,
-        coeff_drop_abs_tol=0.0,
     )
-    suz = _compute_time_dynamics_proxy_cost(method="suzuki2", **base_kwargs)
-    cfq = _compute_time_dynamics_proxy_cost(method="cfqm4", **base_kwargs)
-    for rec in (suz, cfq):
-        assert set(rec.keys()) == {
-            "term_exp_count_total",
-            "pauli_rot_count_total",
-            "cx_proxy_total",
-            "sq_proxy_total",
-            "depth_proxy_total",
-        }
-        assert int(rec["term_exp_count_total"]) >= 0
-        assert int(rec["depth_proxy_total"]) == int(rec["pauli_rot_count_total"])
+    assert set(rec.keys()) == {
+        "term_exp_count_total",
+        "pauli_rot_count_total",
+        "cx_proxy_total",
+        "sq_proxy_total",
+        "depth_proxy_total",
+    }
+    assert int(rec["term_exp_count_total"]) >= 0
+    assert int(rec["depth_proxy_total"]) == int(rec["pauli_rot_count_total"])
 
 
 def test_collect_noisy_benchmark_rows_schema_and_values() -> None:
@@ -198,41 +199,15 @@ def test_collect_noisy_benchmark_rows_schema_and_values() -> None:
                             }
                         }
                     },
-                    "cfqm4": {
-                        "modes": {
-                            "shots": {
-                                "success": True,
-                                "delta_uncertainty": {
-                                    "energy_total": {
-                                        "max_abs_delta": 0.015,
-                                        "max_abs_delta_over_stderr": 3.0,
-                                        "mean_abs_delta_over_stderr": 2.0,
-                                    }
-                                },
-                                "benchmark_cost": {
-                                    "term_exp_count_total": 88,
-                                    "pauli_rot_count_total": 88,
-                                    "cx_proxy_total": 180,
-                                    "sq_proxy_total": 300,
-                                    "depth_proxy_total": 88,
-                                },
-                                "benchmark_runtime": {
-                                    "wall_total_s": 1.10,
-                                    "oracle_eval_s_total": 0.48,
-                                    "oracle_calls_total": 120,
-                                },
-                            }
-                        }
-                    },
                 },
                 "modes": {},
             }
         }
     }
     rows = _collect_noisy_benchmark_rows(dyn_noisy)
-    assert len(rows) == 2
+    assert len(rows) == 1
     methods = {str(r["method"]) for r in rows}
-    assert methods == {"suzuki2", "cfqm4"}
+    assert methods == {"suzuki2"}
     for row in rows:
         assert set(row.keys()) == {
             "profile",

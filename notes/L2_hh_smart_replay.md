@@ -31,6 +31,6 @@
 - stop_reason: converged
 
 ## Artifacts
-- output_json: L2_hh_smart_replay.json
-- output_csv: L2_hh_smart_replay.csv
-- output_log: L2_hh_smart_replay.log
+- output_json: artifacts/useful/L2/root_smart_bundle_20260309/L2_hh_smart_replay.json
+- output_csv: artifacts/useful/L2/root_smart_bundle_20260309/L2_hh_smart_replay.csv
+- output_log: artifacts/useful/L2/root_smart_bundle_20260309/L2_hh_smart_replay.log

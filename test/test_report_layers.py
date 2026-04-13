@@ -13,7 +13,7 @@ from docs.reports.report_pages import (
 
 
 def test_report_label_registry_returns_readable_display_names() -> None:
-    assert report_method_label("cfqm4") == "CFQM4"
+    assert report_method_label("suzuki2") == "Suzuki-2"
     assert report_stage_label("adapt_pool_b") == "ADAPT Pool-B"
     assert report_branch_label("trotter_hva") == "Trotter HVA replay"
     assert report_metric_label("max_abs_delta_over_stderr") == "Max |Δ| / stderr"

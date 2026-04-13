@@ -71,7 +71,7 @@ from src.quantum.hubbard_latex_python_pairs import (
 )
 
 
-_ALLOWED_NOISELESS_METHODS = ("suzuki2", "cfqm4", "cfqm6", "piecewise_exact")
+_ALLOWED_NOISELESS_METHODS = ("suzuki2", "piecewise_exact")
 
 
 @dataclass(frozen=True)
@@ -209,9 +209,6 @@ class DynamicsConfig:
     trotter_steps: int
     exact_steps_multiplier: int
     fidelity_subspace_energy_tol: float
-    cfqm_stage_exp: str
-    cfqm_coeff_drop_abs_tol: float
-    cfqm_normalize: bool
     enable_drive: bool
     drive_A: float
     drive_omega: float
@@ -986,9 +983,6 @@ def resolve_staged_hh_config(args: Any) -> StagedHHConfig:
         trotter_steps=int(cfg_values["trotter_steps"]),
         exact_steps_multiplier=int(cfg_values["exact_steps_multiplier"]),
         fidelity_subspace_energy_tol=float(getattr(args, "fidelity_subspace_energy_tol")),
-        cfqm_stage_exp=str(getattr(args, "cfqm_stage_exp")),
-        cfqm_coeff_drop_abs_tol=float(getattr(args, "cfqm_coeff_drop_abs_tol")),
-        cfqm_normalize=bool(getattr(args, "cfqm_normalize")),
         enable_drive=bool(getattr(args, "enable_drive")),
         drive_A=float(getattr(args, "drive_A")),
         drive_omega=float(getattr(args, "drive_omega")),
@@ -1776,9 +1770,6 @@ def _run_noiseless_profile(
             drive_time_sampling=str(cfg.dynamics.drive_time_sampling),
             exact_steps_multiplier=(int(cfg.dynamics.exact_steps_multiplier) if drive_enabled else 1),
             propagator=str(method),
-            cfqm_stage_exp=str(cfg.dynamics.cfqm_stage_exp),
-            cfqm_coeff_drop_abs_tol=float(cfg.dynamics.cfqm_coeff_drop_abs_tol),
-            cfqm_normalize=bool(cfg.dynamics.cfqm_normalize),
         )
         rows_with_metrics: list[dict[str, Any]] = []
         for row in rows:
@@ -1809,9 +1800,6 @@ def _run_noiseless_profile(
                 "trotter_steps": int(cfg.dynamics.trotter_steps),
                 "num_times": int(cfg.dynamics.num_times),
                 "t_final": float(cfg.dynamics.t_final),
-                "cfqm_stage_exp": str(cfg.dynamics.cfqm_stage_exp),
-                "cfqm_coeff_drop_abs_tol": float(cfg.dynamics.cfqm_coeff_drop_abs_tol),
-                "cfqm_normalize": bool(cfg.dynamics.cfqm_normalize),
             },
         }
 

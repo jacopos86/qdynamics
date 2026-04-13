@@ -105,6 +105,7 @@ class CandidateFeatures:
     phase3_burden_total: float | None = None
     selector_score: float | None = None
     selector_burden: float | None = None
+    selector_geometry_mode: str = "reduced"
     controller_snapshot: dict[str, Any] | None = None
     phase1_shortlisted: bool = False
     phase2_shortlisted: bool = False
@@ -192,6 +193,7 @@ class FullScoreConfig:
     reduced_metric_collapse_rel_tol: float = 1e-8
     ridge_growth_factor: float = 10.0
     ridge_max_steps: int = 12
+    phase3_selector_geometry_mode: str = "reduced"
     score_version: str = "full_v2"
 
 
@@ -1560,6 +1562,15 @@ def build_full_candidate_features(
         remaining_evaluations_proxy_mode=str(cfg.remaining_evaluations_proxy_mode),
     )
     score, fallback_mode = full_v2_score(feat, cfg)
+    selector_geometry_mode = str(getattr(cfg, "phase3_selector_geometry_mode", "reduced")).strip().lower()
+    if selector_geometry_mode not in {"reduced", "raw_exact"}:
+        selector_geometry_mode = "reduced"
+    phase3_burden_total = float(_cheap_burden_total(feat, cfg))
+    selector_score = float(score)
+    selector_burden = float(phase3_burden_total)
+    if selector_geometry_mode == "raw_exact":
+        selector_score = float(feat.phase2_raw_score or 0.0)
+        selector_burden = float(feat.phase2_burden_total or phase3_burden_total)
     return _replace_feature(
         feat,
         full_v2_score=float(score),
@@ -1572,9 +1583,10 @@ def build_full_candidate_features(
                 float(cfg.rho),
             )
         ),
-        phase3_burden_total=float(_cheap_burden_total(feat, cfg)),
-        selector_score=float(score),
-        selector_burden=float(_cheap_burden_total(feat, cfg)),
+        phase3_burden_total=float(phase3_burden_total),
+        selector_score=float(selector_score),
+        selector_burden=float(selector_burden),
+        selector_geometry_mode=str(selector_geometry_mode),
         actual_fallback_mode=str(fallback_mode),
     )
 

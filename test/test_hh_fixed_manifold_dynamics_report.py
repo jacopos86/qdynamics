@@ -5,8 +5,8 @@ from pathlib import Path
 
 import pytest
 
-import pipelines.hardcoded.hh_fixed_manifold_dynamics_report as report_mod
-from pipelines.hardcoded.hh_fixed_manifold_dynamics_report import (
+import pipelines.reporting.hh_fixed_manifold_dynamics_report as report_mod
+from pipelines.reporting.hh_fixed_manifold_dynamics_report import (
     load_report_entry,
     write_fixed_manifold_dynamics_pdf,
 )

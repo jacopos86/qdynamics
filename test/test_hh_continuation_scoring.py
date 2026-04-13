@@ -564,6 +564,124 @@ def test_build_full_candidate_features_preserves_phase3_cheap_fields() -> None:
     assert feat.F_metric == pytest.approx(feat.cheap_metric_proxy)
 
 
+def test_build_full_candidate_features_selector_score_defaults_to_reduced_geometry() -> None:
+    psi_ref = np.zeros(2, dtype=complex)
+    psi_ref[0] = 1.0 + 0.0j
+    oracle = Phase1CompileCostOracle()
+    meas = MeasurementCacheAudit()
+    metric_exact = raw_f_metric_from_state(
+        psi_state=psi_ref,
+        candidate_label="x",
+        candidate_term=_term("x"),
+        compiled_cache={},
+        pauli_action_cache={},
+    )
+    base = build_candidate_features(
+        stage_name="core",
+        candidate_label="x",
+        candidate_family="core",
+        candidate_pool_index=0,
+        position_id=1,
+        append_position=1,
+        positions_considered=[1],
+        gradient_signed=0.3,
+        metric_proxy=float(metric_exact),
+        sigma_hat=0.0,
+        refit_window_indices=[0],
+        compile_cost=oracle.estimate(candidate_term_count=1, position_id=1, append_position=1, refit_active_count=1),
+        measurement_stats=meas.estimate(["x"]),
+        leakage_penalty=0.0,
+        stage_gate_open=True,
+        leakage_gate_open=True,
+        trough_probe_triggered=False,
+        trough_detected=False,
+        cfg=SimpleScoreConfig(),
+        cheap_score_cfg=FullScoreConfig(),
+    )
+    scaffold_context, h_compiled = _scaffold_context(
+        psi_state=psi_ref,
+        selected_ops=[_term("x")],
+        theta=[0.0],
+        refit_window_indices=[0],
+    )
+    feat = build_full_candidate_features(
+        base_feature=base,
+        candidate_term=_term("x"),
+        cfg=FullScoreConfig(shortlist_size=2, phase3_selector_geometry_mode="reduced"),
+        novelty_oracle=Phase2NoveltyOracle(),
+        curvature_oracle=Phase2CurvatureOracle(),
+        scaffold_context=scaffold_context,
+        h_compiled=h_compiled,
+        compiled_cache={},
+        pauli_action_cache={},
+        optimizer_memory=None,
+    )
+    assert feat.full_v2_score is not None
+    assert feat.phase2_raw_score is not None
+    assert feat.selector_geometry_mode == "reduced"
+    assert float(feat.selector_score or 0.0) == pytest.approx(float(feat.full_v2_score or 0.0))
+    assert float(feat.phase_score_components["selector_score"]) == pytest.approx(float(feat.full_v2_score or 0.0))
+
+
+def test_build_full_candidate_features_selector_score_can_use_raw_exact_geometry() -> None:
+    psi_ref = np.zeros(2, dtype=complex)
+    psi_ref[0] = 1.0 + 0.0j
+    oracle = Phase1CompileCostOracle()
+    meas = MeasurementCacheAudit()
+    metric_exact = raw_f_metric_from_state(
+        psi_state=psi_ref,
+        candidate_label="x",
+        candidate_term=_term("x"),
+        compiled_cache={},
+        pauli_action_cache={},
+    )
+    base = build_candidate_features(
+        stage_name="core",
+        candidate_label="x",
+        candidate_family="core",
+        candidate_pool_index=0,
+        position_id=1,
+        append_position=1,
+        positions_considered=[1],
+        gradient_signed=0.3,
+        metric_proxy=float(metric_exact),
+        sigma_hat=0.0,
+        refit_window_indices=[0],
+        compile_cost=oracle.estimate(candidate_term_count=1, position_id=1, append_position=1, refit_active_count=1),
+        measurement_stats=meas.estimate(["x"]),
+        leakage_penalty=0.0,
+        stage_gate_open=True,
+        leakage_gate_open=True,
+        trough_probe_triggered=False,
+        trough_detected=False,
+        cfg=SimpleScoreConfig(),
+        cheap_score_cfg=FullScoreConfig(),
+    )
+    scaffold_context, h_compiled = _scaffold_context(
+        psi_state=psi_ref,
+        selected_ops=[_term("x")],
+        theta=[0.0],
+        refit_window_indices=[0],
+    )
+    feat = build_full_candidate_features(
+        base_feature=base,
+        candidate_term=_term("x"),
+        cfg=FullScoreConfig(shortlist_size=2, phase3_selector_geometry_mode="raw_exact"),
+        novelty_oracle=Phase2NoveltyOracle(),
+        curvature_oracle=Phase2CurvatureOracle(),
+        scaffold_context=scaffold_context,
+        h_compiled=h_compiled,
+        compiled_cache={},
+        pauli_action_cache={},
+        optimizer_memory=None,
+    )
+    assert feat.full_v2_score is not None
+    assert feat.phase2_raw_score is not None
+    assert feat.selector_geometry_mode == "raw_exact"
+    assert float(feat.selector_score or 0.0) == pytest.approx(float(feat.phase2_raw_score or 0.0))
+    assert float(feat.phase_score_components["selector_score"]) == pytest.approx(float(feat.phase2_raw_score or 0.0))
+
+
 def _full_record(
     *,
     label: str,

@@ -5,8 +5,6 @@ from typing import Mapping
 _METHOD_LABELS: dict[str, str] = {
     "suzuki2": "Suzuki-2",
     "magnus2": "Magnus-2",
-    "cfqm4": "CFQM4",
-    "cfqm6": "CFQM6",
     "piecewise_exact": "Piecewise exact",
     "exact": "Exact reference",
     "ideal": "Ideal estimator",
@@ -52,7 +50,6 @@ _TOKEN_REWRITES: dict[str, str] = {
     "vqe": "VQE",
     "qpe": "QPE",
     "paop": "PAOP",
-    "cfqm": "CFQM",
     "hh": "HH",
     "jw": "JW",
     "gs": "GS",

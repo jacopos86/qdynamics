@@ -10,7 +10,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from pipelines.hardcoded.hh_staged_noiseless_exact_report import (
+from pipelines.reporting.hh_staged_noiseless_exact_report import (
     load_noiseless_series,
     write_noiseless_exact_report,
 )
@@ -33,7 +33,7 @@ def _write_payload(path: Path) -> None:
             },
             "dynamics": {
                 "enable_drive": True,
-                "methods": ["cfqm4"],
+                "methods": ["suzuki2"],
                 "t_final": 1.0,
                 "num_times": 3,
                 "trotter_steps": 8,
@@ -51,7 +51,7 @@ def _write_payload(path: Path) -> None:
                 "drive": {
                     "times": [0.0, 0.5, 1.0],
                     "methods": {
-                        "cfqm4": {
+                        "suzuki2": {
                             "trajectory": [
                                 {
                                     "time": 0.0,
@@ -98,7 +98,7 @@ def test_load_noiseless_series_and_write_pdf(tmp_path: Path) -> None:
     output_pdf = tmp_path / "workflow.pdf"
     _write_payload(input_json)
 
-    series = load_noiseless_series(json.loads(input_json.read_text()), profile="drive", method="cfqm4")
+    series = load_noiseless_series(json.loads(input_json.read_text()), profile="drive", method="suzuki2")
     assert series.times.tolist() == [0.0, 0.5, 1.0]
     assert series.fidelity.tolist() == [1.0, 0.999, 0.997]
     assert series.abs_energy_total_error.tolist() == pytest.approx([0.0, 0.01, 0.01])
@@ -107,7 +107,7 @@ def test_load_noiseless_series_and_write_pdf(tmp_path: Path) -> None:
         input_json=input_json,
         output_pdf=output_pdf,
         profile="drive",
-        method="cfqm4",
+        method="suzuki2",
         run_command="python report.py --input-json workflow.json",
     )
 

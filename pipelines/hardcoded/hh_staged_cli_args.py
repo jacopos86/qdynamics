@@ -537,19 +537,12 @@ def add_staged_hh_base_args(p: argparse.ArgumentParser) -> argparse.ArgumentPars
     )
 
     # Dynamics
-    p.add_argument("--noiseless-methods", type=str, default="suzuki2,cfqm4")
+    p.add_argument("--noiseless-methods", type=str, default="suzuki2")
     p.add_argument("--t-final", type=float, default=None)
     p.add_argument("--num-times", type=int, default=None)
     p.add_argument("--trotter-steps", type=int, default=None)
     p.add_argument("--exact-steps-multiplier", type=int, default=None)
     p.add_argument("--fidelity-subspace-energy-tol", type=float, default=1e-9)
-    p.add_argument(
-        "--cfqm-stage-exp",
-        choices=["expm_multiply_sparse", "dense_expm", "pauli_suzuki2"],
-        default="expm_multiply_sparse",
-    )
-    p.add_argument("--cfqm-coeff-drop-abs-tol", type=float, default=0.0)
-    p.add_argument("--cfqm-normalize", action="store_true")
 
     # Drive remains opt-in for this wrapper.
     p.add_argument("--enable-drive", action="store_true")
@@ -586,7 +579,7 @@ def add_staged_hh_noise_args(p: argparse.ArgumentParser) -> argparse.ArgumentPar
         default=None,
         help="Audit-only noise modes for imported prepared-state/full-circuit audits; defaults to ideal,backend_scheduled in import mode.",
     )
-    p.add_argument("--noisy-methods", type=str, default="cfqm4,suzuki2")
+    p.add_argument("--noisy-methods", type=str, default="suzuki2")
     p.add_argument("--benchmark-active-coeff-tol", type=float, default=1e-12)
     p.add_argument("--shots", type=int, default=2048)
     p.add_argument("--oracle-repeats", type=int, default=4)

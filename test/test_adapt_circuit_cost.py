@@ -234,6 +234,55 @@ def test_reconstruct_imported_adapt_circuit_requires_ansatz_input_state_for_embe
     assert bundle["ansatz_input_state"] is not None
 
 
+def test_reconstruct_imported_adapt_circuit_accepts_child_set_metadata_only() -> None:
+    label = "g_parent::child_set[0]"
+    payload = {
+        "settings": {
+            "L": 1,
+            "t": 1.0,
+            "u": 4.0,
+            "dv": 0.0,
+            "omega0": 1.0,
+            "g_ep": 0.5,
+            "n_ph_max": 1,
+            "boson_encoding": "binary",
+            "ordering": "blocked",
+            "boundary": "open",
+            "adapt_pool": "full_meta",
+        },
+        "adapt_vqe": {
+            "operators": [label],
+            "optimal_point": [0.3],
+        },
+        "ansatz_input_state": {
+            "source": "hf",
+            "handoff_state_kind": "reference_state",
+            "nq_total": 3,
+            "amplitudes_qn_to_q0": {"100": {"re": 1.0, "im": 0.0}},
+        },
+        "continuation": {
+            "selected_generator_metadata": [
+                {
+                    "candidate_label": label,
+                    "compile_metadata": {
+                        "serialized_terms_exyz": [
+                            {"pauli_exyz": "xee", "coeff_re": 1.0, "coeff_im": 0.0, "nq": 3},
+                            {"pauli_exyz": "zee", "coeff_re": 0.25, "coeff_im": 0.0, "nq": 3},
+                        ]
+                    },
+                }
+            ]
+        },
+    }
+
+    bundle = reconstruct_imported_adapt_circuit(payload)
+
+    assert int(bundle["layout"].logical_parameter_count) == 1
+    assert bundle["layout"].blocks[0].candidate_label == label
+    assert int(bundle["num_qubits"]) == 3
+    assert np.allclose(bundle["theta_runtime"], [0.3])
+
+
 def _fake_compile_bundle() -> dict[str, object]:
     qc = QuantumCircuit(2)
     qc.h(0)

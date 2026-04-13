@@ -207,6 +207,15 @@ Best reduced-pool direct line &
 Wide-shortlist direct comparison &
 \texttt{campaign\_A7c\_L2\_shortlist\_wide\_phase3\_v1} &
 \texttt{full\_meta} & \texttt{5.6178234644e-05} & 14 & 30 & 116 & 310 \\
+Current-code reproduction of March 22 low-energy regime &
+\texttt{20260409\_hh\_l2\_hist81\_repro\_powell\_histbare\_d16\_v1} &
+\texttt{full\_meta} historicalized POWELL surface &
+\texttt{5.7217492583e-05} & 17 & 54 & 265 & 786 \\
+Best current native recovery branch on today's diagnostic surface &
+\texttt{20260409\_hh\_l2\_children\_repeat\_bridge\_diag\_v1}
+(\texttt{children\_off\ +\ repeats\_off\ +\ hist}) & \texttt{full\_meta}
+diagnostic bridge surface & \texttt{5.6178241861e-05} & 13 & 36 & 160 &
+408 \\
 Validated April 5 deployment anchor &
 \texttt{pareto\_lean\ +\ phase3\_v1\ +\ SPSA} & \texttt{pareto\_lean} &
 \texttt{1.0822209459e-04} & 20 & 52 & 218 & 633 \\
@@ -221,6 +230,118 @@ anchor on the public CLI surface.
 The post-processed \texttt{31/37/57}-2Q prune/readapt artifacts are
 \textbf{not} the object a fresh real-QPU ADAPT run from HF would
 execute. They remain useful comparison context only.
+
+\hypertarget{current-native-recovery-note-april-9-2026}{%
+\subsubsection{Current native recovery note (April 9,
+2026)}\label{current-native-recovery-note-april-9-2026}}
+
+The new \texttt{children\_off\ +\ repeats\_off\ +\ hist} branch from
+\texttt{20260409\_hh\_l2\_children\_repeat\_bridge\_diag\_v1} deserves
+front-page visibility because it is the best \textbf{current-code native
+recovery branch} on today's diagnostic/public surface:
+
+\[
+|\Delta E|=5.6178241861\times 10^{-5},\qquad
+F=0.9999719078,
+\]
+
+with \texttt{13} logical operators, \texttt{36} runtime parameters, and
+\texttt{160} transpiled two-qubit gates at depth \texttt{408} on
+\texttt{FakeMarrakesh}.
+
+This is \textbf{not} the absolute historical raw HF-start winner; the
+March 22 \texttt{81}-2Q \texttt{full\_meta} artifact remains lighter
+overall. What makes the April 9 branch important is different: it is the
+first current diagnostic line that re-enters the good native basin while
+simultaneously showing that disabling children and literal repeats helps
+native recovery.
+
+It still does \textbf{not} recover the historical lean family exactly.
+Relative to the historical targets, it reaches \texttt{9/10} bridge
+overlap and \texttt{5/6} lean overlap, with the remaining extras
+concentrated in
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{paop\_full:paop\_disp(site=1)}
+\item
+  \texttt{paop\_lf\_full:paop\_dbl\_p(site=0-\textgreater{}phonon=1)}
+\item
+  \texttt{paop\_lf\_full:paop\_dbl\_p(site=1-\textgreater{}phonon=0)}
+\item
+  \texttt{paop\_full:paop\_hopdrag(0,1)}
+\end{itemize}
+
+This diagnostic result matters because it isolates the current native
+failure mode more sharply than the older heavy broad-pool lines: the
+good basin is real, but some quadrature and inside-family extras are
+still acting as \textbf{path operators} rather than merely removable
+terminal clutter.
+
+\hypertarget{current-code-reproduction-of-the-march-22-low-energy-regime}{%
+\subsubsection{Current-code reproduction of the March 22 low-energy
+regime}\label{current-code-reproduction-of-the-march-22-low-energy-regime}}
+
+The March 22 \texttt{81}-2Q \texttt{full\_meta} line is still a real
+historical raw HF-start winner, but current code does \textbf{not}
+replay that exact burden from its historical settings block. What
+current code \textbf{does} reproduce is the same low-energy regime on a
+historicalized POWELL surface with a hard cap at the first in-run depth
+that re-enters the target band.
+
+The saved current-code replay is
+
+\[
+|\Delta E|=5.7217492583\times 10^{-5},
+\]
+
+from
+\texttt{20260409\_hh\_l2\_hist81\_repro\_powell\_histbare\_d16\_v1},
+with \texttt{17} logical blocks, \texttt{54} runtime parameters, and
+\texttt{265} transpiled two-qubit gates at depth \texttt{786} on
+\texttt{FakeMarrakesh}.
+
+So this run should be interpreted as a \textbf{current-code low-energy
+reproduction}, not as a faithful current reproduction of the historical
+\texttt{81}-2Q scaffold burden.
+
+\textbf{Exact current-code replay CLI}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\ExtensionTok{python}\NormalTok{ pipelines/hardcoded/adapt\_pipeline.py }\DataTypeTok{\textbackslash{}}
+  \AttributeTok{{-}{-}L}\NormalTok{ 2 }\AttributeTok{{-}{-}problem}\NormalTok{ hh }\AttributeTok{{-}{-}t}\NormalTok{ 1.0 }\AttributeTok{{-}{-}u}\NormalTok{ 4.0 }\AttributeTok{{-}{-}dv}\NormalTok{ 0.0 }\AttributeTok{{-}{-}omega0}\NormalTok{ 1.0 }\AttributeTok{{-}{-}g{-}ep}\NormalTok{ 0.5 }\AttributeTok{{-}{-}n{-}ph{-}max}\NormalTok{ 1 }\DataTypeTok{\textbackslash{}}
+  \AttributeTok{{-}{-}boson{-}encoding}\NormalTok{ binary }\AttributeTok{{-}{-}ordering}\NormalTok{ blocked }\AttributeTok{{-}{-}boundary}\NormalTok{ open }\AttributeTok{{-}{-}term{-}order}\NormalTok{ sorted }\DataTypeTok{\textbackslash{}}
+  \AttributeTok{{-}{-}adapt{-}pool}\NormalTok{ full\_meta }\AttributeTok{{-}{-}adapt{-}continuation{-}mode}\NormalTok{ phase3\_v1 }\DataTypeTok{\textbackslash{}}
+  \AttributeTok{{-}{-}adapt{-}max{-}depth}\NormalTok{ 16 }\AttributeTok{{-}{-}adapt{-}eps{-}grad}\NormalTok{ 5e{-}7 }\AttributeTok{{-}{-}adapt{-}eps{-}energy}\NormalTok{ 1e{-}9 }\DataTypeTok{\textbackslash{}}
+  \AttributeTok{{-}{-}adapt{-}inner{-}optimizer}\NormalTok{ POWELL }\AttributeTok{{-}{-}adapt{-}state{-}backend}\NormalTok{ compiled }\DataTypeTok{\textbackslash{}}
+  \AttributeTok{{-}{-}adapt{-}reopt{-}policy}\NormalTok{ windowed }\AttributeTok{{-}{-}adapt{-}window{-}size}\NormalTok{ 999999 }\AttributeTok{{-}{-}adapt{-}window{-}topk}\NormalTok{ 999999 }\DataTypeTok{\textbackslash{}}
+  \AttributeTok{{-}{-}adapt{-}full{-}refit{-}every}\NormalTok{ 8 }\AttributeTok{{-}{-}adapt{-}final{-}full{-}refit}\NormalTok{ true }\DataTypeTok{\textbackslash{}}
+  \AttributeTok{{-}{-}adapt{-}beam{-}live{-}branches}\NormalTok{ 1 }\AttributeTok{{-}{-}adapt{-}beam{-}children{-}per{-}parent}\NormalTok{ 1 }\AttributeTok{{-}{-}adapt{-}beam{-}terminated{-}keep}\NormalTok{ 1 }\DataTypeTok{\textbackslash{}}
+  \AttributeTok{{-}{-}phase1{-}lambda{-}F}\NormalTok{ 1.0 }\AttributeTok{{-}{-}phase1{-}lambda{-}compile}\NormalTok{ 0.05 }\AttributeTok{{-}{-}phase1{-}lambda{-}measure}\NormalTok{ 0.02 }\AttributeTok{{-}{-}phase1{-}lambda{-}leak}\NormalTok{ 0.0 }\DataTypeTok{\textbackslash{}}
+  \AttributeTok{{-}{-}phase1{-}score{-}z{-}alpha}\NormalTok{ 0.0 }\AttributeTok{{-}{-}phase1{-}shortlist{-}size}\NormalTok{ 256 }\AttributeTok{{-}{-}phase1{-}probe{-}max{-}positions}\NormalTok{ 999999 }\DataTypeTok{\textbackslash{}}
+  \AttributeTok{{-}{-}phase1{-}plateau{-}patience}\NormalTok{ 2 }\AttributeTok{{-}{-}phase1{-}trough{-}margin{-}ratio}\NormalTok{ 1.0 }\DataTypeTok{\textbackslash{}}
+  \AttributeTok{{-}{-}phase1{-}prune{-}enabled} \AttributeTok{{-}{-}phase1{-}prune{-}mode}\NormalTok{ live }\AttributeTok{{-}{-}phase1{-}prune{-}fraction}\NormalTok{ 0.25 }\AttributeTok{{-}{-}phase1{-}prune{-}max{-}candidates}\NormalTok{ 6 }\AttributeTok{{-}{-}phase1{-}prune{-}max{-}regression}\NormalTok{ 1e{-}8 }\DataTypeTok{\textbackslash{}}
+  \AttributeTok{{-}{-}phase2{-}shortlist{-}fraction}\NormalTok{ 1.0 }\AttributeTok{{-}{-}phase2{-}shortlist{-}size}\NormalTok{ 128 }\DataTypeTok{\textbackslash{}}
+  \AttributeTok{{-}{-}phase2{-}lambda{-}H}\NormalTok{ 1e{-}6 }\AttributeTok{{-}{-}phase2{-}rho}\NormalTok{ 0.25 }\AttributeTok{{-}{-}phase2{-}gamma{-}N}\NormalTok{ 1.0 }\DataTypeTok{\textbackslash{}}
+  \AttributeTok{{-}{-}phase2{-}enable{-}batching} \AttributeTok{{-}{-}phase2{-}batch{-}target{-}size}\NormalTok{ 8 }\AttributeTok{{-}{-}phase2{-}batch{-}size{-}cap}\NormalTok{ 16 }\AttributeTok{{-}{-}phase2{-}batch{-}near{-}degenerate{-}ratio}\NormalTok{ 0.98 }\DataTypeTok{\textbackslash{}}
+  \AttributeTok{{-}{-}phase2{-}w{-}depth}\NormalTok{ 0.0 }\AttributeTok{{-}{-}phase2{-}w{-}group}\NormalTok{ 0.0 }\AttributeTok{{-}{-}phase2{-}w{-}shot}\NormalTok{ 0.0 }\AttributeTok{{-}{-}phase2{-}w{-}optdim}\NormalTok{ 0.0 }\AttributeTok{{-}{-}phase2{-}w{-}reuse}\NormalTok{ 0.0 }\AttributeTok{{-}{-}phase2{-}w{-}lifetime}\NormalTok{ 0.0 }\DataTypeTok{\textbackslash{}}
+  \AttributeTok{{-}{-}phase2{-}eta{-}L}\NormalTok{ 0.0 }\AttributeTok{{-}{-}phase2{-}motif{-}bonus{-}weight}\NormalTok{ 0.0 }\AttributeTok{{-}{-}phase2{-}duplicate{-}penalty{-}weight}\NormalTok{ 0.0 }\DataTypeTok{\textbackslash{}}
+  \AttributeTok{{-}{-}phase2{-}compat{-}overlap{-}weight}\NormalTok{ 0.0 }\AttributeTok{{-}{-}phase2{-}compat{-}comm{-}weight}\NormalTok{ 0.0 }\AttributeTok{{-}{-}phase2{-}compat{-}curv{-}weight}\NormalTok{ 0.0 }\AttributeTok{{-}{-}phase2{-}compat{-}sched{-}weight}\NormalTok{ 0.0 }\AttributeTok{{-}{-}phase2{-}compat{-}measure{-}weight}\NormalTok{ 0.0 }\DataTypeTok{\textbackslash{}}
+  \AttributeTok{{-}{-}phase2{-}frontier{-}ratio}\NormalTok{ 1.0 }\AttributeTok{{-}{-}phase3{-}frontier{-}ratio}\NormalTok{ 1.0 }\AttributeTok{{-}{-}phase2{-}remaining{-}evaluations{-}proxy{-}mode}\NormalTok{ none }\DataTypeTok{\textbackslash{}}
+  \AttributeTok{{-}{-}phase3{-}tie{-}beam{-}max{-}branches}\NormalTok{ 1 }\DataTypeTok{\textbackslash{}}
+  \AttributeTok{{-}{-}phase3{-}symmetry{-}mitigation{-}mode}\NormalTok{ verify\_only }\AttributeTok{{-}{-}phase3{-}enable{-}rescue} \DataTypeTok{\textbackslash{}}
+  \AttributeTok{{-}{-}phase3{-}lifetime{-}cost{-}mode}\NormalTok{ phase3\_v1 }\AttributeTok{{-}{-}phase3{-}runtime{-}split{-}mode}\NormalTok{ shortlist\_pauli\_children\_v1 }\DataTypeTok{\textbackslash{}}
+  \AttributeTok{{-}{-}phase3{-}backend{-}cost{-}mode}\NormalTok{ transpile\_single\_v1 }\AttributeTok{{-}{-}phase3{-}backend{-}name}\NormalTok{ FakeNighthawk }\DataTypeTok{\textbackslash{}}
+  \AttributeTok{{-}{-}phase3{-}backend{-}transpile{-}seed}\NormalTok{ 7 }\AttributeTok{{-}{-}phase3{-}backend{-}optimization{-}level}\NormalTok{ 1 }\DataTypeTok{\textbackslash{}}
+  \AttributeTok{{-}{-}adapt{-}seed}\NormalTok{ 7 }\AttributeTok{{-}{-}adapt{-}finite{-}angle{-}fallback} \AttributeTok{{-}{-}adapt{-}finite{-}angle}\NormalTok{ 0.1 }\AttributeTok{{-}{-}adapt{-}finite{-}angle{-}min{-}improvement}\NormalTok{ 1e{-}12 }\DataTypeTok{\textbackslash{}}
+  \AttributeTok{{-}{-}adapt{-}drop{-}floor}\NormalTok{ 1e{-}11 }\AttributeTok{{-}{-}adapt{-}drop{-}patience}\NormalTok{ 5 }\AttributeTok{{-}{-}adapt{-}drop{-}min{-}depth}\NormalTok{ 12 }\AttributeTok{{-}{-}adapt{-}grad{-}floor} \AttributeTok{{-}1.0} \DataTypeTok{\textbackslash{}}
+  \AttributeTok{{-}{-}paop{-}r}\NormalTok{ 1 }\AttributeTok{{-}{-}paop{-}normalization}\NormalTok{ none }\DataTypeTok{\textbackslash{}}
+  \AttributeTok{{-}{-}initial{-}state{-}source}\NormalTok{ adapt\_vqe }\DataTypeTok{\textbackslash{}}
+  \AttributeTok{{-}{-}skip{-}pdf}
+\end{Highlighting}
+\end{Shaded}
 
 \hypertarget{real-qpu-deployment-anchor-april-5-2026-validated}{%
 \subsection{Real QPU Deployment Anchor (April 5, 2026
@@ -6473,18 +6594,8 @@ A common propagator menu is:
 \item
   second-order Suzuki,
 \item
-  piecewise exact propagation,
-\item
-  fourth-order CFQM,
-\item
-  sixth-order CFQM.
+  piecewise exact propagation.
 \end{itemize}
-
-For CFQM methods, the key mathematical point is that the stage times are
-fixed scheme nodes \(c_j\), so a macro-step from \(t_n\) to
-\(t_{n+1}=t_n+\Delta t\) samples the Hamiltonian at \[
-t_n+c_j\Delta t,
-\] not at a left, midpoint, or right rule chosen independently.
 
 \hypertarget{a.4-reference-propagator-versus-reported-trajectory-propagator}{%
 \subsection{A.4 Reference propagator versus reported trajectory
@@ -6512,19 +6623,9 @@ U_{\mathrm{ref}}(t_{n+1},t_n) \approx e^{-i\Delta t\hat H(t_n^*)},
 \] with \(t_n^*\) sampled on a refined grid and the full reference
 obtained as an ordered product over the refined slices.
 
-\hypertarget{a.5-cfqm-macro-step-mathematics}{%
-\subsection{A.5 CFQM macro-step
-mathematics}\label{a.5-cfqm-macro-step-mathematics}}
-
-A generic commutator-free quasi-Magnus macro-step takes the form \[
-U_{n+1,n}^{\mathrm{CFQM}} = \prod_{r=1}^{s} \exp\!\left[-i a_r \Delta t\,\hat H(t_n+c_r\Delta t)\right],
-\] with method-specific coefficients \(a_r\) and nodes \(c_r\). The
-formal order is achieved when the stage exponentials are themselves
-treated at the intended accuracy.
-
-\hypertarget{a.6-filtered-exact-manifold-and-subspace-fidelity}{%
-\subsection{A.6 Filtered exact manifold and subspace
-fidelity}\label{a.6-filtered-exact-manifold-and-subspace-fidelity}}
+\hypertarget{a.5-filtered-exact-manifold-and-subspace-fidelity}{%
+\subsection{A.5 Filtered exact manifold and subspace
+fidelity}\label{a.5-filtered-exact-manifold-and-subspace-fidelity}}
 
 Let \(\Pi_{\mathrm{sector}}\) denote the projector onto the target
 symmetry sector. Then the filtered exact energy is \[

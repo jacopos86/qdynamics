@@ -151,11 +151,11 @@ def test_hh_realtime_from_adapt_artifact_defaults_match_current_standalone_defau
         float(direct.summary["exact_forecast_tangent_secant_signed_energy_lead_limit"])
     )
     assert len(payload["trajectory"]) == len(direct.trajectory)
-    assert payload["trajectory"][0]["time_start"] == pytest.approx(float(direct.trajectory[0]["time_start"]))
-    assert payload["trajectory"][0]["time_stop"] == pytest.approx(float(direct.trajectory[0]["time_stop"]))
-    assert payload["trajectory"][0]["tracking_score_horizon"] == pytest.approx(
-        float(direct.trajectory[0]["tracking_score_horizon"])
+    assert payload["trajectory"][0]["time"] == pytest.approx(float(direct.trajectory[0]["time"]))
+    assert payload["trajectory"][0]["physical_time"] == pytest.approx(
+        float(direct.trajectory[0]["physical_time"])
     )
+    assert payload["trajectory"][0]["rho_miss"] == pytest.approx(float(direct.trajectory[0]["rho_miss"]))
 
 
 def test_hh_realtime_from_adapt_artifact_serializes_nondefault_controller_weights(

@@ -12,13 +12,13 @@ It is intentionally the front-page pointer so the noisy-surface run recipe is vi
 
 ---
 
-# ⚡ L=2 Winner Framing and Real QPU Settings (April 8, 2026)
+# ⚡ L=2 Winner Framing and Real QPU Settings (April 11, 2026)
 
 > Front-page contract: distinguish the best raw HF-start ADAPT result from the separately validated real-QPU deployment anchor. Do not conflate either one with later prune/readapt JSON post-processing or with fixed-scaffold runtime submissions.
 
 ## Two Front-Page Objects
 
-- **Scientific raw HF-start winner.** This means direct ADAPT from the Hartree-Fock reference with `adapt_ref_json = null`, with no later JSON prune/recovery pass substituted in. Under the canonical `L=2, U=4.0, g=0.5` gate `|ΔE| \sim 10^{-4}`, the best substantiated raw HF-start line currently in hand is the direct `full_meta` artifact `hh_backend_adapt_fullhorse_powell_20260322T194155Z_fakenighthawk.json`, which reaches
+- **Scientific raw HF-start winner.** This means direct ADAPT from the Hartree-Fock reference with `adapt_ref_json = null`, with no later JSON prune/recovery pass substituted in. Under the canonical `L=2, U=4.0, g=0.5` gate `|ΔE| \sim 10^{-4}`, the best substantiated raw HF-start line currently in hand is the frozen legacy replay `20260409_hh_l2_hist81_legacy_current_compare_d16_v3/legacy_20260322`, which reproduces the March 22 `full_meta` winner at
   $$
   |\Delta E|=5.6178234645\times 10^{-5}
   $$
@@ -29,18 +29,33 @@ It is intentionally the front-page pointer so the noisy-surface run recipe is vi
   $$
   with `218` transpiled two-qubit gates on the same `FakeMarrakesh` proxy.
 
+## Current checkout state (cost vs energy)
+
+The current checkout now has a clean cost-vs-energy ranking at the canonical `L=2, U=4.0, g=0.5` point:
+
+- The frozen legacy route still wins the repo-wide cost-vs-energy objective at essentially the same energy gate: `81` 2Q at `|\Delta E|=5.6178234645e-05`.
+- The best current-route comparable replay is still heavier: `168` 2Q at `|\Delta E|=5.7102691670e-05`.
+- The best current fullhorse-style replay is heavier again: `193` 2Q at `|\Delta E|=5.7102730821e-05`.
+- The best current diagnostic native recovery branch remains the `children_off + repeats_off + hist` line: `160` 2Q at `|\Delta E|=5.6178241861e-05`.
+- The validated public/deployment anchor remains the April 5 SPSA route at `218` 2Q and `|\Delta E|=1.0822209459e-04`.
+
 ## Raw HF-Start Direct ADAPT Table (`|\Delta E|\sim 10^{-4}`)
 
 | Role | Artifact / surface | Pool | `|\Delta E|` | Logical ops | Runtime params | Transpiled 2Q | Depth |
 |---|---|---|---:|---:|---:|---:|---:|
 | Best raw HF-start ADAPT winner | `hh_backend_adapt_fullhorse_powell_20260322T194155Z_fakenighthawk` | `full_meta` | `5.6178234645e-05` | 16 | 27 | 81 | 151 |
+| Frozen legacy replay in current checkout | `20260409_hh_l2_hist81_legacy_current_compare_d16_v3/legacy_20260322` | `full_meta` frozen legacy replay | `5.6178234645e-05` | 16 | 27 | 81 | 151 |
 | Best reduced-pool direct line | `adapt_hh_L2_ecut1_pareto_lean_l2_phase3_powell_rerun_currentcode_20260321T171615Z` | `pareto_lean_l2` | `5.6178234644e-05` | 14 | 25 | 97 | 208 |
 | Wide-shortlist direct comparison | `campaign_A7c_L2_shortlist_wide_phase3_v1` | `full_meta` | `5.6178234644e-05` | 14 | 30 | 116 | 310 |
+| Best current-route comparable replay | `20260409_hh_l2_current_motif_from_legacy81_v1` | `full_meta` current route + legacy motif | `5.7102691670e-05` | 14 | 36 | 168 | 475 |
+| Best current fullhorse-style replay | `20260410_hh_l2_current_fullhorse_recovery_v1/fullhorse_spliton_norepeats_motif` | `full_meta` current fullhorse-style route | `5.7102730821e-05` | 16 | 41 | 193 | 592 |
 | Current-code reproduction of March 22 low-energy regime | `20260409_hh_l2_hist81_repro_powell_histbare_d16_v1` | `full_meta` historicalized POWELL surface | `5.7217492583e-05` | 17 | 54 | 265 | 786 |
 | Best current native recovery branch on today's diagnostic surface | `20260409_hh_l2_children_repeat_bridge_diag_v1` (`children_off + repeats_off + hist`) | `full_meta` diagnostic bridge surface | `5.6178241861e-05` | 13 | 36 | 160 | 408 |
 | Validated April 5 deployment anchor | `pareto_lean + phase3_v1 + SPSA` | `pareto_lean` | `1.0822209459e-04` | 20 | 52 | 218 | 633 |
 
 The final `218`-2Q row is the same raw HF-start scaffold family as the confirmed April 5 authority command; it is heavier than the scientific raw winner, but it is the currently validated deployment anchor on the public CLI surface.
+
+The current state of the repo is therefore not ambiguous: the frozen legacy path still dominates the cost-vs-energy frontier, while the best current-route replays remain substantially heavier at the same energy target.
 
 The post-processed `31/37/57`-2Q prune/readapt artifacts are **not** the object a fresh real-QPU ADAPT run from HF would execute. They remain useful comparison context only.
 
@@ -2403,7 +2418,7 @@ After the fully expanded chain above, one may use $\widehat v_k^{\mathrm{sec}}:=
 
 ## 17A.8 Exact-forecast horizon score and stay-append decision law
 
-This subsection defines the forecast functional used when the miss ratio is too large to stay on the current scaffold blindly. The horizon index is $h\in\{1,\dots,H_k\}$, the horizon length is $H_k\ge 1$, the positive horizon weights are $\omega_h$, and $W_k:=\sum_{h=1}^{H_k}\omega_h$. The action $u$ is either a stay action $u=(\mathrm{stay},p,a)$ with $p\in\mathcal P_k^{\mathrm{stay}}$ and $a\in\mathcal A_k$, or an append action $u=(\mathrm{append},r,a)$ with $r=(m,p_{\mathrm{ins}})\in\mathcal R_k^{\mathrm{conf}}$ and $a\in\mathcal A_k$. The nonnegative weights $\lambda_F,\lambda_s,\lambda_D,\lambda_n,\lambda_E,\lambda_{\mathrm{slope}},\lambda_{\mathrm{curv}},\lambda_{\mathrm{under}},\lambda_{\mathrm{over}}$ determine the relative importance of fidelity, staggered density, doublon, site occupations, total energy, and the optional energy-shape and excursion penalties.
+This subsection defines the forecast functional used when the miss ratio is too large to stay on the current scaffold blindly. The horizon index is $h\in\{1,\dots,H_k\}$, the horizon length is $H_k\ge 1$, the positive horizon weights are $\omega_h$, and $W_k:=\sum_{h=1}^{H_k}\omega_h$. The action $u$ is either a stay action $u=(\mathrm{stay},p,a)$ with $p\in\mathcal P_k^{\mathrm{stay}}$ and $a\in\mathcal A_k$, or an append action $u=(\mathrm{append},r,a)$ with $r=(m,p_{\mathrm{ins}})\in\mathcal R_k^{\mathrm{conf}}$ and $a\in\mathcal A_k$. The nonnegative weights $\lambda_F,\lambda_{\rho},\lambda_D,\lambda_n,\lambda_E,\lambda_{\Delta\rho},\lambda_{\mathrm{slope}},\lambda_{\mathrm{curv}},\lambda_{\mathrm{under}},\lambda_{\mathrm{over}}$ determine the relative importance of fidelity, primary density-mode value tracking, doublon, site occupations, total energy, the density-mode slope correction, and the optional energy-shape and excursion penalties.
 
 A stay forecast keeps the current scaffold and moves along a normalized within-scaffold proposal, while an append forecast lifts to the zero-initialized augmented scaffold and moves along the augmented append velocity. Thus
 $$
@@ -2421,20 +2436,29 @@ $$
 \end{aligned}
 $$
 
-The tracked observables are the site occupations, the doublon, the staggered density, and the total energy. If $|\phi\rangle=\sum_x\phi_x|x\rangle$, then $b_{j,\sigma}(x)\in\{0,1\}$ is the occupation bit of basis state $|x\rangle$ at site-spin pair $(j,\sigma)$, and
+The tracked observables are the site occupations, the doublon, the primary density mode, and the total energy. If $|\phi\rangle=\sum_x\phi_x|x\rangle$, then $b_{j,\sigma}(x)\in\{0,1\}$ is the occupation bit of basis state $|x\rangle$ at site-spin pair $(j,\sigma)$, and
 $$
 \begin{aligned}
 \hat n_j&:=\hat n_{j,\uparrow}+\hat n_{j,\downarrow},
 \qquad
 n_{j,\sigma}[\phi]:=\langle\phi|\hat n_{j,\sigma}|\phi\rangle=\sum_x|\phi_x|^2b_{j,\sigma}(x),
 \qquad
-n_j[\phi]:=\langle\phi|\hat n_j|\phi\rangle=\sum_x|\phi_x|^2\bigl(b_{j,\uparrow}(x)+b_{j,\downarrow}(x)\bigr),\\[1mm]
+n_j[\phi]:=\langle\phi|\hat n_j|\phi\rangle=\sum_x|\phi_x|^2\bigl(b_{j,\uparrow}(x)+b_{j,\downarrow}(x)\bigr),
+\qquad
+n[\phi]:=(n_1[\phi],\dots,n_L[\phi]),\\[1mm]
 \hat D&:=\sum_{j=1}^{L}\hat n_{j,\uparrow}\hat n_{j,\downarrow},
 \qquad
 D[\phi]:=\langle\phi|\hat D|\phi\rangle=\sum_x|\phi_x|^2\sum_{j=1}^{L}b_{j,\uparrow}(x)b_{j,\downarrow}(x),\\[1mm]
 \hat S&:=\frac{1}{L}\sum_{j=1}^{L}(-1)^{j-1}\hat n_j,
 \qquad
 s[\phi]:=\langle\phi|\hat S|\phi\rangle=\frac{1}{L}\sum_{j=1}^{L}(-1)^{j-1}n_j[\phi],\\[1mm]
+\hat \rho&:=
+\begin{cases}
+\hat n_1-\hat n_2,&L=2,\\[1mm]
+\hat S,&L>2,
+\end{cases}
+\qquad
+\rho[\phi]:=\langle\phi|\hat \rho|\phi\rangle,\\[1mm]
 E_{k+h}^{\mathrm{ctrl}}(u)&:=\langle\psi_{k+h}^{(u)}|H_{k+h}^{\sharp}|\psi_{k+h}^{(u)}\rangle,
 \qquad
 E_{k+h}^{\mathrm{ex}}:=\langle\psi_{k+h}^{\mathrm{ex}}|H_{k+h}^{\sharp}|\psi_{k+h}^{\mathrm{ex}}\rangle,
@@ -2443,21 +2467,67 @@ H_{k+h}^{\sharp}:=H(t_{k+h}^{\sharp}).
 \end{aligned}
 $$
 
-From these primitives the first-order forecast discrepancies are defined once by
+For $L=2$, one has
+$$
+\rho[\phi]=n_1[\phi]-n_2[\phi]=2\,s[\phi],
+$$
+so the live scalar replacement is not a new density sector, but the same antisymmetric density mode written in a phase-sensitive normalization.
+
+Define the exact-horizon normalization scales using positive action-independent floors $\varepsilon_{\rho}^{\mathrm{floor}},\varepsilon_{\Delta\rho}^{\mathrm{floor}},\varepsilon_n^{\mathrm{floor}},\varepsilon_D^{\mathrm{floor}},\varepsilon_E^{\mathrm{floor}}>0$. For $H_k\ge 2$, let
+$$
+W_k^{(1)}:=\sum_{h=1}^{H_k-1}\varpi_h^{(1)},
+\qquad
+\varpi_h^{(1)}:=\frac{\omega_h+\omega_{h+1}}{2},
+$$
+and define
+$$
+\begin{aligned}
+s_{\rho,k}&:=\max\!\left\{\varepsilon_{\rho}^{\mathrm{floor}},\;
+\frac{1}{W_k}\sum_{h=1}^{H_k}\omega_h\,\bigl|\rho[\psi_{k+h}^{\mathrm{ex}}]-\rho[\psi_k^{\mathrm{ex}}]\bigr|\right\},\\[1mm]
+s_{\Delta\rho,k}&:=\max\!\left\{\varepsilon_{\Delta\rho}^{\mathrm{floor}},\;
+\frac{1}{W_k^{(1)}}\sum_{h=1}^{H_k-1}\varpi_h^{(1)}\,\bigl|\Delta\rho_{k+h}^{\mathrm{ex}}\bigr|\right\},\\[1mm]
+s_{n,k}&:=\max\!\left\{\varepsilon_{n}^{\mathrm{floor}},\;
+\frac{1}{W_k}\sum_{h=1}^{H_k}\omega_h\,\bigl\|n[\psi_{k+h}^{\mathrm{ex}}]-n[\psi_k^{\mathrm{ex}}]\bigr\|_{\infty}\right\},\\[1mm]
+s_{D,k}&:=\max\!\left\{\varepsilon_{D}^{\mathrm{floor}},\;
+\frac{1}{W_k}\sum_{h=1}^{H_k}\omega_h\,\bigl|D[\psi_{k+h}^{\mathrm{ex}}]-D[\psi_k^{\mathrm{ex}}]\bigr|\right\},\\[1mm]
+s_{E,k}&:=\max\!\left\{\varepsilon_{E}^{\mathrm{floor}},\;
+\frac{1}{W_k}\sum_{h=1}^{H_k}\omega_h\,\bigl|E_{k+h}^{\mathrm{ex}}-E_k^{\mathrm{ex}}\bigr|\right\}.
+\end{aligned}
+$$
+When $H_k=1$, keep the same definitions for $s_{\rho,k},s_{n,k},s_{D,k},s_{E,k}$ and set
+$$
+s_{\Delta\rho,k}:=\max\!\left\{\varepsilon_{\Delta\rho}^{\mathrm{floor}},\;\bigl|\rho[\psi_{k+1}^{\mathrm{ex}}]-\rho[\psi_k^{\mathrm{ex}}]\bigr|\right\}.
+$$
+
+From these primitives the pointwise forecast discrepancies are defined once by
 $$
 \begin{aligned}
 \varepsilon_{k+h}^{F}(u)
 &:=1-\bigl|\langle\psi_{k+h}^{\mathrm{ex}},\psi_{k+h}^{(u)}\rangle\bigr|^2,\\[1mm]
-\varepsilon_{k+h}^{s}(u)
-&:=\left|\frac{1}{L}\sum_{j=1}^{L}(-1)^{j-1}\bigl(n_j[\psi_{k+h}^{(u)}]-n_j[\psi_{k+h}^{\mathrm{ex}}]\bigr)\right|,\\[1mm]
+\varepsilon_{k+h}^{\rho}(u)
+&:=\frac{\bigl|\rho[\psi_{k+h}^{(u)}]-\rho[\psi_{k+h}^{\mathrm{ex}}]\bigr|}{s_{\rho,k}},\\[1mm]
 \varepsilon_{k+h}^{D}(u)
-&:=\left|\sum_{j=1}^{L}\Bigl(\langle\psi_{k+h}^{(u)}|\hat n_{j,\uparrow}\hat n_{j,\downarrow}|\psi_{k+h}^{(u)}\rangle-\langle\psi_{k+h}^{\mathrm{ex}}|\hat n_{j,\uparrow}\hat n_{j,\downarrow}|\psi_{k+h}^{\mathrm{ex}}\rangle\Bigr)\right|,\\[1mm]
+&:=\frac{\bigl|D[\psi_{k+h}^{(u)}]-D[\psi_{k+h}^{\mathrm{ex}}]\bigr|}{s_{D,k}},\\[1mm]
 \varepsilon_{k+h}^{n}(u)
-&:=\max_{1\le j\le L}\bigl|n_j[\psi_{k+h}^{(u)}]-n_j[\psi_{k+h}^{\mathrm{ex}}]\bigr|,\\[1mm]
+&:=\frac{\max_{1\le j\le L}\bigl|n_j[\psi_{k+h}^{(u)}]-n_j[\psi_{k+h}^{\mathrm{ex}}]\bigr|}{s_{n,k}},\\[1mm]
 \varepsilon_{k+h}^{E}(u)
-&:=\bigl|\langle\psi_{k+h}^{(u)}|H_{k+h}^{\sharp}|\psi_{k+h}^{(u)}\rangle-\langle\psi_{k+h}^{\mathrm{ex}}|H_{k+h}^{\sharp}|\psi_{k+h}^{\mathrm{ex}}\rangle\bigr|.
+&:=\frac{\bigl|E_{k+h}^{\mathrm{ctrl}}(u)-E_{k+h}^{\mathrm{ex}}\bigr|}{s_{E,k}}.
 \end{aligned}
 $$
+
+Define the density-mode increment channel by
+$$
+\Delta\rho_{k+h}^{\mathrm{ctrl}}(u):=\rho[\psi_{k+h+1}^{(u)}]-\rho[\psi_{k+h}^{(u)}],
+\qquad
+\Delta\rho_{k+h}^{\mathrm{ex}}:=\rho[\psi_{k+h+1}^{\mathrm{ex}}]-\rho[\psi_{k+h}^{\mathrm{ex}}],
+$$
+and, for $H_k\ge 2$, the corresponding phase-sensitive slope defect
+$$
+\Xi_k^{\rho,\mathrm{slope}}(u):=
+\frac{1}{W_k^{(1)}}\sum_{h=1}^{H_k-1}\varpi_h^{(1)}
+\frac{\bigl|\Delta\rho_{k+h}^{\mathrm{ctrl}}(u)-\Delta\rho_{k+h}^{\mathrm{ex}}\bigr|}{s_{\Delta\rho,k}}.
+$$
+When $H_k=1$, set $\Xi_k^{\rho,\mathrm{slope}}(u):=0$.
 
 The energy-shape corrections compare first and second forward differences of the predicted and exact energy paths, while the excursion corrections compare the signed forecast excursion against a relative exact band. Writing $\varpi_h^{(1)}:=(\omega_h+\omega_{h+1})/2$, $\varpi_h^{(2)}:=(\omega_h+\omega_{h+1}+\omega_{h+2})/3$, and $\varrho_E\in[0,1)$,
 $$
@@ -2484,29 +2554,27 @@ U_{k+h}^{\mathrm{ex}}:=(1+\varrho_E)|x_{k+h}^{\mathrm{ex}}|,\\[1mm]
 \end{aligned}
 $$
 
-The final quantity of interest in the miss-dominant regime is the full horizon score itself, so it is written first in fully expanded primitive form:
+The final quantity of interest in the miss-dominant regime is the full horizon score itself. Keeping the pointwise tracking terms and the slope-style corrections separate, define
 $$
 \begin{aligned}
+\mathcal J_k^{\mathrm{trk}}(u)
+&:=\frac{1}{W_k}\sum_{h=1}^{H_k}\omega_h\Bigl[
+\lambda_F\,\varepsilon_{k+h}^{F}(u)
++\lambda_{\rho}\,\varepsilon_{k+h}^{\rho}(u)
++\lambda_D\,\varepsilon_{k+h}^{D}(u)
++\lambda_n\,\varepsilon_{k+h}^{n}(u)
++\lambda_E\,\varepsilon_{k+h}^{E}(u)
+\Bigr],\\[1mm]
 \mathcal J_k^{\mathrm{forecast}}(u)
-&:=\frac{1}{W_k}\sum_{h=1}^{H_k}\omega_h\Biggl[
-\lambda_F\Bigl(1-\bigl|\langle\psi_{k+h}^{\mathrm{ex}},\psi_{k+h}^{(u)}\rangle\bigr|^2\Bigr)
-+\lambda_s\left|\frac{1}{L}\sum_{j=1}^{L}(-1)^{j-1}\bigl(n_j[\psi_{k+h}^{(u)}]-n_j[\psi_{k+h}^{\mathrm{ex}}]\bigr)\right|\\
-&\qquad\qquad
-+\lambda_D\left|\sum_{j=1}^{L}\Bigl(\langle\psi_{k+h}^{(u)}|\hat n_{j,\uparrow}\hat n_{j,\downarrow}|\psi_{k+h}^{(u)}\rangle-\langle\psi_{k+h}^{\mathrm{ex}}|\hat n_{j,\uparrow}\hat n_{j,\downarrow}|\psi_{k+h}^{\mathrm{ex}}\rangle\Bigr)\right|\\
-&\qquad\qquad
-+\lambda_n\max_{1\le j\le L}\bigl|n_j[\psi_{k+h}^{(u)}]-n_j[\psi_{k+h}^{\mathrm{ex}}]\bigr|
-+\lambda_E\bigl|\langle\psi_{k+h}^{(u)}|H_{k+h}^{\sharp}|\psi_{k+h}^{(u)}\rangle-\langle\psi_{k+h}^{\mathrm{ex}}|H_{k+h}^{\sharp}|\psi_{k+h}^{\mathrm{ex}}\rangle\bigr|\\
-&\qquad\qquad
-+\lambda_{\mathrm{under}}\bigl[(1-\varrho_E)|E_{k+h}^{\mathrm{ex}}-E_k^{\mathrm{ex}}|-\operatorname{sgn}(E_{k+h}^{\mathrm{ex}}-E_k^{\mathrm{ex}})(E_{k+h}^{\mathrm{ctrl}}(u)-E_k^{\mathrm{ctrl}})\bigr]_{+}\\
-&\qquad\qquad
-+\lambda_{\mathrm{over}}\bigl[\operatorname{sgn}(E_{k+h}^{\mathrm{ex}}-E_k^{\mathrm{ex}})(E_{k+h}^{\mathrm{ctrl}}(u)-E_k^{\mathrm{ctrl}})-(1+\varrho_E)|E_{k+h}^{\mathrm{ex}}-E_k^{\mathrm{ex}}|\bigr]_{+}
-\Biggr]\\[1mm]
-&\qquad
-+\lambda_{\mathrm{slope}}\frac{1}{\sum_h\varpi_h^{(1)}}\sum_h\varpi_h^{(1)}\bigl|\Delta E_{k+h}^{\mathrm{ctrl}}(u)-\Delta E_{k+h}^{\mathrm{ex}}\bigr|
-+\lambda_{\mathrm{curv}}\frac{1}{\sum_h\varpi_h^{(2)}}\sum_h\varpi_h^{(2)}\bigl|\Delta^2E_{k+h}^{\mathrm{ctrl}}(u)-\Delta^2E_{k+h}^{\mathrm{ex}}\bigr|.
+&:=\mathcal J_k^{\mathrm{trk}}(u)
++\lambda_{\Delta\rho}\,\Xi_k^{\rho,\mathrm{slope}}(u)
++\lambda_{\mathrm{slope}}\,\Xi_k^{\mathrm{shape,slope}}(u)
++\lambda_{\mathrm{curv}}\,\Xi_k^{\mathrm{shape,curv}}(u)
++\lambda_{\mathrm{under}}\,\Xi_k^{\mathrm{exc,under}}(u)
++\lambda_{\mathrm{over}}\,\Xi_k^{\mathrm{exc,over}}(u).
 \end{aligned}
 $$
-For shorthand only, one may now write $\mathcal J_k^{\mathrm{forecast}}=\mathcal J_k^{\mathrm{trk}}+\lambda_{\mathrm{slope}}\Xi_k^{\mathrm{shape,slope}}+\lambda_{\mathrm{curv}}\Xi_k^{\mathrm{shape,curv}}+\lambda_{\mathrm{under}}\Xi_k^{\mathrm{exc,under}}+\lambda_{\mathrm{over}}\Xi_k^{\mathrm{exc,over}}$.
+For shorthand only, one may now write $\mathcal J_k^{\mathrm{forecast}}=\mathcal J_k^{\mathrm{trk}}+\lambda_{\Delta\rho}\,\Xi_k^{\rho,\mathrm{slope}}+\lambda_{\mathrm{slope}}\,\Xi_k^{\mathrm{shape,slope}}+\lambda_{\mathrm{curv}}\,\Xi_k^{\mathrm{shape,curv}}+\lambda_{\mathrm{under}}\,\Xi_k^{\mathrm{exc,under}}+\lambda_{\mathrm{over}}\,\Xi_k^{\mathrm{exc,over}}$.
 
 The stay-versus-append comparison is then defined once by
 $$
@@ -2517,15 +2585,20 @@ $$
 \Delta F_k&:=\bigl|\langle\psi_{k+1}^{\mathrm{ex}},\psi_{k+1}^{(\nu_{k,\mathrm{app}}^{\star})}\rangle\bigr|^2-\bigl|\langle\psi_{k+1}^{\mathrm{ex}},\psi_{k+1}^{(\nu_{k,\mathrm{stay}}^{\star})}\rangle\bigr|^2,
 \qquad
 \Delta\varepsilon_k^{E}:=\varepsilon_{k+1}^{E}(\nu_{k,\mathrm{app}}^{\star})-\varepsilon_{k+1}^{E}(\nu_{k,\mathrm{stay}}^{\star}),\\[1mm]
+\varepsilon_{k+1}^{\Delta\rho}(u)&:=
+\frac{\bigl|\bigl(\rho[\psi_{k+1}^{(u)}]-\rho[\psi_k]\bigr)-\bigl(\rho[\psi_{k+1}^{\mathrm{ex}}]-\rho[\psi_k^{\mathrm{ex}}]\bigr)\bigr|}{s_{\Delta\rho,k}},\\[1mm]
 \nu_k^{\star}
 &:=\begin{cases}
-\nu_{k,\mathrm{stay}}^{\star},&1-\bigl|\langle\psi_{k+1}^{\mathrm{ex}},\psi_{k+1}^{(\nu_{k,\mathrm{stay}}^{\star})}\rangle\bigr|^2\le 10^{-3},\ \varepsilon_{k+1}^{s}(\nu_{k,\mathrm{stay}}^{\star})\le 2\times 10^{-2},\ \varepsilon_{k+1}^{D}(\nu_{k,\mathrm{stay}}^{\star})\le 2\times 10^{-3},\ \varepsilon_{k+1}^{n}(\nu_{k,\mathrm{stay}}^{\star})\le 2\times 10^{-2},\ \varepsilon_{k+1}^{E}(\nu_{k,\mathrm{stay}}^{\star})\le 2\times 10^{-3},\\[2mm]
+\nu_{k,\mathrm{stay}}^{\star},&1-\bigl|\langle\psi_{k+1}^{\mathrm{ex}},\psi_{k+1}^{(\nu_{k,\mathrm{stay}}^{\star})}\rangle\bigr|^2\le 10^{-3},\ \varepsilon_{k+1}^{\rho}(\nu_{k,\mathrm{stay}}^{\star})\le 2\times 10^{-2},\ \varepsilon_{k+1}^{\Delta\rho}(\nu_{k,\mathrm{stay}}^{\star})\le 2\times 10^{-2},\ \varepsilon_{k+1}^{D}(\nu_{k,\mathrm{stay}}^{\star})\le 2\times 10^{-3},\ \varepsilon_{k+1}^{n}(\nu_{k,\mathrm{stay}}^{\star})\le 2\times 10^{-2},\ \varepsilon_{k+1}^{E}(\nu_{k,\mathrm{stay}}^{\star})\le 2\times 10^{-3},\\[2mm]
 \nu_{k,\mathrm{stay}}^{\star},&\Delta F_k<-\tau_F\text{ and }\Delta\varepsilon_k^{E}>\tau_E,\\[1mm]
 \nu_{k,\mathrm{app}}^{\star},&\mathcal J_k^{\mathrm{forecast}}(\nu_{k,\mathrm{app}}^{\star})<\mathcal J_k^{\mathrm{forecast}}(\nu_{k,\mathrm{stay}}^{\star}),\\[1mm]
 \nu_{k,\mathrm{stay}}^{\star},&\text{otherwise.}
 \end{cases}
 \end{aligned}
 $$
+
+\paragraph{Exact-forecast cost note.}
+On the exact forecast surface of this subsection, the density-mode and density-increment channels are evaluated from the same forecast states already used to form $n_j$, $D$, $E$, and $F$. Thus this refinement retargets the scalar controller functional without enlarging the exact-state measurement algebra. On a measured surface, $\rho$ is formed from the same site-occupation record and therefore primarily tightens precision requirements rather than introducing a new observable family.
 
 ## 17A.9 Exact local prune law in the calm regime
 
@@ -4833,15 +4906,7 @@ if one chooses to retain the scalar offset explicitly.
 A common propagator menu is:
 
 - second-order Suzuki,
-- piecewise exact propagation,
-- fourth-order CFQM,
-- sixth-order CFQM.
-
-For CFQM methods, the key mathematical point is that the stage times are fixed scheme nodes $c_j$, so a macro-step from $t_n$ to $t_{n+1}=t_n+\Delta t$ samples the Hamiltonian at
-$$
-t_n+c_j\Delta t,
-$$
-not at a left, midpoint, or right rule chosen independently.
+- piecewise exact propagation.
 
 ## A.4 Reference propagator versus reported trajectory propagator
 
@@ -4862,15 +4927,7 @@ U_{\mathrm{ref}}(t_{n+1},t_n) \approx e^{-i\Delta t\hat H(t_n^*)},
 $$
 with $t_n^*$ sampled on a refined grid and the full reference obtained as an ordered product over the refined slices.
 
-## A.5 CFQM macro-step mathematics
-
-A generic commutator-free quasi-Magnus macro-step takes the form
-$$
-U_{n+1,n}^{\mathrm{CFQM}} = \prod_{r=1}^{s} \exp\!\left[-i a_r \Delta t\,\hat H(t_n+c_r\Delta t)\right],
-$$
-with method-specific coefficients $a_r$ and nodes $c_r$. The formal order is achieved when the stage exponentials are themselves treated at the intended accuracy.
-
-## A.6 Filtered exact manifold and subspace fidelity
+## A.5 Filtered exact manifold and subspace fidelity
 
 Let $\Pi_{\mathrm{sector}}$ denote the projector onto the target symmetry sector. Then the filtered exact energy is
 $$

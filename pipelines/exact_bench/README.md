@@ -20,7 +20,7 @@ for benchmarking the hardcoded quantum algorithms.
 | `statevector_kernels.py` | Shared statevector kernel helpers for exact-bench runners |
 | `noise_oracle_runtime.py` | Runtime/noise oracle support helpers |
 
-Older CFQM-benchmark helper scripts referenced in historical docs are not part
+Older propagator-benchmark helper scripts referenced in historical docs are not part
 of this checkout’s active `exact_bench/` surface.
 
 ## Relationship to `test/`

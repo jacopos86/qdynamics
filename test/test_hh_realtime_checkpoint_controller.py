@@ -346,6 +346,585 @@ def test_realtime_controller_select_action_scans_past_surrogate_top_candidate_th
     assert str(selected["candidate_label"]) == "candidate_b"
 
 
+def test_exact_v1_select_action_allows_density_first_near_miss_candidate(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    replay_context, h_poly, hmat, psi_initial = _toy_context(theta_x=0.2)
+    controller = RealtimeCheckpointController(
+        cfg=RealtimeCheckpointConfig(
+            mode="exact_v1",
+            miss_threshold=0.0,
+            gain_ratio_threshold=0.02,
+            append_margin_abs=1.0e-6,
+        ),
+        replay_context=replay_context,
+        h_poly=h_poly,
+        hmat=hmat,
+        psi_initial=psi_initial,
+        best_theta=[0.2],
+        allow_repeats=False,
+        t_final=0.2,
+        num_times=2,
+    )
+
+    def _record(label: str, *, confirm_score: float, gain_ratio: float, gain_exact: float, pool_index: int) -> dict[str, object]:
+        return {
+            "candidate_label": label,
+            "candidate_identity": label,
+            "candidate_pool_index": int(pool_index),
+            "position_id": int(pool_index),
+            "adjusted_gain": float(confirm_score),
+            "confirm_score": float(confirm_score),
+            "gain_exact": float(gain_exact),
+            "gain_ratio": float(gain_ratio),
+            "groups_new": 0.0,
+            "candidate_summary": CandidateProbeSummary(
+                candidate_label=label,
+                candidate_pool_index=int(pool_index),
+                position_id=int(pool_index),
+                runtime_insert_position=0,
+                runtime_block_indices=[],
+                residual_overlap_l2=0.0,
+                gain_exact=float(gain_exact),
+                gain_ratio=float(gain_ratio),
+                compile_proxy_total=1.0,
+                groups_new=0.0,
+                novelty=None,
+                position_jump_penalty=0.0,
+                directional_change_l2=0.0,
+                tier_reached="confirm",
+                admissible=True,
+                rejection_reason=None,
+                decision_metric="compressed_whitened_confirm_gain_ratio",
+            ),
+        }
+
+    stay_forecast = {
+        "fidelity_exact_next": 0.95,
+        "normalized_primary_density_error_next": 0.40,
+        "abs_primary_density_error_next": 0.40,
+        "tracking_primary_density_slope_error_mean": 0.40,
+        "primary_density_slope_error_next": 0.40,
+        "abs_primary_density_slope_error_next": 0.40,
+        "normalized_energy_total_error_next": 0.10,
+        "abs_energy_total_error_next": 0.10,
+        "abs_doublon_error_next": 0.0,
+        "site_occupations_abs_error_max_next": 0.0,
+    }
+    selected_forecast = {
+        "fidelity_exact_next": 0.95,
+        "normalized_primary_density_error_next": 0.20,
+        "abs_primary_density_error_next": 0.20,
+        "tracking_primary_density_slope_error_mean": 0.10,
+        "primary_density_slope_error_next": 0.10,
+        "abs_primary_density_slope_error_next": 0.10,
+        "normalized_energy_total_error_next": 0.35,
+        "abs_energy_total_error_next": 0.35,
+        "abs_doublon_error_next": 0.0,
+        "site_occupations_abs_error_max_next": 0.0,
+    }
+
+    monkeypatch.setattr(
+        controller,
+        "_select_exact_v1_candidate_step_scale",
+        lambda **kwargs: (dict(kwargs["selected"]), dict(selected_forecast)),
+    )
+
+    action_kind, selected = controller._select_action_exact_v1(
+        baseline={
+            "summary": SimpleNamespace(rho_miss=1.0),
+            "theta_dot_step": np.asarray([0.0], dtype=float),
+        },
+        confirmed=[
+            _record(
+                "candidate_a",
+                confirm_score=2.0,
+                gain_ratio=0.015,
+                gain_exact=1.0e-6,
+                pool_index=0,
+            )
+        ],
+        dt=0.1,
+        time_stop=0.1,
+        stay_forecast=stay_forecast,
+    )
+
+    assert str(action_kind) == "append_candidate"
+    assert selected is not None
+    assert str(selected["candidate_label"]) == "candidate_a"
+    assert bool(selected["exact_confirm_near_miss_admitted"]) is True
+    assert str(selected["exact_v1_admission_reason"]) == "near_miss_componentwise_aspiration"
+    assert str(controller._last_exact_v1_selection_reason) == "near_miss_componentwise_aspiration"
+
+
+def test_exact_v1_componentwise_aspiration_allows_site_win_vs_stay() -> None:
+    replay_context, h_poly, hmat, psi_initial = _toy_context(theta_x=0.2)
+    controller = RealtimeCheckpointController(
+        cfg=RealtimeCheckpointConfig(mode="exact_v1"),
+        replay_context=replay_context,
+        h_poly=h_poly,
+        hmat=hmat,
+        psi_initial=psi_initial,
+        best_theta=[0.2],
+        allow_repeats=False,
+        t_final=0.2,
+        num_times=2,
+    )
+
+    ok, reason = controller._exact_v1_componentwise_aspiration_result(
+        stay_forecast={
+            "fidelity_exact_next": 0.96,
+            "normalized_primary_density_error_next": 0.30,
+            "abs_primary_density_error_next": 0.30,
+            "primary_density_slope_error_next": 0.20,
+            "abs_primary_density_slope_error_next": 0.20,
+            "normalized_energy_total_error_next": 0.10,
+            "abs_energy_total_error_next": 0.10,
+            "site_occupations_abs_error_max_next": 0.10,
+        },
+        selected_forecast={
+            "fidelity_exact_next": 0.96,
+            "normalized_primary_density_error_next": 0.30,
+            "abs_primary_density_error_next": 0.30,
+            "primary_density_slope_error_next": 0.20,
+            "abs_primary_density_slope_error_next": 0.20,
+            "normalized_energy_total_error_next": 0.12,
+            "abs_energy_total_error_next": 0.12,
+            "site_occupations_abs_error_max_next": 0.07,
+        },
+    )
+
+    assert ok is True
+    assert reason is None
+
+
+def test_exact_v1_select_action_allows_below_floor_candidate_via_componentwise_aspiration(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    replay_context, h_poly, hmat, psi_initial = _toy_context(theta_x=0.2)
+    controller = RealtimeCheckpointController(
+        cfg=RealtimeCheckpointConfig(
+            mode="exact_v1",
+            miss_threshold=0.0,
+            gain_ratio_threshold=0.02,
+            append_margin_abs=1.0e-6,
+        ),
+        replay_context=replay_context,
+        h_poly=h_poly,
+        hmat=hmat,
+        psi_initial=psi_initial,
+        best_theta=[0.2],
+        allow_repeats=False,
+        t_final=0.2,
+        num_times=2,
+    )
+
+    def _record(label: str, *, confirm_score: float, gain_ratio: float, gain_exact: float, pool_index: int) -> dict[str, object]:
+        return {
+            "candidate_label": label,
+            "candidate_identity": label,
+            "candidate_pool_index": int(pool_index),
+            "position_id": int(pool_index),
+            "adjusted_gain": float(confirm_score),
+            "confirm_score": float(confirm_score),
+            "gain_exact": float(gain_exact),
+            "gain_ratio": float(gain_ratio),
+            "groups_new": 0.0,
+            "candidate_summary": CandidateProbeSummary(
+                candidate_label=label,
+                candidate_pool_index=int(pool_index),
+                position_id=int(pool_index),
+                runtime_insert_position=0,
+                runtime_block_indices=[],
+                residual_overlap_l2=0.0,
+                gain_exact=float(gain_exact),
+                gain_ratio=float(gain_ratio),
+                compile_proxy_total=1.0,
+                groups_new=0.0,
+                novelty=None,
+                position_jump_penalty=0.0,
+                directional_change_l2=0.0,
+                tier_reached="confirm",
+                admissible=True,
+                rejection_reason=None,
+                decision_metric="compressed_whitened_confirm_gain_ratio",
+            ),
+        }
+
+    stay_forecast = {
+        "fidelity_exact_next": 0.95,
+        "normalized_primary_density_error_next": 0.40,
+        "abs_primary_density_error_next": 0.40,
+        "tracking_primary_density_slope_error_mean": 0.40,
+        "primary_density_slope_error_next": 0.40,
+        "abs_primary_density_slope_error_next": 0.40,
+        "normalized_energy_total_error_next": 0.008,
+        "abs_energy_total_error_next": 0.008,
+        "abs_doublon_error_next": 0.0,
+        "site_occupations_abs_error_max_next": 0.10,
+    }
+    selected_forecast = {
+        "fidelity_exact_next": 0.95,
+        "normalized_primary_density_error_next": 0.20,
+        "abs_primary_density_error_next": 0.20,
+        "tracking_primary_density_slope_error_mean": 0.10,
+        "primary_density_slope_error_next": 0.10,
+        "abs_primary_density_slope_error_next": 0.10,
+        "normalized_energy_total_error_next": 0.007,
+        "abs_energy_total_error_next": 0.007,
+        "abs_doublon_error_next": 0.0,
+        "site_occupations_abs_error_max_next": 0.07,
+    }
+
+    monkeypatch.setattr(
+        controller,
+        "_select_exact_v1_candidate_step_scale",
+        lambda **kwargs: (dict(kwargs["selected"]), dict(selected_forecast)),
+    )
+
+    controller._exact_v1_append_lane_stall_streak = controller._exact_v1_below_floor_probe_stall_threshold()
+
+    action_kind, selected = controller._select_action_exact_v1(
+        baseline={
+            "summary": SimpleNamespace(rho_miss=1.0),
+            "theta_dot_step": np.asarray([0.0], dtype=float),
+        },
+        confirmed=[
+            _record(
+                "candidate_a",
+                confirm_score=2.0,
+                gain_ratio=0.005,
+                gain_exact=2.0e-7,
+                pool_index=0,
+            )
+        ],
+        dt=0.1,
+        time_stop=0.1,
+        stay_forecast=stay_forecast,
+    )
+
+    assert str(action_kind) == "append_candidate"
+    assert selected is not None
+    assert str(selected["candidate_label"]) == "candidate_a"
+    assert bool(selected["exact_confirm_below_floor_probed"]) is True
+    assert bool(selected["exact_confirm_near_miss_admitted"]) is False
+    assert str(selected["exact_v1_admission_reason"]) == "below_floor_componentwise_aspiration"
+    assert str(controller._last_exact_v1_selection_reason) == "below_floor_componentwise_aspiration"
+
+
+def test_exact_v1_select_action_below_floor_requires_stall_streak(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    replay_context, h_poly, hmat, psi_initial = _toy_context(theta_x=0.2)
+    controller = RealtimeCheckpointController(
+        cfg=RealtimeCheckpointConfig(
+            mode="exact_v1",
+            miss_threshold=0.0,
+            gain_ratio_threshold=0.02,
+            append_margin_abs=1.0e-6,
+        ),
+        replay_context=replay_context,
+        h_poly=h_poly,
+        hmat=hmat,
+        psi_initial=psi_initial,
+        best_theta=[0.2],
+        allow_repeats=False,
+        t_final=0.2,
+        num_times=2,
+    )
+
+    def _record(label: str, *, confirm_score: float, gain_ratio: float, gain_exact: float, pool_index: int) -> dict[str, object]:
+        return {
+            "candidate_label": label,
+            "candidate_identity": label,
+            "candidate_pool_index": int(pool_index),
+            "position_id": int(pool_index),
+            "adjusted_gain": float(confirm_score),
+            "confirm_score": float(confirm_score),
+            "gain_exact": float(gain_exact),
+            "gain_ratio": float(gain_ratio),
+            "groups_new": 0.0,
+            "candidate_summary": CandidateProbeSummary(
+                candidate_label=label,
+                candidate_pool_index=int(pool_index),
+                position_id=int(pool_index),
+                runtime_insert_position=0,
+                runtime_block_indices=[],
+                residual_overlap_l2=0.0,
+                gain_exact=float(gain_exact),
+                gain_ratio=float(gain_ratio),
+                compile_proxy_total=1.0,
+                groups_new=0.0,
+                novelty=None,
+                position_jump_penalty=0.0,
+                directional_change_l2=0.0,
+                tier_reached="confirm",
+                admissible=True,
+                rejection_reason=None,
+                decision_metric="compressed_whitened_confirm_gain_ratio",
+            ),
+        }
+
+    stay_forecast = {
+        "fidelity_exact_next": 0.95,
+        "normalized_primary_density_error_next": 0.40,
+        "abs_primary_density_error_next": 0.40,
+        "tracking_primary_density_slope_error_mean": 0.40,
+        "primary_density_slope_error_next": 0.40,
+        "abs_primary_density_slope_error_next": 0.40,
+        "normalized_energy_total_error_next": 0.008,
+        "abs_energy_total_error_next": 0.008,
+        "abs_doublon_error_next": 0.0,
+        "site_occupations_abs_error_max_next": 0.10,
+    }
+    selected_forecast = {
+        "fidelity_exact_next": 0.95,
+        "normalized_primary_density_error_next": 0.20,
+        "abs_primary_density_error_next": 0.20,
+        "tracking_primary_density_slope_error_mean": 0.10,
+        "primary_density_slope_error_next": 0.10,
+        "abs_primary_density_slope_error_next": 0.10,
+        "normalized_energy_total_error_next": 0.007,
+        "abs_energy_total_error_next": 0.007,
+        "abs_doublon_error_next": 0.0,
+        "site_occupations_abs_error_max_next": 0.07,
+    }
+
+    monkeypatch.setattr(
+        controller,
+        "_select_exact_v1_candidate_step_scale",
+        lambda **kwargs: (dict(kwargs["selected"]), dict(selected_forecast)),
+    )
+
+    action_kind, selected = controller._select_action_exact_v1(
+        baseline={
+            "summary": SimpleNamespace(rho_miss=1.0),
+            "theta_dot_step": np.asarray([0.0], dtype=float),
+        },
+        confirmed=[
+            _record(
+                "candidate_a",
+                confirm_score=2.0,
+                gain_ratio=0.005,
+                gain_exact=2.0e-7,
+                pool_index=0,
+            )
+        ],
+        dt=0.1,
+        time_stop=0.1,
+        stay_forecast=stay_forecast,
+    )
+
+    assert str(action_kind) == "stay"
+    assert selected is None
+    assert str(controller._last_exact_v1_selection_reason) == "below_near_miss_floor"
+
+
+def test_exact_v1_select_action_below_floor_requires_energy_safe_window(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    replay_context, h_poly, hmat, psi_initial = _toy_context(theta_x=0.2)
+    controller = RealtimeCheckpointController(
+        cfg=RealtimeCheckpointConfig(
+            mode="exact_v1",
+            miss_threshold=0.0,
+            gain_ratio_threshold=0.02,
+            append_margin_abs=1.0e-6,
+        ),
+        replay_context=replay_context,
+        h_poly=h_poly,
+        hmat=hmat,
+        psi_initial=psi_initial,
+        best_theta=[0.2],
+        allow_repeats=False,
+        t_final=0.2,
+        num_times=2,
+    )
+
+    def _record(label: str, *, confirm_score: float, gain_ratio: float, gain_exact: float, pool_index: int) -> dict[str, object]:
+        return {
+            "candidate_label": label,
+            "candidate_identity": label,
+            "candidate_pool_index": int(pool_index),
+            "position_id": int(pool_index),
+            "adjusted_gain": float(confirm_score),
+            "confirm_score": float(confirm_score),
+            "gain_exact": float(gain_exact),
+            "gain_ratio": float(gain_ratio),
+            "groups_new": 0.0,
+            "candidate_summary": CandidateProbeSummary(
+                candidate_label=label,
+                candidate_pool_index=int(pool_index),
+                position_id=int(pool_index),
+                runtime_insert_position=0,
+                runtime_block_indices=[],
+                residual_overlap_l2=0.0,
+                gain_exact=float(gain_exact),
+                gain_ratio=float(gain_ratio),
+                compile_proxy_total=1.0,
+                groups_new=0.0,
+                novelty=None,
+                position_jump_penalty=0.0,
+                directional_change_l2=0.0,
+                tier_reached="confirm",
+                admissible=True,
+                rejection_reason=None,
+                decision_metric="compressed_whitened_confirm_gain_ratio",
+            ),
+        }
+
+    stay_forecast = {
+        "fidelity_exact_next": 0.95,
+        "normalized_primary_density_error_next": 0.40,
+        "abs_primary_density_error_next": 0.40,
+        "tracking_primary_density_slope_error_mean": 0.40,
+        "primary_density_slope_error_next": 0.40,
+        "abs_primary_density_slope_error_next": 0.40,
+        "normalized_energy_total_error_next": 0.02,
+        "abs_energy_total_error_next": 0.02,
+        "abs_doublon_error_next": 0.0,
+        "site_occupations_abs_error_max_next": 0.10,
+    }
+    selected_forecast = {
+        "fidelity_exact_next": 0.95,
+        "normalized_primary_density_error_next": 0.20,
+        "abs_primary_density_error_next": 0.20,
+        "tracking_primary_density_slope_error_mean": 0.10,
+        "primary_density_slope_error_next": 0.10,
+        "abs_primary_density_slope_error_next": 0.10,
+        "normalized_energy_total_error_next": 0.007,
+        "abs_energy_total_error_next": 0.007,
+        "abs_doublon_error_next": 0.0,
+        "site_occupations_abs_error_max_next": 0.07,
+    }
+
+    monkeypatch.setattr(
+        controller,
+        "_select_exact_v1_candidate_step_scale",
+        lambda **kwargs: (dict(kwargs["selected"]), dict(selected_forecast)),
+    )
+
+    controller._exact_v1_append_lane_stall_streak = controller._exact_v1_below_floor_probe_stall_threshold()
+
+    action_kind, selected = controller._select_action_exact_v1(
+        baseline={
+            "summary": SimpleNamespace(rho_miss=1.0),
+            "theta_dot_step": np.asarray([0.0], dtype=float),
+        },
+        confirmed=[
+            _record(
+                "candidate_a",
+                confirm_score=2.0,
+                gain_ratio=0.005,
+                gain_exact=2.0e-7,
+                pool_index=0,
+            )
+        ],
+        dt=0.1,
+        time_stop=0.1,
+        stay_forecast=stay_forecast,
+    )
+
+    assert str(action_kind) == "stay"
+    assert selected is None
+    assert str(controller._last_exact_v1_selection_reason) == "outside_energy_safe_window"
+
+
+def test_exact_v1_select_action_near_miss_records_no_target_win_reason(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    replay_context, h_poly, hmat, psi_initial = _toy_context(theta_x=0.2)
+    controller = RealtimeCheckpointController(
+        cfg=RealtimeCheckpointConfig(
+            mode="exact_v1",
+            miss_threshold=0.0,
+            gain_ratio_threshold=0.02,
+            append_margin_abs=1.0e-6,
+        ),
+        replay_context=replay_context,
+        h_poly=h_poly,
+        hmat=hmat,
+        psi_initial=psi_initial,
+        best_theta=[0.2],
+        allow_repeats=False,
+        t_final=0.2,
+        num_times=2,
+    )
+
+    def _record(label: str, *, confirm_score: float, gain_ratio: float, gain_exact: float, pool_index: int) -> dict[str, object]:
+        return {
+            "candidate_label": label,
+            "candidate_identity": label,
+            "candidate_pool_index": int(pool_index),
+            "position_id": int(pool_index),
+            "adjusted_gain": float(confirm_score),
+            "confirm_score": float(confirm_score),
+            "gain_exact": float(gain_exact),
+            "gain_ratio": float(gain_ratio),
+            "groups_new": 0.0,
+            "candidate_summary": CandidateProbeSummary(
+                candidate_label=label,
+                candidate_pool_index=int(pool_index),
+                position_id=int(pool_index),
+                runtime_insert_position=0,
+                runtime_block_indices=[],
+                residual_overlap_l2=0.0,
+                gain_exact=float(gain_exact),
+                gain_ratio=float(gain_ratio),
+                compile_proxy_total=1.0,
+                groups_new=0.0,
+                novelty=None,
+                position_jump_penalty=0.0,
+                directional_change_l2=0.0,
+                tier_reached="confirm",
+                admissible=True,
+                rejection_reason=None,
+                decision_metric="compressed_whitened_confirm_gain_ratio",
+            ),
+        }
+
+    stay_forecast = {
+        "fidelity_exact_next": 0.95,
+        "normalized_primary_density_error_next": 0.20,
+        "abs_primary_density_error_next": 0.20,
+        "primary_density_slope_error_next": 0.10,
+        "abs_primary_density_slope_error_next": 0.10,
+        "normalized_energy_total_error_next": 0.10,
+        "abs_energy_total_error_next": 0.10,
+        "site_occupations_abs_error_max_next": 0.04,
+    }
+    selected_forecast = dict(stay_forecast)
+
+    monkeypatch.setattr(
+        controller,
+        "_select_exact_v1_candidate_step_scale",
+        lambda **kwargs: (dict(kwargs["selected"]), dict(selected_forecast)),
+    )
+
+    action_kind, selected = controller._select_action_exact_v1(
+        baseline={
+            "summary": SimpleNamespace(rho_miss=1.0),
+            "theta_dot_step": np.asarray([0.0], dtype=float),
+        },
+        confirmed=[
+            _record(
+                "candidate_a",
+                confirm_score=2.0,
+                gain_ratio=0.015,
+                gain_exact=1.0e-6,
+                pool_index=0,
+            )
+        ],
+        dt=0.1,
+        time_stop=0.1,
+        stay_forecast=stay_forecast,
+    )
+
+    assert str(action_kind) == "stay"
+    assert selected is None
+    assert str(controller._last_exact_v1_selection_reason) == "no_target_win_vs_stay"
+
+
 def test_realtime_controller_analytic_noise_zero_std_matches_exact_baseline() -> None:
     replay_context, h_poly, hmat, psi_initial = _toy_context(theta_x=0.2)
     controller_plain = RealtimeCheckpointController(
@@ -3046,6 +3625,8 @@ def test_realtime_controller_exact_v1_vetoes_append_when_stay_forecast_is_alread
             return {
                 "fidelity_exact_next": 0.9995,
                 "abs_energy_total_error_next": 1.0e-4,
+                "abs_primary_density_error_next": 5.0e-3,
+                "abs_primary_density_slope_error_next": 5.0e-3,
                 "abs_staggered_error_next": 5.0e-3,
                 "abs_doublon_error_next": 5.0e-4,
                 "site_occupations_abs_error_max_next": 5.0e-3,
@@ -3053,6 +3634,8 @@ def test_realtime_controller_exact_v1_vetoes_append_when_stay_forecast_is_alread
         return {
             "fidelity_exact_next": 0.9997,
             "abs_energy_total_error_next": 1.2e-4,
+            "abs_primary_density_error_next": 4.0e-3,
+            "abs_primary_density_slope_error_next": 4.0e-3,
             "abs_staggered_error_next": 4.0e-3,
             "abs_doublon_error_next": 4.0e-4,
             "site_occupations_abs_error_max_next": 4.0e-3,
@@ -3130,6 +3713,108 @@ def test_exact_v1_forecast_override_reason_rejects_nonimproving_tracking_score()
             "abs_doublon_error_next": 0.015,
             "site_occupations_abs_error_max_next": 0.04,
         },
+        action_kind="append_candidate",
+        selected={"candidate_label": "candidate_a"},
+    )
+
+    assert reason == "exact_forecast_nonimproving_tracking_score"
+
+
+def test_exact_v1_forecast_override_reason_allows_density_first_append_despite_nonimproving_tracking_score() -> None:
+    replay_context, h_poly, hmat, psi_initial = _toy_context(theta_x=0.2)
+    controller = RealtimeCheckpointController(
+        cfg=RealtimeCheckpointConfig(mode="exact_v1"),
+        replay_context=replay_context,
+        h_poly=h_poly,
+        hmat=hmat,
+        psi_initial=psi_initial,
+        best_theta=[0.2],
+        allow_repeats=False,
+        t_final=0.2,
+        num_times=2,
+    )
+    stay_forecast = {
+        "fidelity_exact_next": 0.95,
+        "normalized_primary_density_error_next": 0.20,
+        "abs_primary_density_error_next": 0.20,
+        "tracking_primary_density_slope_error_mean": 0.20,
+        "primary_density_slope_error_next": 0.20,
+        "abs_primary_density_slope_error_next": 0.20,
+        "normalized_energy_total_error_next": 0.10,
+        "abs_energy_total_error_next": 0.10,
+        "abs_doublon_error_next": 0.0,
+        "site_occupations_abs_error_max_next": 0.0,
+    }
+    selected_forecast = {
+        "fidelity_exact_next": 0.95,
+        "normalized_primary_density_error_next": 0.19,
+        "abs_primary_density_error_next": 0.19,
+        "tracking_primary_density_slope_error_mean": 0.10,
+        "primary_density_slope_error_next": 0.10,
+        "abs_primary_density_slope_error_next": 0.10,
+        "normalized_energy_total_error_next": 0.31,
+        "abs_energy_total_error_next": 0.31,
+        "abs_doublon_error_next": 0.0,
+        "site_occupations_abs_error_max_next": 0.0,
+    }
+
+    assert controller._forecast_tracking_score(forecast=selected_forecast) > controller._forecast_tracking_score(
+        forecast=stay_forecast
+    )
+    reason = controller._exact_v1_forecast_override_reason(
+        stay_forecast=stay_forecast,
+        selected_forecast=selected_forecast,
+        action_kind="append_candidate",
+        selected={"candidate_label": "candidate_a"},
+    )
+
+    assert reason is None
+
+
+def test_exact_v1_forecast_override_reason_keeps_stay_for_severe_energy_fidelity_regression_without_density_slope_gain() -> None:
+    replay_context, h_poly, hmat, psi_initial = _toy_context(theta_x=0.2)
+    controller = RealtimeCheckpointController(
+        cfg=RealtimeCheckpointConfig(mode="exact_v1"),
+        replay_context=replay_context,
+        h_poly=h_poly,
+        hmat=hmat,
+        psi_initial=psi_initial,
+        best_theta=[0.2],
+        allow_repeats=False,
+        t_final=0.2,
+        num_times=2,
+    )
+    stay_forecast = {
+        "fidelity_exact_next": 0.95,
+        "normalized_primary_density_error_next": 0.40,
+        "abs_primary_density_error_next": 0.40,
+        "tracking_primary_density_slope_error_mean": 0.20,
+        "primary_density_slope_error_next": 0.20,
+        "abs_primary_density_slope_error_next": 0.20,
+        "normalized_energy_total_error_next": 0.10,
+        "abs_energy_total_error_next": 0.10,
+        "abs_doublon_error_next": 0.0,
+        "site_occupations_abs_error_max_next": 0.0,
+    }
+    selected_forecast = {
+        "fidelity_exact_next": 0.92,
+        "normalized_primary_density_error_next": 0.10,
+        "abs_primary_density_error_next": 0.10,
+        "tracking_primary_density_slope_error_mean": 0.19,
+        "primary_density_slope_error_next": 0.19,
+        "abs_primary_density_slope_error_next": 0.19,
+        "normalized_energy_total_error_next": 0.60,
+        "abs_energy_total_error_next": 0.60,
+        "abs_doublon_error_next": 0.0,
+        "site_occupations_abs_error_max_next": 0.0,
+    }
+
+    assert controller._forecast_tracking_score(forecast=selected_forecast) > controller._forecast_tracking_score(
+        forecast=stay_forecast
+    )
+    reason = controller._exact_v1_forecast_override_reason(
+        stay_forecast=stay_forecast,
+        selected_forecast=selected_forecast,
         action_kind="append_candidate",
         selected={"candidate_label": "candidate_a"},
     )
@@ -4806,6 +5491,7 @@ def test_exact_v1_energy_excursion_under_term_prefers_higher_post_step_gain(
             candidate_step_scales=(1.0,),
             exact_forecast_baseline_gain_scales=(1.0, 1.2),
             exact_forecast_tracking_horizon_steps=2,
+            exact_forecast_density_slope_weight=0.0,
         ),
         replay_context=replay_context,
         h_poly=h_poly,
@@ -4845,6 +5531,7 @@ def test_exact_v1_energy_excursion_under_term_prefers_higher_post_step_gain(
             exact_forecast_baseline_gain_scales=(1.0, 1.2),
             exact_forecast_tracking_horizon_steps=2,
             exact_forecast_energy_excursion_under_weight=200.0,
+            exact_forecast_density_slope_weight=0.0,
         ),
         replay_context=replay_context,
         h_poly=h_poly,
@@ -4896,6 +5583,7 @@ def test_exact_v1_energy_excursion_under_term_prefers_higher_post_step_gain(
             exact_forecast_baseline_gain_scales=(1.0, 1.2, 1.4),
             exact_forecast_tracking_horizon_steps=2,
             exact_forecast_energy_excursion_under_weight=200.0,
+            exact_forecast_density_slope_weight=0.0,
         ),
         replay_context=replay_context,
         h_poly=h_poly,
@@ -4939,6 +5627,7 @@ def test_exact_v1_energy_excursion_under_term_prefers_higher_post_step_gain(
             exact_forecast_energy_excursion_under_weight=200.0,
             exact_forecast_energy_excursion_over_weight=500.0,
             exact_forecast_energy_excursion_rel_tolerance=0.03,
+            exact_forecast_density_slope_weight=0.0,
         ),
         replay_context=replay_context,
         h_poly=h_poly,
@@ -5129,6 +5818,7 @@ def test_exact_v1_energy_slope_term_prefers_shape_matched_baseline_step(
             mode="exact_v1",
             candidate_step_scales=(0.2, 1.0),
             exact_forecast_tracking_horizon_steps=2,
+            exact_forecast_density_slope_weight=0.0,
         ),
         replay_context=replay_context,
         h_poly=h_poly,
@@ -5167,6 +5857,7 @@ def test_exact_v1_energy_slope_term_prefers_shape_matched_baseline_step(
             candidate_step_scales=(0.2, 1.0),
             exact_forecast_tracking_horizon_steps=2,
             exact_forecast_energy_slope_weight=500.0,
+            exact_forecast_density_slope_weight=0.0,
         ),
         replay_context=replay_context,
         h_poly=h_poly,
@@ -5297,6 +5988,7 @@ def test_exact_v1_energy_curvature_term_is_active_for_h2_with_anchor(
             candidate_step_scales=(0.2, 1.0),
             exact_forecast_tracking_horizon_steps=2,
             exact_forecast_energy_slope_weight=500.0,
+            exact_forecast_density_slope_weight=0.0,
         ),
         replay_context=replay_context,
         h_poly=h_poly,
@@ -5338,6 +6030,7 @@ def test_exact_v1_energy_curvature_term_is_active_for_h2_with_anchor(
             exact_forecast_tracking_horizon_steps=2,
             exact_forecast_energy_slope_weight=500.0,
             exact_forecast_energy_curvature_weight=200.0,
+            exact_forecast_density_slope_weight=0.0,
         ),
         replay_context=replay_context,
         h_poly=h_poly,
@@ -6532,3 +7225,87 @@ def test_exact_forecast_tracking_score_respects_explicit_doublon_weight() -> Non
 
     assert float(baseline_a) < float(baseline_b)
     assert float(weighted_b) < float(weighted_a)
+
+
+def test_exact_forecast_tracking_score_adds_density_slope_term() -> None:
+    replay_context, h_poly, hmat, psi_initial = _toy_context(theta_x=0.2)
+    controller = RealtimeCheckpointController(
+        cfg=RealtimeCheckpointConfig(
+            mode="exact_v1",
+            exact_forecast_tracking_horizon_steps=2,
+            exact_forecast_tracking_fidelity_defect_weight=0.0,
+            exact_forecast_tracking_primary_density_error_weight=0.0,
+            exact_forecast_tracking_doublon_error_weight=0.0,
+            exact_forecast_tracking_site_occupations_error_weight=0.0,
+            exact_forecast_tracking_energy_total_error_weight=0.0,
+            exact_forecast_density_slope_weight=7.0,
+        ),
+        replay_context=replay_context,
+        h_poly=h_poly,
+        hmat=hmat,
+        psi_initial=psi_initial,
+        best_theta=[0.2],
+        allow_repeats=False,
+        t_final=0.2,
+        num_times=3,
+    )
+    forecasts = [
+        {
+            "fidelity_exact_next": 1.0,
+            "primary_density_controller_next": 0.0,
+            "primary_density_exact_next": 0.0,
+            "site_occupations_exact_next": [0.0, 0.0],
+            "doublon_exact_next": 0.0,
+            "energy_total_exact_next": 0.0,
+            "abs_primary_density_error_next": 0.0,
+            "abs_doublon_error_next": 0.0,
+            "site_occupations_abs_error_max_next": 0.0,
+            "abs_energy_total_error_next": 0.0,
+        },
+        {
+            "fidelity_exact_next": 1.0,
+            "primary_density_controller_next": 0.0,
+            "primary_density_exact_next": 1.0,
+            "site_occupations_exact_next": [1.0, 0.0],
+            "doublon_exact_next": 0.0,
+            "energy_total_exact_next": 0.0,
+            "abs_primary_density_error_next": 1.0,
+            "abs_doublon_error_next": 0.0,
+            "site_occupations_abs_error_max_next": 0.0,
+            "abs_energy_total_error_next": 0.0,
+        },
+    ]
+
+    score = controller._forecast_tracking_score(forecast=forecasts)
+
+    assert float(score) == pytest.approx(7.0)
+
+
+def test_stay_forecast_within_exact_v1_bounded_defect_requires_primary_density_slope() -> None:
+    replay_context, h_poly, hmat, psi_initial = _toy_context(theta_x=0.2)
+    controller = RealtimeCheckpointController(
+        cfg=RealtimeCheckpointConfig(mode="exact_v1"),
+        replay_context=replay_context,
+        h_poly=h_poly,
+        hmat=hmat,
+        psi_initial=psi_initial,
+        best_theta=[0.2],
+        allow_repeats=False,
+        t_final=0.2,
+        num_times=3,
+    )
+    forecast = {
+        "fidelity_exact_next": 0.9995,
+        "abs_primary_density_error_next": 5.0e-3,
+        "abs_primary_density_slope_error_next": 3.0e-2,
+        "abs_staggered_error_next": 5.0e-3,
+        "abs_doublon_error_next": 5.0e-4,
+        "site_occupations_abs_error_max_next": 5.0e-3,
+        "abs_energy_total_error_next": 1.0e-4,
+    }
+
+    assert controller._stay_forecast_within_exact_v1_bounded_defect(forecast=forecast) is False
+
+    forecast["abs_primary_density_slope_error_next"] = 5.0e-3
+
+    assert controller._stay_forecast_within_exact_v1_bounded_defect(forecast=forecast) is True

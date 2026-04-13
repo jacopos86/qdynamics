@@ -6637,3 +6637,125 @@ class TestHHBeamRuntimeFallbackRegression:
         assert math.isfinite(float(payload["energy"]))
         assert math.isfinite(float(payload["abs_delta_e"]))
         assert int(payload["ansatz_depth"]) >= 1
+
+
+class TestHHPhase3MotifSeedRegression:
+    def test_phase3_motif_seeding_rebuilds_layout_before_projection(self, tmp_path: Path):
+        h_poly = build_hubbard_holstein_hamiltonian(
+            dims=2,
+            J=1.0,
+            U=2.0,
+            omega0=1.0,
+            g=0.5,
+            n_ph_max=1,
+            boson_encoding="binary",
+            repr_mode="JW",
+            indexing="blocked",
+            pbc=False,
+            include_zero_point=True,
+        )
+        num_particles = half_filled_num_particles(2)
+        pool, _method, _class_meta, _label_meta = _adapt_mod.build_hh_pool_by_key(
+            pool_key_hh="full_meta",
+            h_poly=h_poly,
+            num_sites=2,
+            t=1.0,
+            u=2.0,
+            omega0=1.0,
+            g_ep=0.5,
+            dv=0.0,
+            n_ph_max=1,
+            boson_encoding="binary",
+            ordering="blocked",
+            boundary="open",
+            paop_r=1,
+            paop_split_paulis=False,
+            paop_prune_eps=0.0,
+            paop_normalization="none",
+            num_particles=num_particles,
+        )
+        registry = _adapt_mod.build_pool_generator_registry(
+            terms=pool,
+            family_ids=["full_meta"] * len(pool),
+            num_sites=2,
+            ordering="blocked",
+            qpb=1,
+            symmetry_specs=None,
+            split_policy="preserve",
+        )
+        motif_labels = [
+            "uccsd_ferm_lifted::uccsd_sing(alpha:0->1)",
+            "uccsd_ferm_lifted::uccsd_sing(beta:2->3)",
+            "paop_lf_full:paop_dbl_p(site=0->phonon=0)",
+            "paop_lf_full:paop_dbl_p(site=1->phonon=1)",
+        ]
+        generator_metadata = _adapt_mod.selected_generator_metadata_for_labels(motif_labels, registry)
+        assert len(generator_metadata) == len(motif_labels)
+        motif_library = _adapt_mod.extract_motif_library(
+            generator_metadata=generator_metadata,
+            theta=[-0.4, 0.4, -0.2, 0.2],
+            source_num_sites=2,
+            source_tag="test_full_meta_motif",
+            ordering="blocked",
+            boson_encoding="binary",
+        )
+        motif_path = tmp_path / "motif_payload.json"
+        motif_path.write_text(
+            json.dumps({"continuation": {"motif_library": motif_library}}, indent=2) + "\n",
+            encoding="utf-8",
+        )
+
+        payload, _psi = _run_hardcoded_adapt_vqe(
+            h_poly=h_poly,
+            num_sites=2,
+            ordering="blocked",
+            problem="hh",
+            adapt_pool="full_meta",
+            t=1.0,
+            u=2.0,
+            dv=0.0,
+            boundary="open",
+            omega0=1.0,
+            g_ep=0.5,
+            n_ph_max=1,
+            boson_encoding="binary",
+            max_depth=6,
+            eps_grad=1e-3,
+            eps_energy=1e-8,
+            maxiter=60,
+            seed=7,
+            allow_repeats=False,
+            finite_angle_fallback=False,
+            finite_angle=0.1,
+            finite_angle_min_improvement=1e-12,
+            adapt_state_backend="compiled",
+            adapt_reopt_policy="windowed",
+            adapt_window_size=32,
+            adapt_window_topk=32,
+            adapt_full_refit_every=0,
+            adapt_final_full_refit=False,
+            adapt_drop_floor=-1.0,
+            adapt_grad_floor=-1.0,
+            adapt_continuation_mode="phase3_v1",
+            disable_hh_seed=True,
+            phase3_motif_source_json=motif_path,
+            phase2_motif_bonus_weight=0.05,
+            phase3_runtime_split_mode="off",
+            phase3_lifetime_cost_mode="phase3_v1",
+            phase3_symmetry_mitigation_mode="verify_only",
+            phase3_enable_rescue=False,
+            phase3_backend_cost_mode="proxy",
+            adapt_beam_live_branches=1,
+            adapt_beam_children_per_parent=1,
+            adapt_beam_terminated_keep=1,
+        )
+
+        continuation = payload["continuation"]
+        motif_usage = continuation["motif_usage"]
+        assert payload["success"] is True
+        assert motif_usage["enabled"] is True
+        assert motif_usage["source_tag"] == "test_full_meta_motif"
+        assert motif_usage["seeded_labels"]
+        assert all(str(label) in payload["operators"] for label in motif_usage["seeded_labels"])
+        assert len(payload["optimal_point"]) == int(payload["parameterization"]["runtime_parameter_count"])
+        assert len(payload["logical_optimal_point"]) == int(payload["parameterization"]["logical_operator_count"])

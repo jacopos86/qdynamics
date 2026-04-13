@@ -252,6 +252,10 @@ def test_build_split_event_records_probe_choice_details() -> None:
         chosen_child_ids=[],
         split_margin=-0.1,
         symmetry_gate_results={"passed": True},
+        parent_collapse_diagnostic={
+            "selection_mode": "proxy_child_set_preselection",
+            "depth": 4,
+        },
         compiled_cost_parent=2.0,
         compiled_cost_children=2.4,
         insertion_positions=[3],
@@ -263,6 +267,7 @@ def test_build_split_event_records_probe_choice_details() -> None:
     assert event["chosen_representation"] == "parent"
     assert event["compiled_cost_parent"] == 2.0
     assert event["insertion_positions"] == [3]
+    assert event["parent_collapse_diagnostic"]["selection_mode"] == "proxy_child_set_preselection"
 
 
 def test_rebuild_polynomial_from_serialized_terms_preserves_serialized_order() -> None:

@@ -9,7 +9,7 @@ Knobs explored:
   - Term pruning: drop Hamiltonian terms below coefficient threshold
   - Term ordering: native vs sorted-by-weight (commuting terms adjacent)
   - Drive on/off: static vs driven dynamics
-  - Propagator: suzuki2 vs cfqm4 (inner Suzuki-2 for circuit)
+  - Propagator: suzuki2
 
 Outputs a JSON artifact with per-variant metrics:
   - Logical CNOT count, single-qubit gate count

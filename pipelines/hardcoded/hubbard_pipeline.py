@@ -6,16 +6,8 @@ Flow:
 2) Run hardcoded VQE on numpy-statevector backend (SciPy optional fallback comes from
    the notebook implementation).
 3) Run temporary QPE adapter (Qiskit-only, isolated in one function).
-4) Run hardcoded Suzuki-2 Trotter dynamics and exact dynamics.
+4) Run hardcoded Suzuki-2 dynamics and exact/reference dynamics.
 5) Emit JSON + compact PDF artifact.
-
-CFQM migration notes:
-- CFQM (`--propagator cfqm4/cfqm6`) uses fixed scheme nodes `c_j`; it does not
-  use midpoint/left/right sampling semantics.
-- `--exact-steps-multiplier` refines only the reference propagation path and does
-  not change CFQM macro-step count.
-- Hubbard and Hubbard-Holstein share the same propagator interface (no HH special
-  casing needed for CFQM selection).
 """
 
 from __future__ import annotations
@@ -81,12 +73,6 @@ from src.quantum.pauli_actions import (
     apply_exp_term as _apply_exp_term_shared,
     compile_pauli_action_exyz as _compile_pauli_action_exyz_shared,
 )
-from src.quantum.time_propagation import (
-    cfqm_step,
-    get_cfqm_scheme,
-)
-from src.quantum.time_propagation.cfqm_schemes import validate_scheme
-
 def _ai_log(event: str, **fields: Any) -> None:
     payload = {
         "event": str(event),
@@ -1414,10 +1400,7 @@ def _simulate_trajectory(
     drive_t0: float = 0.0,
     drive_time_sampling: str = "midpoint",
     exact_steps_multiplier: int = 1,
-    propagator: str = "cfqm4",
-    cfqm_stage_exp: str = "expm_multiply_sparse",
-    cfqm_coeff_drop_abs_tol: float = 0.0,
-    cfqm_normalize: bool = False,
+    propagator: str = "suzuki2",
     psi0_ansatz_trot: np.ndarray | None = None,
 ) -> tuple[list[dict[str, float]], list[np.ndarray]]:
     if int(suzuki_order) != 2:
@@ -1440,19 +1423,12 @@ def _simulate_trajectory(
     evecs_dag = np.conjugate(evecs).T
 
     propagator_key = str(propagator).strip().lower()
-    if propagator_key not in {"suzuki2", "piecewise_exact", "cfqm4", "cfqm6"}:
-        raise ValueError(
-            "propagator must be one of {'suzuki2','piecewise_exact','cfqm4','cfqm6'}."
-        )
+    if propagator_key not in {"suzuki2", "piecewise_exact"}:
+        raise ValueError("propagator must be one of {'suzuki2','piecewise_exact'}.")
 
     compiled: dict[str, CompiledPauliAction] | None = None
     if propagator_key == "suzuki2":
         compiled = {lbl: _compile_pauli_action(lbl, nq) for lbl in ordered_labels_exyz}
-
-    cfqm_scheme: dict[str, Any] | None = None
-    if propagator_key in {"cfqm4", "cfqm6"}:
-        cfqm_scheme = get_cfqm_scheme(propagator_key)
-        validate_scheme(cfqm_scheme)
 
     times = np.linspace(0.0, float(t_final), int(num_times))
     n_times = int(times.size)
@@ -1465,27 +1441,6 @@ def _simulate_trajectory(
         raise ValueError("fidelity_subspace_basis_v0 must contain at least one basis vector.")
 
     has_drive = drive_coeff_provider_exyz is not None
-    cfqm_unknown_label_warned_labels: set[str] = set()
-
-    if (
-        propagator_key in {"cfqm4", "cfqm6"}
-        and str(drive_time_sampling).strip().lower() != "midpoint"
-    ):
-        warnings.warn(
-            "CFQM ignores midpoint/left/right sampling; uses fixed scheme nodes c_j.",
-            RuntimeWarning,
-            stacklevel=2,
-        )
-
-    if (
-        propagator_key in {"cfqm4", "cfqm6"}
-        and str(cfqm_stage_exp).strip().lower() == "pauli_suzuki2"
-    ):
-        warnings.warn(
-            "Inner Suzuki-2 makes overall method 2nd order; use expm_multiply_sparse/dense_expm for true CFQM order.",
-            RuntimeWarning,
-            stacklevel=2,
-        )
 
     # When drive is enabled the reference propagator may use a finer step count
     # to improve its quality independently of the Trotter discretization.
@@ -1543,58 +1498,18 @@ def _simulate_trajectory(
                     time_sampling=str(drive_time_sampling),
                 )
 
-            if propagator_key == "piecewise_exact":
-                provider = drive_coeff_provider_exyz
-                if provider is None:
-                    provider = lambda _t: {}
-                return _evolve_piecewise_exact(
-                    psi0=psi0_branch,
-                    hmat_static=hmat,
-                    drive_coeff_provider_exyz=provider,
-                    time_value=t,
-                    trotter_steps=int(trotter_steps),
-                    t0=float(drive_t0),
-                    time_sampling=str(drive_time_sampling),
-                )
-
-            assert cfqm_scheme is not None
-            n_steps = int(trotter_steps)
-            if n_steps < 1:
-                raise ValueError(f"CFQM requires n_steps >= 1; got n_steps={n_steps}.")
-            if abs(t) <= 1e-15:
-                return np.array(psi0_branch, copy=True)
-
-            dt_macro = float(t) / float(n_steps)
-            if not np.isfinite(dt_macro) or dt_macro <= 0.0:
-                raise ValueError(
-                    f"CFQM requires dt > 0; got dt={dt_macro} from t={t} and n_steps={n_steps}."
-                )
-            psi_out = np.array(psi0_branch, copy=True)
-            cfqm_cfg: dict[str, Any] = {
-                "backend": str(cfqm_stage_exp),
-                "coeff_drop_abs_tol": float(cfqm_coeff_drop_abs_tol),
-                "normalize": bool(cfqm_normalize),
-                "sparse_min_dim": int(_EXPM_SPARSE_MIN_DIM),
-                # Warning emitted once at trajectory setup.
-                "emit_inner_order_warning": False,
-                # Unknown drive labels: warn once per label then ignore.
-                "unknown_label_policy": "warn_ignore",
-                "unknown_label_warn_abs_tol": 1e-14,
-                "unknown_label_warned_labels": cfqm_unknown_label_warned_labels,
-            }
-            for step_idx in range(n_steps):
-                t_abs_step = float(drive_t0) + float(step_idx) * dt_macro
-                psi_out = cfqm_step(
-                    psi=psi_out,
-                    t_abs=t_abs_step,
-                    dt=dt_macro,
-                    static_coeff_map=coeff_map_exyz,
-                    drive_coeff_provider=drive_coeff_provider_exyz,
-                    ordered_labels=ordered_labels_exyz,
-                    scheme=cfqm_scheme,
-                    config=cfqm_cfg,
-                )
-            return np.asarray(psi_out, dtype=complex)
+            provider = drive_coeff_provider_exyz
+            if provider is None:
+                provider = lambda _t: {}
+            return _evolve_piecewise_exact(
+                psi0=psi0_branch,
+                hmat_static=hmat,
+                drive_coeff_provider_exyz=provider,
+                time_value=t,
+                trotter_steps=int(trotter_steps),
+                t0=float(drive_t0),
+                time_sampling=str(drive_time_sampling),
+            )
 
         # --- exact / reference propagation (filtered-sector GS branch) ---
         psi_exact = _exact_from_initial(psi0_exact_ref)
@@ -2621,12 +2536,9 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--trotter-steps", type=int, default=64)
     parser.add_argument(
         "--propagator",
-        choices=["suzuki2", "piecewise_exact", "cfqm4", "cfqm6"],
-        default="cfqm4",
-        help=(
-            "Trajectory propagator: cfqm4 (default), "
-            "piecewise_exact, or CFQM variants cfqm4/cfqm6."
-        ),
+        choices=["suzuki2", "piecewise_exact"],
+        default="suzuki2",
+        help="Trajectory propagator: suzuki2 (default) or piecewise_exact.",
     )
     parser.add_argument(
         "--fidelity-subspace-energy-tol",
@@ -2662,10 +2574,7 @@ def parse_args() -> argparse.Namespace:
         "--drive-time-sampling",
         choices=["midpoint", "left", "right"],
         default="midpoint",
-        help=(
-            "Time sampling rule per Trotter slice (used by suzuki2/piecewise_exact; "
-            "CFQM ignores this and uses fixed scheme nodes c_j)."
-        ),
+        help="Time sampling rule per Trotter slice.",
     )
     parser.add_argument("--drive-t0", type=float, default=0.0, help="Drive start time t0 for evolution (default 0.0).")
     parser.add_argument(
@@ -2680,26 +2589,8 @@ def parse_args() -> argparse.Namespace:
             "With midpoint sampling (Magnus-2, O(Δt²)) a larger multiplier "
             "strictly improves reference quality. "
             "Has no effect when drive is disabled (the static reference uses "
-            "exact eigendecomposition). "
-            "Reference-only control: does not apply to cfqm4/cfqm6 macro-step counts."
+            "exact eigendecomposition)."
         ),
-    )
-    parser.add_argument(
-        "--cfqm-stage-exp",
-        choices=["expm_multiply_sparse", "dense_expm", "pauli_suzuki2"],
-        default="expm_multiply_sparse",
-        help="CFQM stage exponential backend (used only when --propagator cfqm4/cfqm6).",
-    )
-    parser.add_argument(
-        "--cfqm-coeff-drop-abs-tol",
-        type=float,
-        default=0.0,
-        help="Drop |coeff|<tol after CFQM stage accumulation (used only for cfqm4/cfqm6).",
-    )
-    parser.add_argument(
-        "--cfqm-normalize",
-        action="store_true",
-        help="Renormalize state after each CFQM macro-step (default off).",
     )
     parser.add_argument(
         "--vqe-ansatz",
@@ -3362,9 +3253,6 @@ def main() -> None:
         drive_time_sampling=str(args.drive_time_sampling),
         exact_steps_multiplier=int(args.exact_steps_multiplier),
         propagator=str(args.propagator),
-        cfqm_stage_exp=str(args.cfqm_stage_exp),
-        cfqm_coeff_drop_abs_tol=float(args.cfqm_coeff_drop_abs_tol),
-        cfqm_normalize=bool(args.cfqm_normalize),
     )
 
     sanity = {
@@ -3497,12 +3385,6 @@ def main() -> None:
     _propagator_key = str(args.propagator).strip().lower()
     if _propagator_key != "suzuki2":
         settings["propagator"] = str(_propagator_key)
-    if _propagator_key in {"cfqm4", "cfqm6"}:
-        settings["cfqm"] = {
-            "stage_exp_backend": str(args.cfqm_stage_exp),
-            "coeff_drop_abs_tol": float(args.cfqm_coeff_drop_abs_tol),
-            "normalize": bool(args.cfqm_normalize),
-        }
     _use_internal_adapt = str(args.initial_state_source) != "adapt_json"
     _adapt_ref_source_key = str(args.adapt_ref_source).strip().lower()
     if _use_internal_adapt and (

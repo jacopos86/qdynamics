@@ -1,9 +1,9 @@
 # Plan to Update AGENTS.md and run_guide.md
 
 ## Objective
-Update the core repository documentation (`AGENTS.md` and `pipelines/run_guide.md`) to establish the new `phase3_v1` adapt pipeline, reduced winning pools for $L=2, L=3$, and the `secant` time dynamics as the primary recommended paths.
+Update the core repository documentation (`AGENTS.md` and `run_guide.md`) to establish the new `phase3_v1` adapt pipeline, reduced winning pools for $L=2, L=3$, and the `secant` time dynamics as the primary recommended paths.
 
-## 1. `pipelines/run_guide.md` Updates
+## 1. `run_guide.md` Updates
 - **Update Section 0 (Current surface map):**
   - Clarify the "canonical direct HH ADAPT" entry to explicitly state that it uses the `phase3_v1` methodology out of the new `adaptive_selection_and_mclachlan_time_dynamics.tex` / `adaptive_selection_staged_continuation.tex` manuscripts.
   - Add explicit shorthand commands for running the `secant` time dynamics path as the definitive standard for time propagation.

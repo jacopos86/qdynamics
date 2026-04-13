@@ -49,7 +49,7 @@ def _stage_result(dim: int = 8) -> base_wf.StageExecutionResult:
 def test_resolve_noise_defaults_and_retagged_artifacts() -> None:
     cfg = noise_wf.resolve_staged_hh_noise_config(parse_args(["--L", "2", "--skip-pdf"]))
 
-    assert cfg.noise.methods == ("cfqm4", "suzuki2")
+    assert cfg.noise.methods == ("suzuki2",)
     assert cfg.noise.modes == ("ideal", "shots", "aer_noise")
     assert cfg.noise.audit_modes == ("ideal", "shots", "aer_noise")
     assert cfg.noise.controller_noise_mode is None
@@ -1210,7 +1210,7 @@ def test_run_noisy_profiles_uses_final_state_and_optional_audit(
     monkeypatch.setattr(
         noise_wf.noise_report,
         "_collect_noisy_benchmark_rows",
-        lambda dynamics_noisy: [{"profile": "static", "method": "cfqm4", "mode": "ideal"}],
+        lambda dynamics_noisy: [{"profile": "static", "method": "suzuki2", "mode": "ideal"}],
     )
 
     cfg = noise_wf.resolve_staged_hh_noise_config(
@@ -1224,7 +1224,7 @@ def test_run_noisy_profiles_uses_final_state_and_optional_audit(
                 "--noise-modes",
                 "ideal,shots",
                 "--noisy-methods",
-                "cfqm4",
+                "suzuki2",
             ]
         )
     )
@@ -1233,12 +1233,12 @@ def test_run_noisy_profiles_uses_final_state_and_optional_audit(
 
     assert set(dynamics_noisy["profiles"].keys()) == {"static", "drive"}
     assert set(noisy_final_audit["profiles"].keys()) == {"static", "drive"}
-    assert dynamics_benchmarks["rows"] == [{"profile": "static", "method": "cfqm4", "mode": "ideal"}]
+    assert dynamics_benchmarks["rows"] == [{"profile": "static", "method": "suzuki2", "mode": "ideal"}]
     assert len(mode_calls) == 4
     assert len(audit_calls) == 4
     assert all(np.allclose(rec["kwargs"]["psi_seed"], stage_result.psi_final) for rec in mode_calls)
     assert all(np.allclose(rec["kwargs"]["psi_seed"], stage_result.psi_final) for rec in audit_calls)
-    assert {str(rec["kwargs"]["method"]) for rec in mode_calls} == {"cfqm4"}
+    assert {str(rec["kwargs"]["method"]) for rec in mode_calls} == {"suzuki2"}
     assert {str(rec["kwargs"]["noise_mode"]) for rec in mode_calls} == {"ideal", "shots"}
 
 
@@ -1255,7 +1255,7 @@ def test_run_staged_hh_noise_merges_base_payload_and_writes(
                 "--noise-modes",
                 "ideal",
                 "--noisy-methods",
-                "cfqm4",
+                "suzuki2",
                 "--output-json",
                 str(tmp_path / "hh_staged_noise.json"),
                 "--output-pdf",
@@ -1276,12 +1276,12 @@ def test_run_staged_hh_noise_merges_base_payload_and_writes(
         "run_noiseless_profiles",
         lambda stage_result_arg, staged_cfg: {
             "profiles": {
-                "static": {
-                    "methods": {
-                        "cfqm4": {
-                            "trajectory": [
-                                {
-                                    "time": 0.0,
+                    "static": {
+                        "methods": {
+                            "suzuki2": {
+                                "trajectory": [
+                                    {
+                                        "time": 0.0,
                                     "energy_total_trotter": -1.0,
                                     "doublon_trotter": 0.1,
                                     "fidelity": 1.0,
@@ -1301,7 +1301,7 @@ def test_run_staged_hh_noise_merges_base_payload_and_writes(
                 "profiles": {
                     "static": {
                         "methods": {
-                            "cfqm4": {
+                            "suzuki2": {
                                 "modes": {
                                     "ideal": {
                                         "success": True,
@@ -1322,7 +1322,7 @@ def test_run_staged_hh_noise_merges_base_payload_and_writes(
                 }
             },
             {"profiles": {}},
-            {"rows": [{"profile": "static", "method": "cfqm4", "mode": "ideal"}]},
+            {"rows": [{"profile": "static", "method": "suzuki2", "mode": "ideal"}]},
         ),
     )
     monkeypatch.setattr(
@@ -1376,8 +1376,8 @@ def test_run_staged_hh_noise_merges_base_payload_and_writes(
     assert calls["stage_cfg"] is cfg.staged
     assert payload["pipeline"] == "hh_staged_noise"
     assert payload["workflow_contract"]["noise_extension"] == "final_only_noisy_dynamics"
-    assert payload["settings"]["noise"]["methods"] == ["cfqm4"]
-    assert payload["dynamics_benchmarks"]["rows"] == [{"profile": "static", "method": "cfqm4", "mode": "ideal"}]
+    assert payload["settings"]["noise"]["methods"] == ["suzuki2"]
+    assert payload["dynamics_benchmarks"]["rows"] == [{"profile": "static", "method": "suzuki2", "mode": "ideal"}]
     assert payload["comparisons"] == {"base_compare": True, "noise_compare": True}
     assert writes["json_path"] == cfg.staged.artifacts.output_json
     assert bool(writes["pdf_called"]) is True
