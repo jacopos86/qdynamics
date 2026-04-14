@@ -7,8 +7,6 @@ DST_DIR="/Users/jakestrobel/Documents/Holstein_implementation/Holstein_test_full
 files=(
   "adaptive_selection_staged_continuation.tex"
   "adaptive_selection_staged_continuation.pdf"
-  "adaptive_selection_and_mclachlan_time_dynamics.tex"
-  "adaptive_selection_and_mclachlan_time_dynamics.pdf"
 )
 
 for name in "${files[@]}"; do

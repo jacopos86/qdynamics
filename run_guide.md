@@ -25,7 +25,7 @@ Use this section first. Sections 1-6 remain the narrow Marrakesh 7-term line; th
 
 | Intent | Preferred entrypoint | Invocation note | Scope |
 |--------|-----------------------|-----------------|-------|
-| canonical direct HH ADAPT | `pipelines/static_adapt/adapt_pipeline.py` | direct CLI; HH omission defaults to `phase3_v1` (per `adaptive_selection_and_mclachlan_time_dynamics.tex` and `adaptive_selection_staged_continuation.tex`); use reduced winning pools from `Math.md` for L=2, L=3. | current default |
+| canonical direct HH ADAPT | `pipelines/static_adapt/adapt_pipeline.py` | direct CLI; HH omission defaults to `phase3_v1` (per `adaptive_selection_staged_continuation.tex`); use reduced winning pools from `Math.md` for L=2, L=3. | current default |
 | secant / checkpoint-controller time dynamics | `python -m pipelines.time_dynamics.hh_realtime_from_adapt_artifact` | current artifact-seeded controller execution surface; use this instead of the removed legacy secant module | definitive standard |
 | staged HH compatibility workflow | `pipelines/hardcoded/hh_staged_noiseless.py` | historical wrapper | compatibility |
 | staged HH noisy/import-side follow-ons | `pipelines/hardcoded/hh_staged_noise.py` | local noisy extension and imported fixed-scaffold routes | current |

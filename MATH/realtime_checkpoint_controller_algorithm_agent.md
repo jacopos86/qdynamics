@@ -4,10 +4,9 @@
 
 This note is for future coding agents working on the HH adaptive realtime checkpoint controller. It records what actually worked in code, what was a dead end, what the current algorithm is, and how to sync that back into the math manuscripts.
 
-This note is not the final source of truth. The source-of-truth manuscript targets are:
+This note is not the final source of truth. The source-of-truth manuscript target is:
 
 - `MATH/adaptive_selection_staged_continuation.tex`
-- `MATH/adaptive_selection_and_mclachlan_time_dynamics.tex`
 
 The immediate repo implementation lives primarily in:
 
@@ -408,21 +407,11 @@ This file should reflect:
 
 In other words, continuation is no longer just "select records and continue"; it also includes a runtime policy for selecting the within-scaffold motion law used between append/prune events.
 
-### `MATH/adaptive_selection_and_mclachlan_time_dynamics.tex`
+### Deleted manuscript note
 
-This file should reflect, explicitly:
+The older parallel time-dynamics manuscript has been retired.
 
-1. the drive-aligned residual blend construction,
-2. the stay-lane exact forecast horizon score,
-3. the energy slope / curvature penalties,
-4. the signed excursion band penalties,
-5. the fact that gain is a post-step amplitude choice, not a redundant joint magnitude with step-scale.
-
-The current Section 17 already has the right chapter-level framing, but it needs to be updated from the older "miss opens append lane" picture to the more accurate runtime statement:
-
-- stay itself is now a nontrivial forecast-selected policy surface
-- the controller can recover driven dynamics without opening append
-- append/prune are no longer the only meaningful controller actions
+Use `MATH/adaptive_selection_staged_continuation.tex` as the only manuscript target when syncing the realtime checkpoint controller back into the math docs.
 
 ## Heavier-Drive Retarget: Next Correct Optimization Surface
 

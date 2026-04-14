@@ -36,7 +36,8 @@ The current checkout now has a clean cost-vs-energy ranking at the canonical `L=
 - The frozen legacy route still wins the repo-wide cost-vs-energy objective at essentially the same energy gate: `81` 2Q at `|\Delta E|=5.6178234645e-05`.
 - The best current-route comparable replay is still heavier: `168` 2Q at `|\Delta E|=5.7102691670e-05`.
 - The best current fullhorse-style replay is heavier again: `193` 2Q at `|\Delta E|=5.7102730821e-05`.
-- The best current diagnostic native recovery branch remains the `children_off + repeats_off + hist` line: `160` 2Q at `|\Delta E|=5.6178241861e-05`.
+- The best saved diagnostic native recovery branch remains the `children_off + repeats_off + hist` line: `160` 2Q at `|\Delta E|=5.6178241861e-05`.
+- A fresh Optuna-guided global-lane search on the same bridge surface improves that current-code non-legacy burden to `151` 2Q at `|\Delta E|=5.6178252746e-05`, still heavier than the legacy `81`-2Q oracle but now the best fresh current-code line found in this checkout.
 - The validated public/deployment anchor remains the April 5 SPSA route at `218` 2Q and `|\Delta E|=1.0822209459e-04`.
 
 ## Raw HF-Start Direct ADAPT Table (`|\Delta E|\sim 10^{-4}`)
@@ -51,6 +52,7 @@ The current checkout now has a clean cost-vs-energy ranking at the canonical `L=
 | Best current fullhorse-style replay | `20260410_hh_l2_current_fullhorse_recovery_v1/fullhorse_spliton_norepeats_motif` | `full_meta` current fullhorse-style route | `5.7102730821e-05` | 16 | 41 | 193 | 592 |
 | Current-code reproduction of March 22 low-energy regime | `20260409_hh_l2_hist81_repro_powell_histbare_d16_v1` | `full_meta` historicalized POWELL surface | `5.7217492583e-05` | 17 | 54 | 265 | 786 |
 | Best current native recovery branch on today's diagnostic surface | `20260409_hh_l2_children_repeat_bridge_diag_v1` (`children_off + repeats_off + hist`) | `full_meta` diagnostic bridge surface | `5.6178241861e-05` | 13 | 36 | 160 | 408 |
+| Best fresh current-code global-search line | `20260413_hh_l2_cost_energy_optuna_pilot_v3/global/eps_6.200em05/trial_0014` | `bridge_diag`-based Optuna global lane (`proxy_reduced`, repeats off, motif off, live prune) | `5.6178252746e-05` | 13 | 36 | 151 | 408 |
 | Validated April 5 deployment anchor | `pareto_lean + phase3_v1 + SPSA` | `pareto_lean` | `1.0822209459e-04` | 20 | 52 | 218 | 633 |
 
 The final `218`-2Q row is the same raw HF-start scaffold family as the confirmed April 5 authority command; it is heavier than the scientific raw winner, but it is the currently validated deployment anchor on the public CLI surface.
@@ -71,6 +73,21 @@ $$
 with `13` logical operators, `36` runtime parameters, and `160` transpiled two-qubit gates at depth `408` on `FakeMarrakesh`.
 
 This is **not** the absolute historical raw HF-start winner; the March 22 `81`-2Q `full_meta` artifact remains lighter overall. What makes the April 9 branch important is different: it is the first current diagnostic line that re-enters the good native basin while simultaneously showing that disabling children and literal repeats helps native recovery.
+
+An April 14, 2026 search update strengthens that conclusion rather than replacing it: the first Optuna global-lane cost-vs-energy pilot pushed the same bridge family down further to `151` transpiled two-qubit gates at
+
+$$
+|\Delta E|=5.6178252746\times 10^{-5},
+$$
+
+with the fresh artifact saved at `artifacts/agent_runs/20260413_hh_l2_cost_energy_optuna_pilot_v3/global/eps_6.200em05/trial_0014/`. The selected prefix of that fresh line is
+
+- `uccsd_ferm_lifted::uccsd_sing(alpha:0->1)`
+- `uccsd_ferm_lifted::uccsd_sing(beta:2->3)`
+- `paop_lf_full:paop_dbl_p(site=0->phonon=0)`
+- `paop_full:paop_hopdrag(0,1)`
+- `paop_full:paop_disp(site=0)`
+- `paop_full:paop_disp(site=1)`
 
 It still does **not** recover the historical lean family exactly. Relative to the historical targets, it reaches `9/10` bridge overlap and `5/6` lean overlap, with the remaining extras concentrated in
 
@@ -2266,19 +2283,13 @@ c_k^{\mathrm{dir}}
 \mathfrak C_k
 &:=\mathbf 1\bigl[c_k^{\mathrm{dir}}\ge \tau_{\mathrm{calm}}^{\cos}\bigr]\,\mathbf 1\bigl[\eta_k^{\mathrm{rate}}\le \tau_{\mathrm{calm}}^{\mathrm{rate}}\bigr],\\[1mm]
 \mathcal U_k^{\mathrm{stay}}
-&:=\{(\mathrm{stay},p,a):p\in\mathcal P_k^{\mathrm{stay}},\ a\in\mathcal A_k\},
+&:=\{(\mathrm{stay},p,a,g):p\in\mathcal P_k^{\mathrm{stay}},\ a\in\mathcal A_k,\ g\in\mathcal G_k\},
 \qquad
 \mathcal U_k^{\mathrm{app}}:=\{(\mathrm{append},r,a):r\in\mathcal R_k^{\mathrm{conf}},\ a\in\mathcal A_k\},\\[1mm]
-\nu_k^{\star}
-&:=\begin{cases}
-\displaystyle \arg\min_{u\in\mathcal U_k^{\mathrm{stay}}\cup\mathcal U_k^{\mathrm{app}}}\mathcal J_k^{\mathrm{forecast}}(u),&\rho_{\mathrm{miss},k}>\tau_{\mathrm{miss}},\\[2mm]
-\text{best admissible prune of §17A.9 or stay},&\rho_{\mathrm{miss},k}\le \tau_{\mathrm{pr}}\text{ and }\mathfrak C_k=1,\\[1mm]
-\mathrm{stay},&\text{otherwise.}
-\end{cases}
 \end{aligned}
 $$
 
-Thus the miss-dominant regime compares stay and append through the forecast score, the low-miss calm regime opens prune, and all other cases reduce to stay.
+Thus the miss-dominant regime compares structured stay and append actions through the forecast score, while the fully expanded exact-v1 admission law and the calm-regime exact local prune law are written explicitly in §§17A.8--17A.10.
 
 ## 17A.5 Position-aware append geometry and confirm-grade gain
 
@@ -2349,43 +2360,53 @@ Thus the confirmed append shortlist is $\mathcal R_k^{\mathrm{conf}}:=\{r:\rho_{
 
 ## 17A.6 Proposal family for within-scaffold motion
 
-A stay action is a finite family of same-scaffold forecast proposals, not a single velocity. Here $M_k$ is the proposal metric, $I_k^{\mathrm{drv}}\subseteq\{1,\dots,n_k\}$ is the drive-aligned coordinate block, $\mathcal B_k$ is the finite blend-weight set, and $\mathcal A_k=\{a_{k,1},\dots,a_{k,m_k}\}\subset(0,\infty)$ is the finite step-scale set.
+A stay action keeps the ordered scaffold fixed and moves only the coordinate vector on that scaffold. Thus the stay controller does not choose a new block; it chooses a same-scaffold motion policy. Here $I$ denotes the identity operator or identity matrix from context, $I_k:=[\tau_k,\tau_{k+1}]$ is the current checkpoint interval, $I_k^{\mathrm{drv}}\subseteq\{1,\dots,n_k\}$ is the runtime coordinate block occupied by the injected drive-aligned density direction, $\mathcal B_k$ is the finite blend-weight set, $\mathcal A_k=\{a_{k,1},\dots,a_{k,m_k}\}\subset(0,\infty)$ is the finite step-scale set, and $\mathcal G_k=\{g_{k,1},\dots,g_{k,q_k}\}\subset(0,\infty)$ is the finite post-step gain set. A trial vector $v\in\mathbb R^{n_k}$ is a candidate parameter velocity, $p$ is a normalized proposal direction, $a$ is a step scale, $g$ is a post-step gain, and $u$ is a checkpoint action.
 
 $$
 \begin{aligned}
 M_k
-&:=\begin{cases}G_k,&\text{when the tangent metric is used on its supported subspace},\\ I,&\text{otherwise},\end{cases}
+&:=\begin{cases}
+G_k,&\text{when the tangent metric is used on its supported subspace},\\
+I,&\text{otherwise},
+\end{cases}
 \qquad
 \|v\|_{M_k}:=\sqrt{v^{\top}M_kv},
 \qquad
 \langle x,y\rangle_{M_k}:=x^{\top}M_ky,\\[1mm]
 v_k^{\mathrm{McL}}
 &:=\dot\theta_k,\\[1mm]
-v_{k,\mathrm{drv}}^{\mathrm{cur}}
-&:=\text{the unique vector with }v_{k,\mathrm{drv}}^{\mathrm{cur}}[I_k^{\mathrm{drv}}]=K_k[I_k^{\mathrm{drv}},I_k^{\mathrm{drv}}]^{+}f_k[I_k^{\mathrm{drv}}]\text{ and }v_{k,\mathrm{drv}}^{\mathrm{cur}}[(I_k^{\mathrm{drv}})^{c}]=0,\\[1mm]
-v_{k,\mathrm{drv}}^{\mathrm{next}}
-&:=\text{the unique vector with }v_{k,\mathrm{drv}}^{\mathrm{next}}[I_k^{\mathrm{drv}}]=K_{k+1}^{\sharp}[I_k^{\mathrm{drv}},I_k^{\mathrm{drv}}]^{+}f_{k+1}^{\sharp}[I_k^{\mathrm{drv}}]\text{ and }v_{k,\mathrm{drv}}^{\mathrm{next}}[(I_k^{\mathrm{drv}})^{c}]=0,\\[1mm]
-d_k^{\perp}
-&:=d_k-\dfrac{\langle v_k^{\mathrm{McL}},d_k\rangle_{M_k}}{\|v_k^{\mathrm{McL}}\|_{M_k}^2}v_k^{\mathrm{McL}},
+v_{k,\mathrm{drv}}^{\mathrm{cur}}[I_k^{\mathrm{drv}}]
+&:=K_k[I_k^{\mathrm{drv}},I_k^{\mathrm{drv}}]^{+}f_k[I_k^{\mathrm{drv}}],
 \qquad
-\widetilde d_k^{\perp}:=\sqrt{\dfrac{\|v_k^{\mathrm{McL}}\|_{M_k}^2}{\|d_k^{\perp}\|_{M_k}^2}}\,d_k^{\perp}\ \text{when }d_k^{\perp}\neq 0,\\[1mm]
+v_{k,\mathrm{drv}}^{\mathrm{cur}}[(I_k^{\mathrm{drv}})^{c}]:=0,\\[1mm]
+v_{k,\mathrm{drv}}^{\mathrm{next}}[I_k^{\mathrm{drv}}]
+&:=K_{k+1}^{\sharp}[I_k^{\mathrm{drv}},I_k^{\mathrm{drv}}]^{+}f_{k+1}^{\sharp}[I_k^{\mathrm{drv}}],
+\qquad
+v_{k,\mathrm{drv}}^{\mathrm{next}}[(I_k^{\mathrm{drv}})^{c}]:=0,\\[1mm]
+d_k^{\perp}
+&:=v_{k,\mathrm{drv}}^{\mathrm{next}}
+-\frac{\langle v_k^{\mathrm{McL}},v_{k,\mathrm{drv}}^{\mathrm{next}}\rangle_{M_k}}{\|v_k^{\mathrm{McL}}\|_{M_k}^{2}}\,v_k^{\mathrm{McL}},\\[1mm]
+\widetilde d_k^{\perp}
+&:=\sqrt{\frac{\|v_k^{\mathrm{McL}}\|_{M_k}^{2}}{\|d_k^{\perp}\|_{M_k}^{2}}}\,d_k^{\perp}
+\qquad \text{when }d_k^{\perp}\neq 0,\\[1mm]
 v_{k,\beta}^{\mathrm{blend}}
-&:=\sqrt{\dfrac{\|v_k^{\mathrm{McL}}\|_{M_k}^2}{\|v_k^{\mathrm{McL}}+\beta\widetilde d_k^{\perp}\|_{M_k}^2}}\,(v_k^{\mathrm{McL}}+\beta\widetilde d_k^{\perp}),
+&:=\sqrt{\frac{\|v_k^{\mathrm{McL}}\|_{M_k}^{2}}{\|v_k^{\mathrm{McL}}+\beta\widetilde d_k^{\perp}\|_{M_k}^{2}}}\,
+\bigl(v_k^{\mathrm{McL}}+\beta\widetilde d_k^{\perp}\bigr),
 \qquad \beta\in\mathcal B_k,\\[1mm]
 \widehat v
-&:=v/\|v\|_{M_k}\ \text{for }v\neq 0,
-\qquad
-\mathcal P_k^{\mathrm{stay}}\subseteq\{\widehat v_k^{\mathrm{McL}},\widehat v_{k,\mathrm{drv}}^{\mathrm{cur}},\widehat v_{k,\mathrm{drv}}^{\mathrm{next}},\widehat v_{k,\beta}^{\mathrm{blend}},\widehat v_k^{\mathrm{sec}}\},\\[1mm]
+&:=v/\|v\|_{M_k}\qquad \text{for }v\neq 0,\\[1mm]
+\mathcal P_k^{\mathrm{stay}}
+&\subseteq\{\widehat v_k^{\mathrm{McL}},\widehat v_{k,\mathrm{drv}}^{\mathrm{cur}},\widehat v_{k,\mathrm{drv}}^{\mathrm{next}},\widehat v_{k,\beta}^{\mathrm{blend}},\widehat v_k^{\mathrm{sec}}\},\\[1mm]
 \mathcal U_k^{\mathrm{stay}}
-&:=\{(\mathrm{stay},p,a):p\in\mathcal P_k^{\mathrm{stay}},\ a\in\mathcal A_k\}.
+&:=\{(\mathrm{stay},p,a,g):p\in\mathcal P_k^{\mathrm{stay}},\ a\in\mathcal A_k,\ g\in\mathcal G_k\}.
 \end{aligned}
 $$
 
-Thus every stay action is already written as an explicit proposal direction together with an explicit discrete scale.
+Thus every stay action is an explicit checkpoint action consisting of an action kind, a same-scaffold direction, a discrete scale, and a post-step gain.
 
 ## 17A.7 Tangent-secant forecast proposal and signed-energy-lead taper
 
-The tangent-secant proposal is the tangent inverse image of the phase-aligned exact one-step secant displacement, followed by a metric trust clip and a signed-energy-lead taper. Here $R_k>0$ is the trust radius and $\eta_E>0$ is the relative energy-lead cap.
+The secant proposal uses the exact state one checkpoint ahead to infer a tangent-space direction that the current scaffold would need in order to mimic that short exact displacement. The construction first removes the arbitrary global phase, then projects the exact one-step secant into the current horizontal tangent coordinates, and finally applies a trust clip and a signed-energy-lead taper. Here $R_k>0$ is the trust radius and $\eta_E>0$ is the relative energy-lead cap.
 
 $$
 \begin{aligned}
@@ -2393,10 +2414,10 @@ $$
 &:=\exp\bigl(-i\arg\langle\psi_k,\psi_{k+1}^{\mathrm{ex}}\rangle\bigr)|\psi_{k+1}^{\mathrm{ex}}\rangle,\\[1mm]
 \delta_k^{\mathrm{sec}}
 &:=Q_{\psi_k}\bigl(|\widetilde\psi_{k+1}^{\mathrm{ex}}\rangle-|\psi_k\rangle\bigr)
- =|\widetilde\psi_{k+1}^{\mathrm{ex}}\rangle-|\psi_k\rangle-\langle\psi_k,\widetilde\psi_{k+1}^{\mathrm{ex}}-\psi_k\rangle|\psi_k\rangle,\\[1mm]
+=|\widetilde\psi_{k+1}^{\mathrm{ex}}\rangle-|\psi_k\rangle-\langle\psi_k,\widetilde\psi_{k+1}^{\mathrm{ex}}-\psi_k\rangle|\psi_k\rangle,\\[1mm]
 \xi_k^{\mathrm{sec}}
 &:=\Re(\bar T_k^{\dagger}\delta_k^{\mathrm{sec}})
- =\left[\Re\!\left(\sum_{a=1}^{d}(\bar T_k)_{aj}^{*}(\delta_k^{\mathrm{sec}})_a\right)\right]_{j=1}^{n_k},\\[1mm]
+=\left[\Re\!\left(\sum_{a=1}^{d}(\bar T_k)_{aj}^{*}(\delta_k^{\mathrm{sec}})_a\right)\right]_{j=1}^{n_k},\\[1mm]
 v_k^{\mathrm{sec}}
 &:=\frac{1}{\Delta\tau_k}K_k^{+}\xi_k^{\mathrm{sec}},
 \qquad
@@ -2414,25 +2435,25 @@ v_k^{\mathrm{sec}}\leftarrow \chi_k^{E}v_k^{\mathrm{sec}}.
 \end{aligned}
 $$
 
-After the fully expanded chain above, one may use $\widehat v_k^{\mathrm{sec}}:=v_k^{\mathrm{sec}}/\|v_k^{\mathrm{sec}}\|_{M_k}$ as shorthand when it is inserted into $\mathcal P_k^{\mathrm{stay}}$.
+After the fully expanded chain above, one may write $\widehat v_k^{\mathrm{sec}}:=v_k^{\mathrm{sec}}/\|v_k^{\mathrm{sec}}\|_{M_k}$ when the secant proposal is inserted into $\mathcal P_k^{\mathrm{stay}}$.
 
-## 17A.8 Exact-forecast horizon score and stay-append decision law
+## 17A.8 Exact-forecast horizon score and exact-v1 admission law
 
-This subsection defines the forecast functional used when the miss ratio is too large to stay on the current scaffold blindly. The horizon index is $h\in\{1,\dots,H_k\}$, the horizon length is $H_k\ge 1$, the positive horizon weights are $\omega_h$, and $W_k:=\sum_{h=1}^{H_k}\omega_h$. The action $u$ is either a stay action $u=(\mathrm{stay},p,a)$ with $p\in\mathcal P_k^{\mathrm{stay}}$ and $a\in\mathcal A_k$, or an append action $u=(\mathrm{append},r,a)$ with $r=(m,p_{\mathrm{ins}})\in\mathcal R_k^{\mathrm{conf}}$ and $a\in\mathcal A_k$. The nonnegative weights $\lambda_F,\lambda_{\rho},\lambda_D,\lambda_n,\lambda_E,\lambda_{\Delta\rho},\lambda_{\mathrm{slope}},\lambda_{\mathrm{curv}},\lambda_{\mathrm{under}},\lambda_{\mathrm{over}}$ determine the relative importance of fidelity, primary density-mode value tracking, doublon, site occupations, total energy, the density-mode slope correction, and the optional energy-shape and excursion penalties.
+This subsection defines the short-horizon action score used when the miss ratio is too large to stay on the current scaffold blindly. The horizon index is $h\in\{1,\dots,H_k\}$, the horizon length is $H_k\ge 1$, the positive horizon weights are $\omega_h$, and $W_k:=\sum_{h=1}^{H_k}\omega_h$. The action $u$ is either a stay action $u=(\mathrm{stay},p,a,g)$ with $p\in\mathcal P_k^{\mathrm{stay}}$, $a\in\mathcal A_k$, and $g\in\mathcal G_k$, or an append action $u=(\mathrm{append},r,a)$ with $r=(m,p_{\mathrm{ins}})\in\mathcal R_k^{\mathrm{conf}}$ and $a\in\mathcal A_k$. The forecast score is therefore an action score, not merely a velocity score: it compares short-horizon futures generated by candidate checkpoint actions.
 
-A stay forecast keeps the current scaffold and moves along a normalized within-scaffold proposal, while an append forecast lifts to the zero-initialized augmented scaffold and moves along the augmented append velocity. Thus
+For stay actions the current scaffold is kept fixed, while append actions lift to the zero-initialized augmented scaffold. Thus
 $$
 \begin{aligned}
-\theta_{k+h\mid k}^{(\mathrm{stay},p,a)}
-&:=\theta_k+h\,a\,\Delta\tau_k\,p,
+\theta_{k+h\mid k}^{(\mathrm{stay},p,a,g)}
+&:=\theta_k+h\,g\,a\,\Delta\tau_k\,p,
 \qquad
-|\psi_{k+h}^{(\mathrm{stay},p,a)}\rangle:=U\bigl(\theta_{k+h\mid k}^{(\mathrm{stay},p,a)};\mathcal O_k\bigr)|\psi_{\mathrm{ref}}\rangle,\\[1mm]
+|\psi_{k+h}^{(\mathrm{stay},p,a,g)}\rangle:=U\bigl(\theta_{k+h\mid k}^{(\mathrm{stay},p,a,g)};\mathcal O_k\bigr)|\psi_{\mathrm{ref}}\rangle,\\[1mm]
 \vartheta_k^{(r)}&:=(\theta_k,0),
 \qquad
 \vartheta_{k+h\mid k}^{(\mathrm{append},r,a)}:=\vartheta_k^{(r)}+h\,a\,\Delta\tau_k\,\dot\vartheta_{r,k}^{\mathrm{aug}},
 \qquad
 |\psi_{k+h}^{(\mathrm{append},r,a)}\rangle:=U\bigl(\vartheta_{k+h\mid k}^{(\mathrm{append},r,a)};\mathcal O_k^{+}(r)\bigr)|\psi_{\mathrm{ref}}\rangle,\\[1mm]
-|\psi_{k+h}^{\mathrm{ex}}\rangle&:=\text{exact driven reference state at the same future checkpoint time.}
+|\psi_{k+h}^{\mathrm{ex}}\rangle&:=\text{the exact driven reference state at the same future checkpoint time.}
 \end{aligned}
 $$
 
@@ -2441,9 +2462,8 @@ $$
 \begin{aligned}
 \hat n_j&:=\hat n_{j,\uparrow}+\hat n_{j,\downarrow},
 \qquad
-n_{j,\sigma}[\phi]:=\langle\phi|\hat n_{j,\sigma}|\phi\rangle=\sum_x|\phi_x|^2b_{j,\sigma}(x),
-\qquad
-n_j[\phi]:=\langle\phi|\hat n_j|\phi\rangle=\sum_x|\phi_x|^2\bigl(b_{j,\uparrow}(x)+b_{j,\downarrow}(x)\bigr),
+n_{j,\sigma}[\phi]:=\langle\phi|\hat n_{j,\sigma}|\phi\rangle=\sum_x|\phi_x|^2b_{j,\sigma}(x),\\[1mm]
+n_j[\phi]&:=\langle\phi|\hat n_j|\phi\rangle=\sum_x|\phi_x|^2\bigl(b_{j,\uparrow}(x)+b_{j,\downarrow}(x)\bigr),
 \qquad
 n[\phi]:=(n_1[\phi],\dots,n_L[\phi]),\\[1mm]
 \hat D&:=\sum_{j=1}^{L}\hat n_{j,\uparrow}\hat n_{j,\downarrow},
@@ -2461,23 +2481,24 @@ s[\phi]:=\langle\phi|\hat S|\phi\rangle=\frac{1}{L}\sum_{j=1}^{L}(-1)^{j-1}n_j[\
 \rho[\phi]:=\langle\phi|\hat \rho|\phi\rangle,\\[1mm]
 E_{k+h}^{\mathrm{ctrl}}(u)&:=\langle\psi_{k+h}^{(u)}|H_{k+h}^{\sharp}|\psi_{k+h}^{(u)}\rangle,
 \qquad
-E_{k+h}^{\mathrm{ex}}:=\langle\psi_{k+h}^{\mathrm{ex}}|H_{k+h}^{\sharp}|\psi_{k+h}^{\mathrm{ex}}\rangle,
-\qquad
-H_{k+h}^{\sharp}:=H(t_{k+h}^{\sharp}).
+E_{k+h}^{\mathrm{ex}}:=\langle\psi_{k+h}^{\mathrm{ex}}|H_{k+h}^{\sharp}|\psi_{k+h}^{\mathrm{ex}}\rangle,\\[1mm]
+H_{k+h}^{\sharp}&:=H(t_{k+h}^{\sharp}).
 \end{aligned}
 $$
 
-For $L=2$, one has
+For $L=2$ one has
 $$
 \rho[\phi]=n_1[\phi]-n_2[\phi]=2\,s[\phi],
 $$
-so the live scalar replacement is not a new density sector, but the same antisymmetric density mode written in a phase-sensitive normalization.
+so the live scalar target is the same antisymmetric density mode written in the phase-sensitive normalization used by the current controller.
 
 Define the exact-horizon normalization scales using positive action-independent floors $\varepsilon_{\rho}^{\mathrm{floor}},\varepsilon_{\Delta\rho}^{\mathrm{floor}},\varepsilon_n^{\mathrm{floor}},\varepsilon_D^{\mathrm{floor}},\varepsilon_E^{\mathrm{floor}}>0$. For $H_k\ge 2$, let
 $$
 W_k^{(1)}:=\sum_{h=1}^{H_k-1}\varpi_h^{(1)},
 \qquad
 \varpi_h^{(1)}:=\frac{\omega_h+\omega_{h+1}}{2},
+\qquad
+\varpi_h^{(2)}:=\frac{\omega_h+\omega_{h+1}+\omega_{h+2}}{3},
 $$
 and define
 $$
@@ -2499,7 +2520,7 @@ $$
 s_{\Delta\rho,k}:=\max\!\left\{\varepsilon_{\Delta\rho}^{\mathrm{floor}},\;\bigl|\rho[\psi_{k+1}^{\mathrm{ex}}]-\rho[\psi_k^{\mathrm{ex}}]\bigr|\right\}.
 $$
 
-From these primitives the pointwise forecast discrepancies are defined once by
+From these primitives the pointwise forecast discrepancies are
 $$
 \begin{aligned}
 \varepsilon_{k+h}^{F}(u)
@@ -2515,13 +2536,13 @@ $$
 \end{aligned}
 $$
 
-Define the density-mode increment channel by
+Define the primary-density increment channel by
 $$
 \Delta\rho_{k+h}^{\mathrm{ctrl}}(u):=\rho[\psi_{k+h+1}^{(u)}]-\rho[\psi_{k+h}^{(u)}],
 \qquad
 \Delta\rho_{k+h}^{\mathrm{ex}}:=\rho[\psi_{k+h+1}^{\mathrm{ex}}]-\rho[\psi_{k+h}^{\mathrm{ex}}],
 $$
-and, for $H_k\ge 2$, the corresponding phase-sensitive slope defect
+and, for $H_k\ge 2$, the corresponding slope defect
 $$
 \Xi_k^{\rho,\mathrm{slope}}(u):=
 \frac{1}{W_k^{(1)}}\sum_{h=1}^{H_k-1}\varpi_h^{(1)}
@@ -2529,7 +2550,66 @@ $$
 $$
 When $H_k=1$, set $\Xi_k^{\rho,\mathrm{slope}}(u):=0$.
 
-The energy-shape corrections compare first and second forward differences of the predicted and exact energy paths, while the excursion corrections compare the signed forecast excursion against a relative exact band. Writing $\varpi_h^{(1)}:=(\omega_h+\omega_{h+1})/2$, $\varpi_h^{(2)}:=(\omega_h+\omega_{h+1}+\omega_{h+2})/3$, and $\varrho_E\in[0,1)$,
+To penalize delayed or wrong-side density turns, define the sign bucket
+$$
+\varsigma_{\epsilon_k}(x):=
+\begin{cases}
++1,&x>\epsilon_k,\\
+0,&|x|\le \epsilon_k,\\
+-1,&x<-\epsilon_k,
+\end{cases}
+\qquad
+\epsilon_k:=\max\{2\times 10^{-2},\,0.1\,s_{\rho,k}\},
+$$
+and set
+$$
+\varsigma_{k+h}^{\mathrm{ex}}:=\varsigma_{\epsilon_k}\bigl(\rho[\psi_{k+h}^{\mathrm{ex}}]\bigr),
+\qquad
+\varsigma_{k+h}^{\mathrm{ctrl}}(u):=\varsigma_{\epsilon_k}\bigl(\rho[\psi_{k+h}^{(u)}]\bigr).
+$$
+Then the sign-lag penalty is
+$$
+\begin{aligned}
+p_{k+h}^{\rho,\mathrm{lag}}(u)
+&:=\max\!\Bigl\{
+\mathbf 1[\varsigma_{k+h}^{\mathrm{ctrl}}(u)\neq 0]\,
+\mathbf 1[\varsigma_{k+h}^{\mathrm{ex}}\neq 0]\,
+\mathbf 1[\varsigma_{k+h}^{\mathrm{ctrl}}(u)\neq \varsigma_{k+h}^{\mathrm{ex}}]\,
+\bigl|\rho[\psi_{k+h}^{(u)}]-\rho[\psi_{k+h}^{\mathrm{ex}}]\bigr|,\\
+&\hspace{8mm}
+\mathbf 1[\varsigma_{k}^{\mathrm{ex}}\neq 0]\,
+\mathbf 1[\varsigma_{k+h}^{\mathrm{ex}}\neq 0]\,
+\mathbf 1[\varsigma_{k+h}^{\mathrm{ex}}\neq \varsigma_{k}^{\mathrm{ex}}]\,
+\mathbf 1[\varsigma_{k+h}^{\mathrm{ctrl}}(u)=\varsigma_{k}^{\mathrm{ex}}]\,
+\bigl(|\rho[\psi_{k+h}^{(u)}]|+|\rho[\psi_{k+h}^{\mathrm{ex}}]|\bigr)
+\Bigr\},\\[1mm]
+\Xi_k^{\rho,\mathrm{lag}}(u)
+&:=\frac{1}{W_k}\sum_{h=1}^{H_k}\omega_h\,\frac{p_{k+h}^{\rho,\mathrm{lag}}(u)}{s_{\rho,k}}.
+\end{aligned}
+$$
+
+To penalize post-cross persistence on the wrong side, define the active post-cross set
+$$
+\mathcal H_k^{\mathrm{cross}}
+:=\{h\in\{1,\dots,H_k\}:\varsigma_{k}^{\mathrm{ex}}\neq 0,\ \varsigma_{k+h}^{\mathrm{ex}}\neq 0,\ \varsigma_{k+h}^{\mathrm{ex}}\neq \varsigma_{k}^{\mathrm{ex}}\},
+$$
+and the wrong-sign debt
+$$
+\begin{aligned}
+p_{k+h}^{\rho,\mathrm{wrong}}(u)
+&:=\mathbf 1[h\in\mathcal H_k^{\mathrm{cross}}]\,
+\bigl[-\varsigma_{k+h}^{\mathrm{ex}}\,\rho[\psi_{k+h}^{(u)}]\bigr]_{+},\\[1mm]
+\Xi_k^{\rho,\mathrm{wrong}}(u)
+&:=\begin{cases}
+\dfrac{1}{\sum_{h\in\mathcal H_k^{\mathrm{cross}}}\omega_h}
+\sum_{h\in\mathcal H_k^{\mathrm{cross}}}\omega_h\,
+\dfrac{p_{k+h}^{\rho,\mathrm{wrong}}(u)}{s_{\rho,k}},&\mathcal H_k^{\mathrm{cross}}\neq\varnothing,\\[3mm]
+0,&\mathcal H_k^{\mathrm{cross}}=\varnothing.
+\end{cases}
+\end{aligned}
+$$
+
+The energy-shape corrections compare first and second forward differences of the predicted and exact energy paths, while the excursion corrections compare the signed forecast excursion against a relative exact band. Writing $\varrho_E\in[0,1)$,
 $$
 \begin{aligned}
 \Delta E_{k+h}^{\mathrm{ctrl}}(u)&:=E_{k+h+1}^{\mathrm{ctrl}}(u)-E_{k+h}^{\mathrm{ctrl}}(u),
@@ -2538,23 +2618,34 @@ $$
 \Delta^2E_{k+h}^{\mathrm{ctrl}}(u)&:=E_{k+h+2}^{\mathrm{ctrl}}(u)-2E_{k+h+1}^{\mathrm{ctrl}}(u)+E_{k+h}^{\mathrm{ctrl}}(u),
 \qquad
 \Delta^2E_{k+h}^{\mathrm{ex}}:=E_{k+h+2}^{\mathrm{ex}}-2E_{k+h+1}^{\mathrm{ex}}+E_{k+h}^{\mathrm{ex}},\\[1mm]
-\Xi_k^{\mathrm{shape,slope}}(u)&:=\frac{1}{\sum_h\varpi_h^{(1)}}\sum_h\varpi_h^{(1)}\bigl|\Delta E_{k+h}^{\mathrm{ctrl}}(u)-\Delta E_{k+h}^{\mathrm{ex}}\bigr|,\\[1mm]
-\Xi_k^{\mathrm{shape,curv}}(u)&:=\frac{1}{\sum_h\varpi_h^{(2)}}\sum_h\varpi_h^{(2)}\bigl|\Delta^2E_{k+h}^{\mathrm{ctrl}}(u)-\Delta^2E_{k+h}^{\mathrm{ex}}\bigr|,\\[1mm]
+\Xi_k^{E,\mathrm{slope}}(u)&:=\frac{1}{\sum_h\varpi_h^{(1)}}\sum_h\varpi_h^{(1)}\bigl|\Delta E_{k+h}^{\mathrm{ctrl}}(u)-\Delta E_{k+h}^{\mathrm{ex}}\bigr|,\\[1mm]
+\Xi_k^{E,\mathrm{curv}}(u)&:=\frac{1}{\sum_h\varpi_h^{(2)}}\sum_h\varpi_h^{(2)}\bigl|\Delta^2E_{k+h}^{\mathrm{ctrl}}(u)-\Delta^2E_{k+h}^{\mathrm{ex}}\bigr|,\\[1mm]
 x_{k+h}^{\mathrm{ctrl}}(u)&:=E_{k+h}^{\mathrm{ctrl}}(u)-E_k^{\mathrm{ctrl}},
 \qquad
-x_{k+h}^{\mathrm{ex}}:=E_{k+h}^{\mathrm{ex}}-E_k^{\mathrm{ex}},
+x_{k+h}^{\mathrm{ex}}:=E_{k+h}^{\mathrm{ex}}-E_k^{\mathrm{ex}},\\[1mm]
+\Pi_{k+h}^{\mathrm{ctrl}}(u)&:=\operatorname{sgn}(x_{k+h}^{\mathrm{ex}})\,x_{k+h}^{\mathrm{ctrl}}(u),
 \qquad
-\Pi_{k+h}^{\mathrm{ctrl}}(u):=\operatorname{sgn}(x_{k+h}^{\mathrm{ex}})x_{k+h}^{\mathrm{ctrl}}(u),\\[1mm]
-L_{k+h}^{\mathrm{ex}}&:=(1-\varrho_E)|x_{k+h}^{\mathrm{ex}}|,
+L_{k+h}^{\mathrm{ex}}:=(1-\varrho_E)|x_{k+h}^{\mathrm{ex}}|,
 \qquad
 U_{k+h}^{\mathrm{ex}}:=(1+\varrho_E)|x_{k+h}^{\mathrm{ex}}|,\\[1mm]
-\Xi_k^{\mathrm{exc,under}}(u)&:=\frac{1}{W_k}\sum_{h=1}^{H_k}\omega_h\bigl[L_{k+h}^{\mathrm{ex}}-\Pi_{k+h}^{\mathrm{ctrl}}(u)\bigr]_{+},
-\qquad
-\Xi_k^{\mathrm{exc,over}}(u):=\frac{1}{W_k}\sum_{h=1}^{H_k}\omega_h\bigl[\Pi_{k+h}^{\mathrm{ctrl}}(u)-U_{k+h}^{\mathrm{ex}}\bigr]_{+}.
+\Xi_k^{E,\mathrm{under}}(u)&:=\frac{1}{W_k}\sum_{h=1}^{H_k}\omega_h\bigl[L_{k+h}^{\mathrm{ex}}-\Pi_{k+h}^{\mathrm{ctrl}}(u)\bigr]_{+},\\[1mm]
+\Xi_k^{E,\mathrm{over}}(u)&:=\frac{1}{W_k}\sum_{h=1}^{H_k}\omega_h\bigl[\Pi_{k+h}^{\mathrm{ctrl}}(u)-U_{k+h}^{\mathrm{ex}}\bigr]_{+}.
 \end{aligned}
 $$
 
-The final quantity of interest in the miss-dominant regime is the full horizon score itself. Keeping the pointwise tracking terms and the slope-style corrections separate, define
+The optional drive-harmonic mismatch is formed from the same primary-density forecast values:
+$$
+\begin{aligned}
+z_k^{\mathrm{ctrl}}(u)&:=\sum_{h=1}^{H_k}\bar\omega_h\,\rho[\psi_{k+h}^{(u)}]\,e^{-i\omega_{\mathrm{drv}}t_{k+h}^{\sharp}},
+\qquad
+z_k^{\mathrm{ex}}:=\sum_{h=1}^{H_k}\bar\omega_h\,\rho[\psi_{k+h}^{\mathrm{ex}}]\,e^{-i\omega_{\mathrm{drv}}t_{k+h}^{\sharp}},\\[1mm]
+\Xi_k^{\rho,\mathrm{harm}}(u)&:=\frac{|z_k^{\mathrm{ctrl}}(u)-z_k^{\mathrm{ex}}|^{2}}{|z_k^{\mathrm{ex}}|^{2}+\varepsilon},
+\qquad
+\bar\omega_h:=\omega_h/W_k.
+\end{aligned}
+$$
+
+The full forecast score is therefore
 $$
 \begin{aligned}
 \mathcal J_k^{\mathrm{trk}}(u)
@@ -2568,37 +2659,115 @@ $$
 \mathcal J_k^{\mathrm{forecast}}(u)
 &:=\mathcal J_k^{\mathrm{trk}}(u)
 +\lambda_{\Delta\rho}\,\Xi_k^{\rho,\mathrm{slope}}(u)
-+\lambda_{\mathrm{slope}}\,\Xi_k^{\mathrm{shape,slope}}(u)
-+\lambda_{\mathrm{curv}}\,\Xi_k^{\mathrm{shape,curv}}(u)
-+\lambda_{\mathrm{under}}\,\Xi_k^{\mathrm{exc,under}}(u)
-+\lambda_{\mathrm{over}}\,\Xi_k^{\mathrm{exc,over}}(u).
++\lambda_{\mathrm{lag}}\,\Xi_k^{\rho,\mathrm{lag}}(u)
++\lambda_{\mathrm{wrong}}\,\Xi_k^{\rho,\mathrm{wrong}}(u)
++\lambda_{\mathrm{harm}}\,\Xi_k^{\rho,\mathrm{harm}}(u)
++\lambda_{\mathrm{slope}}\,\Xi_k^{E,\mathrm{slope}}(u)
++\lambda_{\mathrm{curv}}\,\Xi_k^{E,\mathrm{curv}}(u)
++\lambda_{\mathrm{under}}\,\Xi_k^{E,\mathrm{under}}(u)
++\lambda_{\mathrm{over}}\,\Xi_k^{E,\mathrm{over}}(u).
 \end{aligned}
 $$
-For shorthand only, one may now write $\mathcal J_k^{\mathrm{forecast}}=\mathcal J_k^{\mathrm{trk}}+\lambda_{\Delta\rho}\,\Xi_k^{\rho,\mathrm{slope}}+\lambda_{\mathrm{slope}}\,\Xi_k^{\mathrm{shape,slope}}+\lambda_{\mathrm{curv}}\,\Xi_k^{\mathrm{shape,curv}}+\lambda_{\mathrm{under}}\,\Xi_k^{\mathrm{exc,under}}+\lambda_{\mathrm{over}}\,\Xi_k^{\mathrm{exc,over}}$.
 
-The stay-versus-append comparison is then defined once by
+The exact-v1 decision surface compares append actions against the best stay action on the next checkpoint. Let
+$$
+\nu_{k,\mathrm{stay}}^{\star}\in\arg\min_{u\in\mathcal U_k^{\mathrm{stay}}}\mathcal J_k^{\mathrm{forecast}}(u),
+\qquad
+e_{X,k+1}^{\mathrm{stay}}:=e_{X,k+1}(\nu_{k,\mathrm{stay}}^{\star}),
+$$
+for $X\in\{F,\rho,\Delta\rho,D,n,E,\mathrm{lag}\}$, where
 $$
 \begin{aligned}
-\nu_{k,\mathrm{stay}}^{\star}&\in\arg\min_{u\in\mathcal U_k^{\mathrm{stay}}}\mathcal J_k^{\mathrm{forecast}}(u),
-\qquad
-\nu_{k,\mathrm{app}}^{\star}\in\arg\min_{u\in\mathcal U_k^{\mathrm{app}}}\mathcal J_k^{\mathrm{forecast}}(u),\\[1mm]
-\Delta F_k&:=\bigl|\langle\psi_{k+1}^{\mathrm{ex}},\psi_{k+1}^{(\nu_{k,\mathrm{app}}^{\star})}\rangle\bigr|^2-\bigl|\langle\psi_{k+1}^{\mathrm{ex}},\psi_{k+1}^{(\nu_{k,\mathrm{stay}}^{\star})}\rangle\bigr|^2,
-\qquad
-\Delta\varepsilon_k^{E}:=\varepsilon_{k+1}^{E}(\nu_{k,\mathrm{app}}^{\star})-\varepsilon_{k+1}^{E}(\nu_{k,\mathrm{stay}}^{\star}),\\[1mm]
-\varepsilon_{k+1}^{\Delta\rho}(u)&:=
-\frac{\bigl|\bigl(\rho[\psi_{k+1}^{(u)}]-\rho[\psi_k]\bigr)-\bigl(\rho[\psi_{k+1}^{\mathrm{ex}}]-\rho[\psi_k^{\mathrm{ex}}]\bigr)\bigr|}{s_{\Delta\rho,k}},\\[1mm]
-\nu_k^{\star}
-&:=\begin{cases}
-\nu_{k,\mathrm{stay}}^{\star},&1-\bigl|\langle\psi_{k+1}^{\mathrm{ex}},\psi_{k+1}^{(\nu_{k,\mathrm{stay}}^{\star})}\rangle\bigr|^2\le 10^{-3},\ \varepsilon_{k+1}^{\rho}(\nu_{k,\mathrm{stay}}^{\star})\le 2\times 10^{-2},\ \varepsilon_{k+1}^{\Delta\rho}(\nu_{k,\mathrm{stay}}^{\star})\le 2\times 10^{-2},\ \varepsilon_{k+1}^{D}(\nu_{k,\mathrm{stay}}^{\star})\le 2\times 10^{-3},\ \varepsilon_{k+1}^{n}(\nu_{k,\mathrm{stay}}^{\star})\le 2\times 10^{-2},\ \varepsilon_{k+1}^{E}(\nu_{k,\mathrm{stay}}^{\star})\le 2\times 10^{-3},\\[2mm]
-\nu_{k,\mathrm{stay}}^{\star},&\Delta F_k<-\tau_F\text{ and }\Delta\varepsilon_k^{E}>\tau_E,\\[1mm]
-\nu_{k,\mathrm{app}}^{\star},&\mathcal J_k^{\mathrm{forecast}}(\nu_{k,\mathrm{app}}^{\star})<\mathcal J_k^{\mathrm{forecast}}(\nu_{k,\mathrm{stay}}^{\star}),\\[1mm]
-\nu_{k,\mathrm{stay}}^{\star},&\text{otherwise.}
-\end{cases}
+e_{F,k+1}(u)&:=1-\bigl|\langle\psi_{k+1}^{\mathrm{ex}},\psi_{k+1}^{(u)}\rangle\bigr|^2,\\[1mm]
+e_{\rho,k+1}(u)&:=\bigl|\rho[\psi_{k+1}^{(u)}]-\rho[\psi_{k+1}^{\mathrm{ex}}]\bigr|,\\[1mm]
+e_{\Delta\rho,k+1}(u)&:=\bigl|\Delta\rho_{k}^{\mathrm{ctrl}}(u)-\Delta\rho_{k}^{\mathrm{ex}}\bigr|,\\[1mm]
+e_{D,k+1}(u)&:=\bigl|D[\psi_{k+1}^{(u)}]-D[\psi_{k+1}^{\mathrm{ex}}]\bigr|,\\[1mm]
+e_{n,k+1}(u)&:=\max_{1\le j\le L}\bigl|n_j[\psi_{k+1}^{(u)}]-n_j[\psi_{k+1}^{\mathrm{ex}}]\bigr|,\\[1mm]
+e_{E,k+1}(u)&:=\bigl|E_{k+1}^{\mathrm{ctrl}}(u)-E_{k+1}^{\mathrm{ex}}\bigr|,\\[1mm]
+e_{\mathrm{lag},k+1}(u)&:=p_{k+1}^{\rho,\mathrm{lag}}(u).
 \end{aligned}
 $$
 
+The bounded-defect stay gate is
+$$
+\mathfrak B_k^{\mathrm{stay}}=1
+\iff
+\begin{cases}
+e_{F,k+1}^{\mathrm{stay}}\le 10^{-3},\\
+e_{\rho,k+1}^{\mathrm{stay}}\le 2\times 10^{-2},\\
+e_{\Delta\rho,k+1}^{\mathrm{stay}}\le 2\times 10^{-2}\ \text{when the slope channel is active},\\
+e_{D,k+1}^{\mathrm{stay}}\le 2\times 10^{-3},\\
+e_{n,k+1}^{\mathrm{stay}}\le 2\times 10^{-2},\\
+e_{E,k+1}^{\mathrm{stay}}\le 2\times 10^{-3}.
+\end{cases}
+$$
+
+For an append action $u\in\mathcal U_k^{\mathrm{app}}$, define the componentwise gains against the best stay action by
+$$
+\begin{aligned}
+\Delta_{\rho}(u)&:=e_{\rho,k+1}^{\mathrm{stay}}-e_{\rho,k+1}(u),\\[1mm]
+\Delta_{\Delta\rho}(u)&:=e_{\Delta\rho,k+1}^{\mathrm{stay}}-e_{\Delta\rho,k+1}(u),\\[1mm]
+\Delta_{\mathrm{lag}}(u)&:=e_{\mathrm{lag},k+1}^{\mathrm{stay}}-e_{\mathrm{lag},k+1}(u),\\[1mm]
+\Delta_{n}(u)&:=e_{n,k+1}^{\mathrm{stay}}-e_{n,k+1}(u),
+\end{aligned}
+$$
+and the regressions
+$$
+\Delta_F^{\mathrm{reg}}(u):=e_{F,k+1}(u)-e_{F,k+1}^{\mathrm{stay}},
+\qquad
+\Delta_E^{\mathrm{reg}}(u):=e_{E,k+1}(u)-e_{E,k+1}^{\mathrm{stay}},
+\qquad
+\Delta_n^{\mathrm{reg}}(u):=e_{n,k+1}(u)-e_{n,k+1}^{\mathrm{stay}}.
+$$
+
+The target gain floor is density-first and can be lowered by active sign-lag or post-cross wrong-sign windows:
+$$
+\gamma_k^{\mathrm{base}}:=2\times 10^{-2},
+\qquad
+\gamma_k^{\mathrm{bf}}:=3\times 10^{-2},
+\qquad
+\gamma_k:=\min\{\gamma_k^{\mathrm{base/bf}},\gamma_k^{\mathrm{lag}},\gamma_k^{\mathrm{wrong}}\},
+$$
+where $\gamma_k^{\mathrm{base/bf}}=\gamma_k^{\mathrm{base}}$ on the ordinary exact-v1 lane and $\gamma_k^{\mathrm{base/bf}}=\gamma_k^{\mathrm{bf}}$ on a below-floor probe, while $\gamma_k^{\mathrm{lag}}$ and $\gamma_k^{\mathrm{wrong}}$ denote optional lowered floors opened by active sign-lag and post-cross wrong-sign windows when those windows are enabled.
+
+The admitted append set is
+$$
+\mathcal R_k^{\mathrm{adm}}
+:=\left\{
+u\in\mathcal U_k^{\mathrm{app}}:
+\max\{\Delta_{\rho}(u),\Delta_{\Delta\rho}(u),\Delta_{\mathrm{lag}}(u),\Delta_n(u)\}>\gamma_k
+\ \text{and}\ 
+\Delta_F^{\mathrm{reg}}(u)\le \kappa_F,\ 
+\Delta_E^{\mathrm{reg}}(u)\le \kappa_E,\ 
+\Delta_n^{\mathrm{reg}}(u)\le \kappa_n
+\right\},
+$$
+with ordinary exact-v1 caps
+$$
+(\kappa_F,\kappa_E,\kappa_n)=(5\times 10^{-2},\,2.5\times 10^{-1},\,2\times 10^{-2}),
+$$
+and stricter below-floor probe caps
+$$
+(\kappa_F,\kappa_E,\kappa_n)=(10^{-2},\,5\times 10^{-2},\,10^{-2}).
+$$
+If both fidelity and energy regress at once, the stricter dual cap
+$$
+\Delta_F^{\mathrm{reg}}(u)\le
+\begin{cases}
+10^{-2},&\text{ordinary lane},\\
+5\times 10^{-3},&\text{below-floor lane},
+\end{cases}
+\qquad
+\Delta_E^{\mathrm{reg}}(u)\le
+\begin{cases}
+5\times 10^{-2},&\text{ordinary lane},\\
+2\times 10^{-2},&\text{below-floor lane},
+\end{cases}
+$$
+is required unless the slope channel itself wins materially.
+
 \paragraph{Exact-forecast cost note.}
-On the exact forecast surface of this subsection, the density-mode and density-increment channels are evaluated from the same forecast states already used to form $n_j$, $D$, $E$, and $F$. Thus this refinement retargets the scalar controller functional without enlarging the exact-state measurement algebra. On a measured surface, $\rho$ is formed from the same site-occupation record and therefore primarily tightens precision requirements rather than introducing a new observable family.
+On the exact forecast surface of this subsection, the primary-density, density-increment, sign-lag, and post-cross wrong-sign channels are evaluated from the same forecast states already used to form $n_j$, $D$, $E$, and $F$. Thus the refinement retargets the scalar controller functional without enlarging the exact-state measurement algebra.
 
 ## 17A.9 Exact local prune law in the calm regime
 
@@ -2621,15 +2790,19 @@ L_{j,k}^{\mathrm{cache}}
 |\psi_k^{(-j)}\rangle
 &:=U(\theta_k^{(-j)};\mathcal O_k^{(-j)})|\psi_{\mathrm{ref}}\rangle,
 \qquad
-\Theta_{j,k}^{\mathrm{blk}}:=\|\theta_{k,I_j}\|_2,
-\qquad
-\Delta\psi_{j,k}^{\mathrm{pr}}:=\|U(\theta_k^{(-j)};\mathcal O_k^{(-j)})|\psi_{\mathrm{ref}}\rangle-U(\theta_k;\mathcal O_k)|\psi_{\mathrm{ref}}\rangle\|_2,\\[1mm]
+\Theta_{j,k}^{\mathrm{blk}}:=\|\theta_{k,I_j}\|_2,\\[1mm]
+\Delta\psi_{j,k}^{\mathrm{pr}}
+&:=\|U(\theta_k^{(-j)};\mathcal O_k^{(-j)})|\psi_{\mathrm{ref}}\rangle-U(\theta_k;\mathcal O_k)|\psi_{\mathrm{ref}}\rangle\|_2,\\[1mm]
 \rho_{\mathrm{miss},k}^{(-j)}
 &:=\frac{\langle\psi_k^{(-j)}|(H_k^{\sharp}-E_{\psi_k^{(-j)},k}^{\sharp})^2|\psi_k^{(-j)}\rangle-f_{k,-j}^{\top}G_{k,-j}^{+}f_{k,-j}}{\langle\psi_k^{(-j)}|(H_k^{\sharp}-E_{\psi_k^{(-j)},k}^{\sharp})^2|\psi_k^{(-j)}\rangle+\varepsilon},
 \qquad
 \Delta\rho_{j,k}^{\mathrm{pr}}:=\rho_{\mathrm{miss},k}^{(-j)}-\rho_{\mathrm{miss},k},\\[1mm]
 \operatorname{accept\_prune}(j)
-&\Longleftrightarrow L_{j,k}^{\mathrm{cache}}\le \tau_{\mathrm{loss}}^{\mathrm{pr}},\ \Theta_{j,k}^{\mathrm{blk}}\le \tau_{\theta}^{\mathrm{pr}},\ \Delta\psi_{j,k}^{\mathrm{pr}}\le \tau_{\psi}^{\mathrm{pr}},\ \Delta\rho_{j,k}^{\mathrm{pr}}\le \tau_{\rho}^{\mathrm{pr}}.
+&\Longleftrightarrow
+L_{j,k}^{\mathrm{cache}}\le \tau_{\mathrm{loss}}^{\mathrm{pr}},\ 
+\Theta_{j,k}^{\mathrm{blk}}\le \tau_{\theta}^{\mathrm{pr}},\ 
+\Delta\psi_{j,k}^{\mathrm{pr}}\le \tau_{\psi}^{\mathrm{pr}},\ 
+\Delta\rho_{j,k}^{\mathrm{pr}}\le \tau_{\rho}^{\mathrm{pr}}.
 \end{aligned}
 $$
 
@@ -2649,20 +2822,26 @@ $$
 \left[\Re\!\Bigl(\langle\psi_k|\widetilde A_{k,i}H_k^{\sharp}|\psi_k\rangle-\langle\widetilde A_{k,i}\rangle_{\psi_k}E_{\psi_k,k}^{\sharp}\Bigr)\right]_{i=1}^{n_k},\\[1mm]
 \nu_k^{\star}
 &:=\begin{cases}
-\displaystyle \arg\min_{u\in\mathcal U_k^{\mathrm{stay}}\cup\mathcal U_k^{\mathrm{app}}}\mathcal J_k^{\mathrm{forecast}}(u),&\rho_{\mathrm{miss},k}>\tau_{\mathrm{miss}},\\[2mm]
+\mathrm{stay},&\rho_{\mathrm{miss},k}\le \tau_{\mathrm{miss}},\\[1mm]
+\mathrm{stay},&\mathfrak B_k^{\mathrm{stay}}=1,\\[1mm]
+\displaystyle \arg\min_{u\in\mathcal R_k^{\mathrm{adm}}}\mathcal J_k^{\mathrm{forecast}}(u),&\rho_{\mathrm{miss},k}>\tau_{\mathrm{miss}}\text{ and }\mathcal R_k^{\mathrm{adm}}\neq\varnothing,\\[3mm]
 \text{the best }j\in\mathcal D_k^{\mathrm{pr}}\text{ satisfying }\operatorname{accept\_prune}(j),&\rho_{\mathrm{miss},k}\le \tau_{\mathrm{pr}}\text{ and }\mathfrak C_k=1,\\[1mm]
 \mathrm{stay},&\text{otherwise,}
 \end{cases}\\[1mm]
 (\mathcal O_{k+1},\theta_{k+1})
 &:=\begin{cases}
-(\mathcal O_k,\theta_{k+1}^{\mathrm{stay}}),&\nu_k^{\star}=\nu_{k,\mathrm{stay}}^{\star},\\[1mm]
-(\mathcal O_k^{+}(r_k^{\star}),\vartheta_{k+1}^{\mathrm{app}}),&\nu_k^{\star}=\nu_{k,\mathrm{app}}^{\star}=(\mathrm{append},r_k^{\star},a_k^{\star}),\\[1mm]
-(\mathcal O_k^{(-j_k^{\star})},\theta_{k+1}^{(-j_k^{\star})}),&\nu_k^{\star}=\mathrm{prune}(j_k^{\star}).
+(\mathcal O_k,\theta_{k+1}^{\mathrm{stay}}),&\nu_k^{\star}=(\mathrm{stay},p_k^{\star},a_k^{\star},g_k^{\star}),\\[1mm]
+(\mathcal O_k^{+}(r_k^{\star}),\vartheta_{k+1}^{\mathrm{app}}),&\nu_k^{\star}=(\mathrm{append},r_k^{\star},a_k^{\star}),\\[1mm]
+(\mathcal O_k^{(-j_k^{\star})},\theta_{k+1}^{(-j_k^{\star})}),&\nu_k^{\star}=\mathrm{prune}(j_k^{\star}),\\[1mm]
+(\mathcal O_k,\theta_{k+1}^{\mathrm{stay}}),&\nu_k^{\star}=\mathrm{stay}.
 \end{cases}
 \end{aligned}
 $$
 
-In condensed words only after the expanded law: project the sampled Schrödinger drift onto the current projective tangent space on each checkpoint interval; when the intrinsic miss ratio is large, choose between stay and append by the fully expanded horizon score; when the miss ratio is small and the motion is calm, choose deletion only by the fully expanded exact local prune law; then restart the next interval on the resulting scaffold.
+In condensed words only after the expanded law: project the sampled Schrödinger drift onto the current projective tangent space on each checkpoint interval; when the intrinsic miss ratio is large, keep the scaffold fixed if the best stay action already lies within the exact-v1 bounded-defect window, otherwise compete admitted append actions by the full exact-forecast score; when the miss ratio is small and the motion is calm, choose deletion only by the fully expanded exact local prune law; then restart the next interval on the resulting scaffold.
+
+\paragraph{Optional implemented extensions.}
+Two implemented knobs sit outside the core law above. First, the drive-harmonic term $\Xi_k^{\rho,\mathrm{harm}}(u)$ is optional and vanishes when $\lambda_{\mathrm{harm}}=0$. Second, the below-floor turn-escape exception is default-off: it permits a below-floor append candidate to pass the energy-safe window only when the stay next-step energy error is already above $10^{-2}$, the density-failure window is active, the selected forecast score is strictly smaller than the stay score, the selected site-turn error is strictly smaller than the stay site-turn error, and the selected next-step energy error does not exceed the stay next-step energy error.
 
 # 17B. Projective McLachlan Real-Time Dynamics and Checkpoint-Adaptive Snake Control
 

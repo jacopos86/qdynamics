@@ -5,7 +5,7 @@ Update the core repository documentation (`AGENTS.md` and `run_guide.md`) to est
 
 ## 1. `run_guide.md` Updates
 - **Update Section 0 (Current surface map):**
-  - Clarify the "canonical direct HH ADAPT" entry to explicitly state that it uses the `phase3_v1` methodology out of the new `adaptive_selection_and_mclachlan_time_dynamics.tex` / `adaptive_selection_staged_continuation.tex` manuscripts.
+  - Clarify the "canonical direct HH ADAPT" entry to explicitly state that it uses the `phase3_v1` methodology out of `adaptive_selection_staged_continuation.tex`.
   - Add explicit shorthand commands for running the `secant` time dynamics path as the definitive standard for time propagation.
   - Detail the usage of the reduced winning pools for $L=2$ and $L=3$ (referencing `Math.md`) rather than the full meta pools, to save computational resources and target physical relevance.
 
