@@ -20,12 +20,14 @@ from src.common.matrix_operations import norm_realv
 
 #
 class nuclear_spins_config():
-	def __init__(self, nsp, B0):
+	def __init__(self, nsp, B0, nuclear_spin_value):
 		self.nsp = nsp
 		self.B0 = np.array(B0)
 		# applied mag. field (G) units
 		self.nuclear_spins = []
 		# I spins list
+		self.nuclear_spin_value = 0.5
+		# I spin value
 	def set_time(self, dt, T):
 		# n. time steps
 		nt = int(T / dt)
@@ -102,7 +104,7 @@ class nuclear_spins_config():
 			I = np.zeros(3)
 			# compute components
 			# in cart. coordinates
-			I[:] = 0.5 * Iv[:,isp]
+			I[:] = self.nuclear_spin_value * Iv[:,isp]
 			Ilist.append(I)
 			isp += 1
 		# set atom's site
