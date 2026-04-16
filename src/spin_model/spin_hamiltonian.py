@@ -144,6 +144,7 @@ class general_spin_hamiltonian(spin_hamiltonian):
 		# build unperturbed H0
 		if self.s >= 1:
 			H0 = self._build_zfs_hamiltonian(unprt_struct)
+			self.set_SDS(unprt_struct) #check
 		else:
 			H0 = np.zeros((self.dim, self.dim), dtype=np.complex128)
 		# store unperturbed Hamiltonian
@@ -160,9 +161,6 @@ class general_spin_hamiltonian(spin_hamiltonian):
 		eig, eigv = LA.eig(H0)
 		for i in range(self.dim):
 			self.qs.append({'eig': eig[i], 'eigv': eigv[:,i]})
-		# validate ZFS (only for S >= 1)
-		if self.s >= 1:
-			self.set_SDS(unprt_struct)
 
 	# set Hamiltonian at time t
 	def set_hamilt_oft(self, t, B, unprt_struct=None, nuclear_config=None):
