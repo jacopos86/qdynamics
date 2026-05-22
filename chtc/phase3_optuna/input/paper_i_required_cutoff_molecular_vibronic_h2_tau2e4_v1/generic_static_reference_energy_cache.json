@@ -1,0 +1,102 @@
+{
+  "record_count": 4,
+  "records": {
+    "14886caffc0f895c0b603d2d": {
+      "exact_energy": -1.1295780951753214,
+      "key": {
+        "L": 2,
+        "boson_encoding": "binary",
+        "boundary": "open",
+        "dv": 0.0,
+        "g_ep": 1.0,
+        "include_zero_point": true,
+        "n_ph_max": 1,
+        "omega0": 0.022328470326434775,
+        "ordering": "blocked",
+        "problem": "molecular_vibronic_h2",
+        "t": 1.0,
+        "t_prime": 0.0,
+        "u": 0.0,
+        "v_nn": 0.0
+      },
+      "key_hash": "14886caffc0f895c0b603d2d",
+      "label": "same_cutoff",
+      "schema": "static_reference_energy_record_v1",
+      "source": "pipelines.exact_bench.static_reference_metrics",
+      "status": "ok"
+    },
+    "479f719515f3aaad129cbe03": {
+      "exact_energy": -1.1263255707868776,
+      "key": {
+        "L": 2,
+        "boson_encoding": "binary",
+        "boundary": "open",
+        "dv": 0.0,
+        "g_ep": 0.25,
+        "include_zero_point": true,
+        "n_ph_max": 4,
+        "omega0": 0.022328470326434775,
+        "ordering": "blocked",
+        "problem": "molecular_vibronic_h2",
+        "t": 1.0,
+        "t_prime": 0.0,
+        "u": 0.0,
+        "v_nn": 0.0
+      },
+      "key_hash": "479f719515f3aaad129cbe03",
+      "label": "reference_cutoff",
+      "schema": "static_reference_energy_record_v1",
+      "source": "pipelines.exact_bench.static_reference_metrics",
+      "status": "ok"
+    },
+    "eb9a05f8ffd17ab63539911f": {
+      "exact_energy": -1.1263233617190929,
+      "key": {
+        "L": 2,
+        "boson_encoding": "binary",
+        "boundary": "open",
+        "dv": 0.0,
+        "g_ep": 0.25,
+        "include_zero_point": true,
+        "n_ph_max": 1,
+        "omega0": 0.022328470326434775,
+        "ordering": "blocked",
+        "problem": "molecular_vibronic_h2",
+        "t": 1.0,
+        "t_prime": 0.0,
+        "u": 0.0,
+        "v_nn": 0.0
+      },
+      "key_hash": "eb9a05f8ffd17ab63539911f",
+      "label": "same_cutoff",
+      "schema": "static_reference_energy_record_v1",
+      "source": "pipelines.exact_bench.static_reference_metrics",
+      "status": "ok"
+    },
+    "f040043bf321d154768f8590": {
+      "exact_energy": -1.1305093329291076,
+      "key": {
+        "L": 2,
+        "boson_encoding": "binary",
+        "boundary": "open",
+        "dv": 0.0,
+        "g_ep": 1.0,
+        "include_zero_point": true,
+        "n_ph_max": 4,
+        "omega0": 0.022328470326434775,
+        "ordering": "blocked",
+        "problem": "molecular_vibronic_h2",
+        "t": 1.0,
+        "t_prime": 0.0,
+        "u": 0.0,
+        "v_nn": 0.0
+      },
+      "key_hash": "f040043bf321d154768f8590",
+      "label": "reference_cutoff",
+      "schema": "static_reference_energy_record_v1",
+      "source": "pipelines.exact_bench.static_reference_metrics",
+      "status": "ok"
+    }
+  },
+  "schema": "static_reference_energy_cache_v1"
+}
