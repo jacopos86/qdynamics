@@ -1,9 +1,9 @@
-from src.set_param_object import p
+from src.parameters.set_param_object import p
 from src.parallelization.mpi import mpi
 from src.utilities.log import log
 from src.utilities.timer import timer
 from src.utilities.input_parser import parser
-from src.calculation_drivers import spin_system_driver, elec_system_driver
+from src.drivers.calculation_drivers import spin_system_driver, elec_system_driver
 from pathlib import Path
 
 def run():
@@ -18,7 +18,7 @@ def run():
         log.info("\t ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
     #
     #  input structure :
-    #  log.warning("\t -> python src -ct1 [GS, RT] -co [spin-sys | elec-sys] -ct2 [inhomo,homo,full | MODEL,PSI4,PYSCF] - yml_inp [input]")
+    #  log.warning("\t -> python src -ct1 [GS, RT] -co [spin-sys | elec-sys] -ct2 [inhomo,homo,full | HH_MODEL,PSI4,PYSCF] - yml_inp [input]")
     # 
     yml_file_in = parser.parse_args().yml_inp[0]
     if yml_file_in is None:
@@ -37,7 +37,7 @@ def run():
             log.info("\n")
             log.info("\t " + p.sep)
             log.warning("\t CODE USAGE: \n")
-            log.warning("\t -> python src -ct1 [GS, RT] -co [spin-sys | elec-sys] -ct2 [inhomo,homo,full | MODEL,PSI4,PYSCF] - yml_inp [input]")
+            log.warning("\t -> python src -ct1 [GS, RT] -co [spin-sys | elec-sys] -ct2 [inhomo,homo,full | HH_MODEL,PSI4,PYSCF] - yml_inp [input]")
         log.error("\t WRONG EXECUTION PARAMETERS: QDYNAMICS STOPS")
     else:
         if mpi.rank == mpi.root:
@@ -81,7 +81,6 @@ def run():
         log.info("\t ++++++                    CALCULATION SUCCESSFULLY COMPLETED                            ++++++")
         log.info("\t ++++++                                                                                  ++++++")
         log.info("\t ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
-    PETSc.garbage_cleanup()
 
 if __name__ == "__main__":
     run()
