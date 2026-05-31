@@ -356,25 +356,6 @@ class dynamical_data_input(data_input):
                 self.atoms_2nd_displ.append(np.array(data['displ_ang']))
                 f.close()
 
-class Q_psi4_input(data_input):
-    # initialization
-    def __init__(self):
-        super().__init__()
-        # qubutization mode
-        self.fermion2qubit = None
-    def read_yml_data(self, input_file):
-        try:
-            f = open(input_file)
-        except:
-            msg = "\t COULD NOT FIND : " + input_file
-            log.error(msg)
-        data = yaml.load(f, Loader=yaml.Loader)
-        f.close()
-        self.read_yml_common_data(data)
-        # qubitization mode
-        if 'fermion2qubit' in data:
-            self.fermion2qubit = data['fermion2qubit']
-
 class real_time_elec_input(ABC):
     def __init__(self):
         self.dynamical_mode = []

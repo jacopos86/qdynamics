@@ -1,7 +1,14 @@
 import os
 from src.utilities.input_parser import parser
 from src.utilities.log import log
-from src.parameters.input_parameters import Q_real_time_input, Q_psi4_input
+from src.io_module.input.input_Builder import InputCombiner
+from src.io_module.input.input_Base import BaseInput
+from src.io_module.input.input_ElecSys import ElecSysInput
+from src.io_module.input.input_QuantEncode import QuantumEncodingInput
+from src.io_module.input.input_VQE import QuantumVQEInput
+from src.io_module.input.input_OutData import OutDataInput
+from src.io_module.input.input_Psi4 import Psi4Input
+from src.io_module.input.input_HHModel import HHModelInput
 
 # parameters proxy class
 
@@ -35,9 +42,23 @@ class param_proxy:
                 self._real_p = Q_real_time_input()
             elif ct1 == "GS":
                 if ct2 == "PSI4":
-                    self._real_p = Q_psi4_input()
+                    self._real_p = InputCombiner(
+                        BaseInput,
+                        ElecSysInput,
+                        QuantumEncodingInput,
+                        QuantumVQEInput,
+                        Psi4Input
+                    )
                 elif ct2 == "PYSCF":
                     self._real_p = Q_pyscf_input()
+                elif ct2 == "HH_MODEL":
+                    self._real_p = InputCombiner(
+                        BaseInput,
+                        HHModelInput,
+                        QuantumEncodingInput,
+                        QuantumVQEInput,
+                        OutDataInput
+                    )
                 else:
                     log.error(f"Unknown ct2 value: {ct2!r}")
             else:
