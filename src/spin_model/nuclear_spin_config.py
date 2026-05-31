@@ -15,7 +15,7 @@ import logging
 from src.common.phys_constants import gamma_n
 from src.parallelization.mpi import mpi
 from src.utilities.log import log
-from src.set_param_object import p
+from src.parameters.set_param_object import p
 from src.common.matrix_operations import norm_realv
 
 #
