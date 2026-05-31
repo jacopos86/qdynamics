@@ -1,5 +1,5 @@
 import os
-from src.set_param_object import p
+from src.parameters.set_param_object import p
 from src.parallelization.mpi import mpi
 from src.utilities.log import log
 from src.spin_model.spin_hamiltonian import set_spin_hamiltonian, quantum_spin_hamiltonian
