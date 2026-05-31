@@ -1,7 +1,7 @@
 from pathlib import Path
 import basis_set_exchange
 from src.utilities.log import log
-from src.set_param_object import p
+from src.parameters.set_param_object import p
 
 special_basis = {"SBKJC": "SBKJC-VDZ"}
 
@@ -14,13 +14,16 @@ def write_basis_lib_file(basis_file, unique_elements, basis_map=None):
     Write a Psi4-compatible BASIS library file for the given elements.
     """
     basis_file = Path(basis_file)
+    basis_file = Path(p.work_dir) / basis_file
     # delete existing file if present
     if basis_file.exists():
         return
     basis_map = p.basis_set
+    log.info("\t BASIS SET:")
     # iterate over elements
     for symbol in sorted(unique_elements):
         basis_name = basis_map.get(symbol)
+        log.info(f"\t\t {symbol}: {basis_name}")
         if basis_name is None:
             log.error(f"No basis set mapping found for element: {symbol}")
         elif basis_name in special_basis:
@@ -34,10 +37,13 @@ def write_basis_lib_file(basis_file, unique_elements, basis_map=None):
         )
         if basis_str is None:
             log.error(f"Basis set '{basis_name}' not found for element {symbol}")
+        log.info(f"\t\t " + basis_str)
         # append to file
         with basis_file.open("a") as f:
             f.write(basis_str)
             f.write("\n")
+    log.info("\t " + p.sep)
+    log.info("\n")
 
 #
 #     basis set  ->  setup
@@ -49,6 +55,7 @@ def setup_basis_set(coord_file, basis_file_name):
     for the unique atomic species found.
     """
     coord_file = Path(coord_file)
+    coord_file = Path(p.work_dir) / coord_file
     if not coord_file.exists():
         log.error(f"Coordinate file not found: {coord_file}")
     elements = set()
