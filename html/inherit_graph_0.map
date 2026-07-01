@@ -1,0 +1,17 @@
+<map id="Graphical Class Hierarchy" name="Graphical Class Hierarchy">
+<area shape="rect" id="Node000000" title=" " alt="" coords="5,110,55,136"/>
+<area shape="rect" id="Node000001" href="$classinput__parameters_1_1data__input.html" title=" " alt="" coords="103,37,253,78"/>
+<area shape="poly" id="edge1_Node000000_Node000001" title=" " alt="" coords="68,104,132,76,129,81,71,108"/>
+<area shape="rect" id="Node000005" href="$classinput__parameters_1_1real__time__elec__input.html" title=" " alt="" coords="105,103,251,143"/>
+<area shape="poly" id="edge5_Node000000_Node000005" title=" " alt="" coords="70,120,106,121,102,125,71,126"/>
+<area shape="rect" id="Node000006" href="$classspin__hamiltonian_1_1spin__hamiltonian.html" title=" " alt="" coords="105,168,251,209"/>
+<area shape="poly" id="edge6_Node000000_Node000006" title=" " alt="" coords="70,137,132,166,128,169,69,143"/>
+<area shape="rect" id="Node000002" href="$classinput__parameters_1_1_q__psi4__input.html" title=" " alt="" coords="326,5,461,46"/>
+<area shape="poly" id="edge2_Node000001_Node000002" title=" " alt="" coords="268,42,327,35,322,37,269,47"/>
+<area shape="rect" id="Node000003" href="$classinput__parameters_1_1dynamical__data__input.html" title=" " alt="" coords="301,71,485,111"/>
+<area shape="poly" id="edge3_Node000001_Node000003" title=" " alt="" coords="268,69,303,76,298,77,269,74"/>
+<area shape="rect" id="Node000004" href="$classinput__parameters_1_1_q__real__time__input.html" title=" " alt="" coords="533,71,669,111"/>
+<area shape="poly" id="edge4_Node000003_Node000004" title=" " alt="" coords="501,88,535,91,530,91,501,94"/>
+<area shape="rect" id="Node000007" href="$classspin__hamiltonian_1_1general__spin__hamiltonian.html" title=" " alt="" coords="311,168,475,209"/>
+<area shape="poly" id="edge7_Node000006_Node000007" title=" " alt="" coords="266,186,313,188,308,188,266,191"/>
+</map>

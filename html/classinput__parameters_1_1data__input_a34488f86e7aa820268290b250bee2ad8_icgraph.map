@@ -1,0 +1,9 @@
+<map id="input_parameters.data_input.read_yml_common_data" name="input_parameters.data_input.read_yml_common_data">
+<area shape="rect" id="Node000001" title=" " alt="" coords="452,39,654,79"/>
+<area shape="rect" id="Node000002" href="$classinput__parameters_1_1_q__psi4__input.html#a7eeedd5bfd6be967b49f099685631066" title=" " alt="" coords="213,5,390,46"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="434,44,390,40,390,35,439,43"/>
+<area shape="rect" id="Node000003" href="$classinput__parameters_1_1dynamical__data__input.html#aba6df71d79ed8b0f976d830137bf0d1f" title=" " alt="" coords="199,71,404,111"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="439,74,405,81,404,75,434,74"/>
+<area shape="rect" id="Node000004" href="$classinput__parameters_1_1_q__real__time__input.html#a47df3ed92e40163f0c1ddd00a8430d9d" title=" " alt="" coords="5,63,151,119"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="180,91,151,94,151,88,185,91"/>
+</map>

@@ -1,0 +1,25 @@
+var searchData=
+[
+  ['t_0',['T',['../classinput__parameters_1_1data__input.html#ab5cb13797de40e0510d427480e80dbc5',1,'input_parameters::data_input']]],
+  ['t2_1',['T2',['../classinput__parameters_1_1dynamical__data__input.html#aa0796d11955ea06c311f14e7f3915178',1,'input_parameters::dynamical_data_input']]],
+  ['t_5fdf_2',['T_df',['../classinput__parameters_1_1data__input.html#a80b8d9d15a810d06d9bb1d5069ccd714',1,'input_parameters::data_input']]],
+  ['temperatures_3',['temperatures',['../classinput__parameters_1_1dynamical__data__input.html#a413d6a2f706781bfe030d790a4ea56df',1,'input_parameters::dynamical_data_input']]],
+  ['test_5f1_4',['test_1',['../namespacetest__1.html',1,'']]],
+  ['test_5f1_2epy_5',['test_1.py',['../test__1_8py.html',1,'']]],
+  ['test_5fbell_5fcircuit_6',['test_bell_circuit',['../namespacetest__1.html#aad9f1233c949949695bb93b215808945',1,'test_1']]],
+  ['test_5fhadamard_7',['test_hadamard',['../namespacetest__1.html#aee004caef9149eeedcc28eb395b247bc',1,'test_1']]],
+  ['test_5fhubbard_5fdimer_8',['test_Hubbard_dimer',['../namespacetest__1.html#a780b0be00ae77ba7d217fa6dd463d682',1,'test_1']]],
+  ['test_5fising_5fmodel_9',['test_Ising_model',['../namespacetest__1.html#a0c5c6220d510aca0e8680b0d7eea81ab',1,'test_1']]],
+  ['test_5fpauli_5fpol_5fproduct_10',['test_pauli_pol_product',['../namespacetest__1.html#a99d1ae31ae47e55bcd4ae69866787696',1,'test_1']]],
+  ['test_5fpauli_5fpol_5freduction_11',['test_pauli_pol_reduction',['../namespacetest__1.html#aad01d1679ded381a4b7f8529b3e1b253',1,'test_1']]],
+  ['test_5fpauli_5fterm_5fproduct_12',['test_pauli_term_product',['../namespacetest__1.html#a95bdb23756b0e569aa7c127c2de6188b',1,'test_1']]],
+  ['test_5fpauli_5fwords_13',['test_pauli_words',['../namespacetest__1.html#a2031d554b0d746dcb50c6eaa76d858ef',1,'test_1']]],
+  ['test_5freduced_5fhubbard_5fdimer_14',['test_reduced_Hubbard_dimer',['../namespacetest__1.html#ae9d9e4cb32a75c0e32f845faff456f8c',1,'test_1']]],
+  ['thz_5fto_5fev_15',['THz_to_ev',['../namespacephys__constants.html#aadb7990f57dda317d10fe1e7a8b335c8',1,'phys_constants']]],
+  ['time_16',['time',['../classnuclear__spin__config_1_1nuclear__spins__config.html#a43c9a341e9b8a67ab9117b7c1360656a',1,'nuclear_spin_config::nuclear_spins_config']]],
+  ['time_5fdense_17',['time_dense',['../classnuclear__spin__config_1_1nuclear__spins__config.html#a168f846e38f29d78d1fa89d1b40a8dbd',1,'nuclear_spin_config::nuclear_spins_config']]],
+  ['time_5fresolved_18',['time_resolved',['../classinput__parameters_1_1dynamical__data__input.html#ac9ac87971d0a5453f46bd0354dbf8af5',1,'input_parameters::dynamical_data_input']]],
+  ['timer_19',['timer',['../namespacetimer.html',1,'timer'],['../namespacetimer.html#a9dc57e22e08d445e6fdde31ddda390ec',1,'timer.timer']]],
+  ['timer_2epy_20',['timer.py',['../timer_8py.html',1,'']]],
+  ['timer_5fclass_21',['timer_class',['../classtimer_1_1timer__class.html',1,'timer']]]
+];
