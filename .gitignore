@@ -17,6 +17,7 @@ qdynamics.egg-info
 *.yml
 *.dat
 *.yml
+*.txt
 
 # === python cache & compiled files === #
 __pycache__
