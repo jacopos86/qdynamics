@@ -24,6 +24,8 @@ Recognized keys (with defaults):
   write_h5      (true)
   write_fcidump (true)
   fcidump_tol   (1e-12)
+  write_vibration (false)   harmonic vibrational analysis
+  write_eph       (false)   electron-phonon coupling matrix elements
 """
 import logging
 from pathlib import Path
@@ -41,6 +43,8 @@ _DEFAULTS = {
     'write_h5': True,
     'write_fcidump': True,
     'fcidump_tol': 1e-12,
+    'write_vibration': False,
+    'write_eph': False,
 }
 
 _VALID_METHODS = {'RHF', 'ROHF', 'UHF', 'RKS', 'UKS'}
@@ -113,7 +117,7 @@ def parse_input(path):
             settings[key] = int(value)
         elif key == 'fcidump_tol':
             settings[key] = float(value)
-        elif key in ('write_h5', 'write_fcidump'):
+        elif key in ('write_h5', 'write_fcidump', 'write_vibration', 'write_eph'):
             try:
                 settings[key] = _BOOL_MAP[value.lower()]
             except KeyError:

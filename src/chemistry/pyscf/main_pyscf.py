@@ -19,9 +19,11 @@ import logging
 import sys
 from pathlib import Path
 
-from src.backends.pyscf.input_parser import parse_input
-from src.backends.pyscf.pyscf_solver import PySCFDriver
-from src.backends.pyscf import read_write_pyscf_results as out
+from src.chemistry.pyscf.input_parser import parse_input
+from src.chemistry.pyscf.pyscf_solver import PySCFDriver
+from src.chemistry.pyscf.vibration_solver import VibrationalSolver
+from src.chemistry.pyscf.electron_phonon_solver import ElectronPhononSolver
+from src.chemistry.pyscf import read_write_pyscf_results as out
 
 logging.basicConfig(level=logging.INFO,
                     format='%(levelname)s %(name)s: %(message)s')
@@ -82,6 +84,21 @@ def main():
                           h_mo, eri_mo_packed, Enuc,
                           nmo=meta['nmo'], nelec=meta['nelec'],
                           ms2=meta['ms2'], tol=cfg['fcidump_tol'])
+
+    # ---------- stage 3: vibrational analysis ----------
+    if cfg['write_vibration']:
+        vib = VibrationalSolver(driver)
+        vib_results = vib.run()
+        out.write_vibration_h5(prefix.with_name(prefix.name + '_vib.h5'),
+                               vib_results, meta)
+
+    # ---------- stage 4: electron-phonon coupling ----------
+    if cfg['write_eph']:
+        eph_solver = ElectronPhononSolver(driver)
+        eph_mat, omega = eph_solver.run(mo_rep=True)
+        out.write_eph_h5(prefix.with_name(prefix.name + '_eph.h5'),
+                         eph_mat, omega,
+                         {**meta, 'eph_basis': 'MO'})
 
     log.info(f"Job done. E_SCF = {e_scf:.10f} Ha")
 
