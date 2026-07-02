@@ -19,6 +19,9 @@ qdynamics.egg-info
 *.yml
 *.txt
 
+# === GitHub Actions === #
+!.github/workflows/*.yml
+
 # === python cache & compiled files === #
 __pycache__
 utils/__pycache__/
