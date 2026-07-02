@@ -2,12 +2,6 @@
 """
 main.py - job script
 --------------------
-Single entry point: run the whole pipeline in ONE execution.
-
-    parse (input_parser) -> compute (pyscf_driver) -> write (output_writers)
-
-Modules stay separated by responsibility; this script only orchestrates.
-
 Usage:
     python main.py h2o.inp
 

@@ -10,11 +10,6 @@ Molecular vibrational analysis module: computation only.
 Responsibility of this module:
   - Compute the nuclear Hessian on a converged SCF solution
   - Mass-weight and diagonalize -> normal modes and harmonic frequencies
-
-NOT the responsibility of this module:
-  - Running SCF -> see pyscf_solver.py (a converged PySCFDriver is input)
-  - Writing any files -> see read_write_pyscf_results.py
-  - Electron-phonon coupling -> see electron_phonon_solver.py
 """
 
 log = logging.getLogger(__name__)

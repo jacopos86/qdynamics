@@ -11,11 +11,6 @@ Responsibility of this module:
   - Compute first-order electron-phonon coupling matrix elements
     g_{I,pq} = <p| dV/dQ_I |q> / sqrt(2 w_I)   (a.u.)
     for each vibrational normal mode I
-
-NOT the responsibility of this module:
-  - Running SCF -> see pyscf_solver.py (a converged PySCFDriver is input)
-  - Vibrational analysis alone -> see vibration_solver.py
-  - Writing any files -> see read_write_pyscf_results.py
 """
 
 log = logging.getLogger(__name__)
