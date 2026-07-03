@@ -47,6 +47,7 @@ environment:
 ifeq ($(INSTALL_PSI4),1)
 	@echo "  - markupsafe" >> $(CONDA_ENV_FILE)
 	@echo "  - psi4" >> $(CONDA_ENV_FILE)
+	@echo "  - libint=2.9.0" >> $(CONDA_ENV_FILE)
 	@echo "  - basis_set_exchange" >> $(CONDA_ENV_FILE)
 endif
 	@echo "  - pip:" >> $(CONDA_ENV_FILE)
