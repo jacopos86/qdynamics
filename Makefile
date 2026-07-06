@@ -28,6 +28,7 @@ CONDA_BASE_DEPS = \
   h5py \
   qiskit==0.45.1 \
   qiskit-aer==0.13.3 \
+  pytest \
   pip
   
 # ================================
@@ -77,8 +78,7 @@ install :
 	@echo "Installing package into conda environment $(CONDA_ENV_NAME)"
 	@$(CONDA) run -n $(CONDA_ENV_NAME) python -m pip install -e .
 
-.PHONY :
-	clean
+.PHONY : environment configure install clean prepare-tests test
 
 # ===================
 #  clean section
@@ -107,8 +107,38 @@ clean :
 #  test section
 # ===================
 
-test :
+prepare-tests :
+	@echo "Preparing test fixtures"
+	@if [ ! -d "$(ROOT)/TESTS" ]; then \
+		if [ ! -f "$(ROOT)/TESTS.tar.gz" ]; then \
+			echo "Missing $(ROOT)/TESTS and $(ROOT)/TESTS.tar.gz"; \
+			exit 1; \
+		fi; \
+		tar -xzf "$(ROOT)/TESTS.tar.gz" -C "$(ROOT)"; \
+	fi
+	@set -e; \
+	for input_file in "$(ROOT)"/TESTS/*/input.yml; do \
+		case_dir=$$(dirname "$$input_file"); \
+		output_dir=$$(sed -n 's/^output_dir[[:space:]]*:[[:space:]]*//p' "$$input_file"); \
+		if [ "$$output_dir" = "none" ] || [ "$$output_dir" = "null" ] || [ -z "$$output_dir" ]; then \
+			if [ -d "$$case_dir/HH-OUT" ]; then \
+				output_leaf="HH-OUT"; \
+			elif [ -d "$$case_dir/PSI4-OUT" ]; then \
+				output_leaf="PSI4-OUT"; \
+			else \
+				output_leaf="OUT"; \
+			fi; \
+		else \
+			output_leaf=$$(basename "$$output_dir"); \
+		fi; \
+		sed -i "s|^working_dir[[:space:]]*:.*|working_dir : $$case_dir|" "$$input_file"; \
+		if [ -n "$$output_leaf" ]; then \
+			sed -i "s|^output_dir[[:space:]]*:.*|output_dir : $$case_dir/$$output_leaf|" "$$input_file"; \
+		fi; \
+	done
+
+test : prepare-tests
 	@echo "Running tests in conda environment $(CONDA_ENV_NAME)"
 	@set -e; \
 	PYTEST="$(CONDA) run -n $(CONDA_ENV_NAME) python -m pytest"; \
-	PYDEPHASING_TESTING=1 $$PYTEST -p no:warnings $(UNIT_TEST_DIR)/test_1.py;
+	PYDEPHASING_TESTING=1 $$PYTEST -p no:warnings $(UNIT_TEST_DIR);
