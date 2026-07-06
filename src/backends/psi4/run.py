@@ -86,6 +86,8 @@ class Psi4Driver:
         DM_obj.set_ae_space_dm(MO_obj.nmo)
         # set 1p matrix elements
         He.set_ae_1p_matr_elements(MO_obj)
+        # set 2p matrix elements
+        He.set_ae_2p_matr_elements(MO_obj)
     def set_elecvibr_inter(self, WF):
         log.info("\n")
         log.info("\t " + p.sep)
