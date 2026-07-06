@@ -1,0 +1,223 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{booktabs}
+\usepackage{hyperref}
+\usepackage{enumitem}
+
+\hypersetup{
+  colorlinks=true,
+  linkcolor=blue,
+  urlcolor=blue,
+  citecolor=blue
+}
+
+\title{Starter Project Outline: Quantum Active-Space Astrochemistry for H + H$_2$CO on Ice}
+\author{QDYNAMICS Project Notes}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\section{Core Idea}
+
+The first chemically meaningful project should be simple enough to implement with the current
+QDYNAMICS/Psi4 pipeline, but relevant enough to grow into the larger astrochemistry program.
+The proposed starting reaction is hydrogen addition to formaldehyde,
+\begin{align}
+  \mathrm{H + H_2CO} &\rightarrow \mathrm{CH_3O}, \\
+  \mathrm{H + H_2CO} &\rightarrow \mathrm{CH_2OH}.
+\end{align}
+This reaction is a natural first target because it is small, radical-like, relevant to grain-surface
+methanol chemistry, and has competing product channels. The project can start in the gas phase,
+then add water ice, then reduce the problem to an active-space Hamiltonian suitable for exact
+diagonalization and ADAPT-VQE.
+
+\section{Why This System}
+
+\begin{itemize}[leftmargin=*]
+  \item It is astrochemically motivated: hydrogenation of CO/H$_2$CO is central to methanol and complex organic molecule formation on dust-grain ice.
+  \item It is small enough for a first active-space workflow.
+  \item It has two channels, so the final observable can be a branching ratio rather than only a ground-state energy.
+  \item It naturally introduces tunneling, because H motion controls the low-temperature rate.
+  \item It can be embedded gradually in water: first H$_2$O, then (H$_2$O)$_4$, then (H$_2$O)$_8$.
+\end{itemize}
+
+\section{Computational Ladder}
+
+The project should proceed through a ladder where each stage adds only one new complication.
+
+\begin{center}
+\begin{tabular}{lll}
+\toprule
+Stage & System & Purpose \\
+\midrule
+0 & H$_2$ & Verify Psi4, AO/MO integrals, spin-orbital indexing. \\
+1 & H$_2$CO & Verify molecular integrals for the first real target molecule. \\
+2 & H + H$_2$CO & Build reactant/product and stretched-bond geometries. \\
+3 & H + H$_2$CO + H$_2$O & Add the first ice hydrogen-bond field. \\
+4 & H + H$_2$CO + (H$_2$O)$_n$ & Move toward ice clusters, $n=4,8,16$. \\
+5 & Active-space Hamiltonian & Downfold to CAS$(N_e,N_o)$ for quantum solvers. \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\section{Hamiltonian Target}
+
+For a fixed nuclear geometry $R$, the electronic Hamiltonian in spin orbitals is
+\begin{equation}
+  \hat{H}_{\mathrm{el}}(R)
+  =
+  E_{\mathrm{nuc}}(R)
+  +
+  \sum_{pq} h_{pq}(R) a_p^\dagger a_q
+  +
+  \frac{1}{2}\sum_{pqrs} h_{pqrs}(R)
+  a_p^\dagger a_q^\dagger a_s a_r .
+\end{equation}
+The current Psi4 pipeline is already moving in this direction by constructing
+\begin{equation}
+  h_{pq}
+  \quad \mathrm{and} \quad
+  h_{pqrs}
+\end{equation}
+from AO integrals and MO coefficients.
+
+In chemist notation, the spatial two-electron integral is
+\begin{equation}
+  (ij|kl)
+  =
+  \int d\mathbf{r}_1 d\mathbf{r}_2\,
+  \phi_i(\mathbf{r}_1)\phi_j(\mathbf{r}_1)
+  \frac{1}{r_{12}}
+  \phi_k(\mathbf{r}_2)\phi_l(\mathbf{r}_2).
+\end{equation}
+In spin-orbital form,
+\begin{equation}
+  \langle pq|rs\rangle
+  =
+  (ij|kl)\,
+  \delta_{\sigma_p\sigma_q}\,
+  \delta_{\sigma_r\sigma_s}.
+\end{equation}
+This is why the spin blocks in the code require the first pair to share spin and the second pair to share spin.
+
+\section{First Reaction Geometry Set}
+
+Before locating a full transition state, use a small controlled geometry set:
+\begin{enumerate}[leftmargin=*]
+  \item Reactant-like geometry: H far from the carbonyl carbon or oxygen.
+  \item Midpoint geometry: H approaching either C or O along a chemically reasonable coordinate.
+  \item Product-like geometry: CH$_3$O or CH$_2$OH radical geometry.
+\end{enumerate}
+This gives an initial reaction profile without yet needing a full nudged elastic band or transition-state search.
+
+\section{Ice Extension}
+
+The ice environment should be introduced gradually:
+\begin{align}
+  \mathrm{H + H_2CO}
+  &\rightarrow
+  \mathrm{products}, \\
+  \mathrm{H + H_2CO + H_2O}
+  &\rightarrow
+  \mathrm{products + H_2O}, \\
+  \mathrm{H + H_2CO + (H_2O)_n}
+  &\rightarrow
+  \mathrm{products + (H_2O)_n}.
+\end{align}
+The first target observable is the ice-induced barrier shift,
+\begin{equation}
+  \Delta\Delta E^\ddagger_{\mathrm{ice}}
+  =
+  \Delta E^\ddagger_{\mathrm{ice}}
+  -
+  \Delta E^\ddagger_{\mathrm{gas}}.
+\end{equation}
+If this quantity is negative, the ice lowers the barrier. If it is positive, the ice suppresses the channel.
+
+\section{Active-Space Reduction}
+
+The full molecular orbital space will become too large once water molecules are added. The project
+therefore needs active-space reduction. The first chemically motivated active orbitals are:
+\begin{itemize}[leftmargin=*]
+  \item carbonyl $\pi$ orbital,
+  \item carbonyl $\pi^\ast$ orbital,
+  \item incoming H 1s orbital,
+  \item radical/product SOMO,
+  \item oxygen lone pair if hydrogen bonding or proton-coupled effects become important.
+\end{itemize}
+A plausible first active space is
+\begin{equation}
+  \mathrm{CAS}(5e,5o)
+  \quad \mathrm{or} \quad
+  \mathrm{CAS}(7e,7o),
+\end{equation}
+corresponding to 10 or 14 spin orbitals before qubit tapering.
+
+\subsection{Active-Space Selection Strategy}
+
+The first implementation can be manual and chemistry-driven. Later, it should become automatic:
+\begin{enumerate}[leftmargin=*]
+  \item Run a mean-field calculation for each geometry.
+  \item Inspect orbital characters near the HOMO/LUMO window.
+  \item Include orbitals involved in forming or breaking bonds.
+  \item Add natural orbital occupation analysis when correlated references are available.
+  \item Freeze inactive occupied orbitals and discard high-energy virtual orbitals.
+\end{enumerate}
+
+\section{Validation Targets}
+
+For every geometry, validate the electronic data before running a quantum algorithm:
+\begin{itemize}[leftmargin=*]
+  \item Check electron count from the density matrix.
+  \item Check one-electron energy.
+  \item Check two-electron Hartree-Fock energy:
+  \begin{equation}
+    E_{2e}^{\mathrm{HF}}
+    =
+    \frac{1}{2}\sum_{pq} n_p n_q
+    \left[
+      (pp|qq) - (pq|qp)
+    \right].
+  \end{equation}
+  \item Compare active-space exact diagonalization with the ADAPT-VQE result.
+\end{itemize}
+
+\section{Near-Term Software Tasks}
+
+\begin{enumerate}[leftmargin=*]
+  \item Keep H$_2$ as the regression test for integral construction.
+  \item Add a TESTS case for isolated H$_2$CO.
+  \item Add a TESTS case for H + H$_2$CO at one reactant-like geometry.
+  \item Add a data object that stores $E_{\mathrm{nuc}}$, $h_{pq}$, $h_{pqrs}$, MO coefficients, occupations, and metadata.
+  \item Add active-space slicing of $h_{pq}$ and $h_{pqrs}$.
+  \item Add Jordan-Wigner mapping for the active-space molecular Hamiltonian.
+  \item Validate against exact diagonalization before connecting to ADAPT-VQE.
+\end{enumerate}
+
+\section{First Publishable Arc}
+
+The first paper-level story can be:
+\begin{quote}
+Adaptive quantum active-space simulations of hydrogen addition to formaldehyde, with gas-phase
+benchmarks and first water-ice barrier shifts.
+\end{quote}
+The first results should include:
+\begin{itemize}[leftmargin=*]
+  \item gas-phase reaction profile for CH$_3$O and CH$_2$OH channels,
+  \item active-space Hamiltonian construction and validation,
+  \item exact active-space and ADAPT-VQE energies,
+  \item first comparison between gas phase and one-water or small-cluster ice embedding,
+  \item resource estimates as a function of active-space size.
+\end{itemize}
+
+\section{Immediate Next Step}
+
+The next concrete system after H$_2$ is isolated formaldehyde, H$_2$CO. This should be used to test
+the Psi4 integral pipeline for a real astrochemical molecule before adding the incoming H atom or ice.
+
+\end{document}
