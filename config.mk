@@ -9,7 +9,7 @@ ROOT := $(shell pwd)
 # ===================
 
 CONDA := conda
-CONDA_ENV_NAME ?= pyqd
+CONDA_ENV_NAME := pyqd
 CONDA_ENV_FILE := $(ROOT)/conda-environment.yml
 
 # ===================
@@ -32,6 +32,7 @@ PYTHON_VERSION := python=3.11
 
 ifeq ($(INSTALL_PSI4),1)
 	PYTHON_VERSION := python=3.10
+	CONDA_ENV_NAME := psi4_qd
 endif
 
 # ===================

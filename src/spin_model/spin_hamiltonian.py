@@ -6,11 +6,11 @@
 from abc import ABC
 import numpy as np
 from numpy import linalg as LA
-from src.common.phys_constants import gamma_e, eps, THz_to_ev
+from src.common.phys_constants import gamma_e
 from src.utilities.log import log
 from src.parallelization.mpi import mpi
-from src.set_param_object import p
-from src.quantum.pauli_polynomial_class import PauliPolynomial, fermion_plus_operator, fermion_minus_operator
+from src.parameters.set_param_object import p
+from src.qubitization.pauli_polynomial_class import PauliPolynomial, fermion_plus_operator, fermion_minus_operator
 
 #
 #   function : set spin Hamiltonian

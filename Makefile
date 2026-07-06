@@ -97,8 +97,10 @@ clean :
 		echo "Removing conda environment $(CONDA_ENV_NAME) ..."; \
 		$(CONDA) env remove -n $(CONDA_ENV_NAME); \
 	fi
-	# remove conda-environment.yml
-	rm $(CONDA_ENV_FILE);
+	# remove conda-environment.yml if it exists
+	@if [ -f "$(CONDA_ENV_FILE)" ]; then \
+		rm -f "$(CONDA_ENV_FILE)"; \
+	fi
 
 # ===================
 #  test section

@@ -1,5 +1,4 @@
 from __future__ import annotations
-
 import inspect
 import itertools
 from typing import Any, Dict, List, Optional, Sequence, Set, Tuple, Union
@@ -10,31 +9,26 @@ except Exception:  # pragma: no cover - fallback when IPython is unavailable
     Markdown = None
     Math = None
     display = None
-
 try:
-    from src.quantum.pauli_polynomial_class import (
+    from src.qubitization.pauli_polynomial_class import (
         PauliPolynomial,
         fermion_minus_operator,
         fermion_plus_operator,
     )
-    from src.quantum.qubitization_module import PauliTerm
+    from src.qubitization.qubitization_module import PauliTerm
 except Exception as _dep_exc:  # pragma: no cover - allow source-inspection usage without full deps
     PauliPolynomial = Any  # type: ignore[assignment]
-
     def _missing_dep(*_args, **_kwargs):
         raise ImportError(
             "pydephasing quantum dependencies are unavailable in this environment"
         ) from _dep_exc
-
     fermion_minus_operator = _missing_dep  # type: ignore[assignment]
     fermion_plus_operator = _missing_dep  # type: ignore[assignment]
     PauliTerm = _missing_dep  # type: ignore[assignment]
-
     class _FallbackLog:
         @staticmethod
         def error(msg: str):
             raise RuntimeError(msg)
-
     log = _FallbackLog()
 
 try:
@@ -44,14 +38,21 @@ except Exception:  # pragma: no cover - local fallback when utilities package is
         @staticmethod
         def error(msg: str):
             raise RuntimeError(msg)
-
     log = _FallbackLog()
+
+#
+#   Hubbard model builder parameters
+#
 
 Spin = int  # 0 -> up, 1 -> down
 Dims = Union[int, Tuple[int, ...]]  # L or (Lx, Ly, ...)
 
 SPIN_UP: Spin = 0
 SPIN_DN: Spin = 1
+
+#
+#   Latex interface 
+#
 
 LATEX_TERMS: Dict[str, Dict[str, str]] = {
     "t_term": {
@@ -79,6 +80,9 @@ LATEX_TERMS: Dict[str, Dict[str, str]] = {
     },
 }
 
+#
+#   mode index
+#
 
 def mode_index(
     site: int,
@@ -96,7 +100,6 @@ def mode_index(
         log.error("spin must be 0 (up) or 1 (down)")
     if site < 0:
         log.error("site must be >= 0")
-
     if indexing == "interleaved":
         return 2 * int(site) + int(spin)
     if indexing == "blocked":
@@ -106,7 +109,6 @@ def mode_index(
         if site >= n_sites_i:
             log.error("site index out of range for blocked indexing")
         return int(site) if spin == SPIN_UP else n_sites_i + int(site)
-
     log.error("indexing must be either 'interleaved' or 'blocked'")
     return -1  # unreachable
 
@@ -168,16 +170,13 @@ def bravais_nearest_neighbor_edges(
     else:
         dims_t = tuple(int(L) for L in dims)
     d = len(dims_t)
-
     if isinstance(pbc, bool):
         pbc_t = (pbc,) * d
     else:
         if len(pbc) != d:
             log.error("pbc must be bool or have same length as dims")
         pbc_t = tuple(bool(b) for b in pbc)
-
     edges: Set[Tuple[int, int]] = set()
-
     for coord in itertools.product(*[range(L) for L in dims_t]):
         i = coord_to_site_index(coord, dims_t)
         for axis in range(d):
@@ -192,9 +191,11 @@ def bravais_nearest_neighbor_edges(
                 continue
             a, b = (i, j) if i < j else (j, i)
             edges.add((a, b))
-
     return sorted(edges)
 
+#
+#  number operator in JW representation: n_p = (I - Z_p)/2
+#
 
 def jw_number_operator(repr_mode: str, nq: int, p_mode: int) -> PauliPolynomial:
     """
@@ -207,13 +208,10 @@ def jw_number_operator(repr_mode: str, nq: int, p_mode: int) -> PauliPolynomial:
         log.error("jw_number_operator supports repr_mode='JW' only")
     if p_mode < 0 or p_mode >= nq:
         log.error("mode index out of range -> 0 <= p_mode < nq")
-
     id_str = "e" * nq
-
     # Place 'z' on qubit p_mode, but string index is (nq - 1 - p_mode).
     z_pos = nq - 1 - int(p_mode)
     z_str = ("e" * z_pos) + "z" + ("e" * (nq - 1 - z_pos))
-
     return PauliPolynomial(
         repr_mode,
         [
@@ -222,6 +220,9 @@ def jw_number_operator(repr_mode: str, nq: int, p_mode: int) -> PauliPolynomial:
         ],
     )
 
+#
+#   kinetic hubbard term H_t
+#
 
 def build_hubbard_kinetic(
     dims: Dims,
@@ -231,36 +232,39 @@ def build_hubbard_kinetic(
     indexing: str = "interleaved",
     edges: Optional[Sequence[Tuple[int, int]]] = None,
     pbc: Union[bool, Sequence[bool]] = True,
+    nq_override: Optional[int] = None,
 ) -> PauliPolynomial:
     """Hopping term H_t."""
     n_sites = n_sites_from_dims(dims)
-    nq = 2 * n_sites
+    nq = 2 * n_sites if nq_override is None else int(nq_override)
+    if nq < 2 * n_sites:
+        log.error("nq_override must be >= 2*n_sites")
     if edges is None:
         edges = bravais_nearest_neighbor_edges(dims, pbc=pbc)
-
     c_dag: Dict[int, PauliPolynomial] = {}
     c: Dict[int, PauliPolynomial] = {}
-
+    # c^+ operator
     def cd(p_mode: int) -> PauliPolynomial:
         if p_mode not in c_dag:
             c_dag[p_mode] = fermion_plus_operator(repr_mode, nq, p_mode)
         return c_dag[p_mode]
-
+    # c operator
     def cm(p_mode: int) -> PauliPolynomial:
         if p_mode not in c:
             c[p_mode] = fermion_minus_operator(repr_mode, nq, p_mode)
         return c[p_mode]
-
+    # hopping term
     Ht = PauliPolynomial(repr_mode)
-
     for (i, j) in edges:
         for spin in (SPIN_UP, SPIN_DN):
             pi = mode_index(i, spin, indexing=indexing, n_sites=n_sites)
             pj = mode_index(j, spin, indexing=indexing, n_sites=n_sites)
             Ht += (-t) * ((cd(pi) * cm(pj)) + (cd(pj) * cm(pi)))
-
     return Ht
 
+#
+#   onsite Hubbard term H_U
+#
 
 def build_hubbard_onsite(
     dims: Dims,
@@ -268,10 +272,13 @@ def build_hubbard_onsite(
     *,
     repr_mode: str = "JW",
     indexing: str = "interleaved",
+    nq_override: Optional[int] = None,
 ) -> PauliPolynomial:
     """Onsite interaction term H_U."""
     n_sites = n_sites_from_dims(dims)
-    nq = 2 * n_sites
+    nq = 2 * n_sites if nq_override is None else int(nq_override)
+    if nq < 2 * n_sites:
+        log.error("nq_override must be >= 2*n_sites")
 
     n_cache: Dict[int, PauliPolynomial] = {}
 
@@ -317,10 +324,13 @@ def build_hubbard_potential(
     *,
     repr_mode: str = "JW",
     indexing: str = "interleaved",
+    nq_override: Optional[int] = None,
 ) -> PauliPolynomial:
     """Local potential term H_v."""
     n_sites = n_sites_from_dims(dims)
-    nq = 2 * n_sites
+    nq = 2 * n_sites if nq_override is None else int(nq_override)
+    if nq < 2 * n_sites:
+        log.error("nq_override must be >= 2*n_sites")
     v_list = _parse_site_potential(v, n_sites=n_sites)
 
     n_cache: Dict[int, PauliPolynomial] = {}
@@ -352,8 +362,11 @@ def build_hubbard_hamiltonian(
     indexing: str = "interleaved",
     edges: Optional[Sequence[Tuple[int, int]]] = None,
     pbc: Union[bool, Sequence[bool]] = True,
+    nq_override: Optional[int] = None,
 ) -> PauliPolynomial:
     """Full Hamiltonian H = H_t + H_U + H_v."""
+    if repr_mode != "JW":
+        log.error("fermion_encoding must be 'JW' - others not yet implemented")
     Ht = build_hubbard_kinetic(
         dims=dims,
         t=t,
@@ -361,20 +374,23 @@ def build_hubbard_hamiltonian(
         indexing=indexing,
         edges=edges,
         pbc=pbc,
+        nq_override=nq_override,
     )
-    HU = build_hubbard_onsite(
+    Hu = build_hubbard_onsite(
         dims=dims,
         U=U,
         repr_mode=repr_mode,
         indexing=indexing,
+        nq_override=nq_override,
     )
     Hv = build_hubbard_potential(
         dims=dims,
         v=v,
         repr_mode=repr_mode,
         indexing=indexing,
+        nq_override=nq_override,
     )
-    return Ht + HU + Hv
+    return Ht + Hu + Hv
 
 
 def show_latex_and_code(title: str, latex_expr: str, fn) -> None:
@@ -390,7 +406,7 @@ def show_latex_and_code(title: str, latex_expr: str, fn) -> None:
     print(inspect.getsource(fn))
 
 
-def show_hubbard_latex_python_pairs() -> None:
+def show_hubbard_terms_latex_and_code() -> None:
     """Render built-in LaTeX terms and print corresponding Python implementations."""
     show_latex_and_code(
         LATEX_TERMS["t_term"]["title"],
@@ -409,9 +425,14 @@ def show_hubbard_latex_python_pairs() -> None:
     )
 
 
+def show_hubbard_latex_python_pairs() -> None:
+    """Backward-compatible name for the old literate helper."""
+    show_hubbard_terms_latex_and_code()
+
+
 if __name__ == "__main__":
     print(
         "Use this in Jupyter for rendered LaTeX:\n"
-        "from src.quantum.hubbard_latex_python_pairs import show_hubbard_latex_python_pairs\n"
-        "show_hubbard_latex_python_pairs()"
+        "from src.qubitization.hubbard_holstein_pauli_builder import show_hubbard_terms_latex_and_code\n"
+        "show_hubbard_terms_latex_and_code()"
     )

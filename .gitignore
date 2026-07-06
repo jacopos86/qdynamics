@@ -1,5 +1,6 @@
 # === Project configuration === #
 config.yml
+.codex
 
 # === Scripts === #
 scr.sh
@@ -16,6 +17,10 @@ qdynamics.egg-info
 *.yml
 *.dat
 *.yml
+*.txt
+
+# === GitHub Actions === #
+!.github/workflows/*.yml
 
 # === python cache & compiled files === #
 __pycache__
@@ -24,5 +29,5 @@ utils/__pycache__/
 
 # === TESTS data === #
 TESTS
-
+Fermi-Hamil-JW-VQE-TROTTER-PIPELINE
 /artifacts

@@ -5,3 +5,4 @@ pytest
 pytest-mpi
 pylatexenc
 pyscf
+pint
