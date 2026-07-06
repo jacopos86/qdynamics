@@ -27,13 +27,13 @@ jobs:
           sudo apt-get install -y libopenmpi-dev openmpi-bin
 
       - name: Build environment file
-        run: make environment INSTALL_PSI4=1
+        run: make environment PYTHON_VERSION=python=3.11
 
       - name: Configure environment
-        run: make configure INSTALL_PSI4=1
+        run: make configure PYTHON_VERSION=python=3.11
 
       - name: Install package
-        run: make install INSTALL_PSI4=1
+        run: make install
 
       - name: Run tests
-        run: make test INSTALL_PSI4=1
+        run: make test
