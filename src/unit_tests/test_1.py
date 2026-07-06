@@ -10,9 +10,16 @@ from qiskit.circuit.library import PauliEvolutionGate
 from qiskit.synthesis import SuzukiTrotter
 from src.qubitization.qubitization_module import PauliTerm
 from src.qubitization.pauli_polynomial_class import fermion_plus_operator, fermion_minus_operator, PauliPolynomial
+from pathlib import Path
 import pytest
 import numpy as np
 import matplotlib.pyplot as plt
+
+TEST_OUTPUT_DIR = Path(__file__).resolve().parents[2] / "TESTS" / "0"
+
+def _test_output_path(filename):
+    TEST_OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+    return TEST_OUTPUT_DIR / filename
 
 #
 #  QISKIT test unit
@@ -233,7 +240,7 @@ def test_Ising_model():
     # Plot the ansatz circuit
     # -----------------------
     fig = ansatz.draw(output="mpl")
-    fig.savefig("Ising_ansatz.png", dpi=300)
+    fig.savefig(_test_output_path("Ising_ansatz.png"), dpi=300)
     plt.close(fig)
     result2 = vqe.compute_minimum_eigenvalue(hamiltonian)
     energy2 = result2.eigenvalue.real
@@ -271,10 +278,10 @@ def test_Ising_model():
     # Plot the full evolution circuit
     # -----------------------
     fig_evo = circ.draw(output="mpl", fold=-1)
-    fig_evo.savefig("Ising_time_evolution_circuit.png", dpi=300)
+    fig_evo.savefig(_test_output_path("Ising_time_evolution_circuit.png"), dpi=300)
     plt.close(fig_evo)
     # Save to file
-    with open("Z0_vs_time.txt", "w") as f:
+    with open(_test_output_path("Z0_vs_time.txt"), "w") as f:
         f.write("# Step\t<Z0>\n")
         for step, val in enumerate(S_vals):
             f.write(f"{step}\t{val:.12f}\n")
@@ -287,7 +294,7 @@ def test_Ising_model():
     plt.ylabel("<Z0>")
     plt.title("Time Evolution of <Z0>")
     plt.grid(True)
-    plt.savefig("Z0_vs_time.png", dpi=300)
+    plt.savefig(_test_output_path("Z0_vs_time.png"), dpi=300)
     plt.close()
 
 def test_reduced_Hubbard_dimer():
@@ -456,13 +463,13 @@ def test_Hubbard_dimer():
     assert abs(S_expect - exact_S) < 1.e-4
     # Example: save the full ansatz to PNG
     fig = ansatz.draw(output="mpl")
-    fig.savefig("hubbard_dimer_ansatz.png", dpi=300)  # save as PNG
+    fig.savefig(_test_output_path("hubbard_dimer_ansatz.png"), dpi=300)
     plt.close(fig)  # close the figure to avoid showing it in tests
     # Parameters
     n_steps = 100
     dt = 0.1          # time step
     B = 10.0          # field amplitude
-    with open("S_vs_time.txt", "w") as f:
+    with open(_test_output_path("S_vs_time.txt"), "w") as f:
         f.write("# Step\t<S>\n")  # header
         # Start from VQE ground state
         circ = result.optimal_circuit.copy()
