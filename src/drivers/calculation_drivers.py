@@ -184,7 +184,7 @@ def _run_elec_gs_driver(yml_file, calc_type2):
         calc_handler = solve_Holstein_Hubbard_model()
     # PSI4 branch
     elif calc_type2 == "PSI4":
-        _run_elec_psi4_quantum_pipeline(yml_file)
+        _run_elec_psi4_quantum_pipeline()
     # PYSCF branch
     elif calc_type2 == "PYSCF":
         if mpi.rank == mpi.root:
