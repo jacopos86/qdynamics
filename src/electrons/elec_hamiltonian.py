@@ -1,6 +1,7 @@
 import numpy as np
 import psi4
 from src.common.units import Q_
+from src.utilities.log import log
 
 #
 #   Electronic hamiltonian class
@@ -86,16 +87,59 @@ class ElectronicHamiltonian:
                 self.hij[2*i+1, 2*j+1] = _hij[1][i,j]
     def set_ae_2p_matr_elements(self, MO_obj):
         """
-        General AO -> MO ERI transformation:
-            (ij|kl) = C1 C2 C3 C4 (mu nu|la si)
+        Transform AO electron-repulsion integrals to spin-orbital MO basis.
 
-        Uses chemist notation.
+        Uses chemist notation:
+            (ij|kl) =
+                integral dr1 dr2
+                phi_i(r1) phi_j(r1) (1 / r12) phi_k(r2) phi_l(r2)
+
+            (ij|kl) = C_mu,i C_nu,j C_lambda,k C_sigma,l
+                      (mu nu|lambda sigma)
+
+        In spin-orbital form:
+            <p q | r s> =
+                integral dx1 dx2
+                psi_p(x1) psi_q(x1) (1 / r12) psi_r(x2) psi_s(x2)
+
+            <p q | r s> =
+                (ij|kl) delta_spin(p,q) delta_spin(r,s)
+
+        Spin-orbital convention:
+            spatial MO i alpha -> 2*i
+            spatial MO i beta  -> 2*i + 1
+
+        The Coulomb operator is spin independent, so spin-orbital ERIs are
+        nonzero only when spin(i) == spin(j) and spin(k) == spin(l).
         """
-        self.Iijkl = np.zeros((2*MO_obj.nmo, 2*MO_obj.nmo, 2*MO_obj.nmo, 2*MO_obj.nmo))
-        self.Iijkl = np.einsum(
-            "mi,nj,pk,ql,mnpq->ijkl",
-
-        )
+        if self.Hee_ao is None:
+            log.error("AO two-particle Hamiltonian Hee_ao is not initialized")
+        # internal num. molecular orbitals
+        nmo = MO_obj.nmo
+        Iao = np.asarray(self.Hee_ao)
+        coeffs = [np.asarray(MO_obj.Ca), np.asarray(MO_obj.Cb)]
+        # I_ijkl molecular orbital basis
+        self.Iijkl = np.zeros((2*nmo, 2*nmo, 2*nmo, 2*nmo))
+        # loop over spin blocks
+        for spin_ij in range(2):
+            Cij = coeffs[spin_ij]
+            for spin_kl in range(2):
+                Ckl = coeffs[spin_kl]
+                block = np.einsum(
+                    "mi,nj,pk,ql,mnpq->ijkl",
+                    Cij,
+                    Cij,
+                    Ckl,
+                    Ckl,
+                    Iao,
+                    optimize=True,
+                )
+                i_idx = slice(spin_ij, 2*nmo, 2)
+                j_idx = slice(spin_ij, 2*nmo, 2)
+                k_idx = slice(spin_kl, 2*nmo, 2)
+                l_idx = slice(spin_kl, 2*nmo, 2)
+                self.Iijkl[i_idx, j_idx, k_idx, l_idx] = block
+        self.H2p = self.Iijkl
     def check_total_energy(self, WF, DM_obj):
         _tot_energy = WF.energy_1p.magnitude + WF.energy_2p.magnitude + self.Vnn.magnitude
         psi4.compare_values(WF.energy.magnitude, _tot_energy, 6, 'total energy')
@@ -107,4 +151,15 @@ class ElectronicHamiltonian:
         en_1p = Q_(_en_1p, "hartree")
         psi4.compare_values(en_1p.magnitude, WF.energy_1p.magnitude, 6, 'one particle energy')
     def _check_2p_energy(self, WF, DM_obj):
-        pass
+        occ = np.diag(DM_obj.Dae)
+        en_2p = 0.0
+        for p in range(occ.shape[0]):
+            if occ[p] == 0.0:
+                continue
+            for q in range(occ.shape[0]):
+                if occ[q] == 0.0:
+                    continue
+                en_2p += 0.5 * occ[p] * occ[q] * (
+                    self.Iijkl[p, p, q, q] - self.Iijkl[p, q, q, p]
+                )
+        psi4.compare_values(en_2p, WF.energy_2p.magnitude, 6, 'two particle energy')
