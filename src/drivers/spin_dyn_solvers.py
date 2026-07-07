@@ -39,7 +39,7 @@ def compute_spinsys_dephas(ZFS_CALC, HFI_CALC):
             log.info("\t " + p.sep)
             log.info("\n")
         # set spin config.
-        nuclear_config = nuclear_spins_config(p.nsp, p.B0)
+        nuclear_config = nuclear_spins_config(p.nsp, p.B0, p.nuclear_spin_value)
         nuclear_config.set_nuclear_spins(nat, config_index)
     # qubitize the Hamiltonian
     Hsys = quantum_spin_hamiltonian(p.fermion2qubit, NUCL_SPINS=HFI_CALC, PHONONS=p.qubit_ph)

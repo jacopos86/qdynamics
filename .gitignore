@@ -31,3 +31,5 @@ utils/__pycache__/
 TESTS
 Fermi-Hamil-JW-VQE-TROTTER-PIPELINE
 /artifacts
+results/
+.DS_Store
