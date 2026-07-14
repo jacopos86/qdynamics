@@ -2,7 +2,8 @@ from src.parallelization.mpi import mpi
 from src.utilities.log import log
 from src.utilities.input_parser import parser
 from src.parameters.set_param_object import p
-from src.ground_state.ground_state_solvers import solve_Holstein_Hubbard_model, PSI4_elec_gs_driver
+from src.chemistry.psi4.main_psi4 import run_psi4_electronic_structure
+from src.hamiltonians.main_hubbard_holstein import run_hubbard_holstein_model
 from src.drivers.spin_dyn_solvers import compute_spinsys_dephas
 
 #
@@ -181,7 +182,7 @@ def _run_elec_gs_driver(yml_file, calc_type2):
     p.read_yml_data(yml_file)
     # solve HH model
     if calc_type2 == "HH_MODEL":
-        calc_handler = solve_Holstein_Hubbard_model()
+        calc_handler = run_hubbard_holstein_model()
     # PSI4 branch
     elif calc_type2 == "PSI4":
         _run_elec_psi4_quantum_pipeline()
@@ -229,7 +230,7 @@ def _run_hh_model_pipeline():
     # temporary first step:
     # preserve current behavior exactly
     #
-    calc_handler = solve_Holstein_Hubbard_model()
+    calc_handler = run_hubbard_holstein_model()
 
 # --------------------------------------------------------------
 # 
@@ -249,7 +250,7 @@ def _run_elec_psi4_quantum_pipeline():
     # keep current behavior here until we introduce
     # build_molecular_problem() and run_adapt()
     #
-    calc_handler = PSI4_elec_gs_driver()
+    calc_handler = run_psi4_electronic_structure()
     #
     # current qubit conversion / quantum pipeline hook
     #

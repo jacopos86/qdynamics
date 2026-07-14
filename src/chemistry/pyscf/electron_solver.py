@@ -4,9 +4,9 @@ import numpy as np
 from pyscf import gto, scf, dft, ao2mo
 
 """
-pyscf_driver.py
----------------
-PySCF SCF driver module: computation only.
+electron_solver.py
+------------------
+PySCF electronic-structure solver module: computation only.
 
 Responsibility of this module:
   - Build molecule, run SCF
@@ -186,3 +186,31 @@ class PySCFDriver:
         h2_spin = h2_spin - h2_spin.transpose(0, 1, 3, 2)  # <pq||rs>
         log.info(f"Spin-orbital integrals: h1{h1_spin.shape}, h2{h2_spin.shape}")
         return h1_spin, h2_spin, Enuc
+
+    def get_matrix_elements(self):
+        """
+        Spin-orbital matrix elements in the shared first-principles format.
+
+        Returns
+        -------
+        h1 : (2*nmo, 2*nmo)
+            One-electron matrix elements in interleaved spin-orbital order.
+        h2 : (2*nmo, 2*nmo, 2*nmo, 2*nmo)
+            Two-electron Coulomb integrals in chemist notation (ij|kl), not
+            antisymmetrized. This matches the Psi4 matrix-element writer.
+        Enuc : float
+            Nuclear repulsion energy.
+        """
+        h_mo, eri_mo, Enuc = self.get_mo_integrals(compact=False)
+        nmo = h_mo.shape[0]
+        h1 = np.zeros((2*nmo, 2*nmo))
+        h1[0::2, 0::2] = h_mo
+        h1[1::2, 1::2] = h_mo
+
+        h2 = np.zeros((2*nmo, 2*nmo, 2*nmo, 2*nmo))
+        for spin_ij in range(2):
+            for spin_kl in range(2):
+                h2[spin_ij::2, spin_ij::2, spin_kl::2, spin_kl::2] = eri_mo
+
+        log.info(f"Matrix elements: h1{h1.shape}, h2{h2.shape}")
+        return h1, h2, Enuc
