@@ -9,7 +9,6 @@ from pathlib import Path
 
 import h5py
 import numpy as np
-from pyscf.tools import fcidump
 
 log = logging.getLogger(__name__)
 
@@ -41,24 +40,21 @@ def write_h5(path, mo_coeff, mo_energy, mo_occ, meta):
     return path
 
 
-def write_fcidump(path, h_mo, eri_mo_packed, Enuc, nmo, nelec, ms2=0, tol=1e-12):
-    """
-    Write a standard FCIDUMP file (8-fold permutation symmetry).
-    """
+def write_matrix_elements_h5(path, h1, h2, nuclear_repulsion, meta):
+    """Write full spin-orbital matrix elements using the shared schema."""
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
-
-    fcidump.from_integrals(
-        str(path),
-        h1e=h_mo,
-        h2e=eri_mo_packed,
-        nmo=int(nmo),
-        nelec=int(nelec),
-        nuc=float(Enuc),
-        ms=int(ms2),
-        tol=tol,
-    )
-    log.info(f"[output] FCIDUMP written: {path} (nmo={nmo}, nelec={nelec})")
+    with h5py.File(path, 'w') as f:
+        g = f.create_group('metadata')
+        for k, v in meta.items():
+            g.attrs[k] = v if v is not None else ''
+        g.attrs['h1_convention'] = 'spin_orbital_interleaved'
+        g.attrs['h2_convention'] = 'chemist_spin_orbital_coulomb'
+        g.attrs['h2_antisymmetrized'] = False
+        f.create_dataset('h1', data=np.asarray(h1), compression='gzip', chunks=True)
+        f.create_dataset('h2', data=np.asarray(h2), compression='gzip', chunks=True)
+        f.create_dataset('nuclear_repulsion', data=float(nuclear_repulsion))
+    log.info(f"[output] matrix elements HDF5 written: {path}")
     return path
 
 

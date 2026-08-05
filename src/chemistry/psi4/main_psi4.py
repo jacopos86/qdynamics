@@ -9,11 +9,10 @@ import argparse
 import logging
 from pathlib import Path
 
-from src.parameters.set_param_object import p
-from src.parallelization.mpi import mpi
 from src.utilities.log import log
 from src.chemistry.psi4.input_parser import parse_input
 from src.chemistry.psi4.electron_solver import Psi4Driver, setup_basis_set
+from src.chemistry.psi4.vibration_solver import VibrationalSolver
 from src.chemistry.psi4 import read_write_psi4_results as out
 
 logging.basicConfig(level=logging.INFO,
@@ -24,6 +23,9 @@ def run_psi4_electronic_structure():
     """
     Run the Psi4 first-principles electronic-structure workflow.
     """
+    from src.parallelization.mpi import mpi
+    from src.parameters.set_param_object import p
+
     if mpi.rank == mpi.root:
         log.info("\t " + p.sep)
         log.info("\n")
@@ -31,9 +33,18 @@ def run_psi4_electronic_structure():
         log.info("\n")
         log.info("\t " + p.sep)
     # prepare/write basis set
-    setup_basis_set(p.coordinate_file, p.basis_set_file)
+    setup_basis_set(
+        p.coordinate_file,
+        p.basis_set_file,
+        basis_map=p.basis_set,
+        work_dir=p.work_dir,
+    )
     # set up psi4 driver
-    psi4_obj = Psi4Driver(p.basis_set_file, p.psi4_calc_parameters)
+    psi4_obj = Psi4Driver(
+        p.basis_set_file,
+        p.psi4_calc_parameters,
+        work_dir=p.work_dir,
+    )
     # -------------------------------------
     #  1)  geometry structure
     # -------------------------------------
@@ -41,7 +52,8 @@ def run_psi4_electronic_structure():
         p.coordinate_file,
         p.optimized_coordinate_file,
         p.charge,
-        p.multiplicity
+        p.multiplicity,
+        optimize_geometry=getattr(p, "optimize_geometry", True),
     )
     # -------------------------------------
     #  2)  electronic structure
@@ -57,9 +69,34 @@ def run_psi4_electronic_structure():
     psi4_obj.build_operators_MO_basis(MO_obj, DM_obj, He)
     # run energy tests
     psi4_obj.energy_report(He, WF, DM_obj)
-    # if required compute electron vibration coupling
-    psi4_obj.set_elecvibr_inter(WF)
-    exit()
+
+    prefix = _prefix_from_global_params(p)
+    meta = {
+        "mol_str": Path(p.work_dir, p.coordinate_file).read_text(),
+        "basis": str(p.basis_set),
+        "method": p.psi4_calc_parameters["method"],
+        "charge": p.charge,
+        "spin": p.multiplicity - 1,
+        "unit": "",
+        "xc": "",
+        "e_scf": float(WF.energy.magnitude),
+        "converged": True,
+        "nelec": int(WF.mol_struct.nel),
+        "nmo": int(WF.nmo()),
+        "ms2": int(p.multiplicity - 1),
+    }
+    if getattr(p, "write_vibration", False):
+        vib = VibrationalSolver(
+            WF,
+            method=p.psi4_calc_parameters["method"],
+        )
+        vib_results = vib.run()
+        out.write_vibration_h5(
+            prefix.with_name(prefix.name + "_vib.h5"), vib_results, meta
+        )
+    if getattr(p, "write_eph", False):
+        psi4_obj.set_elecvibr_inter(WF)
+    return WF
 
 
 def PSI4_elec_gs_driver():
@@ -67,6 +104,19 @@ def PSI4_elec_gs_driver():
     Backward-compatible name for the Psi4 electronic-structure workflow.
     """
     return run_psi4_electronic_structure()
+
+
+def _prefix_from_global_params(p):
+    output_hdf5 = getattr(p, "output_hdf5", None)
+    if output_hdf5:
+        path = Path(output_hdf5)
+        if path.suffix:
+            return path.with_suffix("")
+        return path
+
+    write_dir = Path(getattr(p, "write_dir", None) or p.work_dir)
+    coordinate_stem = Path(p.coordinate_file).stem
+    return write_dir / coordinate_stem
 
 
 def main():
@@ -96,6 +146,7 @@ def main():
         cfg["optimized_coordinate_file"],
         cfg["charge"],
         cfg["multiplicity"],
+        optimize_geometry=cfg["optimize_geometry"],
     )
     wavefunction = psi4_obj.psi4_elec_struct_driver(geometry)
     overlap, mo, density_matrix, hamiltonian = psi4_obj.set_electronic_operators(
@@ -125,15 +176,20 @@ def main():
         "nmo": int(wavefunction.nmo()),
         "ms2": int(cfg["multiplicity"] - 1),
     }
-    if cfg["write_h5"]:
-        out.write_wavefunction_h5(prefix.with_suffix(".h5"), wavefunction, meta)
-    if cfg["write_matrix_elements"]:
+    if cfg["write_h5"] or cfg["write_matrix_elements"]:
         out.write_matrix_elements_h5(
-            prefix.with_name(prefix.name + "_matrix.h5"),
-            hamiltonian.hij,
-            hamiltonian.Iijkl,
-            hamiltonian.Vnn.magnitude,
-            meta,
+            prefix.with_name("ele.h5"),
+            hamiltonian.hij, hamiltonian.Iijkl,
+            hamiltonian.Vnn.magnitude, meta,
+        )
+    if cfg["write_vibration"]:
+        vib = VibrationalSolver(
+            wavefunction,
+            method=cfg["psi4_calc_parameters"]["method"],
+        )
+        vib_results = vib.run()
+        out.write_vibration_h5(
+            prefix.with_name("vib.h5"), vib_results, meta
         )
     log.info(f"Job done. E_SCF = {wavefunction.energy.magnitude:.10f} Ha")
 

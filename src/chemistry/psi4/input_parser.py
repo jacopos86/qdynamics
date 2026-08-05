@@ -17,6 +17,7 @@ Input file format
 Recognized keys (with defaults):
   method  (scf)
   basis   (sto-3g)          basis name or per-element map
+  optimize_geometry (true)  optimize before electronic/frequency calculation
   basis_set_file (basis.gbs)
   optimized_coordinate_file (optimized.xyz)
   reference (rhf)           rhf | uhf | rohf | rks | uks
@@ -44,6 +45,7 @@ log = logging.getLogger(__name__)
 _DEFAULTS = {
     "method": "scf",
     "basis": "sto-3g",
+    "optimize_geometry": True,
     "basis_set_file": "basis.gbs",
     "optimized_coordinate_file": "optimized.xyz",
     "reference": "rhf",
@@ -137,7 +139,7 @@ def parse_input(path):
                     basis_set, charge, multiplicity, unit, output,
                     psi4_calc_parameters, write_vibration, write_eph
     """
-    path = Path(path)
+    path = Path(path).resolve()
     if not path.exists():
         raise FileNotFoundError(f"Input file not found: {path}")
 
@@ -178,6 +180,7 @@ def parse_input(path):
         elif key in ("e_converg", "d_converg"):
             settings[key] = float(value)
         elif key in ("soscf", "write_h5", "write_matrix_elements",
+                     "optimize_geometry",
                      "write_vibration", "write_eph"):
             try:
                 settings[key] = _BOOL_MAP[value.lower()]
@@ -230,6 +233,7 @@ def parse_input(path):
         "charge": settings["charge"],
         "multiplicity": settings["multiplicity"],
         "unit": settings["unit"],
+        "optimize_geometry": settings["optimize_geometry"],
         "output": settings["output"],
         "write_h5": settings["write_h5"],
         "write_matrix_elements": settings["write_matrix_elements"],

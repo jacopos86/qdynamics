@@ -134,6 +134,32 @@ def write_matrix_elements_h5(path, h1, h2, nuclear_repulsion, meta):
     return path
 
 
+def write_vibration_h5(path, results, meta):
+    """
+    Write vibrational analysis results to HDF5.
+
+    Schema intentionally matches the PySCF vibration writer where possible.
+    """
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+
+    with h5py.File(path, "w") as f:
+        _write_metadata(f, meta)
+        for key in (
+            "freq_au",
+            "freq_wavenumber",
+            "norm_mode",
+            "reduced_mass",
+            "force_const_dyne",
+            "hessian",
+        ):
+            if key in results and results[key] is not None:
+                f.create_dataset(key, data=np.asarray(results[key]))
+
+    log.info(f"[output] Psi4 vibrational HDF5 written: {path}")
+    return path
+
+
 def write_eph_h5(path, eph_mat, omega, meta):
     """
     Write electron-phonon coupling matrix elements to HDF5.

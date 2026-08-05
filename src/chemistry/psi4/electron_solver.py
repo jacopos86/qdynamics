@@ -7,17 +7,17 @@ import psi4
 
 from src.common.units import Q_
 from src.io_module.write_xyz_file import write_xyz
-from src.parameters.set_param_object import p
 from src.utilities.log import log
 from src.chemistry.psi4.electron_phonon_solver import ElectronPhononSolver
 
 
 special_basis = {"SBKJC": "SBKJC-VDZ"}
+SEP = "*" * 94
 
 
 def _work_path(path, work_dir=None):
     if work_dir is None:
-        work_dir = p.work_dir
+        work_dir = Path.cwd()
     return Path(work_dir) / Path(path)
 
 
@@ -31,7 +31,7 @@ def write_basis_lib_file(basis_file, unique_elements, basis_map=None, work_dir=N
     if basis_file.exists():
         return
     if basis_map is None:
-        basis_map = p.basis_set
+        raise ValueError("basis_map is required when writing a basis-set file")
     if isinstance(basis_map, str):
         basis_map = {symbol: basis_map for symbol in unique_elements}
     log.info("\t BASIS SET:")
@@ -57,7 +57,7 @@ def write_basis_lib_file(basis_file, unique_elements, basis_map=None, work_dir=N
         with basis_file.open("a") as f:
             f.write(basis_str)
             f.write("\n")
-    log.info("\t " + p.sep)
+    log.info("\t " + SEP)
     log.info("\n")
 
 
@@ -135,7 +135,7 @@ class Psi4Molecule:
         geom += "\n".join(atom_lines) + "\n"
         geom += f"units {psi4_units}\n"
         geom += f"symmetry c1\n"
-        log.info("\t " + p.sep)
+        log.info("\t " + SEP)
         log.info("\t GEOM SENT TO PSI4:")
         log.info("\n"+geom)
         return psi4.geometry(geom)
@@ -175,8 +175,22 @@ def geometry_optimization(
     )
     # save data on file
     if work_dir is None:
-        work_dir = p.work_dir
+        work_dir = Path.cwd()
     write_xyz(atom_struct, optimized_coordinate_file, work_dir)
+    atom_struct.print_info_data()
+    return atom_struct
+
+
+def geometry_from_input(
+        coordinate_file,
+        charge,
+        multiplicity,
+        work_dir=None
+):
+    """
+    Build a Psi4 molecule from the input coordinates without optimization.
+    """
+    atom_struct = Psi4Molecule(coordinate_file, charge, multiplicity, work_dir)
     atom_struct.print_info_data()
     return atom_struct
 
@@ -354,7 +368,7 @@ class AO_overlap_class:
         log.info(f"\t S shape: {self.S.shape}")
         if self.gradS is not None:
             log.info(f"\t gradS shape: {self.gradS.shape}")
-        log.info("\t " + p.sep)
+        log.info("\t " + SEP)
 
     def run_tests(self):
         self._check_overlap_matr_properties()
@@ -705,9 +719,9 @@ class Psi4Driver:
 
     def set_electronic_operators(self, WF):
         log.info("\n")
-        log.info("\t " + p.sep)
+        log.info("\t " + SEP)
         log.info("\t SET ELECTRONIC STRUCTURE OBJECTS")
-        log.info("\t " + p.sep)
+        log.info("\t " + SEP)
         log.info("\n")
         # molecular integrals
         mints = WF.mints()
@@ -737,9 +751,9 @@ class Psi4Driver:
 
     def set_elecvibr_inter(self, WF):
         log.info("\n")
-        log.info("\t " + p.sep)
+        log.info("\t " + SEP)
         log.info("\t SET ELECTRON VIBRON COUPLING")
-        log.info("\t " + p.sep)
+        log.info("\t " + SEP)
         log.info("\n")
         # molecular integrals
         evibr = ElectronPhononSolver()
@@ -749,9 +763,18 @@ class Psi4Driver:
                 coordinate_file,
                 optimized_coordinate_file,
                 charge,
-                multiplicity
+                multiplicity,
+                optimize_geometry=True
         ):
         self.set_up_calc_parameters()
+        if not optimize_geometry:
+            log.info("\t Skipping geometry optimization; using input geometry.")
+            return geometry_from_input(
+                coordinate_file,
+                charge,
+                multiplicity,
+                self.work_dir
+            )
         # optimize geometry
         mol_struct = geometry_optimization(
             coordinate_file,
@@ -794,5 +817,5 @@ class Psi4Driver:
         self.compute_elec_struct(WF)
         log.info("\n")
         WF.print_summary()
-        log.info("\t " + p.sep)
+        log.info("\t " + SEP)
         return WF
